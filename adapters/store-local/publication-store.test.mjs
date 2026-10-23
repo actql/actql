@@ -8406,6 +8406,111 @@ test('native publication Index and inventory share their real commit without dup
   await store.close();
 });
 
+for (const afterCommit of [false,true]) {
+test(`native Index Store retains both storage and payload custody after ${afterCommit ? 'committed' : 'rolled-back'} reply loss`, async t => {
+  const exec = DatabaseSync.prototype.exec, prepare = DatabaseSync.prototype.prepare;
+  let armed = false, selected = false, lost = false;
+  t.mock.method(DatabaseSync.prototype,'prepare',function(sql){
+    const statement = Reflect.apply(prepare,this,[sql]), run = statement.run;
+    if (sql === 'INSERT INTO native_publication_indexes VALUES(?,?,?,?,?,1)') t.mock.method(statement,'run',function(...args){
+      const result = Reflect.apply(run,this,args); if (armed) selected = true; return result;
+    });
+    return statement;
+  });
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if (armed && selected && !lost && sql === 'COMMIT') {
+      lost = true; if (afterCommit) Reflect.apply(exec,this,[sql]);
+      throw Object.assign(new Error('lost original native Index reply'),{code:'EIO'});
+    }
+    return Reflect.apply(exec,this,[sql]);
+  });
+  const {store,directory} = await fixture(t), invoked = invocation();
+  const request = publicationRequest(resultDefinition(),digest('native Index reply loss ' + afterCommit));
+  const attempt = publicationAttempt(request), prepared = await prepareCommit(store,request,attempt,invoked,cids.policy,false,true);
+  const entry = indexEntry(request,attempt,invoked,{durable_result_binding_cids:[prepared.binding.identity]});
+  let failure; armed = true;
+  await assert.rejects(store.commitIndex(wire(entry),prepared.required,prepared.evidence),error=>{
+    failure = error; return error.outcome === 'unknown';
+  });
+  assert(lost);
+  assert.equal(failure.cleanupHandle.status().pending,true);
+  assert.equal(prepared.prepared.status().pending,true,'the original payload remains owned before storage confirmation');
+  assert.equal(store.status().reservedObjects,1,'Index body reservation is not refunded on Unknown');
+  const first = failure.cleanupHandle.retry(), same = failure.cleanupHandle.retry();
+  assert.equal(first,same,'same original cleanup is single-flight');
+  assert.equal((await first).pending,false);
+  assert.equal(prepared.prepared.status().pending,false);
+  assert.equal(store.status().reservedObjects,0);
+  assert.equal((await store.lookupCommittedIndex(indexKeyFor(request),()=>true)).public_index_entry_cid,entry.public_index_entry_cid);
+  const database = new DatabaseSync(join(directory,'delivery-attempts.sqlite3'),{readOnly:true});
+  try {
+    assert.equal(database.prepare('SELECT count(*) AS n FROM native_publication_indexes').get().n,1);
+    assert.equal(database.prepare('SELECT count(*) AS n FROM native_publication_materials').get().n,1);
+    assert.equal(database.prepare('SELECT ack_revision FROM native_publication_indexes').get().ack_revision,afterCommit ? 2 : 1);
+  } finally {database.close();}
+  armed = false; await store.close();
+  await assert.rejects(stat(join(directory,'owner')),code('ENOENT'));
+});
+}
+
+test('native Index shared Result payload keeps the same allocation until final real unlink ACK', async t => {
+  const {store,directory,configuration} = await fixture(t);
+  const publish = async label => {
+    const invoked = invocation(), request = publicationRequest(resultDefinition(),digest(label));
+    const attempt = publicationAttempt(request), prepared = await prepareCommit(store,request,attempt,invoked,cids.policy,false,true);
+    const entry = indexEntry(request,attempt,invoked,{durable_result_binding_cids:[prepared.binding.identity]});
+    await store.commitIndex(wire(entry),prepared.required,prepared.evidence);
+    return {request,entry,physical:JSON.parse(prepared.binding.wire).material_generation_cid};
+  };
+  const first = await publish('native first shared Result'), second = await publish('native second shared Result');
+  assert.equal(first.physical,second.physical);
+  const path = join(directory,'objects',first.physical.slice(7)), original = await stat(path);
+  await store.close();
+  let armed = false, lost = false;
+  const reopened = await openLocalPublicationStore(configuration,contractControl,{async syncDirectory(directoryPath){
+    if (armed && !lost && directoryPath === join(directory,'objects')) {
+      let missing = false;
+      try {await stat(path);} catch (error) {if(error.code !== 'ENOENT') throw error; missing = true;}
+      if (missing) {lost = true; throw Object.assign(new Error('last native Result directory ACK failed'),{code:'EIO'});}
+    }
+    const handle = await open(directoryPath,'r'); try {await handle.sync();} finally {await handle.close();}
+  }});
+  t.after(async()=>{armed=false;await reopened.close();});
+  const retired = await reopened.retireCommittedResult(indexKeyFor(first.request),first.request.inventory[0].result_definition_cid);
+  assert.equal(retired.cleanup.status().pending,false);
+  const retained = await stat(path);
+  assert.equal(retained.dev,original.dev); assert.equal(retained.ino,original.ino);
+  const bytes = [];
+  await reopened.consumeCommittedResult(indexKeyFor(second.request),second.request.inventory[0].result_definition_cid,
+    ()=>true,chunk=>bytes.push(Buffer.from(chunk)));
+  assert.equal(Buffer.concat(bytes).toString(),'fixture durable Result payload');
+  const before = reopened.status(); armed = true;
+  const last = await reopened.retireCommittedResult(indexKeyFor(second.request),second.request.inventory[0].result_definition_cid);
+  assert(lost); assert.equal(last.cleanup.status().pending,true);
+  assert.equal(reopened.status().objectCount,before.objectCount,'unlink visibility is not quota release');
+  await assert.rejects(reopened.close(),code('PublicationStoreCleanupPending'));
+  assert.equal((await last.cleanup.retry()).pending,false);
+  assert.equal(reopened.status().objectCount,before.objectCount-1);
+  await assert.rejects(stat(path),code('ENOENT'));
+  armed = false; await reopened.close();
+});
+
+test('native Index selected body corruption refuses without rebuilding unrelated publications', async t => {
+  const {store,directory,configuration} = await fixture(t), invoked = invocation();
+  const request = publicationRequest(resultDefinition(),digest('native selected corruption'));
+  const attempt = publicationAttempt(request), prepared = await prepareCommit(store,request,attempt,invoked,cids.policy,false,true);
+  const entry = indexEntry(request,attempt,invoked,{durable_result_binding_cids:[prepared.binding.identity]});
+  await store.commitIndex(wire(entry),prepared.required,prepared.evidence); await store.close();
+  const db = new DatabaseSync(join(directory,'delivery-attempts.sqlite3'));
+  try {db.prepare('UPDATE publication_contracts SET wire=?,byte_count=? WHERE semantic_cid=?').run('{}',2,entry.public_index_entry_cid);}
+  finally {db.close();}
+  const reopened = await openLocalPublicationStore(configuration,contractControl);
+  try {
+    await assert.rejects(reopened.lookupCommittedIndex(indexKeyFor(request),()=>true),code('InvalidPublicationContract'));
+    assert.deepEqual(await readdir(join(directory,'indexes')),[],'no file Index or authority is reconstructed');
+  } finally {await reopened.close();}
+});
+
 test('native publication inventory is the durable original without duplicate file ACKs',async t=>{
   const {store,directory}=await fixture(t),invocationValue=invocation();
   const request=publicationRequest(resultDefinition(),digest('native inventory Run'));

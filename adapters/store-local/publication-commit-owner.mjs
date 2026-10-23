@@ -26,6 +26,7 @@ const custodyFailure = (primary, custody, reconciliation, makeFailure) => {
     ? primary.code : 'PublicationCommitUnknown';
   const failure = makeFailure(code, primary);
   failure.primaryFailure = primary;
+  if (primary?.outcome === 'unknown') failure.outcome = 'unknown';
   failure.reconciliationFailure = reconciliation;
   failure.cleanupPending = true;
   failure.cleanupErrors = Object.freeze(
