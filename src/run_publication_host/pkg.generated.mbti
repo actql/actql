@@ -1790,6 +1790,8 @@ pub fn prepare_client_stored_run_captured_content(ClientCompiledRun, @run_public
 
 pub fn prepare_client_submission_reference_record(ClientSubmissionEpochToken, String) -> Result[ClientSubmissionReferenceRecord, ClientSubmissionReferenceRecordIssue]
 
+pub fn prepare_client_submitted_input_parts(String, Int, Int, Int, @decode_core.Limits) -> Result[(ClientSubmittedIntent, @canonical_json.CanonicalValue, @decode_core.Cursor), ClientSubmittedIntentIssue]
+
 pub fn prepare_client_submitted_intent(String, Int, Int, Int) -> Result[ClientSubmittedIntent, ClientSubmittedIntentIssue]
 
 pub fn[E] prepare_client_submitted_journal_append(ClientSubmissionReferenceRecord, ClientSubmittedIntent, @logical_request_scope.SubmissionEpochValidity, Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientSubmittedJournalEncoding, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], E, usage? : (() -> Result[ClientJournalPhysicalRow?, E])?) -> Result[ClientSubmittedJournalAppendPlan, ClientSubmittedJournalAppendIssue[E]]

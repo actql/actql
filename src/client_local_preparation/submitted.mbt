@@ -31,36 +31,16 @@ pub fn prepare_local_submitted_input(
   limits : @host.ClientProgramPreparationLimits,
 ) -> Result[LocalSubmittedPreparation, LocalPreparationIssue] {
   let input_limits = limits.checking.input
-  let intent = match
-    @host.prepare_client_submitted_intent(
+  let (intent, value, cursor) = match
+    @host.prepare_client_submitted_input_parts(
       wire,
       input_limits.source.max_input_bytes,
       input_limits.source.max_nodes,
       input_limits.source.max_depth,
+      input_limits.tree,
     ) {
-    Ok(intent) => intent
+    Ok(parts) => parts
     Err(issue) => return Err(SubmittedInput(issue))
-  }
-  let source = match
-    @source.parse_json_bytes_preserving(
-      @utf8.encode(@host.client_submitted_intent_wire(intent)),
-      input_limits.source,
-    ) {
-    Ok(source) => source
-    Err(_) => return Err(SubmittedInput(@host.Limit))
-  }
-  let value = @canonical.from_source(
-    source,
-    input_limits.source.max_nodes,
-    input_limits.source.max_depth,
-    input_limits.source.max_input_bytes,
-    data_keys=true,
-  ) catch {
-    _ => return Err(SubmittedInput(@host.InvalidEnvelope))
-  }
-  let cursor = match @decode.admit(source, input_limits.tree) {
-    Ok(cursor) => cursor
-    Err(_) => return Err(SubmittedInput(@host.InvalidEnvelope))
   }
   guard @decode.closed_object(cursor, [
       "kind", "input", "parameters", "stopBefore", "readOnly",

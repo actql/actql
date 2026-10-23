@@ -12,6 +12,44 @@ fn submitted_input(
 }
 
 ///|
+test "canonical and noncanonical submitted spelling keep the same checked originals" {
+  let canonical = submitted_input(
+    "{\"input\":{\"format\":\"sql\",\"text\":\"SELECT 1 AS n\"},\"kind\":\"aql\",\"parameters\":null}",
+  ).unwrap()
+  let noncanonical = submitted_input(
+    " {\"parameters\":null, \"kind\":\"aql\", \"input\":{\"text\":\"SELECT 1 AS n\", \"format\":\"sql\"}} ",
+  ).unwrap()
+  assert_eq(
+    @host.client_submitted_intent_cid(canonical.intent),
+    @host.client_submitted_intent_cid(noncanonical.intent),
+  )
+  assert_eq(
+    local_prepared_document(canonical.input),
+    local_prepared_document(noncanonical.input),
+  )
+  let first = @host.prepared_client_identity(
+    local_prepared_program(canonical.input),
+  )
+  let next = @host.prepared_client_identity(
+    local_prepared_program(noncanonical.input),
+  )
+  assert_eq(first.program_definition_cid, next.program_definition_cid)
+  assert_eq(first.parameter_values_cid, next.parameter_values_cid)
+  assert_true(
+    physical_equal(
+      canonical.intent,
+      local_submitted_preparation_intent(canonical),
+    ),
+  )
+  assert_true(
+    physical_equal(
+      canonical.input,
+      local_submitted_preparation_input(canonical),
+    ),
+  )
+}
+
+///|
 test "submitted optional restrictions remain on the same original preparation" {
   let body = "\"kind\":\"aql\",\"input\":{\"format\":\"sql\",\"text\":\"SELECT 1 AS n\"},\"parameters\":null"
   let old = submitted_input("{" + body + "}").unwrap()

@@ -80,6 +80,102 @@ pub fn prepare_client_submitted_intent(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientSubmittedIntent, ClientSubmittedIntentIssue] {
+  prepare_client_submitted_intent_originals(
+    body,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    false,
+    (bytes, limits) => @source.parse_json_bytes_preserving(bytes, limits),
+  ).map(parts => parts.0)
+}
+
+///|
+/// The same admitted envelope's immutable value and decoder view. This is
+/// input DATA only; Program checking, current permission and Run admission
+/// remain separate. No caller-supplied cursor or claimed identity is accepted.
+pub fn prepare_client_submitted_input_parts(
+  body : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  tree_limits : @decode.Limits,
+) -> Result[
+  (ClientSubmittedIntent, @canonical.CanonicalValue, @decode.Cursor),
+  ClientSubmittedIntentIssue,
+] {
+  prepare_client_submitted_input_parts_with_reader(
+    body,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    tree_limits,
+    (bytes, limits) => @source.parse_json_bytes_preserving(bytes, limits),
+  )
+}
+
+///|
+fn prepare_client_submitted_input_parts_with_reader(
+  body : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  tree_limits : @decode.Limits,
+  read : (Bytes, @source.ParseLimits) -> Result[
+    @source.Node,
+    @source.ParseError,
+  ],
+) -> Result[
+  (ClientSubmittedIntent, @canonical.CanonicalValue, @decode.Cursor),
+  ClientSubmittedIntentIssue,
+] {
+  let (intent, original, value) = match
+    prepare_client_submitted_intent_originals(
+      body, max_bytes, max_nodes, max_depth, true, read,
+    ) {
+    Ok(parts) => parts
+    Err(issue) => return Err(issue)
+  }
+  // Decoder diagnostics previously referred to the canonical intent wire.
+  // Reuse source coordinates only when those exact bytes were admitted;
+  // differently spelled input keeps the original canonical-wire parse.
+  let source = match original {
+    Some(source) => source
+    None =>
+      match
+        read(@utf8.encode(intent.wire), {
+          max_input_bytes: max_bytes,
+          max_nodes,
+          max_depth,
+        }) {
+        Ok(source) => source
+        Err(_) => return Err(Limit)
+      }
+  }
+  let cursor = match @decode.admit(source, tree_limits) {
+    Ok(cursor) => cursor
+    Err(_) => return Err(InvalidEnvelope)
+  }
+  Ok((intent, value, cursor))
+}
+
+///|
+// Preserve the existing envelope/identity admission and return only its own
+// original parsed facts to the immediate synchronous preparation caller.
+fn prepare_client_submitted_intent_originals(
+  body : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  retain_source : Bool,
+  read : (Bytes, @source.ParseLimits) -> Result[
+    @source.Node,
+    @source.ParseError,
+  ],
+) -> Result[
+  (ClientSubmittedIntent, @source.Node?, @canonical.CanonicalValue),
+  ClientSubmittedIntentIssue,
+] {
   if max_bytes < 1 ||
     max_bytes > 1048576 ||
     max_nodes < 1 ||
@@ -89,7 +185,7 @@ pub fn prepare_client_submitted_intent(
     return Err(InvalidLimits)
   }
   let source = match
-    @source.parse_json_bytes_preserving(@utf8.encode(body), {
+    read(@utf8.encode(body), {
       max_input_bytes: max_bytes,
       max_nodes,
       max_depth,
@@ -155,12 +251,22 @@ pub fn prepare_client_submitted_intent(
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-submitted-intent/0.1")
     @encode.end_object(writer)
-    Ok({
-      wire,
-      cid: "sha256:" + @encode.finish_hash(writer),
-      stop_before_commit,
-      read_only,
-    })
+    Ok(
+      (
+        {
+          wire,
+          cid: "sha256:" + @encode.finish_hash(writer),
+          stop_before_commit,
+          read_only,
+        },
+        if retain_source && body == wire {
+          Some(source)
+        } else {
+          None
+        },
+        value,
+      ),
+    )
   } catch {
     _ => Err(Encoding)
   }
