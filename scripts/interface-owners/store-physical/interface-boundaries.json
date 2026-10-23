@@ -4182,7 +4182,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fa0fdc8f8141ba07fc81c6b091377c94b84f6ebaf8c2be98ee65e7058024b67f",
+      "sha256": "5b400a49135c92ab3ba9f8515b440031b1f27a77d51e2728d7a7ecfef62bf265",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -5063,6 +5063,44 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/prepareOnUse/prepareOnUse",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/prepareOnUse/prepareOnUse/prepareOnUse",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/prepareOnUse/prepareOnUse/prepareOnUse#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/prepareOnUse/prepareOnUse/prepareOnUse#3",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/prepareOnUse/prepareOnUse/prepareOnUse#4",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/prepareOnUse/prepareOnUse/selected/selected",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/progressCopy/progressCopy",
           "parameters": [
             "value"
@@ -5528,6 +5566,12 @@
             "openDeliveryAttemptIndex/prepare/prepare/prepare",
             "openDeliveryAttemptIndex/prepare/prepare/prepare#2",
             "openDeliveryAttemptIndex/prepare/prepare/prepare#3",
+            "openDeliveryAttemptIndex/prepareOnUse/prepareOnUse",
+            "openDeliveryAttemptIndex/prepareOnUse/prepareOnUse/prepareOnUse",
+            "openDeliveryAttemptIndex/prepareOnUse/prepareOnUse/prepareOnUse#2",
+            "openDeliveryAttemptIndex/prepareOnUse/prepareOnUse/prepareOnUse#3",
+            "openDeliveryAttemptIndex/prepareOnUse/prepareOnUse/prepareOnUse#4",
+            "openDeliveryAttemptIndex/prepareOnUse/prepareOnUse/selected/selected",
             "openDeliveryAttemptIndex/progressCopy/progressCopy",
             "openDeliveryAttemptIndex/progressCopy/progressCopy/records/records",
             "openDeliveryAttemptIndex/publicationCopy/publicationCopy",
@@ -5584,6 +5628,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "## Native publication metadata blocks"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Connection-owned publication statements"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
