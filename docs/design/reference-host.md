@@ -1456,3 +1456,20 @@ behaviour, bounds and canonical bytes. Compiler-local reuse neither carries
 authorization into another operation nor turns equal serialized identities into
 the same checked original. The compiled Run still belongs to its original
 prepared Program and retains its existing preparation, fact and encoding limits.
+### Original pre-admission refusal consumption
+
+The installed finite-candidate callback retains its exact candidate and the
+original requested identity from its one request projection. Only its own
+captured data method may read the existing same-call managed preparation
+refusal, using the callback's original receiver. The read removes that
+operation's forwarding alias before consulting the current Host holder.
+
+The submission adapter requires synchronous `true` from that paired method.
+An absent, inherited, accessor, foreign or asynchronous projection does not
+certify refusal. A retained cleanup duty remains uncertain even if a malformed
+port reports success. The original pre-Resource `Unsupported` may enter the
+existing Journal refusal path; an exception code alone cannot do so. Anonymous
+and named intents retain their existing `not_accepted` and
+`preparation_failed` outcomes, current authorization and disclosure checks.
+The original preparation-error path and uncertain Journal/dispatch outcomes
+remain separate. This does not create a second evaluator, permission or ACK.

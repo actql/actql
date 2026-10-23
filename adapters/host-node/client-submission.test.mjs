@@ -893,3 +893,17 @@ test('paired pre-admission consumer keeps cleanup duty unknown even for a malfor
     assert.deepEqual(f.counts, {prepare: 1, submit: 0});
   }
 });
+
+test('paired named refusal preserves its accepted intent without inventing a Run', async t => {
+  const p = pairedAdmissionFixture(), f = await fixture(t, {prepare: () => p.prepared, admit: p.callback});
+  const value = {...f.body(), requestName: 'same-original-profile-refusal'};
+  const first = await f.service.submitNamedAttempt(value);
+  assert.equal(first.kind, 'observed'); assert.equal(first.outcome.kind, 'preparation_failed');
+  assert.deepEqual(first.outcome.problem, {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
+  assert.equal(Object.hasOwn(first.outcome, 'admission'), false);
+  f.restart();
+  assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first.outcome);
+  const replay = await f.service.submitNamedAttempt({...value, attemptRef: {operation: 'submit', attemptId: 'original-name-observation'}});
+  assert.deepEqual(replay.outcome, first.outcome);
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0}); assert.equal(p.requestReads, 1); assert.equal(p.projections, 1);
+});
