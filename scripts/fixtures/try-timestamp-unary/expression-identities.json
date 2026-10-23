@@ -1,0 +1,53 @@
+[
+  {
+    "name": "string",
+    "body": {
+      "try_timestamp": {
+        "value": {
+          "literal": "2000-02-29T00:00:00.123456789Z"
+        }
+      }
+    },
+    "preimage": "{\"try_timestamp\":{\"value\":{\"literal\":\"2000-02-29T00:00:00.123456789Z\"}}}",
+    "cid": "sha256:89053ac24de41abb0751849480fca51071309fdb643d8deb1e1ae70af7cea903"
+  },
+  {
+    "name": "parameter",
+    "body": {
+      "try_timestamp": {
+        "value": {
+          "$param": "stamp"
+        }
+      }
+    },
+    "preimage": "{\"try_timestamp\":{\"value\":{\"$param\":\"stamp\"}}}",
+    "cid": "sha256:d8c65e547594973af4469b1646400d7d8b4e76079fedbfeb69421e1a9053bce9"
+  },
+  {
+    "name": "null",
+    "body": {
+      "try_timestamp": {
+        "value": {
+          "literal": null
+        }
+      }
+    },
+    "preimage": "{\"try_timestamp\":{\"value\":{\"literal\":null}}}",
+    "cid": "sha256:225348a330217a1942f6cd1fc432cb6ae7273061b96e41499f1b1c3bbdfc4138"
+  },
+  {
+    "name": "explicit-pattern",
+    "body": {
+      "try_timestamp": {
+        "value": {
+          "literal": "2000"
+        },
+        "pattern": {
+          "literal": "yyyy"
+        }
+      }
+    },
+    "preimage": "{\"try_timestamp\":{\"pattern\":{\"literal\":\"yyyy\"},\"value\":{\"literal\":\"2000\"}}}",
+    "cid": "sha256:0a945eecffa4852118ef6ccb9ce12bab372c639586866155e76fcd8a33a6cfe6"
+  }
+]

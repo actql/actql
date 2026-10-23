@@ -209,9 +209,17 @@ fn emit_frames(
             pending.push(EndObject)
             pending.push(Expr(arg))
           }
-          Unary(TryNumber, arg) => {
+          Unary(TryNumber, arg) | Unary(TryTimestamp, arg) => {
             // Keep the original authored node and operand, including identity.
-            pending.push(Op("try_number"))
+            pending.push(
+              Op(
+                if expr.body is Unary(TryTimestamp, _) {
+                  "try_timestamp"
+                } else {
+                  "try_number"
+                },
+              ),
+            )
             @encode.begin_object(output)
             @encode.key(output, "value")
             pending.push(EndObject)
@@ -266,7 +274,7 @@ fn emit_frames(
                   Round => "round"
                   Trunc => "trunc"
                   SafeNegate => "safe_negate"
-                  TryDecimal | Quantize(_) | TryNumber =>
+                  TryDecimal | Quantize(_) | TryNumber | TryTimestamp =>
                     raise @encode.InvalidStructure
                   Not => "not"
                   IsNull => "is_null"

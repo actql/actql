@@ -681,6 +681,16 @@ test "expression corpus accepted: 136" {
 }
 
 ///|
+test "expression corpus accepted: 137" {
+  assert_tree("try_timestamp($stamp)", "{\"try_timestamp\":{\"value\":{\"$param\":\"stamp\"}}}")
+}
+
+///|
+test "expression corpus accepted: 138" {
+  assert_tree("try_timestamp(NULL)", "{\"try_timestamp\":{\"value\":{\"literal\":null}}}")
+}
+
+///|
 test "expression corpus rejected: 1" {
   assert_true(parse("x IS NULL.c", test_limits()) is Err(_))
 }

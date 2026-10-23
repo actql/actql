@@ -85,6 +85,7 @@ pub(all) enum UnaryOperator {
   TryDecimal
   Quantize(String)
   TryNumber
+  TryTimestamp
 } derive(Eq, Debug)
 
 ///|
@@ -350,6 +351,7 @@ fn expression_tag(
     | "cast"
     | "try_decimal"
     | "try_number"
+    | "try_timestamp"
     | "utf8_truncate"
     | "quantize"
     | "decimal_divide"
@@ -422,6 +424,13 @@ fn expression_children(
         @decode.lookup(obj, "left").unwrap(),
         @decode.lookup(obj, "right").unwrap(),
       ]
+    }
+    "try_timestamp" => {
+      let obj = @decode.open_object(body).unwrap()
+      if @decode.lookup(obj, "pattern") is Some(_) {
+        expression_fail(body, ExpressionNotImplemented("try_timestamp pattern"))
+      }
+      [@decode.lookup(obj, "value").unwrap()]
     }
     "cast" | "try_decimal" | "quantize" | "try_number" => {
       let obj = @decode.open_object(body).unwrap()
@@ -1109,6 +1118,7 @@ fn lower_typed_expression_measured(
         "cast" => Cast(args[0])
         "try_decimal" => Unary(TryDecimal, args[0])
         "try_number" => Unary(TryNumber, args[0])
+        "try_timestamp" => Unary(TryTimestamp, args[0])
         "utf8_truncate" => Binary(Utf8Truncate, args[0], args[1])
         "decimal_divide" => {
           let obj = @decode.open_object(body).unwrap()

@@ -258,7 +258,8 @@ fn finish(
       if [
           "parse_timestamp", "try_timestamp", "format_timestamp", "regex_match",
           "regex_extract", "regex_replace",
-        ].contains(tag) {
+        ].contains(tag) &&
+        (tag != "try_timestamp" || part(value, "pattern") is Some(_)) {
         if !literal_or_param(part(value, "pattern").unwrap()) {
           invalid(cursor, origin, InvalidArguments)
         }

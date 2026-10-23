@@ -3061,7 +3061,7 @@ an optional final argument, not expression syntax.
 | `substring(value, start[, length])` | common scalar substring named body; omitted length is distinct from explicit NULL |
 | `split_part(value, delimiter, index)`, `utf8_truncate(value, max_bytes)` | [Text, time, and regular expressions](#text-time) fields and argument restrictions |
 | `try_number(value)`, `nfkc(value)`, `case_fold(value)` | [Text, time, and regular expressions](#text-time) unary expressions |
-| `parse_timestamp(value, pattern)`, `try_timestamp(value, pattern)`, `format_timestamp(value, pattern)` | [Text, time, and regular expressions](#text-time) fields |
+| `try_timestamp(value)`; `parse_timestamp(value, pattern)`, `try_timestamp(value, pattern)`, `format_timestamp(value, pattern)` | [Text, time, and regular expressions](#text-time) fields |
 | `regex_match(value, pattern [, flags])`, `regex_extract(value, pattern, capture [, flags])`, `regex_replace(value, pattern, replacement [, flags])` | [Text, time, and regular expressions](#text-time) fields; flags, when present, are a string literal |
 
 <!-- requirement-block: expression-text.the-decoded-tree-must-satisfy-the-position-s-existing-value-or -->
@@ -3962,6 +3962,25 @@ is demanded exactly once; child errors, cancellation, bounds, workspace and
 engine failures propagate rather than becoming null. The authored operation
 and original operand remain in the canonical expression.
 
+<!-- requirement-block: text-time.unary-timestamp-canonical-conversion -->
+The distinct unary `try_timestamp(value)` alternative MUST retain the original
+CAST/`to_timestamp` canonical UTC Z/calendar admission at 3..9 fractional digits
+for String, admitted Timestamp identity, nullable Timestamp output and NULL
+propagation, returning NULL only for malformed Timestamp spelling/calendar
+input while propagating original child, current, cancellation, bounds,
+workspace, allocation, engine and root-retirement failures.
+It does not trim, infer an `SSS` pattern, normalize offsets, use Host Date or
+sample a clock. Number, Signed64, Decimal, Boolean, Date, structural, Any and
+unresolved-domain inputs do not promote. The original child is demanded once;
+existing lazy parents and scalar/Run/value/control lifetimes are unchanged.
+Its closed `{value}` body is distinct from explicit `{value,pattern}`, including
+an explicit NULL or malformed pattern. This canonical conversion remains with
+the existing bounded scalar owner: String work and bounds are retained, while
+Timestamp identity has no manufactured String or pattern envelope. The explicit
+pattern alternative retains the following profile, pattern-first validation
+and envelope duties, even for a NULL value. Old patterned expression bytes and
+CIDs retain their meaning; changed containing contracts have new identities.
+
 <!-- requirement-block: text-time.timestamp-pattern-modes -->
 Timestamp patterns MUST be nonempty sequences of the admitted components;
 both parse and format modes reject duplicate semantic tokens and apply the
@@ -4133,8 +4152,8 @@ source spelling or a deduplicated set of captures.
 
 The operation/input matrix is closed: `split_part`,
 `utf8_truncate`, `parse_timestamp`, `regex_match`,
-`regex_extract`, `regex_replace`, `nfkc`, `case_fold`, and `try_timestamp`
-consume strings; `format_timestamp` consumes a timestamp. `try_number` consumes
+`regex_extract`, `regex_replace`, `nfkc`, `case_fold`, and the explicit-pattern
+`try_timestamp(value,pattern)` alternative consume strings; `format_timestamp` consumes a timestamp. `try_number` consumes
 a String or an admitted finite Number. Only its String branch uses the String
 parsing profile, Host envelope and parsing workspace; Number identity remains
 subject to ordinary scalar/Run work, live-value, current and cancellation checks.
@@ -4148,7 +4167,8 @@ output because input parse failure produces null.
 default C/F mappings, not locale-specific T mappings. Both return NFC. The
 profile pins the vendored Unicode table CID and derives expansion ceilings
 from those tables (18 decomposed scalars for NFKC, 4 for full folding/NFC per
-input scalar). `try_timestamp` uses the same UTC grammar as `parse_timestamp`.
+input scalar). The explicit-pattern `try_timestamp(value,pattern)` uses the same UTC grammar
+as `parse_timestamp`.
 It MUST return null for invalid calendar/input text. An invalid pattern, bound
 breach, or engine failure MUST fail the operation rather than produce null.
 Null input propagates after the pattern has been checked.
@@ -11430,7 +11450,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:20353c7eda301d0dc655b15abedbfdbcc9b9810fbb3e44b4034088fb97edf430
+../../spec/contracts/actql-aoa.json# sha256:02e2b6ccfaa44014dfe9e5307dec81d8227d9261930f74284cabd89ede875bad
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11439,13 +11459,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:6ab2396dc413fa604854f6586ec957203ccf23392c52f254dfd7b3c0c6dcbe7f
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:4a1a422c8a320d620ebb7f60eafd97f240e228145d5d8875b2a2d22dbb155400
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:555287df8de017c03d3a8a252e6492e1dc84f9d099980f1115d30be8808d170f
+../../spec/contracts/actql-expressions.json# sha256:76278686ed580a90862ab54680c2e1969b8e3c6b5bec8078e0049e5d9079e9f8
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:17ccbab69f151abda92d920521912dff1db845148d022a6295de5cf3f34c553a
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:38adf4120637c5b4e5738947a794d515c2ec0e823093051d1ba42fee1d54d68b
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:530e3f66a52b5f57e6a5786c7e6e2c1bddcd2df9adbf6482492919f1292a2bb6
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:8c255485e4b13e8fb372a1db176d113810570e315c5e3e2bb3a03734ad98841e
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:7e7a92a1c40643757d65ba8703cbfc8fcc164a60370330181351b1b441393052
+../../spec/contracts/actql-expressions.json#/laws sha256:6d3c9fda949743d50c51258d1d6a3142161d44cd90ab202a73cb9bb2b756afa9
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:2c4f84b31bf83d660d549b80b8dde8f0aa7ec01523650d9322a25cc39c83ddb5
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:ac0fdcded3e6cc837e1d761bb2812c9efed06d2f2fdde7fe2fce9aefc1af3f1f
 ```
 
 <!-- stage-contract-pins:start -->
