@@ -890,9 +890,14 @@ async function publishRun(options, effectful, computationLifetime) {
       break;
     }
   }
-  const committedIndex = await store.readPublicationContract(
-    committed.entry.public_index_entry_cid, 'public_index_entry',
-  );
+  // A new installation returns only after the Store's real commit duties.
+  // Retain our issued body for that exact acknowledged Index. Existing or
+  // different winners still acquire their actual selected stored contract.
+  const committedIndex = committed.committed === true &&
+      committed.entry.public_index_entry_cid === index.identity
+    ? index : await store.readPublicationContract(
+      committed.entry.public_index_entry_cid, 'public_index_entry',
+    );
   const resolution = await finishResolvedCommit(
     store,
     control,
