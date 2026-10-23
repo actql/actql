@@ -462,3 +462,10 @@ missing measurements or tighter limits uses the full bounded wire comparison.
 All preceding relation checks, the complete Context identity hash, Result rows
 and remaining evidence checks still run. This correspondence supplies no
 permission, current observation, durability or physical cleanup acknowledgement.
+
+The stored publication loader retains the selected Index's just-completed
+admission when its private caller supplies the same original wire and measured
+limits still fit. Raw input byte accounting and physical current fences remain
+unchanged. Different wire, contract names or unavailable measurements use full
+admission. This avoids reconstructing one immutable Index; it does not retain
+a Store observation or replace the first complete publication-chain validation.
