@@ -4049,6 +4049,51 @@ test('publication records are append-only and sequence creation is CAS',
     assert.ok(['committing', 'cancelled'].includes(latest.state));
   });
 
+test('native publication preflight selects its exact supplied body keys in bounded blocks', async t => {
+  let armed = false, commits = 0;
+  const reads = [], prepare = DatabaseSync.prototype.prepare, exec = DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+    const statement = Reflect.apply(prepare, this, [sql]);
+    if (/^SELECT \* FROM publication_contracts WHERE semantic_cid(?:=| IN )/u.test(sql)) {
+      for (const method of ['get', 'all']) {
+        const original = statement[method];
+        t.mock.method(statement, method, function(...args) {
+          const result = Reflect.apply(original, this, args);
+          if (armed) reads.push({args, rows: method === 'all' ? result : result === undefined ? [] : [result]});
+          return result;
+        });
+      }
+    }
+    return statement;
+  });
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    const result = Reflect.apply(exec, this, [sql]);
+    if (armed && sql === 'COMMIT') commits++;
+    return result;
+  });
+  const {store} = await fixture(t);
+  const original = n => contractControl.admit('run_invocation', wire(seal('run_invocation', {
+    version: 'actql-run-invocation/0.1', invocation_template_cid: cids.template,
+    observation_set_cid: digest('preflight-original-' + n),
+  })), limits);
+  const selected = Array.from({length: 8}, (_, n) => original(n));
+  const unrelated = Array.from({length: 24}, (_, n) => original(n + 100));
+  await store.putOriginalPublicationContracts([...selected.slice(0, 2), ...unrelated]);
+  const before = store.status();
+  armed = true;
+  const stored = await store.putOriginalPublicationContracts(selected);
+  armed = false;
+  assert.deepEqual(stored.map(value => value.created), [false, false, true, true, true, true, true, true]);
+  assert.equal(store.status().objectCount, before.objectCount + 6);
+  assert.equal(store.status().reservedObjects, 0);
+  assert.equal(commits, 1);
+  const keys = new Set(selected.map(value => value.identity));
+  assert(reads.every(read => read.rows.every(row => keys.has(row.semantic_cid))), 'unrelated history is not acquired');
+  assert.equal(reads.length, 2, 'one bounded quota preflight and the original actual mutation selection');
+  assert(reads.every(read => read.args.length === 8));
+  for (const value of selected) assert.equal((await store.readPublicationContract(value.identity, value.name)).wire, value.wire);
+});
+
 test('publication setup commits its immutable bodies and initial attempt in one native transaction', async t => {
   const exec = DatabaseSync.prototype.exec;
   let armed = false, commits = 0;
