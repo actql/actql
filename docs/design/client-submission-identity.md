@@ -66,6 +66,15 @@ the immediate preparation, without extending the intent's stored fields or
 creating a cross-operation cache. Program, declaration and value checking,
 current authorization and durable request admission remain separate.
 
+Journal acceptance captures bounded admission evidence as owned DATA and checks
+the actual serialized payload. An intent CID added by the same Journal retains
+its identity and final byte-bound checks. Selected saved evidence can reuse the
+captured facts only for identical complete wire, or wire with only that checked
+CID added; changed bytes take full admission. The captured value and decoded
+Model binding stay within this acceptance. A new stored observation admits its
+current evidence independently. These facts supply no epoch authentication,
+Run issuance, Source permission or Effect permission.
+
 The Node journal issues tickets with a configured positive lifetime no greater
 than seven days. It retains one authentication key and a monotonic observed-time
 watermark in the same journal, rather than an unbounded per-epoch list. Tickets

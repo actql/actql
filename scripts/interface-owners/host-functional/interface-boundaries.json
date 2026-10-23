@@ -19360,7 +19360,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e45d80d7e7dcb926779de27308918c7fe1685ae7db1b11edf8f4ed31ec095e8e",
+      "sha256": "b6a5707066e130566de7ebcaacf544b010aa4968925ba000a759e4618df8974b",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -19381,7 +19381,8 @@
           "name": "admissionEvidenceShape",
           "parameters": [
             "value",
-            "updateOriginalControl"
+            "updateOriginalControl",
+            "captured"
           ],
           "async": false
         },
@@ -19723,6 +19724,13 @@
             "value",
             "maxBytes",
             "updateOriginalControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "evidenceJson/evidenceJson",
+          "parameters": [
+            "key"
           ],
           "async": false
         },
@@ -21318,7 +21326,8 @@
           "name": "retainedEvidence",
           "parameters": [
             "row",
-            "updateOriginalControl"
+            "updateOriginalControl",
+            "original"
           ],
           "async": false
         },
@@ -21693,7 +21702,8 @@
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#5",
             "openClientRequestJournal/admitIntentOriginal/admitIntentOriginal",
             "openClientRequestJournal/journal/init:prepareSubmittedIntent/init:prepareSubmittedIntent",
-            "openClientRequestJournal/syncFormatDirectory/syncFormatDirectory"
+            "openClientRequestJournal/syncFormatDirectory/syncFormatDirectory",
+            "evidenceJson/evidenceJson"
           ],
           "exports": [
             "openClientRequestJournal",
@@ -21760,6 +21770,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "const admitIntentOriginal = (wire, control, epoch, code, canonical = true) => {"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Journal acceptance captures bounded admission evidence as owned DATA and checks"
               }
             ],
             "inputsOutputs": [
@@ -21826,6 +21840,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "prepareSubmittedIntent(epoch, wire, control) {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const captured = {wire, value: JSON.parse(wire)};"
               }
             ],
             "identity": [
@@ -21892,6 +21910,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "if (previous !== undefined && previous.intent === intent) return previous;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "row.run_admission_evidence_json === original.wire"
               }
             ],
             "ownership": [
@@ -21962,6 +21984,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "return () => {submissionOperations.delete(epoch);};"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "return Object.freeze(captured);"
               }
             ],
             "synchronization": [
@@ -22098,6 +22124,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "if (canonical && original.wire !== wire) fail(code);"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (!admissionEvidenceShape(captured.value, updateOriginalControl, captured)) {"
               }
             ],
             "cancellation": [
@@ -22168,6 +22198,10 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "finally {release?.();}"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Run issuance, Source permission or Effect permission."
               }
             ],
             "resources": [
@@ -22250,6 +22284,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "const intent = control.clientSubmittedIntent(wire, 1048576, 65536, 64);"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (Buffer.byteLength(originalAdmissionEvidence) > maxRunDefinitionWireBytes) {"
               }
             ],
             "extension": [
@@ -22312,6 +22350,10 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "const input = typeof journal.prepareSubmittedIntent === 'function' ?"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "current evidence independently. These facts supply no epoch authentication,"
               }
             ],
             "verification": [
@@ -22422,6 +22464,22 @@
               {
                 "path": "adapters/host-node/client-submission-operation.test.mjs",
                 "anchor": "test('one submit admits each unchanged intent wire once through preparation and original Run acceptance'"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "original submitted intent binds UPDATE evidence after one shape admission"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "captured UPDATE evidence is local to one acceptance and changed saved bytes refuse"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "captured UPDATE evidence uses each input getter once and checks serialized materials"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "captured UPDATE intent binding retains its final wire limit and original CID check"
               }
             ]
           }
