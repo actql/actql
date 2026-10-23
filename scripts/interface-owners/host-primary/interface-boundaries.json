@@ -4493,7 +4493,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "9c33ee1d23fee582b26fff7a62eae0011e23d78bd4ddf815f04b7934acfb6ea1",
+      "sha256": "01cdd70f5bba165f2b3e0e29e992fa2d5bf73a6ec1659ea74ac67cbb84e93ee4",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -5250,6 +5250,26 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitEffectDefinition/admitEffectDefinition",
           "parameters": [
+            "submission"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission",
+          "parameters": [
+            "submission"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission/admitPreparedSubmission",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/init:isOriginalPreparationRefusal/init:isOriginalPreparationRefusal",
+          "parameters": [
+            "error",
             "submission"
           ],
           "async": false
@@ -6310,18 +6330,6 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService/submissionService",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#2",
-          "parameters": [
-            "submission"
           ],
           "async": false
         },
@@ -9387,7 +9395,8 @@
             "connectEmbeddedLocal/preparation/init:openResultPublicationStore/init:openResultPublicationStore",
             "connectEmbeddedLocal/preparation/init:prepareResultPublication/init:prepareResultPublication",
             "connectEmbeddedLocal/preparation/init:prepareResultPublication/init:prepareResultPublication/init:prepareResultPublication",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/init:isOriginalPreparationRefusal/init:isOriginalPreparationRefusal",
             "readHostResultPublicationPreparation",
             "readHostResultPublicationRunRequirements"
           ],
@@ -9402,12 +9411,20 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The ordinary selected Node Host has a separate finite Local Result/publication"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admissionFailures = new WeakMap();"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "prepareResultPublication() {"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const admissionCandidate = admitPreparedSubmission === undefined ? undefined :"
               }
             ],
             "identity": [
@@ -9418,6 +9435,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid')"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (this !== admitPreparedSubmission) return false;"
               }
             ],
             "ownership": [
@@ -9428,6 +9449,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "same duty before its returned view observes it, that view receives the retained"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "admissionFailures.delete(submission);"
               }
             ],
             "synchronization": [
@@ -9438,6 +9463,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "Reflect.apply(originalPreparationRefusal, admitPreparedSubmission,"
               }
             ],
             "failure": [
@@ -9448,6 +9477,10 @@
               {
                 "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
                 "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "error?.cleanupPending === true || error?.cleanupHandle !== undefined) throw error;"
               }
             ],
             "cancellation": [
@@ -9458,6 +9491,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "entry.closedObservation = resultStatus(entry);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "run.preAdmissionRefusal = undefined;"
               }
             ],
             "resources": [
@@ -9468,6 +9505,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "entry.storeOperations++;"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "run.original !== undefined || run.admission !== undefined || run.value !== undefined ||"
               }
             ],
             "extension": [
@@ -9478,6 +9519,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "legacy private Evidence key; a later key-dependent operation keeps its original"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const originalPreparationRefusal = refusalProperty !== undefined &&"
               }
             ],
             "verification": [
@@ -9496,6 +9541,10 @@
               {
                 "path": "adapters/host-node/local-file-effect-submission-original.test.mjs",
                 "anchor": "test('winning ordinary Local definition selects the same actual installation without a Mock Scope'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('paired pre-admission original refusal is retained without entering the Run owner', async t => {"
               }
             ]
           }
@@ -9676,7 +9725,7 @@
         {
           "operations": [
             "connectEmbeddedLocal/preparation/init:modelPublicationCapacity/init:modelPublicationCapacity",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService/submissionService",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission/admitPreparedSubmission",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#3"
           ],
           "exports": [],
