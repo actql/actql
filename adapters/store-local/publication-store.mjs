@@ -1422,8 +1422,9 @@ async function openOriginalLocalPublicationStore(
       removedClockStaging = true;
       continue;
     }
-    if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
-        !(await lstat(path)).isFile()) {
+    // The selected clock reader owns its actual file/type/checksum admission.
+    // Opening retains only name admission and legacy staging cleanup here.
+    if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
       fail('InvalidPublicationClockObservation');
     }
   }

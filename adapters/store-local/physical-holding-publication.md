@@ -460,6 +460,14 @@ separate; it is not a per-history acknowledgement or a minimum barrier allowance
 This localization does not remove payload quota or other recovery history work.
 ### Trusted clock write observation
 
+Ordinary opening admits clock entry names and reclaims interrupted legacy
+staging files with their real directory acknowledgement, but does not stat
+each immutable clock file. The selected clock reader still opens the exact
+original with its existing file/type, extent, content/checksum and floor
+checks before sampling or accepting an observation. An unavailable selected
+floor is not fresh initialization. Name enumeration for legacy staging remains
+bounded opening work; this is not a history-independent clock directory.
+
 A warm fixed-length clock update consumes its already typed observation after
 the same original file completes write, sync and close. Post-sync FD state and
 post-close path state must agree in device, inode, size, modification and change

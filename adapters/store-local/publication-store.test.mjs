@@ -2224,6 +2224,30 @@ test('clean Store opening defers immutable clock file observations to selected u
   }
 });
 
+for (const type of ['directory', 'symlink']) {
+test(`selected clock admission refuses a deferred ${type} before sampling`, async t => {
+  const {store, directory, configuration} = await fixture(t);
+  const floor = '2026-09-18T01:00:00.000Z';
+  await store.observeTrustedClock(cids.scope, floor);
+  await store.close();
+  const path = join(directory, 'clocks', cids.scope.slice(7) + '.json');
+  await unlink(path);
+  if (type === 'directory') await mkdir(path);
+  else {
+    const target = join(directory, 'foreign-clock-target');
+    await writeFile(target, JSON.stringify({clockContractCid:cids.scope, observedAt:floor}));
+    await fsPromises.symlink(target, path);
+  }
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  try {
+    await assert.rejects(reopened.readClockObservation(cids.scope), code('InvalidPublicationStoreObject'));
+    let samples = 0;
+    await assert.rejects(reopened.sampleTrustedClock(cids.scope, () => {samples++; return floor;}), code('InvalidPublicationStoreObject'));
+    assert.equal(samples, 0, 'the original unavailable floor is not a fresh clock');
+  } finally {await reopened.close();}
+});
+}
+
 test('trusted clock high-water mark survives restart and rejects rollback',
   async t => {
     const {store, configuration} = await fixture(t);
