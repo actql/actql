@@ -666,6 +666,22 @@ bodies; foreign or changed originals refuse without regenerating a replacement.
 The scalar quote returns a bounded copy, and the sequence aliases retire with
 the same Run after its actual children finish.
 
+The same Run holder can retain a pure preparation refusal before Resource
+admission. It binds the actual typed `Unsupported` result's error to its exact
+prepared Program, original request and installed control. The private projection
+checks that same failed holder, its current installation and the absence of a
+Resource original, admission, begun Run or pending cleanup. An equal error code,
+copied failure, different request or retired holder cannot issue this projection.
+Later Resource or begin failures keep their original Unknown and cleanup path.
+The original successful retirement also clears this managed refusal reference.
+
+This projection describes the preparation boundary, not a Journal ACK. The
+submission owner still retains its same callback candidate and applies current
+authorization, disclosure and actual durable outcome rules. A lost Journal reply
+remains Unknown; a visible row, error string or client Boolean cannot certify
+nonacceptance. No second lowering or serialization is needed to classify the
+original preparation result.
+
 The installation's immutable AoA projection has a different lifetime from a
 Run. The existing private Host installation bag retains only the Values,
 expression-fragment and ordered-derive contract strings after the first

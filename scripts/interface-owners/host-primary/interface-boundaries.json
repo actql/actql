@@ -4493,7 +4493,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "b9573b9889a6e84185a7b72e41367b4c6f4547123ab635531f29b8810b938bc9",
+      "sha256": "9c33ee1d23fee582b26fff7a62eae0011e23d78bd4ddf815f04b7934acfb6ea1",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -4780,6 +4780,15 @@
             "runtime",
             "baseEnvironmentWire",
             "authorizationFor"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:isOriginalManagedComputePreparationRefusal/init:isOriginalManagedComputePreparationRefusal",
+          "parameters": [
+            "error",
+            "prepared",
+            "request"
           ],
           "async": false
         },
@@ -9110,6 +9119,7 @@
         },
         {
           "operations": [
+            "connectEmbeddedLocal/preparation/init:isOriginalManagedComputePreparationRefusal/init:isOriginalManagedComputePreparationRefusal",
             "connectEmbeddedLocal/preparation/init:prepareManagedCompute/init:prepareManagedCompute",
             "connectEmbeddedLocal/preparation/init:prepareManagedCompute/init:prepareManagedCompute/init:prepareManagedCompute",
             "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun",
@@ -9139,6 +9149,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The installation's immutable AoA projection has a different lifetime from a"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same Run holder can retain a pure preparation refusal before Resource"
               }
             ],
             "inputsOutputs": [
@@ -9179,6 +9193,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "if (retained.initialControl !== installation.initialControl) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "run.preAdmissionRefusal = Object.freeze({error, prepared: checkedPrepared,"
               }
             ],
             "ownership": [
@@ -9197,6 +9215,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "installation.managedRunContracts = contracts;"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "run.preAdmissionRefusal = undefined;"
               }
             ],
             "synchronization": [
@@ -9345,6 +9367,14 @@
               {
                 "path": "adapters/host-node/client-pre-admission-refusal.test.mjs",
                 "anchor": "capacity refusal retains its original submission through reopen"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "pure preparation refusal belongs only to its original pre-Resource Run holder"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "Unsupported after Resource or a retained failure never issues a new pure refusal"
               }
             ]
           }
@@ -10892,7 +10922,6 @@
         }
       ],
       "imports": [
-        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../_build/native/directory-darwin-arm64.node",
         "../../_build/native/directory-darwin-x64.node",
         "../../packages/client-wire/index.mjs",
@@ -10995,7 +11024,9 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [],
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
+      ],
       "referenceQualification": "Existing Host/Source/Resource and compiler-binding responsibilities only. Declaration coverage and explicit-port tests do not issue capacity, authority, cleanup ACK or installed acceptance."
     },
     {
