@@ -2,9 +2,9 @@
 
 `@actql/node` runs ActQL inside your application: no server, no daemon, the
 engine is a library. The same client connects to a remote Host or ActQL Cloud
-by changing the connection options. This guide shows the API you will use
-day to day; everything shown is typed, and the types are the documentation of
-the finer details.
+by changing the connection options. This guide describes day-to-day v0.1
+target usage. The shipped declarations describe the current typed API;
+sections marked as target-only are not available in the current client.
 
 ```sh
 npm install @actql/node
@@ -20,16 +20,23 @@ import {open} from '@actql/node';
 
 const db = await open({stateDir: '.actql'});
 try {
-  const rows = await db.sql('SELECT id, name FROM crm.accounts WHERE owner = @owner', {owner: 'kim'}).all();
-  console.log(rows);
+  const rows = await db.sql('SELECT @owner AS owner', {owner: 'kim'}, {
+    parameterDeclarations: {owner: {type: 'string'}},
+  }).all();
+  console.log(rows); // [ { owner: 'kim' } ]
 } finally {
   await db.close();
 }
 ```
 
-The second argument is always the parameters map. `aql()` takes Pipe syntax
-(`FROM … |> …`); `sql()` takes an ordinary `SELECT`. Both return a promise of a
-Result: `all()` reads every row, `rows()` streams them:
+The second argument is always the parameters map. Named parameters need
+explicit `parameterDeclarations` in the third argument; values do not infer
+their types. This first query is source-free and needs no configured Connector.
+
+`aql()` takes Pipe syntax (`FROM … |> …`); `sql()` takes an ordinary `SELECT`.
+Both return a promise of a Result: `all()` reads every row, `rows()` streams
+them. The following streaming example requires an already configured
+`crm.accounts` source:
 
 ```ts
 for await (const row of (await db.aql('FROM crm.accounts |> LIMIT 1000')).rows()) {
@@ -75,12 +82,17 @@ Result.
 
 ## Running a Program
 
+This example assumes `churn-risk.aql` exists and that its required connections
+and policy are already configured. It does not install them; use the
+source-free query above for a first read without those prerequisites.
+
 ```ts
 import {readFile} from 'node:fs/promises';
 
 const source = await readFile('churn-risk.aql', 'utf8');
 const execution = await client.startSource(source, {
   format: 'aql',
+  parameterDeclarations: {owner: {type: 'string'}},
   parameters: {owner: 'kim'},
   stopBefore: 'commit',            // optional: stop before the first write
 });
@@ -166,6 +178,11 @@ any process that shares the Store or the Host — a CLI `actql approve`, a web
 app, a Slack bot — the Run does not care which.
 
 ### Deciding from code
+
+**Current implementation status:** the current Node Client does not yet expose the
+`decide` connection option. The example below is v0.1 target behavior,
+not a currently type-checking or runnable Node configuration. This status
+note does not change the target decision semantics.
 
 Instead of waiting for the Checkpoint and approving it afterwards, the client
 can be the decider: `connect()` takes a `decide` function that the Host calls
