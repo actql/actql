@@ -53,6 +53,9 @@ pub fn emit_document(
   match w.output {
     TextOutput(output) => output.write_string(value.text)
     MeasureOutput => ()
+    CompareOutput(output) =>
+      compare_range(output, value.text, 0, value.text.length())
+    BufferedTextOutput(buffer) => buffer.text.write_string(value.text)
     HashOutput(h) =>
       // EncodedDocument text is already validated; stream its scalar UTF-8 bytes.
       for scalar in value.text.iter() {

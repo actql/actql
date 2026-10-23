@@ -20,17 +20,23 @@ pub fn bool_value(Writer, Bool) -> Unit raise EncodeFailure
 
 pub fn buffered_hashing_writer(Int, Int, Int, Int) -> Writer raise EncodeFailure
 
+pub fn buffered_writer(Int, Int, Int, Int) -> Writer raise EncodeFailure
+
 pub fn cancel_ordered_key(OrderedKeyEmitCursor) -> Unit
 
 pub fn cancel_string_value(StringEmitCursor) -> Unit
 
 pub fn cancel_writer(Writer) -> Unit
 
+pub fn comparing_writer(String, Int, Int, Int) -> Writer raise EncodeFailure
+
 pub fn decimal_number_value(Writer, String) -> Unit raise EncodeFailure
 
 pub fn document_bytes(EncodedDocument) -> Int
 
 pub fn document_text(EncodedDocument) -> String
+
+pub fn drain_buffered_output(Writer) -> String raise EncodeFailure
 
 pub fn drain_hash_output(Writer) -> String raise EncodeFailure
 
@@ -43,6 +49,10 @@ pub fn end_array(Writer) -> Unit raise EncodeFailure
 pub fn end_object(Writer) -> Unit raise EncodeFailure
 
 pub fn finish(Writer) -> String raise EncodeFailure
+
+pub fn finish_buffered_usage(Writer) -> (Int, Int, Int) raise EncodeFailure
+
+pub fn finish_comparison_usage(Writer) -> (Bool, Int, Int, Int) raise EncodeFailure
 
 pub fn finish_document(Writer) -> EncodedDocument raise EncodeFailure
 

@@ -469,3 +469,15 @@ limits still fit. Raw input byte accounting and physical current fences remain
 unchanged. Different wire, contract names or unavailable measurements use full
 admission. This avoids reconstructing one immutable Index; it does not retain
 a Store observation or replace the first complete publication-chain validation.
+
+## Bounded evidence comparisons
+
+Exact evidence-to-wire comparison uses the existing bounded encoder with a
+comparison sink. Every emitted scalar, escape, structural transition and
+byte/node/depth charge is still processed; a mismatch is retained until complete
+encoding finishes, so it cannot hide an invalid tail or exceeded limit. The
+sink compares against the caller's immutable expected text without allocating
+and draining provisional text fragments. It exposes neither serialized output
+nor a digest. Publication comparison keeps its existing workspace admission,
+incremental emitter quantum and cancellation/cleanup owner. Pair comparisons
+and full identity hashing retain their separate existing sinks.
