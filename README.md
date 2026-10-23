@@ -59,6 +59,8 @@ drive.contents (notes)   ─┘             │                 │
 - **If it crashes halfway, it resumes safely.** The Run (one execution) never
   repeats completed work, and writes with an unknown outcome are never blindly
   resent.
+- **The engine is open source.** It is Apache 2.0: authentication, retries,
+  resuming, and the checks before a write are all code you can read here.
 
 ## 2. Get started
 
