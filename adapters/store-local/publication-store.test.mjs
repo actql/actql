@@ -2197,6 +2197,33 @@ test('uncommitted private evidence retains a recoverable prepared owner',
     assert.equal(reopened.status().storedBytes, 0);
   });
 
+test('clean Store opening defers immutable clock file observations to selected use', async t => {
+  const {store, directory, configuration} = await fixture(t);
+  const floor = '2026-09-18T01:00:00.000Z';
+  const clocks = [cids.scope, ...Array.from({length: 8}, (_, n) => digest('unrelated-clock-' + n))];
+  for (const cid of clocks) await store.observeTrustedClock(cid, floor);
+  await store.close();
+  const clockDirectory = join(directory, 'clocks');
+  const original = fsPromises.lstat, observed = [];
+  let reopened, opening = true;
+  t.mock.method(fsPromises, 'lstat', async function(path, ...args) {
+    if (opening && typeof path === 'string' && path.startsWith(clockDirectory + sep)) observed.push(path);
+    return Reflect.apply(original, this, [path, ...args]);
+  });
+  syncBuiltinESMExports();
+  try {
+    reopened = await openLocalPublicationStore(configuration, contractControl);
+    opening = false;
+    assert.equal(observed.length, 0, 'opening does not stat unrelated immutable clock records');
+    assert.deepEqual(await reopened.readClockObservation(cids.scope), {clockContractCid:cids.scope, observedAt:floor});
+    await assert.rejects(reopened.observeTrustedClock(cids.scope, '2026-09-18T00:59:59.999Z'), code('PublicationClockUncertain'));
+  } finally {
+    opening = false;
+    if (reopened !== undefined) await reopened.close();
+    t.mock.restoreAll(); syncBuiltinESMExports();
+  }
+});
+
 test('trusted clock high-water mark survives restart and rejects rollback',
   async t => {
     const {store, configuration} = await fixture(t);
