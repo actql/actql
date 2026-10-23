@@ -1296,18 +1296,41 @@ fn issue_client_values_aoa_parts_graph(
     is Some(body) else {
     return Err(NoncanonicalPipeline)
   }
-  let canonical = @canonical.stringify_value(
-    body, max_wire_bytes, max_nodes, max_depth,
-  ) catch {
-    _ => return Err(Encoding)
+  match
+    finish_client_values_aoa_identity(
+      wire, body, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(identity) => Ok({ identity, body, })
+    Err(issue) => Err(issue)
   }
-  if canonical != wire {
-    return Err(NoncanonicalPipeline)
+}
+
+///|
+// The immutable tree is still needed by Plan construction. Compare its exact
+// canonical text and compute that same text's identity in one bounded stream.
+// Provisional text is not an identity until the original writer completes.
+fn finish_client_values_aoa_identity(
+  wire : String,
+  body : @canonical.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  emit? : (@canonical.CanonicalValue, @encode.Writer) -> Unit raise @encode.EncodeFailure = @canonical.emit_value,
+) -> Result[ClientValuesAoAIdentity, ClientValuesAoAIdentityIssue] {
+  try {
+    let writer = @encode.buffered_hashing_writer(
+      max_wire_bytes, max_nodes, max_depth, max_wire_bytes,
+    )
+    emit(body, writer)
+    let canonical = @encode.drain_hash_output(writer)
+    if canonical != wire {
+      return Err(NoncanonicalPipeline)
+    }
+    let cid = "sha256:" + @encode.finish_hash(writer)
+    Ok({ wire, cid, })
+  } catch {
+    _ => Err(Encoding)
   }
-  let cid = @canonical.cid_value(body, max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(Encoding)
-  }
-  Ok({ identity: { wire, cid, }, body, })
 }
 
 ///|
