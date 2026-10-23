@@ -593,7 +593,8 @@ test('publication computation lifetime transfers through the actual Unknown retu
   visit(parse(text, {ecmaVersion: 'latest', sourceType: 'module'})); assert(block);
   const names = ['uncertainFailure', 'primary', 'reconciliationFailure', 'recordFailure', 'control',
     'lookupCommit', 'validateCommit', 'finishResolvedCommit', 'store', 'publicationAttempt',
-    'index', 'now', 'limits', 'publicationRequest', 'withPublicationCleanup', 'computationLifetime'];
+    'index', 'now', 'limits', 'publicationRequest', 'withPublicationCleanup', 'computationLifetime',
+    'lookupOriginalCommit'];
   const originalUnknownReturn = new Function(...names, text.slice(block.start, block.end));
   let loops, retired = 0, reads = 0, validations = 0, finalized = 0;
   const captured = Object.freeze({original: 'capture'}), selected = Object.freeze({original: 'Index'});
@@ -610,7 +611,7 @@ test('publication computation lifetime transfers through the actual Unknown retu
       assert.strictEqual(actualAttempt, attempt); assert.strictEqual(actualIndex, selected);
       assert.equal(retired, 0); finalized++; return {winner: attempt};
     }, store, attempt, selected, () => 'original-time', {}, Object.freeze({original: 'request'}),
-    value => Object.freeze(value), lifetime));
+    value => Object.freeze(value), lifetime, loops.lookupOriginalCommit));
   let failure;
   await assert.rejects(loops.publishEffectFreeRun({control, evidence: {capturedRun: captured}}), error => {
     failure = error; return error.code === 'RunPublicationUnknown' && error.primaryFailure === primary;
