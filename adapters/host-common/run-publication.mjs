@@ -518,6 +518,32 @@ function capturedComputationLifetime(control, capturedRun) {
   };
 }
 
+async function lookupOriginalCommit(primary, lookup) {
+  // A native storage mutation can retain its original confirmation duty.
+  // Reconciliation cannot read through that pending writer before its own
+  // bounded cleanup runs. This is not another commit request or an ACK.
+  if (member(primary, 'code') === 'PublicationMetadataCommitOutcomeUnknown' &&
+      member(primary, 'outcome') === 'unknown' &&
+      member(primary, 'cleanupPending') === true) {
+    const cleanup = member(primary, 'cleanupHandle');
+    const retry = member(cleanup, 'retry'), status = member(cleanup, 'status');
+    if (typeof retry === 'function' && typeof status === 'function') {
+      let pending = true;
+      try {
+        if (member(Reflect.apply(status, cleanup, []), 'pending') === true) {
+          await Reflect.apply(retry, cleanup, []);
+        }
+        pending = member(Reflect.apply(status, cleanup, []), 'pending') !== false;
+      } catch {
+        // Retain the primary and the same pending owner. Only the actual
+        // lookup and existing complete commit validation may resolve it.
+      }
+      if (pending) throw primary;
+    }
+  }
+  return lookup();
+}
+
 function uncertainFailure(
   primary, reconciliation, recordFailure, control, reconcile, retireComputation,
 ) {
@@ -811,7 +837,7 @@ async function publishRun(options, effectful, computationLifetime) {
       if (action === 'reconcile_commit') {
         reconciliationAttempted = true;
         try {
-          reconciled = await lookupCommit();
+          reconciled = await lookupOriginalCommit(primary, lookupCommit);
         } catch (error) {
           reconciliationFailed = true;
           reconciliationFailure = error;
@@ -830,7 +856,7 @@ async function publishRun(options, effectful, computationLifetime) {
       }
       if (action === 'return_unknown') {
         const reconcile = async upstream => {
-          const resolved = await lookupCommit();
+          const resolved = await lookupOriginalCommit(primary, lookupCommit);
           if (resolved === undefined) {
             if (typeof member(upstream, 'resolveConfirmed') === 'function') {
               upstream.resolveConfirmed(undefined);
