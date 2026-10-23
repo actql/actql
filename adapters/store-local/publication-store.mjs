@@ -3394,16 +3394,28 @@ async function openOriginalLocalPublicationStore(
         } catch (error) { if (error?.code !== 'ENOENT') throw error; }
         const entry = Object.freeze({semantic_cid:contract.identity,name:contract.name,
           wire:contract.wire,byte_count:Buffer.byteLength(contract.wire,'utf8')});
-        const existing = deliveryIndex.publicationContract(entry.semantic_cid);
+        entries.push(entry);
+        results.push(Object.freeze({...original, semanticCid:contract.identity, storage:'sqlite'}));
+      }
+      // Files retain their original representation. Select only the remaining
+      // native keys together for quota preflight; mutation still owns its
+      // actual selected-row conflict check and durable transaction.
+      const selected = new Map(deliveryIndex.publicationContracts(entries.map(entry => entry.semantic_cid))
+        .map(entry => [entry.semantic_cid, entry]));
+      for (const entry of entries) {
+        const existing = selected.get(entry.semantic_cid);
         if (existing !== undefined && (existing.name !== entry.name || existing.wire !== entry.wire)) {
           fail('PublicationSemanticIdentityConflict');
         }
-        entries.push(entry);
         if (existing === undefined) {
           reservations.push(reserveObjectCapacity(entry.byte_count));
           reservationBytes += entry.byte_count;
         }
-        results.push(Object.freeze({...original, semanticCid:contract.identity, storage:'sqlite', created:existing === undefined}));
+      }
+      for (let index = 0; index < results.length; index++) {
+        const result = results[index];
+        if (result.storage === 'sqlite') results[index] = Object.freeze({...result,
+          created:!selected.has(result.semanticCid)});
       }
     } catch (error) {
       for (const reservation of reservations) reservation.release();
