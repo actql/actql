@@ -111,6 +111,13 @@ assert.ok(publicationPersist);
 const persistOriginalPublicationSetup = compileFunction(
   publicationSource.slice(publicationMember.start, publicationMember.end) + '\n' +
   publicationSource.slice(publicationPersist.start, publicationPersist.end) + '\nreturn persistContracts;', [])();
+const publicationCommitLookup = publicationAst.body.find(node =>
+  node.type === 'FunctionDeclaration' && node.id.name === 'lookupOriginalCommit');
+assert.ok(publicationCommitLookup);
+const lookupOriginalPublicationCommit = compileFunction(
+  publicationSource.slice(publicationMember.start, publicationMember.end) + '\n' +
+  publicationSource.slice(publicationCommitLookup.start, publicationCommitLookup.end) +
+  '\nreturn lookupOriginalCommit;', [])();
 const publicationInitial = publicationAst.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'appendInitialStates');
 const publicationInitialValues = publicationAst.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'initialPublicationStates');
 assert.ok(publicationInitial); assert.ok(publicationInitialValues);
@@ -8452,6 +8459,57 @@ test(`native Index Store retains both storage and payload custody after ${afterC
   await assert.rejects(stat(join(directory,'owner')),code('ENOENT'));
 });
 }
+
+test('original Host commit lookup confirms its same native Index writer before reconciliation', async t => {
+  const exec = DatabaseSync.prototype.exec, prepare = DatabaseSync.prototype.prepare;
+  let armed = false, selected = false, lost = false, confirmations = 0, receiver;
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+    const statement = Reflect.apply(prepare, this, [sql]), run = statement.run;
+    if (sql === 'INSERT INTO native_publication_indexes VALUES(?,?,?,?,?,1)') {
+      t.mock.method(statement, 'run', function(...args) {
+        const result = Reflect.apply(run, this, args);
+        if (armed) selected = true;
+        return result;
+      });
+    }
+    return statement;
+  });
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    const result = Reflect.apply(exec, this, [sql]);
+    if (armed && selected && sql === 'COMMIT') {
+      if (!lost) {
+        lost = true; receiver = this;
+        throw Object.assign(new Error('lost selected native Index COMMIT reply'), {code: 'EIO'});
+      }
+      assert.equal(this, receiver, 'confirmation stays on the same original database');
+      confirmations++;
+    }
+    return result;
+  });
+  const {store, directory} = await fixture(t), invoked = invocation();
+  const request = publicationRequest(resultDefinition(), digest('original Host native Index lookup'));
+  const attempt = publicationAttempt(request), prepared = await prepareCommit(store, request, attempt, invoked, cids.policy, false, true);
+  const entry = indexEntry(request, attempt, invoked, {durable_result_binding_cids: [prepared.binding.identity]});
+  let original; armed = true;
+  await assert.rejects(store.commitIndex(wire(entry), prepared.required, prepared.evidence), error => {
+    original = error; return error.outcome === 'unknown' && error.cleanupPending === true;
+  });
+  t.after(async () => {
+    armed = false;
+    if (original.cleanupHandle.status().pending) await original.cleanupHandle.retry();
+  });
+  assert(lost); assert.equal(confirmations, 0);
+  const committed = await lookupOriginalPublicationCommit(original, () =>
+    store.lookupCommittedIndex(indexKeyFor(request), () => true));
+  assert.equal(committed.public_index_entry_cid, entry.public_index_entry_cid);
+  assert.equal(confirmations, 1, 'only the original storage confirmation is needed');
+  assert.equal(original.cleanupHandle.status().pending, false);
+  assert.equal(prepared.prepared.status().pending, false);
+  assert.equal(store.status().reservedObjects, 0);
+  armed = false;
+  await store.close();
+  await assert.rejects(stat(join(directory, 'owner')), code('ENOENT'));
+});
 
 test('native Index rechecks the original publication record inside its commit', async t => {
   const {store,directory} = await fixture(t), invoked = invocation();

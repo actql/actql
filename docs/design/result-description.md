@@ -46,6 +46,24 @@ checks; a new public operation observes current Deny independently. Unavailable
 authority denies access. Unpublished, publication-unknown, and unauthorized
 Results do not expose a description through this operation.
 
+The same-owner Manifest issuer retains the exact immutable canonical Artifact
+children already admitted by the publication owner. It measures the original
+complete body under the existing bounds, admits only the small root/key skeleton,
+and inserts those children without serializing and reparsing their subtrees.
+Registered shape, complete identity and relationship checks remain; known child
+identity uses only that same private canonical value and its measured limits.
+Generic admitted Result-name spellings retain their original key normalization
+and diagnostic order. Manifest wire and CID do not change.
+
+Subsequent Root checks still bind the Run, Invocation, complete Definition and
+Artifact inventories, names and references. When a nested value is the exact
+same immutable admitted Artifact value and fits the current bounds, that
+relationship needs no second canonical stream comparison. A separately admitted
+Manifest, missing usage, changed child or tighter bound keeps the original full
+comparison and refusal path. String admission is unchanged. These are private
+representation facts, not current authorization, a claim, or a durability ACK;
+physical readers, lifetime and publication cleanup retain their own duties.
+
 The physical Store returns retained immutable metadata without opening or
 rehashing a payload generation. Existing Manifest read grants authorize and
 account for the metadata response. Existing retention owners validate metadata
@@ -172,6 +190,19 @@ the same Store before continuing its original publication progression. Pending
 cleanup, a missing locator, mismatched bodies or failed confirmation retains
 the original Unknown; none invokes setup again or repeats Effect work. Healthy
 setup adds no confirmation reads.
+
+An unknown Index installation can retain the same native storage writer before
+commit reconciliation can read through the Store. The existing publication
+failure path may make one bounded attempt through that original cleanup and
+confirmation handle before lookup, using its captured methods and receiver.
+This also preserves the original payload custody; it neither repeats the
+publication request nor issues another Index, attempt, computation or Effect.
+A still-pending or failed confirmation retains the original failure and duty.
+Only the actual subsequent lookup and unchanged complete commit validation can
+resolve the publication. Generic and legacy failures retain their existing
+lookup path, and healthy publication adds no cleanup attempt or read. The same
+connection remains available to the retained Unknown reconciliation holder;
+retirement, storage acknowledgement and public publication stay separate.
 An independently adopted file attempt retains its file progress and actual
 acknowledgements. A Store without this optional operation keeps the separate
 setup operations; an explicit refusal never falls back to another write.
