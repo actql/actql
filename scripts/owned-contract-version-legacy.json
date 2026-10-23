@@ -1383,18 +1383,18 @@
     {
       "path": "src/run_publication/protocol_schema.generated.mbt",
       "token": "actql-model-invocation-evidence/0.2",
-      "contextSha256": "80a9b9707663ec072e873e451bcfc002e4e384ecef59eba99e2a9cb14f26a1d6",
-      "line": 1065,
-      "count": 4,
-      "reason": "Reviewed October 12 finite descriptor segmentation: same four admitted M0b/C10 invocation occurrences, same order/body/CID, one destination and no concat; exact new context only."
+      "contextSha256": "78554f5c6e3fc2a7053b364b09d01278b4bab5fd5828d71757f2777bd8b7eb5c",
+      "line": 1329,
+      "count": 1,
+      "reason": "Exact immutable descriptor sharing retains the same 4 admitted M0b/C10 rule slots through one original constructor. Descriptor bodies, order and CIDs remain unchanged; only the constructor context and literal count change."
     },
     {
       "path": "src/run_publication/protocol_schema.generated.mbt",
       "token": "actql-model-capture-bundle/0.2",
-      "contextSha256": "e6d690c3a198f03a7b8af21ffc40848fcb560e33e19728f70f06a1bee1dee8a7",
-      "line": 1427,
-      "count": 2,
-      "reason": "Reviewed October 12 finite descriptor segmentation: same two admitted M0b/C10 bundle occurrences, same order/body/CID, one destination and no concat; exact new context only."
+      "contextSha256": "8dd2b96d12b91d6d4195fbd6cab3dcaef6b573f6aae5c6591f94175cf99b7083",
+      "line": 1685,
+      "count": 1,
+      "reason": "Exact immutable descriptor sharing retains the same 2 admitted M0b/C10 rule slots through one original constructor. Descriptor bodies, order and CIDs remain unchanged; only the constructor context and literal count change."
     },
     {
       "path": "src/run_publication_host/client_journal_row_decoding_wbtest.mbt",

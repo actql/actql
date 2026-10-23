@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {emitSchema} from './run-publication-protocol.mjs';
+import {readFileSync} from 'node:fs';
+import {occurrences, violations} from './check-owned-contract-versions.mjs';
+import {emitSchema, shareProtocolRuleConstructors} from './run-publication-protocol.mjs';
 
 test('Run review singleton claim is exact without admitting arbitrary tuple literals', () => {
   assert.doesNotThrow(() => emitSchema({const: ['invocation_scope_approved']}));
@@ -97,4 +99,54 @@ test('generator keeps Effect receipt conditional and exclusion rules', () => {
   assert.throws(() => emitSchema({then: {required: ['reason']}}),
     /requires if/);
   assert.throws(() => emitSchema({anyOf: []}), /Empty.*anyOf/);
+});
+
+
+test('generated immutable rules share only exact prior constructors and preserve every slot', () => {
+  const original = [
+    'protocol_string_rule(None, [], 0, 1)',
+    'protocol_string_rule(None, [], 1, 0)',
+    'protocol_string_rule(None, [], 0, 1)',
+    'protocol_object_rule([], [], -1, 0, None)',
+    'protocol_object_rule([], [], -2, 0, None)',
+    'protocol_object_rule([], [], -1, 0, None)',
+    'protocol_array_rule(0, 0, false, -1)',
+    'protocol_array_rule(2, 0, false, -1)',
+    'protocol_string_rule(Some("a b"), [], 0, 0)',
+    'protocol_string_rule(Some("ab"), [], 0, 0)',
+  ];
+  const untouched = [...original];
+  const shared = shareProtocolRuleConstructors(original);
+  assert.deepEqual(original, untouched);
+  assert.equal(shared.length, original.length);
+  assert.equal(shared[2], 'nodes[0]');
+  assert.equal(shared[5], 'nodes[3]');
+  const resolve = (index) => {
+    const prior = /^nodes\[(\d+)\]$/.exec(shared[index]);
+    if (!prior) return shared[index];
+    assert.ok(Number(prior[1]) < index);
+    return resolve(Number(prior[1]));
+  };
+  assert.deepEqual(shared.map((_, index) => resolve(index)), original);
+  // Generator calls do not retain another invocation's table indices.
+  assert.deepEqual(shareProtocolRuleConstructors([original[2]]), [original[2]]);
+});
+
+
+test('shared table retains only the two original legacy literal contexts', () => {
+  const path = 'src/run_publication/protocol_schema.generated.mbt';
+  const source = readFileSync(new URL('../' + path, import.meta.url), 'utf8');
+  const inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url)));
+  const found = occurrences(source, path);
+  const entries = inventory.entries.filter(value => value.path === path);
+  assert.equal(found.length, 2);
+  assert.deepEqual(found.map(value => value.token).sort(),
+    ['actql-model-capture-bundle', 'actql-model-invocation-evidence']
+      .map(name => `${name}/${['0', '2'].join('.')}`).sort());
+  assert.equal(entries.length, 2);
+  assert(entries.every(value => value.count === 1));
+  assert.deepEqual(violations(found, inventory), []);
+  assert.equal(violations([...found, ...found], inventory).length, 2);
+  assert.equal(violations(occurrences(source, 'src/run_publication/foreign_writer.mbt'), inventory).length, 2);
+  assert.equal(violations(occurrences(source.replaceAll('protocol_string_rule(', 'foreign_rule('), path), inventory).length, 2);
 });
