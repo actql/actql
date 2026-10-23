@@ -75,24 +75,39 @@ function visit(node, fn) {
 }
 function beforeBusinessRecord() {
   const matches = [];
+  const preparationDeclarations = new Map();
   visit(submissionAst, node => {
+    if (node.type === 'VariableDeclaration' && node.declarations.length === 1) {
+      const name = node.declarations[0].id.name;
+      if (['refusalProperty', 'originalPreparationRefusal'].includes(name)) {
+        assert.equal(preparationDeclarations.has(name), false);
+        preparationDeclarations.set(name, node);
+      }
+    }
     if (node.type !== 'BlockStatement') return;
-    for (let i = 1; i < node.body.length; i++) {
+    for (let i = 2; i < node.body.length; i++) {
       const current = node.body[i], previous = node.body[i - 1];
       if (current.type === 'ExpressionStatement' && current.expression.type === 'AssignmentExpression' &&
           current.expression.left.name === 'retained' &&
           submissionSource.slice(current.start, current.end).includes('journal.recordSubmittedIntent') &&
           previous.type === 'TryStatement' && submissionSource.slice(previous.start, previous.end).includes('admitPreparedSubmission')) {
-        matches.push([previous, current]);
+        const candidate = node.body[i - 2];
+        assert.equal(candidate.type, 'VariableDeclaration');
+        assert.equal(candidate.declarations.length, 1);
+        assert.equal(candidate.declarations[0].id.name, 'admissionCandidate');
+        matches.push([candidate, previous, current]);
       }
     }
   });
   assert.equal(matches.length, 1);
+  assert.deepEqual([...preparationDeclarations.keys()],
+    ['refusalProperty', 'originalPreparationRefusal']);
   return new (async function() {}).constructor('admitPreparedSubmission', 'preparedProgram', 'journal', `
     const value={},requestId='original-request',input={},current={},moon={},attempt=undefined;
     const own=(parent,derived)=>derived,restartFields=value=>value;
     const retainPreparationRefusal=async error=>{throw error;};
     const fail=code=>{throw Object.assign(new Error(code),{code});};let retained;
+    ${[...preparationDeclarations.values()].map(node => submissionSource.slice(node.start, node.end)).join('\n')}
     ${matches[0].map(node => submissionSource.slice(node.start, node.end)).join('\n')}
     return retained;`);
 }
@@ -115,4 +130,27 @@ test('candidate refusal, Promise or Boolean cannot cross the actual durable reco
     await assert.rejects(run(() => result, {}, journal), {code: 'ClientPreparedSubmissionUnavailable'});
   }
   assert.equal(records, 0);
+});
+
+test('candidate refusal projection preserves its own callback and exact frozen candidate', async () => {
+  const run = beforeBusinessRecord(), marker = new Error('OriginalCandidateRefusal');
+  const prepared = {}, seen = []; let records = 0, projections = 0;
+  const journal = {recordSubmittedIntent() {records++;}};
+  const admit = candidate => {seen.push(candidate); throw marker;};
+  Object.defineProperty(admit, 'isOriginalPreparationRefusal', {value(error, candidate) {
+    projections++;
+    assert.strictEqual(this, admit); assert.strictEqual(error, marker);
+    assert.strictEqual(candidate, seen[0]); assert.strictEqual(candidate.preparedProgram, prepared);
+    assert(Object.isFrozen(candidate)); return true;
+  }});
+  await assert.rejects(run(admit, prepared, journal), error => error === marker);
+  assert.equal(seen.length, 1); assert.equal(projections, 1); assert.equal(records, 0);
+
+  let getters = 0;
+  const accessor = () => {throw marker;};
+  Object.defineProperty(accessor, 'isOriginalPreparationRefusal', {
+    get() {getters++; throw new Error('AccessorMustNotRun');},
+  });
+  await assert.rejects(run(accessor, prepared, journal), error => error === marker);
+  assert.equal(getters, 0); assert.equal(records, 0);
 });
