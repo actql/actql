@@ -4182,7 +4182,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "59f20a633d05ea1ccc59acfd724669b7283583b19a173cc54b13c0c7b9a15319",
+      "sha256": "fa0fdc8f8141ba07fc81c6b091377c94b84f6ebaf8c2be98ee65e7058024b67f",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -4775,6 +4775,25 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/insertPublicationRows/insertPublicationRows",
+          "parameters": [
+            "entries"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/insertPublicationRows/insertPublicationRows/insertPublicationRows",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/insertPublicationRows/insertPublicationRows/insertPublicationRows#2",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/inventoryUsage/inventoryUsage",
           "parameters": [],
           "async": false
@@ -5311,6 +5330,25 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/selectedPublicationRows/selectedPublicationRows",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/selectedPublicationRows/selectedPublicationRows/selectedPublicationRows",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/selectedPublicationRows/selectedPublicationRows/selectedPublicationRows#2",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/storedPhysicalState/storedPhysicalState",
           "parameters": [],
           "async": false
@@ -5443,6 +5481,9 @@
             "openDeliveryAttemptIndex/init:stageNativePublicationInventory/init:stageNativePublicationInventory",
             "openDeliveryAttemptIndex/init:stagePhysicalObjects/init:stagePhysicalObjects",
             "openDeliveryAttemptIndex/init:stagePublicationInventory/init:stagePublicationInventory",
+            "openDeliveryAttemptIndex/insertPublicationRows/insertPublicationRows",
+            "openDeliveryAttemptIndex/insertPublicationRows/insertPublicationRows/insertPublicationRows",
+            "openDeliveryAttemptIndex/insertPublicationRows/insertPublicationRows/insertPublicationRows#2",
             "openDeliveryAttemptIndex/inventoryUsage/inventoryUsage",
             "openDeliveryAttemptIndex/mutateLifetimePhysical/mutateLifetimePhysical",
             "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical",
@@ -5526,6 +5567,9 @@
             "openDeliveryAttemptIndex/samePublication/samePublication/samePublication",
             "openDeliveryAttemptIndex/sameRecoveryOriginal/sameRecoveryOriginal",
             "openDeliveryAttemptIndex/selectedPhysical/selectedPhysical",
+            "openDeliveryAttemptIndex/selectedPublicationRows/selectedPublicationRows",
+            "openDeliveryAttemptIndex/selectedPublicationRows/selectedPublicationRows/selectedPublicationRows",
+            "openDeliveryAttemptIndex/selectedPublicationRows/selectedPublicationRows/selectedPublicationRows#2",
             "openDeliveryAttemptIndex/storedPhysicalState/storedPhysicalState",
             "openDeliveryAttemptIndex/transaction/transaction",
             "openDeliveryAttemptIndex/usage/usage",
@@ -5537,6 +5581,10 @@
           ],
           "attributes": {
             "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Native publication metadata blocks"
+              },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "## Indexed delivery claims and coverage"
@@ -5709,7 +5757,11 @@
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "retirePublicationFinishReferences = () => {retainedPublicationFinishes.clear(); pendingResultSeal = undefined;};"
+                "anchor": "retainedPublicationFinishes.clear(); pendingResultSeal = undefined;"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "publicationSelections.clear(); publicationInsertions.clear();"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -6006,6 +6058,22 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.test.mjs",
                 "anchor": "Result cleanup lifecycle is durable and native close alone never seals it"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "native publication block selects only supplied keys and groups its insertion calls"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "native publication block preserves total bounds across multiple native handoffs"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "native publication block rolls back earlier inserts if a later handoff fails"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "native publication block retains its ${afterCommit ? 'committed' : 'rolled-back'} Unknown original"
               }
             ]
           }
