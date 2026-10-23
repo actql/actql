@@ -101,7 +101,10 @@ test('request-key selected rows bind only through the same accepted original Run
   const originalGet = StatementSync.prototype.get;
   t.mock.method(StatementSync.prototype, 'get', function(...parameters) {
     const row = Reflect.apply(originalGet, this, parameters);
-    if (this.sourceSQL.includes('FROM client_requests')) returnedRows += row === undefined ? 0 : 1;
+    const sql = this.sourceSQL.replace(/\s+/gu, ' ');
+    if (sql.includes('FROM client_requests WHERE authority_scope_cid = ? AND caller_request_id = ?') ||
+        sql.includes('FROM client_requests WHERE namespace_id = ? AND authority_scope_cid = ? AND') ||
+        sql.includes('FROM client_requests WHERE run_definition_cid = ?')) returnedRows += row === undefined ? 0 : 1;
     return row;
   });
   const observer = installHostObservation(createHostObservationConnection({
