@@ -98,13 +98,18 @@ test('request-key selected rows bind only through the same accepted original Run
   const f = await fixture(t), records = [];
   const publication = runtimeCore(moon).publicationControl;
   let returnedRows = 0;
+  const nativeSelections = [];
   const originalGet = StatementSync.prototype.get;
   t.mock.method(StatementSync.prototype, 'get', function(...parameters) {
     const row = Reflect.apply(originalGet, this, parameters);
     const sql = this.sourceSQL.replace(/\s+/gu, ' ');
     if (sql.includes('FROM client_requests WHERE authority_scope_cid = ? AND caller_request_id = ?') ||
         sql.includes('FROM client_requests WHERE namespace_id = ? AND authority_scope_cid = ? AND') ||
-        sql.includes('FROM client_requests WHERE run_definition_cid = ?')) returnedRows += row === undefined ? 0 : 1;
+        sql.includes('FROM client_requests WHERE run_definition_cid = ?')) {
+      returnedRows += row === undefined ? 0 : 1;
+      nativeSelections.push({sql, returned: row === undefined ? 0 : 1,
+        caller: new Error().stack.split('\n').slice(2, 6).join('\n')});
+    }
     return row;
   });
   const observer = installHostObservation(createHostObservationConnection({
@@ -129,7 +134,7 @@ test('request-key selected rows bind only through the same accepted original Run
   assert.equal(rows[0].attributes['actql.run.definition_cid'], answer.outcome.admission.ref.runDefinitionCid);
   assert.equal(rows[0].attributes['actql.rows.unrelated'], 0);
   assert.equal(rows[0].attributes['actql.rows.returned'], returnedRows,
-    'Only actual returned native rows, including the original Run resolver, are counted');
+    JSON.stringify(nativeSelections));
   assert(returnedRows > 0);
   assert.equal(f.submissions(), 1);
 });
