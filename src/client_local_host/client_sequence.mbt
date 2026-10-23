@@ -786,10 +786,24 @@ fn prepare_client_local_sequences_owned(
                                 client_local_owner_sequence_limits(prepared),
                               )
                             _ =>
-                              @lower.prepare_sequence(
-                                owner,
-                                client_local_owner_sequence_limits(prepared),
-                              )
+                              match prepared {
+                                Pure(value) =>
+                                  @publication_host.prepare_prepared_client_full_sequence(
+                                    value,
+                                    task,
+                                    client_local_owner_sequence_limits(prepared),
+                                  ).map_err(issue => {
+                                    match issue {
+                                      @publication_host.Sequence(issue) => issue
+                                      _ => @lower.SequenceLimit
+                                    }
+                                  })
+                                Effect(_) =>
+                                  @lower.prepare_sequence(
+                                    owner,
+                                    client_local_owner_sequence_limits(prepared),
+                                  )
+                              }
                           }
                       }
                   }
