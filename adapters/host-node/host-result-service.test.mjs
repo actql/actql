@@ -82,36 +82,37 @@ function beforeBusinessRecord() {
       if (current.type === 'ExpressionStatement' && current.expression.type === 'AssignmentExpression' &&
           current.expression.left.name === 'retained' &&
           submissionSource.slice(current.start, current.end).includes('journal.recordSubmittedIntent') &&
-          previous.type === 'IfStatement' && submissionSource.slice(previous.start, previous.end).includes('admitPreparedSubmission')) {
+          previous.type === 'TryStatement' && submissionSource.slice(previous.start, previous.end).includes('admitPreparedSubmission')) {
         matches.push([previous, current]);
       }
     }
   });
   assert.equal(matches.length, 1);
-  return new Function('admitPreparedSubmission', 'preparedProgram', 'journal', `
+  return new (async function() {}).constructor('admitPreparedSubmission', 'preparedProgram', 'journal', `
     const value={},requestId='original-request',input={},current={},moon={},attempt=undefined;
     const own=(parent,derived)=>derived,restartFields=value=>value;
+    const retainPreparationRefusal=async error=>{throw error;};
     const fail=code=>{throw Object.assign(new Error(code),{code});};let retained;
     ${matches[0].map(node => submissionSource.slice(node.start, node.end)).join('\n')}
     return retained;`);
 }
 
-test('actual Submission calls same prepared candidate before its first durable business record', () => {
+test('actual Submission calls same prepared candidate before its first durable business record', async () => {
   const run = beforeBusinessRecord(), prepared = {}, order = [], record = {};
   const journal = {recordSubmittedIntent() {order.push('record'); return record;}};
-  const observed = run(value => {
+  const observed = await run(value => {
     assert.strictEqual(value.preparedProgram, prepared); assert.equal(value.requestId, 'original-request');
     order.push('candidate');
   }, prepared, journal);
   assert.strictEqual(observed, record); assert.deepEqual(order, ['candidate', 'record']);
 });
 
-test('candidate refusal, Promise or Boolean cannot cross the actual durable record boundary', () => {
+test('candidate refusal, Promise or Boolean cannot cross the actual durable record boundary', async () => {
   const run = beforeBusinessRecord(), marker = new Error('OriginalCandidateRefusal'); let records = 0;
   const journal = {recordSubmittedIntent() {records++;}};
-  assert.throws(() => run(() => {throw marker;}, {}, journal), error => error === marker);
+  await assert.rejects(run(() => {throw marker;}, {}, journal), error => error === marker);
   for (const result of [false, true, Promise.resolve()]) {
-    assert.throws(() => run(() => result, {}, journal), {code: 'ClientPreparedSubmissionUnavailable'});
+    await assert.rejects(run(() => result, {}, journal), {code: 'ClientPreparedSubmissionUnavailable'});
   }
   assert.equal(records, 0);
 });

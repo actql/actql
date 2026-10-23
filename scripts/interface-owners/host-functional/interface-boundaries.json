@@ -19360,7 +19360,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5c3fce09b0873a0204dc5712fd42d1f9fa3d1c6ccc3aba716d13e3a936b313b3",
+      "sha256": "e45d80d7e7dcb926779de27308918c7fe1685ae7db1b11edf8f4ed31ec095e8e",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -23101,6 +23101,10 @@
               {
                 "path": "adapters/host-node/client-original-plan-control.test.mjs",
                 "anchor": "restored map checks original Plan Program and self CID without another compilation"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "accepted original Run definition is returned without a second raw admission"
               }
             ]
           }
@@ -24659,7 +24663,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ca4b33457020772afedf21c2c95f2cf48a11daee29fd0487033f14a73f0e2b92",
+      "sha256": "509db62cb154439cc645e8801d3af03b027023dd48469a7ef569d754a9ef8066",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -24933,6 +24937,14 @@
           "async": false
         },
         {
+          "name": "installNodeClientSubmission/submitIntent/submitIntent/retainPreparationRefusal/retainPreparationRefusal",
+          "parameters": [
+            "error",
+            "issuedCode"
+          ],
+          "async": true
+        },
+        {
           "name": "installNodeClientSubmission/submitNamedAttempt/submitNamedAttempt",
           "parameters": [
             "request"
@@ -25026,6 +25038,7 @@
             "installNodeClientSubmission/submitIntent/submitIntent/flight/flight",
             "installNodeClientSubmission/submitIntent/submitIntent/flight/flight#2",
             "installNodeClientSubmission/submitIntent/submitIntent/restartFields/restartFields",
+            "installNodeClientSubmission/submitIntent/submitIntent/retainPreparationRefusal/retainPreparationRefusal",
             "installNodeClientSubmission/unresolved/unresolved",
             "installNodeClientSubmission/withRestart/withRestart",
             "issueNodeClientSubmissionEpoch",
@@ -25065,6 +25078,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The ordinary selected Node Host has a separate finite Local Result/publication"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admissionFailures = new WeakMap();"
               }
             ],
             "inputsOutputs": [
@@ -25091,6 +25108,10 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "admitPreparedSubmission"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const admissionCandidate = admitPreparedSubmission === undefined ? undefined :"
               }
             ],
             "identity": [
@@ -25125,6 +25146,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid')"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (this !== admitPreparedSubmission) return false;"
               }
             ],
             "ownership": [
@@ -25155,6 +25180,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "same duty before its returned view observes it, that view receives the retained"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "admissionFailures.delete(submission);"
               }
             ],
             "synchronization": [
@@ -25189,6 +25218,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "One durable clock floor covers unchanged internal observations."
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "Reflect.apply(originalPreparationRefusal, admitPreparedSubmission,"
               }
             ],
             "failure": [
@@ -25219,6 +25252,14 @@
               {
                 "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
                 "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const retainPreparationRefusal = async (error, issuedCode) => {"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "error?.cleanupPending === true || error?.cleanupHandle !== undefined) throw error;"
               }
             ],
             "cancellation": [
@@ -25249,6 +25290,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "entry.closedObservation = resultStatus(entry);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "run.preAdmissionRefusal = undefined;"
               }
             ],
             "resources": [
@@ -25287,6 +25332,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "One durable clock floor covers unchanged internal observations."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "run.original !== undefined || run.admission !== undefined || run.value !== undefined ||"
               }
             ],
             "extension": [
@@ -25313,6 +25362,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "legacy private Evidence key; a later key-dependent operation keeps its original"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const originalPreparationRefusal = refusalProperty !== undefined &&"
               }
             ],
             "verification": [
@@ -25355,6 +25408,22 @@
               {
                 "path": "adapters/host-node/client-submission-operation.test.mjs",
                 "anchor": "one actual submit retains epoch authentication and one durable floor through the same Run acceptance"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('paired pre-admission original refusal is retained without entering the Run owner', async t => {"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('unclassified pre-admission interruption is not certified as a refusal', async t => {"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('response loss after Run admission retains the original without redispatch', async t => {"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('paired pre-admission original refusal is retained without entering the Run owner', async t => {"
               }
             ]
           }

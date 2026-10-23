@@ -227,7 +227,7 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
   const properties = preparation.init.arguments[0].properties;
   const names = ['prepareManagedCompute', 'requestPreparation', 'sourcePreparation',
     'bindSourceRequest', 'prepareManagedComputeRun', 'bindManagedComputeRunObservation',
-    'managedComputeUsageReader'];
+    'managedComputeUsageReader', 'isOriginalManagedComputePreparationRefusal'];
   const methods = names.map(name => {
     const property = properties.find(node => node.key.name === name); assert(property, name); return text(property);
   });
@@ -399,13 +399,14 @@ test('actual requirements and begin share the retained typed original before Res
   const p = managedRunPorts(), original = {}, sequences = {}, prepared = {}, request = {};
   let f, sequencePreparations = 0;
   const read = new Function('assertSourceManagedHostPreparation', 'originalSourceManagedHostRequest',
-    'readInitialControlInstallationAsset', 'checked', 'clientOperationError',
+    'readInitialControlInstallationAsset', 'checked', 'clientOperationError', 'runtimeIsError',
     text(declared('installedManagedRunContracts')) + '\n' +
     text(declared('readManagedComputeRunRequirements')) + ';return readManagedComputeRunRequirements;')(
     held => assert.strictEqual(held, f.originals),
     (held, value) => {assert.strictEqual(held, f.originals); assert.strictEqual(value, prepared); return request;},
     () => '{"execution_contracts":{"REL.values":{},"ACTQL.expression_fragment/0.1":{},"REL.derive.ordered":{}}}',
-    value => value, code => Object.assign(new Error(code), {code}));
+    value => value, code => Object.assign(new Error(code), {code}), () => false);
+  p.runtime.clientProgramInstalledManagedRunIssueIsUnsupported = () => false;
   p.runtime.clientProgramInstalledManagedRunRequirements = () => assert.fail('No regeneration');
   p.runtime.clientProgramPrepareInstalledManagedSourceFree = value => {
     assert.strictEqual(value, prepared); sequencePreparations++; return sequences;
@@ -477,6 +478,58 @@ test('failed begin retains the admission and original cleanup through Unknown wi
   assert.equal(rootCloses, 0); assert.equal(preparations, 1);
   await f.initialControl.close();
   assert.equal(rootCloses, 1); assert.equal(preparations, 1); assert.equal(cleanups, 2);
+});
+
+test('pure preparation refusal belongs only to its original pre-Resource Run holder', async () => {
+  const p = managedRunPorts(), prepared = {}, request = {}, issue = {}, result = {};
+  let f, failure, preparations = 0, current = true;
+  const read = new Function('assertSourceManagedHostPreparation', 'originalSourceManagedHostRequest',
+    'readInitialControlInstallationAsset', 'checked', 'clientOperationError', 'runtimeIsError', 'runtimeField',
+    text(declared('installedManagedRunContracts')) + '\n' + text(declared('readManagedComputeRunRequirements')) +
+    ';return readManagedComputeRunRequirements;')(
+    held => {assert.strictEqual(held, f.originals); assert(current);},
+    (held, value) => {assert.strictEqual(held, f.originals); assert.strictEqual(value, prepared); return request;},
+    () => '{"execution_contracts":{"REL.values":{},"ACTQL.expression_fragment/0.1":{},"REL.derive.ordered":{}}}',
+    () => assert.fail('Unsupported must remain the original typed failure'),
+    (code, cause) => Object.assign(new Error(code, {cause}), {code}),
+    value => {assert.strictEqual(value, result); return true;},
+    (value, index) => {assert.strictEqual(value, result); assert.equal(index, 0); return issue;});
+  p.runtime.clientProgramInstalledManagedRunRequirements = () => assert.fail('No second preparation');
+  p.runtime.clientProgramPrepareInstalledManagedSourceFree = value => {
+    assert.strictEqual(value, prepared); preparations++; return result;
+  };
+  p.runtime.clientProgramInstalledManagedRunIssueIsUnsupported = value => {
+    assert.strictEqual(value, issue); return true;
+  };
+  p.runtime.clientProgramPreparedInstalledManagedSourceFreeRequirements = () => assert.fail('No scalar quote');
+  const raw = {prepareRun(value) {assert.strictEqual(value, prepared); read(f.originals, prepared);
+    assert.fail('No Resource original after a pure refusal');}, close: () => ({pending: false})};
+  f = lifecycle({runtime: p.runtime, factory: async () => raw, current: () => assert(current)});
+  Object.assign(f.originals.installation, {initialControl: {}, projectRuntime: p.runtime});
+  await f.preparation.prepareManagedCompute();
+  assert.throws(() => f.preparation.prepareManagedComputeRun(p.runtime, prepared, request), error => {
+    failure = error; return error.code === 'ClientProgramUnsupported' && error.cause === issue;
+  });
+  const project = (error = failure, value = prepared, requested = request) =>
+    f.preparation.isOriginalManagedComputePreparationRefusal(error, value, requested);
+  assert.equal(project(), true);
+  assert.equal(project(Object.assign(new Error('same code'), {code: failure.code})), false);
+  assert.equal(project(failure, {}, request), false);
+  assert.equal(project(failure, prepared, {}), false);
+  const run = f.record.computeRuns.get(prepared), control = f.originals.installation.initialControl;
+  f.originals.installation.initialControl = {}; assert.equal(project(), false);
+  f.originals.installation.initialControl = control;
+  for (const key of ['original', 'admission', 'value']) {
+    run[key] = {}; assert.equal(project(), false); run[key] = undefined;
+  }
+  failure.cleanupPending = true; assert.equal(project(), false); delete failure.cleanupPending;
+  failure.cleanupHandle = {}; assert.equal(project(), false); delete failure.cleanupHandle;
+  current = false; assert.throws(() => project()); current = true;
+  assert.equal(project(), true);
+  assert.throws(() => f.preparation.prepareManagedComputeRun(p.runtime, prepared, request), error => error === failure);
+  assert.equal(preparations, 1); assert.deepEqual(p.log, []);
+  await f.initialControl.close();
+  assert.equal(project(), false, 'Actual successful retirement cuts the nominal refusal holder');
 });
 
 test('same ordinary Host retains separate Run records for successive prepared requests', async () => {

@@ -1417,6 +1417,8 @@ pub fn client_program_installed_managed_run_begin(@physical_resources.NodeManage
 
 pub fn client_program_installed_managed_run_check(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_managed_run_issue_is_unsupported(@client_local_host.ClientInstalledManagedRunIssue) -> Bool
+
 pub fn client_program_installed_managed_run_prepare_ledger(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Array[@client_local_host.ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], String, String, String?, String?) -> Result[@physical_resources.Ledger, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_run_requirements(@run_publication_host.PreparedClientProgram, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], String, String, String?, String?) -> Result[Array[Int64], @client_local_host.ClientInstalledManagedRunIssue]

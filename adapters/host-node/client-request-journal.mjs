@@ -3182,6 +3182,7 @@ export function openClientRequestJournal(directory, {
     // Reattachment never reissues this identity.
     acceptDefinition(identity, {namespaceId, runDefinition, resultNames, runAdmissionEvidence, originalPlan, originalInferRun,
       revision = 0, lookupExpiresAt, submission}, requestControl, publicationControl) {
+      ensureOpen();
       const definition = checkedRunDefinition(runDefinition,
         publicationControl, maxRunDefinitionWireBytes);
       // Only the existing compiler control can issue the first original. A
@@ -3247,7 +3248,10 @@ export function openClientRequestJournal(directory, {
         lookupExpiresAt: accepted.lookupExpiresAt,
         resultNames: accepted.resultNames,
         runAdmissionEvidence: accepted.runAdmissionEvidence,
-        runDefinition: retainedRunDefinition({
+        // The acknowledged winner may be this operation's already admitted
+        // original. A different selected body still follows full admission.
+        runDefinition: accepted.ref.runDefinitionCid === definition.identity &&
+          accepted.runDefinitionWire === definition.wire ? definition : retainedRunDefinition({
           run_definition_cid: accepted.ref.runDefinitionCid,
           run_definition_wire: accepted.runDefinitionWire,
         }, publicationControl, maxRunDefinitionWireBytes),

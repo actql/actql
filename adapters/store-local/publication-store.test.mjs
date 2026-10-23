@@ -6852,7 +6852,7 @@ test('Result cleanup legacy coverage is audited once and a selected corrupt mark
   assert.equal((await store.retireCommittedResult(indexKeyFor(request), request.inventory[0].result_definition_cid)).deleted, true);
   await store.close();
   const database = new DatabaseSync(join(directory, 'delivery-attempts.sqlite3'));
-  try {database.exec('DROP TRIGGER native_publication_references_insert; DROP TRIGGER native_publication_references_update; DROP TABLE native_publication_references; DROP TABLE result_deletion_recovery; UPDATE coverage SET version=10 WHERE id=1');}
+  try {database.exec('DROP TABLE native_publication_materials; DROP TABLE native_publication_indexes; DROP TRIGGER native_publication_references_insert; DROP TRIGGER native_publication_references_update; DROP TABLE native_publication_references; DROP TABLE result_deletion_recovery; UPDATE coverage SET version=10 WHERE id=1');}
   finally {database.close();}
   const parent = join(directory, 'deletions', (await readdir(join(directory, 'deletions')))[0]);
   const marker = join(parent, (await readdir(parent))[0]);
@@ -8365,6 +8365,266 @@ test('publication capacity preflight observes limits without reserving',
     assert.deepEqual(store.status(), before);
   });
 
+test('native publication Index and inventory share their real commit without duplicate file metadata', async t => {
+  const tracked = new Set();
+  const syncs = [], open = fsPromises.open, exec = DatabaseSync.prototype.exec;
+  let commits = 0, armed = false;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    const result = Reflect.apply(exec, this, [sql]);
+    if (armed && sql === 'COMMIT') commits++;
+    return result;
+  });
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    const handle = await Reflect.apply(open, this, [path, ...args]);
+    if (tracked.has(String(path))) {
+      const sync = handle.sync;
+      t.mock.method(handle, 'sync', function(...syncArgs) {
+        if (armed) syncs.push(String(path));
+        return Reflect.apply(sync, this, syncArgs);
+      });
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  t.after(() => {armed = false; t.mock.restoreAll(); syncBuiltinESMExports();});
+  const {store, directory} = await fixture(t), invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), digest('native Index publication Run'));
+  const attempt = publicationAttempt(request, 'native Index publication');
+  const prepared = await prepareCommit(store, request, attempt, invocationValue, cids.policy, false, true);
+  const entry = indexEntry(request, attempt, invocationValue, {durable_result_binding_cids: [prepared.binding.identity]});
+  for (const name of ['objects', 'contracts', 'indexes']) tracked.add(join(directory, name));
+  armed = true;
+  const committed = await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  assert.equal(committed.committed, true);
+  assert.equal(commits, 1, 'Index CAS, immutable body and inventory share the same actual durable transition');
+  assert.deepEqual(syncs, [], 'native Index does not also install filesystem body/Index aliases');
+  assert.deepEqual(await readdir(join(directory, 'indexes')), []);
+  assert.equal((await store.lookupCommittedIndex(indexKeyFor(request), () => true)).public_index_entry_cid,
+    entry.public_index_entry_cid);
+  assert.equal((await store.readSemanticBytes(entry.public_index_entry_cid)).toString(), wire(entry));
+  armed = false;
+  await store.close();
+});
+
+for (const afterCommit of [false,true]) {
+test(`native Index Store retains both storage and payload custody after ${afterCommit ? 'committed' : 'rolled-back'} reply loss`, async t => {
+  const exec = DatabaseSync.prototype.exec, prepare = DatabaseSync.prototype.prepare;
+  let armed = false, selected = false, lost = false;
+  t.mock.method(DatabaseSync.prototype,'prepare',function(sql){
+    const statement = Reflect.apply(prepare,this,[sql]), run = statement.run;
+    if (sql === 'INSERT INTO native_publication_indexes VALUES(?,?,?,?,?,1)') t.mock.method(statement,'run',function(...args){
+      const result = Reflect.apply(run,this,args); if (armed) selected = true; return result;
+    });
+    return statement;
+  });
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if (armed && selected && !lost && sql === 'COMMIT') {
+      lost = true; if (afterCommit) Reflect.apply(exec,this,[sql]);
+      throw Object.assign(new Error('lost original native Index reply'),{code:'EIO'});
+    }
+    return Reflect.apply(exec,this,[sql]);
+  });
+  const {store,directory} = await fixture(t), invoked = invocation();
+  const request = publicationRequest(resultDefinition(),digest('native Index reply loss ' + afterCommit));
+  const attempt = publicationAttempt(request), prepared = await prepareCommit(store,request,attempt,invoked,cids.policy,false,true);
+  const entry = indexEntry(request,attempt,invoked,{durable_result_binding_cids:[prepared.binding.identity]});
+  let failure; armed = true;
+  await assert.rejects(store.commitIndex(wire(entry),prepared.required,prepared.evidence),error=>{
+    failure = error; return error.outcome === 'unknown';
+  });
+  assert(lost);
+  assert.equal(failure.cleanupHandle.status().pending,true);
+  assert.equal(prepared.prepared.status().pending,true,'the original payload remains owned before storage confirmation');
+  assert.equal(store.status().reservedObjects,1,'Index body reservation is not refunded on Unknown');
+  const first = failure.cleanupHandle.retry(), same = failure.cleanupHandle.retry();
+  assert.equal(first,same,'same original cleanup is single-flight');
+  assert.equal((await first).pending,false);
+  assert.equal(prepared.prepared.status().pending,false);
+  assert.equal(store.status().reservedObjects,0);
+  assert.equal((await store.lookupCommittedIndex(indexKeyFor(request),()=>true)).public_index_entry_cid,entry.public_index_entry_cid);
+  const database = new DatabaseSync(join(directory,'delivery-attempts.sqlite3'),{readOnly:true});
+  try {
+    assert.equal(database.prepare('SELECT count(*) AS n FROM native_publication_indexes').get().n,1);
+    assert.equal(database.prepare('SELECT count(*) AS n FROM native_publication_materials').get().n,1);
+    assert.equal(database.prepare('SELECT ack_revision FROM native_publication_indexes').get().ack_revision,afterCommit ? 2 : 1);
+  } finally {database.close();}
+  armed = false; await store.close();
+  await assert.rejects(stat(join(directory,'owner')),code('ENOENT'));
+});
+}
+
+test('native Index rechecks the original publication record inside its commit', async t => {
+  const {store,directory} = await fixture(t), invoked = invocation();
+  const request = publicationRequest(resultDefinition(),digest('native Index changed publication record'));
+  const attempt = publicationAttempt(request), prepared = await prepareCommit(store,request,attempt,invoked,cids.policy,false,true);
+  const entry = indexEntry(request,attempt,invoked,{durable_result_binding_cids:[prepared.binding.identity]});
+  const changed = publicationRecord(attempt,2,'publication_unknown',prepared.committing);
+  const target = join(directory,'contracts',entry.public_index_entry_cid.slice(7)+'.json');
+  const lstatOriginal = fsPromises.lstat;
+  let changedOnce = false;
+  t.mock.method(fsPromises,'lstat',async function(path,...args){
+    if (!changedOnce && String(path) === target) {
+      changedOnce = true;
+      await store.appendRecord(wire(changed),{uncommittedConfirmed:false});
+    }
+    return Reflect.apply(lstatOriginal,this,[path,...args]);
+  });
+  syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
+  await assert.rejects(store.commitIndex(wire(entry),prepared.required,prepared.evidence),code('PublicationRecordConflict'));
+  assert(changedOnce);
+  assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)),undefined);
+  assert.equal((await store.latestRecord(attempt.publication_attempt_cid)).publication_record_cid,changed.publication_record_cid);
+  assert.equal(store.status().reservedObjects,0);
+  assert.equal(await prepared.prepared.release(),true);
+  await store.close();
+});
+
+test('concurrent native Index confirmation retains one original lost-reply writer', async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, lost = false;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if (armed && !lost && sql === 'COMMIT') {
+      lost = true; Reflect.apply(exec,this,[sql]);
+      throw Object.assign(new Error('original native Index confirmation reply lost'),{code:'EIO'});
+    }
+    return Reflect.apply(exec,this,[sql]);
+  });
+  const {store,directory,configuration} = await fixture(t), invoked = invocation();
+  const request = publicationRequest(resultDefinition(),digest('concurrent native Index confirmation'));
+  const attempt = publicationAttempt(request), prepared = await prepareCommit(store,request,attempt,invoked,cids.policy,false,true);
+  const entry = indexEntry(request,attempt,invoked,{durable_result_binding_cids:[prepared.binding.identity]});
+  await store.commitIndex(wire(entry),prepared.required,prepared.evidence); await store.close();
+  const reopened = await openLocalPublicationStore(configuration,contractControl);
+  const lstatOriginal = fsPromises.lstat;
+  let entered = 0, release;
+  const both = new Promise(resolve => {release = resolve;});
+  t.mock.method(fsPromises,'lstat',async function(path,...args){
+    if (armed && String(path).startsWith(join(directory,'indexes')+sep)) {
+      if (++entered === 2) release();
+      await both;
+    }
+    return Reflect.apply(lstatOriginal,this,[path,...args]);
+  });
+  syncBuiltinESMExports();
+  t.after(async()=>{armed=false;t.mock.restoreAll();syncBuiltinESMExports();await reopened.close();});
+  armed = true;
+  const results = await Promise.allSettled([reopened.lookupCommittedIndex(indexKeyFor(request),()=>true),
+    reopened.lookupCommittedIndex(indexKeyFor(request),()=>true)]);
+  assert(lost); assert.equal(entered,2);
+  assert(results.every(result => result.status === 'rejected'));
+  assert.equal(results[0].reason,results[1].reason,'the second acquisition cannot replace the existing storage duty');
+  const cleanup = results[0].reason.cleanupHandle;
+  assert.equal(cleanup.status().pending,true);
+  assert.equal((await cleanup.retry()).pending,false);
+  armed = false;
+  assert.equal((await reopened.lookupCommittedIndex(indexKeyFor(request),()=>true)).public_index_entry_cid,entry.public_index_entry_cid);
+  await reopened.close();
+  const db = new DatabaseSync(join(directory,'delivery-attempts.sqlite3'),{readOnly:true});
+  try {assert.equal(db.prepare('SELECT ack_revision FROM native_publication_indexes').get().ack_revision,3);}
+  finally {db.close();}
+  await assert.rejects(stat(join(directory,'owner')),code('ENOENT'));
+});
+
+test('native Index confirmation retains its same cleanup through two committed lost replies', async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, remaining = 2;
+  const acknowledgedRevisions = [];
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    const answer = Reflect.apply(exec, this, [sql]);
+    if (armed && sql === 'COMMIT') {
+      const row = this.prepare('SELECT ack_revision FROM native_publication_indexes').get();
+      acknowledgedRevisions.push(row.ack_revision);
+      if (remaining-- > 0) throw Object.assign(new Error('same Index confirmation reply lost'), {code: 'EIO'});
+    }
+    return answer;
+  });
+  const {store, directory, configuration} = await fixture(t), invoked = invocation();
+  const request = publicationRequest(resultDefinition(), digest('repeated native Index confirmation'));
+  const attempt = publicationAttempt(request), prepared = await prepareCommit(store, request, attempt, invoked, cids.policy, false, true);
+  const entry = indexEntry(request, attempt, invoked, {durable_result_binding_cids: [prepared.binding.identity]});
+  await store.commitIndex(wire(entry), prepared.required, prepared.evidence); await store.close();
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  t.after(async () => {armed = false; t.mock.restoreAll(); await reopened.close();});
+  let original;
+  armed = true;
+  await assert.rejects(reopened.lookupCommittedIndex(indexKeyFor(request), () => true), error => {
+    original = error; return error.outcome === 'unknown' && error.cleanupPending === true;
+  });
+  const cleanup = original.cleanupHandle;
+  assert.equal(cleanup.status().pending, true);
+  await assert.rejects(cleanup.retry(), error => error.outcome === 'unknown');
+  assert.equal(cleanup.status().pending, true);
+  assert.deepEqual(acknowledgedRevisions, [2, 3], 'Both failures followed actual commits of the same Index');
+  await assert.rejects(reopened.lookupCommittedIndex(indexKeyFor(request), () => true));
+  assert.deepEqual(acknowledgedRevisions, [2, 3], 'Another read cannot replace the uncertain original');
+  assert.equal((await cleanup.retry()).pending, false, 'The SAME captured cleanup must acknowledge its next real write');
+  assert.equal(original.cleanupPending, false);
+  assert.deepEqual(acknowledgedRevisions, [2, 3, 4]);
+  armed = false;
+  assert.equal((await reopened.lookupCommittedIndex(indexKeyFor(request), () => true)).public_index_entry_cid,
+    entry.public_index_entry_cid);
+  await reopened.close();
+  await assert.rejects(stat(join(directory, 'owner')), code('ENOENT'));
+});
+
+test('native Index shared Result payload keeps the same allocation until final real unlink ACK', async t => {
+  const {store,directory,configuration} = await fixture(t);
+  const publish = async label => {
+    const invoked = invocation(), request = publicationRequest(resultDefinition(),digest(label));
+    const attempt = publicationAttempt(request), prepared = await prepareCommit(store,request,attempt,invoked,cids.policy,false,true);
+    const entry = indexEntry(request,attempt,invoked,{durable_result_binding_cids:[prepared.binding.identity]});
+    await store.commitIndex(wire(entry),prepared.required,prepared.evidence);
+    return {request,entry,physical:JSON.parse(prepared.binding.wire).material_generation_cid};
+  };
+  const first = await publish('native first shared Result'), second = await publish('native second shared Result');
+  assert.equal(first.physical,second.physical);
+  const path = join(directory,'objects',first.physical.slice(7)), original = await stat(path);
+  await store.close();
+  let armed = false, lost = false;
+  const reopened = await openLocalPublicationStore(configuration,contractControl,{async syncDirectory(directoryPath){
+    if (armed && !lost && directoryPath === join(directory,'objects')) {
+      let missing = false;
+      try {await stat(path);} catch (error) {if(error.code !== 'ENOENT') throw error; missing = true;}
+      if (missing) {lost = true; throw Object.assign(new Error('last native Result directory ACK failed'),{code:'EIO'});}
+    }
+    const handle = await open(directoryPath,'r'); try {await handle.sync();} finally {await handle.close();}
+  }});
+  t.after(async()=>{armed=false;await reopened.close();});
+  const retired = await reopened.retireCommittedResult(indexKeyFor(first.request),first.request.inventory[0].result_definition_cid);
+  assert.equal(retired.cleanup.status().pending,false);
+  const retained = await stat(path);
+  assert.equal(retained.dev,original.dev); assert.equal(retained.ino,original.ino);
+  const bytes = [];
+  await reopened.consumeCommittedResult(indexKeyFor(second.request),second.request.inventory[0].result_definition_cid,
+    ()=>true,chunk=>bytes.push(Buffer.from(chunk)));
+  assert.equal(Buffer.concat(bytes).toString(),'fixture durable Result payload');
+  const before = reopened.status(); armed = true;
+  const last = await reopened.retireCommittedResult(indexKeyFor(second.request),second.request.inventory[0].result_definition_cid);
+  assert(lost); assert.equal(last.cleanup.status().pending,true);
+  assert.equal(reopened.status().objectCount,before.objectCount,'unlink visibility is not quota release');
+  await assert.rejects(reopened.close(),code('PublicationStoreCleanupPending'));
+  assert.equal((await last.cleanup.retry()).pending,false);
+  assert.equal(reopened.status().objectCount,before.objectCount-1);
+  await assert.rejects(stat(path),code('ENOENT'));
+  armed = false; await reopened.close();
+});
+
+test('native Index selected body corruption refuses without rebuilding unrelated publications', async t => {
+  const {store,directory,configuration} = await fixture(t), invoked = invocation();
+  const request = publicationRequest(resultDefinition(),digest('native selected corruption'));
+  const attempt = publicationAttempt(request), prepared = await prepareCommit(store,request,attempt,invoked,cids.policy,false,true);
+  const entry = indexEntry(request,attempt,invoked,{durable_result_binding_cids:[prepared.binding.identity]});
+  await store.commitIndex(wire(entry),prepared.required,prepared.evidence); await store.close();
+  const db = new DatabaseSync(join(directory,'delivery-attempts.sqlite3'));
+  try {db.prepare('UPDATE publication_contracts SET wire=?,byte_count=? WHERE semantic_cid=?').run('{}',2,entry.public_index_entry_cid);}
+  finally {db.close();}
+  const reopened = await openLocalPublicationStore(configuration,contractControl);
+  try {
+    await assert.rejects(reopened.lookupCommittedIndex(indexKeyFor(request),()=>true),code('InvalidPublicationContract'));
+    assert.deepEqual(await readdir(join(directory,'indexes')),[],'no file Index or authority is reconstructed');
+  } finally {await reopened.close();}
+});
+
 test('native publication inventory is the durable original without duplicate file ACKs',async t=>{
   const {store,directory}=await fixture(t),invocationValue=invocation();
   const request=publicationRequest(resultDefinition(),digest('native inventory Run'));
@@ -8425,7 +8685,7 @@ test('metadata deletion history is indexed once and unrelated Run operations rea
   const {store,directory,configuration}=await fixture(t);await store.close();
   // Model the actual prior private version and its compact retired files.
   const db=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'));
-  try{db.exec('DROP TRIGGER native_publication_references_insert; DROP TRIGGER native_publication_references_update; DROP TABLE native_publication_references; DROP TABLE result_deletion_recovery; DROP TABLE publication_records; DROP TABLE publication_attempts; DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; UPDATE coverage SET version=7 WHERE id=1');}
+  try{db.exec('DROP TABLE native_publication_materials; DROP TABLE native_publication_indexes; DROP TRIGGER native_publication_references_insert; DROP TRIGGER native_publication_references_update; DROP TABLE native_publication_references; DROP TABLE result_deletion_recovery; DROP TABLE publication_records; DROP TABLE publication_attempts; DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; UPDATE coverage SET version=7 WHERE id=1');}
   finally{db.close();}
   const history=Array.from({length:12},(_,i)=>({key:digest(`retired key ${i}`).slice(7),run:digest(`retired Run ${i}`)}));
   for(const row of history)await writeFile(join(directory,'metadata-deletions',row.key+'.json'),wire({
@@ -8741,7 +9001,7 @@ test('publication recovery migrates the legacy inventory once and preserves adop
   // Reconstruct only this new disposable fixture's exact prior private format.
   const path=join(setup.directory,'delivery-attempts.sqlite3');
   const old=new DatabaseSync(path);
-  try{old.exec('DROP TRIGGER native_publication_references_insert; DROP TRIGGER native_publication_references_update; DROP TABLE native_publication_references; DROP TABLE result_deletion_recovery; DROP TABLE publication_records; DROP TABLE publication_attempts; DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; UPDATE coverage SET version=5 WHERE id=1');}
+  try{old.exec('DROP TABLE native_publication_materials; DROP TABLE native_publication_indexes; DROP TRIGGER native_publication_references_insert; DROP TRIGGER native_publication_references_update; DROP TABLE native_publication_references; DROP TABLE result_deletion_recovery; DROP TABLE publication_records; DROP TABLE publication_attempts; DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; UPDATE coverage SET version=5 WHERE id=1');}
   finally{old.close();}
   const originalOpen=fsPromises.open,reads=[];
   t.mock.method(fsPromises,'open',function(path,...args){reads.push(String(path));return Reflect.apply(originalOpen,this,[path,...args]);});
