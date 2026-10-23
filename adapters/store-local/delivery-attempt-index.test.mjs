@@ -6,6 +6,66 @@ import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 
+function publicationBlockWork(t) {
+  let armed = false;
+  const reads = [], writes = [];
+  let commits = 0;
+  const prepare = DatabaseSync.prototype.prepare, exec = DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+    const statement = Reflect.apply(prepare, this, [sql]);
+    for (const method of ['get', 'all', 'run']) {
+      const original = statement[method];
+      t.mock.method(statement, method, function(...args) {
+        const result = Reflect.apply(original, this, args);
+        if (armed && /^SELECT \* FROM publication_contracts WHERE semantic_cid(?:=| IN )/u.test(sql)) {
+          reads.push({args, rows: method === 'all' ? result : result === undefined ? [] : [result]});
+        }
+        if (armed && /^INSERT INTO publication_contracts /u.test(sql)) writes.push({args, changes: result.changes});
+        return result;
+      });
+    }
+    return statement;
+  });
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    const result = Reflect.apply(exec, this, [sql]);
+    if (armed && sql === 'COMMIT') commits++;
+    return result;
+  });
+  return {arm() {armed = true;}, disarm() {armed = false;},
+    snapshot() {return {reads, writes, commits};}};
+}
+
+test('native publication block selects only supplied keys and groups its insertion calls', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-publication-block-'));
+  let index;
+  const work = publicationBlockWork(t);
+  t.after(async () => {work.disarm(); index?.close(); await rm(directory, {recursive: true});});
+  index = await openDeliveryAttemptIndex(join(directory, 'index.sqlite3'),
+    {create: true, maxEntries: 128, maxWireBytes: 4096});
+  index.migrate([]);
+  const entry = n => ({semantic_cid: 'sha256:' + n.toString(16).padStart(64, '0'),
+    name: 'invocation', wire: '{}', byte_count: 2});
+  const selected = Array.from({length: 8}, (_, n) => entry(n + 1));
+  const unrelated = Array.from({length: 24}, (_, n) => entry(n + 100));
+  const installed = [...selected.slice(0, 2), ...unrelated];
+  index.putPublicationContracts(installed, {objects: installed.length, bytes: installed.length * 2});
+  const before = index.publicationUsage();
+  work.arm();
+  index.putPublicationContracts(selected, {objects: 6, bytes: 12});
+  work.disarm();
+  for (const row of [...selected, ...unrelated]) assert.deepEqual(index.publicationContract(row.semantic_cid), row);
+  const usage = index.publicationUsage();
+  assert.equal(usage.objects, before.objects + 6);
+  assert.equal(usage.bytes, before.bytes + 12);
+  const observed = work.snapshot(), keys = new Set(selected.map(row => row.semantic_cid));
+  assert.deepEqual(observed.reads.flatMap(read => read.args).filter(value => value !== null).sort(), [...keys].sort());
+  assert.equal(observed.reads.flatMap(read => read.rows).length, 2);
+  assert(observed.reads.every(read => read.rows.every(row => keys.has(row.semantic_cid))), 'unrelated rows are not acquired');
+  assert.equal(observed.writes.reduce((sum, write) => sum + write.changes, 0), 6);
+  assert.deepEqual({selectedStatements: observed.reads.length, insertStatements: observed.writes.length,
+    commits: observed.commits}, {selectedStatements: 1, insertStatements: 1, commits: 1});
+});
+
 // These fixtures reconstruct an earlier private schema, rather than merely
 // relabel a current database while retaining its newer adopted tables.
 function removePublicationProgressSchema(database) {
