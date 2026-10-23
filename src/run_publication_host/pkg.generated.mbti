@@ -2272,7 +2272,10 @@ pub struct ClientCompiledRun {
   authorization : @run_publication.RunEvidenceValue
   admission : @run_publication.RunPublicationAdmission
   source_free_result_policy : @run_publication.CapturedEffectDependencyBody?
+  mut definition_binding : ClientCompiledRunDefinitionFacts?
 }
+
+type ClientCompiledRunDefinitionFacts
 
 pub(all) enum ClientCompiledRunIssue {
   ForeignOwner

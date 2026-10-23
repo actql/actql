@@ -174,6 +174,7 @@ pub fn client_task_run_materials_compiled_original(
     ),
     admission: materials.admission,
     source_free_result_policy: None,
+    definition_binding: None,
   }
   check_client_compiled_run_definition(value, materials.run_definition).map(fn(
     _,

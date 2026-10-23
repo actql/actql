@@ -242,3 +242,23 @@ wire-size ceilings; it does not immediately run the independent stored-input
 reader over its own output. An authorized durable plan read still admits the
 selected stored Plan and map and checks their identities before disclosure.
 Capture is neither a permission cache nor a replacement for that read boundary.
+
+## Compiled Run definition binding lifetime
+
+The existing compiled Run holder retains one completed Values or task binding.
+Reuse requires the exact original checked Program, compilation, template, Plan,
+prepared and authorization evidence, admission and nominal Run Definition.
+Serialized equality or a matching CID cannot substitute for those tokens. A
+restored or changed input runs the original complete binding check before any
+new facts are retained. A failed check preserves the last successful binding;
+a different successful Definition replaces that single slot. The slot retains
+the typed binding and original references without decoded wire copies or a
+reference back to the compiled holder.
+
+This is immutable compilation and definition data. It does not retain current
+permission, a clock observation, Preview approval, request or attempt state,
+Index admission, physical resource availability or a commit decision. The
+existing Effect binding path remains complete. Invocation emission and static
+Plan projection still apply their own limits, and stored Plan/map reads keep
+their independent admission. Releasing the compiled holder releases its retained
+binding references without issuing a physical acknowledgement.

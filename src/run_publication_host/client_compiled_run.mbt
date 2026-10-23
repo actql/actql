@@ -17,6 +17,28 @@ pub struct ClientCompiledRun {
   authorization : @publication.RunEvidenceValue
   admission : @publication.RunPublicationAdmission
   source_free_result_policy : @publication.CapturedEffectDependencyBody?
+  mut definition_binding : ClientCompiledRunDefinitionFacts?
+}
+
+///|
+/// One completed immutable binding in the existing compiled holder. Retained
+/// tokens and typed results contain no permission, clock or physical resource.
+struct ClientCompiledRunDefinitionFacts {
+  owner : PreparedClientProgram
+  compilation : ClientRunCompilation
+  template : @publication.RunEvidenceValue
+  plan : @publication.PublicationContract
+  prepared : @publication.RunEvidenceValue
+  authorization : @publication.RunEvidenceValue
+  admission : @publication.RunPublicationAdmission
+  definition : @publication.PublicationContract
+  binding : ClientCompiledRunDefinitionBinding
+}
+
+///|
+priv enum ClientCompiledRunDefinitionBinding {
+  ValuesDefinition(ClientValuesRunBinding)
+  TaskDefinition(ClientTaskRunBinding)
 }
 
 ///|
@@ -411,6 +433,7 @@ fn issue_client_compiled_run(
     authorization,
     admission,
     source_free_result_policy: None,
+    definition_binding: None,
   })
 }
 
@@ -454,6 +477,75 @@ pub fn check_client_compiled_run_definition(
   value : ClientCompiledRun,
   definition : @publication.PublicationContract,
 ) -> Result[Unit, ClientCompiledRunIssue] {
+  check_client_compiled_run_definition_owned(value, definition)
+}
+
+///|
+fn check_client_compiled_run_definition_owned(
+  value : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  bind? : (ClientCompiledRun, @publication.PublicationContract) -> Result[
+    ClientCompiledRunDefinitionBinding?,
+    ClientCompiledRunIssue,
+  ] = bind_client_compiled_run_definition,
+) -> Result[Unit, ClientCompiledRunIssue] {
+  if value.definition_binding is Some(original) &&
+    client_compiled_run_definition_facts_match(original, value, definition) {
+    return Ok(())
+  }
+  match bind(value, definition) {
+    Ok(Some(binding)) => {
+      value.definition_binding = Some({
+        owner: value.owner,
+        compilation: value.compilation,
+        template: value.template,
+        plan: value.plan,
+        prepared: value.prepared,
+        authorization: value.authorization,
+        admission: value.admission,
+        definition,
+        binding,
+      })
+      Ok(())
+    }
+    Ok(None) => Ok(())
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn client_compiled_run_definition_facts_match(
+  original : ClientCompiledRunDefinitionFacts,
+  value : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Bool {
+  if !physical_equal(original.owner, value.owner) ||
+    !physical_equal(original.template, value.template) ||
+    !physical_equal(original.plan, value.plan) ||
+    !physical_equal(original.prepared, value.prepared) ||
+    !physical_equal(original.authorization, value.authorization) ||
+    !physical_equal(original.admission, value.admission) ||
+    !physical_equal(original.definition, definition) {
+    return false
+  }
+  match (original.compilation, value.compilation, original.binding) {
+    (Values(before), Values(after), ValuesDefinition(binding)) =>
+      physical_equal(before, after) &&
+      client_values_run_binding_definition_cid(binding) ==
+      @publication.publication_contract_identity(definition)
+    (Tasks(before), Tasks(after), TaskDefinition(binding)) =>
+      physical_equal(before, after) &&
+      client_task_run_binding_definition_cid(binding) ==
+      @publication.publication_contract_identity(definition)
+    _ => false
+  }
+}
+
+///|
+fn bind_client_compiled_run_definition(
+  value : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Result[ClientCompiledRunDefinitionBinding?, ClientCompiledRunIssue] {
   match value.compilation {
     Values(compilation) =>
       bind_source_free_client_values_run(
@@ -462,7 +554,7 @@ pub fn check_client_compiled_run_definition(
         value.admission,
         definition,
       )
-      .map(_ => ())
+      .map(binding => Some(ValuesDefinition(binding)))
       .map_err(issue => ValuesBinding(issue))
     Tasks(compilation) =>
       bind_client_task_run(
@@ -471,7 +563,7 @@ pub fn check_client_compiled_run_definition(
         value.admission,
         definition,
       )
-      .map(_ => ())
+      .map(binding => Some(TaskDefinition(binding)))
       .map_err(issue => TaskBinding(issue))
     Effects(allowed) =>
       bind_client_effect_compiled_run(
@@ -479,7 +571,7 @@ pub fn check_client_compiled_run_definition(
         allowed,
         definition,
       )
-      .map(_ => ())
+      .map(_ => None)
       .map_err(issue => EffectBinding(issue))
   }
 }
