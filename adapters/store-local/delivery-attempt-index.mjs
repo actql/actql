@@ -1160,9 +1160,12 @@ export async function openDeliveryAttemptIndex(path, {
         if (closed || closing || mutating || !complete) fail('DeliveryAttemptIndexCleanupPending');
         transaction.assertUsable();
       } else requireComplete();
+      // The supplied original stays fixed. Each lost reply retains only the
+      // before/after revisions of its most recent SAME confirmation write.
+      const writeRevision = retry ? uncertainNativeIndex.writeRevision : revision;
       const current = nativeIndexCopy(nativeIndexByKey.get(key.metadata_key));
       if (current === undefined || !sameNativeIndexKey(current,key) || !samePublication(current.body,body) ||
-          current.ack_revision !== revision && !(retry && current.ack_revision === revision + 1)) {
+          current.ack_revision !== writeRevision && !(retry && current.ack_revision === writeRevision + 1)) {
         fail('PublicationCommitConflict');
       }
       try {
@@ -1173,7 +1176,8 @@ export async function openDeliveryAttemptIndex(path, {
         });
         if (retry) {uncertain = false; uncertainNativeIndex = undefined;}
       } catch (error) {
-        if (error?.outcome === 'unknown') uncertainNativeIndex = Object.freeze({kind:'confirm',key,body,revision});
+        if (error?.outcome === 'unknown') uncertainNativeIndex = Object.freeze({kind:'confirm',key,body,revision,
+          writeRevision:current.ack_revision});
         throw error;
       }
       return Object.freeze({...current,ack_revision:current.ack_revision+1});

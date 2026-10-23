@@ -8525,6 +8525,48 @@ test('concurrent native Index confirmation retains one original lost-reply write
   await assert.rejects(stat(join(directory,'owner')),code('ENOENT'));
 });
 
+test('native Index confirmation retains its same cleanup through two committed lost replies', async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, remaining = 2;
+  const acknowledgedRevisions = [];
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    const answer = Reflect.apply(exec, this, [sql]);
+    if (armed && sql === 'COMMIT') {
+      const row = this.prepare('SELECT ack_revision FROM native_publication_indexes').get();
+      acknowledgedRevisions.push(row.ack_revision);
+      if (remaining-- > 0) throw Object.assign(new Error('same Index confirmation reply lost'), {code: 'EIO'});
+    }
+    return answer;
+  });
+  const {store, directory, configuration} = await fixture(t), invoked = invocation();
+  const request = publicationRequest(resultDefinition(), digest('repeated native Index confirmation'));
+  const attempt = publicationAttempt(request), prepared = await prepareCommit(store, request, attempt, invoked, cids.policy, false, true);
+  const entry = indexEntry(request, attempt, invoked, {durable_result_binding_cids: [prepared.binding.identity]});
+  await store.commitIndex(wire(entry), prepared.required, prepared.evidence); await store.close();
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  t.after(async () => {armed = false; t.mock.restoreAll(); await reopened.close();});
+  let original;
+  armed = true;
+  await assert.rejects(reopened.lookupCommittedIndex(indexKeyFor(request), () => true), error => {
+    original = error; return error.outcome === 'unknown' && error.cleanupPending === true;
+  });
+  const cleanup = original.cleanupHandle;
+  assert.equal(cleanup.status().pending, true);
+  await assert.rejects(cleanup.retry(), error => error.outcome === 'unknown');
+  assert.equal(cleanup.status().pending, true);
+  assert.deepEqual(acknowledgedRevisions, [2, 3], 'Both failures followed actual commits of the same Index');
+  await assert.rejects(reopened.lookupCommittedIndex(indexKeyFor(request), () => true));
+  assert.deepEqual(acknowledgedRevisions, [2, 3], 'Another read cannot replace the uncertain original');
+  assert.equal((await cleanup.retry()).pending, false, 'The SAME captured cleanup must acknowledge its next real write');
+  assert.equal(original.cleanupPending, false);
+  assert.deepEqual(acknowledgedRevisions, [2, 3, 4]);
+  armed = false;
+  assert.equal((await reopened.lookupCommittedIndex(indexKeyFor(request), () => true)).public_index_entry_cid,
+    entry.public_index_entry_cid);
+  await reopened.close();
+  await assert.rejects(stat(join(directory, 'owner')), code('ENOENT'));
+});
+
 test('native Index shared Result payload keeps the same allocation until final real unlink ACK', async t => {
   const {store,directory,configuration} = await fixture(t);
   const publish = async label => {
