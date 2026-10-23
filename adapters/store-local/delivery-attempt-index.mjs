@@ -87,6 +87,17 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       run: (...args) => Reflect.apply(run,original,args),
       all: (...args) => Reflect.apply(all,original,args)});
   };
+  const deferredStatements = [];
+  const prepareOnUse = sql => {
+    let statement;
+    const selected = () => {
+      if (closed) fail('DeliveryAttemptIndexClosed');
+      return statement ??= prepare(sql);
+    };
+    deferredStatements.push(() => {statement = undefined;});
+    return Object.freeze({get: (...args) => selected().get(...args),
+      run: (...args) => selected().run(...args), all: (...args) => selected().all(...args)});
+  };
   const captureClose = () => {
     closeOriginal ??= database.close;
     isOpenOriginal ??= Object.getOwnPropertyDescriptor(database, 'isOpen')?.get;
@@ -375,22 +386,24 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       UNION ALL SELECT 'delivery_record',initial_wire FROM initial_records WHERE initial_cid=?
       UNION ALL SELECT 'delivery_record',record_wire FROM completions WHERE record_cid=?
       UNION ALL SELECT 'result_delivery_receipt',receipt_wire FROM completions WHERE receipt_cid=? LIMIT 1`);
-    const publication = prepare('SELECT * FROM publication_contracts WHERE semantic_cid=?');
-    const publicationAttempt = prepare('SELECT * FROM publication_attempts WHERE attempt_cid=?');
-    const insertPublicationAttempt = prepare('INSERT INTO publication_attempts VALUES(?,?)');
-    const removePublicationAttempts = prepare('DELETE FROM publication_attempts WHERE run_cid=?');
-    const publicationProgress = prepare(`SELECT * FROM publication_records WHERE attempt_cid=? ORDER BY sequence DESC LIMIT 1`);
-    const publicationProgressCount = prepare('SELECT count(*) AS count FROM publication_records WHERE attempt_cid=?');
-    const insertPublicationRecord = prepare('INSERT INTO publication_records VALUES(?,?,?)');
-    const publicationRunAttempts = prepare('SELECT * FROM publication_attempts WHERE run_cid=? LIMIT ?');
-    const publicationAttemptRecords = prepare('SELECT * FROM publication_records WHERE attempt_cid=? ORDER BY sequence LIMIT ?');
+    // These tables have already passed exact schema admission above. Their
+    // optional readers/writers belong to this connection, not every open.
+    const publication = prepareOnUse('SELECT * FROM publication_contracts WHERE semantic_cid=?');
+    const publicationAttempt = prepareOnUse('SELECT * FROM publication_attempts WHERE attempt_cid=?');
+    const insertPublicationAttempt = prepareOnUse('INSERT INTO publication_attempts VALUES(?,?)');
+    const removePublicationAttempts = prepareOnUse('DELETE FROM publication_attempts WHERE run_cid=?');
+    const publicationProgress = prepareOnUse(`SELECT * FROM publication_records WHERE attempt_cid=? ORDER BY sequence DESC LIMIT 1`);
+    const publicationProgressCount = prepareOnUse('SELECT count(*) AS count FROM publication_records WHERE attempt_cid=?');
+    const insertPublicationRecord = prepareOnUse('INSERT INTO publication_records VALUES(?,?,?)');
+    const publicationRunAttempts = prepareOnUse('SELECT * FROM publication_attempts WHERE run_cid=? LIMIT ?');
+    const publicationAttemptRecords = prepareOnUse('SELECT * FROM publication_records WHERE attempt_cid=? ORDER BY sequence LIMIT ?');
     const publicationUsage = prepare('SELECT objects,bytes,ack_revision FROM publication_usage WHERE id=1');
-    const insertPublication = prepare('INSERT INTO publication_contracts VALUES(?,?,?,?)');
+    const insertPublication = prepareOnUse('INSERT INTO publication_contracts VALUES(?,?,?,?)');
     // Bound each native handoff, not the admitted publication's total size.
     // Prepare only arities actually used by this database lifetime.
     const publicationBlockSize = 64;
     const publicationSelections = new Map(), publicationInsertions = new Map();
-    const removePublication = prepare('DELETE FROM publication_contracts WHERE semantic_cid=?');
+    const removePublication = prepareOnUse('DELETE FROM publication_contracts WHERE semantic_cid=?');
     const updatePublicationUsage = prepare(`UPDATE publication_usage SET objects=objects+?,bytes=bytes+?,
       ack_revision=ack_revision+1 WHERE id=1`);
     const completion = prepare('SELECT * FROM completions WHERE attempt_cid=?');
@@ -831,6 +844,8 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     retirePublicationFinishReferences = () => {
       retainedPublicationFinishes.clear(); pendingResultSeal = undefined;
       publicationSelections.clear(); publicationInsertions.clear();
+      for (const retire of deferredStatements) retire();
+      deferredStatements.length = 0;
     };
     const inventoryUsage = () => {
       const row=nativeInventoryUsage.get();

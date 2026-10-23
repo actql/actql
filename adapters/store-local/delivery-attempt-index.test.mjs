@@ -41,6 +41,40 @@ test('publication statements are acquired on use after unchanged schema admissio
   assert.equal(prepared.length, 1);
 });
 
+test('publication statement acquisition failure rolls back before the same input can retry', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-publication-statement-failure-'));
+  let index, armed = false, lost = false, rollbacks = 0, commits = 0;
+  const prepare = DatabaseSync.prototype.prepare, exec = DatabaseSync.prototype.exec;
+  const failure = Object.assign(new Error('publication statement acquisition failed'), {code: 'EIO'});
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+    if (armed && !lost && sql === 'INSERT INTO publication_contracts VALUES(?,?,?,?)') {
+      lost = true; throw failure;
+    }
+    return Reflect.apply(prepare, this, [sql]);
+  });
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    const result = Reflect.apply(exec, this, [sql]);
+    if (armed && sql === 'ROLLBACK') rollbacks++;
+    if (armed && sql === 'COMMIT') commits++;
+    return result;
+  });
+  t.after(async () => {armed = false; index?.close(); await rm(directory, {recursive: true});});
+  index = await openDeliveryAttemptIndex(join(directory, 'index.sqlite3'),
+    {create: true, maxEntries: 4, maxWireBytes: 4096});
+  index.migrate([]);
+  const entry = {semantic_cid: 'sha256:' + 'b'.repeat(64), name: 'invocation', wire: '{}', byte_count: 2};
+  const before = index.publicationUsage();
+  armed = true;
+  assert.throws(() => index.putPublicationContracts([entry], {objects: 1, bytes: 2}), error => error === failure);
+  assert.equal(lost, true);
+  assert.deepEqual({rollbacks, commits}, {rollbacks: 1, commits: 0});
+  assert.equal(index.publicationContract(entry.semantic_cid), undefined);
+  assert.deepEqual(index.publicationUsage(), before);
+  index.putPublicationContracts([entry], {objects: 1, bytes: 2});
+  assert.deepEqual(index.publicationContract(entry.semantic_cid), entry);
+  assert.deepEqual({rollbacks, commits}, {rollbacks: 1, commits: 1});
+});
+
 function publicationBlockWork(t) {
   let armed = false;
   const reads = [], writes = [];
