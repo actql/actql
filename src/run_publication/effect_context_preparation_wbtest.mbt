@@ -128,7 +128,7 @@ test "Effect context cancellation inside emitted Text keeps the original snapsho
     ignore(preparation.advance(1).unwrap())
     if preparation.phase is Value(_) &&
       preparation.continuation is Some(SectionNext(13, 1)) {
-      let (bytes, _, _) = @encode.writer_progress(preparation.writer.unwrap())
+      let (bytes, _, _) = @json.material_progress(preparation.material.unwrap())
       match start {
         None => start = Some(bytes)
         Some(before) =>
@@ -154,7 +154,8 @@ test "Effect context cancellation inside emitted Text keeps the original snapsho
 ///|
 test "Effect context cancellation retires emission parsing admission and hashing" {
   let mut phases = (false, false, false, false, false)
-  // Select an actual yielded phase rather than deriving cancellation from time.
+  // The dependency envelope still uses actual parse/admission phases. The
+  // assembled outer body no longer enters those phases.
   for wanted in 0..<5 {
     let preparation = context_test_start()
     let mut reached = false
@@ -162,9 +163,9 @@ test "Effect context cancellation retires emission parsing admission and hashing
       ignore(preparation.advance(1).unwrap())
       let matches = match (wanted, preparation.phase) {
         (0, Value(_)) => true
-        (1, Parse(_, true)) => true
-        (2, Decode(_, true)) => true
-        (3, Canonical(_, true)) => true
+        (1, Parse(_, false)) => true
+        (2, Decode(_, false)) => true
+        (3, Canonical(_, false)) => true
         (4, Hash(_)) => true
         _ => false
       }

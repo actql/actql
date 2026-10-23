@@ -13,6 +13,8 @@ pub fn advance_cursor_admission(CursorAdmission) -> CursorAdmissionPoll
 
 pub fn advance_emit(CanonicalEmit) -> Bool raise @encode_core.EncodeFailure
 
+pub fn advance_material(CanonicalMaterial) -> Bool raise @encode_core.EncodeFailure
+
 pub fn[T] array_at(FrozenArray[T], Int) -> T?
 
 pub fn[T] array_count(FrozenArray[T]) -> Int
@@ -23,15 +25,37 @@ pub fn cancel_cursor_admission(CursorAdmission) -> Unit
 
 pub fn cancel_emit(CanonicalEmit) -> Unit
 
+pub fn cancel_material(CanonicalMaterial) -> Unit
+
 pub fn cid_value(CanonicalValue, Int, Int, Int) -> String raise @encode_core.EncodeFailure
 
 pub fn emit_pending_frames(CanonicalEmit) -> Int
 
 pub fn emit_value(CanonicalValue, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn finish_material(CanonicalMaterial) -> (CanonicalValue, (Int, Int, Int)) raise @encode_core.EncodeFailure
+
 pub fn from_json(Json, Int, Int, Int, data_keys? : Bool) -> CanonicalValue raise CanonicalFailure
 
 pub fn from_source(@source_value.Node, Int, Int, Int, data_keys? : Bool) -> CanonicalValue raise CanonicalFailure
+
+pub fn material_begin_array(CanonicalMaterial) -> Unit raise @encode_core.EncodeFailure
+
+pub fn material_begin_object(CanonicalMaterial) -> Unit raise @encode_core.EncodeFailure
+
+pub fn material_end_array(CanonicalMaterial) -> Unit raise @encode_core.EncodeFailure
+
+pub fn material_end_object(CanonicalMaterial) -> Unit raise @encode_core.EncodeFailure
+
+pub fn material_key(CanonicalMaterial, String) -> Unit raise @encode_core.EncodeFailure
+
+pub fn material_pending_frames(CanonicalMaterial) -> Int
+
+pub fn material_progress(CanonicalMaterial) -> (Int, Int, Int) raise @encode_core.EncodeFailure
+
+pub fn material_text(CanonicalMaterial, String) -> Unit raise @encode_core.EncodeFailure
+
+pub fn material_value(CanonicalMaterial, CanonicalValue) -> Unit raise @encode_core.EncodeFailure
 
 pub fn measure_value(CanonicalValue, Int, Int, Int) -> Int raise @encode_core.EncodeFailure
 
@@ -53,6 +77,8 @@ pub fn start_cursor_admission(@decode_core.Cursor, Int, Int, Int, Int, data_keys
 
 pub fn start_emit(CanonicalValue, @encode_core.Writer) -> CanonicalEmit
 
+pub fn start_material(Int, Int, Int) -> CanonicalMaterial raise @encode_core.EncodeFailure
+
 pub fn stringify_value(CanonicalValue, Int, Int, Int) -> String raise @encode_core.EncodeFailure
 
 // Errors
@@ -65,6 +91,8 @@ pub(all) suberror CanonicalFailure {
 
 // Types and methods
 type CanonicalEmit
+
+type CanonicalMaterial
 
 pub(all) struct CanonicalRepresentationExtent {
   nodes : Int64

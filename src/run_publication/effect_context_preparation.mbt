@@ -18,9 +18,9 @@ priv enum EffectContextPhase {
   SortIds(@sort.Sort)
   Root
   Field(Int)
-  Key(@encode.OrderedKeyEmitCursor)
-  Value(@json.CanonicalEmit)
-  Text(@encode.StringEmitCursor)
+  Key(@json.CanonicalMaterial)
+  Value(@json.CanonicalMaterial)
+  Text(@json.CanonicalMaterial)
   SectionStart(Int)
   SectionNext(Int, Int)
   SectionValue(Int, Int)
@@ -46,6 +46,7 @@ priv struct EffectContextPreparation {
   max_workspace : Int
   ids : Array[Array[String]]
   mut sorted : @sort.Sort?
+  mut material : @json.CanonicalMaterial?
   mut writer : @encode.Writer?
   mut value : @json.CanonicalValue?
   mut phase : EffectContextPhase
@@ -75,7 +76,7 @@ fn start_effect_context_preparation(
   if max_workspace < 12 {
     return Err(CaptureIssuanceEncoding)
   }
-  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+  let material = @json.start_material(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(CaptureIssuanceEncoding)
   }
   Ok({
@@ -97,7 +98,8 @@ fn start_effect_context_preparation(
     max_workspace,
     ids: [],
     sorted: None,
-    writer: Some(writer),
+    material: Some(material),
+    writer: None,
     value: None,
     phase: CollectIds(0),
     continuation: None,
@@ -127,7 +129,9 @@ fn EffectContextPreparation::key(
 ) -> Unit raise @encode.EncodeFailure {
   self.reserve(1)
   self.continuation = Some(next)
-  self.phase = Key(@encode.start_ordered_key(self.writer.unwrap(), name))
+  let material = self.material.unwrap()
+  @json.material_key(material, name)
+  self.phase = Key(material)
 }
 
 ///|
@@ -138,7 +142,9 @@ fn EffectContextPreparation::emit(
 ) -> Unit raise @encode.EncodeFailure {
   self.reserve(1)
   self.continuation = Some(next)
-  self.phase = Value(@json.start_emit(value, self.writer.unwrap()))
+  let material = self.material.unwrap()
+  @json.material_value(material, value)
+  self.phase = Value(material)
 }
 
 ///|
@@ -170,7 +176,9 @@ fn EffectContextPreparation::text(
 ) -> Unit raise @encode.EncodeFailure {
   self.reserve(1)
   self.continuation = Some(next)
-  self.phase = Text(@encode.start_string_value(self.writer.unwrap(), value))
+  let material = self.material.unwrap()
+  @json.material_text(material, value)
+  self.phase = Text(material)
 }
 
 ///|
@@ -200,7 +208,6 @@ fn EffectContextPreparation::step(
   self : EffectContextPreparation,
 ) -> Unit raise @encode.EncodeFailure {
   let inputs = self.inputs.unwrap()
-  let writer = self.writer.unwrap()
   match self.phase {
     CollectIds(index) => {
       let count = inputs.preview
@@ -227,47 +234,45 @@ fn EffectContextPreparation::step(
         Err(_) => raise @encode.OutputLimit
       }
     Root => {
-      @encode.begin_ordered_object(writer)
+      @json.material_begin_object(self.material.unwrap())
       self.phase = Field(0)
     }
     Field(index) =>
       if index == 15 {
-        @encode.end_object(writer)
-        let document = @encode.finish_document(writer)
-        guard @source.start_json_document_parse(
-            document,
-            {
-              max_input_bytes: self.max_wire_bytes,
-              max_nodes: self.max_nodes,
-              max_depth: self.max_depth,
-            },
-            data_keys=true,
-          )
-          is Ok(parser) else {
-          raise @encode.OutputLimit
-        }
-        self.phase = Parse(parser, true)
+        let material = self.material.unwrap()
+        @json.material_end_object(material)
+        let (value, _) = @json.finish_material(material)
+        self.material = None
+        self.value = Some(value)
+        let writer = @encode.hashing_writer(
+          self.max_wire_bytes,
+          self.max_nodes,
+          self.max_depth,
+        )
+        self.writer = Some(writer)
+        self.reserve(1)
+        self.phase = Hash(@json.start_emit(value, writer))
       } else {
         self.key(effect_context_field(index), SectionStart(index))
       }
     Key(cursor) =>
-      if @encode.advance_ordered_key(cursor) {
+      if @json.advance_material(cursor) {
         self.live -= 1
         self.phase = self.continuation.unwrap()
         self.continuation = None
       }
     Text(cursor) =>
-      if @encode.advance_string_value(cursor) {
+      if @json.advance_material(cursor) {
         self.live -= 1
         self.phase = self.continuation.unwrap()
         self.continuation = None
       }
     Value(cursor) => {
-      let before = @json.emit_pending_frames(cursor)
+      let before = @json.material_pending_frames(cursor)
       // One canonical transition can grow its stack by at most one entry.
       self.reserve(1)
-      let done = @json.advance_emit(cursor)
-      let after = @json.emit_pending_frames(cursor)
+      let done = @json.advance_material(cursor)
+      let after = @json.material_pending_frames(cursor)
       self.live += after - before - 1
       if done {
         self.phase = self.continuation.unwrap()
@@ -285,7 +290,7 @@ fn EffectContextPreparation::step(
         8 | 9 | 10 | 16 => self.phase = ArrayStart(kind, 0)
         14 => self.text("actql-run-effect-context/0.1", Field(15))
         _ => {
-          @encode.begin_ordered_object(writer)
+          @json.material_begin_object(self.material.unwrap())
           self.phase = SectionNext(kind, 0)
         }
       }
@@ -298,7 +303,7 @@ fn EffectContextPreparation::step(
         _ => inputs.snapshots.length()
       }
       if index == count {
-        @encode.end_object(writer)
+        @json.material_end_object(self.material.unwrap())
         self.phase = Field(kind + 1)
       } else {
         let name = match kind {
@@ -335,8 +340,8 @@ fn EffectContextPreparation::step(
         5 => self.text(inputs.sources[index].holding_cid, next)
         6 => self.emit(inputs.local_sources[index].value, next)
         7 => {
-          @encode.begin_ordered_object(writer)
-          @encode.end_object(writer)
+          @json.material_begin_object(self.material.unwrap())
+          @json.material_end_object(self.material.unwrap())
           self.phase = next
         }
         11 => self.emit(inputs.snapshots[index].artifact.value, next)
@@ -346,7 +351,7 @@ fn EffectContextPreparation::step(
       }
     }
     ArrayStart(kind, snapshot) => {
-      @encode.begin_array(writer)
+      @json.material_begin_array(self.material.unwrap())
       self.phase = ArrayNext(kind, 0, snapshot)
     }
     ArrayNext(kind, index, snapshot) => {
@@ -357,7 +362,7 @@ fn EffectContextPreparation::step(
         _ => inputs.snapshots[snapshot].fields.length()
       }
       if index == count {
-        @encode.end_array(writer)
+        @json.material_end_array(self.material.unwrap())
         self.phase = if kind == 12 {
           SectionNext(kind, snapshot + 1)
         } else if kind == 16 {
@@ -372,7 +377,7 @@ fn EffectContextPreparation::step(
           9 => self.text(inputs.models[index].identity, next)
           10 => self.emit(inputs.advances[index].value, next)
           16 => {
-            @encode.begin_ordered_object(writer)
+            @json.material_begin_object(self.material.unwrap())
             self.phase = ContentField(index, 0)
           }
           _ => self.text(inputs.snapshots[snapshot].fields[index], next)
@@ -381,7 +386,7 @@ fn EffectContextPreparation::step(
     }
     ContentField(index, field) =>
       if field == 5 {
-        @encode.end_object(writer)
+        @json.material_end_object(self.material.unwrap())
         self.phase = ArrayNext(16, index + 1, 0)
       } else {
         self.key(
@@ -461,6 +466,7 @@ fn EffectContextPreparation::step(
         _ => raise @encode.OutputLimit
       }
     Hash(cursor) => {
+      let writer = self.writer.unwrap()
       let before = @json.emit_pending_frames(cursor)
       self.reserve(1)
       let done = @json.advance_emit(cursor)
@@ -524,13 +530,15 @@ fn EffectContextPreparation::cancel(self : EffectContextPreparation) -> Unit {
   }
   self.closed = true
   match self.phase {
-    Key(cursor) => @encode.cancel_ordered_key(cursor)
-    Text(cursor) => @encode.cancel_string_value(cursor)
-    Value(cursor) | Hash(cursor) => @json.cancel_emit(cursor)
+    Key(cursor) | Text(cursor) | Value(cursor) => @json.cancel_material(cursor)
+    Hash(cursor) => @json.cancel_emit(cursor)
     Parse(parser, _) => @source.cancel_json_parse(parser)
     Decode(admission, _) => @decode.cancel_admission(admission)
     Canonical(admission, _) => @json.cancel_cursor_admission(admission)
     _ => ()
+  }
+  if self.material is Some(material) {
+    @json.cancel_material(material)
   }
   if self.writer is Some(writer) {
     @encode.cancel_writer(writer)
@@ -539,6 +547,7 @@ fn EffectContextPreparation::cancel(self : EffectContextPreparation) -> Unit {
     ignore(@sort.cleanup(sort))
   }
   self.inputs = None
+  self.material = None
   self.writer = None
   self.sorted = None
   self.value = None
