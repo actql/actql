@@ -4182,7 +4182,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7beef4eb172ce2553b3f776b3f834c88317b107f1eeeebf80361637a12af3a52",
+      "sha256": "650f1ace535fd130d4f5bc70a9d9650acc9e8e9906fa199c818abc65191a309a",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -4208,7 +4208,8 @@
             "path",
             "create",
             "maxEntries",
-            "maxWireBytes"
+            "maxWireBytes",
+            "initializeEmpty"
           ],
           "async": true
         },
@@ -5710,7 +5711,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWireBytes})"
+                "anchor": "export async function openDeliveryAttemptIndex(path, {"
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
@@ -6147,6 +6148,18 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.test.mjs",
                 "anchor": "native publication block retains its ${afterCommit ? 'committed' : 'rolled-back'} Unknown original"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "empty schema initialization never replaces an existing coverage original"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "fresh Store coverage shares its original native schema commit"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "fresh Store schema keeps its ${afterCommit ? 'committed' : 'rolled-back'} initialization Unknown"
               }
             ]
           }
@@ -6156,7 +6169,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f366d5f2ad8e7b13ec4278316c26b93123c7339e0a1ca7557405e871367cf692",
+      "sha256": "972cec6da4f8f934d1a5bcf9a4dc93714594bf6980157592a85e168e46ea1343",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -13409,6 +13422,14 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "legacy delivery building refuses a missing original grant without adopting empty coverage"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "fresh Store coverage uses the same actual prepared owner creation"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "fresh Store schema keeps its ${afterCommit ? 'committed' : 'rolled-back'} initialization Unknown"
               }
             ]
           }
