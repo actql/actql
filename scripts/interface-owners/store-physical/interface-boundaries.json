@@ -4182,7 +4182,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5b400a49135c92ab3ba9f8515b440031b1f27a77d51e2728d7a7ecfef62bf265",
+      "sha256": "7beef4eb172ce2553b3f776b3f834c88317b107f1eeeebf80361637a12af3a52",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -4635,6 +4635,28 @@
           "name": "openDeliveryAttemptIndex/init:publicationContract/init:publicationContract",
           "parameters": [
             "semanticCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:publicationContracts/init:publicationContracts",
+          "parameters": [
+            "semanticCids"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:publicationContracts/init:publicationContracts/keys/keys",
+          "parameters": [
+            "semantic_cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:publicationContracts/init:publicationContracts/supplied/supplied",
+          "parameters": [
+            "_",
+            "index"
           ],
           "async": false
         },
@@ -5499,6 +5521,9 @@
             "openDeliveryAttemptIndex/init:publicationAttemptsForRun/init:publicationAttemptsForRun",
             "openDeliveryAttemptIndex/init:publicationAttemptsForRun/init:publicationAttemptsForRun/init:publicationAttemptsForRun",
             "openDeliveryAttemptIndex/init:publicationContract/init:publicationContract",
+            "openDeliveryAttemptIndex/init:publicationContracts/init:publicationContracts",
+            "openDeliveryAttemptIndex/init:publicationContracts/init:publicationContracts/keys/keys",
+            "openDeliveryAttemptIndex/init:publicationContracts/init:publicationContracts/supplied/supplied",
             "openDeliveryAttemptIndex/init:publicationRecords/init:publicationRecords",
             "openDeliveryAttemptIndex/init:publicationRecords/init:publicationRecords/init:publicationRecords",
             "openDeliveryAttemptIndex/init:publicationUsage/init:publicationUsage",
@@ -6131,7 +6156,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cd99d2eca9873509940486fda6be654287ccae7690b8f31d53b8dc18e9239c3c",
+      "sha256": "863547974e655738f32f83ad4474c5ce73eb588474061c9395b679cf611ebf74",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -8579,6 +8604,20 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/selected/selected",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/selected/selected#2",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/status/status",
           "parameters": [],
           "async": false
@@ -10697,6 +10736,8 @@
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry#2",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts",
+            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/selected/selected",
+            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/selected/selected#2",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/status/status",
             "openOriginalLocalPublicationStore/putOriginalPublicationContracts/putOriginalPublicationContracts",
             "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema",
