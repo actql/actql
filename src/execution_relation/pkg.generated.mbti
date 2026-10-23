@@ -1124,6 +1124,8 @@ pub fn prepare_row_wire_order(Array[String], Int, Int) -> Result[RowWireOrder, R
 
 pub fn prepare_runtime_fragment(@lowering_relation.FragmentRequest, FragmentContract, @lowering_relation.DemandLimits, RegistryLimits, @lowering_relation.FragmentRowLimits, ordered? : RegisteredOrderedContract?) -> Result[FragmentRuntimeContext, RuntimeFragmentIssue]
 
+pub fn prepare_sequence_runtime_fragments(@lowering_relation.PreparedSequence, FragmentContract?, RegisteredOrderedContract?, SequenceFragmentLimits) -> Result[Array[FragmentRuntimeContext], SequenceFragmentIssue]
+
 pub fn prepare_serialization_completion(CompletedOutput, @lowering_relation.PreparedSerialization) -> CompletionPreparation?
 
 pub fn prepare_serialization_consumer_segment(CompletedOutput, Int, @lowering_relation.SequenceLimits, Int, Int) -> GeneratedSequence?
@@ -2720,6 +2722,22 @@ pub(all) enum SequenceFailureKind {
   MissingFragmentContext(Int)
   MixedExecutionConfiguration
   UnsupportedRowComparison(Int)
+}
+
+pub(all) enum SequenceFragmentIssue {
+  MissingContract(Int)
+  Roots(Int, @lowering_relation.RootIssue)
+  Request(Int, @lowering_relation.FragmentRequestIssue)
+  Runtime(Int, RuntimeFragmentIssue)
+}
+
+pub(all) struct SequenceFragmentLimits {
+  roots : @lowering_relation.RootLimits
+  demands : @lowering_relation.DemandLimits
+  physical : RegistryLimits
+  logical : @lowering_relation.FragmentRowLimits
+  max_input_rows : Int64
+  max_value_bytes : Int64
 }
 
 pub(all) enum SequenceRunIssue {
