@@ -16,6 +16,7 @@ pub(all) enum StoredPublicationReadIssue[E] {
 /// substitutes a contract. All returned inputs remain owned by the preparation.
 fn[E] load_stored_effect_free_publication(
   index : PublicationContract,
+  index_wire : String,
   namespace_id : String,
   authority_scope_cid : String,
   definition_cid : String,
@@ -85,8 +86,8 @@ fn[E] load_stored_effect_free_publication(
       return Err(Bounds)
     }
     let original = match
-      admit_publication_contract(
-        name, wire, max_wire_bytes, max_nodes, max_depth,
+      admit_stored_contract_original(
+        name, wire, index, index_wire, max_wire_bytes, max_nodes, max_depth,
       ) {
       Ok(value) => value
       Err(issue) => return Err(Contract(issue))
@@ -328,6 +329,7 @@ pub fn[E] read_stored_effect_free_publication(
   match
     load_stored_effect_free_publication(
       index,
+      index_wire,
       namespace_id,
       authority_scope_cid,
       definition_cid,
@@ -347,4 +349,29 @@ pub fn[E] read_stored_effect_free_publication(
     Err(References) => Err(References)
     Err(Bounds) => Err(Bounds)
   }
+}
+
+///|
+/// The private loader's sole caller supplies the index it just fully admitted
+/// from this exact immutable wire. Physical reads/current and raw byte charging
+/// remain in the loader; this carries no observation or permission result.
+fn admit_stored_contract_original(
+  name : String,
+  wire : String,
+  index : PublicationContract,
+  index_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, PublicationContractIssue] {
+  if name == "public_index_entry" &&
+    index.name == name &&
+    wire == index_wire &&
+    publication_contract_check_limits(
+      index, max_wire_bytes, max_nodes, max_depth,
+    )
+    is Ok(_) {
+    return Ok(index)
+  }
+  admit_publication_contract(name, wire, max_wire_bytes, max_nodes, max_depth)
 }
