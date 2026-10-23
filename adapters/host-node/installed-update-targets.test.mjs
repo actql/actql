@@ -3,6 +3,7 @@ import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import {DatabaseSync} from 'node:sqlite';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
@@ -228,6 +229,116 @@ test('original submitted intent binds UPDATE evidence after one shape admission'
     assert.equal(f.counts.prepares, 0);
     assert.equal(f.counts.credentials, 0);
   } finally {journal?.close(); await installed.close();}
+});
+
+async function intentEvidenceCounter(t) {
+  const f = await fixture(t);
+  const installed = await loadInstalledEffect(await f.path([alias()]), f.options);
+  let journal;
+  try {
+    const owner = originalOwnerFixture(installed), originalShape = createUpdateTargetOriginalShapeControl(moon);
+    let shapes = 0;
+    const directory = join(f.root, 'capture-controls');
+    const journalOptions = {updateOriginalControl: Object.freeze({run(...args) {
+      shapes++;
+      return originalShape.run(...args);
+    }})};
+    journal = openClientRequestJournal(directory, journalOptions);
+    const fields = {authorityScopeCid: cid('a'), currentAuthorization: true};
+    const submissionRef = {epoch: journal.issueSubmissionEpoch(fields, moon), nonce: 'captured-evidence'};
+    const text = "SELECT 'id' AS id, 'Ada' AS name |> RESULT updates |> EFFECT UPDATE crm.Account FROM RESULT updates ID id SET (Name = name)";
+    const intent = moon.clientSubmittedIntent(JSON.stringify({kind: 'aql',
+      input: {text, format: 'aql-text'}, parameters: null}), 1048576, 65536, 64);
+    const recorded = journal.recordSubmittedIntent(submissionRef, intent, fields, moon);
+    const identity = moon.clientProgramEffectRequestIdentity(owner.prepared,
+      fields.authorityScopeCid, recorded.requestId, moon.clientProgramSourceFreeInputIntentCid());
+    const allowed = checked(moon.clientProgramIssueAllowedEffectRun(owner.compilation,
+      cid('1'), cid('2'), '2099-01-01T00:00:00.000Z'));
+    const definition = checked(moon.clientProgramIssueEffectRunDefinition(allowed,
+      'capture-control', 'capture-control-run', '2026-10-16T00:00:00.000Z', '2099-01-01T00:00:00.000Z'));
+    const original = owner.originals.captureRun({...owner, allowed, definition, identity});
+    const evidence = {
+      prepared: moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunPrepared(allowed)),
+      authorization: moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunAuthorization(allowed)),
+      updateTargetRunOriginal: original,
+    };
+    const options = {namespaceId: 'capture-control',
+      runDefinition: owner.control.admit('run_definition', moon.strategyPublicationContractJson(definition), owner.limits),
+      runAdmissionEvidence: evidence, lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+      submission: {...submissionRef, currentAuthorization: true, intentCid: recorded.intentCid}};
+    return {owner, evidence, options, directory, recorded,
+      get journal() {return journal;}, get shapes() {return shapes;},
+      accept(overrides = {}) {return journal.acceptDefinition(identity, {...options, ...overrides}, moon, owner.control);},
+      reopenWithLimit(maxRunDefinitionWireBytes) {
+        journal.close();
+        journal = openClientRequestJournal(directory, {...journalOptions, maxRunDefinitionWireBytes});
+      },
+      async close() {journal.close(); await installed.close();},
+    };
+  } catch (error) {journal?.close(); await installed.close(); throw error;}
+}
+
+test('captured UPDATE evidence is local to one acceptance and changed saved bytes refuse', async t => {
+  const f = await intentEvidenceCounter(t);
+  try {
+    const first = f.accept();
+    assert.equal(f.shapes, 1);
+    const second = f.accept();
+    assert.equal(f.shapes, 2, 'A new operation admits its proposed evidence once');
+    assert.deepEqual(second.ref, first.ref);
+    assert.equal(second.inserted, false);
+    const copied = f.accept({runAdmissionEvidence: structuredClone(f.evidence)});
+    assert.equal(f.shapes, 3, 'A copied input also receives its own full admission');
+    assert.deepEqual(copied.runAdmissionEvidence, first.runAdmissionEvidence);
+    const writer = new DatabaseSync(join(f.directory, 'client-requests.sqlite3'));
+    try {
+      writer.prepare('UPDATE client_requests SET run_admission_evidence_json = ?')
+        .run(JSON.stringify({...first.runAdmissionEvidence, prepared: 'changed'}));
+      assert.throws(() => f.accept(), {code: 'ClientRequestJournalCorrupt'});
+      assert.equal(f.shapes, 5, 'Changed selected evidence follows full admission and refuses');
+    } finally {writer.close();}
+  } finally {await f.close();}
+});
+
+test('captured UPDATE evidence uses each input getter once and checks serialized materials', async t => {
+  const f = await intentEvidenceCounter(t);
+  try {
+    let preparedReads = 0;
+    const captured = f.accept({runAdmissionEvidence: {get prepared() {
+      preparedReads++;
+      return f.evidence.prepared;
+    }, authorization: f.evidence.authorization, updateTargetRunOriginal: f.evidence.updateTargetRunOriginal}});
+    assert.equal(preparedReads, 1);
+    assert.equal(captured.runAdmissionEvidence.prepared, f.evidence.prepared);
+    let serializations = 0;
+    const changed = Object.assign(Object.create({toJSON() {
+      serializations++;
+      return {...f.evidence, prepared: 'changed serialized material'};
+    }}), f.evidence);
+    assert.throws(() => f.accept({runAdmissionEvidence: changed}), {code: 'InvalidClientRunAdmissionEvidence'});
+    assert.equal(serializations, 1);
+    const beforeUnknown = f.shapes;
+    assert.throws(() => f.accept({runAdmissionEvidence: {...f.evidence, unknown: true}}),
+      {code: 'InvalidClientRunAdmissionEvidence'});
+    assert.equal(f.shapes, beforeUnknown, 'Unknown fields refuse before material admission');
+  } finally {await f.close();}
+});
+
+test('captured UPDATE intent binding retains its final wire limit and original CID check', async t => {
+  const f = await intentEvidenceCounter(t);
+  try {
+    assert.throws(() => f.accept({runAdmissionEvidence: {...f.evidence, submittedIntentCid: cid('f')}}),
+      {code: 'ClientRequestSubmittedIntentMismatch'});
+    f.reopenWithLimit(Buffer.byteLength(JSON.stringify(f.evidence)));
+    assert.throws(() => f.accept(), error => {
+      assert.equal(error.code, 'ClientRequestAcceptanceUnknown');
+      assert.equal(error.cause?.code, 'InvalidClientRunAdmissionEvidence');
+      return true;
+    }, 'The existing transaction error remains the same; no known-refusal reclassification');
+    const reader = new DatabaseSync(join(f.directory, 'client-requests.sqlite3'), {readOnly: true});
+    try {assert.equal(reader.prepare('SELECT COUNT(*) AS n FROM client_requests').get().n, 0);}
+    finally {reader.close();}
+  } finally {await f.close();}
 });
 
 test('actual JSON UPDATE preparation retains the installed selection in its original Run', async t => {
