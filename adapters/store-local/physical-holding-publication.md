@@ -1,5 +1,24 @@
 # Physical holding metadata publication
 
+## Original Index admission within publication
+
+The publication caller passes its original immutable Index wrapper alongside
+the existing wire, inventory and evidence. The existing contract control may
+recognize that exact wrapper under the current limits. Unrecognized wrappers,
+copies and legacy controls retain full wire admission; a refused or malformed
+nominal response cannot become fallback success. The supplied wire, identity
+and identity field must agree with the selected original.
+
+The same commit's private Effect inspector consumes that already-admitted Index
+and its parsed body. Independent stored-evidence inspection still admits its
+own input. Its public Store method forwards only the preparation and supported
+reader port; caller-supplied extra arguments cannot inject the private retained
+observation or replace the parsed Index body. Neither path retains
+authorization, present-disk integrity or a
+durability acknowledgement. Selected physical evidence, current permission,
+claim/CAS, original Unknown confirmation and real cleanup remain independent.
+No cross-operation Index cache or additional publication authority is created.
+
 ## Original ownership retirement
 
 The existing Store ownership handle remembers successful owner-record unlink
@@ -170,6 +189,26 @@ Store reader count remain responsible until actual acknowledgement; no new
 grant, reservation, Owner or normal numerical profile is supplied here.
 
 ## Existing atomic metadata publication
+
+Effect capture cleanup custody retains one bounded same-Store observation of
+its last acknowledged record. A repeated update still admits its incoming Run
+and holdings, reads the selected current record and rejects conflicting
+holdings. It does not rewrite unchanged bytes when their device, inode, extent
+and modification/change timestamps still match the record installed after the
+actual file-sync, close and directory acknowledgement. Changed records,
+replacement files, failed acknowledgements and fresh Store instances retain
+the original physical write protocol. Forgetting the custody or successfully
+closing the Store clears this observation. It is not capture completion,
+permission, publication or a physical holding release acknowledgement.
+
+The admitted Run is an internal fact of each custody operation. Record reads
+and final custody unlink use that same original rather than admitting it again
+at a pure helper boundary. Retirement still validates the selected holdings and
+keeps their actual cleanup acknowledgement before removing the custody record.
+Cheap current/closed checks remain at the queued update's actual entry and
+immediately before final custody unlink after asynchronous holding retirement.
+They do not admit the Run again, and a closed Store cannot use a retained Run
+or durability observation to mutate its former custody namespace.
 
 Physical holding creation, sharing and deletion intent use the existing Store's
 staging directory and exclusive hard-link publication. The complete original

@@ -31,6 +31,8 @@ import {canonicalCid, createPublicationContractControlFixture} from
 import {openLocalPublicationStore as openActualLocalPublicationStore} from './publication-store.mjs';
 import {preparePrivatePublicationHolding} from
   '../host-common/private-publication-holding.mjs';
+import {definition as captureCustodyRunFixture} from
+  '../host-node/fixtures/original-plan-journal.mjs';
 
 const fixtureStores = new Map();
 async function openLocalPublicationStore(configuration, ...arguments_) {
@@ -701,6 +703,201 @@ test('publication commit admits its exact Index once before durable staging', as
   assert.equal(admissions, 1, 'the already admitted immutable Index needs no second admission to persist');
   await assert.rejects(store.commitIndex('{}', prepared.required, prepared.evidence),
     code('InvalidPublicationContract'));
+});
+
+test('publication commit consumes its same-owner issued Index without raw readmission', async t => {
+  let original, selectedWire, rawAdmissions = 0, originalObservations = 0;
+  const control = {...contractControl,
+    admit(name, value, bounds) {
+      if (name === 'public_index_entry' && value === selectedWire) rawAdmissions++;
+      return contractControl.admit(name, value, bounds);
+    },
+    admitOriginal(value, bounds) {
+      assert.equal(bounds.maxWireBytes, limits.maxWireBytes);
+      if (value !== original) return undefined;
+      originalObservations++;
+      return original;
+    },
+  };
+  const {store} = await fixture(t, {}, control);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  selectedWire = wire(entry);
+  // This explicit contract-control fixture recognizes one exact immutable
+  // original. It is not an ordinary Common issuer or a physical ACK.
+  original = contractControl.admit('public_index_entry', selectedWire, limits);
+  assert(Object.isFrozen(original));
+  let result, failure;
+  try {result = await store.commitIndex(selectedWire, prepared.required, prepared.evidence, original);}
+  catch (error) {failure = error;}
+  assert.equal(rawAdmissions, 0, 'the issued original is not decoded/admitted/hashed again at this entry');
+  if (failure !== undefined) throw failure;
+  assert.equal(originalObservations, 1);
+  assert.equal(result.committed, true);
+});
+
+test('publication Index original reuse keeps copied and omitted-port full admission', async t => {
+  for (const kind of ['legacy', 'copy', 'omitted-port']) {
+    let original, selectedWire, admissions = 0;
+    const control = {...contractControl, admit(name, value, bounds) {
+      if (name === 'public_index_entry' && value === selectedWire) admissions++;
+      return contractControl.admit(name, value, bounds);
+    }, ...(kind === 'omitted-port' ? {} : {admitOriginal(value) {
+      return value === original ? original : undefined;
+    }})};
+    const {store} = await fixture(t, {}, control);
+    const invocationValue = invocation();
+    const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(store, request, attempt, invocationValue);
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    selectedWire = wire(entry);
+    original = contractControl.admit('public_index_entry', selectedWire, limits);
+    const args = kind === 'legacy' ? [] : [kind === 'copy' ? Object.freeze({...original}) : original];
+    assert.equal((await store.commitIndex(selectedWire, prepared.required, prepared.evidence, ...args)).committed, true);
+    assert.equal(admissions, 1, kind + ' performs the existing full wire admission');
+  }
+});
+
+test('publication Index original refuses conflicting body and invalid nominal control', async t => {
+  let original, selectedWire, mode = 'original';
+  const control = {...contractControl, admitOriginal(value) {
+    if (value !== original) return undefined;
+    if (mode === 'throw') throw Object.assign(new Error('original refused'), {code:'OriginalRefused'});
+    return mode === 'copy' ? Object.freeze({...value}) : original;
+  }};
+  const {store} = await fixture(t, {}, control);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  selectedWire = wire(entry);
+  original = contractControl.admit('public_index_entry', selectedWire, limits);
+  await assert.rejects(store.commitIndex(selectedWire, prepared.required, prepared.evidence,
+    Object.freeze({...original, wire:'{}'})), code('InvalidPublicationCommitEvidence'));
+  mode = 'copy';
+  await assert.rejects(store.commitIndex(selectedWire, prepared.required, prepared.evidence, original),
+    code('InvalidPublicationContractControlResult'));
+  mode = 'throw';
+  await assert.rejects(store.commitIndex(selectedWire, prepared.required, prepared.evidence, original),
+    error => error.code === 'InvalidPublicationContract' && error.cause?.code === 'OriginalRefused');
+  assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)), undefined);
+  // All refusals precede commit custody. This fixture still owns the original
+  // uncommitted payload preparation and must release it before Store close.
+  assert.equal(await prepared.prepared.release(), true);
+});
+
+test('Effectful commit inspection consumes only its original private Index observation', async () => {
+  // Execute the real inspector's pre-I/O admission prefix and its actual
+  // helpers. This is not complete Effect evidence or physical commit coverage.
+  const text = readFileSync(new URL('./publication-store.mjs', import.meta.url), 'utf8');
+  const wanted = new Set(['exactKeys', 'admitContract', 'parseContract', 'inspectEffectfulStoredEvidence']);
+  const declarations = new Map();
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclaration') for (const value of node.declarations) {
+      if (wanted.has(value.id.name)) {
+        assert(!declarations.has(value.id.name)); declarations.set(value.id.name, {node,value});
+      }
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(parse(text, {ecmaVersion:'latest',sourceType:'module'}));
+  assert.equal(declarations.size, wanted.size);
+  const inspector = declarations.get('inspectEffectfulStoredEvidence').value.init;
+  const boundary = inspector.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'request'));
+  assert(boundary);
+  const helpers = ['exactKeys','admitContract','parseContract'].map(name => {
+    const node = declarations.get(name).node; return text.slice(node.start,node.end);
+  }).join('\n');
+  let admissions = 0, active = 0;
+  const control = {...contractControl, admit(...args) {admissions++;return contractControl.admit(...args);},
+    ...Object.fromEntries(['effectfulCommitValid','effectPrivateEvidenceBinding',
+      'capturedEffectSourceHoldingCid','capturedEffectSourceArtifactCid','capturedEffectSourceStoreAuthorityCid']
+      .map(name=>[name,()=>assert.fail('No semantic or physical callback in the admission prefix')]))};
+  const prefix = compileFunction(helpers + '\nreturn (' + text.slice(inspector.start,inspector.body.start+1) +
+    text.slice(inspector.body.start+1,boundary.start) + '\nreturn {contract:admittedIndex,entry};});',
+    ['configuration','contractControl','contractLimits','fail','active','readSemanticOriginal','cidPattern'])(
+    {maxObjectBytes:limits.maxWireBytes}, control, limits,
+    code=>{throw Object.assign(new Error(code),{code});}, ()=>{active++;},
+    ()=>assert.fail('No physical read in the admission prefix'), /^sha256:[a-f0-9]{64}$/u);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const original = contractControl.admit('public_index_entry', wire(indexEntry(request, attempt, invocationValue)), limits);
+  const observation = Object.freeze({contract:original,entry:JSON.parse(original.wire)});
+  const chain = Object.fromEntries(['runDefinition','invocation','definitions','artifacts','derivations',
+    'orderings','retentions','durableBindings','manifest','computationReceipt','capturedRun'].map(name=>
+    [name,['definitions','artifacts','derivations','orderings','retentions','durableBindings'].includes(name)?[]:{}]));
+  const args = {index:original,chain,preview:{},receipts:{setWire:'',memberWires:[],finalWire:''},
+    privateBinding:{name:'',semanticCid:'',holdingCid:'',wire:''},effectSources:[]};
+  const retained = await prefix(args, undefined, observation);
+  assert.strictEqual(retained.contract, original); assert.strictEqual(retained.entry, observation.entry);
+  assert.equal(admissions, 0); assert.equal(active, 1);
+  const external = await prefix(args);
+  assert.equal(external.contract.wire, original.wire); assert.notStrictEqual(external.entry, observation.entry);
+  assert.equal(admissions, 1, 'an external stored-evidence inspection keeps its full admission');
+  await assert.rejects(prefix({...args,index:Object.freeze({...original})},undefined,observation),
+    code('InvalidEffectfulStoredEvidence'));
+  assert.equal(admissions, 1, 'foreign private observation refuses rather than admitting it as an original');
+});
+
+test('independent Effect inspection ignores caller supplied private Index observations', async t => {
+  let admissions = 0;
+  const control = {...contractControl,
+    admit(name, value, bounds) {
+      if (name === 'public_index_entry') admissions++;
+      return contractControl.admit(name, value, bounds);
+    },
+    ...Object.fromEntries(['effectfulCommitValid', 'effectPrivateEvidenceBinding',
+      'capturedEffectSourceHoldingCid', 'capturedEffectSourceArtifactCid',
+      'capturedEffectSourceStoreAuthorityCid'].map(name => [name,
+        () => assert.fail('No semantic verdict before the selected reader')])),
+  };
+  const {store} = await fixture(t, {}, control);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const original = contractControl.admit('public_index_entry',
+    wire(indexEntry(request, attempt, invocationValue)), limits);
+  const chain = Object.fromEntries(['runDefinition', 'invocation', 'definitions',
+    'artifacts', 'derivations', 'orderings', 'retentions', 'durableBindings',
+    'manifest', 'computationReceipt', 'capturedRun'].map(name => [name,
+    ['definitions', 'artifacts', 'derivations', 'orderings', 'retentions',
+      'durableBindings'].includes(name) ? [] : {}]));
+  const preparation = {index: original, chain, preview: {},
+    receipts: {setWire: '', memberWires: [], finalWire: ''},
+    privateBinding: {name: '', semanticCid: '', holdingCid: '', wire: ''}, effectSources: []};
+  const reads = [];
+  const selectedRead = new Error('SelectedEvidenceRead');
+  const reader = async cid => {reads.push(cid);throw selectedRead;};
+  const callerEntry = {publication_request_cid: digest('caller substituted request')};
+  const malformed = Object.freeze({...original, wire: '{}'});
+  await assert.rejects(store.inspectEffectfulStoredEvidence(
+    {...preparation, index: malformed}, reader, {contract: malformed, entry: callerEntry},
+  ), code('InvalidPublicationContract'));
+  assert.equal(admissions, 1, 'an extra argument cannot bypass incoming Index admission');
+  assert.deepEqual(reads, [], 'malformed Index refuses before any selected evidence read');
+  await assert.rejects(store.inspectEffectfulStoredEvidence(
+    preparation, reader, {contract: original, entry: callerEntry},
+  ), error => error === selectedRead);
+  assert.equal(admissions, 2, 'a separate supported inspection admits its actual input');
+  assert.deepEqual(reads, [request.publication_request_cid],
+    'the supported reader receives the actually parsed entry, not the extra caller body');
 });
 
 test('publication inventory reuses only its newly acknowledged Index write within the commit', async t => {
@@ -8757,6 +8954,191 @@ test('capture holding borrows an exact allocation across manifest scopes',
     assert.equal(reopened.status().storedBytes, 0);
     assert.equal(reopened.status().objectCount, 0);
   });
+
+async function captureCustodyFixture(t) {
+  // This existing fixed Run is an explicit admission port, not a Common issuer.
+  const run = Object.freeze({...captureCustodyRunFixture,
+    identityField: 'run_definition_cid'});
+  let runAdmissions = 0;
+  const control = Object.freeze({...contractControl, admit(name, wire, limits) {
+    if (name !== 'run_definition') return contractControl.admit(name, wire, limits);
+    runAdmissions++;
+    assert.equal(wire, run.wire);
+    return run;
+  }});
+  const setup = await fixture(t, {}, control);
+  const holding = physicalHolding(digest('capture durability source'),
+    digest('capture durability artifact'), [], 'effect-source');
+  const path = join(setup.directory, 'effect-capture-custody',
+    `${run.identity.slice(7)}.json`);
+  const originalOpen = fsPromises.open;
+  const calls = {writes: 0, fileSyncs: 0, directorySyncs: 0};
+  let rejectNextDirectorySync = false;
+  t.mock.method(fsPromises, 'open', async function(selected, ...args) {
+    const handle = await Reflect.apply(originalOpen, this, [selected, ...args]);
+    const staging = String(selected).startsWith(join(setup.directory, 'staging') + sep);
+    if (staging) {
+      const write = handle.write;
+      handle.write = async function(...args) {
+        calls.writes++;
+        return Reflect.apply(write, this, args);
+      };
+    }
+    if (staging || String(selected) === join(setup.directory, 'effect-capture-custody')) {
+      const sync = handle.sync;
+      handle.sync = async function(...args) {
+        const result = await Reflect.apply(sync, this, args);
+        if (staging) calls.fileSyncs++;
+        else {
+          calls.directorySyncs++;
+          if (rejectNextDirectorySync) {
+            rejectNextDirectorySync = false;
+            throw Object.assign(new Error('CaptureCustodySyncReplyLost'), {code: 'EIO'});
+          }
+        }
+        return result;
+      };
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  t.after(() => {t.mock.restoreAll(); syncBuiltinESMExports();});
+  return {...setup, control, run, holding, path, calls,
+    get runAdmissions() {return runAdmissions;},
+    reset() {for (const key of Object.keys(calls)) calls[key] = 0; runAdmissions = 0;},
+    rejectDirectorySync() {rejectNextDirectorySync = true;}};
+}
+
+test('unchanged acknowledged Effect capture custody performs no repeated physical write', async t => {
+  const f = await captureCustodyFixture(t);
+  await f.store.retainEffectCaptureCustody(f.run, [f.holding]);
+  assert.equal(f.runAdmissions, 1);
+  assert.deepEqual(f.calls, {writes: 1, fileSyncs: 1, directorySyncs: 1});
+  const original = await stat(f.path);
+  f.reset();
+  await f.store.retainEffectCaptureCustody(f.run, [f.holding]);
+  assert.equal(f.runAdmissions, 1);
+  assert.deepEqual(f.calls, {writes: 0, fileSyncs: 0, directorySyncs: 0});
+  const current = await stat(f.path);
+  assert.equal(current.dev, original.dev);
+  assert.equal(current.ino, original.ino);
+  assert.deepEqual((await f.store.readEffectCaptureCustody(f.run)).holdings, [f.holding]);
+});
+
+test('Effect capture custody never reuses failed acknowledgement or a replacement file', async t => {
+  const f = await captureCustodyFixture(t);
+  f.rejectDirectorySync();
+  await assert.rejects(f.store.retainEffectCaptureCustody(f.run, [f.holding]), {code: 'EIO'});
+  f.reset();
+  await f.store.retainEffectCaptureCustody(f.run, [f.holding]);
+  assert.deepEqual(f.calls, {writes: 1, fileSyncs: 1, directorySyncs: 1});
+  const bytes = await readFile(f.path);
+  const predecessor = await open(f.path, 'r');
+  try {
+    await unlink(f.path);
+    await writeFile(f.path, bytes);
+    assert.notEqual((await stat(f.path)).ino, (await predecessor.stat()).ino);
+    f.reset();
+    await f.store.retainEffectCaptureCustody(f.run, [f.holding]);
+    assert.deepEqual(f.calls, {writes: 1, fileSyncs: 1, directorySyncs: 1});
+  } finally {await predecessor.close();}
+  await writeFile(f.path, '{');
+  f.reset();
+  await assert.rejects(f.store.retainEffectCaptureCustody(f.run, [f.holding]),
+    {code: 'InvalidEffectCaptureCustody'});
+  assert.deepEqual(f.calls, {writes: 0, fileSyncs: 0, directorySyncs: 0});
+});
+
+test('Effect capture custody changes and a fresh Store retain real durability', async t => {
+  const f = await captureCustodyFixture(t);
+  await f.store.retainEffectCaptureCustody(f.run, [f.holding]);
+  const capture = physicalHolding(digest('capture durability output'),
+    digest('capture durability Run'), [], 'effect-capture');
+  f.reset();
+  await f.store.retainEffectCaptureCustody(f.run, [f.holding, capture]);
+  assert.deepEqual(f.calls, {writes: 1, fileSyncs: 1, directorySyncs: 1});
+  await assert.rejects(f.store.retainEffectCaptureCustody(f.run,
+    [{...f.holding, manifest_cid: digest('conflicting capture manifest')}]),
+  {code: 'EffectCaptureCustodyConflict'});
+  await f.store.close();
+  const reopened = await openLocalPublicationStore(f.configuration, f.control);
+  f.reset();
+  await reopened.retainEffectCaptureCustody(f.run, [f.holding, capture]);
+  assert.deepEqual(f.calls, {writes: 1, fileSyncs: 1, directorySyncs: 1});
+  assert.deepEqual((await reopened.readEffectCaptureCustody(f.run)).holdings,
+    [f.holding, capture]);
+  f.reset();
+  await reopened.retireEffectCaptureCustody(f.run);
+  assert.equal(f.runAdmissions, 1);
+  assert.deepEqual(f.calls, {writes: 0, fileSyncs: 0, directorySyncs: 1});
+  await reopened.close();
+});
+
+test('queued Effect capture custody refuses after the same Store closes', async t => {
+  const f = await captureCustodyFixture(t);
+  const originalOpen = fsPromises.open;
+  let entered, release;
+  const enteredRead = new Promise(resolve => {entered = resolve;});
+  const blockedRead = new Promise(resolve => {release = resolve;});
+  const primary = Object.assign(new Error('OriginalCaptureReadStopped'), {code: 'EIO'});
+  let intercepted = false;
+  t.mock.method(fsPromises, 'open', async function(selected, ...args) {
+    if (!intercepted && String(selected) === f.path) {
+      intercepted = true;
+      entered();
+      await blockedRead;
+      throw primary; // No original FD was acquired by this test-owned read.
+    }
+    return Reflect.apply(originalOpen, this, [selected, ...args]);
+  });
+  syncBuiltinESMExports();
+  const first = f.store.retainEffectCaptureCustody(f.run, [f.holding]);
+  const firstResult = first.then(value => ({value}), error => ({error}));
+  await enteredRead;
+  const queued = f.store.retainEffectCaptureCustody(f.run, [f.holding]);
+  const queuedResult = queued.then(value => ({value}), error => ({error}));
+  try {
+    await f.store.close();
+    assert.equal(f.store.status().closed, true);
+  } finally {release();}
+  assert.strictEqual((await firstResult).error, primary);
+  assert.equal((await queuedResult).error?.code, 'PublicationStoreClosed');
+  assert.equal(f.runAdmissions, 2, 'one admission per original public operation');
+  assert.deepEqual(f.calls, {writes: 0, fileSyncs: 0, directorySyncs: 0});
+  await assert.rejects(readFile(f.path), {code: 'ENOENT'});
+});
+
+test('Effect capture retirement refuses final unlink after the same Store closes', async t => {
+  const f = await captureCustodyFixture(t);
+  await f.store.retainEffectCaptureCustody(f.run, [f.holding]);
+  const original = await readFile(f.path), state = await stat(f.path);
+  const originalOpen = fsPromises.open;
+  const holdingPath = join(f.directory, 'physical-holdings',
+    `${f.holding.holding_cid.slice(7)}.json`);
+  let holdingReads = 0, closedDuringRetirement = false;
+  t.mock.method(fsPromises, 'open', async function(selected, ...args) {
+    // The first read validates the custody inventory. The second belongs to
+    // actual holding retirement; absence means this holding already retired,
+    // not that the capture's later unlink may ignore Store lifetime.
+    if (String(selected) === holdingPath && ++holdingReads === 2) {
+      await f.store.close();
+      closedDuringRetirement = true;
+    }
+    return Reflect.apply(originalOpen, this, [selected, ...args]);
+  });
+  syncBuiltinESMExports();
+  f.reset();
+  await assert.rejects(f.store.retireEffectCaptureCustody(f.run),
+    {code: 'PublicationStoreClosed'});
+  assert.equal(closedDuringRetirement, true);
+  assert.equal(f.store.status().closed, true);
+  assert.equal(f.runAdmissions, 1);
+  assert.deepEqual(f.calls, {writes: 0, fileSyncs: 0, directorySyncs: 0});
+  assert.deepEqual(await readFile(f.path), original);
+  const retained = await stat(f.path);
+  assert.equal(retained.dev, state.dev);
+  assert.equal(retained.ino, state.ino);
+});
 
 async function preparePhysical(store, value) {
   const bytes = Buffer.from(value, 'utf8');
