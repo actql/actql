@@ -635,6 +635,25 @@ its selected-row conflict check, quota delta and durable transaction; a
 preflight observation cannot acknowledge a write or a lost COMMIT. Empty
 native selections perform no native read. No unrelated history is acquired.
 
+The same operation forwards that original frozen row array privately to its
+immediate native mutation. Only this connection's private association recognizes
+the complete ordered selection; its original row map is not caller-supplied.
+The association is consumed once, including a no-op. Copied or foreign arrays,
+different keys, an actual intervening native mutation or a failed write attempt
+keep the full selected-row read. A new public Store operation acquires its own
+preflight. Ordinary pure work and internal awaits are not new validation frames.
+The Store exposes no port accepting this private observation from public callers.
+
+Mutation still compares each admitted input with the retained selected original,
+enforces quota and progress/predecessor CAS, and performs the same actual
+FULL/fullfsync transaction. A lost reply never reuses the spent preflight: the
+same original retry reacquires current rows and requires a real confirmation
+write/COMMIT. The observation holds bounded immutable strings and row scalars,
+not Account permission, physical backing, a transaction outcome or cleanup ACK.
+The real native close clears the connection's remaining managed associations.
+This removes a repeated body selection; it does not remove a durable transition
+or establish a public latency improvement.
+
 ### Connection-owned publication statements
 
 Opening still admits the exact publication body, attempt and progress table

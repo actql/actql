@@ -4249,7 +4249,7 @@ test('native publication preflight selects its exact supplied body keys in bound
   assert.equal(commits, 1);
   const keys = new Set(selected.map(value => value.identity));
   assert(reads.every(read => read.rows.every(row => keys.has(row.semantic_cid))), 'unrelated history is not acquired');
-  assert.equal(reads.length, 2, 'one bounded quota preflight and the original actual mutation selection');
+  assert.equal(reads.length, 1, 'same synchronous operation consumes its original bounded quota selection');
   assert(reads.every(read => read.args.length === 8));
   for (const value of selected) assert.equal((await store.readPublicationContract(value.identity, value.name)).wire, value.wire);
 });

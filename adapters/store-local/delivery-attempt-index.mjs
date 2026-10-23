@@ -469,6 +469,7 @@ export async function openDeliveryAttemptIndex(path, {
     // Prepare only arities actually used by this database lifetime.
     const publicationBlockSize = 64;
     const publicationSelections = new Map(), publicationInsertions = new Map();
+    let publicationRowSelections = new WeakMap();
     const removePublication = prepareOnUse('DELETE FROM publication_contracts WHERE semantic_cid=?');
     const updatePublicationUsage = prepare(`UPDATE publication_usage SET objects=objects+?,bytes=bytes+?,
       ack_revision=ack_revision+1 WHERE id=1`);
@@ -498,6 +499,9 @@ export async function openDeliveryAttemptIndex(path, {
     let pendingResultSeal, flushResultSeal = () => undefined;
     const run = body => {
       if (mutating) fail('DeliveryAttemptIndexBusy');
+      // Only this connection's unchanged preflight may feed its immediate
+      // mutation. Any actual write attempt, including failure, retires it.
+      publicationRowSelections = new WeakMap();
       mutating = true;
       try {
         let finished, sealedResult;
@@ -910,6 +914,7 @@ export async function openDeliveryAttemptIndex(path, {
     retirePublicationFinishReferences = () => {
       retainedPublicationFinishes.clear(); pendingResultSeal = undefined;
       publicationSelections.clear(); publicationInsertions.clear();
+      publicationRowSelections = new WeakMap();
       for (const retire of deferredStatements) retire();
       deferredStatements.length = 0;
     };
@@ -1028,7 +1033,7 @@ export async function openDeliveryAttemptIndex(path, {
       ['kind','attemptCid','runCid','previousCid','recordCid','sequence'].every(key=>a[key]===b[key]) &&
       (!['initial-records','initial-attempt'].includes(a.kind) || a.records.every((record,i) =>
         ['previousCid','recordCid','sequence'].every(key=>record[key]===b.records[i][key])));
-    const publicationMutation = (kind, entries, allowance, suppliedProgress) => {
+    const publicationMutation = (kind, entries, allowance, suppliedProgress, selection) => {
       const progress = progressCopy(suppliedProgress);
       if (!Array.isArray(entries) || entries.length > maxEntries) fail('DeliveryAttemptIndexLimit');
       const retry = uncertain && uncertainPublication?.kind === kind &&
@@ -1060,7 +1065,11 @@ export async function openDeliveryAttemptIndex(path, {
         if (entry === undefined || keys.has(entry.semantic_cid)) fail('InvalidDeliveryAttemptIndex');
         keys.add(entry.semantic_cid);
       }
-      const selected = selectedPublicationRows(originals);
+      const retained = !retry && kind === 'put' ? publicationRowSelections.get(selection) : undefined;
+      publicationRowSelections.delete(selection);
+      const selected = retained !== undefined && retained.keys.length === originals.length &&
+        retained.keys.every((key, index) => key === originals[index].semantic_cid)
+        ? retained.rows : selectedPublicationRows(originals);
       for (const entry of originals) {
         const current = selected.get(entry.semantic_cid);
         if (current !== undefined && !samePublication(current,entry)) fail('PublicationSemanticIdentityConflict');
@@ -1323,9 +1332,13 @@ export async function openDeliveryAttemptIndex(path, {
         const supplied = Array.from({length:semanticCids.length}, (_, index) => semanticCids[index]);
         if (!supplied.every(cid)) fail('InvalidDeliveryAttemptIndex');
         const keys = Array.from(new Set(supplied), semantic_cid => ({semantic_cid}));
-        return Object.freeze([...selectedPublicationRows(keys).values()]);
+        const rows = selectedPublicationRows(keys), original = Object.freeze([...rows.values()]);
+        publicationRowSelections.set(original, {keys: keys.map(key => key.semantic_cid), rows});
+        return original;
       },
-      putPublicationContracts(entries, allowance, progress) { return publicationMutation('put',entries,allowance,progress); },
+      putPublicationContracts(entries, allowance, progress, selection) {
+        return publicationMutation('put',entries,allowance,progress,selection);
+      },
       publicationAttempt(attemptCid) {requireComplete();const row=publicationAttempt.get(attemptCid);
         return row===undefined?undefined:Object.freeze({...row});},
       latestPublicationRecord(attemptCid) {
