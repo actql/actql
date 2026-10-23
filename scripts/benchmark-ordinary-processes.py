@@ -162,7 +162,7 @@ def command(executable, args, cwd, output, name):
                 childReportedMaximumRssBytes=usage.ru_maxrss * (1024 if sys.platform == 'linux' else 1),
                 childReportedMinorFaults=usage.ru_minflt, childReportedMajorFaults=usage.ru_majflt,
                 memoryScope='OS wait4 child report; not acquired, initialized or used allocation bytes',
-                executable=str(executable), args=args, stdout=stdout.decode(), stderr=stderr.decode())
+                executable=str(executable), cwd=str(cwd), args=args, stdout=stdout.decode(), stderr=stderr.decode())
     write(output / (name + '.command.json'), record)
     return record
 
@@ -519,7 +519,10 @@ def collect_native_operations(args):
 
     def new_query(fixture, row, name):
         query, destination = state/(name+'.aql'), state/(name+'.jsonl')
-        row.update(querySha256=digest(wire(fixture['text'])),expectedSha256=digest(wire(fixture['expected'])))
+        query_bytes=query.read_bytes()
+        assert query_bytes==(fixture['text']+';\n').encode(), 'Actual selected query file differs from the fixture'
+        row.update(queryPath=str(query),queryFileSha256=digest(query_bytes),outputPath=str(destination),
+            querySha256=digest(wire(fixture['text'])),expectedSha256=digest(wire(fixture['expected'])))
         report['publicCallAttempts']['run'] += 1
         record = invoke(row,['run',query.name,'--output',destination.name,'--json'],name)
         response = json.loads(record['stdout']);row['publicResponse'] = response

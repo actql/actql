@@ -405,28 +405,45 @@ function nativeReport(count = 100, ms = 80) {
     mode, environment, historyProtocol: protocol, initialization: {pid: 1, code: 0, wallNs: 1000000},
     cleanup: {closed: true}, packageFailure: null, installedPayloadsUnchanged: true,
     publicCallAttempts: {init: 1, run: count + 1, result: count}, latency: [], functional: {...binding, rows: []}};
-  report.firstQuery = {pid: 2, publicOperationId: 'first', stateId: 'same-project', publicRunId: 'run-0',
-    completed: true, verified: true, command: {pid: 2, code: 0, wallNs: 1000000},
+  report.firstQuery = {pid: 2, publicOperationId: 'first', stateId: '/synthetic/project', publicRunId: 'run-0',
+    completed: true, verified: true, command: {pid: 2, code: 0, wallNs: 1000000, cwd: '/synthetic/project',
+      args: ['run', 'first.aql', '--output', 'first.jsonl', '--json']},
     wallNs: 2000000, childWallNs: 1000000, querySha256: nativeHash('SELECT 0 AS id'), expectedSha256: nativeHash([{id: 0}]), actualSha256: nativeHash([{id: 0}])};
+  report.firstQuery.queryPath = '/synthetic/project/first.aql';
+  report.firstQuery.queryFileSha256 = createHash('sha256').update('SELECT 0 AS id;\n').digest('hex');
+  report.firstQuery.outputPath = '/synthetic/project/first.jsonl';
+  report.firstQuery.publicResponse = {run: {run_id: 'run-0', status: 'succeeded'}, delivery_status: 'delivered',
+    deliveries: [{run_id: 'run-0', status: 'delivered', request: {result: 'answer', result_cid: 'result-0',
+      format: 'jsonl', path: report.firstQuery.outputPath}}]};
+  report.firstQuery.runRefSha256 = nativeHash({runId: 'run-0'});
+  report.firstQuery.resultRefSha256 = nativeHash({runId: 'run-0', resultName: 'answer', resultCid: 'result-0'});
+  report.firstQuery.command.stdout = JSON.stringify(report.firstQuery.publicResponse);
   const fresh = Array.from({length: count}, (_, index) => {
     const id = index + 1, runId = `run-${id}`, selected = {runId, resultName: 'answer', resultCid: `result-${id}`};
-    return {...binding, iteration: index, publicOperationId: `new-${id}`, stateId: 'same-project', pid: index + 3,
+    return {...binding, iteration: index, publicOperationId: `new-${id}`, stateId: '/synthetic/project', pid: index + 3,
       publicRunId: runId, runRefSha256: nativeHash({runId}), resultRefSha256: nativeHash(selected),
       querySha256: nativeHash(`SELECT ${id} AS id`), expectedSha256: nativeHash([{id}]), actualSha256: nativeHash([{id}]),
       completed: true, verified: true, wallNs: ms * 1e6, childWallNs: (ms - 1) * 1e6,
-      cpuUserUs: 1000, cpuSystemUs: 200, cpuScope: 'synthetic child', command: {pid: index + 3, code: 0, wallNs: (ms - 1) * 1e6},
+      cpuUserUs: 1000, cpuSystemUs: 200, cpuScope: 'synthetic child', command: {pid: index + 3, code: 0, wallNs: (ms - 1) * 1e6, cwd: '/synthetic/project',
+        args: ['run', `new-${index}.aql`, '--output', `new-${index}.jsonl`, '--json']},
       publicResponse: {run: {run_id: runId, status: 'succeeded'}, delivery_status: 'delivered',
-        deliveries: [{run_id: runId, status: 'delivered', request: {result: 'answer', result_cid: selected.resultCid}}]}};
+        deliveries: [{run_id: runId, status: 'delivered', request: {result: 'answer', result_cid: selected.resultCid, format: 'jsonl', path: `/synthetic/project/new-${index}.jsonl`}}]}};
   });
+  for (const [index, row] of fresh.entries()) {
+    row.queryPath = `/synthetic/project/new-${index}.aql`;
+    row.queryFileSha256 = createHash('sha256').update(`SELECT ${index + 1} AS id;\n`).digest('hex');
+    row.outputPath = `/synthetic/project/new-${index}.jsonl`;
+    row.command.stdout = JSON.stringify(row.publicResponse);
+  }
   const originals = fresh.slice(0, 3);
   for (const operation of ['cold-new-run', 'cold-result']) {
     const values = operation === 'cold-new-run' ? fresh : Array.from({length: count}, (_, index) => {
       const original = originals[index % originals.length], pid = count + index + 3;
-      return {...binding, iteration: index, publicOperationId: `saved-${index}`, stateId: 'same-project', pid,
+      return {...binding, iteration: index, publicOperationId: `saved-${index}`, stateId: '/synthetic/project', pid,
         ...Object.fromEntries(['publicRunId', 'runRefSha256', 'resultRefSha256', 'expectedSha256', 'actualSha256'].map(key => [key, original[key]])),
         completed: true, verified: true, wallNs: ms * 1e6, childWallNs: (ms - 1) * 1e6,
         cpuUserUs: 1000, cpuSystemUs: 200, cpuScope: 'synthetic child',
-        command: {pid, code: 0, wallNs: (ms - 1) * 1e6, args: ['result', original.publicRunId, '--result', 'answer', '--format', 'jsonl']}};
+        command: {pid, code: 0, wallNs: (ms - 1) * 1e6, cwd: '/synthetic/project', args: ['result', original.publicRunId, '--result', 'answer', '--format', 'jsonl']}};
     });
     const workload = operation === 'cold-new-run' ? {kind: 'new-durable-run-result-file-rows',
       fixtures: protocol.queries.map(row => ({querySha256: nativeHash(row.text), expectedSha256: nativeHash(row.expected)}))}
@@ -482,4 +499,40 @@ test('Native public process gate retains failed or missing original provenance a
   unknown.publicCallAttempts = {init: 1, run: 2, result: 0};
   unknown.functional.rows = [{...unknown.functional.rows[0], completed: false}];
   assert.equal(assessNativeOperations(unknown).status, 'failed');
+});
+
+
+test('Native provenance binds the separate first returned Run and Result', () => {
+  assert.equal(assessNativeOperations(nativeReport()).status, 'passed');
+  for (const mutate of [
+    row => { delete row.publicRunId; delete row.publicResponse; },
+    row => { delete row.publicResponse; },
+    row => { row.publicResponse.run.run_id = 'another-run'; },
+    row => { row.resultRefSha256 = 'f'.repeat(64); },
+    row => { row.publicResponse.deliveries[0].request.result_cid = 'another-result'; },
+    row => { row.publicResponse.deliveries[0].request.path = '/another-output'; },
+    row => { row.command.args = ['result', 'another-run']; },
+    row => { delete row.queryFileSha256; },
+  ]) {
+    const report = nativeReport(); mutate(report.firstQuery);
+    if (report.firstQuery.publicResponse) report.firstQuery.command.stdout = JSON.stringify(report.firstQuery.publicResponse);
+    assert.throws(() => assessNativeOperations(report));
+  }
+});
+
+test('Native provenance binds each NEW command query and output', () => {
+  for (const mutate of [
+    row => { row.command.args = ['result', 'another-run']; },
+    row => { row.command.args[1] = 'new-1.aql'; },
+    row => { row.command.args[3] = 'new-1.jsonl'; },
+    row => { row.command.cwd = '/another-project'; },
+    row => { row.queryPath = '/another-query'; },
+    row => { row.queryFileSha256 = 'f'.repeat(64); },
+    row => { row.outputPath = '/another-output'; },
+    row => { row.publicResponse.deliveries[0].request.format = 'csv'; row.command.stdout = JSON.stringify(row.publicResponse); },
+    row => { row.command.stdout = JSON.stringify({run: {run_id: 'another-run'}}); },
+  ]) {
+    const report = nativeReport(); mutate(report.latency[0].samples[0]);
+    assert.throws(() => assessNativeOperations(report));
+  }
 });
