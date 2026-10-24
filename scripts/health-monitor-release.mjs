@@ -10,13 +10,31 @@ import {readFixedSQLiteComparison} from './ordinary-operation-packages.mjs';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {jsonDigest, digest} from './health-monitor-report.mjs';
 
+export function formalCollectorVerdict(result) {
+  if (result.firstFailure || result.packageFailure || result.cleanup?.failure ||
+      result.latency?.some(series => series.samples.some(row => !row.verified || !row.completed))) {
+    return {status: 'error', reason: JSON.stringify(result.firstFailure ?? result.packageFailure ?? result.cleanup?.failure ?? 'Original failed public sample')};
+  }
+  if (result.assessments?.some(row => row.status === 'failed')) return {status: 'regression', reason: 'Existing formal assessment failed; original evidence retained'};
+  if (!result.latency?.length || result.assessments?.some(row => row.status !== 'passed')) return {status: 'incomplete', reason: result.stoppedAt ?? 'Existing formal assessment incomplete'};
+  return {};
+}
+
 export async function releaseArtifacts({options, repository, source, command, onArtifact, onMetric}) {
   let ready = true;
+  const platformKey = { 'darwin-arm64': 'darwin-arm64', 'linux-x64': 'linux-x64-gnu' }[platform() + '-' + arch()];
   for (const adapter of ['native', 'python']) {
     if (!options[adapter + 'Manifest'] || !options[adapter + 'Consumer']) {
       ready = false;
       await onMetric({id: adapter + '-artifacts', target: adapter, kind: 'size', required: true,
         status: 'incomplete', reason: `Required ordinary ${adapter} manifest/consumer not supplied`});
+      continue;
+    }
+    const selected = JSON.parse(await readFile(options[adapter + 'Manifest']));
+    if (!platformKey || (adapter === 'native' ? !selected.platforms?.[platformKey] : selected.platform !== platformKey)) {
+      ready = false;
+      await onMetric({id: adapter + '-platform-artifacts', target: adapter, kind: 'size', required: true,
+        status: 'incomplete', reason: 'Required ordinary artifacts absent for the actual selected OS/architecture'});
       continue;
     }
     let artifacts;
@@ -72,15 +90,20 @@ export async function releaseMeasurements({options, prepared, repository, root, 
     cohortSha256: digest(await readFile(prepared.manifestPath)), environment: env,
     load: options.load ?? 'concurrent', historyProtocolSha256: jsonDigest(nodeOperationProtocol('final')), comparison}, null, 2));
   const common = {manifestPath: prepared.manifestPath, consumer: prepared.consumer, controlsPath, mode: 'final'};
+  for (const id of ['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-union', 'warm-decimal-sum', 'first-init', 'cold-existing']) {
+    await onMetric({id, kind: 'latency', target: 'node-local', required: true, status: 'incomplete', reason: 'Required final collector family not yet observed'});
+  }
   for (const operation of ['warm', 'first-init', 'cold-existing']) {
     const output = join(root, 'formal-node-' + operation);
     const result = operation === 'warm' ? await runNodeWarmBenchmark({...common, output})
       : await runNodeProcessBenchmark({...common, output, operation});
+    const verdict = formalCollectorVerdict(result);
+    if (!result.latency.length) await onMetric({id: 'formal-node-' + operation, kind: 'latency', target: 'node-local', required: true, ...verdict});
     for (const series of result.latency) await onMetric({id: series.operation, kind: 'latency', target: 'node-local',
       temperature: series.operation.startsWith('warm-') ? 'warm' : 'cold', required: true,
       samples: series.samples, requiredSamples: series.operation.startsWith('warm-') ? 100 : 30,
       fixtureSha256: series.fixtureSha256, evidence: join(output, 'measurements.json'), unit: 'ms',
-      ...(result.assessments.some(row => row.status !== 'passed') ? {status: 'incomplete', reason: 'Existing formal assessor did not pass; inspect original assessment'} : {})});
+      ...verdict});
   }
   for (const adapter of ['native', 'python']) for (const operation of ['first-init', 'cold-existing', 'warm-select', 'warm-result', 'warm-status']) {
     if (adapter === 'native' && operation.startsWith('warm-')) {

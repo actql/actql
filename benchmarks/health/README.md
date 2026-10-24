@@ -103,6 +103,10 @@ Those required entries stay **incomplete**; a fresh CLI invocation is never
 called warm. Unsupported platform artifacts also stay incomplete. Even a full
 set of latency samples does not supply unrelated-history, once-validation,
 durability, fault or all-path Conformance proof. `formalAcceptance` stays false.
+Release's three-process Mock workflow retains its actual observations but
+cannot claim the formal single-sample PID/CPU/approved-work interval. That
+binding and Release Node peak RSS remain explicitly incomplete. Missing
+mandatory Release paths/comparison exit incomplete before a Runtime build.
 This implementation's fast unit tests do not establish Native/Python runtime
 or a completed Release population.
 

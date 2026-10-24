@@ -7,8 +7,10 @@ import {spawnSync} from 'node:child_process';
 import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
 import {compareReports, finishReport, markdown, summarize, exitStatus, digest} from './health-monitor-report.mjs';
-import {parseArguments, requiredQuickMetrics} from './health-monitor.mjs';
+import {parseArguments, requiredQuickMetrics, missingReleaseInputs, recordGuardExit} from './health-monitor.mjs';
 import {packDistributionPackages} from './measure-distribution-artifacts.mjs';
+import {formalCollectorVerdict} from './health-monitor-release.mjs';
+import {quickNodeMetrics} from './health-monitor-adapters.mjs';
 
 const policy = JSON.parse(await readFile(new URL('../benchmarks/health/config.json', import.meta.url)));
 const samples = (ms, count = 10) => Array.from({length: count}, (_, iteration) => ({iteration,
@@ -160,4 +162,41 @@ test('CLI parse failure still saves JSON/Markdown and preserves an existing outp
   const report = JSON.parse(await readFile(join(path, 'report.json')));
   assert.equal(report.status, 'error'); assert.ok(report.errors[0].message);
   assert.match(await readFile(join(path, 'summary.md'), 'utf8'), /Error \(runner\)/);
+});
+test('original failed formal observations are errors; incomplete assessments stay incomplete', () => {
+  assert.equal(formalCollectorVerdict({firstFailure: {message: 'original arithmetic refusal'}, latency: []}).status, 'error');
+  assert.equal(formalCollectorVerdict({latency: [{samples: [{verified: false}]}]}).status, 'error');
+  assert.equal(formalCollectorVerdict({latency: [], assessments: []}).status, 'incomplete');
+  assert.equal(formalCollectorVerdict({latency: [{samples: samples(1)}], assessments: [{status: 'failed'}]}).status, 'regression');
+});
+test('original failed warm samples are retained without a cold retry or new public operation', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-health-failed-unit-')), emitted = [];
+  const original = new Error('original synthetic unit failure'); let commands = 0;
+  await assert.rejects(quickNodeMetrics({root, prepared: {consumer: 'unit-only'}, counts: {warmSamples: 10, coldSamples: 5},
+    command: async () => {
+      commands++;
+      await writeFile(join(root, 'warm-observation.json'), JSON.stringify({cleanup: {closed: true},
+        metrics: [{id: 'warm-select', samples: [{...samples(1, 1)[0], verified: false, completed: false, error: 'original'}]}]}));
+      throw original;
+    }, onMetric: async row => emitted.push(row)}), error => error === original);
+  assert.equal(commands, 1); assert.equal(emitted[0].samples[0].error, 'original');
+  assert.equal(emitted[0].samples[0].verified, false);
+});
+test('Release missing mandatory platform inputs exits incomplete before any Runtime build', async () => {
+  assert.equal(missingReleaseInputs({}).length, 6);
+  const root = await mkdtemp(join(tmpdir(), 'actql-health-release-unit-')), output = join(root, 'run');
+  const result = spawnSync(process.execPath, [new URL('./health-monitor.mjs', import.meta.url).pathname,
+    'release', '--output', output], {encoding: 'utf8'});
+  assert.equal(result.status, 2, result.stderr);
+  const report = JSON.parse(await readFile(join(output, 'report.json')));
+  assert.equal(report.status, 'incomplete');
+  assert.match(report.metrics.find(row => row.id === 'required-release-inputs').reason, /no build or formal workload started/);
+  assert.equal(report.artifacts.length, 0); assert.equal(report.guardExitCode, undefined);
+});
+test('original guard exit is recorded for both normal success and admission refusal', () => {
+  const success = finishReport(fixture()); recordGuardExit(success, 0);
+  assert.equal(success.guardExitCode, 0); assert.equal(success.status, 'pass');
+  const refused = finishReport(fixture()); recordGuardExit(refused, 1);
+  assert.equal(refused.guardExitCode, 1); assert.equal(refused.status, 'error');
+  assert.match(refused.errors[0].message, /Original guard exited 1/);
 });

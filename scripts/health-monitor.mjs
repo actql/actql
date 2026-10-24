@@ -60,6 +60,20 @@ export function requiredQuickMetrics() {
     missing('peak-rss', 'rss')];
 }
 
+export function missingReleaseInputs(options) {
+  return ['nativeManifest', 'nativeConsumer', 'pythonManifest', 'pythonConsumer', 'pythonVenv', 'comparison']
+    .filter(key => !options[key]);
+}
+
+export function recordGuardExit(report, code) {
+  report.guardExitCode = code;
+  if (code !== report.exitCode) {
+    report.errors.push({target: 'resource/execution guard', message: `Original guard exited ${code}; inspect _build/local-checks/attempts original evidence`});
+    finishReport(report);
+  }
+  return report;
+}
+
 async function applyComparison(report, options) {
   report.comparison = options.base ? compareReports(JSON.parse(await readFile(options.base)), report, policy)
     : {available: false, comparable: false, baselineId: null,
@@ -75,6 +89,7 @@ export async function executeMonitor({mode, options, report, directory}) {
     const index = report.metrics.findIndex(row => row.id === metric.id && row.target === metric.target);
     if (index < 0) report.metrics.push(structuredClone(metric)); else report.metrics[index] = structuredClone(metric);
     await saveReport(directory, finishReport(report));
+
   };
   const command = (command, args, settings = {}) => execute(command, args, {...settings, raw,
     env: {...process.env, npm_config_cache: join(directory, 'npm-cache')}});
@@ -103,13 +118,15 @@ export async function executeMonitor({mode, options, report, directory}) {
     } else {
       // Quick routes are not relabelled as formal Release samples. Keep original
       // collectors' 100/30, comparison controls, early stop and failed samples.
-      report.metrics = report.metrics.filter(row => !['latency', 'rss'].includes(row.kind));
+      report.metrics = report.metrics.filter(row => row.kind !== 'latency');
       const {releaseArtifacts, releaseMeasurements} = await import('./health-monitor-release.mjs');
       const ready = await releaseArtifacts({options, repository, source: report.source, command,
         onArtifact: async artifact => report.artifacts.push(artifact), onMetric});
       if (ready && options.comparison) {
         await releaseMeasurements({options, prepared, repository, root: raw, source: report.source, command, onMetric});
-        await mockWorkflowMetrics({prepared, root: raw, repository, command, counts, onMetric});
+        await mockWorkflowMetrics({prepared, root: raw, repository, command, counts,
+          onMetric: metric => onMetric({...metric, status: 'incomplete',
+            reason: 'Actual three-process workflow retained; formal approved-work interval/PID/CPU correspondence remains unavailable, not synthesized'})});
       } else await onMetric({id: 'release-public-collectors', target: 'all', kind: 'latency', required: true, status: 'incomplete',
         reason: 'Required matching Native/Python artifacts or fixed SQLite comparison absent; formal workload not started'});
     }
@@ -166,6 +183,15 @@ export async function main(args = process.argv.slice(2)) {
       metrics: requiredQuickMetrics(), artifacts: [], errors: [], formalAcceptance: false,
       comparison: {available: false, reason: 'Comparison not yet performed'}};
     await saveReport(directory, finishReport(report));
+    if (parsed.mode === 'release' && missingReleaseInputs(parsed.options).length) {
+      report.metrics.push({id: 'required-release-inputs', target: 'native/python', kind: 'reference', required: true,
+        status: 'incomplete', reason: 'Missing required Release inputs: ' + missingReleaseInputs(parsed.options).join(', ') + '; no build or formal workload started'});
+      report.sourceAfter = sourceIdentity(); report.environmentAfter = await environmentIdentity(parsed.options);
+      report.sourceChanged = jsonDigest(report.source) !== jsonDigest(report.sourceAfter);
+      report.environmentChanged = jsonDigest(report.environment) !== jsonDigest(report.environmentAfter);
+      report.endedAt = new Date().toISOString();
+      await saveReport(directory, finishReport(report)); console.log(markdown(report)); return report.exitCode;
+    }
     const {runLocalCheck} = await import('./local-checks-guard.mjs');
     const workerArgs = [self, 'execute-' + parsed.mode, '--run', directory, ...args.slice(1)];
     const code = await runLocalCheck({root: repository, heavy: true, timeoutSeconds: parsed.mode === 'quick' ? 1800 : 7200, graceSeconds: 5,
@@ -173,11 +199,8 @@ export async function main(args = process.argv.slice(2)) {
         : {memoryBytes: 6 * 1024 ** 3, diskBytes: 6 * 1024 ** 3, cpuThreads: 2},
       steps: [{name: `Health ${parsed.mode}: ordinary artifacts and public fixture`, command: process.execPath, args: workerArgs}]});
     report = JSON.parse(await readFile(join(directory, 'report.json')));
-    report.guardExitCode = code;
-    if (code !== report.exitCode) {
-      report.errors.push({target: 'resource/execution guard', message: `Original guard exited ${code}; inspect _build/local-checks/attempts original evidence`});
-      finishReport(report); await saveReport(directory, report);
-    }
+    recordGuardExit(report, code);
+    await saveReport(directory, report);
     console.log(`Health report: ${directory}`); console.log(markdown(report)); return report.exitCode;
   } catch (error) {
     // Even malformed input and pre-admission errors get their own immutable run.

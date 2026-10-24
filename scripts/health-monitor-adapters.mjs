@@ -207,15 +207,23 @@ export async function publicNodeSample(config) {
 
 export async function quickNodeMetrics({prepared, root, repository, command, counts, onMetric}) {
   const warmOutput = join(root, 'warm-observation.json');
-  await command(process.execPath, [self, '--sample', JSON.stringify({kind: 'warm', count: counts.warmSamples,
-    consumer: prepared.consumer, stateDir: join(root, 'warm-state'), output: warmOutput})], {cwd: root, name: 'node-warm'});
-  const warm = JSON.parse(await readFile(warmOutput));
-  assert(warm.cleanup.closed);
+  let originalFailure;
+  try {
+    await command(process.execPath, [self, '--sample', JSON.stringify({kind: 'warm', count: counts.warmSamples,
+      consumer: prepared.consumer, stateDir: join(root, 'warm-state'), output: warmOutput})], {cwd: root, name: 'node-warm'});
+  } catch (error) {originalFailure = error;}
+  // The child saves its original partial/failed samples before exiting. Publish
+  // those observations too; never discard them behind the command exit error.
+  let warm;
+  try {warm = JSON.parse(await readFile(warmOutput));}
+  catch (error) {throw originalFailure ?? error;}
   for (const metric of warm.metrics) {
     const fixture = healthFixtures[metric.id.slice(5)] ?? healthFixtures.select;
     await onMetric({...metric, kind: 'latency', target: 'node-local', temperature: 'warm', required: true, unit: 'ms',
       requiredSamples: counts.warmSamples, fixtureSha256: jsonDigest({fixture, count: counts.warmSamples}), evidence: warmOutput});
   }
+  if (originalFailure) throw originalFailure;
+  assert(warm.cleanup.closed);
   const cold = {id: 'cold-process-first-result-close', kind: 'latency', target: 'node-local', temperature: 'cold',
     required: true, unit: 'ms', requiredSamples: counts.coldSamples, fixtureSha256: jsonDigest(healthFixtures.select), samples: [], evidence: root};
   const peaks = [warm.peakRssBytes];
