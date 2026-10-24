@@ -1487,7 +1487,7 @@
     {
       "module": "adapters/host-common/completed-run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "26602ed99f914391d056bf4e19bc220b1eadfd6d0be42b90210157cf2796a1d4",
+      "sha256": "4d173ab10983f1c11a3834aacbb367f94191474d6aa3fd8b804ad2808fb48de0",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -2033,6 +2033,13 @@
         {
           "name": "recoverCompletedEffectfulComputation/recoverCompletedEffectfulComputation#6",
           "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "recoverCompletedEffectfulComputation/recoverCompletedEffectfulComputation#7",
+          "parameters": [
             "source"
           ],
           "async": false
@@ -2458,7 +2465,8 @@
             "validateControl",
             "validateControl/validateControl",
             "validateExecution",
-            "validateOptions"
+            "validateOptions",
+            "recoverCompletedEffectfulComputation/recoverCompletedEffectfulComputation#7"
           ],
           "exports": [
             "CompletedRunPublicationError",
@@ -2697,6 +2705,14 @@
               {
                 "path": "adapters/host-common/publication-yield.test.mjs",
                 "anchor": "publication computation lifetime retires capture cancelled before publication entry without replacing payload cleanup"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE cold Content settles its original response through final publication'"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE cold capture refuses altered original source schema'"
               }
             ]
           }

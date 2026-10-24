@@ -4077,7 +4077,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "207e73cf7c5e3e520b6c53164ad8ca8dd1ed333ece556f59c6469fb37681b645",
+      "sha256": "a4ca6ec7dd3320d48c05bc3d3f3941d7307c65e3c433df90d33e3f6a345b4ccc",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -5654,13 +5654,6 @@
         },
         {
           "name": "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent#2",
           "parameters": [],
           "async": false
         },
@@ -5672,9 +5665,23 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/selectionFence/selectionFence/updates/updates",
+          "name": "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers",
           "parameters": [
             "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers/mappings/mappings",
+          "parameters": [
+            "mapping"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers/selected/selected",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -6506,6 +6513,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Verification: `installed-composed-recovery.integration.test.mjs` exercises"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE authored Content captures Preview with its original published target'"
               }
             ]
           }
@@ -6516,8 +6527,9 @@
             "createRowEffectStage/selectionFence/selectionFence",
             "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent",
             "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent",
-            "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent#2",
-            "createRowEffectStage/selectionFence/selectionFence/updates/updates",
+            "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers",
+            "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers/mappings/mappings",
+            "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers/selected/selected",
             "installationFacts/installationFacts",
             "installedRowEffectOwnerBinding",
             "installedRowEffectUpdateObservations",
@@ -6635,6 +6647,10 @@
               {
                 "path": "src/run_publication_host/client_effect_target_selections.mbt",
                 "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE with authored RESULT reaches its postcompute member fence before publication'"
               }
             ]
           }

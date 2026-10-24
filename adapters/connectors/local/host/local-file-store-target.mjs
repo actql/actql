@@ -34,8 +34,9 @@ export function prepareLocalFileStoreTarget(moon,{declaredWire,connectorId,rootP
   const data=localFileStoreDeclaration(declaredWire,{connectorId,rootPath,maxBytes});
   const declared=JSON.parse(data.declarationWire),mapping=JSON.parse(data.mappingWire),
     command=JSON.parse(data.commandWire);
+  const catalogMemberCid='sha256:'+createHash('sha256').update(declared.catalog).digest('hex');
   const selection=Object.freeze([mapping.target_ref,mapping.mapping_ref,mapping.mapping_contract_cid,
-    command.command_id,command.contract_cid,declared.catalog_cid,'file_collection',cid(JSON.parse(data.identityWire))]);
+    command.command_id,command.contract_cid,catalogMemberCid,'file_collection',cid(JSON.parse(data.identityWire))]);
   const resourceWire=canonical({$actql_ref:'resource',version:'actql-resource-ref/0.1',
     provider_namespace:'local',resource_kind:'file_collection',provider_identity_cid:scopeCid,
     authority_scope_cid:authorityScopeCid,boundary_cid:declared.catalog_cid,identity_cid:selection[7]});

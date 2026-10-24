@@ -368,7 +368,7 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
           response.path!==original.record.value.path||response.action!=='stored'||
           !Number.isSafeInteger(response.bytes)||response.bytes<0||response.bytes>limits.maxFileBytes)
         return{kind:'unknown'};
-      return{kind:'typed-success-response',outcome:{state:'applied',action:'stored',result:{}}};
+      return{kind:'typed-success-response',outcome:{state:'applied',result:{}}};
     },
   });
   const site=Object.freeze({

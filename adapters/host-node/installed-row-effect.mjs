@@ -639,7 +639,31 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     if (selections === undefined && resourceOwners.length === 0) return undefined;
     const liveAssertion = facts.assertUpdateSelectionCurrent;
     if (selections !== undefined && typeof liveAssertion !== 'function') selectionChanged();
-    const updates = members.filter(member => member.kind === 'update' || member.kind === 'delete');
+    const selectedMembers = members.flatMap(member => {
+      const stage = member.stageIndex ?? stageIndex;
+      if (member.kind === 'update' || member.kind === 'delete') {
+        return [{stage_index: stage, effect_id: member.effectId,
+          target_ref: member.mapping.target, mapping_ref: member.mapping.mappingRef,
+          mapping_cid: member.mapping.mappingCid}];
+      }
+      const selected = selections?.filter(value => value.stage_index === stage &&
+        value.effect_id === member.effectId) ?? [];
+      if (selected.length === 0) return [];
+      // STORE remains a checked Command occurrence with its original Mapping
+      // selection. Bind both to this same installed owner; a generic Command
+      // or a matching selection tuple alone cannot supply STORE purpose.
+      if (selected.length !== 1 || member.kind !== 'command') selectionChanged();
+      const mappings = ownerOf(member).storeMappings.filter(mapping =>
+        mapping.target === selected[0].target_ref &&
+        mapping.mappingRef === selected[0].mapping_ref &&
+        mapping.mappingCid === selected[0].mapping_cid &&
+        mapping.storeCommand.command_ref === member.command.commandRef &&
+        mapping.storeCommand.command_contract_cid === member.command.commandCid);
+      if (mappings.length !== 1) selectionChanged();
+      return [{stage_index: stage, effect_id: member.effectId,
+        target_ref: mappings[0].target, mapping_ref: mappings[0].mappingRef,
+        mapping_cid: mappings[0].mappingCid}];
+    });
     const assertCurrent = () => {
       for (const [owner, original] of resourceOwners) {
         if (requireSynchronousEffectResource(owner.resources.assertCurrent(original)) !== undefined) {
@@ -649,12 +673,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       if (selections === undefined) return;
       validateOwnerSelections(owners, selections, facts.prepared);
       try {
-        assertUpdateTargetSelectionMembersCurrent(selections, updates.map(member => {
-          ownerOf(member);
-          return {stage_index: member.stageIndex ?? stageIndex, effect_id: member.effectId,
-            target_ref: member.mapping.target, mapping_ref: member.mapping.mappingRef,
-            mapping_cid: member.mapping.mappingCid};
-        }), facts.prepared);
+        assertUpdateTargetSelectionMembersCurrent(selections, selectedMembers, facts.prepared);
       } catch (cause) { selectionChanged(cause); }
       const result = liveAssertion();
       // A live-owner assertion must finish before the physical operation.
@@ -1671,6 +1690,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       const verified = await verifyPinnedEffectPlan({moon, execution,
         previewInputs, previewIndex: member.memberIndex,
         inputKey: commandKeys[member.memberIndex],
+        publishedTarget: publishedTargets?.[member.memberIndex],
         limits: moon.clientProgramEffectInputExportLimits(
           ...exportLimits(plan.outputLimits)),
         planLimits: {maxFields: limits.maxFields, maxWork: limits.planWork,

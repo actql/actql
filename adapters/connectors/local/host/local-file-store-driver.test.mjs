@@ -1,8 +1,13 @@
 // Real Local driver composition with explicit Run/Content/native ports.
 // No Account grant, actual FD, Common Reference or physical STORE is supplied.
+// The outcome-shape case also consumes actual Common protocol admission;
+// its receipt identifiers and response are fixture DATA, not a physical ACK.
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
 import {createLocalFileStoreDriver,LOCAL_STORE_LIMITS} from './installed-project-file-effects.mjs';
 
 const cid=digit=>'sha256:'+digit.repeat(64);
@@ -118,4 +123,47 @@ test('Local STORE recovered request connects the retained original Content child
   assert.throws(()=>f.driver.requestFacts(request),{code:'ForeignLocalStoreRequest'});
   assert.throws(()=>child.prepare(),{code:'LocalStoreRecoveryAlreadyAttempted'});
   await capture.release();await f.site.close();assert.equal(f.nativeCalls(),0);
+});
+
+test('Local STORE projects a Command outcome admitted by actual Common without a provider action',async()=>{
+  const url=process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME
+    ?pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME)
+    :new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url);
+  const moon=await import(url),hash=bytes=>createHash('sha256').update(bytes).digest('hex');
+  const contentCid=value=>'sha256:'+hash(wire(value));
+  const f=fixture(),child=f.prepare(),prepared=child.prepare();
+  const response={request_cid:prepared.requestCid,path:'out.jsonl',bytes:9,action:'stored'};
+  const body=Buffer.from(wire(response));
+  const observation={useCid:cid('8'),statusCode:200,body};
+  const admitShape=outcome=>{
+    // Only protocol/self-CID admission is selected here. No Preview binding,
+    // dispatch claim, Ledger commit or external outcome is issued by this DATA.
+    const receipt={version:'actql-effect-row-outcome-receipt/0.1',
+      effect_preview_cid:cid('2'),effect_member_preview_cid:cid('3'),row_preview_cid:cid('4'),
+      dispatch_entry_cid:cid('5'),credential_use_cid:observation.useCid,
+      response_physical_sha256:hash(body),response_byte_count:body.length,http_status_code:200,
+      typed_outcome:outcome,typed_outcome_cid:contentCid(outcome)};
+    return checked(moon.strategyPublicationAdmit('effect_row_outcome_receipt',
+      wire({...receipt,receipt_cid:contentCid(receipt)}),131072,10000,64));
+  };
+  try{
+    const expected={state:'applied',result:{}};
+    assert(admitShape(expected),'Independent original Command outcome baseline is valid');
+    const projected=f.driver.project({request:prepared.request,observation});
+    assert.equal(projected.kind,'typed-success-response');
+    assert(admitShape(projected.outcome),'The actual adapter outcome must satisfy the unchanged Common schema');
+    assert.deepEqual(projected.outcome,expected);
+    assert.equal(JSON.parse(body.toString('utf8')).action,'stored',
+      'The private physical response marker is distinct from the generic outcome');
+    for(const changed of [
+      {...response,request_cid:cid('9')},{...response,path:'other.jsonl'},
+      {...response,bytes:1025},{...response,extra:true},
+    ])assert.deepEqual(f.driver.project({request:prepared.request,
+      observation:{...observation,body:Buffer.from(wire(changed))}}),{kind:'unknown'});
+    assert.deepEqual(f.driver.project({request:prepared.request,
+      observation:{...observation,statusCode:500}}),{kind:'unknown'});
+    assert.throws(()=>f.driver.project({request:{...prepared.request},observation}),
+      {code:'ForeignLocalStoreRequest'});
+    assert.equal(f.nativeCalls(),0);
+  }finally{await child.release();await f.site.close();}
 });
