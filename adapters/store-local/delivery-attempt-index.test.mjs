@@ -6,6 +6,167 @@ import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 
+test('durable preparation restores its exact semantic target and refuses retargeting', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-semantic-target-'));
+  const path = join(directory, 'index.sqlite3');
+  const options = {create: true, maxEntries: 2, maxWireBytes: 4096};
+  const original = {cid:'sha256:'+'1'.repeat(64), byte_count:13, device:'1', inode:'2',
+    semantic_cid:'sha256:'+'2'.repeat(64)};
+  let index = await openDeliveryAttemptIndex(path, options);
+  t.after(async () => {index.finishPhysicalPreparations([original]); index.close(); await rm(directory, {recursive:true});});
+  index.migratePhysicalObjects([]); index.migrate([]);
+  index.stagePhysicalObjects([original]); index.close();
+  index = await openDeliveryAttemptIndex(path, {...options, create:false});
+  index.beginPhysicalObjectLifetime();
+  assert.deepEqual(index.pendingPhysicalObject(original), original);
+  assert.throws(() => index.stagePhysicalObjects([{...original, semantic_cid:'sha256:'+'3'.repeat(64)}]),
+    {code:'PublicationObjectAccountingMismatch'});
+  index.recordPhysicalObjects([original], {retainPreparations:true});
+  assert.deepEqual(index.pendingPhysicalObjects(), [original]);
+  index.recordPhysicalObjects([original]);
+  assert.deepEqual(index.pendingPhysicalObjects(), []);
+});
+
+test('private preparation migration preserves old originals without inventing a semantic target', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-semantic-migration-'));
+  const path = join(directory, 'index.sqlite3');
+  const options = {create:true, maxEntries:2, maxWireBytes:4096};
+  const original = {cid:'sha256:'+'1'.repeat(64), byte_count:13, device:'1', inode:'2'};
+  let index = await openDeliveryAttemptIndex(path, options);
+  t.after(async () => {index.finishPhysicalPreparations([original]); index.close(); await rm(directory, {recursive:true});});
+  index.migratePhysicalObjects([]); index.migrate([]); index.close();
+  const old = new DatabaseSync(path);
+  try {
+    old.exec(`DROP TABLE physical_object_preparations;
+CREATE TABLE physical_object_preparations (
+  cid TEXT NOT NULL, byte_count INTEGER NOT NULL CHECK(byte_count>=0),
+  device TEXT NOT NULL, inode TEXT NOT NULL,
+  PRIMARY KEY(cid,device,inode)
+) WITHOUT ROWID;
+UPDATE coverage SET version=13;`);
+    old.prepare('INSERT INTO physical_object_preparations VALUES(?,?,?,?)')
+      .run(original.cid,original.byte_count,original.device,original.inode);
+  } finally {old.close();}
+  index = await openDeliveryAttemptIndex(path, {...options, create:false});
+  assert.deepEqual(index.pendingPhysicalObjects(), [original]);
+  index.beginPhysicalObjectLifetime();
+  assert.deepEqual(index.pendingPhysicalObjects(), [original]);
+});
+
+test('semantic batch preparation remains durable until its own alias settlement', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-semantic-native-preparation-'));
+  const path = join(directory, 'index.sqlite3');
+  const original = {cid: 'sha256:' + '1'.repeat(64), byte_count: 13, device: '1', inode: '2'};
+  const index = await openDeliveryAttemptIndex(path,
+    {create: true, maxEntries: 2, maxWireBytes: 4096});
+  t.after(async () => {
+    index.finishPhysicalPreparations([original]);
+    index.close();
+    await rm(directory, {recursive: true});
+  });
+  index.migratePhysicalObjects([]);
+  index.migrate([]);
+  index.beginPhysicalObjectLifetime();
+  const stored = () => {
+    const reader = new DatabaseSync(path, {readOnly: true});
+    try { return reader.prepare('SELECT cid,byte_count,device,inode FROM physical_object_preparations').all().map(row => ({...row})); }
+    finally { reader.close(); }
+  };
+  index.stagePhysicalObjects([original], {durable: true});
+  assert.deepEqual(stored(), [original], 'a quota dirty bit alone cannot recover an unpublished semantic allocation');
+  index.recordPhysicalObjects([original], {retainPreparations: true});
+  assert.deepEqual(stored(), [original], 'physical directory ACK does not settle the later alias duty');
+  assert.deepEqual(index.pendingPhysicalObjects(), [original]);
+  assert.equal(index.physicalObjectUsage().bytes, 13);
+  index.finishPhysicalPreparations([original]);
+  assert.deepEqual(stored(), []);
+});
+
+test('independent physical adoption settles the same durable preparation without charging twice', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-semantic-native-adoption-'));
+  const path = join(directory, 'index.sqlite3');
+  const original = {cid: 'sha256:' + '1'.repeat(64), byte_count: 13, device: '1', inode: '2'};
+  const index = await openDeliveryAttemptIndex(path, {create: true, maxEntries: 2, maxWireBytes: 4096});
+  t.after(async () => {index.finishPhysicalPreparations([original]); index.close(); await rm(directory, {recursive: true});});
+  index.migratePhysicalObjects([]); index.migrate([]); index.beginPhysicalObjectLifetime();
+  index.stagePhysicalObjects([original], {durable: true});
+  index.recordPhysicalObjects([original], {retainPreparations: true});
+  index.recordPhysicalObjects([original]);
+  assert.deepEqual(index.pendingPhysicalObjects(), []);
+  assert.equal(index.physicalObjectUsage().bytes, 13);
+  const reader = new DatabaseSync(path, {readOnly: true});
+  try { assert.deepEqual(reader.prepare('SELECT * FROM physical_object_preparations').all(), []); }
+  finally { reader.close(); }
+});
+
+test('a rejected stale physical generation does not settle its pending preparation', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-semantic-native-stale-'));
+  const original = {cid: 'sha256:' + '1'.repeat(64), byte_count: 13, device: '1', inode: '2'};
+  const successor = {...original, inode: '3'};
+  const index = await openDeliveryAttemptIndex(join(directory, 'index.sqlite3'),
+    {create: true, maxEntries: 2, maxWireBytes: 4096});
+  t.after(async () => {index.finishPhysicalPreparations([original]); index.close(); await rm(directory, {recursive: true});});
+  index.migratePhysicalObjects([]); index.migrate([]); index.beginPhysicalObjectLifetime();
+  index.stagePhysicalObjects([original], {durable: true});
+  index.recordPhysicalObjects([successor], {retainPreparations: true});
+  assert.throws(() => index.recordPhysicalObjects([original]), {code: 'PublicationObjectAccountingMismatch'});
+  assert.deepEqual(index.pendingPhysicalObjects(), [original]);
+  assert.deepEqual(index.physicalObject(original.cid), successor);
+});
+
+test('quota recovery preserves the original pending preparation for the next owned lifetime', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-semantic-native-recovery-'));
+  const path = join(directory, 'index.sqlite3');
+  const options = {create: false, maxEntries: 2, maxWireBytes: 4096};
+  const original = {cid: 'sha256:' + '1'.repeat(64), byte_count: 13, device: '1', inode: '2'};
+  let index = await openDeliveryAttemptIndex(path, {...options, create: true});
+  t.after(async () => {index.finishPhysicalPreparations([original]); index.close(); await rm(directory, {recursive: true});});
+  index.migratePhysicalObjects([]); index.migrate([]);
+  index.stagePhysicalObjects([original]); index.close();
+  // Explicit metadata fixture for an unsealed prior lifetime. The Store's
+  // physical census and directory ACK remain separate original inputs.
+  const marker = new DatabaseSync(path);
+  try { marker.exec('PRAGMA user_version=1'); } finally { marker.close(); }
+  index = await openDeliveryAttemptIndex(path, options);
+  assert.equal(index.physicalObjectRecoveryRequired(), true);
+  index.recoverPhysicalObjects([original]);
+  assert.deepEqual(index.pendingPhysicalObjects(), [original], 'a quota census is not semantic adoption');
+  index.beginPhysicalObjectLifetime();
+  assert.deepEqual(index.pendingPhysicalObjects(), [original]);
+  index.finishPhysicalPreparations([original]);
+  assert.deepEqual(index.pendingPhysicalObjects(), []);
+});
+
+for (const kind of ['stage', 'finish']) for (const afterCommit of [false, true]) {
+test(`durable lifetime preparation ${kind} retains ${afterCommit ? 'committed' : 'rolled-back'} Unknown original`, async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-semantic-native-unknown-'));
+  let index, armed = false, lost = false;
+  const original = {cid: 'sha256:' + '1'.repeat(64), byte_count: 13, device: '1', inode: '2'};
+  t.after(async () => {index?.finishPhysicalPreparations([original]); index?.close(); await rm(directory, {recursive: true});});
+  const exec = DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && !lost && sql === 'COMMIT') {
+      lost = true;
+      if (afterCommit) Reflect.apply(exec, this, [sql]);
+      throw Object.assign(new Error('original durable preparation reply lost'), {code: 'EIO'});
+    }
+    return Reflect.apply(exec, this, [sql]);
+  });
+  index = await openDeliveryAttemptIndex(join(directory, 'index.sqlite3'), {create: true, maxEntries: 2, maxWireBytes: 4096});
+  index.migratePhysicalObjects([]); index.migrate([]); index.beginPhysicalObjectLifetime();
+  if (kind === 'finish') index.stagePhysicalObjects([original], {durable: true});
+  armed = true;
+  assert.throws(() => kind === 'stage'
+    ? index.stagePhysicalObjects([original], {durable: true})
+    : index.finishPhysicalPreparations([original]), error => error.outcome === 'unknown');
+  assert.throws(() => index.pendingPhysicalObjects(), {code: 'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  assert.throws(() => index.finishPhysicalPreparations([{...original, inode: '3'}]), {code: 'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  index.finishPhysicalPreparations([original]);
+  assert.deepEqual(index.pendingPhysicalObjects(), []);
+  assert.equal(index.physicalObjectUsage().bytes, 0);
+});
+}
+
 test('empty schema initialization never replaces an existing coverage original', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-empty-index-initialization-'));
   let index;
@@ -406,6 +567,17 @@ function removePublicationReferenceSchema(database) {
 }
 
 function removeNativeIndexSchema(database) {
+  // Reconstruct the actual pre-fourteen preparation schema as well. Merely
+  // lowering coverage while retaining its newer column is not an old format.
+  database.exec(`ALTER TABLE physical_object_preparations RENAME TO fixture_new_preparations;
+CREATE TABLE physical_object_preparations (
+  cid TEXT NOT NULL, byte_count INTEGER NOT NULL CHECK(byte_count>=0),
+  device TEXT NOT NULL, inode TEXT NOT NULL,
+  PRIMARY KEY(cid,device,inode)
+) WITHOUT ROWID;
+INSERT INTO physical_object_preparations
+  SELECT cid,byte_count,device,inode FROM fixture_new_preparations;
+DROP TABLE fixture_new_preparations;`);
   database.exec('DROP TABLE native_publication_materials; DROP TABLE native_publication_indexes');
 }
 
@@ -1126,7 +1298,7 @@ test(`native reference coverage refuses adopted ${name} loss`, async t => {
   try {database.exec(`DROP ${type} ${name}`);} finally {database.close();}
   await assert.rejects(openDeliveryAttemptIndex(path, options), {code: 'DeliveryAttemptIndexUnavailable'});
   const after = new DatabaseSync(path, {readOnly: true});
-  try {assert.equal(after.prepare('SELECT version FROM coverage').get().version, 13);
+  try {assert.equal(after.prepare('SELECT version FROM coverage').get().version, 14);
     assert.equal(after.prepare('SELECT inventory_wire FROM native_publication_inventories').get().inventory_wire,
       referenceInventory('1', 'a', 'b').inventory_wire);}
   finally {after.close();}
@@ -1403,7 +1575,7 @@ test(`native Index schema adoption retains its ${afterCommit?'committed':'rolled
   assert(lost);
   const actual=new DatabaseSync(path,{readOnly:true});
   try{
-    assert.equal(actual.prepare('SELECT version FROM coverage').get().version,afterCommit?13:12);
+    assert.equal(actual.prepare('SELECT version FROM coverage').get().version,afterCommit?14:12);
     assert.equal(actual.prepare("SELECT count(*) AS n FROM sqlite_schema WHERE name IN ('native_publication_indexes','native_publication_materials')").get().n,afterCommit?2:0);
     assert.equal(actual.prepare('SELECT inventory_wire FROM native_publication_inventories').get().inventory_wire,legacy.inventory_wire);
   }finally{actual.close();}
