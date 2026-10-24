@@ -145,7 +145,7 @@ async function runStoreChild(source) {
   });
 }
 
-async function fixture(t, options = {}, control = contractControl) {
+async function fixture(t, options = {}, control = contractControl, physicalIO) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-publication-store-'));
   t.after(() => removeFixtureDirectory(directory));
   const configuration = {
@@ -158,7 +158,7 @@ async function fixture(t, options = {}, control = contractControl) {
     maxContractDepth: limits.maxDepth,
     ...options,
   };
-  const store = await openLocalPublicationStore(configuration, control);
+  const store = await openLocalPublicationStore(configuration, control, physicalIO);
   t.after(async () => { await store.close(); });
   return {
     directory,
@@ -10262,3 +10262,221 @@ test('physical holding retains capacity until unlink durability retry',
     assert.equal(store.status().storedBytes, 0);
     assert.equal(store.status().objectCount, 0);
   });
+
+for (const count of [2, 3]) {
+  test(`prepared adoption serializes ${count} identical-material seals without orphan custody`, async t => {
+    let physicalReady, blocked = false, physicalCount = 0, staging;
+    const ready = new Promise(resolve => { physicalReady = resolve; });
+    const {store, directory, configuration} = await fixture(t, {}, contractControl, {
+      async syncDirectory(path) {
+        const handle = await open(path, 'r');
+        try { await handle.sync(); } finally { await handle.close(); }
+        if (blocked && path === staging && ++physicalCount === count - 1) physicalReady();
+      },
+    });
+    staging = join(directory, 'staging');
+    const request = publicationRequest(resultDefinition(), digest(`custody-race-${count}`));
+    const invocationValue = invocation();
+    const attempt = publicationAttempt(request, `custody-race-${count}`);
+    const first = await prepareCommit(store, request, attempt, invocationValue);
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [first.binding.identity],
+    });
+    const custodyDirectory = join(directory, 'prepared-custody');
+    const names = await readdir(custodyDirectory);
+    assert.equal(names.length, 1);
+    const originalUnlink = fsPromises.unlink;
+    let enter, resume;
+    const entered = new Promise(resolve => { enter = resolve; });
+    const paused = new Promise(resolve => { resume = resolve; });
+    let consumed = false;
+    t.mock.method(fsPromises, 'unlink', async path => {
+      if (!consumed && String(path) === join(custodyDirectory, names[0])) {
+        consumed = true; blocked = true; enter(); await paused;
+      }
+      const result = await originalUnlink(path);
+      return result;
+    });
+    syncBuiltinESMExports();
+    t.after(() => {t.mock.restoreAll(); syncBuiltinESMExports();});
+    const committing = store.commitIndex(wire(entry), first.required, first.evidence);
+    await entered;
+    const payload = Buffer.from('fixture durable Result payload');
+    const seals = Array.from({length:count-1}, async () => {
+      const writer = store.createPreparedObjectWriter(payload.length);
+      await writer.append(payload);
+      return writer.seal(digest(payload));
+    });
+    try {
+      await ready;
+      // Allow physical seal continuations to attempt metadata attachment while
+      // adoption still owns its original snapshot. The fixed queue waits.
+      await new Promise(resolve => setImmediate(resolve));
+      await assert.rejects(store.close(),code('PublicationStoreCleanupPending'));
+      assert.equal(store.status().closed,false,'queued seal custody prevents premature close');
+    } finally { blocked = false; resume(); }
+    await committing;
+    const later = await Promise.all(seals);
+    for (const value of later) {
+      assert.equal(value.prepared.status().pending, true,
+        'earlier adoption cannot silently retire a later prepared owner');
+      await value.prepared.release();
+    }
+    assert.deepEqual(await readdir(custodyDirectory), []);
+    const bytes = (await store.verifyObject(digest(payload))).bytes;
+    assert.equal(bytes, payload.length, 'published material survives later cancellation');
+    await store.close();
+    const reopened = await openLocalPublicationStore(configuration, contractControl);
+    assert.equal((await reopened.verifyObject(digest(payload))).bytes, payload.length);
+    await reopened.close();
+  });
+}
+
+test('failed prepared custody retirement retains the original retry and later same-CID owner', async t => {
+  const {store, directory} = await fixture(t);
+  const request = publicationRequest(resultDefinition(), digest('custody-retirement-failure'));
+  const invocationValue = invocation();
+  const attempt = publicationAttempt(request, 'custody-retirement-failure');
+  const first = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [first.binding.identity],
+  });
+  const custodyDirectory = join(directory, 'prepared-custody');
+  const [name] = await readdir(custodyDirectory);
+  const originalUnlink = fsPromises.unlink;
+  let refuse = true;
+  t.mock.method(fsPromises, 'unlink', async path => {
+    if (refuse && String(path) === join(custodyDirectory, name)) {
+      throw Object.assign(new Error('OriginalCustodyRetirementUnavailable'), {code:'EIO'});
+    }
+    return originalUnlink(path);
+  });
+  syncBuiltinESMExports();
+  t.after(() => {t.mock.restoreAll(); syncBuiltinESMExports();});
+  let failure;
+  await assert.rejects(store.commitIndex(wire(entry), first.required, first.evidence), error => {
+    failure=error; return error.cleanupPending===true;
+  });
+  assert.equal(first.prepared.status().pending,true);
+  const payload=Buffer.from('fixture durable Result payload');
+  const writer=store.createPreparedObjectWriter(payload.length);
+  await writer.append(payload);
+  const later=await writer.seal(digest(payload));
+  assert.equal(later.prepared.status().pending,true);
+  await assert.rejects(store.close(),code('PublicationStoreCleanupPending'));
+  refuse=false;
+  await failure.cleanupHandle.retry();
+  assert.equal(failure.cleanupHandle.status().pending,false);
+  assert.equal(later.prepared.status().pending,false);
+  assert.deepEqual(await readdir(custodyDirectory),[]);
+  assert.equal((await store.verifyObject(digest(payload))).bytes,payload.length);
+  await store.close();
+});
+
+test('prepared release winning before commit custody acquisition refuses missing material before install', async t => {
+  let stageReady;
+  const staged = new Promise(resolve => {stageReady=resolve;});
+  const {store,directory}=await fixture(t);
+  const request=publicationRequest(resultDefinition(),digest('release-begin-race'));
+  const invocationValue=invocation();
+  const attempt=publicationAttempt(request,'release-begin-race');
+  const first=await prepareCommit(store,request,attempt,invocationValue);
+  const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[first.binding.identity]});
+  const payload=Buffer.from('fixture durable Result payload');
+  const target=join(directory,'objects',digest(payload).slice(7));
+  let sawRelease,resumeRelease,resumeInstall,block=true;
+  const releaseEntered=new Promise(r=>sawRelease=r),releaseWait=new Promise(r=>resumeRelease=r);
+  const installWait=new Promise(r=>resumeInstall=r);
+  const originalStat=fsPromises.lstat,originalLink=fsPromises.link;
+  t.mock.method(fsPromises,'lstat',async function(path,...args){
+    const value=await originalStat(path,...args);
+    if(block&&path===target){block=false;sawRelease();await releaseWait;}
+    return value;
+  });
+  t.mock.method(fsPromises,'link',async function(from,to){
+    if(String(to).startsWith(join(directory,'indexes')+sep))await installWait;
+    const linked=await originalLink(from,to);
+    if(String(to)===join(directory,'contracts',entry.public_index_entry_cid.slice(7)+'.json'))stageReady();
+    return linked;
+  });
+  syncBuiltinESMExports();
+  t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
+  const releasing=first.prepared.release();
+  await releaseEntered;
+  const committing=store.commitIndex(wire(entry),first.required,first.evidence);
+  committing.catch(()=>{});
+  await staged;
+  await new Promise(resolve=>setImmediate(resolve));
+  resumeRelease();
+  assert.equal(await releasing,true);
+  resumeInstall();
+  await assert.rejects(committing,code('PublicationObjectMissing'));
+  assert.equal(await store.confirmCommittedIndex({namespaceId:entry.namespace_id,
+    authorityScopeCid:entry.authority_scope_cid,runDefinitionCid:entry.run_definition_cid}),undefined);
+});
+
+test('commit custody acquired before prepared cancellation retains material through original install',async t=>{
+ const {store,directory}=await fixture(t);
+ const request=publicationRequest(resultDefinition(),digest('commit-before-cancel'));
+ const invocationValue=invocation(),attempt=publicationAttempt(request,'commit-before-cancel');
+ const first=await prepareCommit(store,request,attempt,invocationValue);
+ const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[first.binding.identity]});
+ let entered,resume;
+ const installing=new Promise(r=>entered=r),wait=new Promise(r=>resume=r);
+ const originalLink=fsPromises.link;
+ t.mock.method(fsPromises,'link',async(from,to)=>{
+  if(String(to).startsWith(join(directory,'indexes')+sep)){entered();await wait;}
+  return originalLink(from,to);
+ });
+ syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
+ const committing=store.commitIndex(wire(entry),first.required,first.evidence);
+ await installing;
+ assert.equal(await first.prepared.release(),false);
+ assert.equal(first.prepared.status().pending,true);
+ resume();assert.equal((await committing).committed,true);
+ assert.equal(first.prepared.status().pending,false);
+ assert.equal((await store.verifyObject(digest('fixture durable Result payload'))).bytes,30);
+});
+
+for (const privateAdoption of [false,true]) test(`adopted shared material is pinned before another Run index installs, privateAdoption=${privateAdoption}`, async t => {
+  const {store,directory}=await fixture(t);
+  const invoked=invocation();
+  const prepare=async label=>{
+    const request=publicationRequest(resultDefinition(),digest(label));
+    const attempt=publicationAttempt(request,label);
+    const prepared=await prepareCommit(store,request,attempt,invoked);
+    const entry=indexEntry(request,attempt,invoked,{durable_result_binding_cids:[prepared.binding.identity]});
+    return {request,prepared,entry};
+  };
+  const a=await prepare('shared-pin-a'), b=await prepare('shared-pin-b');
+  await store.commitIndex(wire(a.entry),a.prepared.required,a.prepared.evidence);
+  assert.equal(b.prepared.prepared.status().pending,false);
+  let entered,resume;
+  const installing=new Promise(r=>entered=r), wait=new Promise(r=>resume=r);
+  const originalLink=fsPromises.link;
+  t.mock.method(fsPromises,'link',async(from,to)=>{
+    if(String(to).startsWith(join(directory,'indexes')+sep)){entered();await wait;}
+    return originalLink(from,to);
+  });
+  syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
+  const committing=store.commitIndex(wire(b.entry),b.prepared.required,b.prepared.evidence);
+  await installing;
+  let holdingRetirement;
+  if (privateAdoption) {
+    const payload=await preparePhysical(store,Buffer.from('fixture durable Result payload'));
+    const holding=physicalHolding(digest('concurrent private adopter'),digest('concurrent private manifest'),
+      [{cid:payload.cid,byte_count:payload.bytes}], 'effect-source');
+    await store.commitPhysicalHolding(holding,[payload.prepared]);
+    holdingRetirement=()=>store.retirePhysicalHolding(holding.holding_cid);
+  }
+  const retired=await store.retireCommittedResult(indexKeyFor(a.request),a.request.inventory[0].result_definition_cid);
+  const privateRetired=await holdingRetirement?.();
+  try {
+    assert.equal(retired.cleanup.status().pending,true,'temporary commit pin retains last original');
+    assert.equal((await store.verifyObject(digest('fixture durable Result payload'))).bytes,30);
+  } finally {resume();await committing;await retired.cleanup.retry();await privateRetired?.cleanup.retry();}
+  const chunks=[];
+  await store.consumeCommittedResult(indexKeyFor(b.request),b.request.inventory[0].result_definition_cid,
+    ()=>true,chunk=>chunks.push(Buffer.from(chunk)));
+  assert.equal(Buffer.concat(chunks).toString(),'fixture durable Result payload');
+});
