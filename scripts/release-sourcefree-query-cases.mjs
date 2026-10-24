@@ -30,6 +30,7 @@ export const releaseSourcefreeFixturePaths = Object.freeze([
   'scripts/fixtures/release-sourcefree-query.mjs',
   'scripts/fixtures/release-sourcefree-io.mjs',
   'scripts/fixtures/in-unnest-literal-array-source-input.mjs',
+  'scripts/fixtures/in-unnest-source-input.mjs',
   'scripts/fixtures/sequence-source-input.mjs',
   'scripts/fixtures/public-query-input.mjs',
 ]);
@@ -38,7 +39,10 @@ export const releaseSourcefreeFixturePaths = Object.freeze([
 // identity. It neither evaluates source nor changes the development harness.
 export function selectReleaseSourcefreeQueryCases({
   successes = inUnnestLiteralArraySuccesses,
-  refusals = inUnnestLiteralArrayRefusals,
+  // The shared packed corpus also contains whole-ARRAY parameter cases.
+  // This existing release cohort retains only the literal-ARRAY family.
+  refusals = inUnnestLiteralArrayRefusals.filter(value =>
+    value.name.startsWith('in-unnest-literal-array-')),
 } = {}) {
   const selected = releaseSourcefreeSuccessNames.map(name => {
     const matches = successes.filter(value => value.name === name);

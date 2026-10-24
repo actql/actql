@@ -4,13 +4,16 @@ import childProcess from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {inUnnestLiteralArraySuccesses as successes, inUnnestLiteralArrayRefusals as refusals}
+import {inUnnestLiteralArraySuccesses as successes, inUnnestLiteralArrayRefusals as combinedRefusals}
   from './fixtures/in-unnest-literal-array-source-input.mjs';
 import {selectReleaseSourcefreeQueryCases, releaseSourcefreeSuccessNames, releaseSourcefreeRefusalNames,
   selectInstalledSourcefreeQuerySuite, releaseSourcefreeFixturePaths, sourcefreeSuiteRequiresReread}
   from './release-sourcefree-query-cases.mjs';
 import {sequenceSourceSuccesses, sequenceSourceRefusals} from './fixtures/sequence-source-input.mjs';
 import {guardReleaseSourcefreeIo} from './fixtures/release-sourcefree-io.mjs';
+
+const refusals = combinedRefusals.filter(value =>
+  value.name.startsWith('in-unnest-literal-array-'));
 
 test('closed installed suites retain the old default and the complete original Sequence cohort', () => {
   assert.deepEqual(selectInstalledSourcefreeQuerySuite(), selectReleaseSourcefreeQueryCases());
@@ -58,7 +61,10 @@ test('normal source-free delivery contains its full relative import closure', ()
   };
   const complete = closure(releaseSourcefreeFixturePaths);
   assert.deepEqual(complete.missing, []);
-  assert.equal(complete.seen.size, 16);
+  assert.equal(complete.seen.size, 17);
+  assert.deepEqual(closure(releaseSourcefreeFixturePaths.filter(path =>
+    !path.endsWith('/in-unnest-source-input.mjs'))).missing,
+  [resolve(root, 'scripts/fixtures/in-unnest-source-input.mjs')]);
   assert.deepEqual(closure(releaseSourcefreeFixturePaths.filter(path =>
     !path.endsWith("/release-public-aql-format-cases.mjs"))).missing,
   [resolve(root, "scripts/release-public-aql-format-cases.mjs")]);
@@ -88,6 +94,10 @@ test('release selection preserves four independent inputs and all six refusals',
     'in-unnest-literal-array-general-element', 'in-unnest-literal-array-array-field',
     'in-unnest-literal-array-conditional-array', 'in-unnest-literal-array-lazy-array-branch']);
   assert.equal(selected.refusals.length, 6);
+  for (const value of selected.refusals) {
+    assert.equal(value, combinedRefusals.find(item => item.name === value.name));
+  }
+  assert.equal(combinedRefusals.length, 13, 'the packed corpus keeps whole-ARRAY refusals');
   for (const value of selected.successes) {
     assert.equal(value, successes.find(item => item.name === value.name));
     assert.deepEqual(value.expected, value.name.endsWith('general-element') ? [{found: true}] : [{included: true}]);
@@ -110,7 +120,7 @@ test('duplicate and Source-bearing selected cases refuse', () => {
   }
 });
 test('missing, duplicate, reordered and extra refusal inventory refuse', () => {
-  for (const changed of [refusals.slice(1), [...refusals, refusals[0]], [...refusals].reverse(),
+  for (const changed of [combinedRefusals, refusals.slice(1), [...refusals, refusals[0]], [...refusals].reverse(),
     [...refusals, {name: 'unreviewed-refusal'}]]) {
     assert.throws(() => selectReleaseSourcefreeQueryCases({refusals: changed}));
   }
