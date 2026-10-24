@@ -49,7 +49,8 @@ test "unkeyed FULL joined-row scope keeps the common identity refusal" {
     @check.check_parsed(generated, check_environment(), None, check_limits()) {
     Rejected(error) =>
       assert_true(
-        @check.diagnostic_cause(error) is Closure(Joins(MissingStableIdentity(_))),
+        @check.diagnostic_cause(error)
+        is Closure(Joins(MissingStableIdentity(_))),
       )
     _ => fail("FULL must not invent a key for a Values producer")
   }
