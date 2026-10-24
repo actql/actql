@@ -81,7 +81,7 @@ test('page callbacks reuse the original prefix check across pure codec getters',
   // Count only hashes after the physical response returns to this driver;
   // the Credential Owner already hashed its original receipt before that.
   // Functional and mutation/refusal controls cover admission independently.
-  assert.ok(checks <= 21, `response prefix hashes exceed the callback-boundary budget: ${checks}`);
+  assert.equal(checks, 0, `unchanged original response checks must not rehash bodies: ${checks}`);
   assert.ok(context.journal.recover().every(record => record.outcome === 'succeeded'));
 });
 
