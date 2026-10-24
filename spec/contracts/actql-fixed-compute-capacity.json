@@ -9,7 +9,7 @@
     "fragment": {
       "path": "spec/contracts/actql-expressions.json",
       "pointer": "/schemas/fragment",
-      "cid": "sha256:2c4f84b31bf83d660d549b80b8dde8f0aa7ec01523650d9322a25cc39c83ddb5"
+      "cid": "sha256:be96b6072058cb165d5350a2575403a4fe35bafc229e669ca296aacc0ca79cdf"
     }
   },
   "scope": "one_owned_completed_ProducerRead_filter_then_select_no_fresh_source_read",

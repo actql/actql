@@ -9159,7 +9159,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
+                "anchor": "max_bytes > 2147483519"
               },
               {
                 "path": "docs/design/check-sdk.md",

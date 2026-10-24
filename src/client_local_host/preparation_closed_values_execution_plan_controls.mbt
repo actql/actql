@@ -23,9 +23,12 @@ fn closed_values_execution_plan_controls_layout() -> ClosedValuesExecutionPlanCo
   // Export+wire:                                                    2,2,7
   // LocalManagedMetadataLimits+schema limits:                        2,1,9
   // Scalar demand(original +four scalar dimensions), Some, added plan ref:2,3,5.
-  // Sum21,36,69. ResourcePolicy and exact contract bodies remain borrowed.
+  // Leaf node demand(original +two scalar dimensions), Some and two plan refs:
+  //                                                               2,4,3
+  // Retained demand-inventory Some (underlying schema owner borrowed):1,1,1
+  // Sum24,41,73. ResourcePolicy and exact contract bodies remain borrowed.
   let records : PreparationRepresentationUnits={
-    record_headers:21L,reference_slots:36L,scalar_words:69L,
+    record_headers:24L,reference_slots:41L,scalar_words:73L,
     owned_utf16_units:0L,owned_wire_bytes:0L}
   // GeneratedSequence21 fields:17 references/four inline absent selections;
   // contexts0,retained IDs1,13 empty ceiling arrays. Conservatively also own
@@ -84,10 +87,12 @@ fn closed_values_execution_plan_controls_layout() -> ClosedValuesExecutionPlanCo
     owned_utf16_units:0L,owned_wire_bytes:0L}
   // The five extra scalar outcomes conservatively cover two demand products,
   // its wire projection and IO/measurement maps; no duplicate body storage.
+  // The leaf inventory's intermediate Some adds (1,1,1), and its checked
+  // node-product Some adds (1,0,2); no additional body/row array is copied.
   // Inventory construction: up to15unit records, two sum arrays/backings,
   // output and Option/arithmetic carriers; no fixed nonrecursive VM frames.
   let controls : PreparationRepresentationUnits={
-    record_headers:28L,reference_slots:30L,scalar_words:90L,
+    record_headers:30L,reference_slots:31L,scalar_words:93L,
     owned_utf16_units:0L,owned_wire_bytes:0L}
   // Two old policy-record inventories cover original -> width-specialized ->
   // scalar-wire-specialized immutable copies. Shared schemas/rows are excluded.

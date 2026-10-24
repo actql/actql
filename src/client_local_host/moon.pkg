@@ -44,3 +44,12 @@ import {
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
 } for "wbtest"
+
+options(
+  targets: {
+    "preparation_publication_custody_wbtest.mbt": [ "js" ],
+    "preparation_publication_snapshot_wbtest.mbt": [ "js" ],
+    "preparation_publication_start_custody_wbtest.mbt": [ "js" ],
+    "preparation_publication_validation_custody_wbtest.mbt": [ "js" ],
+  },
+)

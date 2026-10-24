@@ -26,6 +26,7 @@ fn original_captured_prefix_fixture(
     @publication_host.ClientInferPlanGraph,
   )? = None,
 ) -> OriginalCapturedPrefixFixture raise {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let (prepared, compiled, definition, plan) = match checked {
     Some(value) => value
     None => original_prefix_execution_fixture(source=true)
@@ -52,7 +53,7 @@ fn original_captured_prefix_fixture(
     prepared,
     1,
     1,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
@@ -145,6 +146,7 @@ fn original_captured_prefix_start(
   task? : Int = 1,
   step? : Int = 1,
 ) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue] {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   start_client_original_captured_serialization_prefix(
     value.scope,
     value.compiled,
@@ -154,7 +156,7 @@ fn original_captured_prefix_start(
     task,
     step,
     value.capture,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
@@ -255,6 +257,7 @@ test "original captured Source executes the checked sorted prefix without reacqu
 
 ///|
 test "original captured prefix rejects foreign capture wrong coordinates and descriptor issuance before a new reservation" {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let value = original_captured_prefix_fixture()
   let foreign = original_captured_prefix_fixture()
   let other_ledger = original_captured_prefix_fixture(
@@ -279,7 +282,7 @@ test "original captured prefix rejects foreign capture wrong coordinates and des
       1,
       1,
       foreign.capture,
-      source_query_original_registry,
+      source_contracts,
       source_query_original_values,
       Some(source_query_original_fragment),
       None,
@@ -300,7 +303,7 @@ test "original captured prefix rejects foreign capture wrong coordinates and des
       1,
       1,
       other_ledger.capture,
-      source_query_original_registry,
+      source_contracts,
       source_query_original_values,
       Some(source_query_original_fragment),
       None,
@@ -329,6 +332,7 @@ test "original captured prefix rejects foreign capture wrong coordinates and des
 
 ///|
 test "original Row prefix guard rechecks custody after the verifier synchronously starts cleanup" {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let value = original_captured_prefix_fixture()
   let before = @resources.ledger_usage(value.ledger)
   let cleanup_result : Ref[Bool?] = Ref(None)
@@ -380,7 +384,7 @@ test "original Row prefix guard rechecks custody after the verifier synchronousl
       1,
       1,
       source,
-      source_query_original_registry,
+      source_contracts,
       source_query_original_values,
       Some(source_query_original_fragment),
       None,

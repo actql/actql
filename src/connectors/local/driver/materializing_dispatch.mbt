@@ -165,6 +165,10 @@ pub fn[C, E] start_local_dispatch(
           local_output_transfer(run, ticket, attempt, index, limits)
         }),
         execute: () => {
+          match @strategy.begin_task_execution_use(run, ticket) {
+            Err(issue) => return Err(Execution(Physical(issue)))
+            Ok(_) => ()
+          }
           match @local.execute_local_materializing_attempt(attempt) {
             Err(issue) =>
               Err(local_materializing_failure(run, ticket, attempt, issue))
@@ -175,6 +179,12 @@ pub fn[C, E] start_local_dispatch(
           }
         },
         advance: quantum => {
+          if quantum > 0 {
+            match @strategy.begin_task_execution_use(run, ticket) {
+              Err(issue) => return Err(Execution(Physical(issue)))
+              Ok(_) => ()
+            }
+          }
           match @local.advance_local_materializing_attempt(attempt, quantum) {
             Err(issue) =>
               Err(local_materializing_failure(run, ticket, attempt, issue))

@@ -27,6 +27,7 @@ fn client_local_schema_proof_inventory(
   max_work? : Int = client_local_schema_proof_work(),
   graph? : @strategy.CheckedDAG? = None,
   scalar_only? : Bool = true,
+  leaf_only? : Bool = false,
 ) -> ClientLocalSchemaProofInventory? {
   if sequences.is_empty() || max_work < 1 || sequences.length() > max_work { return None }
   if graph is Some(original) && sequences.length()!=@strategy.graph_task_count(original) { return None }
@@ -68,6 +69,7 @@ fn client_local_schema_proof_inventory(
       if remaining<1 || width>remaining-1 {return None}
       remaining-=width+1
       if scalar_only && client_local_scalar_schema_width(schema) is None {return None}
+      if leaf_only && !client_local_json_leaf_schema(schema) { return None }
       let name_bytes=@schema.field_reference_name_bytes(schema)
       if name_bytes<0 {return None}
       fields=Int::max(fields,width);names=Int::max(names,name_bytes)
@@ -94,6 +96,7 @@ fn client_local_schema_proof_inventory(
       if remaining<1 || width>remaining-1 {return None}
       remaining-=width+1
       if scalar_only && client_local_scalar_schema_width(schema) is None {return None}
+      if leaf_only && !client_local_json_leaf_schema(schema) { return None }
       let name_bytes=@schema.field_reference_name_bytes(schema)
       if name_bytes<0 {return None}
       fields=Int::max(fields,width);names=Int::max(names,name_bytes)
@@ -106,6 +109,7 @@ fn client_local_schema_proof_inventory(
         if remaining<1 || width>remaining-1 {return None}
         remaining-=width+1
         if scalar_only && client_local_scalar_schema_width(input_schema) is None {return None}
+        if leaf_only && !client_local_json_leaf_schema(input_schema) { return None }
         let name_bytes=@schema.field_reference_name_bytes(input_schema)
         if name_bytes<0 {return None}
         input_nodes+=width.to_int64()+1L;input_names+=name_bytes.to_int64()

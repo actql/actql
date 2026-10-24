@@ -1243,6 +1243,15 @@ pub fn[T] start_local_managed_dispatch(
               execution_finished.val = true
               return Err(Configuration(InputUnavailable))
             }
+            match @strategy.begin_task_execution_use(setup.run, execution) {
+              Err(issue) => return Err(Execution(Physical(issue)))
+              Ok(_) => ()
+            }
+            // The original current callback can synchronously cancel. Its
+            // return does not restore the prepared provider's live state.
+            if !live.val || disposed.val {
+              return Err(Configuration(InputUnavailable))
+            }
             let started = match
               @local.start_managed_provider_with_inputs_and_execution(
                 provider,

@@ -168,6 +168,7 @@ fn original_keyed_run_fixture(
   @publication_host.ClientKeyedAcquisition,
   @planning.QueryRequirement,
 ) raise {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let (declaration, environment) = original_keyed_declaration_environment(
     relation_versions~,
   )
@@ -273,7 +274,7 @@ fn original_keyed_run_fixture(
     prepared,
     0,
     direct,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,

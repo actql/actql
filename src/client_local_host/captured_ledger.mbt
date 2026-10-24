@@ -1,9 +1,13 @@
 ///|
+fn client_local_general_value_nodes() -> Int { 20000 }
+
+///|
 fn client_local_execution_limits(
   max_rows? : Int = 100,
   scalar_sequences? : Array[@execution.GeneratedSequence]? = None,
   scalar_inventory? : ClientLocalSchemaProofInventory? = None,
   scalar_demand? : ClientLocalScalarDemand? = None,
+  value_node_demand? : ClientLocalValueNodeDemand? = None,
 ) -> (
   @execution.ValueLimits,
   @execution.SequenceExecutionLimits,
@@ -12,7 +16,9 @@ fn client_local_execution_limits(
   // Preserve general text and execution envelopes. Only original checked
   // Number/Boolean schemas can reduce the scalar input/output node envelope;
   // the pre-admission quote and configured providers use this same policy.
-  let scalar_nodes = if scalar_demand is Some(demand) {
+  let scalar_nodes = if value_node_demand is Some(demand) {
+    Some(demand.nodes)
+  } else if scalar_demand is Some(demand) {
     Some(demand.value_nodes)
   } else if scalar_inventory is Some(inventory) {
     client_local_inventory_nodes(inventory,max_rows)
@@ -21,7 +27,7 @@ fn client_local_execution_limits(
     None => None
   }}
   let values : @execution.ValueLimits = {
-    max_nodes: scalar_nodes.unwrap_or(20000),
+    max_nodes: scalar_nodes.unwrap_or(client_local_general_value_nodes()),
     max_text_bytes: 500000,
     max_depth: 100,
     max_work: 20000000,

@@ -74,6 +74,12 @@ including a zero-byte operation. Returning unused allowance or confirming
 cleanup can decrease occupation; it cannot refund consumed or uncertain work.
 Byte-only preparation and read capacity do not establish a physical attempt.
 
+Task registration is likewise preparation. The installed driver consumes the
+same task's pending attempt immediately before its first possible physical
+use. Later bounded advances use that original debit; an empty result does not
+make the execution free. Repeated notifications after currentness reentry
+preserve the first immutable completion, including its unreclaimed scratch.
+
 Reservation and holding identities advance independently of reusable inventory
 slots. Removing an expired record clears its actual reference; a scalar slot
 index is neither a new identity nor another grant. A closed reservation remains
@@ -94,6 +100,21 @@ does not rewrite that earlier observation. All original bootstrap envelopes must
 fund reusable control backing, scalar indices, snapshots and overlapping read
 controls before use. Bounded slots alone establish neither those coefficients,
 physical backing, process RSS nor coverage of another backend.
+
+### Checked Local demand
+
+The installed Local preparation retains one checked sequence inventory for both
+its capacity quote and actual dispatch. A closed row bound is independent of
+the cell domain. Number, Boolean and Text cells have a separate JSON-leaf node
+proof; text byte admission, evaluator work/depth and schema metadata retain
+their own bounds. Numeric fixed-width wire proofs are not applied to Text.
+Nullable leaves need no extra value nodes, while nested/opaque domains retain
+the general node policy until their recursive bound is proved. Copied demand
+facts or another sequence inventory cannot replace the retained original.
+
+The plan's additional holders and temporary proof carriers are included in the
+existing preparation representation inventory. Neither a lower logical quote
+nor this control inventory establishes a heap, RSS or latency saving.
 
 The selected logical tariff prices record headers, references, scalar words,
 UTF-16 storage and wire bytes; it is not RSS or an allocator guarantee. Snapshot

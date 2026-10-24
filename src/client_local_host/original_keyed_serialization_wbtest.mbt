@@ -116,6 +116,7 @@ fn original_keyed_version_serialize(
   workspace : @execution.ExecutionCapacity,
   ledger : @resources.Ledger,
 ) -> Unit raise {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let before = @resources.ledger_usage(ledger)
   let suffix = start_client_original_keyed_serialization_suffix(
     scope,
@@ -127,7 +128,7 @@ fn original_keyed_version_serialize(
     keyed,
     0,
     7,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
@@ -151,7 +152,7 @@ fn original_keyed_version_serialize(
       keyed,
       0,
       7,
-      source_query_original_registry,
+      source_contracts,
       source_query_original_values,
       Some(source_query_original_fragment),
       None,

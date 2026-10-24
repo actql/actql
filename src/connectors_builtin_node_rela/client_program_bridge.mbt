@@ -53,6 +53,17 @@ fn client_generated_compilation_manifests(
 }
 
 ///|
+/// Prewarm only this module's existing immutable compiler metadata at installed
+/// Host initialization. Query preparation borrows this admitted original.
+#export_name("clientPrepareInstalledCompilationManifests")
+pub fn client_prepare_installed_compilation_manifests() -> Result[
+  @publication_host.ClientCompilationManifests,
+  @publication_host.ClientCompilationManifestIssue,
+] {
+  client_generated_compilation_manifests()
+}
+
+///|
 /// Internal JS bridge. The environment is an admitted machine-contract value,
 /// and its selected pure-operation profiles are supplied by the installed
 /// Host. None of these handles is a wire credential or execution authority.

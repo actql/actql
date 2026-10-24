@@ -6,7 +6,7 @@ fn single_source_free_capacity_prepared(
 ) -> @publication_host.PreparedClientProgram {
   let environment = @publication_host.admit_client_check_environment(
     source_query_original_environment,
-    "sha256:4ea01561b9ac9815baaf04a81cff8260c8a47c56f19828b5889cf45ec1436e78",
+    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
@@ -23,9 +23,10 @@ fn single_source_free_capacity_prepared(
 test "single source-free quote retains the existing admission ceiling without opening a Run" {
   let prepared = single_source_free_capacity_prepared()
   let assets = @publication_host.client_local_product_assets()
+  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
   let limits = single_source_free_local_ledger_limits(
     prepared,
-    assets.registry,
+    asset_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
@@ -41,12 +42,13 @@ test "single source-free quote retains the existing admission ceiling without op
 ///|
 test "single source-free quote refuses Source acquisition and foreign registry before supply" {
   let assets = @publication_host.client_local_product_assets()
+  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
   assert_true(
     single_source_free_local_ledger_limits(
       single_source_free_capacity_prepared(
         document=source_query_original_document,
       ),
-      assets.registry,
+      asset_contracts,
       assets.values,
       Some(assets.fragment),
       assets.ordered,
@@ -54,20 +56,17 @@ test "single source-free quote refuses Source acquisition and foreign registry b
     is None,
   )
   assert_true(
-    single_source_free_local_ledger_limits(
-      single_source_free_capacity_prepared(),
-      "{}",
-      assets.values,
-      Some(assets.fragment),
-      assets.ordered,
+    prepare_installed_sequence_contracts(
+      "{}", assets.values, Some(assets.fragment), assets.ordered,
     )
-    is None,
+    is Err(Unsupported),
   )
 }
 
 ///|
 test "the original public UNION graph is outside the single-task quote before any physical supply" {
   let assets = @publication_host.client_local_product_assets()
+  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
   guard @json.parse(assets.environment) is Object(fields) &&
     fields.get("evidence_bundle_cid") is Some(String(cid)) else {
     fail("ordinary original product Environment evidence missing")
@@ -103,7 +102,7 @@ test "the original public UNION graph is outside the single-task quote before an
   )
   let sequences = prepare_client_local_sequences(
     prepared,
-    assets.registry,
+    asset_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
@@ -112,7 +111,7 @@ test "the original public UNION graph is outside the single-task quote before an
   assert_true(
     single_source_free_local_ledger_limits(
       prepared,
-      assets.registry,
+      asset_contracts,
       assets.values,
       Some(assets.fragment),
       assets.ordered,
