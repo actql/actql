@@ -335,6 +335,46 @@ pub fn installed_managed_run_requirements(
 }
 
 ///|
+/// The installed Source supplies its typed capture envelope, not a row-source
+/// declaration for a different backend. Quote the same checked capture prefix
+/// and Local suffix used when that Run later borrows its original Ledger.
+pub fn installed_managed_capture_run_requirements(
+  prepared : @publication_host.PreparedClientProgram,
+  capacities : Array[ClientInstalledCaptureCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  installed_contracts : ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[Array[Int64], ClientInstalledManagedRunIssue] {
+  if !installed_managed_run_purpose_supported(prepared) {
+    return Err(Unsupported)
+  }
+  guard multi_captured_installed_limits_owned(
+      Pure(prepared),
+      capacities,
+      transport_bytes,
+      transport_execution_bytes,
+      installed_contracts,
+      values_body,
+      fragment_body,
+      ordered_body,
+    )
+    is Some(limits) else {
+    return Err(Unsupported)
+  }
+  Ok([
+    limits.planning_work.to_int64(),
+    limits.attempts.to_int64(),
+    limits.holdings.to_int64(),
+    limits.transfer_bytes,
+    limits.retained_bytes,
+    limits.execution_bytes,
+  ])
+}
+
+///|
 // The separate Mock entry quotes the same Source and Compute inventory. It
 // still requires its own Resource admission and early same-Run Model Scope.
 pub fn installed_mock_model_run_requirements(
@@ -784,8 +824,8 @@ fn prepare_installed_managed_run_ledger_owned(
   }
   if value.preparation is Some(PlannedEffectManaged(_, plan)) {
     return prepare_planned_installed_effect_ledger(
-      value, plan, capacities, transport_bytes, transport_execution_bytes,
-      installed_contracts, values_body, fragment_body, ordered_body,
+      value, plan, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
+      values_body, fragment_body, ordered_body,
     )
   }
   let required = if value.keyed is Some(keyed) {
@@ -844,8 +884,20 @@ fn prepare_installed_managed_run_ledger_owned(
     return Err(InsufficientCapacity)
   }
   for index in 0..<value.reads.length() {
-    if !capacities[index].original_input ||
-      capacities[index].provider is Some(_) {
+    if !capacities[index].original_input {
+      // Native/Broad DuckDB captures already borrow this same Ledger through
+      // their typed configuration. They are not RowAcquisition children and
+      // cannot manufacture that backend's original read token. This ordinary
+      // path admits only the existing opaque DuckDB capacity representation;
+      // a Row child or Effect parent cannot be substituted for it.
+      guard value.preparation is Some(PureManaged(_, _)) &&
+        capacities[index].provider is None &&
+        value.reads[index] is None else {
+        return Err(Unsupported)
+      }
+      continue
+    }
+    if capacities[index].provider is Some(_) {
       return Err(Unsupported)
     }
     guard value.reads[index] is Some(read) &&

@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
 import {installedHostShutdown} from './embedded-local-lifecycle.mjs';
+import {bindInstalledManagedSources} from './installed-managed-source.mjs';
 
 // Selected actual Host statements/methods with explicit original ports. These
 // counters prove consumer order/custody, not physical admission or a full Host.
@@ -227,7 +228,8 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
   const properties = preparation.init.arguments[0].properties;
   const names = ['prepareManagedCompute', 'requestPreparation', 'sourcePreparation',
     'bindSourceRequest', 'prepareManagedComputeRun', 'bindManagedComputeRunObservation',
-    'managedComputeUsageReader', 'isOriginalManagedComputePreparationRefusal'];
+    'managedComputeUsageReader', 'isOriginalManagedComputePreparationRefusal',
+    'bindManagedSources', 'managesInstalledSources', 'prepareManagedSourceRun'];
   const methods = names.map(name => {
     const property = properties.find(node => node.key.name === name); assert(property, name); return text(property);
   });
@@ -242,6 +244,8 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
     clientOperationError: code => Object.assign(new Error(code), {code}),
     retirePreparationReferences: retire, controlClose, originals, runtime,
     checked: value => value,
+    bindInstalledManagedSources,
+    originalSourceManagedHostRequest(held, value) {assert.strictEqual(held, originals); return value;},
     beforeChild, beforeChildClose, source,
   };
   return new Function(...Object.keys(ports), `
@@ -394,6 +398,33 @@ function managedRunPorts(overrides = {}) {
   };
   return {runtime, admission, value, log};
 }
+
+test('generic Source service begins once on the existing Host Run inventory and never coerces to source-free', async () => {
+  const p = managedRunPorts(), prepared = {}, request = {}, original = {}, log = [];
+  p.runtime.clientProgramInstalledManagedSourceFreeBegin = () => assert.fail('Source-empty coercion');
+  p.runtime.clientProgramInstalledManagedRunBegin = (admission, value, identity) => {
+    assert.strictEqual(admission, p.admission); assert.strictEqual(value, prepared);
+    assert.strictEqual(identity, request); log.push('source-begin'); return p.value;
+  };
+  let f;
+  const manager = {prepareRun(value) {
+    assert.strictEqual(value, prepared);
+    assert.strictEqual(f.originals.installation.computeRuns, f.record.computeRuns);
+    assert.strictEqual(f.record.computeRuns.get(prepared).sourceProfile, profile);
+    log.push('same-manager'); return original;
+  }, close: () => ({pending: false})};
+  f = lifecycle({runtime: p.runtime, factory: async () => manager});
+  const profile = f.preparation.bindManagedSources(p.runtime, {managedCaptureCapacity() {},
+    async prepare() {return {};}, ledgerCapacity() {return {};}});
+  await f.preparation.prepareManagedCompute();
+  assert.strictEqual(f.preparation.prepareManagedSourceRun(p.runtime, prepared, request, profile), p.value);
+  assert.strictEqual(f.preparation.prepareManagedSourceRun(p.runtime, prepared, request, profile), p.value);
+  assert.deepEqual(log, ['same-manager', 'source-begin']);
+  assert.throws(() => f.preparation.prepareManagedSourceRun(p.runtime, prepared, request, {...profile}),
+    {code: 'ForeignInstalledSourcePreparation'});
+  assert.throws(() => f.preparation.prepareManagedComputeRun(p.runtime, prepared, request),
+    {code: 'ForeignInstalledComputeRun'});
+});
 
 test('actual requirements and begin share the retained typed original before Resource admission', async () => {
   const p = managedRunPorts(), original = {}, sequences = {}, prepared = {}, request = {};

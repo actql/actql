@@ -79,6 +79,7 @@ import {installPreparedProjectMockEffects, observeInstalledMockEffectResources}
 import {installedRuntimeBundleCid} from './source-profile-json.mjs';
 import {initializeOrdinaryMockAccount} from './ordinary-mock-account.mjs';
 import {ordinaryHostJournalInstallation} from './ordinary-host-journal.mjs';
+import {bindInstalledManagedSources} from './installed-managed-source.mjs';
 import {prepareSourceManagedInstallation, assertSourceManagedInstallationCurrent,
   assertSourceManagedPreparationCurrent, prepareManagedComputeInstallation,
   assertManagedComputeInstallationCurrent, assertManagedComputePreparationCurrent,
@@ -510,7 +511,43 @@ export function readManagedComputeRunRequirements(originals, checkedPrepared) {
   const contracts = installedManagedRunContracts(originals);
   const run = originals.installation.computeRuns?.get(checkedPrepared);
   let limits;
-  if (run !== undefined) {
+  if (run?.sourceProfile !== undefined) {
+    if (run.runtime !== moon || run.prepared !== checkedPrepared || run.closed ||
+        run.sourceProfile !== originals.installation.managedSourceProfile ||
+        typeof moon.clientProgramInstalledManagedCaptureRunRequirements !== 'function') {
+      throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+    }
+    if (run.sourceCapacities === undefined) {
+      const count = moon.clientProgramAcquisitionCount(checkedPrepared);
+      if (!Number.isSafeInteger(count) || count < 1) {
+        throw clientOperationError('InstalledSourcePreparationMismatch');
+      }
+      const inventory = [];
+      const installed = prepareInstalledSequenceContractOriginal(originals);
+      for (let stage = 0; stage < count; stage++) {
+        const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
+          checkedPrepared, stage, 0, installed.admission,
+          contracts.values, contracts.expression, contracts.ordered));
+        const adapter = installedSourceFor(run.sourceProfile,
+          moon.clientProgramQueryRequirementSourceRef(requirement));
+        const selected = adapter.managedCaptureCapacity(requirement);
+        if (selected?.capacity === undefined || typeof selected.transferBytes !== 'bigint' ||
+            typeof selected.executionBytes !== 'bigint' ||
+            selected.transferBytes < 0n || selected.executionBytes < 0n) {
+          throw clientOperationError('InstalledSourceCapacityUnavailable');
+        }
+        inventory.push(Object.freeze({adapter, requirement, capacity: selected.capacity,
+          transferBytes: selected.transferBytes, executionBytes: selected.executionBytes}));
+      }
+      run.sourceCapacities = Object.freeze(inventory);
+    }
+    limits = checked(moon.clientProgramInstalledManagedCaptureRunRequirements(
+      checkedPrepared, run.sourceCapacities.map(value => value.capacity),
+      run.sourceCapacities.map(value => value.transferBytes),
+      run.sourceCapacities.map(value => value.executionBytes),
+      prepareInstalledSequenceContractOriginal(originals).admission,
+      contracts.values, contracts.expression, contracts.ordered));
+  } else if (run !== undefined) {
     if (run.runtime !== moon || run.prepared !== checkedPrepared || run.closed ||
         typeof moon.clientProgramPrepareInstalledManagedSourceFreeWithContracts !== 'function' ||
         typeof moon.clientProgramInstalledManagedRunIssueIsUnsupported !== 'function' ||
@@ -1325,6 +1362,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       sourceProfile = await loadInstalledSources(selectedSourcePaths,
         {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
           resolveSecret: resolveSourceSecret, connectorTable});
+      if (preparation !== undefined) sourceProfile = preparation.bindManagedSources(moon, sourceProfile);
     }
     if (!mockSourceInstallation) {
       installedEffect = await loadInstalledEffects(selectedEffectPaths, {root, principalId, moon,
@@ -1903,12 +1941,13 @@ async function openInstalledHost(originalInstallation, preparation) {
       control.admitStoredClientInferRunOriginal(original, definition, request, evidence,
         [false, true, true, true, true, calendarArtifact !== undefined, false], localContractLimits),
     allowEffects: effectInstallation !== undefined});
-  // Only the source-free, model-free pure route has complete dispatch custody.
-  // Other execution kinds retain their existing preparation ownership.
+  // The same complete dispatch retirement predicate covers installed ordinary
+  // Sources using this Host's managed parent. Other purposes keep their owner.
   const localPreparationCustody = installLocalPreparationRegistry(prepared => {
     if (preparation?.canRetireManagedPreparation?.() !== true) return false;
     if (prepareSubmit.kindOf(prepared) !== 'effect_free' ||
-        moon.clientProgramAcquisitionCount(prepared) !== 0 ||
+        moon.clientProgramAcquisitionCount(prepared) !== 0 &&
+          preparation.managesInstalledSources?.() !== true ||
         moon.clientProgramSerializationOccurrences(prepared).length !== 0) return false;
     const inventory = moon.clientProgramComposedInferOccurrences(prepared);
     return runtimeIsOk(inventory) && runtimeField(inventory, 0).length === 0;
@@ -3512,6 +3551,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       // The actual same Host's early admission is only being claimed here,
       // not issued after compilation or reconstructed from graph limits.
       sourceProfile.prepareManagedRun(submission.preparedProgram, requested);
+    } else if (acquisitionCount > 0 && preparation !== undefined) {
+      preparation.prepareManagedSourceRun(moon, submission.preparedProgram, requested, sourceProfile);
     }
     const managedRun = preparation !== undefined && acquisitionCount === 0 &&
       !inferSelections.has(submission.preparedProgram) &&
@@ -3959,6 +4000,8 @@ async function openInstalledHost(originalInstallation, preparation) {
           sourceProfile.prepareManagedRun(submission.preparedProgram, requested);
         } else if (acquisitionCount === 0) {
           preparation.prepareManagedComputeRun(moon, submission.preparedProgram, requested);
+        } else if (typeof preparation.prepareManagedSourceRun === 'function') {
+          preparation.prepareManagedSourceRun(moon, submission.preparedProgram, requested, sourceProfile);
         } else throw clientOperationError('NodeManagedRunAdmissionUnavailable');
       } catch (error) {
         admissionFailures.set(submission, Object.freeze({error, requested,
@@ -5399,7 +5442,35 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       assertManagedComputeInstallationCurrent(manager, originals);
       return manager.borrowPreparation?.(prepared, originalSourceManagedHostRequest(originals, request));
     },
-    prepareManagedComputeRun(runtime, prepared, request) {
+    bindManagedSources(runtime, profile) {
+      if (runtime !== moon || record.managedSourceProfile !== undefined) {
+        throw clientOperationError('ForeignInstalledSourcePreparation');
+      }
+      const sources = profile?.sources ?? (profile === undefined ? [] : [profile]);
+      if (sources.length === 0 || typeof profile.prepareManagedRun === 'function' ||
+          !sources.every(source => typeof source.managedCaptureCapacity === 'function')) return profile;
+      const selected = bindInstalledManagedSources(profile, prepared => {
+        const run = record.computeRuns?.get(prepared);
+        if (run === undefined || run.closed || run.runtime !== runtime ||
+            run.prepared !== prepared || run.sourceProfile !== selected) {
+          throw clientOperationError('ForeignInstalledSourcePreparation');
+        }
+        if (run.failure !== undefined) throw run.failure;
+        if (run.value === undefined) throw clientOperationError('NodeManagedRunAdmissionUnavailable');
+        checked(Reflect.apply(run.check, runtime, [run.value, prepared, run.request]));
+        return run.value;
+      });
+      record.managedSourceProfile = originalInstallation.managedSourceProfile = selected;
+      return selected;
+    },
+    managesInstalledSources() {return record.managedSourceProfile !== undefined;},
+    prepareManagedSourceRun(runtime, prepared, request, sourceProfile) {
+      if (sourceProfile === undefined || sourceProfile !== record.managedSourceProfile) {
+        throw clientOperationError('ForeignInstalledSourcePreparation');
+      }
+      return preparation.prepareManagedComputeRun(runtime, prepared, request, sourceProfile);
+    },
+    prepareManagedComputeRun(runtime, prepared, request, sourceProfile) {
       const manager = computeManaged ?? sourceManaged;
       if (runtime !== moon || manager === undefined) {
         throw clientOperationError('ForeignInstalledComputePreparation');
@@ -5417,13 +5488,14 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       let run = runs.get(prepared);
       if (run !== undefined) {
         if (run.failure !== undefined) throw run.failure;
-        if (run.closed || run.runtime !== runtime || run.prepared !== prepared) {
+        if (run.closed || run.runtime !== runtime || run.prepared !== prepared ||
+            run.sourceProfile !== sourceProfile) {
           throw clientOperationError('ForeignInstalledComputeRun');
         }
         checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
         return run.value;
       }
-      run = {runtime, prepared, request, manager, original: undefined, admission: undefined,
+      run = {runtime, prepared, request, manager, sourceProfile, original: undefined, admission: undefined,
         value: undefined, failure: undefined, closed: false};
       if (liveRuns.size === 4096) throw clientOperationError('InstalledComputeRunLimit');
       runs.set(prepared, run);
@@ -5435,12 +5507,14 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         run.cleanup = runtime.clientProgramNodeManagedRunCleanup;
         run.check = runtime.clientProgramInstalledManagedRunCheck;
         run.prepare = runtime.clientProgramNodeManagedRunPrepare;
-        run.begin = runtime.clientProgramInstalledManagedSourceFreeBegin;
+        run.begin = sourceProfile === undefined ? runtime.clientProgramInstalledManagedSourceFreeBegin
+          : runtime.clientProgramInstalledManagedRunBegin;
         if (![run.retire, run.cleanup, run.check, run.prepare, run.begin].every(value => typeof value === 'function')) {
           throw clientOperationError('NodeManagedRunRuntimeUnavailable');
         }
         const originalRequest = originalSourceManagedHostRequest(originals, prepared);
-        const funded = manager.adoptPreparation?.(prepared, originalRequest, request);
+        const funded = sourceProfile === undefined
+          ? manager.adoptPreparation?.(prepared, originalRequest, request) : undefined;
         if (funded !== undefined) {
           run.original = funded.original;run.value = funded.value;run.preparationFunded = true;
         } else {

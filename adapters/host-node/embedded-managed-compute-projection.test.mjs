@@ -308,3 +308,39 @@ test('Unsupported after Resource or a retained failure never issues a new pure r
     assert.equal(f.run.preAdmissionRefusal, undefined);
   }
 });
+
+test('installed Source demand retains actual checked occurrence capacities before the same Resource admission', () => {
+  const f = fixture(), requirements = [{}, {}], capacities = [{}, {}], seen = [];
+  f.moon.clientPrepareInstalledCompilationManifests = () => {};
+  const adapters = capacities.map((capacity, index) => ({managedCaptureCapacity(requirement) {
+    assert.strictEqual(requirement, requirements[index]); seen.push(index);
+    return {capacity, transferBytes: BigInt(index + 5), executionBytes: BigInt(index + 9)};
+  }}));
+  const profile = {sources: adapters};
+  const run = {runtime: f.moon, prepared: f.prepared, request: f.request, sourceProfile: profile};
+  Object.assign(f.originals.installation, {managedSourceProfile: profile, computeRuns: new WeakMap([[f.prepared, run]])});
+  f.moon.clientProgramAcquisitionCount = value => {assert.strictEqual(value, f.prepared); return 2;};
+  f.moon.clientProgramPrepareLocalQueryRequirement = (value, stage, input, contracts) => {
+    assert.strictEqual(value, f.prepared); assert.equal(input, 0); assert.strictEqual(contracts, f.contractAdmission);
+    return requirements[stage];
+  };
+  f.moon.clientProgramQueryRequirementSourceRef = value => 'source:' + requirements.indexOf(value);
+  f.ports.installedSourceFor = (selected, ref) => {
+    assert.strictEqual(selected, profile); return adapters[Number(ref.slice(7))];
+  };
+  let quotes = 0;
+  f.moon.clientProgramInstalledManagedCaptureRunRequirements = (value, captures, transfer, workspace, contracts) => {
+    assert.strictEqual(value, f.prepared); assert.deepEqual(captures, capacities);
+    assert.deepEqual(transfer, [5n, 6n]); assert.deepEqual(workspace, [9n, 10n]);
+    assert.strictEqual(contracts, f.contractAdmission); quotes++; return f.limits;
+  };
+  const read = f.requirements();
+  for (let index = 0; index < 2; index++) assert.equal(read(f.originals, f.prepared).executionBytes, 64n);
+  assert.deepEqual(seen, [0, 1], 'Each checked occurrence retains its original Source envelope');
+  assert.equal(quotes, 2, 'Limits projection is not a full-work recurrence counter');
+  assert(Object.isFrozen(run.sourceCapacities));
+  assert.strictEqual(run.sourceCapacities[0].adapter, adapters[0]);
+  run.sourceProfile = {...profile};
+  assert.throws(() => read(f.originals, f.prepared), {code: 'NodeManagedRunRuntimeUnavailable'});
+  assert.deepEqual(seen, [0, 1]);
+});

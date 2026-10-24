@@ -4842,7 +4842,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "f0d471300a56de22549c6697def852b97f6f0d954bd3829727b1da14dc1f82c0",
+      "sha256": "603c7a41a01941f14fb892b20685c4dbf6192581158ad04ac4995b70ce7c5543",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -4992,6 +4992,28 @@
           "parameters": [
             "prepared",
             "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:bindManagedSources/init:bindManagedSources",
+          "parameters": [
+            "runtime",
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:bindManagedSources/init:bindManagedSources/init:bindManagedSources",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:bindManagedSources/init:bindManagedSources/selected/selected",
+          "parameters": [
+            "prepared"
           ],
           "async": false
         },
@@ -5232,6 +5254,11 @@
           "async": false
         },
         {
+          "name": "connectEmbeddedLocal/preparation/init:managesInstalledSources/init:managesInstalledSources",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "connectEmbeddedLocal/preparation/init:modelPublicationCapacity/init:modelPublicationCapacity",
           "parameters": [
             "prepared"
@@ -5279,7 +5306,8 @@
           "parameters": [
             "runtime",
             "prepared",
-            "request"
+            "request",
+            "sourceProfile"
           ],
           "async": false
         },
@@ -5287,6 +5315,16 @@
           "name": "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedSourceRun/init:prepareManagedSourceRun",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "request",
+            "sourceProfile"
           ],
           "async": false
         },
@@ -7662,6 +7700,27 @@
           "async": false
         },
         {
+          "name": "readManagedComputeRunRequirements/readManagedComputeRunRequirements#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readManagedComputeRunRequirements/readManagedComputeRunRequirements#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readManagedComputeRunRequirements/readManagedComputeRunRequirements#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "readSourceManagedEffectRunRequirements",
           "parameters": [
             "originals",
@@ -8753,7 +8812,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -9166,7 +9225,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -9721,7 +9780,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "prepareManagedComputeRun(runtime, prepared, request) {"
+                "anchor": "prepareManagedComputeRun(runtime, prepared, request, sourceProfile) {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -11842,6 +11901,81 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:bindManagedSources/init:bindManagedSources",
+            "connectEmbeddedLocal/preparation/init:bindManagedSources/init:bindManagedSources/init:bindManagedSources",
+            "connectEmbeddedLocal/preparation/init:bindManagedSources/init:bindManagedSources/selected/selected",
+            "connectEmbeddedLocal/preparation/init:managesInstalledSources/init:managesInstalledSources",
+            "connectEmbeddedLocal/preparation/init:prepareManagedSourceRun/init:prepareManagedSourceRun",
+            "readManagedComputeRunRequirements/readManagedComputeRunRequirements#3",
+            "readManagedComputeRunRequirements/readManagedComputeRunRequirements#4",
+            "readManagedComputeRunRequirements/readManagedComputeRunRequirements#5"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "An ordinary installed Source uses the existing Host Source/Compute manager and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "opaque capture capacity for that actual QueryRequirement plus its existing"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Each real prepared Source is privately associated with its original checked"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "The existing dispatch retirement predicate first settles actual Source/Compute"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Program and parent after the preparation await and a second current fence."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Copied, foreign and cancelled preparations cannot supply that association."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "children and unresolved cleanup. Only then may its existing preparation holder"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Actual selected capacities must fit that original Ledger before dispatch; a"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Source-empty Program. Unsupported installations keep their existing refusal."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Plural installations forward the same parent through every selected capacity;"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -11909,6 +12043,7 @@
         "./installed-host-cleanup.mjs",
         "./installed-host-policy.mjs",
         "./installed-infer-run.mjs",
+        "./installed-managed-source.mjs",
         "./installed-mock-row-effect.mjs",
         "./installed-model-continuation.mjs",
         "./installed-model-originals.mjs",
@@ -11957,7 +12092,7 @@
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A \u2014 existing Host preparation input boundary",
+      "owner": "A — existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -13508,7 +13643,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -13614,7 +13749,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }

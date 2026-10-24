@@ -49952,7 +49952,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2ed12f80a8732b03e7fc2d899f20adadac50d90664f421654a7bbe70bc0f5bc7",
+      "sha256": "3cb2146c6ae18fa93633a069908d6da4a698c057345c7a609890679be5d3a1e5",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -49987,6 +49987,13 @@
             "principalId"
           ],
           "async": true
+        },
+        {
+          "name": "duckdbAdapter/capacityContracts/capacityContracts",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         },
         {
           "name": "duckdbAdapter/catalogIds/catalogIds",
@@ -50054,6 +50061,13 @@
           "name": "duckdbAdapter/init:ledgerCapacity/init:ledgerCapacity",
           "parameters": [
             "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "duckdbAdapter/init:managedCaptureCapacity/init:managedCaptureCapacity",
+          "parameters": [
+            "requirement"
           ],
           "async": false
         },
@@ -50730,12 +50744,83 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "duckdbAdapter/capacityContracts/capacityContracts",
+            "duckdbAdapter/init:managedCaptureCapacity/init:managedCaptureCapacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "An ordinary installed Source uses the existing Host Source/Compute manager and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "opaque capture capacity for that actual QueryRequirement plus its existing"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Each real prepared Source is privately associated with its original checked"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "The existing dispatch retirement predicate first settles actual Source/Compute"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Program and parent after the preparation await and a second current fence."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Copied, foreign and cancelled preparations cannot supply that association."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "children and unresolved cleanup. Only then may its existing preparation holder"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Actual selected capacities must fit that original Ledger before dispatch; a"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Source-empty Program. Unsupported installations keep their existing refusal."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Plural installations forward the same parent through every selected capacity;"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../connectors-builtin/installations.generated.mjs",
         "../connectors/duckdb/node/native-runtime.mjs",
+        "../connectors/duckdb/node/physical-capacity.mjs",
+        "../host-common/runtime-result.mjs",
         "./captured-duckdb-source.mjs",
         "./duckdb-physical-target.mjs",
         "./installed-check-environment.mjs",
@@ -50747,6 +50832,7 @@
         "./source-alias-publication.mjs",
         "./source-profile-json.mjs",
         "node:crypto",
+        "node:fs/promises",
         "node:path"
       ],
       "compilerFields": [],
@@ -81992,6 +82078,167 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/host-node/installed-managed-source.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "fd5f873f42d1dc25d452112754b9df77c9fb9686f95d9841a9b55511d1d22dcc",
+      "role": "physical-io",
+      "owner": "Existing Host Source/Compute Run and installed Source acquisition Owners",
+      "exports": [
+        "bindInstalledManagedSources"
+      ],
+      "operations": [
+        {
+          "name": "bindInstalledManagedSources",
+          "parameters": [
+            "profile",
+            "runFor"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledManagedSources/bindInstalledManagedSources",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledManagedSources/bindInstalledManagedSources#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledManagedSources/sources/sources",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledManagedSources/sources/sources/init:ledgerCapacity/init:ledgerCapacity",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledManagedSources/sources/sources/init:managedCaptureCapacity/init:managedCaptureCapacity",
+          "parameters": [
+            "requirement"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledManagedSources/sources/sources/init:prepare/init:prepare",
+          "parameters": [
+            "facts"
+          ],
+          "async": true
+        },
+        {
+          "name": "bindInstalledManagedSources/sources/sources/sources",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledManagedSources/sources/sources/sources#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "exports": [
+            "bindInstalledManagedSources"
+          ],
+          "operations": [
+            "<module>",
+            "bindInstalledManagedSources",
+            "bindInstalledManagedSources/bindInstalledManagedSources",
+            "bindInstalledManagedSources/bindInstalledManagedSources#2",
+            "bindInstalledManagedSources/sources/sources",
+            "bindInstalledManagedSources/sources/sources/init:ledgerCapacity/init:ledgerCapacity",
+            "bindInstalledManagedSources/sources/sources/init:managedCaptureCapacity/init:managedCaptureCapacity",
+            "bindInstalledManagedSources/sources/sources/init:prepare/init:prepare",
+            "bindInstalledManagedSources/sources/sources/sources",
+            "bindInstalledManagedSources/sources/sources/sources#2"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "An ordinary installed Source uses the existing Host Source/Compute manager and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "opaque capture capacity for that actual QueryRequirement plus its existing"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Each real prepared Source is privately associated with its original checked"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "The existing dispatch retirement predicate first settles actual Source/Compute"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Program and parent after the preparation await and a second current fence."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Copied, foreign and cancelled preparations cannot supply that association."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "children and unresolved cleanup. Only then may its existing preparation holder"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Actual selected capacities must fit that original Ledger before dispatch; a"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Source-empty Program. Unsupported installations keep their existing refusal."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Plural installations forward the same parent through every selected capacity;"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Source contract references only; component ports are not ordinary runtime, backing, permission or cleanup ACK evidence."
     }
   ],
   "generated": [],

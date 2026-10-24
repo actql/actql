@@ -270,3 +270,36 @@ Equal saved wires cannot substitute newly admitted tokens for that live plan.
 A cold restoration chooses its own genuine restored originals before preparing
 a new plan; it cannot revive a previous process's plan. These computation facts
 do not discharge current Account, physical claim, CAS or cleanup obligations.
+
+## Ordinary installed Source demand
+
+An ordinary installed Source uses the existing Host Source/Compute manager and
+per-Prepared Run inventory. Its checked capture prefix selects each installation
+in occurrence order, including repeated inputs. The installation supplies an
+opaque capture capacity for that actual QueryRequirement plus its existing
+physical transport bounds. These are demand DATA, not a Source read grant.
+The shared captured-limits calculation includes the same checked Local suffix;
+it does not substitute row-source declarations for another backend or invent a
+Source-empty Program. Unsupported installations keep their existing refusal.
+
+DuckDB quotes its existing pending Native/Broad envelope before read selection.
+The original checked Program/request and fixed Host manager admit one parent.
+Actual selected capacities must fit that original Ledger before dispatch; a
+scalar constructor cannot replace a missing, foreign or retired parent.
+RowSource still requires its exact original managed read/acquisition binding.
+The ordinary DuckDB capacity does not manufacture that backend's read token,
+and the separate Effect plan keeps its own stronger original-plan checks.
+
+The generic Source view captures original adapter methods and receivers once.
+Each real prepared Source is privately associated with its original checked
+Program and parent after the preparation await and a second current fence.
+Copied, foreign and cancelled preparations cannot supply that association.
+Plural installations forward the same parent through every selected capacity;
+different Source occurrences are not deduplicated into one physical read.
+
+The existing dispatch retirement predicate first settles actual Source/Compute
+children and unresolved cleanup. Only then may its existing preparation holder
+retire the managed parent. Source-close status, current permission, consumed
+attempts, durable publication and physical FD acknowledgement remain separate.
+Installation close cuts the same private inventory references after its actual
+cleanup. Weak associations are not persistent grants or new cleanup owners.

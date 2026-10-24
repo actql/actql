@@ -272,6 +272,24 @@ fn combine_installed_mock_model_run_requirements(
 }
 
 ///|
+#export_name("clientProgramInstalledManagedCaptureRunRequirements")
+pub fn client_program_installed_managed_capture_run_requirements(
+  prepared : @publication_host.PreparedClientProgram,
+  capacities : Array[@client_local_host.ClientInstalledCaptureCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[Array[Int64], @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.installed_managed_capture_run_requirements(
+    prepared, capacities, transport_bytes, transport_execution_bytes,
+    installed_contracts, values_body, fragment_body, ordered_body,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledManagedRunPrepareLedger")
 pub fn client_program_installed_managed_run_prepare_ledger(
   value : @client_local_host.ClientInstalledManagedRun,
