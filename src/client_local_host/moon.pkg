@@ -1,6 +1,8 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/value_contract" @contract,
   "actql/actql/connectors_builtin" @builtin,
   "actql/actql/physical_host" @host_driver,
   "actql/actql/physical_strategy" @strategy,

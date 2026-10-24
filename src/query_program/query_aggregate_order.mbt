@@ -183,6 +183,7 @@ fn aggregate_order_total_conditional(expression : @query.Expression) -> Bool {
       | ParameterReference(_) => true
       Parenthesized(child) | Property(child, _) => total[child]
       ArrayConstructor(items, _) => items.all(child => total[child])
+      StructConstructor(fields) => fields.all(field => total[field.1])
       Unary("+" | "-" | "NOT", child) => total[child]
       Binary(
         "="

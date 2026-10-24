@@ -1381,7 +1381,9 @@ async function openInstalledHost(originalInstallation, preparation) {
     // These declarations admit checking for the installed family providers.
     // The exact task offer and execution obligations still select capability.
     environment = moon.clientProgramCheckEnvironmentWithGraphProfile(
-      environmentWire, evidenceCid, false, true, true, true, true,
+      environmentWire, evidenceCid,
+      JSON.parse(environmentWire).host_policy_profile?.text_time_evaluation !== undefined,
+      true, true, true, true,
       calendarArtifact !== undefined, false, numericProfileCid, contentCid(graphLaw));
     if (environment !== undefined) {
       environment = admitInstalledCalendar(moon, environment, calendarArtifact);

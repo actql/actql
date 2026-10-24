@@ -508,6 +508,28 @@ interfaces, schema/pins, fixtures, and the tracked Run Host service wrappers
 remain reviewed source artifacts. Regenerate wrapper changes explicitly;
 runtime preparation checks them but does not silently update them.
 
+### Source-free Local scalar capacity
+
+Pure source-free Local preparation can use a smaller scalar value-node envelope
+when every original checked input and intermediate relation schema consists of
+Number or Boolean fields (including nullable fields). The bound is the prepared
+row ceiling times the larger cumulative input or output row-node envelope.
+Each row container counts separately from its scalar fields; input occurrences
+include every original prepared node port (also Step targets and duplicate
+ports), and output occurrences include every original node plus possible
+external producer projections. This conservatively covers shared multi-step
+sequence budgets rather than assuming one kernel per task. It is
+never larger than the general 20,000-node envelope. Missing schemas, nested or
+other value contracts, and out-of-range products retain the general envelope.
+This is an implementation capacity derivation, not a language restriction.
+
+The pre-admission inventory and configured providers/imports/exports use the
+same checked-sequence derivation. Text, expression/intermediate execution,
+serialized-value measurement, row, work, and the 512 MiB retained-store ceilings
+remain unchanged. Values are not sampled, truncated, or replaced to fit a quote;
+retained input ports and task outputs still count separately. Source acquisition
+and Effect paths retain their original envelopes.
+
 ### Checkpoint Resolution and Effect continuation
 
 `@actql/run-host-core/checkpoints` supplies the existing portable Checkpoint

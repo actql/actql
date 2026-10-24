@@ -397,6 +397,12 @@ fn open_checked_local_host(
   }
   let max_rows = @publication_host.prepared_client_values_max_rows(prepared)
   let (values, execution, measurement) = client_local_execution_limits(
+    scalar_sequences=if source_free_requirements is Some(_) ||
+      source_free_preparation is Some(_) {
+      Some(compute_sequences)
+    } else {
+      None
+    },
     max_rows~,
   )
   let graph = @publication_host.prepared_client_graph(prepared)

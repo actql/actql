@@ -1,0 +1,955 @@
+{
+  "baseline_sha": "f74d8e6436f314092b412669ba1281d246b604a4",
+  "cases": [
+    {
+      "group": "contract_or_typing_change",
+      "name": "null/demand NULL = 1",
+      "kind": "sql",
+      "input": "SELECT NULL = 1 AS v",
+      "expected": [
+        {
+          "v": null
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "contract_or_typing_change",
+      "name": "null/demand NULL < 1",
+      "kind": "sql",
+      "input": "SELECT NULL < 1 AS v",
+      "expected": [
+        {
+          "v": null
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "contract_or_typing_change",
+      "name": "null/demand NULL IS NULL",
+      "kind": "sql",
+      "input": "SELECT NULL IS NULL AS v",
+      "expected": [
+        {
+          "v": true
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "contract_or_typing_change",
+      "name": "null/demand NULL IS NOT NULL",
+      "kind": "sql",
+      "input": "SELECT NULL IS NOT NULL AS v",
+      "expected": [
+        {
+          "v": false
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "sql_surface",
+      "name": "array/struct [1,2,3][OFFSET(0)]",
+      "kind": "sql",
+      "input": "SELECT [1,2,3][OFFSET(0)] AS v",
+      "expected": [
+        {
+          "v": 1
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "sql_surface",
+      "name": "array/struct [1,2,3][SAFE_OFFSET(99)]",
+      "kind": "sql",
+      "input": "SELECT [1,2,3][SAFE_OFFSET(99)] AS v",
+      "expected": [
+        {
+          "v": null
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "sql_surface",
+      "name": "array/struct STRUCT(1 AS x, 2 AS y).x",
+      "kind": "sql",
+      "input": "SELECT STRUCT(1 AS x, 2 AS y).x AS v",
+      "expected": [
+        {
+          "v": 1
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "contract_or_typing_change",
+      "name": "SELECT -0.0 AS v",
+      "kind": "sql",
+      "input": "SELECT -0.0 AS v",
+      "expected": [
+        {
+          "v": 0
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "contract_or_typing_change",
+      "name": "NULL peer equality",
+      "kind": "expression",
+      "input": {
+        "eq": [
+          {
+            "literal": null
+          },
+          {
+            "literal": 1
+          }
+        ]
+      },
+      "expected": [
+        {
+          "v": null
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "contract_or_typing_change",
+      "name": "NULL peer less",
+      "kind": "expression",
+      "input": {
+        "lt": [
+          {
+            "literal": null
+          },
+          {
+            "literal": 1
+          }
+        ]
+      },
+      "expected": [
+        {
+          "v": null
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "public_local_text_time_integration",
+      "name": "try_number \"0\"",
+      "kind": "expression",
+      "input": {
+        "try_number": {
+          "value": {
+            "literal": "0"
+          }
+        }
+      },
+      "expected": [
+        {
+          "v": 0
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "public_local_text_time_integration",
+      "name": "try_number \"12\"",
+      "kind": "expression",
+      "input": {
+        "try_number": {
+          "value": {
+            "literal": "12"
+          }
+        }
+      },
+      "expected": [
+        {
+          "v": 12
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "public_local_text_time_integration",
+      "name": "try_number \"-12\"",
+      "kind": "expression",
+      "input": {
+        "try_number": {
+          "value": {
+            "literal": "-12"
+          }
+        }
+      },
+      "expected": [
+        {
+          "v": -12
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "public_local_text_time_integration",
+      "name": "try_number \"1.5\"",
+      "kind": "expression",
+      "input": {
+        "try_number": {
+          "value": {
+            "literal": "1.5"
+          }
+        }
+      },
+      "expected": [
+        {
+          "v": 1.5
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "public_local_text_time_integration",
+      "name": "try_number \"1e3\"",
+      "kind": "expression",
+      "input": {
+        "try_number": {
+          "value": {
+            "literal": "1e3"
+          }
+        }
+      },
+      "expected": [
+        {
+          "v": 1000
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "public_local_text_time_integration",
+      "name": "try_number \"01\"",
+      "kind": "expression",
+      "input": {
+        "try_number": {
+          "value": {
+            "literal": "01"
+          }
+        }
+      },
+      "expected": [
+        {
+          "v": null
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "public_local_text_time_integration",
+      "name": "try_number \"+1\"",
+      "kind": "expression",
+      "input": {
+        "try_number": {
+          "value": {
+            "literal": "+1"
+          }
+        }
+      },
+      "expected": [
+        {
+          "v": null
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "public_local_text_time_integration",
+      "name": "try_number \" 1\"",
+      "kind": "expression",
+      "input": {
+        "try_number": {
+          "value": {
+            "literal": " 1"
+          }
+        }
+      },
+      "expected": [
+        {
+          "v": null
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "public_local_text_time_integration",
+      "name": "try_number \"1 \"",
+      "kind": "expression",
+      "input": {
+        "try_number": {
+          "value": {
+            "literal": "1 "
+          }
+        }
+      },
+      "expected": [
+        {
+          "v": null
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "public_local_text_time_integration",
+      "name": "try_number \"\"",
+      "kind": "expression",
+      "input": {
+        "try_number": {
+          "value": {
+            "literal": ""
+          }
+        }
+      },
+      "expected": [
+        {
+          "v": null
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "public_local_text_time_integration",
+      "name": "try_number \"NaN\"",
+      "kind": "expression",
+      "input": {
+        "try_number": {
+          "value": {
+            "literal": "NaN"
+          }
+        }
+      },
+      "expected": [
+        {
+          "v": null
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "public_local_text_time_integration",
+      "name": "try_number \"Infinity\"",
+      "kind": "expression",
+      "input": {
+        "try_number": {
+          "value": {
+            "literal": "Infinity"
+          }
+        }
+      },
+      "expected": [
+        {
+          "v": null
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "public_local_text_time_integration",
+      "name": "try_number \"1e309\"",
+      "kind": "expression",
+      "input": {
+        "try_number": {
+          "value": {
+            "literal": "1e309"
+          }
+        }
+      },
+      "expected": [
+        {
+          "v": null
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "public_local_text_time_integration",
+      "name": "try_number \"-0\"",
+      "kind": "expression",
+      "input": {
+        "try_number": {
+          "value": {
+            "literal": "-0"
+          }
+        }
+      },
+      "expected": [
+        {
+          "v": 0
+        }
+      ],
+      "baseline": "SubmissionNotAccepted",
+      "oracle_note": "Original unexecuted expectation NULL was incorrect; preserve raw evidence, use canonical positive zero.",
+      "original_unexecuted_expectation": null
+    },
+    {
+      "group": "public_local_text_time_integration",
+      "name": "try_number \"0x10\"",
+      "kind": "expression",
+      "input": {
+        "try_number": {
+          "value": {
+            "literal": "0x10"
+          }
+        }
+      },
+      "expected": [
+        {
+          "v": null
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "unicode_lowering_execution",
+      "name": "nfkc ＡＢＣ",
+      "kind": "expression",
+      "input": {
+        "nfkc": {
+          "literal": "ＡＢＣ"
+        }
+      },
+      "expected": [
+        {
+          "v": "ABC"
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "unicode_lowering_execution",
+      "name": "nfkc ﬁ",
+      "kind": "expression",
+      "input": {
+        "nfkc": {
+          "literal": "ﬁ"
+        }
+      },
+      "expected": [
+        {
+          "v": "fi"
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "unicode_lowering_execution",
+      "name": "nfkc ①",
+      "kind": "expression",
+      "input": {
+        "nfkc": {
+          "literal": "①"
+        }
+      },
+      "expected": [
+        {
+          "v": "1"
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "unicode_lowering_execution",
+      "name": "nfkc é",
+      "kind": "expression",
+      "input": {
+        "nfkc": {
+          "literal": "é"
+        }
+      },
+      "expected": [
+        {
+          "v": "é"
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "unicode_lowering_execution",
+      "name": "nfkc Å",
+      "kind": "expression",
+      "input": {
+        "nfkc": {
+          "literal": "Å"
+        }
+      },
+      "expected": [
+        {
+          "v": "Å"
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "unicode_lowering_execution",
+      "name": "nfkc 😀",
+      "kind": "expression",
+      "input": {
+        "nfkc": {
+          "literal": "😀"
+        }
+      },
+      "expected": [
+        {
+          "v": "😀"
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "unicode_lowering_execution",
+      "name": "case_fold Straße",
+      "kind": "expression",
+      "input": {
+        "case_fold": {
+          "literal": "Straße"
+        }
+      },
+      "expected": [
+        {
+          "v": "strasse"
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "unicode_lowering_execution",
+      "name": "case_fold Σςσ",
+      "kind": "expression",
+      "input": {
+        "case_fold": {
+          "literal": "Σςσ"
+        }
+      },
+      "expected": [
+        {
+          "v": "σσσ"
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "unicode_lowering_execution",
+      "name": "case_fold İ",
+      "kind": "expression",
+      "input": {
+        "case_fold": {
+          "literal": "İ"
+        }
+      },
+      "expected": [
+        {
+          "v": "i̇"
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "unicode_lowering_execution",
+      "name": "case_fold K",
+      "kind": "expression",
+      "input": {
+        "case_fold": {
+          "literal": "K"
+        }
+      },
+      "expected": [
+        {
+          "v": "k"
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "unicode_lowering_execution",
+      "name": "case_fold é",
+      "kind": "expression",
+      "input": {
+        "case_fold": {
+          "literal": "é"
+        }
+      },
+      "expected": [
+        {
+          "v": "é"
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "unicode_lowering_execution",
+      "name": "case_fold 😀",
+      "kind": "expression",
+      "input": {
+        "case_fold": {
+          "literal": "😀"
+        }
+      },
+      "expected": [
+        {
+          "v": "😀"
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "json_right_surface",
+      "name": "duplicate-null-right",
+      "kind": "program",
+      "input": {
+        "version": "actql/0.1",
+        "id": "relation-matrix-duplicate-null-right",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "as": "l",
+                "values": {
+                  "schema": {
+                    "id": {
+                      "type": "number",
+                      "nullable": false
+                    },
+                    "k": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "v": {
+                      "type": "number",
+                      "nullable": true
+                    }
+                  },
+                  "rows": [
+                    {
+                      "id": 1,
+                      "k": 1,
+                      "v": 10
+                    },
+                    {
+                      "id": 2,
+                      "k": 1,
+                      "v": null
+                    },
+                    {
+                      "id": 3,
+                      "k": null,
+                      "v": 30
+                    },
+                    {
+                      "id": 4,
+                      "k": 2,
+                      "v": 40
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "r",
+                "values": {
+                  "schema": {
+                    "id": {
+                      "type": "number",
+                      "nullable": false
+                    },
+                    "k": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "v": {
+                      "type": "number",
+                      "nullable": true
+                    }
+                  },
+                  "rows": [
+                    {
+                      "id": 11,
+                      "k": 1,
+                      "v": 100
+                    },
+                    {
+                      "id": 12,
+                      "k": 1,
+                      "v": 200
+                    },
+                    {
+                      "id": 13,
+                      "k": null,
+                      "v": 300
+                    },
+                    {
+                      "id": 14,
+                      "k": 3,
+                      "v": 400
+                    }
+                  ]
+                }
+              },
+              {
+                "from": "l",
+                "join": {
+                  "with": "r",
+                  "kind": "right",
+                  "on": [
+                    {
+                      "left": "k",
+                      "right": "k"
+                    }
+                  ],
+                  "max_output_rows": 20,
+                  "select": {
+                    "lid": "left.id",
+                    "rid": "right.id"
+                  }
+                },
+                "as": "j"
+              },
+              {
+                "from": "j",
+                "sort": [
+                  {
+                    "field": "lid",
+                    "dir": "asc",
+                    "nulls": "last"
+                  },
+                  {
+                    "field": "rid",
+                    "dir": "asc",
+                    "nulls": "last"
+                  }
+                ],
+                "as": "s"
+              }
+            ],
+            "results": {
+              "rows": {
+                "from": "s",
+                "fields": [
+                  "lid",
+                  "rid"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "answer": {
+            "from": {
+              "stage": "main",
+              "result": "rows"
+            }
+          }
+        }
+      },
+      "expected": [
+        {
+          "lid": 1,
+          "rid": 11
+        },
+        {
+          "lid": 1,
+          "rid": 12
+        },
+        {
+          "lid": 2,
+          "rid": 11
+        },
+        {
+          "lid": 2,
+          "rid": 12
+        },
+        {
+          "lid": null,
+          "rid": 13
+        },
+        {
+          "lid": null,
+          "rid": 14
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "json_right_surface",
+      "name": "empty-left-right",
+      "kind": "program",
+      "input": {
+        "version": "actql/0.1",
+        "id": "relation-matrix-empty-left-right",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "as": "l",
+                "values": {
+                  "schema": {
+                    "id": {
+                      "type": "number",
+                      "nullable": false
+                    },
+                    "k": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "v": {
+                      "type": "number",
+                      "nullable": true
+                    }
+                  },
+                  "rows": []
+                }
+              },
+              {
+                "as": "r",
+                "values": {
+                  "schema": {
+                    "id": {
+                      "type": "number",
+                      "nullable": false
+                    },
+                    "k": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "v": {
+                      "type": "number",
+                      "nullable": true
+                    }
+                  },
+                  "rows": [
+                    {
+                      "id": 11,
+                      "k": 1,
+                      "v": 100
+                    },
+                    {
+                      "id": 12,
+                      "k": 1,
+                      "v": 200
+                    },
+                    {
+                      "id": 13,
+                      "k": null,
+                      "v": 300
+                    },
+                    {
+                      "id": 14,
+                      "k": 3,
+                      "v": 400
+                    }
+                  ]
+                }
+              },
+              {
+                "from": "l",
+                "join": {
+                  "with": "r",
+                  "kind": "right",
+                  "on": [
+                    {
+                      "left": "k",
+                      "right": "k"
+                    }
+                  ],
+                  "max_output_rows": 20,
+                  "select": {
+                    "lid": "left.id",
+                    "rid": "right.id"
+                  }
+                },
+                "as": "j"
+              }
+            ],
+            "results": {
+              "rows": {
+                "from": "j",
+                "fields": [
+                  "lid",
+                  "rid"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "answer": {
+            "from": {
+              "stage": "main",
+              "result": "rows"
+            }
+          }
+        }
+      },
+      "expected": [
+        {
+          "lid": null,
+          "rid": 11
+        },
+        {
+          "lid": null,
+          "rid": 12
+        },
+        {
+          "lid": null,
+          "rid": 13
+        },
+        {
+          "lid": null,
+          "rid": 14
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "relational_composition",
+      "name": "ordered-offset",
+      "kind": "sql",
+      "input": "SELECT x FROM (SELECT 3 AS x UNION ALL SELECT 1 AS x UNION ALL SELECT 2 AS x) ORDER BY x LIMIT 1 OFFSET 1",
+      "expected": [
+        {
+          "x": 2
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "relational_composition",
+      "name": "having",
+      "kind": "sql",
+      "input": "SELECT x, COUNT(*) AS n FROM (SELECT 1 AS x UNION ALL SELECT 1 AS x UNION ALL SELECT 2 AS x) GROUP BY x HAVING COUNT(*) > 1",
+      "expected": [
+        {
+          "x": 1,
+          "n": 2
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    },
+    {
+      "group": "relational_composition",
+      "name": "pipe-multistage",
+      "kind": "aql",
+      "input": "FROM (SELECT 3 AS x UNION ALL SELECT 1 AS x UNION ALL SELECT 2 AS x) AS t |> WHERE x > 1 |> EXTEND x * 2 AS y |> ORDER BY y DESC |> LIMIT 1 |> SELECT y",
+      "expected": [
+        {
+          "y": 6
+        }
+      ],
+      "baseline": "SubmissionNotAccepted"
+    }
+  ]
+}

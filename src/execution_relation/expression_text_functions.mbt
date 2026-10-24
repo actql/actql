@@ -30,6 +30,8 @@ priv enum TextFunctionKind {
   TextRPad
   TextUpper
   TextLower
+  TextNfkc
+  TextCaseFold
   TextTrim
   TextLTrim
   TextRTrim
@@ -107,6 +109,9 @@ priv struct TextFunctionState {
   mut trim_start : Int
   mut trim_end : Int
   truncate : Utf8TruncationState?
+  normalization : @canonical.NormalizationCursor?
+  mut normalization_phase : Int
+  mut normalization_input_bytes : Int64
 }
 
 ///|
@@ -228,7 +233,34 @@ fn start_text_function(
       return Err({ kind: Scalar(InvalidOperand), expression, })
     }
   }
-  let reserved = if kind == TextUtf8Truncate { 6 } else { 2 }
+  let is_normalization = kind == TextNfkc || kind == TextCaseFold
+  let normalization_slots = if is_normalization && !null_result {
+    // The pinned maximum fully decomposed expansion is 18 scalars. Reserve
+    // every retained scalar and a constant-sized expansion before allocating.
+    if input.length() > (workspace.limit - workspace.live - 20) / 18 {
+      return Err({ kind: WorkspaceLimit, expression, })
+    }
+    input.length() * 18 + 18
+  } else {
+    0
+  }
+  let reserved = (if kind == TextUtf8Truncate { 6 } else { 2 }) +
+    normalization_slots
+  if is_normalization {
+    guard @lower.expression_text_bound(expression) is Some(original) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    let operation = @text_bounds.output_operation(
+      @expression_context.text_bound_output(original),
+    )
+    if !(if kind == TextNfkc {
+        operation is @text_bounds.Nfkc
+      } else {
+        operation is @text_bounds.CaseFold
+      }) {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+  }
   if !reserve_slots(workspace, reserved) {
     return Err({ kind: WorkspaceLimit, expression, })
   }
@@ -340,7 +372,9 @@ fn start_text_function(
       ""
     },
     output_root,
-    reserved: if truncate is Some(_) {
+    reserved: if is_normalization {
+      reserved
+    } else if truncate is Some(_) {
       6
     } else if kind == TextReplace ||
       kind == TextTranslate ||
@@ -396,6 +430,13 @@ fn start_text_function(
       input.length()
     },
     truncate,
+    normalization: if is_normalization && !null_result {
+      Some(@canonical.start_normalization(input, kind == TextCaseFold))
+    } else {
+      None
+    },
+    normalization_phase: 0,
+    normalization_input_bytes: 0L,
     trim_end: if kind == TextRTrim || kind == TextUtf8Truncate {
       0
     } else {
@@ -542,6 +583,9 @@ fn advance_text_function(
   let expression = state.expression
   if state.null_result {
     return Ok(Some(Null))
+  }
+  if state.normalization is Some(cursor) {
+    return advance_normalization_function(state, cursor, workspace)
   }
   if state.substring_phase == 4 {
     // Validate the complete original input, including the suffix beyond the

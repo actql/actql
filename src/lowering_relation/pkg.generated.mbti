@@ -1307,6 +1307,7 @@ pub enum ExpressionBody {
   Object(Array[(String, Expression)])
   Property(Expression, String, Int)
   Subscript(Expression, Expression)
+  ArrayOffset(Expression, Expression, Bool)
   Cast(Expression)
   Unary(UnaryOperator, Expression)
   Binary(BinaryOperator, Expression, Expression)
@@ -2056,6 +2057,8 @@ pub(all) enum UnaryOperator {
   Quantize(String)
   TryNumber
   TryTimestamp
+  Nfkc
+  CaseFold
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

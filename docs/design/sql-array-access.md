@@ -1,0 +1,12 @@
+# SQL array access and named STRUCT construction
+
+The normative owner is [typed expression access](../spec/language.md#scalar-expressions).
+The SQL mapping adopts Google's [array subscript operator](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/operators#array_subscript_operator): zero-based OFFSET fails outside the array, whereas SAFE_OFFSET returns NULL. A bare SQL index uses OFFSET. These are not aliases of ActQL's existing common `subscript`, whose null-index and out-of-range rules differ.
+
+The new common `array_offset` and `array_safe_offset` owners retain a closed `{value, index}` body and reuse the typed-subscript execution continuation. Both children are demanded exactly once in receiver/index order; child failure precedes strict NULL propagation. SAFE changes only the operation's out-of-range outcome. It cannot suppress an error raised while computing either operand. Existing selection-root retention, logical work, workspace and cancellation ownership remains in place.
+
+GoogleSQL's index is INT64. This increment explicitly adapts the index to ActQL's existing finite Number domain, requiring integrality without introducing an arbitrary safe-integer ceiling. Compare a valid integral Number with the actual bounded length before narrowing to an implementation integer. Huge positive or negative integral indexes therefore have the same out-of-range result as small unreachable indexes. Fractional indexes fail rather than round. No numeric coercion or distinct INT64 overload is added.
+
+SQL `STRUCT(expression AS name, ...)` maps to the existing closed named object and postfix access maps to the existing property owner. It does not evaluate expressions in the frontend, fabricate array item types or erase unused field demand. It retains the existing AuthoredFieldName rules, including the restriction on dots. Anonymous tuple fields, typed STRUCT declarations, ORDINAL and SAFE_ORDINAL are outside this increment; this is not a claim of full GoogleSQL STRUCT/ARRAY syntax coverage.
+
+This extends acceptance and current expression identities within initial 0.1. Existing common subscript laws, values and source identities are unchanged. Closed source/machine embeddings, expression-fragment registration and dependent Stage/Program/registry pins move together. The complete fixed predecessor is retained independently; runtime results are not used to generate expected semantic vectors. No profile flag, authority, production limit or alternate evaluator is introduced.

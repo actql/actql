@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "03a408a9a071b5af85c51ba22e3e340559953073accbaa0f5d043a0c2640f187",
+  "grammar_sha256": "703dce737042c4b6e473b1618451f08d4f8fcc6391a6b2dd2e8f62e96722eaeb",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -5973,6 +5973,56 @@
                   ],
                   "properties": {
                     "value": {
+                      "$ref": "#/$defs/expression"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "array_offset"
+              ],
+              "properties": {
+                "array_offset": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "index"
+                  ],
+                  "properties": {
+                    "value": {
+                      "$ref": "#/$defs/expression"
+                    },
+                    "index": {
+                      "$ref": "#/$defs/expression"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "array_safe_offset"
+              ],
+              "properties": {
+                "array_safe_offset": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "index"
+                  ],
+                  "properties": {
+                    "value": {
+                      "$ref": "#/$defs/expression"
+                    },
+                    "index": {
                       "$ref": "#/$defs/expression"
                     }
                   }
@@ -12525,6 +12575,64 @@
                   ],
                   "properties": {
                     "value": {
+                      "$ref": "#/$defs/expression"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "array_offset"
+                },
+                "body": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "index"
+                  ],
+                  "properties": {
+                    "value": {
+                      "$ref": "#/$defs/expression"
+                    },
+                    "index": {
+                      "$ref": "#/$defs/expression"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "array_safe_offset"
+                },
+                "body": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "index"
+                  ],
+                  "properties": {
+                    "value": {
+                      "$ref": "#/$defs/expression"
+                    },
+                    "index": {
                       "$ref": "#/$defs/expression"
                     }
                   }
@@ -24522,6 +24630,56 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "array_offset"
+              ],
+              "properties": {
+                "array_offset": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "index"
+                  ],
+                  "properties": {
+                    "value": {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    "index": {
+                      "$ref": "#/$defs/source_expression"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "array_safe_offset"
+              ],
+              "properties": {
+                "array_safe_offset": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "index"
+                  ],
+                  "properties": {
+                    "value": {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    "index": {
+                      "$ref": "#/$defs/source_expression"
+                    }
+                  }
+                }
+              }
             }
           ]
         },
@@ -30155,6 +30313,64 @@
                   ],
                   "properties": {
                     "value": {
+                      "$ref": "#/$defs/machine_expression"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "array_offset"
+                },
+                "body": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "index"
+                  ],
+                  "properties": {
+                    "value": {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    "index": {
+                      "$ref": "#/$defs/machine_expression"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "array_safe_offset"
+                },
+                "body": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "index"
+                  ],
+                  "properties": {
+                    "value": {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    "index": {
                       "$ref": "#/$defs/machine_expression"
                     }
                   }
@@ -38124,6 +38340,56 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "array_offset"
+              ],
+              "properties": {
+                "array_offset": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "index"
+                  ],
+                  "properties": {
+                    "value": {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    "index": {
+                      "$ref": "#/$defs/source_expression"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "array_safe_offset"
+              ],
+              "properties": {
+                "array_safe_offset": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "index"
+                  ],
+                  "properties": {
+                    "value": {
+                      "$ref": "#/$defs/source_expression"
+                    },
+                    "index": {
+                      "$ref": "#/$defs/source_expression"
+                    }
+                  }
+                }
+              }
             }
           ]
         },
@@ -43762,6 +44028,64 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "array_offset"
+                },
+                "body": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "index"
+                  ],
+                  "properties": {
+                    "value": {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    "index": {
+                      "$ref": "#/$defs/machine_expression"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "array_safe_offset"
+                },
+                "body": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "index"
+                  ],
+                  "properties": {
+                    "value": {
+                      "$ref": "#/$defs/machine_expression"
+                    },
+                    "index": {
+                      "$ref": "#/$defs/machine_expression"
+                    }
+                  }
+                }
+              }
             }
           ]
         },
@@ -44931,6 +45255,18 @@
       "identity": "Preserve the admitted Timestamp value without manufacturing String input, a pattern, a parser profile or a Host envelope. Retain the authored try_timestamp node and original operand in source, lowering, emission and re-admission.",
       "demand": "Demand the original child exactly once under the same scalar/Run/current/work/value/root and workspace owners. Child, cancellation, bounds, allocation, engine and retirement failures propagate; they never become NULL. Surrounding lazy demand remains unchanged.",
       "compatibility": "Unary has the closed body {value}; explicit patterned try_timestamp retains the distinct closed {value,pattern} body, prior bytes, pattern-first validation and all original profile/envelope duties. An explicit NULL or malformed pattern is never an omitted pattern. This does not widen operational clocks or issue authority."
+    },
+    "array_offset": {
+      "signature": "Exactly two operands in value-then-index order: a typed Array and a finite Number index. Preserve the item contract and return it conservatively nullable. Untyped NULL index takes the unique Number signature; an untyped NULL receiver needs array type context. No implicit conversion or distinct INT64 overload is added.",
+      "value": "After both demanded children succeed, return NULL if either operand is NULL. Otherwise require an integral Number index. Indexes are zero-based. Negative or outside-array indexes fail evaluation. Fractional indexes fail evaluation. Compare in the Number domain against the bounded array length before integer narrowing, so huge integral offsets follow the same out-of-range rule rather than an arbitrary safe-integer limit.",
+      "evaluation": "Evaluate receiver then index exactly once, eagerly. Child failures precede NULL propagation and index-domain checks. Retain enclosing lazy demand, root leases, logical work, live-value and workspace budgets, and cancellation through the existing typed-subscript owner. SAFE changes only the operation-owned out-of-range outcome, never suppressing failures in child expressions.",
+      "identity": "The closed source is {array_offset: {value: receiver, index: offset}}; the closed machine node is {op: array_offset, body: {value: receiver_node, index: offset_node}}. SQL OFFSET and bare array indexing maps to this common owner without folding, duplication or frontend evaluation. Existing common subscript semantics and identities are unchanged."
+    },
+    "array_safe_offset": {
+      "signature": "Exactly two operands in value-then-index order: a typed Array and a finite Number index. Preserve the item contract and return it conservatively nullable. Untyped NULL index takes the unique Number signature; an untyped NULL receiver needs array type context. No implicit conversion or distinct INT64 overload is added.",
+      "value": "After both demanded children succeed, return NULL if either operand is NULL. Otherwise require an integral Number index. Indexes are zero-based. Negative or outside-array indexes return NULL. Fractional indexes fail evaluation. Compare in the Number domain against the bounded array length before integer narrowing, so huge integral offsets follow the same out-of-range rule rather than an arbitrary safe-integer limit.",
+      "evaluation": "Evaluate receiver then index exactly once, eagerly. Child failures precede NULL propagation and index-domain checks. Retain enclosing lazy demand, root leases, logical work, live-value and workspace budgets, and cancellation through the existing typed-subscript owner. SAFE changes only the operation-owned out-of-range outcome, never suppressing failures in child expressions.",
+      "identity": "The closed source is {array_safe_offset: {value: receiver, index: offset}}; the closed machine node is {op: array_safe_offset, body: {value: receiver_node, index: offset_node}}. SQL SAFE_OFFSET maps to this common owner without folding, duplication or frontend evaluation. Existing common subscript semantics and identities are unchanged."
     }
   },
   "regex_ast_contract": {

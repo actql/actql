@@ -358,7 +358,7 @@ A conforming implementation MUST publish and pass:
     round trips including structured fallback; Unicode diagnostic spans;
     unchanged literal/metadata/request strings; and rejection of computations
     in restricted Effect positions. Vectors include decimal/binary64
-    separation, literal-NULL comparison rejection, and grammar/lock drift;
+    separation, context-typed literal-NULL comparisons, null predicates, signed source zero normalization, and grammar/lock drift;
 23. source-decoding vectors for scalar resolution, normalized-key collisions,
     Unicode and line endings, numeric limits, and source versus artifact admission;
 24. type/evidence vectors for recursive compatibility, nullable parent paths,

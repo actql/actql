@@ -3120,19 +3120,22 @@ quotes and doubled `''`, with no adjacent-string concatenation, `E'...'`, or
 dollar quoting. Backslash has no lexical escape meaning here; a LIKE, regex,
 or other pattern consumer interprets the resulting string under its own law.
 
-<!-- requirement-block: expression-text.a-comparison-with-a-literal-null-operand-must-be-rejected -->
+<!-- requirement-block: expression-text.literal-null-comparison-context expression-text.literal-null-predicates -->
 Unadorned numeric literals denote finite binary64 `number`, including those
 with a fractional part or exponent. The explicit [signed64 comparison-context
 rule](#signed64-values) may admit that existing Number value under an original
 `int64` peer; it does not change the Number literal body or recover its raw
-spelling. Negative zero is invalid. Decimal values
+spelling. A signed zero expression token normalizes to canonical positive zero;
+this does not admit negative zero in canonical JSON Number values or Parameters. Decimal values
 use explicit `to_decimal`/`try_decimal` conversion, decimal parameters, or
 decimal fields; no decimal/binary64 promotion is inferred. `/` is number
 division even for integral operands; decimal division uses `decimal_divide`.
-An ordinary `=`, `<>`, `<`, `<=`, `>`, or `>=` comparison with a literal `NULL`
-operand MUST be rejected; `IS [NOT] DISTINCT FROM` follows its explicit
-null-safe rule. Nullable fields otherwise retain [Predicates](#predicates)
-three-valued semantics. SQL implicit conversions and
+An ordinary `=`, `<>`, `<`, `<=`, `>`, or `>=` comparison with an immediate
+literal `NULL` MUST use an independently typed comparable peer as its context
+and retain [Predicates](#predicates) three-valued semantics. Two unresolved NULL
+operands still require explicit type context. `IS [NOT] DISTINCT FROM` follows
+its explicit null-safe rule. `NULL IS NULL` and `NULL IS NOT NULL` MUST return
+true and false respectively without requiring a non-null operand domain. SQL implicit conversions and
 host-specific arithmetic or evaluation behavior do not apply.
 
 > **Note (informative):** JSON/YAML decoding happens first. Quote the entire
@@ -3714,6 +3717,27 @@ Property nullability is the OR of receiver and property nullability.
 Subscript results are conservatively nullable, retain the item contract, and
 do not infer a minimum length from `max_items`. An explicit empty-array node
 therefore remains typed and always yields null for a valid subscript.
+
+SQL array offsets use distinct common `array_offset` and `array_safe_offset`
+operations, each with a closed `{value, index}` body. SQL `a[OFFSET(i)]` and
+`a[i]` select `array_offset`; `a[SAFE_OFFSET(i)]` selects `array_safe_offset`.
+Both evaluate receiver then index once before NULL propagation. Either NULL
+operand yields NULL after child evaluation succeeds. A non-NULL index must be
+integral in the existing finite Number domain; this is an explicit adaptation
+of GoogleSQL's INT64 index, not an implicit cast or a new numeric type.
+Negative and outside-array indexes fail for `array_offset` and return NULL for
+`array_safe_offset`. Fractional indexes fail for both. Huge integral offsets
+are compared with actual bounded length before integer narrowing. SAFE does
+not suppress failures of the receiver or index expressions. Both results retain
+the item contract and are conservatively nullable. The existing common
+`subscript` operation and its stricter index-domain behavior remain unchanged.
+
+SQL `STRUCT(expression AS name, ...)` constructs the existing common typed
+object, retaining each field expression and its ordinary demand. Postfix field
+access selects the existing property operation. Field names are required in
+this named-STRUCT mapping because common objects have closed named fields;
+this increment does not introduce anonymous tuple fields or ordinal access.
+Duplicate names and absent properties remain checked-object errors.
 
 An unquoted leading `left.` or `right.` is always a join qualifier, never a
 schema-dependent guess. It requires that join scope and selects its following
@@ -4718,7 +4742,7 @@ the explicit exact value domains, not assume approximate reduction invariance.
 
 <!-- requirement-block: join.kind-is-required-and-must-be-one-of-inner-left join.kind-is-required-and-must-be-one-of-inner-left.second join.on-must-state-one-equality-key-or-a-non-empty-array -->
 `with` names the right relation. `left` MAY explicitly replace the current
-relation. `kind` is REQUIRED and MUST be one of `inner`, `left`, `full`, `semi`, or
+relation. `kind` is REQUIRED and MUST be one of `inner`, `left`, `right`, `full`, `semi`, or
 `anti`. `on` MUST state one equality key or a non-empty array of equality keys;
 same-name field shorthand is permitted. Arbitrary non-equality conditions are not part of this join;
 bounded Cartesian products and temporal overlap use the separately specified
@@ -4804,10 +4828,15 @@ Because object key order is not semantic, join `select` output names are
 lowered in AoA canonical UTF-16 code-unit order. Authors control final column
 order with the selected named result's `fields`.
 
-<!-- requirement-block: join.null-keys-must-not-match-under-no-match -->
+<!-- requirement-block: join.right-preserves-authored-sides join.null-keys-must-not-match-under-no-match -->
 All join kinds have a fixed row-order contract. `inner` and `left` enumerate
 left rows in their stable input order and matching right rows in stable right
-input order; unmatched left rows remain in place for `left`. `semi` emits each
+input order; unmatched left rows remain in place for `left`. `right` mirrors
+this rule: authored right rows are major, matching authored left rows are minor,
+and unmatched right rows remain in place with null-extended left fields.
+The right fields retain their original nullability. Physical traversal reversal
+MUST NOT exchange authored provenance, cardinality assertions, error sides, or
+source identity. `semi` emits each
 matching left row once and `anti` emits each unmatched left row, both in stable
 left order. `full` uses the `left` order first and then unmatched right rows in
 stable right order. Null keys MUST NOT match under `no_match`; `fail` aborts before
@@ -4827,12 +4856,14 @@ closed table:
 | `inner` | neither side proven unique | left + right composite only |
 | `left` | `many_to_one` / `one_to_one` | left |
 | `left` | other | none inferred |
+| `right` | `one_to_many` / `one_to_one` | right |
+| `right` | other | none inferred |
 | `full` | any | none inferred |
 
 Each input may have more than one candidate key. A `select` or rename retains
 each key for which every field maps to one distinct output field. It may drop
 one key while preserving another. Outer-join null extension is not evidence
-for right-side uniqueness.
+for uniqueness of the absent side.
 
 <a id="derive"></a>
 
@@ -11450,7 +11481,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:02e2b6ccfaa44014dfe9e5307dec81d8227d9261930f74284cabd89ede875bad
+../../spec/contracts/actql-aoa.json# sha256:3a45ec90fe3a9d6b6d10d678091e44346fde167078e1cacae694d72a70069045
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11459,13 +11490,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:76278686ed580a90862ab54680c2e1969b8e3c6b5bec8078e0049e5d9079e9f8
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:17ccbab69f151abda92d920521912dff1db845148d022a6295de5cf3f34c553a
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:38adf4120637c5b4e5738947a794d515c2ec0e823093051d1ba42fee1d54d68b
+../../spec/contracts/actql-expressions.json# sha256:b5701b2178a3b2e624d0fbfbda877d0117c367e42a855161e26e0d2e133f1c2c
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:e848e1617d5a1f41684cb93f469c667020a9e6c4714c38399687fa7eeb99c550
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:254378a85b9b89b65343a974cb69964cdf12fb433a037f37b0accdd1155c231c
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:6d3c9fda949743d50c51258d1d6a3142161d44cd90ab202a73cb9bb2b756afa9
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:2c4f84b31bf83d660d549b80b8dde8f0aa7ec01523650d9322a25cc39c83ddb5
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:ac0fdcded3e6cc837e1d761bb2812c9efed06d2f2fdde7fe2fce9aefc1af3f1f
+../../spec/contracts/actql-expressions.json#/laws sha256:68c92e6beb9bceeb237f974d3263bb48be00242fa1045555b2ae570863f24e87
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:be96b6072058cb165d5350a2575403a4fe35bafc229e669ca296aacc0ca79cdf
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:b5208c2ba7441620b41ccc35f50432b8a0a42b0ee799b0ed4f55fc0da4051154
 ```
 
 <!-- stage-contract-pins:start -->

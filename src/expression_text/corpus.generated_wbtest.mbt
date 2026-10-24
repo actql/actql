@@ -691,6 +691,21 @@ test "expression corpus accepted: 138" {
 }
 
 ///|
+test "expression corpus accepted: 139" {
+  assert_tree("x = NULL", "{\"eq\":[{\"field\":\"x\"},{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 140" {
+  assert_tree("x <> NULL", "{\"neq\":[{\"field\":\"x\"},{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 141" {
+  assert_tree("-0", "{\"literal\":0}")
+}
+
+///|
 test "expression corpus rejected: 1" {
   assert_true(parse("x IS NULL.c", test_limits()) is Err(_))
 }
@@ -727,380 +742,365 @@ test "expression corpus rejected: 7" {
 
 ///|
 test "expression corpus rejected: 8" {
-  assert_true(parse("x = NULL", test_limits()) is Err(_))
-}
-
-///|
-test "expression corpus rejected: 9" {
-  assert_true(parse("x <> NULL", test_limits()) is Err(_))
-}
-
-///|
-test "expression corpus rejected: 10" {
   assert_true(parse("x::number", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 11" {
+test "expression corpus rejected: 9" {
   assert_true(parse("CAST(x AS unknown_type)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 12" {
+test "expression corpus rejected: 10" {
   assert_true(parse("7 // 2", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 13" {
+test "expression corpus rejected: 11" {
   assert_true(parse("x IN ()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 14" {
+test "expression corpus rejected: 12" {
   assert_true(parse("x < y < z", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 15" {
-  assert_true(parse("-0", test_limits()) is Err(_))
-}
-
-///|
-test "expression corpus rejected: 16" {
+test "expression corpus rejected: 13" {
   assert_true(parse("01", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 17" {
+test "expression corpus rejected: 14" {
   assert_true(parse("1e999", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 18" {
+test "expression corpus rejected: 15" {
   assert_true(parse("x.", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 19" {
+test "expression corpus rejected: 16" {
   assert_true(parse("x[0:1]", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 20" {
+test "expression corpus rejected: 17" {
   assert_true(parse("$1", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 21" {
+test "expression corpus rejected: 18" {
   assert_true(parse("$ value", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 22" {
+test "expression corpus rejected: 19" {
   assert_true(parse("IF(x = 1, 2, 3)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 23" {
+test "expression corpus rejected: 20" {
   assert_true(parse("CASE x WHEN 1 THEN 2 END", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 24" {
+test "expression corpus rejected: 21" {
   assert_true(parse("E'abc'", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 25" {
+test "expression corpus rejected: 22" {
   assert_true(parse("$$abc$$", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 26" {
+test "expression corpus rejected: 23" {
   assert_true(parse("x -- comment", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 27" {
+test "expression corpus rejected: 24" {
   assert_true(parse("x /* comment */", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 28" {
+test "expression corpus rejected: 25" {
   assert_true(parse("eval('x')", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 29" {
+test "expression corpus rejected: 26" {
   assert_true(parse("len()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 30" {
+test "expression corpus rejected: 27" {
   assert_true(parse("len(x, y)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 31" {
+test "expression corpus rejected: 28" {
   assert_true(parse("to_decimal(x, $p, 2)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 32" {
+test "expression corpus rejected: 29" {
   assert_true(parse("quantize(x, 18, 2, rounding)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 33" {
+test "expression corpus rejected: 30" {
   assert_true(parse("starts_with()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 34" {
+test "expression corpus rejected: 31" {
   assert_true(parse("starts_with(x)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 35" {
+test "expression corpus rejected: 32" {
   assert_true(parse("starts_with(x,y,z)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 36" {
+test "expression corpus rejected: 33" {
   assert_true(parse("ends_with()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 37" {
+test "expression corpus rejected: 34" {
   assert_true(parse("ends_with(x)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 38" {
+test "expression corpus rejected: 35" {
   assert_true(parse("ends_with(x,y,z)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 39" {
+test "expression corpus rejected: 36" {
   assert_true(parse("sign()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 40" {
+test "expression corpus rejected: 37" {
   assert_true(parse("sign(x,y)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 41" {
+test "expression corpus rejected: 38" {
   assert_true(parse("strpos()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 42" {
+test "expression corpus rejected: 39" {
   assert_true(parse("strpos(x)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 43" {
+test "expression corpus rejected: 40" {
   assert_true(parse("strpos(x,y,z)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 44" {
+test "expression corpus rejected: 41" {
   assert_true(parse("STRPOS(x,y)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 45" {
+test "expression corpus rejected: 42" {
   assert_true(parse("round()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 46" {
+test "expression corpus rejected: 43" {
   assert_true(parse("trunc()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 47" {
+test "expression corpus rejected: 44" {
   assert_true(parse("ltrim()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 48" {
+test "expression corpus rejected: 45" {
   assert_true(parse("ltrim(s,' ',s)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 49" {
+test "expression corpus rejected: 46" {
   assert_true(parse("LTRIM(s)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 50" {
+test "expression corpus rejected: 47" {
   assert_true(parse("rtrim()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 51" {
+test "expression corpus rejected: 48" {
   assert_true(parse("rtrim(s,' ',s)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 52" {
+test "expression corpus rejected: 49" {
   assert_true(parse("RTRIM(s)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 53" {
+test "expression corpus rejected: 50" {
   assert_true(parse("trim()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 54" {
+test "expression corpus rejected: 51" {
   assert_true(parse("trim(s,' ',s)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 55" {
+test "expression corpus rejected: 52" {
   assert_true(parse("round(x,2,'ROUND_HALF_EVEN')", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 56" {
+test "expression corpus rejected: 53" {
   assert_true(parse("round(x,2,3)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 57" {
+test "expression corpus rejected: 54" {
   assert_true(parse("round(x,)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 58" {
+test "expression corpus rejected: 55" {
   assert_true(parse("trunc(x,2,'ROUND_HALF_EVEN')", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 59" {
+test "expression corpus rejected: 56" {
   assert_true(parse("trunc(x,2,3)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 60" {
+test "expression corpus rejected: 57" {
   assert_true(parse("trunc(x,)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 61" {
+test "expression corpus rejected: 58" {
   assert_true(parse("pow()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 62" {
+test "expression corpus rejected: 59" {
   assert_true(parse("pow(1,)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 63" {
+test "expression corpus rejected: 60" {
   assert_true(parse("pow(1, 2, 3)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 64" {
+test "expression corpus rejected: 61" {
   assert_true(parse("pow(1)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 65" {
+test "expression corpus rejected: 62" {
   assert_true(parse("power()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 66" {
+test "expression corpus rejected: 63" {
   assert_true(parse("power(1,)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 67" {
+test "expression corpus rejected: 64" {
   assert_true(parse("power(1, 2, 3)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 68" {
+test "expression corpus rejected: 65" {
   assert_true(parse("power(1)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 69" {
+test "expression corpus rejected: 66" {
   assert_true(parse("log()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 70" {
+test "expression corpus rejected: 67" {
   assert_true(parse("log(1,)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 71" {
+test "expression corpus rejected: 68" {
   assert_true(parse("log(1, 2, 3)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 72" {
+test "expression corpus rejected: 69" {
   assert_true(parse("exp()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 73" {
+test "expression corpus rejected: 70" {
   assert_true(parse("exp(1,2)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 74" {
+test "expression corpus rejected: 71" {
   assert_true(parse("ln()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 75" {
+test "expression corpus rejected: 72" {
   assert_true(parse("ln(1,2)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 76" {
+test "expression corpus rejected: 73" {
   assert_true(parse("log10()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 77" {
+test "expression corpus rejected: 74" {
   assert_true(parse("log10(1,2)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 78" {
+test "expression corpus rejected: 75" {
   assert_true(parse("greatest()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 79" {
+test "expression corpus rejected: 76" {
   assert_true(parse("greatest(1,)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 80" {
+test "expression corpus rejected: 77" {
   assert_true(parse("greatest(,1)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 81" {
+test "expression corpus rejected: 78" {
   assert_true(parse("least()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 82" {
+test "expression corpus rejected: 79" {
   assert_true(parse("least(1,)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 83" {
+test "expression corpus rejected: 80" {
   assert_true(parse("least(,1)", test_limits()) is Err(_))
 }

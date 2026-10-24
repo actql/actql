@@ -4,6 +4,7 @@ pub(all) enum KeyedJoinIssueKind {
   WorkLimit
   InconsistentConsumer
   FullJoin(Int)
+  RightJoin(Int)
   UnknownResponseField(Int, String)
   MissingResponseField(Int, String)
 } derive(Eq, Debug)
@@ -92,9 +93,14 @@ pub fn check_keyed_joins(
               source: Some(step.source),
             })
           }
-          if @join.kind(operation) == @join.Full {
+          if @join.kind(operation) == @join.Full ||
+            @join.kind(operation) == @join.Right {
             raise KeyedJoinStop({
-              kind: FullJoin(step_index),
+              kind: if @join.kind(operation) == @join.Right {
+                RightJoin(step_index)
+              } else {
+                FullJoin(step_index)
+              },
               source: Some(@join.source(operation)),
             })
           }

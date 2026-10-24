@@ -1,15 +1,21 @@
 ///|
 fn client_local_execution_limits(
   max_rows? : Int = 100,
+  scalar_sequences? : Array[@execution.GeneratedSequence]? = None,
 ) -> (
   @execution.ValueLimits,
   @execution.SequenceExecutionLimits,
   @execution.FixedInputGuardMeasureLimits,
 ) {
-  // Value budgets over one task input: the text one acquisition captures
-  // (500 KB) and a value node for every cell of 100 rows by 100 columns.
+  // Preserve general text and execution envelopes. Only original checked
+  // Number/Boolean schemas can reduce the scalar input/output node envelope;
+  // the pre-admission quote and configured providers use this same policy.
+  let scalar_nodes = match scalar_sequences {
+    Some(sequences) => client_local_scalar_nodes(sequences, max_rows)
+    None => None
+  }
   let values : @execution.ValueLimits = {
-    max_nodes: 20000,
+    max_nodes: scalar_nodes.unwrap_or(20000),
     max_text_bytes: 500000,
     max_depth: 100,
     max_work: 20000000,
@@ -28,8 +34,9 @@ fn client_local_execution_limits(
   }
   let measurement : @execution.FixedInputGuardMeasureLimits = {
     max_work: values.max_work,
-    max_bytes: values.max_text_bytes,
-    max_nodes: values.max_nodes,
+    // Guard measurement counts serialized scalar bytes, not text payload.
+    max_bytes: 500000,
+    max_nodes: 20000,
     max_depth: values.max_depth,
   }
   (values, execution, measurement)
@@ -50,12 +57,14 @@ priv struct ClientLocalSequenceCapacity {
 fn client_local_sequence_capacity(
   sequences : Array[@execution.GeneratedSequence],
   task_count : Int,
+  scalar_values? : Bool = false,
   retained_inputs? : Array[Int]? = None,
   max_rows? : Int = 100,
 ) -> (@resources.LedgerLimits, Int64, Int64)? {
   client_local_sequence_capacity_original(
     sequences,
     task_count,
+    scalar_values~,
     retained_inputs~,
     max_rows~,
   ).map(value => {
@@ -67,6 +76,7 @@ fn client_local_sequence_capacity(
 fn client_local_sequence_capacity_original(
   sequences : Array[@execution.GeneratedSequence],
   task_count : Int,
+  scalar_values? : Bool = false,
   retained_inputs? : Array[Int]? = None,
   max_rows? : Int = 100,
   include_simultaneous? : Bool = false,
@@ -75,7 +85,10 @@ fn client_local_sequence_capacity_original(
   if task_count < 1 || task_count > 32 || sequences.length() > task_count {
     return None
   }
-  let (_, execution, measurement) = client_local_execution_limits(max_rows~)
+  let (_, execution, measurement) = client_local_execution_limits(
+    max_rows~,
+    scalar_sequences=if scalar_values { Some(sequences) } else { None },
+  )
   let mut retained_bytes = 0L
   let mut execution_bytes = 0L
   let mut total_retained_bytes = 0L
@@ -138,7 +151,10 @@ fn client_local_sequence_capacity_original(
     if inputs.length() != sequences.length() {
       return None
     }
-    let (values, _, _) = client_local_execution_limits(max_rows~)
+    let (values, _, _) = client_local_execution_limits(
+      max_rows~,
+      scalar_sequences=if scalar_values { Some(sequences) } else { None },
+    )
     let import_limits = client_local_import_limits(
       {
         contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",

@@ -122,6 +122,7 @@ fn prepare_source_free_local_requirements_original(
   client_local_sequence_capacity_original(
     sequences,
     count,
+    scalar_values=true,
     retained_inputs=Some(inputs),
     max_rows=@publication_host.prepared_client_values_max_rows(prepared),
     include_simultaneous~,

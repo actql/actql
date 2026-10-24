@@ -737,6 +737,14 @@ test "structured expression corpus accepted: 92" {
 }
 
 ///|
+test "structured expression corpus accepted: 93" {
+  assert_tree("{\"eq\":[\"x\",\"NULL\"]}", "{\"eq\":[{\"field\":\"x\"},{\"literal\":null}]}")
+  let expression = admit(source_cursor("{\"eq\":[\"x\",\"NULL\"]}"), test_limits()).unwrap()
+  assert_cursor(tree(admit(tree(expression), test_limits()).unwrap()), tree(expression))
+  assert_eq(parameter_references(expression).map(r => r.name), [])
+}
+
+///|
 test "structured expression corpus rejected: 1" {
   assert_true(admit(source_cursor("\"\\\"right.\\\"\""), test_limits()) is Err(_))
 }
@@ -828,406 +836,401 @@ test "structured expression corpus rejected: 18" {
 
 ///|
 test "structured expression corpus rejected: 19" {
-  assert_true(admit(source_cursor("{\"eq\":[\"x\",\"NULL\"]}"), test_limits()) is Err(_))
-}
-
-///|
-test "structured expression corpus rejected: 20" {
   assert_true(admit(source_cursor("{\"date_trunc\":[\"$unit\",\"x\"]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 21" {
+test "structured expression corpus rejected: 20" {
   assert_true(admit(source_cursor("{\"split_part\":{\"value\":\"x\",\"delimiter\":\"delimiter\",\"index\":\"1\"}}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 22" {
+test "structured expression corpus rejected: 21" {
   assert_true(admit(source_cursor("{\"vector_score\":{\"left\":\"a\",\"right\":\"b\",\"metric\":\"unknown\"}}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 23" {
+test "structured expression corpus rejected: 22" {
   assert_true(admit(source_cursor("{\"quantize\":{\"value\":\"x\",\"precision\":5,\"scale\":2,\"rounding\":\"nearest\"}}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 24" {
+test "structured expression corpus rejected: 23" {
   assert_true(admit(source_cursor("{\"regex_match\":{\"value\":\"x\",\"pattern\":\"$p\",\"flags\":{\"literal\":\"i\"}}}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 25" {
+test "structured expression corpus rejected: 24" {
   assert_true(admit(source_cursor("{\"template\":\"unmatched }\"}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 26" {
+test "structured expression corpus rejected: 25" {
   assert_true(admit(source_cursor("{\"template\":\"empty {}\"}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 27" {
+test "structured expression corpus rejected: 26" {
   assert_true(admit(source_cursor("{\"starts_with\":[]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 28" {
+test "structured expression corpus rejected: 27" {
   assert_true(admit(source_cursor("{\"starts_with\":[{\"literal\":\"a\"}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 29" {
+test "structured expression corpus rejected: 28" {
   assert_true(admit(source_cursor("{\"starts_with\":[{\"literal\":\"a\"},{\"literal\":\"b\"},{\"literal\":\"c\"}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 30" {
+test "structured expression corpus rejected: 29" {
   assert_true(admit(source_cursor("{\"ends_with\":{\"literal\":\"a\"}}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 31" {
+test "structured expression corpus rejected: 30" {
   assert_true(admit(source_cursor("{\"ends_with\":[{\"literal\":\"a\"}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 32" {
+test "structured expression corpus rejected: 31" {
   assert_true(admit(source_cursor("{\"ends_with\":[{\"literal\":\"a\"},{\"literal\":\"b\"},{\"literal\":\"c\"}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 33" {
+test "structured expression corpus rejected: 32" {
   assert_true(admit(source_cursor("{\"sign\":[]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 34" {
+test "structured expression corpus rejected: 33" {
   assert_true(admit(source_cursor("{\"sign\":[{\"literal\":1}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 35" {
+test "structured expression corpus rejected: 34" {
   assert_true(admit(source_cursor("{\"sign\":{\"literal\":1},\"extra\":true}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 36" {
+test "structured expression corpus rejected: 35" {
   assert_true(admit(source_cursor("{\"strpos\":[]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 37" {
+test "structured expression corpus rejected: 36" {
   assert_true(admit(source_cursor("{\"strpos\":[\"x\"]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 38" {
+test "structured expression corpus rejected: 37" {
   assert_true(admit(source_cursor("{\"strpos\":[\"x\",\"y\",\"z\"]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 39" {
+test "structured expression corpus rejected: 38" {
   assert_true(admit(source_cursor("{\"strpos\":{\"literal\":\"x\"}}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 40" {
+test "structured expression corpus rejected: 39" {
   assert_true(admit(source_cursor("{\"strpos\":[\"x\",\"y\"],\"extra\":true}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 41" {
+test "structured expression corpus rejected: 40" {
   assert_true(admit(source_cursor("{\"round\":[]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 42" {
+test "structured expression corpus rejected: 41" {
   assert_true(admit(source_cursor("{\"trunc\":[]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 43" {
+test "structured expression corpus rejected: 42" {
   assert_true(admit(source_cursor("{\"round\":[{\"literal\":1}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 44" {
+test "structured expression corpus rejected: 43" {
   assert_true(admit(source_cursor("{\"trunc\":[{\"literal\":1}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 45" {
+test "structured expression corpus rejected: 44" {
   assert_true(admit(source_cursor("{\"round\":{\"literal\":1},\"extra\":true}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 46" {
+test "structured expression corpus rejected: 45" {
   assert_true(admit(source_cursor("{\"trunc\":{\"literal\":1},\"extra\":true}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 47" {
+test "structured expression corpus rejected: 46" {
   assert_true(admit(source_cursor("{\"ltrim\":[]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 48" {
+test "structured expression corpus rejected: 47" {
   assert_true(admit(source_cursor("{\"ltrim\":[{\"literal\":\"x\"}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 49" {
+test "structured expression corpus rejected: 48" {
   assert_true(admit(source_cursor("{\"ltrim\":{\"literal\":\"x\"},\"extra\":true}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 50" {
+test "structured expression corpus rejected: 49" {
   assert_true(admit(source_cursor("{\"ltrim\":{\"value\":{\"literal\":\"x\"},\"characters\":\" \"}}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 51" {
+test "structured expression corpus rejected: 50" {
   assert_true(admit(source_cursor("{\"rtrim\":[]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 52" {
+test "structured expression corpus rejected: 51" {
   assert_true(admit(source_cursor("{\"rtrim\":[{\"literal\":\"x\"}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 53" {
+test "structured expression corpus rejected: 52" {
   assert_true(admit(source_cursor("{\"rtrim\":{\"literal\":\"x\"},\"extra\":true}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 54" {
+test "structured expression corpus rejected: 53" {
   assert_true(admit(source_cursor("{\"rtrim\":{\"value\":{\"literal\":\"x\"},\"characters\":\" \"}}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 55" {
+test "structured expression corpus rejected: 54" {
   assert_true(admit(source_cursor("{\"trim\":[]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 56" {
+test "structured expression corpus rejected: 55" {
   assert_true(admit(source_cursor("{\"trim\":[{\"literal\":\"x\"}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 57" {
+test "structured expression corpus rejected: 56" {
   assert_true(admit(source_cursor("{\"trim\":[{\"literal\":\"x\"},{\"literal\":\" \"},{\"literal\":\"y\"}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 58" {
+test "structured expression corpus rejected: 57" {
   assert_true(admit(source_cursor("{\"trim\":[{\"literal\":\"x\"},{\"literal\":\" \"}],\"extra\":true}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 59" {
+test "structured expression corpus rejected: 58" {
   assert_true(admit(source_cursor("{\"trim\":{\"value\":{\"literal\":\"x\"},\"characters\":\" \"}}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 60" {
+test "structured expression corpus rejected: 59" {
   assert_true(admit(source_cursor("{\"ltrim\":[{\"literal\":\"x\"},{\"literal\":\" \"},{\"literal\":\"y\"}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 61" {
+test "structured expression corpus rejected: 60" {
   assert_true(admit(source_cursor("{\"ltrim\":[{\"literal\":\"x\"},{\"literal\":\" \"}],\"extra\":true}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 62" {
+test "structured expression corpus rejected: 61" {
   assert_true(admit(source_cursor("{\"rtrim\":[{\"literal\":\"x\"},{\"literal\":\" \"},{\"literal\":\"y\"}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 63" {
+test "structured expression corpus rejected: 62" {
   assert_true(admit(source_cursor("{\"rtrim\":[{\"literal\":\"x\"},{\"literal\":\" \"}],\"extra\":true}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 64" {
+test "structured expression corpus rejected: 63" {
   assert_true(admit(source_cursor("{\"round\":[{\"literal\":1},{\"literal\":2},{\"literal\":\"ROUND_HALF_EVEN\"}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 65" {
+test "structured expression corpus rejected: 64" {
   assert_true(admit(source_cursor("{\"round\":[{\"literal\":1},{\"literal\":2}],\"extra\":true}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 66" {
+test "structured expression corpus rejected: 65" {
   assert_true(admit(source_cursor("{\"round\":{\"value\":{\"literal\":1},\"digits\":{\"literal\":2}}}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 67" {
+test "structured expression corpus rejected: 66" {
   assert_true(admit(source_cursor("{\"trunc\":[{\"literal\":1},{\"literal\":2},{\"literal\":\"ROUND_HALF_EVEN\"}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 68" {
+test "structured expression corpus rejected: 67" {
   assert_true(admit(source_cursor("{\"trunc\":[{\"literal\":1},{\"literal\":2}],\"extra\":true}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 69" {
+test "structured expression corpus rejected: 68" {
   assert_true(admit(source_cursor("{\"trunc\":{\"value\":{\"literal\":1},\"digits\":{\"literal\":2}}}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 70" {
+test "structured expression corpus rejected: 69" {
   assert_true(admit(source_cursor("{\"pow\":[]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 71" {
+test "structured expression corpus rejected: 70" {
   assert_true(admit(source_cursor("{\"pow\":[{\"literal\":1}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 72" {
+test "structured expression corpus rejected: 71" {
   assert_true(admit(source_cursor("{\"pow\":[{\"literal\":1},{\"literal\":2},{\"literal\":3}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 73" {
+test "structured expression corpus rejected: 72" {
   assert_true(admit(source_cursor("{\"pow\":{\"literal\":1}}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 74" {
+test "structured expression corpus rejected: 73" {
   assert_true(admit(source_cursor("{\"pow\":[{\"literal\":1},{\"literal\":2}],\"extra\":true}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 75" {
+test "structured expression corpus rejected: 74" {
   assert_true(admit(source_cursor("{\"log\":[]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 76" {
+test "structured expression corpus rejected: 75" {
   assert_true(admit(source_cursor("{\"log\":[{\"literal\":1}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 77" {
+test "structured expression corpus rejected: 76" {
   assert_true(admit(source_cursor("{\"log\":[{\"literal\":1},{\"literal\":2},{\"literal\":3}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 78" {
+test "structured expression corpus rejected: 77" {
   assert_true(admit(source_cursor("{\"log\":{\"literal\":1}}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 79" {
+test "structured expression corpus rejected: 78" {
   assert_true(admit(source_cursor("{\"log\":[{\"literal\":1},{\"literal\":2}],\"extra\":true}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 80" {
+test "structured expression corpus rejected: 79" {
   assert_true(admit(source_cursor("{\"exp\":[]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 81" {
+test "structured expression corpus rejected: 80" {
   assert_true(admit(source_cursor("{\"exp\":[{\"literal\":1}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 82" {
+test "structured expression corpus rejected: 81" {
   assert_true(admit(source_cursor("{\"exp\":{\"literal\":1},\"extra\":true}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 83" {
+test "structured expression corpus rejected: 82" {
   assert_true(admit(source_cursor("{\"ln\":[]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 84" {
+test "structured expression corpus rejected: 83" {
   assert_true(admit(source_cursor("{\"ln\":[{\"literal\":1}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 85" {
+test "structured expression corpus rejected: 84" {
   assert_true(admit(source_cursor("{\"ln\":{\"literal\":1},\"extra\":true}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 86" {
+test "structured expression corpus rejected: 85" {
   assert_true(admit(source_cursor("{\"log10\":[]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 87" {
+test "structured expression corpus rejected: 86" {
   assert_true(admit(source_cursor("{\"log10\":[{\"literal\":1}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 88" {
+test "structured expression corpus rejected: 87" {
   assert_true(admit(source_cursor("{\"log10\":{\"literal\":1},\"extra\":true}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 89" {
+test "structured expression corpus rejected: 88" {
   assert_true(admit(source_cursor("{\"power\":[{\"literal\":2},{\"literal\":3}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 90" {
+test "structured expression corpus rejected: 89" {
   assert_true(admit(source_cursor("{\"greatest\":[]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 91" {
+test "structured expression corpus rejected: 90" {
   assert_true(admit(source_cursor("{\"greatest\":{\"literal\":1}}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 92" {
+test "structured expression corpus rejected: 91" {
   assert_true(admit(source_cursor("{\"greatest\":[{\"literal\":1}],\"extra\":true}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 93" {
+test "structured expression corpus rejected: 92" {
   assert_true(admit(source_cursor("{\"GREATEST\":[{\"literal\":1}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 94" {
+test "structured expression corpus rejected: 93" {
   assert_true(admit(source_cursor("{\"least\":[]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 95" {
+test "structured expression corpus rejected: 94" {
   assert_true(admit(source_cursor("{\"least\":{\"literal\":1}}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 96" {
+test "structured expression corpus rejected: 95" {
   assert_true(admit(source_cursor("{\"least\":[{\"literal\":1}],\"extra\":true}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 97" {
+test "structured expression corpus rejected: 96" {
   assert_true(admit(source_cursor("{\"LEAST\":[{\"literal\":1}]}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 98" {
+test "structured expression corpus rejected: 97" {
   assert_true(admit(source_cursor("{\"try_timestamp\":{}}"), test_limits()) is Err(_))
 }
 
 ///|
-test "structured expression corpus rejected: 99" {
+test "structured expression corpus rejected: 98" {
   assert_true(admit(source_cursor("{\"try_timestamp\":{\"value\":{\"literal\":null},\"unexpected\":false}}"), test_limits()) is Err(_))
 }
 
@@ -1922,6 +1925,21 @@ test "common admission of text corpus: 138" {
 }
 
 ///|
+test "common admission of text corpus: 139" {
+  assert_tree("\"x = NULL\"", "{\"eq\":[{\"field\":\"x\"},{\"literal\":null}]}")
+}
+
+///|
+test "common admission of text corpus: 140" {
+  assert_tree("\"x <> NULL\"", "{\"neq\":[{\"field\":\"x\"},{\"literal\":null}]}")
+}
+
+///|
+test "common admission of text corpus: 141" {
+  assert_tree("\"-0\"", "{\"literal\":0}")
+}
+
+///|
 test "common rejection of text corpus: 1" {
   assert_true(admit(text_cursor("x IS NULL.c"), test_limits()) is Err(_))
 }
@@ -1958,380 +1976,365 @@ test "common rejection of text corpus: 7" {
 
 ///|
 test "common rejection of text corpus: 8" {
-  assert_true(admit(text_cursor("x = NULL"), test_limits()) is Err(_))
-}
-
-///|
-test "common rejection of text corpus: 9" {
-  assert_true(admit(text_cursor("x <> NULL"), test_limits()) is Err(_))
-}
-
-///|
-test "common rejection of text corpus: 10" {
   assert_true(admit(text_cursor("x::number"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 11" {
+test "common rejection of text corpus: 9" {
   assert_true(admit(text_cursor("CAST(x AS unknown_type)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 12" {
+test "common rejection of text corpus: 10" {
   assert_true(admit(text_cursor("7 // 2"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 13" {
+test "common rejection of text corpus: 11" {
   assert_true(admit(text_cursor("x IN ()"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 14" {
+test "common rejection of text corpus: 12" {
   assert_true(admit(text_cursor("x < y < z"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 15" {
-  assert_true(admit(text_cursor("-0"), test_limits()) is Err(_))
-}
-
-///|
-test "common rejection of text corpus: 16" {
+test "common rejection of text corpus: 13" {
   assert_true(admit(text_cursor("01"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 17" {
+test "common rejection of text corpus: 14" {
   assert_true(admit(text_cursor("1e999"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 18" {
+test "common rejection of text corpus: 15" {
   assert_true(admit(text_cursor("x."), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 19" {
+test "common rejection of text corpus: 16" {
   assert_true(admit(text_cursor("x[0:1]"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 20" {
+test "common rejection of text corpus: 17" {
   assert_true(admit(text_cursor("$1"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 21" {
+test "common rejection of text corpus: 18" {
   assert_true(admit(text_cursor("$ value"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 22" {
+test "common rejection of text corpus: 19" {
   assert_true(admit(text_cursor("IF(x = 1, 2, 3)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 23" {
+test "common rejection of text corpus: 20" {
   assert_true(admit(text_cursor("CASE x WHEN 1 THEN 2 END"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 24" {
+test "common rejection of text corpus: 21" {
   assert_true(admit(text_cursor("E'abc'"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 25" {
+test "common rejection of text corpus: 22" {
   assert_true(admit(text_cursor("$$abc$$"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 26" {
+test "common rejection of text corpus: 23" {
   assert_true(admit(text_cursor("x -- comment"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 27" {
+test "common rejection of text corpus: 24" {
   assert_true(admit(text_cursor("x /* comment */"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 28" {
+test "common rejection of text corpus: 25" {
   assert_true(admit(text_cursor("eval('x')"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 29" {
+test "common rejection of text corpus: 26" {
   assert_true(admit(text_cursor("len()"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 30" {
+test "common rejection of text corpus: 27" {
   assert_true(admit(text_cursor("len(x, y)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 31" {
+test "common rejection of text corpus: 28" {
   assert_true(admit(text_cursor("to_decimal(x, $p, 2)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 32" {
+test "common rejection of text corpus: 29" {
   assert_true(admit(text_cursor("quantize(x, 18, 2, rounding)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 33" {
+test "common rejection of text corpus: 30" {
   assert_true(admit(text_cursor("starts_with()"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 34" {
+test "common rejection of text corpus: 31" {
   assert_true(admit(text_cursor("starts_with(x)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 35" {
+test "common rejection of text corpus: 32" {
   assert_true(admit(text_cursor("starts_with(x,y,z)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 36" {
+test "common rejection of text corpus: 33" {
   assert_true(admit(text_cursor("ends_with()"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 37" {
+test "common rejection of text corpus: 34" {
   assert_true(admit(text_cursor("ends_with(x)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 38" {
+test "common rejection of text corpus: 35" {
   assert_true(admit(text_cursor("ends_with(x,y,z)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 39" {
+test "common rejection of text corpus: 36" {
   assert_true(admit(text_cursor("sign()"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 40" {
+test "common rejection of text corpus: 37" {
   assert_true(admit(text_cursor("sign(x,y)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 41" {
+test "common rejection of text corpus: 38" {
   assert_true(admit(text_cursor("strpos()"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 42" {
+test "common rejection of text corpus: 39" {
   assert_true(admit(text_cursor("strpos(x)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 43" {
+test "common rejection of text corpus: 40" {
   assert_true(admit(text_cursor("strpos(x,y,z)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 44" {
+test "common rejection of text corpus: 41" {
   assert_true(admit(text_cursor("STRPOS(x,y)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 45" {
+test "common rejection of text corpus: 42" {
   assert_true(admit(text_cursor("round()"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 46" {
+test "common rejection of text corpus: 43" {
   assert_true(admit(text_cursor("trunc()"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 47" {
+test "common rejection of text corpus: 44" {
   assert_true(admit(text_cursor("ltrim()"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 48" {
+test "common rejection of text corpus: 45" {
   assert_true(admit(text_cursor("ltrim(s,' ',s)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 49" {
+test "common rejection of text corpus: 46" {
   assert_true(admit(text_cursor("LTRIM(s)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 50" {
+test "common rejection of text corpus: 47" {
   assert_true(admit(text_cursor("rtrim()"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 51" {
+test "common rejection of text corpus: 48" {
   assert_true(admit(text_cursor("rtrim(s,' ',s)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 52" {
+test "common rejection of text corpus: 49" {
   assert_true(admit(text_cursor("RTRIM(s)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 53" {
+test "common rejection of text corpus: 50" {
   assert_true(admit(text_cursor("trim()"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 54" {
+test "common rejection of text corpus: 51" {
   assert_true(admit(text_cursor("trim(s,' ',s)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 55" {
+test "common rejection of text corpus: 52" {
   assert_true(admit(text_cursor("round(x,2,'ROUND_HALF_EVEN')"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 56" {
+test "common rejection of text corpus: 53" {
   assert_true(admit(text_cursor("round(x,2,3)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 57" {
+test "common rejection of text corpus: 54" {
   assert_true(admit(text_cursor("round(x,)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 58" {
+test "common rejection of text corpus: 55" {
   assert_true(admit(text_cursor("trunc(x,2,'ROUND_HALF_EVEN')"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 59" {
+test "common rejection of text corpus: 56" {
   assert_true(admit(text_cursor("trunc(x,2,3)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 60" {
+test "common rejection of text corpus: 57" {
   assert_true(admit(text_cursor("trunc(x,)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 61" {
+test "common rejection of text corpus: 58" {
   assert_true(admit(text_cursor("pow()"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 62" {
+test "common rejection of text corpus: 59" {
   assert_true(admit(text_cursor("pow(1,)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 63" {
+test "common rejection of text corpus: 60" {
   assert_true(admit(text_cursor("pow(1, 2, 3)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 64" {
+test "common rejection of text corpus: 61" {
   assert_true(admit(text_cursor("pow(1)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 65" {
+test "common rejection of text corpus: 62" {
   assert_true(admit(text_cursor("power()"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 66" {
+test "common rejection of text corpus: 63" {
   assert_true(admit(text_cursor("power(1,)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 67" {
+test "common rejection of text corpus: 64" {
   assert_true(admit(text_cursor("power(1, 2, 3)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 68" {
+test "common rejection of text corpus: 65" {
   assert_true(admit(text_cursor("power(1)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 69" {
+test "common rejection of text corpus: 66" {
   assert_true(admit(text_cursor("log()"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 70" {
+test "common rejection of text corpus: 67" {
   assert_true(admit(text_cursor("log(1,)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 71" {
+test "common rejection of text corpus: 68" {
   assert_true(admit(text_cursor("log(1, 2, 3)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 72" {
+test "common rejection of text corpus: 69" {
   assert_true(admit(text_cursor("exp()"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 73" {
+test "common rejection of text corpus: 70" {
   assert_true(admit(text_cursor("exp(1,2)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 74" {
+test "common rejection of text corpus: 71" {
   assert_true(admit(text_cursor("ln()"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 75" {
+test "common rejection of text corpus: 72" {
   assert_true(admit(text_cursor("ln(1,2)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 76" {
+test "common rejection of text corpus: 73" {
   assert_true(admit(text_cursor("log10()"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 77" {
+test "common rejection of text corpus: 74" {
   assert_true(admit(text_cursor("log10(1,2)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 78" {
+test "common rejection of text corpus: 75" {
   assert_true(admit(text_cursor("greatest()"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 79" {
+test "common rejection of text corpus: 76" {
   assert_true(admit(text_cursor("greatest(1,)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 80" {
+test "common rejection of text corpus: 77" {
   assert_true(admit(text_cursor("greatest(,1)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 81" {
+test "common rejection of text corpus: 78" {
   assert_true(admit(text_cursor("least()"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 82" {
+test "common rejection of text corpus: 79" {
   assert_true(admit(text_cursor("least(1,)"), test_limits()) is Err(_))
 }
 
 ///|
-test "common rejection of text corpus: 83" {
+test "common rejection of text corpus: 80" {
   assert_true(admit(text_cursor("least(,1)"), test_limits()) is Err(_))
 }

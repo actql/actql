@@ -172,6 +172,10 @@ fn source_free_installed_managed_preparation_owned(
   guard client_local_sequence_capacity(
       sequences,
       task_count,
+      scalar_values=match owner {
+        Pure(_) => true
+        Effect(_) => false
+      },
       retained_inputs=Some(inputs),
       max_rows=match owner {
         Pure(prepared) =>

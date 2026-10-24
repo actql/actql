@@ -91,6 +91,8 @@ fn flatten(
       "cast"
       | "property"
       | "subscript"
+      | "array_offset"
+      | "array_safe_offset"
       | "try_decimal"
       | "quantize"
       | "decimal_divide"
@@ -107,7 +109,8 @@ fn flatten(
       | "vector_score" => {
         let names = match tag {
           "decimal_divide" | "vector_score" => ["left", "right"]
-          "subscript" => ["value", "index"]
+          "subscript" | "array_offset" | "array_safe_offset" =>
+            ["value", "index"]
           "split_part" => ["value", "delimiter", "index"]
           "substring" => ["value", "start", "length"]
           "utf8_truncate" => ["value", "max_bytes"]
