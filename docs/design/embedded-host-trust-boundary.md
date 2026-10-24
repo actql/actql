@@ -270,3 +270,27 @@ publication cases and physical file-owner cases from a normal installed
 end-to-end operation. The latter still requires the matching generated Common
 and actual public capture, explicit approval, conditional update and restart
 checks; a codec, syntax or type check alone does not establish it.
+
+
+## Local Content capture and cold publication
+
+A selected Local STORE remains its installed Command and Mapping occurrence.
+Its collection Reference compares the full canonical Catalog member identity;
+the Resource boundary separately retains the Catalog semantic identity. Capture
+uses the same published target in both proposal export and pinned-plan checking.
+Cold Command Content recovery unwraps the existing Source token before calling
+the typed Common bridge. These projections issue no new permission or target.
+
+Each exported Effect Source retains its actual result-schema CID and canonical
+wire, including a source-free serialized Content input. The completed capture
+owner prepares distinct schemas in the same Store, immediately retaining every
+acquired prefix for cleanup. Its encrypted capture authenticates that schema
+with the original Source Artifact. Cold recovery checks the same CID and wire
+and restores their custody before final publication; it never recreates a
+missing schema from a target response or reacquires a Source.
+
+The Local provider response may retain its private `stored` marker. Its generic
+applied Command outcome contains the original empty result and omits that
+provider marker, so the unchanged protocol schema remains authoritative.
+Physical claims, currentness, ambiguous outcomes and nonresend duties retain
+their existing owners.

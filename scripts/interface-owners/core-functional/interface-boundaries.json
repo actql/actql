@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "f02f89e222401eb28666a20ec945a0c72ab309957d7d1e841841f8bbb5c1c5a4",
+      "sha256": "188171ecd5e5e8415541898915db18ba79ff0855a3ec5f64b493c7b6264ca62e",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -9341,6 +9341,10 @@
               {
                 "path": "adapters/host-node/recovered-command-content.test.mjs",
                 "anchor": "test('recovered Command retains the same Store original"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE cold Content restores its retained generation before send'"
               }
             ]
           }

@@ -15415,7 +15415,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "f02f89e222401eb28666a20ec945a0c72ab309957d7d1e841841f8bbb5c1c5a4",
+      "sha256": "188171ecd5e5e8415541898915db18ba79ff0855a3ec5f64b493c7b6264ca62e",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -26161,6 +26161,10 @@
               {
                 "path": "adapters/host-node/recovered-command-content.test.mjs",
                 "anchor": "test('recovered Command retains the same Store original"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE cold Content restores its retained generation before send'"
               }
             ]
           }
@@ -32293,7 +32297,7 @@
     {
       "module": "adapters/host-node/effect-input-export.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "0f1d54c80af0efe5b7638c76008c2b8f3d202b52c4a81e7d218666e47f3e3d63",
+      "sha256": "f0bc70a0f60c584dbdf78b510a67764e1d063b7fef98f5fbb15e16961c113400",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -33118,6 +33122,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE cold Content settles its original response through final publication'"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE cold capture refuses altered original source schema'"
               }
             ]
           }
@@ -34401,6 +34413,14 @@
               {
                 "path": "adapters/host-node/effect-command-target-callers.test.mjs",
                 "anchor": "original target refusal happens before physical rows"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE cold Content settles its original response through final publication'"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE cold capture refuses altered original source schema'"
               }
             ]
           }
@@ -59275,7 +59295,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "207e73cf7c5e3e520b6c53164ad8ca8dd1ed333ece556f59c6469fb37681b645",
+      "sha256": "a4ca6ec7dd3320d48c05bc3d3f3941d7307c65e3c433df90d33e3f6a345b4ccc",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -60851,13 +60871,6 @@
         },
         {
           "name": "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent#2",
           "parameters": [],
           "async": false
         },
@@ -60869,9 +60882,23 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/selectionFence/selectionFence/updates/updates",
+          "name": "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers",
           "parameters": [
             "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers/mappings/mappings",
+          "parameters": [
+            "mapping"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers/selected/selected",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -62603,6 +62630,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Verification: `installed-composed-recovery.integration.test.mjs` exercises"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE authored Content captures Preview with its original published target'"
               }
             ]
           }
@@ -63965,8 +63996,9 @@
             "createRowEffectStage/selectionFence/selectionFence",
             "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent",
             "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent",
-            "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent#2",
-            "createRowEffectStage/selectionFence/selectionFence/updates/updates",
+            "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers",
+            "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers/mappings/mappings",
+            "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers/selected/selected",
             "installationFacts/installationFacts",
             "installedRowEffectOwnerBinding",
             "installedRowEffectUpdateObservations",
