@@ -55,6 +55,14 @@ identity uses only that same private canonical value and its measured limits.
 Generic admitted Result-name spellings retain their original key normalization
 and diagnostic order. Manifest wire and CID do not change.
 
+Nested identity admission first checks the private Artifact original at the
+same Result position. The issuer supplies those originals in its emitted order,
+so the matching pass needs one comparison per child in that case. A position
+miss retains the existing search and full admission fallback, including when
+key normalization changes the order. Every match still requires the exact
+immutable child and the current wire, node and depth bounds. This does not
+change other Manifest inventory scans or establish a whole-issuer time bound.
+
 Subsequent Root checks still bind the Run, Invocation, complete Definition and
 Artifact inventories, names and references. When a nested value is the exact
 same immutable admitted Artifact value and fits the current bounds, that
