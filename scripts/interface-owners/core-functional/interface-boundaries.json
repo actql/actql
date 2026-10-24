@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "188171ecd5e5e8415541898915db18ba79ff0855a3ec5f64b493c7b6264ca62e",
+      "sha256": "f25444fe68634000dec87c0c2f25a589aa9c962d79f82b5a72787b9e2efe7a0f",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -3729,6 +3729,45 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds",
+          "parameters": [
+            "request",
+            "resultCount",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound",
+          "parameters": [
+            "plan",
+            "request",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound/value/value",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound/value/value#2",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:originalClientInferNodeReadStateRead/init:originalClientInferNodeReadStateRead",
           "parameters": [
             "writer"
@@ -4390,6 +4429,29 @@
           "parameters": [
             "retention",
             "observedAt"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds",
+          "parameters": [
+            "inputRelationCids",
+            "maxSchemaBytes",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds#2",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -8204,7 +8266,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -8995,7 +9057,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -9345,6 +9407,117 @@
               {
                 "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
                 "anchor": "test('actual Local STORE cold Content restores its retained generation before send'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds",
+            "publicationControl/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds",
+            "publicationControl/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound",
+            "publicationControl/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound/value/value",
+            "publicationControl/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound/value/value#2",
+            "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds",
+            "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds",
+            "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-publication-capacity.test.mjs",
+                "anchor": "test('public Local publishes every one of 100 aliases including distinct projections and empty rows',async()=>{"
               }
             ]
           }
