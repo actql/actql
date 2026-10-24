@@ -96,7 +96,7 @@ zero_argument_call = "current_timestamp", "(", ")" ;
    the separately admitted VecA expression profile; grammar is not execution support. *)
 (* current_timestamp has exactly zero arguments. It retains the original Run
    evaluation-time dependency, never an authored literal or frontend clock read. *)
-function_name = "current_timestamp" | "len" | "contains" | "starts_with" | "ends_with" | "strpos" | "concat" | "concat_strict" | "safe_div" | "safe_divide" | "safe_add" | "safe_subtract" | "safe_multiply" | "safe_negate" | "sqrt" | "cbrt" | "sin" | "cos" | "tan" | "asin" | "acos" | "atan" | "atan2" | "sinh" | "cosh" | "tanh" | "asinh" | "acosh" | "atanh" | "pow" | "power" | "exp" | "ln" | "log" | "log10" | "abs" | "sign" | "round" | "trunc" | "greatest" | "least" | "floor"
+function_name = "array_offset" | "array_safe_offset" | "current_timestamp" | "len" | "contains" | "starts_with" | "ends_with" | "strpos" | "concat" | "concat_strict" | "safe_div" | "safe_divide" | "safe_add" | "safe_subtract" | "safe_multiply" | "safe_negate" | "sqrt" | "cbrt" | "sin" | "cos" | "tan" | "asin" | "acos" | "atan" | "atan2" | "sinh" | "cosh" | "tanh" | "asinh" | "acosh" | "atanh" | "pow" | "power" | "exp" | "ln" | "log" | "log10" | "abs" | "sign" | "round" | "trunc" | "greatest" | "least" | "floor"
               | "lower" | "upper" | "trim" | "ltrim" | "rtrim" | "replace" | "left" | "right" | "lpad" | "rpad" | "split" | "byte_length" | "octet_length" | "unicode" | "chr" | "repeat" | "reverse" | "translate" | "instr" | "nullif" | "negate"
               | "vector_score" | "vector_concat"
               | "date_trunc" | "date_add" | "date_diff" | "timestamp_add" | "timestamp_sub"

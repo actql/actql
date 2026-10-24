@@ -73,10 +73,16 @@ test "managed cleanup progress observes actual bounded retirement without acknow
   dispose_managed_output_values_scratch(values)
   assert_eq(managed_output_values_reclamation_steps(values), 64L)
   assert_false(managed_output_values_scratch_released(values))
+  assert_true(managed_output_values_reclamation_runnable(values))
   values.active_uses = 1
+  assert_false(managed_output_values_reclamation_runnable(values))
   assert_false(advance_managed_output_values_reclamation(values, 64))
   assert_eq(managed_output_values_reclamation_steps(values), 64L)
   values.active_uses = 0
+  values.buffer.reading = true
+  assert_false(managed_output_values_reclamation_runnable(values))
+  values.buffer.reading = false
+  assert_true(managed_output_values_reclamation_runnable(values))
   while !managed_output_values_scratch_released(values) {
     let previous = managed_output_values_reclamation_steps(values)
     advance_managed_output_values_reclamation(values, 7) |> ignore
@@ -88,6 +94,7 @@ test "managed cleanup progress observes actual bounded retirement without acknow
   assert_eq(managed_output_values_reclamation_steps(values), 1004L)
   assert_true(advance_managed_output_values_reclamation(values, 64))
   assert_eq(managed_output_values_reclamation_steps(values), 1004L)
+  assert_false(managed_output_values_reclamation_runnable(values))
   assert_eq(managed_output_value_row_count(receipt), 500)
   assert_eq(receipt.reference_rows.length(), 500)
 }

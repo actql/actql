@@ -277,9 +277,6 @@ test "closed forms reject malformed arguments and never discover arbitrary data"
         #|{"like":["x",{"concat":[{"literal":"a"},{"literal":"%"}]}]}
       ),
       (
-        #|{"eq":["x","NULL"]}
-      ),
-      (
         #|{"case":{"when":[]}}
       ),
       (

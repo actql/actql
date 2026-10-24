@@ -49,6 +49,7 @@ struct LocalManagedDispatchConfiguration[T] {
   execution : @execution.SequenceExecutionLimits
   measurement : @execution.FixedInputGuardMeasureLimits
   imports : @local.LocalImportLimits
+  metadata : LocalManagedMetadataLimits
   capacity : @connector.ExecutionCapacity
   join_output_ceilings : Array[(Int, Int64)]
   interval_search_ceilings : Array[(Int, Int64)]
@@ -238,6 +239,7 @@ pub struct LocalManagedDispatchOperations[T] {
   close : () -> Unit
   cleanup_refresh : () -> Bool
   cleanup_progress : () -> Int64
+  cleanup_local_continuation : () -> Int64
 }
 
 ///|
@@ -288,7 +290,8 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
   _output_file_bytes : Int64,
 ) -> Result[LocalManagedDispatchConfiguration[T]?, LocalDispatchIssue] {
   guard @strategy.next_captured_task(installed.run) is Some(task) &&
-    installed.import_policy is Some((imports, _)) else {
+    installed.import_policy is Some((imports, _)) &&
+    installed.import_metadata is Some(metadata) else {
     return Ok(None)
   }
   if installed.estimate_configuration is Some(configuration) &&
@@ -310,7 +313,7 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
             installed.run,
             task,
             @local.local_module_execution_limits(installed.implementation).rows.metadata_entries,
-            imports.wire.max_bytes,
+            metadata.name_bytes,
             input_index=index,
           ) {
           Ok(value) => value
@@ -366,7 +369,7 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
             task,
             output,
             @local.local_module_execution_limits(installed.implementation).rows.metadata_entries,
-            imports.wire.max_bytes,
+            metadata.name_bytes,
             input_index=index,
           ) {
           Ok(value) => {
@@ -560,6 +563,11 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     return Err(Configuration(InvalidLimits))
   }
   let imported = count * per_input
+  // Host metadata is a separately funded holding. It survives scratch release
+  // and follows the existing completed-output/borrower cleanup acknowledgement.
+  guard local_retained_with_metadata(base.retained_bytes,metadata.retained_bytes) is Some(retained_with_metadata) else {
+    return Err(Configuration(InvalidLimits))
+  }
   if base.retained_bytes > 9223372036854775807L - base.execution_bytes ||
     imported > 9223372036854775807L - base.execution_bytes - base.retained_bytes ||
     (
@@ -620,9 +628,10 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
         installed.implementation,
       ),
       imports,
+      metadata,
       capacity: {
         transfer_bytes: count * imports.wire.max_bytes.to_int64(),
-        retained_bytes: base.retained_bytes,
+        retained_bytes: retained_with_metadata,
         // The checked output view, independent copy and imported input may
         // overlap until the copy commits and every bridge is closed.
         scratch_bytes: base.execution_bytes + base.retained_bytes + imported,
@@ -785,7 +794,7 @@ pub fn[T] start_local_managed_dispatch(
     (if finalization_completed.val is Some(_) { 1 } else { 0 }) +
     finalization_established.val +
     finalization_deadline.val).to_int64() +
-    finalization_receipt_steps.val
+    finalization_receipt_steps.val + finalization_reclamation_steps.val
   }
   let cancel_finalization = fn() {
     finalization_cancelled.val = true
@@ -898,8 +907,8 @@ pub fn[T] start_local_managed_dispatch(
                   input,
                   setup.imports.max_rows,
                   setup.imports.values,
-                  setup.imports.wire.max_nodes,
-                  setup.imports.wire.max_bytes,
+                  setup.metadata.bridge_entries,
+                  setup.metadata.name_bytes,
                   deferred_reclamation=true,
                 ) {
                 Ok(value) => value
@@ -1066,8 +1075,8 @@ pub fn[T] start_local_managed_dispatch(
         match
           @execution.finish_managed_producer_bridge(
             bridge,
-            setup.imports.wire.max_nodes,
-            setup.imports.wire.max_bytes,
+            setup.metadata.bridge_entries,
+            setup.metadata.name_bytes,
           ) {
           Ok(value) => {
             guard install_local_managed_input_read(
@@ -1641,18 +1650,13 @@ pub fn[T] start_local_managed_dispatch(
                       max_fields: setup.imports.wire.max_columns,
                       max_mapping_work: setup.imports.wire.max_order_work,
                       max_order_work: setup.execution.max_work,
-                      max_workspace_entries: setup.imports.max_rows,
+                      max_workspace_entries: setup.metadata.result_workspace_entries,
                     },
                     setup.imports.max_rows,
                     setup.imports.values,
                     setup.imports.wire,
                     setup.imports.wire,
-                    {
-                      max_fields: setup.imports.wire.max_columns,
-                      max_bytes: setup.imports.wire.max_bytes,
-                      max_nodes: setup.imports.wire.max_nodes,
-                      max_depth: setup.imports.wire.max_depth,
-                    },
+                    setup.metadata.schema,
                     setup.imports.max_batch_bytes,
                   ) {
                   Ok(value) => value
@@ -1831,8 +1835,8 @@ pub fn[T] start_local_managed_dispatch(
             @execution.selected_managed_execution_profile(),
             finalization_completion_preparation,
             target,
-            setup.imports.wire.max_nodes,
-            setup.imports.wire.max_bytes,
+            setup.metadata.completion_entries,
+            setup.metadata.name_bytes,
             fn(candidate : @execution.ManagedRetainedOutput[T]) {
               if physical_equal(candidate, material) {
                 Some(material)
@@ -1914,6 +1918,32 @@ pub fn[T] start_local_managed_dispatch(
         work += 1
       }
       if finalization_deadline.val < deadlines.length() {
+        return Ok({
+          complete: false,
+          waiting: false,
+          settlement: None,
+          progress: finalization_progress(),
+          work: work.to_int64(),
+        })
+      }
+      // The receipt/material now own their immutable copies and transferred
+      // index. Retire only the admission buffer before reporting ready; the
+      // driver/provider/input roots still wait for the existing settled hook.
+      // This shares the original bounded finalization continuation and never
+      // releases reservation capacity before the ordinary scratch witness.
+      // Cleanup is mandatory original-owner retirement, not semantic work:
+      // it remains legal after semantic max_work exhaustion. Actual finite
+      // owned entries bound total retirement; this poll reports its steps
+      // within quantum without debiting finalization_work_remaining.
+      @execution.request_managed_output_values_disposal(values)
+      let before = @execution.managed_output_values_reclamation_steps(values)
+      let reclaimed = @execution.advance_managed_output_values_reclamation(
+        values, quantum - work,
+      )
+      let after = @execution.managed_output_values_reclamation_steps(values)
+      finalization_reclamation_steps.val = after
+      work += (after - before).to_int()
+      if !reclaimed || !@execution.managed_output_values_scratch_released(values) {
         return Ok({
           complete: false,
           waiting: false,
@@ -2006,8 +2036,8 @@ pub fn[T] start_local_managed_dispatch(
           @execution.selected_managed_execution_profile(),
           @execution.generated_completion_preparation(setup.sequence),
           target,
-          setup.imports.wire.max_nodes,
-          setup.imports.wire.max_bytes,
+          setup.metadata.completion_entries,
+          setup.metadata.name_bytes,
           (_ : Unit) => {
             if @carrier_runtime.material_available(material) {
               Some(reference)
@@ -2638,6 +2668,27 @@ pub fn[T] start_local_managed_dispatch(
       )
     },
     cleanup_progress: fn() { finalization_reclamation_steps.val },
+    // -1 means no authorized local continuation, not a stop/release witness.
+    // Provider, borrowed input, snapshot and active-reader waits retain custody.
+    cleanup_local_continuation: fn() {
+      if !disposed.val || live.val || scratch_uses.val != 0 ||
+        provider_execution.val is Some(_) ||
+        relation_snapshot_cancel.val is Some(_) ||
+        input_stop.phase != Stopped || carrier.val is Some(_) ||
+        !retired_carriers.is_empty() || retained.val is Some(_) ||
+        snapshot_storage_released.val is Some(_) {
+        return -1L
+      }
+      if finalization_values.val is Some(values) &&
+        !@execution.managed_output_values_scratch_released(values) &&
+        !@execution.managed_output_values_reclamation_runnable(values) {
+        return -1L
+      }
+      if scratch_retirement.phase != Retired ||
+        finalization_values.val is Some(_) {
+        scratch_retirement.steps + finalization_reclamation_steps.val
+      } else { -1L }
+    },
   }
   Ok({
     ..operations,

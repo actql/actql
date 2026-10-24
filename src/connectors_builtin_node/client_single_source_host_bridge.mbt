@@ -6,13 +6,13 @@ pub fn client_program_prepare_single_captured_local_installed_ledger(
   capacity : @client_local_host.ClientInstalledCaptureCapacity,
   transfer_bytes : Int64,
   execution_bytes : Int64,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
   @client_local_host.prepare_single_captured_local_installed_ledger(
-    prepared, capacity, transfer_bytes, execution_bytes, registry_body, values_body,
+    prepared, capacity, transfer_bytes, execution_bytes, installed_contracts, values_body,
     fragment_body, ordered_body,
   )
 }
@@ -23,7 +23,7 @@ pub fn client_program_open_single_captured_local_host(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource,
   ledger : @resources.Ledger,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -34,7 +34,7 @@ pub fn client_program_open_single_captured_local_host(
       prepared,
       source,
       ledger,
-      registry_body,
+      installed_contracts,
       values_body,
       fragment_body,
       ordered_body,
@@ -45,7 +45,7 @@ pub fn client_program_open_single_captured_local_host(
       prepared,
       source,
       ledger,
-      registry_body,
+      installed_contracts,
       values_body,
       fragment_body,
       ordered_body,

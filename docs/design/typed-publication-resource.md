@@ -1,0 +1,108 @@
+# Typed publication resource handoff
+
+## Scope and responsibility
+
+The active ordinary numeric Closed Values route carries the existing preparation
+capacity into publication. It does not introduce another semantic executor or a
+second resource manager. Common owns the nominal construction, snapshot and
+validation handles; the fixed Node adapter projects them and the existing Store
+owns durable commit and physical cleanup. This is a Draft-stage boundary, not a
+claim that every Source, Effect, Content, static or restored route has migrated.
+
+## Inputs and outputs
+
+The installed manager exposes compilation and publication preparation only for
+its exact request and prepared original. Result snapshots are obtained from the
+original completed output and occurrence. Capture takes those snapshots and the
+original contracts; validation consumes the same nominal constituent contracts.
+Reopened Store inputs are admitted originals, not a retained in-memory capture
+substitute. Small metadata limits, logical row-wire limits and physical Store
+limits remain distinct; one large wire allowance cannot replace all three.
+
+## Original identity
+
+The original Run definition and invocation bind the publication holder. Equal
+CIDs, equal JSON, copied wrappers or another concurrent Run are not ownership
+proofs. A retained validation optimization requires the original matcher and
+current issuer custody; a mismatch cannot silently select a larger validation
+path under a metadata-only reservation. Store-loaded originals use their own
+admission and validation path. No historical Run rewrite or compatibility
+migration is implied.
+
+## Ownership and handoff
+
+Existing manager and dispatch holders preserve the preparation while publication
+borrows it. Typed snapshot, capture and validation continuations keep their exact
+originals until finish or cancellation cuts those aliases. A returned contract
+is not evidence that every temporary constructor has retired. Store content
+groups, selected prepared handles, commit pins and durable references retain
+their separate established duties; this resource handoff does not transfer them
+by CID alone.
+
+## Synchronization and currentness
+
+Growth precedes the covered construction and uses the same reservation. Imported
+provider calls are reentrancy boundaries: the fixed owner is checked again after
+an imported call and before starting the next operation. Awaited validation and
+Store work must preserve the original currentness checks. Refusal, late close or
+a replacement request cannot mint a fresh permission from an old handle.
+
+## Failure and uncertainty
+
+A refused growth preserves the previous reservation. An invalid or unavailable
+original fails closed; it does not cause recompilation or an unowned fallback.
+Unknown journal, Store or cleanup outcomes keep their original receipt and retry
+identity. They are not absence and do not authorize another write, another Run
+or release of another owner's capacity.
+
+## Cancellation and retirement
+
+Cancellation follows the existing continuation and cleanup receipt. It severs
+only aliases actually relinquished by that original operation and retries the
+same cleanup when necessary. Result readiness and physical-stop confirmation
+are distinct observations. Close/reopen tests must wait for the actual cleanup
+barrier, not infer it from a terminal Run status or a cleared JavaScript field.
+
+## Resources and scratch cut
+
+The selected logical tariff prices record headers, references, scalar words,
+UTF-16 storage and wire bytes; it is not RSS or an allocator guarantee. Snapshot
+and capture constructors are funded before construction by the original
+publication owner. Retained output and metadata remain charged while reachable.
+
+Completed-output finalization may require multiple bounded disposal steps. Its
+original progress witness must confirm that Values and completion scratch have
+been severed before their execution reservation is cut. Cleanup accounting moves
+through the existing imported child Ledger; clearing a slot, reporting success
+or observing GC is not a refund witness. Publication then grows the same owner
+for its own constructors rather than retaining the previous scratch peak forever.
+
+## JS representation
+
+The existing generated binding readers decode the actual MoonBit ABI, including
+boxed generic Option values. Fixed Node projections validate arity and scalar
+shape, preserve nominal tokens and keep cancellation in the same finally path.
+The JS representation facet documents this translation only; it does not replace
+the functional owner's identity, Store, currentness or resource obligations.
+
+## Extension and pending work
+
+Generic Source/Content/Effect construction plans and backend API removal are a
+separate staged successor. They are not active-plain funding evidence. Their
+additional measured metadata fields, copied inventories, earlier retained
+canonical Effect plans and generic checker families must be charged before
+activation. The plain recipe must not silently fund those routes merely because
+they share a type. Preparation/execution generalization and complete cross-backend
+migration remain explicit completion work; valid existing routes must not be
+rejected just to make an obsolete-path count reach zero.
+
+## Verification
+
+Registered tests cover nominal snapshot/validation custody, foreign originals,
+imported-call reentrancy, refusal/cancellation, public close during validation,
+actual publication/readback/close/reopen, and bounded completion-scratch disposal.
+The focused source/interface projection checks syntax, hashes and reference
+anchors; it is not semantic, installed-artifact, CI or full-distribution evidence.
+A sparse checkout missing unrelated interface tooling or declared artifacts must
+report that limitation rather than fabricate references or mark the full gate
+successful. Runtime evidence must identify its exact source/model cohort.

@@ -122,15 +122,72 @@ fn read_source(
 }
 
 ///|
-fn admit_program(
-  parsed : @source.ParsedSource,
-  limits : Limits,
-) -> Result[Program, SyntaxError] {
-  let root = match @wire.admit(parsed.node, limits.tree) {
-    Ok(root) => root
-    Err(issue) => return Err(Decode(issue))
+struct ParsedProgramInput {
+  root : @wire.Cursor
+  usage : @source.ParseUsage
+  max_stages : Int
+}
+
+///|
+fn admit_program_input(
+  parsed : @source.ParsedSource, limits : Limits,
+) -> Result[ParsedProgramInput, SyntaxError] {
+  match @wire.admit(parsed.node, limits.tree) {
+    Ok(root) => Ok({root, usage:parsed.usage, max_stages:limits.max_stages})
+    Err(issue) => Err(Decode(issue))
   }
-  Ok(decode(root, limits.max_stages, parsed.usage)) catch {
+}
+
+///|
+fn admit_program(
+  parsed : @source.ParsedSource, limits : Limits,
+) -> Result[Program, SyntaxError] {
+  match admit_program_input(parsed,limits) {
+    Ok(original) => finish_program_input(original)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Parse and index the original source without constructing its Program
+/// envelope. This opaque phase result retains the original measured usage and
+/// selected stage limit; it cannot replace them with caller-supplied counts.
+/// The editable parser tree is not retained by this result. Resource admission
+/// belongs to the fixed caller before this constructor, not to this API.
+pub fn parse_program_input(
+  source : String,
+  limits : Limits,
+  format? : Format = Auto,
+  source_path? : String = "<memory>",
+) -> Result[ParsedProgramInput, SyntaxError] {
+  if !valid_limits(limits) { return Err(InvalidLimits) }
+  let node = read_source(
+    format => {
+      if format == Yaml {
+        @source.parse_program_yaml_measured(source, limits.source, source_path~)
+      } else {
+        @source.parse_program_json_measured(source, limits.source, source_path~)
+      }
+    }, format,
+  )
+  match node {
+    Ok(node) => admit_program_input(node,limits)
+    Err(error) => Err(error)
+  }
+}
+
+///|
+/// Borrow the exact indexed owner for a bounded preparation shape proof. This
+/// does not copy a tree, construct a Program, or grant execution authority.
+pub fn program_input_cursor(original : ParsedProgramInput) -> @wire.Cursor {
+  original.root
+}
+
+///|
+/// Continue the same ordinary structural decoder after its fixed caller has
+/// admitted the next construction phase. Original stage policy is preserved.
+pub fn finish_program_input(original : ParsedProgramInput) -> Result[Program, SyntaxError] {
+  Ok(decode(original.root, original.max_stages, original.usage)) catch {
     Abort(error) => Err(error)
   }
 }
@@ -144,22 +201,9 @@ pub fn parse(
   format? : Format = Auto,
   source_path? : String = "<memory>",
 ) -> Result[Program, SyntaxError] {
-  if !valid_limits(limits) {
-    return Err(InvalidLimits)
-  }
-  let node = read_source(
-    format => {
-      if format == Yaml {
-        @source.parse_program_yaml_measured(source, limits.source, source_path~)
-      } else {
-        @source.parse_program_json_measured(source, limits.source, source_path~)
-      }
-    },
-    format,
-  )
-  match node {
-    Ok(node) => admit_program(node, limits)
-    Err(error) => Err(error)
+  match parse_program_input(source,limits,format~,source_path~) {
+    Ok(original) => finish_program_input(original)
+    Err(issue) => Err(issue)
   }
 }
 

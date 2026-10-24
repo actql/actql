@@ -51,6 +51,7 @@ fn check_impl(
   let kind = match decoded(@decode.text(kind_source), kind_source) {
     "inner" => Inner
     "left" => Left
+    "right" => Right
     "full" => Full
     "semi" => Semi
     "anti" => Anti
@@ -223,7 +224,9 @@ pub fn join_output(
         Unqualified(s) => s
         _ => fail(body, QualifiedInput(side))
       }
-      let c = if kind == Full || (kind == Left && side == @schema.Right) {
+      let c = if kind == Full ||
+        (kind == Left && side == @schema.Right) ||
+        (kind == Right && side == @schema.Left) {
         @contract.with_nullability(f.contract, true)
       } else {
         f.contract

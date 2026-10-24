@@ -173,6 +173,16 @@ fn emit_frames(
             pending.push(EndObject)
             pending.push(PropertyValue(value))
           }
+          ArrayOffset(value, index, safe) => {
+            pending.push(
+              Op(if safe { "array_safe_offset" } else { "array_offset" }),
+            )
+            @encode.begin_object(output)
+            @encode.key(output, "index")
+            pending.push(EndObject)
+            pending.push(PropertyValue(value))
+            pending.push(Expr(index))
+          }
           Subscript(value, index) => {
             pending.push(Op("subscript"))
             @encode.begin_object(output)
@@ -248,6 +258,8 @@ fn emit_frames(
                   Negate => "negate"
                   Upper => "upper"
                   Lower => "lower"
+                  Nfkc => "nfkc"
+                  CaseFold => "case_fold"
                   Trim => "trim"
                   LTrim => "ltrim"
                   RTrim => "rtrim"

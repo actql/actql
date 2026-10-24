@@ -2,12 +2,12 @@
 
 ///|
 pub fn compiler_grammar_manifest_cid() -> String {
-  "sha256:cce54a2f1b4545315305eda3f5958cf0983b4424d954314c2b11fd2cb3948d55"
+  "sha256:f3ce88414bc4d25bcaf772b6b4d983753c6b90785860805df34120dddf2d550d"
 }
 
 ///|
 pub fn compiler_grammar_manifest_wire() -> String {
-  "{\"expression_contract_cid\":\"sha256:76278686ed580a90862ab54680c2e1969b8e3c6b5bec8078e0049e5d9079e9f8\",\"expression_text_grammar_sha256\":\"03a408a9a071b5af85c51ba22e3e340559953073accbaa0f5d043a0c2640f187\",\"expression_text_rules_sha256\":\"29f06a87d1b65c65b6bc14acdecf8dd31cd8e4898f57236220d84b3fc5d987ee\",\"grammar_manifest_cid\":\"sha256:cce54a2f1b4545315305eda3f5958cf0983b4424d954314c2b11fd2cb3948d55\",\"operations\":[\"analytic\",\"append\",\"apply_graph_delta\",\"asof_join\",\"assert_rows\",\"calendar_bucket\",\"calendar_series\",\"components\",\"cross_join\",\"dedupe_events\",\"dedupe_rows\",\"degree\",\"derive\",\"distinct\",\"drop\",\"edge_rows\",\"events\",\"except\",\"filter\",\"graft_graph\",\"graph\",\"graph_bounds\",\"graph_diff\",\"graphs_equal\",\"group\",\"infer\",\"intersect\",\"interval_join\",\"join\",\"json_pick\",\"lag\",\"match_edges\",\"match_nodes\",\"mean_graphs\",\"merge_rankings\",\"nearest\",\"nest\",\"node_rows\",\"normalize_graph\",\"normalize_vectors\",\"pivot\",\"pool_vectors\",\"reach\",\"rename\",\"row_window\",\"score_vectors\",\"search_candidates\",\"select\",\"sequence\",\"serialize\",\"session\",\"shortest_path\",\"sort\",\"subgraph\",\"subtract_graphs\",\"take\",\"text_rank\",\"time_series\",\"to_events\",\"to_vectors\",\"top_k\",\"top_k_by\",\"traverse\",\"union_graphs\",\"unnest\",\"unpivot\",\"values\",\"vectors\",\"watermark_events\",\"watermark_rows\",\"window_events\",\"window_group\"],\"query_text_grammar_sha256\":\"8003bbe27c9606818404fcfa707b29fb5daa18dea12b5c2b0eaed2739328d615\",\"query_text_rules_sha256\":\"dc030a26f732f65ae13f561b4ba21ddbafd06854e9e0ec03803034ccccf22133\",\"source_grammar_cid\":\"sha256:6e8ccc72a07f651bee307aca4c59238ecca359f2f8a3f2e6de04687f32330152\",\"structural_text_grammar_sha256\":\"0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56\",\"structural_text_rules_sha256\":\"5d2f2432181664678b364fc97c3545d1740b004cd7b073c4bf0d8181c30dcaae\",\"version\":\"actql-grammar-manifest/0.1\"}"
+  "{\"expression_contract_cid\":\"sha256:b5701b2178a3b2e624d0fbfbda877d0117c367e42a855161e26e0d2e133f1c2c\",\"expression_text_grammar_sha256\":\"703dce737042c4b6e473b1618451f08d4f8fcc6391a6b2dd2e8f62e96722eaeb\",\"expression_text_rules_sha256\":\"1656fb90fc607479737553b5973e05728e50f3061d1e6e248556460268425f5e\",\"grammar_manifest_cid\":\"sha256:f3ce88414bc4d25bcaf772b6b4d983753c6b90785860805df34120dddf2d550d\",\"operations\":[\"analytic\",\"append\",\"apply_graph_delta\",\"asof_join\",\"assert_rows\",\"calendar_bucket\",\"calendar_series\",\"components\",\"cross_join\",\"dedupe_events\",\"dedupe_rows\",\"degree\",\"derive\",\"distinct\",\"drop\",\"edge_rows\",\"events\",\"except\",\"filter\",\"graft_graph\",\"graph\",\"graph_bounds\",\"graph_diff\",\"graphs_equal\",\"group\",\"infer\",\"intersect\",\"interval_join\",\"join\",\"json_pick\",\"lag\",\"match_edges\",\"match_nodes\",\"mean_graphs\",\"merge_rankings\",\"nearest\",\"nest\",\"node_rows\",\"normalize_graph\",\"normalize_vectors\",\"pivot\",\"pool_vectors\",\"reach\",\"rename\",\"row_window\",\"score_vectors\",\"search_candidates\",\"select\",\"sequence\",\"serialize\",\"session\",\"shortest_path\",\"sort\",\"subgraph\",\"subtract_graphs\",\"take\",\"text_rank\",\"time_series\",\"to_events\",\"to_vectors\",\"top_k\",\"top_k_by\",\"traverse\",\"union_graphs\",\"unnest\",\"unpivot\",\"values\",\"vectors\",\"watermark_events\",\"watermark_rows\",\"window_events\",\"window_group\"],\"query_text_grammar_sha256\":\"8003bbe27c9606818404fcfa707b29fb5daa18dea12b5c2b0eaed2739328d615\",\"query_text_rules_sha256\":\"65b81970d09c63104d3bf132aafb198f2bfb26356570a47a46dcb69f25fbedda\",\"source_grammar_cid\":\"sha256:9308e067cc169370804ce2b9d53bd572f90c83d8f15a2b009db00f6e4c5c95a0\",\"structural_text_grammar_sha256\":\"0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56\",\"structural_text_rules_sha256\":\"5d2f2432181664678b364fc97c3545d1740b004cd7b073c4bf0d8181c30dcaae\",\"version\":\"actql-grammar-manifest/0.1\"}"
 }
 
 ///|
@@ -22,7 +22,7 @@ pub fn compiler_barrier_contract_manifest_wire() -> String {
 
 ///|
 pub fn compiler_aoa_contract_cid() -> String {
-  "sha256:02e2b6ccfaa44014dfe9e5307dec81d8227d9261930f74284cabd89ede875bad"
+  "sha256:3a45ec90fe3a9d6b6d10d678091e44346fde167078e1cacae694d72a70069045"
 }
 
 ///|

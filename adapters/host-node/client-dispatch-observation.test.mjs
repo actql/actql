@@ -18,7 +18,12 @@ const source = readFileSync(new URL('./client-dispatch-owner.mjs', import.meta.u
 const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 const declarations = ast.body.flatMap(node => {
   const value = node.type === 'ExportNamedDeclaration' ? node.declaration : node;
-  return value?.type === 'FunctionDeclaration' ? [source.slice(value.start, value.end)] : [];
+  // Retirement's diagnostic-only field inventory is an actual module-level
+  // dependency. Keep its original declaration, not a fixture-maintained copy.
+  const retirementInventory = value?.type === 'VariableDeclaration' &&
+    value.declarations.some(entry => entry.id.type === 'Identifier' && entry.id.name === 'dispatchFailureFields');
+  return value?.type === 'FunctionDeclaration' || retirementInventory
+    ? [source.slice(value.start, value.end)] : [];
 });
 const installNodeClientDispatchOwner = compileFunction(
   declarations.join('\n') + '\nreturn installNodeClientDispatchOwner;',
@@ -75,10 +80,11 @@ async function actualScalarFailureStop(t,managed,interleaveObservation=false){
     await mkdir(snapshot,{recursive:true});
     return createLocalRetainedStore({parentDirectory:snapshot,capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1});
   });
-  const registry=await readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',import.meta.url),'utf8');
+  const registryWire=await readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',import.meta.url),'utf8');
   const aoa=JSON.parse(await readFile(new URL('../../spec/contracts/actql-aoa.json',import.meta.url),'utf8'));
   const values=JSON.stringify(aoa.execution_contracts['REL.values']),fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
     ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const registry=checked(moon.clientPrepareInstalledSequenceContracts(registryWire,values,fragment,ordered));
   const entry=createNodeHostEntry(()=>Promise.resolve(moon),installStrategyContributions);
   let failure,execution,dispatch,managedRun,managedAdmission;
   let observations=0;
@@ -105,7 +111,7 @@ async function actualScalarFailureStop(t,managed,interleaveObservation=false){
       // Common module, never the source checkout's independent WeakMap.
       const {default:resources}=await import(new URL('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs',
         pathToFileURL(commonRuntimePath)));
-      const sequences=checked(moon.clientProgramPrepareInstalledManagedSourceFree(
+      const sequences=checked(moon.clientProgramPrepareInstalledManagedSourceFreeWithContracts(
         preparedProgram,registry,values,fragment,ordered));
       const limits=moon.clientProgramPreparedInstalledManagedSourceFreeRequirements(sequences);
       assert.equal(limits.length,6);
@@ -351,4 +357,75 @@ test('installed observation follows the actual tracked work after ingress return
     assert.deepEqual(rows[0].parent, trace);
     assert.deepEqual(projection.status().loss, {});
   } finally {release(); if (flight) await flight; await owner.drain(); await projection.close();}
+});
+
+test('preparation custody retires only after original dispatch and clears held plan first', async () => {
+  const ref = {runDefinitionCid: 'preparation-custody'};
+  const prepared = {}, held = {plan: {raw: prepared}};
+  let begin = 0, retired = 0, reads = 0, claims = 0;
+  let finish;
+  const barrier = new Promise(resolve => {finish = resolve;});
+  const owner = installNodeClientDispatchOwner({
+    startRun: async () => {claims++; await barrier; return {kind: 'existing'};},
+    preparationCustody: {begin(submission) {
+      begin++; assert.equal(submission.preparedProgram, prepared);
+      return {get preparedProgram() {reads++; return prepared;}, retire() {
+        assert.equal(held.plan, undefined); retired++;
+      }};
+    }},
+  });
+  const submission = {preparedProgram: prepared, requestId: 'custody-request'};
+  const accepted = {ref, dispatchReserved: false};
+  const started = owner.start(submission, {}, accepted, held);
+  assert.equal(await owner.start(submission, {}, accepted, held), 'not_started');
+  assert.equal(begin, 1); assert.equal(retired, 0);
+  finish(); await started; await owner.drain();
+  assert.equal(claims, 1); assert.equal(reads, 1); assert.equal(retired, 1);
+  await owner.drain(); assert.equal(retired, 1);
+});
+
+test('preparation retirement failure retains original owner for drain without dispatch retry', async () => {
+  const ref = {runDefinitionCid: 'preparation-retirement-retry'};
+  let attempts = 0, begins = 0, claims = 0;
+  const held = {plan: {}};
+  const owner = installNodeClientDispatchOwner({
+    startRun: async () => {claims++; return {kind: 'existing'};},
+    preparationCustody: {begin() {begins++; return {preparedProgram: {}, retire() {
+      assert.equal(held.plan, undefined);
+      if (++attempts < 3) throw new Error('RetirementPending');
+    }};}},
+  });
+  await owner.start({requestId: 'retry'}, {}, {ref, dispatchReserved: false}, held);
+  assert.equal(attempts, 1);
+  await assert.rejects(owner.drain(), {code: 'ClientDispatchCleanupPending'});
+  await owner.drain();
+  assert.equal(attempts, 3); assert.equal(begins, 1); assert.equal(claims, 1);
+  assert.equal(owner.operation(ref), undefined);
+});
+
+test('preparation custody remains borrowed while original cleanup is pending', async () => {
+  const {installLocalPreparationRegistry} = await import('./local-preparation-registry.mjs');
+  const registry = installLocalPreparationRegistry(() => true);
+  const prepared = {}, handle = registry.adopt(prepared);
+  const submission = Object.freeze(registry.attach({requestId: 'pending-custody'}, handle));
+  const candidate = Object.freeze(registry.attach({}, handle));
+  let pending = true, claims = 0;
+  const cleanupHandle = {status: () => ({pending}), retry: async () => {}};
+  const owner = installNodeClientDispatchOwner({
+    preparationCustody: registry,
+    startRun: async () => {
+      claims++;
+      throw Object.assign(new Error('OriginalCleanupPending'), {cleanupPending: true, cleanupHandle});
+    },
+  });
+  const ref = {runDefinitionCid: 'pending-custody'};
+  await owner.start(submission, {}, {ref, dispatchReserved: false}, {});
+  await assert.rejects(owner.drain(), {code: 'ClientDispatchCleanupPending'});
+  assert.equal(candidate.preparedProgram, prepared);
+  assert.notEqual(owner.operation(ref), undefined);
+  pending = false;
+  await owner.drain();
+  assert.equal(claims, 1);
+  assert.equal(owner.operation(ref), undefined);
+  assert.throws(() => candidate.preparedProgram, /BorrowReleased|Retired/);
 });

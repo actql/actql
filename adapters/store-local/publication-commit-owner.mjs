@@ -58,11 +58,12 @@ export function createPublicationCommitOwner({entry, admitted, key}, operations)
       }
 
       await operations.stage();
-      try {custody = operations.beginCustody();}
+      try {custody = await operations.beginCustody();}
       catch (error) {operations.cancelStage?.(); throw error;}
       try {
         await operations.install(() => { installed = true; });
         await operations.adopt();
+        await custody.settleAdopted();
         return Object.freeze({entry, committed: true, idempotent: false});
       } catch (primary) {
         let existing;
@@ -93,7 +94,12 @@ export function createPublicationCommitOwner({entry, admitted, key}, operations)
             primary, custody, reconciliation, operations.makeFailure,
           );
         }
-        await operations.adoptSchemas();
+        try {
+          await operations.adoptSchemas();
+          await custody.settleAdopted();
+        } catch (reconciliation) {
+          throw custodyFailure(primary, custody, reconciliation, operations.makeFailure);
+        }
         return Object.freeze({
           entry: existing,
           committed: installed,

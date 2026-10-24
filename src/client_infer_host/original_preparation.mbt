@@ -49,7 +49,7 @@ pub fn original_model_preparation_available(
 pub fn start_original_model_preparation(
   prepared : @publication_host.PreparedClientProgram,
   step : Int,
-  registry : String,
+  sequence_contracts : @input.ClientInstalledSequenceContracts,
   values : String,
   provider : @model.ModelProvider,
   limits : Limits,
@@ -91,7 +91,7 @@ pub fn start_original_model_preparation(
     start(
       prepared,
       step,
-      registry,
+      sequence_contracts,
       values,
       provider,
       @publication_host.client_infer_plan_graph_request_cid(plan),

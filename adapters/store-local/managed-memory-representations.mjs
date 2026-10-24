@@ -3,6 +3,16 @@
 // Node filesystem or crypto modules.
 const representations = new WeakMap();
 const rowPlans = new WeakSet();
+const managedInputOwners = new WeakMap();
+const managedInputReleaseFailures = new WeakMap();
+// A copied wrapper or replaced recovery callback cannot borrow a registered
+// memory owner's completed-output cleanup authority.
+export function managedMemoryReleaseFailureMatches(owner, failure) {
+  const original = managedInputReleaseFailures.get(failure);
+  return original !== undefined && managedInputOwners.get(owner) === original.handle &&
+    Object.getOwnPropertyDescriptor(failure, 'cleanupHandle')?.value === original.handle &&
+    Object.getOwnPropertyDescriptor(failure, 'primaryFailure')?.value === original.primary;
+}
 const issue = code => Object.assign(new Error(code), {code});
 const member = (value, name) => {
   try {
@@ -253,6 +263,7 @@ export function registerManagedMemoryInput(
   }
   let open = true, readers = 0, released = false;
   let releaseAttempted = false, releaseFailed = false, releaseFailure;
+  let originalReleaseError;
   const closeWaiters = [];
   const settleCloseWaiters = () => {
     if (!released && !releaseFailed) return;
@@ -291,7 +302,8 @@ export function registerManagedMemoryInput(
       if (!released && member(releaseFailure, 'cleanupPending') === true &&
           typeof member(handle, 'retry') === 'function') {
         await handle.retry();
-        if (!cleanupState(handle).pending) {
+        const state = cleanupState(handle);
+        if (!state.pending && state.errors.length === 0) {
           released = true;
           settleCloseWaiters();
         }
@@ -300,12 +312,17 @@ export function registerManagedMemoryInput(
     },
   });
   const releaseError = () => {
+    // releaseAttempted fixes the original failure. Concurrent waiters and
+    // later retries share this one wrapper, not a growing failure inventory.
+    if (originalReleaseError !== undefined) return originalReleaseError;
     const failure = issue('ManagedInputReleaseFailed');
     failure.cause = releaseFailure;
     failure.primaryFailure = releaseFailure;
     failure.cleanupErrors = releaseCleanup.status().errors;
     failure.cleanupPending = true;
     failure.cleanupHandle = releaseCleanup;
+    managedInputReleaseFailures.set(failure, {handle: releaseCleanup, primary: releaseFailure});
+    originalReleaseError = failure;
     return failure;
   };
   const held = {
@@ -332,7 +349,7 @@ export function registerManagedMemoryInput(
     },
   };
   installManagedRepresentation(material, held);
-  return Object.freeze({
+  const owner = Object.freeze({
     async close() {
       open = false;
       finishRelease();
@@ -355,6 +372,8 @@ export function registerManagedMemoryInput(
       releaseFailed: releaseFailed && !released,
     }),
   });
+  managedInputOwners.set(owner, releaseCleanup);
+  return owner;
 }
 
 // Publication-only scoped read of one exact managed material generation.

@@ -26,7 +26,7 @@ const {declareOrdinaryInitialControlPhaseEnvelope, inspectOrdinaryInitialControl
 const {declareSourceManagedPhaseEnvelope,declareSourceComputePhaseEnvelope,
   declareSourceFreeManagedComputePhaseEnvelope} = require('./source-managed-phase-envelope.cjs');
 const {declareHostJournalServiceRecipe} = require('./host-journal-service-recipe.cjs');
-const {declareHostResultServiceRecipe, facilityFields: resultFacilityFields}
+const {declareHostResultServiceRecipe, validOriginalResultPublicationExtent, facilityFields: resultFacilityFields}
   = require('./host-result-service-recipe.cjs');
 const {declareHostLocalMockModelServiceRecipe}
   = require('./host-local-mock-model-service-recipe.cjs');
@@ -481,8 +481,8 @@ function admitResultRun(original, held, prepared) {
   entry.runAttempted = true;
   const required = apply(entry.service.callbacks.requirements, entry.service.namespace, [held, prepared]);
   const results = field(required, 'resultCount'), rows = field(required, 'maxRows');
-  if (!Number.isSafeInteger(results) || results < 1 || results > entry.service.recipe.result.maxResults ||
-      !Number.isSafeInteger(rows) || rows < 0 || rows > entry.service.recipe.result.maxRows) resultUnavailable();
+  if (!validOriginalResultPublicationExtent(results, rows, field(required, 'maxContractBytes'), 1) ||
+      results > entry.service.recipe.result.maxResults) resultUnavailable();
   resultCurrent(original, held);
   managedRunCurrent(run);
   entry.candidate = freeze({prepared, run, results, rows});

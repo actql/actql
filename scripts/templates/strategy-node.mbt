@@ -45,6 +45,7 @@ struct StrategyHostManagedResultImport {
   result : Int
   output : @execution.ManagedCompletedOutput[Int]
   bridge : @execution.ManagedPublicationBridge[Int]
+  source_row_limits : @execution.RetainedRowDecodeLimits?
   occurrence : @execution.ManagedResultOccurrence
   definition : @publication.PublicationContract
   limits : @publication_host.PublicationOutputExportLimits
@@ -3027,15 +3028,36 @@ pub fn strategy_host_managed_result_import_begin(
     max_depth: max_value_depth,
     max_work: max_value_work,
   }
+  // The managed bridge admits original producer names before Result
+  // projection. Reuse this exact Run's sealed Local metadata allowance;
+  // final schema bytes belong only to the projected durable Result encoder.
+  // LOCAL_PUBLICATION_BRIDGE_POLICY_BEGIN
+  let bridge_limits = match @builtin.configured_local_module(
+    @builtin.configured_host_modules(host),
+  ) {
+    Some(module) => @publication_local_driver.local_publication_bridge_limits(module, run)
+    None => None
+  }
+  // LOCAL_PUBLICATION_BRIDGE_POLICY_END
+  // Non-Local callers keep their explicit legacy bridge profile. No Local
+  // funding is inferred for an unrelated backend or an unsealed installation.
+  let bridge_entries = bridge_limits.map(value => value.entries)
+    .unwrap_or(max_result_workspace_entries)
+  let bridge_name_bytes = bridge_limits.map(value => value.name_bytes)
+    .unwrap_or(max_schema_bytes)
   let bridge = match
     @execution.prepare_managed_publication_bridge(
-      output, material, max_rows, values, max_result_workspace_entries, max_schema_bytes,
+      output, material,
+      bridge_limits.map(value => value.max_rows).unwrap_or(max_rows),
+      bridge_limits.map(value => value.values).unwrap_or(values),
+      bridge_entries, bridge_name_bytes,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
   {
     bridge,
+    source_row_limits: bridge_limits.map(value => value.row),
     occurrence,
     definition,
     run,
@@ -3088,12 +3110,15 @@ pub fn strategy_host_managed_result_import_append(
     raise InvalidCommand
   }
   match
-    @execution.append_managed_publication_bridge_wire(value.bridge, row, {
-      max_bytes,
-      max_nodes,
-      max_depth,
-      max_text_bytes,
-    }) {
+    @execution.append_managed_publication_bridge_wire(value.bridge, row,
+      value.source_row_limits.unwrap_or({
+        // Explicit legacy non-Local decoder profile only. Installed Local
+        // re-admission consumes its original policy snapshot from begin.
+        max_bytes,
+        max_nodes,
+        max_depth,
+        max_text_bytes,
+      })) {
     Ok(_) => ()
     Err(_) => raise InvalidCommand
   }

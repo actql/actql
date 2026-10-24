@@ -40,17 +40,19 @@ test('Embedded Local captures Values row selection once alongside the Host polic
   assert.equal(reads, 1);
 });
 
-test('default and insufficient Values ceilings still reject the valid 121-row Program', () => {
+test('default Values capacity derives from input while an explicit insufficient ceiling rejects', () => {
   const standard = installNodeClientProgramPreparation({moon, environment})(request);
-  assert.equal(moon.clientProgramValuesMaxRows(standard), 100);
-  assert.throws(() => planFor(standard), {code: 'RunHostCompilationRejected'});
+  assert.equal(moon.clientProgramValuesMaxRows(standard), 121);
+  const standardPlan = planFor(standard);
+  // Generic metadata retains one row collection and one order inventory.
+  assert.equal(standardPlan.outputLimits.maxResultWorkspaceEntries, 2 * 121);
   const short = installNodeClientProgramPreparation({moon, environment, valuesMaxRows: 120})(request);
   assert.throws(() => planFor(short), {code: 'RunHostCompilationRejected'});
   const selected = installNodeClientProgramPreparation({moon, environment, valuesMaxRows: 121})(request);
   const plan = planFor(selected);
-  assert.equal(plan.outputLimits.maxResultWorkspaceEntries, 121);
-  assert.equal(plan.outputLimits.maxResultOrderWork, 10000);
-  assert.equal(moon.clientProgramValuesMaxRows(standard), 100);
+  assert.equal(plan.outputLimits.maxResultWorkspaceEntries, 2 * 121);
+  assert.equal(plan.outputLimits.maxResultOrderWork, standardPlan.outputLimits.maxResultOrderWork);
+  assert.equal(moon.clientProgramValuesMaxRows(standard), 121);
   assert.equal(sourceFreeValuesAdmissionEvidence(plan).valuesHostPolicyOriginal.wire,
     '{"max_rows":121,"name":"source-free-values","version":"actql-installed-local-policy/0.1"}');
 });

@@ -168,13 +168,6 @@ fn finish(
         @map.Array(args) => args
         _ => invalid(cursor, origin, InvalidArguments)
       }
-      if ["eq", "neq", "lt", "lte", "gt", "gte"].contains(tag) {
-        for arg in args {
-          if literal(arg) is Some({ value: @map.Null, .. }) {
-            invalid(cursor, origin, InvalidArguments)
-          }
-        }
-      }
       if tag == "like" && !literal_or_param(args[1]) {
         invalid(cursor, origin, InvalidArguments)
       }

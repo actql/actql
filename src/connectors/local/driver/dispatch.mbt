@@ -9,6 +9,7 @@ struct LocalDispatchModule {
   carrier_paths : Array[Bool]
   mut estimate_configuration : LocalEstimateConfiguration?
   mut import_policy : (@local.LocalImportLimits, Int64?)?
+  mut import_metadata : LocalManagedMetadataLimits?
   mut output_policy : (@local.LocalExportLimits, Int64?)?
   mut policy_sealed : Bool
 }
@@ -151,6 +152,7 @@ pub fn prepare_local_dispatch_module(
     carrier_paths,
     estimate_configuration: None,
     import_policy: None,
+    import_metadata: None,
     output_policy: None,
     policy_sealed: false,
   })
@@ -192,7 +194,13 @@ pub fn estimate_local_dispatch_offer(
     return Err(Configuration(InvalidLimits))
   }
   let mut transfer = 0L
-  let mut retained = capacity.retained_bytes
+  let metadata_bytes = installed.import_metadata
+    .map(value => value.retained_bytes)
+    .unwrap_or(0L)
+  guard local_retained_with_metadata(capacity.retained_bytes,metadata_bytes) is Some(funded_retained) else {
+    return Err(Configuration(InvalidLimits))
+  }
+  let mut retained = funded_retained
   let offers = lines.copy()
   let mut slots = local_dispatch_work_slots()
   if installed.import_policy is Some((limits, milliseconds)) {

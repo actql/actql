@@ -469,15 +469,9 @@ fn comparison_numeric_atoms(
         @expression.numeric_literal(text).map(value => Some(value))
       Parenthesized(child) | Unary("+", child) => atoms[child]
       Unary("-", child) =>
-        // Keep the existing source-literal rejection of negative zero,
-        // including a nested negation whose final mathematical value is zero.
+        // Signed source zero normalizes to the canonical Number zero.
         match atoms[child] {
-          Ok(Some(value)) =>
-            if value == 0.0 {
-              Err(@expression.InvalidNumber)
-            } else {
-              Ok(Some(-value))
-            }
+          Ok(Some(value)) => Ok(Some(if value == 0.0 { 0.0 } else { -value }))
           other => other
         }
       _ => Ok(None)
@@ -587,6 +581,24 @@ fn same_expression(
         }
         for i in 0..<ax.length() {
           pending.push((ax[i], ay[i]))
+        }
+      }
+      (ArrayOffset(av, ai, ax), ArrayOffset(bv, bi, bx)) => {
+        if ax != bx {
+          return false
+        }
+        pending.push((av, bv))
+        pending.push((ai, bi))
+      }
+      (StructConstructor(ax), StructConstructor(ay)) => {
+        if ax.length() != ay.length() {
+          return false
+        }
+        for i in 0..<ax.length() {
+          if !same_name(ax[i].0, ay[i].0) {
+            return false
+          }
+          pending.push((ax[i].1, ay[i].1))
         }
       }
       (ArrayConstructor(ax, tx), ArrayConstructor(ay, ty)) => {
@@ -9151,9 +9163,16 @@ fn join_reference_paths(
       | Cast(child, _)
       | Interval(child, _)
       | Property(child, _) => pending.push(child)
-      Binary(_, left, right) => {
+      Binary(_, left, right) | ArrayOffset(left, right, _) => {
         pending.push(right)
         pending.push(left)
+      }
+      StructConstructor(fields) => {
+        let mut next = fields.length() - 1
+        while next >= 0 {
+          pending.push(fields[next].1)
+          next -= 1
+        }
       }
       Call(_, args) | Predicate(_, args) | ArrayConstructor(args, _) => {
         let mut next = args.length() - 1

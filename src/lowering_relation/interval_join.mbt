@@ -280,6 +280,7 @@ pub fn emit_interval_join(
     match @join.interval_kind(value.checked) {
       @join.Inner => "inner"
       @join.Left => "left"
+      @join.Right => "right"
       @join.Semi => "semi"
       @join.Anti => "anti"
       @join.Full => "full"

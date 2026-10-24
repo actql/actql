@@ -1382,6 +1382,26 @@ test "expression type corpus accepted: 275" {
 }
 
 ///|
+test "expression type corpus accepted: 276" {
+  assert_type("\"NULL IS NULL\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 277" {
+  assert_type("\"NULL IS NOT NULL\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 278" {
+  assert_type("\"NULL = 1\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 279" {
+  assert_type("\"NULL < 1\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":true}")
+}
+
+///|
 test "expression type corpus rejected: 1" {
   assert_rejected("\"missing\"", corpus_fields(), corpus_parameters(), "UnknownField")
 }

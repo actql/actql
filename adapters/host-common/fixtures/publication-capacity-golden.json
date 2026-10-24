@@ -1,0 +1,30 @@
+{
+  "contracts": {
+    "runDefinition": {
+      "name": "run_definition",
+      "wire": "{\"authorization_context_cid\":\"sha256:344ad9b3d88143b27798a306572ed5fd7b69ad4d78ee14c17593fdef147bd1aa\",\"compiled_plan_cid\":\"sha256:6a780620e954f0907475410081811a4e04ef49362b3a3684b28f052a47b41890\",\"created_at\":\"2026-10-24T02:29:39.298Z\",\"input_artifact_set_cid\":\"sha256:ca6f3f743acfb4611a89a9e85d33ba472bc0aad7acb37ac3821aedc1229d58df\",\"invocation_template_cid\":\"sha256:b283865cabe9ca2ffb73faa88c8cf6d38f4ba8f19d492dce33fe82238261a37d\",\"run_definition_cid\":\"sha256:5c3c7c8ee7c8b794b4a526737970ff10679c50947632f7e53dea492b59269c47\",\"run_id\":\"5185d9b1-b40f-4079-aabc-61c3db84fc0c\",\"scope_id\":\"local\",\"valid_until\":\"2026-10-25T02:29:39.298Z\",\"version\":\"actql-run-definition/0.1\"}"
+    },
+    "definition": {
+      "name": "result_definition",
+      "wire": "{\"program_definition_cid\":\"sha256:07ad76d8b37368aff377e81ad180ebdd66e2fe9031f425ce84ded4140e99fbb7\",\"result_definition_cid\":\"sha256:1369513d8f9cd46763ee83e7fa427abb6ded5b7403715994ce91b94250daa656\",\"result_name\":\"answer19\",\"version\":\"actql-result-definition/0.1\"}"
+    },
+    "invocation": {
+      "name": "run_invocation",
+      "wire": "{\"invocation_cid\":\"sha256:712de843325d0bc9d871ff45beacde1c86c2576ca2af490f5227781a0cd3d8c9\",\"invocation_template_cid\":\"sha256:b283865cabe9ca2ffb73faa88c8cf6d38f4ba8f19d492dce33fe82238261a37d\",\"observation_set_cid\":\"sha256:8a19e837f7effe669fee95db6e57942c0d8cf45947d9b222390144f6183ca0c6\",\"version\":\"actql-run-invocation/0.1\"}"
+    },
+    "artifact": {
+      "name": "result_artifact",
+      "wire": "{\"actual_completeness\":\"complete\",\"actual_row_count\":1,\"effective_data_policy_cid\":\"sha256:41f57b048c92be9aca49527b69f129a2b2e6ddebb494c5fd498b9a4ebb70f6f1\",\"effective_retention_policy_cid\":\"sha256:443036795443f47aa3c18505672305dc7a824ca5df7286c22508874625b05d17\",\"invocation_cid\":\"sha256:712de843325d0bc9d871ff45beacde1c86c2576ca2af490f5227781a0cd3d8c9\",\"logical_result_cid\":\"sha256:bed6ddf59088503e724fa8a2e09cda0526210890bc4c5237c247d08c08aa172a\",\"ordering_evidence_cid\":\"sha256:32ed475adf19d4ededd6791c28313849ed89796ad245fb7f9baf3c15adae13b4\",\"provenance_evidence_cids\":[\"sha256:c05778ff022841f9092c8b1d8ecce271e48bfa9e64c1581563a4d2178b3f6dc0\"],\"result_artifact_cid\":\"sha256:5b540cf70c8b635eee113f02a010f2193164df69ab7fffc60214dfeed6e0e8dc\",\"result_definition_cid\":\"sha256:1369513d8f9cd46763ee83e7fa427abb6ded5b7403715994ce91b94250daa656\",\"result_schema_cid\":\"sha256:60dab6082bde98873ad01bd215e98cdb71a6dd5437a8abfaf33be5e76ff97acd\",\"version\":\"actql-result-artifact/0.1\"}"
+    },
+    "ordering": {
+      "name": "ordering_evidence",
+      "wire": "{\"kind\":\"occurrence\",\"producer_contract_cid\":\"sha256:1369513d8f9cd46763ee83e7fa427abb6ded5b7403715994ce91b94250daa656\",\"self_cid\":\"sha256:32ed475adf19d4ededd6791c28313849ed89796ad245fb7f9baf3c15adae13b4\",\"terms\":[],\"version\":\"actql-acquisition-ordering/0.1\",\"witness_evidence\":[{\"cid\":\"sha256:c05778ff022841f9092c8b1d8ecce271e48bfa9e64c1581563a4d2178b3f6dc0\",\"kind\":\"derivation\"}]}"
+    },
+    "retention": {
+      "name": "result_retention_policy",
+      "wire": "{\"available_until\":\"2026-10-24T03:29:39.362Z\",\"clock_contract_cid\":\"sha256:c2f7278baa9548283e904d1e8b9048efc0a206ecaca397527ec970776a2f2356\",\"delete_by\":\"2026-10-24T04:29:39.362Z\",\"effective_data_policy_cid\":\"sha256:41f57b048c92be9aca49527b69f129a2b2e6ddebb494c5fd498b9a4ebb70f6f1\",\"effective_retention_policy_cid\":\"sha256:443036795443f47aa3c18505672305dc7a824ca5df7286c22508874625b05d17\",\"extension_ceiling_at\":\"2026-10-31T02:29:39.362Z\",\"metadata_delete_by\":\"2026-10-31T02:29:39.362Z\",\"metadata_retention_policy_cid\":\"sha256:dbf36e9f6f9b35881ac625290a1c93dbbe485ee8d954cdac3c55e345df4c3095\",\"retention_contract_cid\":\"sha256:a8fb82bdb39b1eb3e6871a55d63f3cb554dcc1953e06501bb686fd8ca8f9646a\",\"version\":\"actql-result-retention-policy/0.1\"}"
+    }
+  },
+  "binding": "{\"byte_count\":10,\"codec_contract_cid\":\"sha256:5a95e60847276d02229eba9550dd9808a8a8c2764decd4dad667954f020db7cc\",\"durable_result_binding_cid\":\"sha256:0408ed5c7ae9293b9f068495bce5e4b088a7cfe0eb02feb1c9250c9cb0e35610\",\"effective_retention_policy_cid\":\"sha256:443036795443f47aa3c18505672305dc7a824ca5df7286c22508874625b05d17\",\"invocation_cid\":\"sha256:712de843325d0bc9d871ff45beacde1c86c2576ca2af490f5227781a0cd3d8c9\",\"logical_result_cid\":\"sha256:bed6ddf59088503e724fa8a2e09cda0526210890bc4c5237c247d08c08aa172a\",\"material_generation_cid\":\"sha256:1fef03d70003fe191ce91f251c7c2be5d8063126523d0dd6564bbd8df04ae6b0\",\"ordering_evidence_cid\":\"sha256:32ed475adf19d4ededd6791c28313849ed89796ad245fb7f9baf3c15adae13b4\",\"physical_sha256\":\"1fef03d70003fe191ce91f251c7c2be5d8063126523d0dd6564bbd8df04ae6b0\",\"result_definition_cid\":\"sha256:1369513d8f9cd46763ee83e7fa427abb6ded5b7403715994ce91b94250daa656\",\"result_fields\":[\"v0\"],\"result_schema_cid\":\"sha256:60dab6082bde98873ad01bd215e98cdb71a6dd5437a8abfaf33be5e76ff97acd\",\"row_count\":1,\"run_definition_cid\":\"sha256:5c3c7c8ee7c8b794b4a526737970ff10679c50947632f7e53dea492b59269c47\",\"store_authority_cid\":\"sha256:70ac254eebe7cd94a202397c9d61092225e679643587422ce88b34678df500df\",\"version\":\"actql-durable-result-binding/0.1\"}",
+  "schema": "{\"v0\":{\"nullable\":false,\"type\":\"number\"}}"
+}
