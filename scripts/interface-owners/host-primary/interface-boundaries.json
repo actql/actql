@@ -2549,7 +2549,7 @@
     },
     {
       "module": "adapters/host-node/effect-input-export.mjs",
-      "sha256": "0f1d54c80af0efe5b7638c76008c2b8f3d202b52c4a81e7d218666e47f3e3d63",
+      "sha256": "f0bc70a0f60c584dbdf78b510a67764e1d063b7fef98f5fbb15e16961c113400",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -3439,6 +3439,14 @@
               {
                 "path": "adapters/host-node/effect-command-target-callers.test.mjs",
                 "anchor": "original target refusal happens before physical rows"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE cold Content settles its original response through final publication'"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE cold capture refuses altered original source schema'"
               }
             ]
           }
