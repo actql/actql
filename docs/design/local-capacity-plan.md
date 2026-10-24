@@ -273,6 +273,12 @@ do not discharge current Account, physical claim, CAS or cleanup obligations.
 
 ## Ordinary installed Source demand
 
+Static planning carries its admitted request derivatives through the existing
+pending-operation registry, including deferred ingress. The funded-original
+lookup can then return no submitted producer and continue ordinary checking.
+This lineage retires with the same read operation; it grants no Run funding,
+Source permission, execution or physical-cleanup acknowledgement.
+
 An ordinary installed Source uses the existing Host Source/Compute manager and
 per-Prepared Run inventory. Its checked capture prefix selects each installation
 in occurrence order, including repeated inputs. The installation supplies an

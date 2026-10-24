@@ -33789,7 +33789,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fe4615e75393db758ac036df7be5b12785a2fc52d68fffabb48427d0607c63d4",
+      "sha256": "9cbbfec214faab7d629684b1e4c72e16496e12068fa259af2a46427160987e2e",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
