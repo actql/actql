@@ -145,7 +145,13 @@ fn check_imported_child_ledger(ledger : Ledger) -> Result[Unit, LedgerIssue] {
       return Err(ChildFundingUnavailable)
     }
   }
-  Ok(())
+  // The original callback can reenter this ledger and record sticky loss.
+  // A later outer observation cannot restore that same funding original.
+  if origin.unavailable {
+    Err(ChildFundingUnavailable)
+  } else {
+    Ok(())
+  }
 }
 
 ///|
@@ -154,7 +160,18 @@ fn check_imported_child_admission(ledger : Ledger) -> Result[Unit, LedgerIssue] 
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if ledger.imported_child is Some(origin) && origin.stopping {
+  check_imported_child_admission_current(ledger)
+}
+
+///|
+// Inspect the result of the existing current fence without calling it twice.
+// Cleanup and post-use accounting may continue while a new Start is refused.
+fn check_imported_child_admission_current(
+  ledger : Ledger,
+) -> Result[Unit, LedgerIssue] {
+  if ledger.imported_child is Some(origin) && origin.unavailable {
+    Err(ChildFundingUnavailable)
+  } else if ledger.imported_child is Some(origin) && origin.stopping {
     Err(ClosedReservation)
   } else {
     Ok(())

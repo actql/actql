@@ -313,6 +313,10 @@ pub fn consume_reserved_attempt(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  match check_imported_child_admission_current(ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   consume_reserved_attempt_current(ledger, reservation)
 }
 
