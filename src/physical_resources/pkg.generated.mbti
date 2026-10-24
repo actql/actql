@@ -134,6 +134,8 @@ pub fn configure_quantities(Ledger, QuantityAmounts) -> Result[Unit, LedgerIssue
 
 pub fn[T] consume_original_resource_invalidation(OriginalResourceInvalidationRequest[T], OriginalResourcePark[T], T) -> Result[Unit, OriginalReadIssue]
 
+pub fn consume_reserved_attempt(Ledger, Reservation) -> Result[Unit, LedgerIssue]
+
 pub fn create_ledger(LedgerLimits) -> Result[Ledger, LedgerIssue]
 
 pub fn[T] enter_funded_read_consumer(FundedReadConsumer[T], T, Int64, Int64) -> Result[Unit, OriginalReadIssue]
@@ -338,6 +340,8 @@ pub fn[P] reserve_node_managed_run_read_bootstrap(NodeManagedRunAdmission[P], P,
 
 pub fn[I, P] reserve_preparation_capacity(Ledger, I, Int64, Int64, max_borrowers~ : Int) -> Result[PreparationCapacity[I, P], PreparationCapacityIssue]
 
+pub fn[I, P] reserve_preparation_publication_phase(PreparationCapacity[I, P], I, P, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
+
 pub fn reserve_shared_capacity(Ledger, Int64) -> Result[SharedCapacity, LedgerIssue]
 
 pub fn reserve_shared_workspace_capacity(Ledger, Int64, Int64) -> Result[SharedCapacity, LedgerIssue]
@@ -465,7 +469,6 @@ pub(all) enum BackedExecutionAccess {
 pub(all) struct BackedExecutionCumulativeData {
   planning_work : Int
   attempts : Int
-  holdings : Int
   transferred_bytes : Int64
   uncertain_transfer_bytes : Int64
 } derive(Eq, @debug.Debug)
@@ -524,12 +527,20 @@ pub(all) enum BackedExecutionLiveState {
   LiveClosing
 } derive(Eq, @debug.Debug)
 
+pub(all) struct BackedExecutionOccupationData {
+  holdings : Int
+  reserved_attempts : Int
+  live_reservations : Int
+  live_delegations : Int
+} derive(Eq, @debug.Debug)
+
 pub(all) struct BackedExecutionOriginalData {
   allocation_bytes : Int64
   extent : BackedExecutionExtent
   access : BackedExecutionAccess
   limits : LedgerLimits
   cumulative : BackedExecutionCumulativeData
+  occupation : BackedExecutionOccupationData
   peak_retention_bytes : Int64
   provision : BackedExecutionProvisionData
   region_closing : Bool
@@ -605,6 +616,7 @@ pub(all) enum LedgerIssue {
   ClosedReservation
   ClosedHolding
   InvalidCharge
+  IdentityOverflow
   TokenLimit
   CostLimit
   DurationLimit
@@ -624,7 +636,10 @@ pub(all) struct LedgerLimits {
 pub(all) struct LedgerUsage {
   planning_work : Int
   attempts : Int
+  reserved_attempts : Int
   holdings : Int
+  live_reservations : Int
+  live_delegations : Int
   transferred_bytes : Int64
   uncertain_transfer_bytes : Int64
   reserved_transfer_bytes : Int64

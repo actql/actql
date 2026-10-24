@@ -28,6 +28,9 @@ fn imported_child_report(
   reserved_retention : Int64,
   reserved_execution : Int64,
   peak_retention : Int64,
+  reserved_attempts : Int,
+  live_reservations : Int,
+  live_delegations : Int,
 ) -> Int = "actql_host" "execution_child_report"
 
 ///|
@@ -66,6 +69,9 @@ fn imported_child_port(
           usage.reserved_retention_bytes,
           usage.reserved_execution_bytes,
           usage.peak_retention_bytes,
+          usage.reserved_attempts,
+          usage.live_reservations,
+          usage.live_delegations,
         )
       },
       imported_child_stop,

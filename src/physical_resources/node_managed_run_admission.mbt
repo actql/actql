@@ -171,6 +171,8 @@ pub fn[P] reserve_node_managed_run_read_bootstrap(
   if retained_bytes <= 0L ||
     execution_bytes <= 0L ||
     ledger.next_capacity_serial != Some(-1) ||
+    ledger.next_attempt_serial != Some(0) ||
+    ledger.next_holding_serial != Some(0) ||
     ledger.original_inventory is Some(_) ||
     !original_ledger_has_no_child_usage(ledger, 0L, 0L) {
     return Err(Resource(InvalidCharge))

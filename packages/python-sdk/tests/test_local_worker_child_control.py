@@ -145,7 +145,7 @@ class WorkerChildControlTests(unittest.TestCase):
 
     def test_exact_signed_usage_and_native_int64_values_are_transported_without_accounting(self):
         f=ChildControlFixture(self);core=f.construct()
-        usage=(1,2,3,2**53+1,0,0,0,0,0,16777216)
+        usage=(1,2,3,2**53+1,0,0,0,0,0,16777216,4,5,6)
         self.assertEqual(f.callback('report',*usage),0)
         self.assertEqual(frames._USAGE.unpack(f.requests[-1][3]),usage)
         self.assertEqual(f.callback('limit',3),12582912)
@@ -241,7 +241,7 @@ class WorkerChildControlTests(unittest.TestCase):
         self.assertEqual(f.requests,before)
         f.result[frames._CURRENT]=1
         self.assertEqual(f.callback('current'),1)
-        self.assertEqual(f.callback('report',*([0]*10)),0)
+        self.assertEqual(f.callback('report',*([0]*13)),0)
         self.assertEqual(f.callback('stop'),0)
         self.assertFalse(f.borrow._closed or f.read.closed or f.write.closed)
 
@@ -330,7 +330,7 @@ class WorkerChildControlTests(unittest.TestCase):
         peer=Thread(target=respond);peer.start()
         core=f.construct()
         self.assertEqual(f.callback('current'),0)
-        usage=(0,0,0,2**53+1,0,0,0,0,0,0)
+        usage=(0,0,0,2**53+1,0,0,0,0,0,0,1,2,3)
         self.assertEqual(f.callback('report',*usage),0)
         self.assertEqual(f.callback('stop'),0)
         peer.join(3)

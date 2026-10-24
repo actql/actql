@@ -52,7 +52,7 @@ pub fn original_keyed_child_preparation_available(
     inventory.holdings.length() == accepted_children + 1 &&
     inventory.delegations.is_empty() &&
     ledger.next_capacity_serial == Some(-2) &&
-    ledger.usage.attempts == accepted_children + assembly_index + 1 &&
+    ledger.next_attempt_serial == Some(accepted_children + assembly_index + 1) &&
     physical_equal(inventory.reservations[assembly_index], assembly) &&
     physical_equal(assembly.owner, ledger) &&
     assembly.open &&
@@ -70,7 +70,8 @@ pub fn original_keyed_child_preparation_available(
     ) {
     return false
   }
-  for token in inventory.holdings {
+  for index in 0..<inventory.holdings.length() {
+    let token = inventory.holdings[index]
     if !holding_available(ledger, token) {
       return false
     }

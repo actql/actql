@@ -184,6 +184,10 @@ fn imported_child_seed_capacity(
   serial : Int,
   bytes : Int64,
 ) -> SharedCapacity {
+  ledger.usage = {
+    ..ledger.usage,
+    live_reservations: ledger.usage.live_reservations + 1,
+  }
   let reservation : Reservation = {
     owner: ledger,
     serial,
@@ -191,6 +195,8 @@ fn imported_child_seed_capacity(
     retention: 0L,
     execution: bytes,
     open: true,
+    attempt_reserved: false,
+    attempt_started: false,
     cleanup_pending: false,
     quantities: None,
     uncertain_quantities: None,
@@ -508,7 +514,10 @@ pub fn relocate_imported_child_cleanup_usage(
   let copied_usage : LedgerUsage = {
     planning_work: usage.planning_work,
     attempts: usage.attempts,
+    reserved_attempts: usage.reserved_attempts,
     holdings: usage.holdings,
+    live_reservations: usage.live_reservations,
+    live_delegations: usage.live_delegations,
     transferred_bytes: usage.transferred_bytes,
     uncertain_transfer_bytes: usage.uncertain_transfer_bytes,
     reserved_transfer_bytes: usage.reserved_transfer_bytes,

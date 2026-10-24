@@ -621,6 +621,9 @@ fn installed_managed_run_usage_values(
     usage.reserved_retention_bytes,
     usage.reserved_execution_bytes,
     usage.peak_retention_bytes,
+    usage.reserved_attempts.to_int64(),
+    usage.live_reservations.to_int64(),
+    usage.live_delegations.to_int64(),
   ]
 }
 
@@ -841,8 +844,15 @@ pub fn open_installed_managed_source_free_host(
   }
   value.source_free_opening = true
   let opened = open_installed_managed_source_free_host_original(
-    value, prepared, request, installed_contracts, values_body, fragment_body,
-    ordered_body, retained_output, provider_factory~,
+    value,
+    prepared,
+    request,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    retained_output,
+    provider_factory~,
   )
   value.source_free_opening = false
   opened
@@ -865,7 +875,9 @@ fn open_installed_managed_source_free_host_original(
   @builtin.ConfiguredComputeHost[@strategy.RunIssue]?,
   ClientInstalledManagedRunIssue,
 ] {
-  if value.source_free_captured is Some(_) {return Err(AlreadyBound)}
+  if value.source_free_captured is Some(_) {
+    return Err(AlreadyBound)
+  }
   if !value.reads.is_empty() {
     return Err(Unsupported)
   }
@@ -906,21 +918,21 @@ fn open_installed_managed_source_free_host_original(
     Ok(ledger) => ledger
   }
   let opened = open_checked_local_host(
-      prepared,
-      None,
-      installed_contracts,
-      values_body,
-      1L,
-      0L,
-      0L,
-      0L,
-      fragment_body~,
-      ordered_body~,
-      retained_output~,
-      provider_factory~,
-      acquisition_ledger=Some(ledger),
-      source_free_preparation=value.source_free_preparation,
-    )
+    prepared,
+    None,
+    installed_contracts,
+    values_body,
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body~,
+    ordered_body~,
+    retained_output~,
+    provider_factory~,
+    acquisition_ledger=Some(ledger),
+    source_free_preparation=value.source_free_preparation,
+  )
   // Capture provenance at the actual issuer, never from a caller-provided
   // graph, CID or merely equal Ledger. A second open cannot replace it.
   if opened is Some(host) {
@@ -941,7 +953,9 @@ pub fn retire_installed_managed_run(
   guard value.original is Some(original) && physical_equal(value, original) else {
     return Err(ForeignOriginal)
   }
-  if value.source_free_opening {return Err(CleanupPending)}
+  if value.source_free_opening {
+    return Err(CleanupPending)
+  }
   if value.ledger is None {
     return Ok(())
   }
@@ -1034,7 +1048,9 @@ pub fn installed_managed_publication_dag(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  guard !value.source_free_opening && value.source_free_captured is Some(captured) && value.ledger is Some(ledger) &&
+  guard !value.source_free_opening &&
+    value.source_free_captured is Some(captured) &&
+    value.ledger is Some(ledger) &&
     physical_equal(ledger, @strategy.captured_dag_ledger(captured)) else {
     return Err(Unsupported)
   }

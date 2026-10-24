@@ -1,7 +1,7 @@
 ///|
 fn current_document_test_wire() -> String {
-  // Independent 365-byte current vector, not obtained from the product Writer.
-  "[\"actql-original-ledger-state/0.1\",[\"17\",\"16\",\"16\",\"100\",\"256\",\"256\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],\"-3\",[\"4\",\"0\",\"0\",true,true,false,\"parked\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]],[],[]]"
+  // Independent 411-byte current vector, not obtained from the product Writer.
+  "[\"actql-original-ledger-state/0.1\",[\"17\",\"16\",\"16\",\"100\",\"256\",\"256\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\",\"0\",\"2\",\"0\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],[\"-3\",\"0\",\"0\"],[\"4\",\"0\",\"0\",true,true,false,\"parked\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false]],[],[]]"
 }
 
 ///|
@@ -18,7 +18,7 @@ fn current_document_test_limits() -> @decode.Limits {
 test "current document independently preserves actual holding and delegation" {
   // Sixteen headers/containers + three reservations + one holding + one
   // delegation = 21 writer units. Both Reader and comparison require seven.
-  let wire = "[\"actql-original-ledger-state/0.1\",[\"100\",\"16\",\"16\",\"100\",\"256\",\"256\"],[\"21\",\"2\",\"1\",\"0\",\"0\",\"8\",\"3\",\"16\",\"14\",\"19\"],[\"2\",\"1\",\"1\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],\"-3\",[\"4\",\"1\",\"1\",true,true,false,\"parked\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"0\",\"5\",\"4\",\"5\",true,false,null,null,[false,false,false],null],[\"1\",\"3\",\"2\",\"2\",true,false,null,null,[false,false,false],null],[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]],[[\"0\",\"0\",\"3\",true]],[[\"1\",[\"2\",\"1\",\"1\",\"3\",\"2\",\"2\"],[\"0\",\"0\",\"0\",\"0\",\"0\"]]]]"
+  let wire = "[\"actql-original-ledger-state/0.1\",[\"100\",\"16\",\"16\",\"100\",\"256\",\"256\"],[\"21\",\"0\",\"1\",\"0\",\"0\",\"8\",\"3\",\"16\",\"14\",\"19\",\"2\",\"4\",\"1\"],[\"2\",\"1\",\"1\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],[\"-3\",\"2\",\"1\"],[\"4\",\"1\",\"1\",true,true,false,\"parked\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"0\",\"5\",\"4\",\"5\",true,false,null,null,[false,false,false],null,true,false],[\"1\",\"3\",\"2\",\"2\",true,false,null,null,[false,false,false],null,true,false],[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false]],[[\"0\",\"0\",\"3\",true]],[[\"1\",[\"2\",\"1\",\"1\",\"3\",\"2\",\"2\"],[\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\"]]]]"
   let ledger = resource_park_test_ledger()
   let origin = original_read_test_origin()
   let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
@@ -120,7 +120,7 @@ test "current document independently preserves unknown quantity on its original 
   // Quantity-configured attempts require explicit quantities. The existing
   // delegation API has no such parameter: do not fabricate a mixed fixture
   // or weaken that contract to make this data-only codec pass.
-  let wire = "[\"actql-original-ledger-state/0.1\",[\"100\",\"16\",\"16\",\"100\",\"256\",\"256\"],[\"18\",\"1\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\"],[\"0\",\"0\",\"0\"],[\"13\",\"17\",\"19\"],[[\"0\",\"0\",\"0\"],[\"13\",\"17\",\"19\"],[\"0\",\"0\",\"0\"]],\"-3\",[\"3\",\"0\",\"0\",true,true,false,\"parked\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"0\",\"0\",\"0\",\"0\",true,false,null,[\"13\",\"17\",\"19\"],[false,false,false],null],[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]],[],[]]"
+  let wire = "[\"actql-original-ledger-state/0.1\",[\"100\",\"16\",\"16\",\"100\",\"256\",\"256\"],[\"18\",\"1\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\",\"0\",\"3\",\"0\"],[\"0\",\"0\",\"0\"],[\"13\",\"17\",\"19\"],[[\"0\",\"0\",\"0\"],[\"13\",\"17\",\"19\"],[\"0\",\"0\",\"0\"]],[\"-3\",\"1\",\"0\"],[\"3\",\"0\",\"0\",true,true,false,\"parked\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"0\",\"0\",\"0\",\"0\",true,false,null,[\"13\",\"17\",\"19\"],[false,false,false],null,false,true],[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false]],[],[]]"
   let ledger = resource_park_test_ledger()
   let origin = original_read_test_origin()
   let amounts : QuantityAmounts = {
@@ -399,7 +399,7 @@ test "current document last attempt is not reinterpreted as the initial read tok
   // Three current reservations: read (-2), Model capacity (-3), and an actual
   // pre-send attempt (0) with transfer 1 and zero retention. Five read/compare
   // blocks and nineteen writer blocks. The last record is NOT a byte read.
-  let wire = "[\"actql-original-ledger-state/0.1\",[\"19\",\"16\",\"16\",\"100\",\"256\",\"256\"],[\"19\",\"1\",\"0\",\"0\",\"0\",\"1\",\"0\",\"12\",\"11\",\"12\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],\"-4\",[\"4\",\"0\",\"0\",true,true,false,\"parked\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null],[\"-3\",\"0\",\"2\",\"3\",true,false,null,null,[false,false,false],null],[\"0\",\"1\",\"0\",\"1\",true,false,null,null,[false,false,false],null]],[],[]]"
+  let wire = "[\"actql-original-ledger-state/0.1\",[\"19\",\"16\",\"16\",\"100\",\"256\",\"256\"],[\"19\",\"0\",\"0\",\"0\",\"0\",\"1\",\"0\",\"12\",\"11\",\"12\",\"1\",\"4\",\"0\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],[\"-4\",\"1\",\"0\"],[\"4\",\"0\",\"0\",true,true,false,\"parked\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false],[\"-3\",\"0\",\"2\",\"3\",true,false,null,null,[false,false,false],null,false,false],[\"0\",\"1\",\"0\",\"1\",true,false,null,null,[false,false,false],null,true,false]],[],[]]"
   let (ledger, origin, _, consumer) = current_state_test_consumer(19)
   let (_, capacity) = handoff_funded_read_consumer_capacity(
     consumer, origin, 2L, 3L,

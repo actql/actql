@@ -69,7 +69,7 @@ test "original one-shot write exact claim routing refuses foreign origin without
 test "original one-shot write independently fixes exact bytes work and quantum" {
   // Hand-written field order and original identities; never derive this from
   // product output. Strings preserve decimal Int64 exactly on every backend.
-  let expected = "[\"actql-original-ledger-state/0.1\",[\"17\",\"2\",\"3\",\"11\",\"10\",\"7\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],\"-3\",[\"1\",\"0\",\"0\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]],[],[]]"
+  let expected = "[\"actql-original-ledger-state/0.1\",[\"17\",\"2\",\"3\",\"11\",\"10\",\"7\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\",\"0\",\"2\",\"0\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],[\"-3\",\"0\",\"0\"],[\"1\",\"0\",\"0\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false]],[],[]]"
   for quantum in [1, 3, 17, 100] {
     let (ledger, identity, origin) = original_state_write_fixture(17)
     let writer = @encode.writer(1000, 200, 10)
@@ -117,16 +117,16 @@ test "original one-shot write one-short fails before output without a fresh budg
 ///|
 test "original one-shot write hash matches independent golden bytes" {
   let (ledger, identity, origin) = original_state_write_fixture(17)
-  let writer = @encode.hashing_writer(360, 200, 10)
+  let writer = @encode.hashing_writer(406, 200, 10)
   let (claim, cursor) = prepare_original_state_write(
     identity, origin, writer, 7L, 5L,
   ).unwrap()
   assert_eq(finish_original_state_test_writer(cursor, 3), 17)
-  // SHA256 of the preceding hand-written 360-byte fixture, calculated with
+  // SHA256 of the preceding hand-written 406-byte fixture, calculated with
   // an independent Node crypto implementation, not this product writer.
   assert_eq(
     @encode.finish_hash(writer),
-    "274329df872dc6b95ba33089f7a822419cb91c3169d893342df24fa6c2126da2",
+    "7ed6db2394d7eaa87d65b022a6bc78f722efaf7a0293115de52c09a89893aae9",
   )
   settle_funded_read(claim, true).unwrap()
   assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
@@ -164,8 +164,8 @@ test "original one-shot write includes unknown observed spent serial and cleanup
   let (claim, cursor) = prepare_original_state_write(
     identity, origin, writer, 7L, 5L,
   ).unwrap()
-  assert_eq(finish_original_state_test_writer(cursor, 2), 19)
-  let expected = "[\"actql-original-ledger-state/0.1\",[\"19\",\"2\",\"3\",\"11\",\"10\",\"7\"],[\"19\",\"1\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\"],[\"0\",\"0\",\"0\"],[\"9223372036854775807\",\"17\",\"19\"],[[\"0\",\"0\",\"0\"],[\"9223372036854775807\",\"0\",\"19\"],[\"0\",\"7\",\"0\"]],\"-4\",[\"3\",\"0\",\"0\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"0\",\"0\",\"0\",\"0\",true,true,null,[\"9223372036854775807\",\"0\",\"19\"],[false,true,false],null],[\"-2\",\"0\",\"0\",\"0\",false,false,null,null,[false,false,false],null],[\"-3\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]],[],[]]"
+  assert_eq(finish_original_state_test_writer(cursor, 2), 18)
+  let expected = "[\"actql-original-ledger-state/0.1\",[\"19\",\"2\",\"3\",\"11\",\"10\",\"7\"],[\"18\",\"1\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\",\"0\",\"3\",\"0\"],[\"0\",\"0\",\"0\"],[\"9223372036854775807\",\"17\",\"19\"],[[\"0\",\"0\",\"0\"],[\"9223372036854775807\",\"0\",\"19\"],[\"0\",\"7\",\"0\"]],[\"-4\",\"1\",\"0\"],[\"3\",\"0\",\"0\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"0\",\"0\",\"0\",\"0\",true,true,null,[\"9223372036854775807\",\"0\",\"19\"],[false,true,false],null,false,true],[\"-3\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false]],[],[]]"
   assert_eq(@encode.finish(writer), expected)
   assert_true(reservation_pending(attempt))
   assert_eq(ledger.next_capacity_serial, Some(-4))
@@ -254,7 +254,7 @@ test "original one-shot write preserves live output holding delegation and exact
   ).unwrap()
   // 17 fixed blocks + 2 original reservations + 1 holding + 1 delegation.
   assert_eq(finish_original_state_test_writer(cursor, 1), 21)
-  let expected = "[\"actql-original-ledger-state/0.1\",[\"22\",\"5\",\"5\",\"11\",\"20\",\"10\"],[\"21\",\"2\",\"1\",\"0\",\"0\",\"2\",\"2\",\"12\",\"9\",\"14\"],[\"1\",\"1\",\"1\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],\"-3\",[\"3\",\"1\",\"1\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"0\",\"0\",\"0\",\"1\",true,true,null,null,[false,false,false],[\"0\",\"2\",\"1\"]],[\"1\",\"2\",\"2\",\"1\",true,false,null,null,[false,false,false],null],[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]],[[\"0\",\"0\",\"2\",true]],[[\"1\",[\"1\",\"1\",\"1\",\"2\",\"2\",\"1\"],[\"0\",\"0\",\"0\",\"0\",\"0\"]]]]"
+  let expected = "[\"actql-original-ledger-state/0.1\",[\"22\",\"5\",\"5\",\"11\",\"20\",\"10\"],[\"21\",\"0\",\"1\",\"0\",\"0\",\"2\",\"2\",\"12\",\"9\",\"14\",\"2\",\"4\",\"1\"],[\"1\",\"1\",\"1\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],[\"-3\",\"2\",\"1\"],[\"3\",\"1\",\"1\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"0\",\"0\",\"0\",\"1\",true,true,null,null,[false,false,false],[\"0\",\"2\",\"1\"],true,false],[\"1\",\"2\",\"2\",\"1\",true,false,null,null,[false,false,false],null,true,false],[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false]],[[\"0\",\"0\",\"2\",true]],[[\"1\",[\"1\",\"1\",\"1\",\"2\",\"2\",\"1\"],[\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\"]]]]"
   assert_eq(@encode.finish(writer), expected)
   assert_eq(ledger_usage(ledger).planning_work, 21)
   assert_eq(ledger_admission_limits(ledger).planning_work, 21)

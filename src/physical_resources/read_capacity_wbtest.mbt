@@ -84,7 +84,11 @@ test "original byte coverage does not adopt reserved or uncertain quantities" {
   mark_quantities_uncertain(ledger, send).unwrap()
   let uncertain = quantity_usage(ledger)
   assert_false(capacity_reservation_covers(ledger, forged, 0L, 0L))
-  assert_eq(ledger_usage(ledger), before)
+  assert_eq(ledger_usage(ledger), {
+    ..before,
+    attempts: 1,
+    reserved_attempts: 0,
+  })
   assert_eq(quantity_usage(ledger), uncertain)
   settle_reservation(ledger, send).unwrap()
   assert_eq(quantity_usage(ledger).uncertain, uncertain.uncertain)

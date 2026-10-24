@@ -60,8 +60,14 @@ pub fn NativeLocalHostConnection::packaged_runtime_assets_for_submission(
 ) -> Result[NativeLocalRuntimeSubmission, NativeClientRunJournalIssue] {
   guard self.packaged_runtime is Some(binding) else { return Ok(Pending(None)) }
   guard binding.pair is Some(pair) else {
-    // Immutable installation DATA only; no Journal or Run acceptance is issued.
-    return Ok(Pending(Some(binding.installed_assets)))
+    // Only the same checked Values route consumes this installation DATA.
+    // A sourced preparation keeps its independent Source configuration path.
+    return match preparation.preparation {
+      Computation(prepared) if native_client_local_values_profile_supported(
+          prepared,
+        ) => Ok(Pending(Some(binding.installed_assets)))
+      _ => Ok(Pending(None))
+    }
   }
   let current = () => {
     local_runtime_binding_current(self, binding) &&

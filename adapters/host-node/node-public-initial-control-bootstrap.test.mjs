@@ -27,8 +27,14 @@ function fixture(t,{inventory=true,changeImage=false,publicNode=false,actualFaca
     'initial-control-phase-envelope.cjs','source-managed-phase-envelope.cjs','initial-control-package-custody.cjs','initial-control-image-source.cjs',
     'initial-control-image-loader.cjs','node-initial-control-installation.mjs','initial-control-host-input.mjs',
     'source-managed-original-input.mjs','host-journal-facility-fields.cjs',
-    'host-journal-service-recipe.cjs','host-journal-schema-support.cjs']) {
+    'host-journal-service-recipe.cjs','host-journal-schema-support.cjs',
+    'host-result-service-recipe.cjs','host-local-mock-model-service-recipe.cjs',
+    'ordinary-host-control.mjs','installed-host-policy.mjs','local-account-config.mjs','authorization.mjs']) {
     sources.set('adapters/host-node/'+name,readFileSync(new URL('./'+name,import.meta.url)));
+  }
+  for (const path of ['adapters/host-common/authorization-gate.mjs',
+    'spec/contracts/actql-capacity-host-policy.json','spec/contracts/actql-check-environment.json']) {
+    sources.set(path,readFileSync(new URL('../../'+path,import.meta.url)));
   }
   sources.set('adapters/host-node/embedded-local.mjs',Buffer.from(
     'import{beginInitialControlInstallation,readInitialControlInstallationInput,readInitialControlInstallationAsset}from"./node-initial-control-installation.mjs";'+
@@ -324,9 +330,9 @@ test('ordinary Source managed Run keeps one joint original for both file childre
     'const left=await reads[0].readOriginalBytes(),right=await reads[1].readOriginalBytes();assert.equal(left.equals(right),true);assert.notEqual(left.buffer,right.buffer);'+
     'root.finishSourceProducer(source,client.originals,receipt,"returned");client.bindFixtureRequest(undefined,undefined);'+
     'assert.equal((await root.closeSourceManagedInstallation(source,client.originals)).managedRunPending,true);'+
-    'assert.equal(ports.report(0,0,0,0n,0n,0n,1n,0n,0n,1n),0);assert.equal(ports.status(2),-42);'+
+    'assert.equal(ports.report(0,0,0,0n,0n,0n,1n,0n,0n,1n,0,0,0),0);assert.equal(ports.status(2),-42);'+
     'reads[0].close();assert.equal(reads[1].status().pending,true);reads[1].close();'+
-    'assert.equal(ports.report(0,0,0,0n,0n,0n,0n,0n,0n,1n),0);assert.equal(ports.status(2),0);'+
+    'assert.equal(ports.report(0,0,0,0n,0n,0n,0n,0n,0n,1n,0,0,0),0);assert.equal(ports.status(2),0);'+
     'const closed=await root.closeSourceManagedInstallation(source,client.originals);assert.equal(closed.pending,false);assert.equal(closed.fdPending,false);assert.equal(closed.physicalBackingReleased,false);'+
     'assert.equal((await client.scope.close()).pending,false);');
   assert.equal(result.status,0,result.stderr);
@@ -378,7 +384,7 @@ test('ordinary Source managed Run unpublished initialization closes distinctly w
     'assert.equal(ports.status(2),-42);root.finishSourceProducer(source,client.originals,receipt,"failed");'+
     'assert.equal((await root.closeSourceManagedInstallation(source,client.originals)).pending,true);'+
     'assert.equal(ports.cancelUnpublished(),0);assert.equal(ports.cancelUnpublished(),0);'+
-    'assert.equal(ports.report(0,0,0,0n,0n,0n,0n,0n,0n,0n),-42);'+
+    'assert.equal(ports.report(0,0,0,0n,0n,0n,0n,0n,0n,0n,0,0,0),-42);'+
     'const closed=await root.closeSourceManagedInstallation(source,client.originals);assert.equal(closed.pending,false);assert.equal(closed.physicalBackingReleased,false);'+
     'assert.equal(root.prepareOriginalManagedRunPorts(original,prepared),null);assert.equal((await client.scope.close()).pending,false);');
   assert.equal(result.status,0,result.stderr);

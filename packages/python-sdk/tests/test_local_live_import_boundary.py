@@ -17,12 +17,12 @@ class LiveImportBoundaryTests(unittest.TestCase):
             'execution_child_current': ('i64', 'i32'),
             'execution_child_limit': ('i64 i32', 'i64'),
             'execution_child_capacity': ('i64 i32', 'i64'),
-            'execution_child_report': ('i64 i32 i32 i32 i64 i64 i64 i64 i64 i64 i64', 'i32'),
+            'execution_child_report': ('i64 i32 i32 i32 i64 i64 i64 i64 i64 i64 i64 i32 i32 i32', 'i32'),
             'execution_child_stop': ('i64', 'i32'),
         }
         self.assertEqual({k: v for k, v in _IMPORT_SIGNATURES.items()
                           if k.startswith('execution_child_')}, expected)
-        self.assertEqual(LOCAL_CORE_ABI, 74)
+        self.assertEqual(LOCAL_CORE_ABI, 78)
         self.assertEqual(_BUFFER_SIGNATURES['open_live'], ('i64 i64 i32 i32', 'i32'))
         self.assertEqual(_BUFFER_SIGNATURES['report_live'], ('i64', 'i32'))
         self.assertEqual(_BUFFER_SIGNATURES['stop_live'], ('i64', 'i32'))

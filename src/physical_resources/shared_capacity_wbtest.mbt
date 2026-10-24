@@ -30,7 +30,8 @@ test "resident DB reservation survives readers retirement and pending cleanup" {
   assert_eq(ledger_usage(ledger).reserved_execution_bytes, 80L)
   settle_shared_capacity(db).unwrap()
   assert_eq(ledger_usage(ledger).reserved_execution_bytes, 0L)
-  assert_eq(ledger_usage(ledger).attempts, 1)
+  assert_eq(ledger_usage(ledger).attempts, 0)
+  assert_eq(ledger.next_attempt_serial, Some(1))
 }
 
 ///|

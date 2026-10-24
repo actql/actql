@@ -32,7 +32,8 @@ test "original prefix prerequisite never revives spent zero-byte identities" {
       mark_cleanup_pending(ledger, child).unwrap()
       assert_false(original_ledger_prefix_available(identity))
       settle_reservation(ledger, child).unwrap()
-      assert_eq(ledger_usage(ledger).attempts, 1)
+      assert_eq(ledger_usage(ledger).attempts, 0)
+      assert_eq(ledger.next_attempt_serial, Some(1))
     }
     let before = ledger_usage(ledger)
     assert_false(original_ledger_prefix_available(identity))

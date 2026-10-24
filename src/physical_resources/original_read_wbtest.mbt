@@ -252,7 +252,7 @@ test "funded original read preserves spent serial and unknown quantity through c
     ledger,
     origin,
     bootstrap,
-    [send, spent.reservation],
+    [send],
     [],
     [],
     2,

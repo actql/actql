@@ -78,18 +78,18 @@ function retainedPorts(original, state) {
     },
     limit(ordinal) {return Number.isInteger(ordinal) && ordinal >= 0 && ordinal < 6 ? state.quotas[ordinal] : -42n;},
     report(planning, attempts, holdings, transferred, uncertain, reservedTransfer,
-      heldBytes, reservedRetention, reservedExecution, peakRetention) {
+      heldBytes, reservedRetention, reservedExecution, peakRetention, reservedAttempts, liveReservations, liveDelegations) {
       const q = state.quotas;
-      if (!state.admitted || state.stopped || ![planning, attempts, holdings].every(value =>
-        Number.isSafeInteger(value) && value >= 0) || BigInt(planning) > q[0] ||
-          BigInt(attempts) > q[1] || BigInt(holdings) > q[2] ||
+      if (!state.admitted || state.stopped || ![planning, attempts, holdings, reservedAttempts, liveReservations, liveDelegations].every(value =>
+        Number.isSafeInteger(value) && value >= 0 && value <= 2147483647) || BigInt(planning) > q[0] ||
+          BigInt(attempts) + BigInt(reservedAttempts) > q[1] || BigInt(holdings) > q[2] ||
           ![transferred, uncertain, reservedTransfer, heldBytes, reservedRetention, reservedExecution, peakRetention]
             .every(value => typeof value === 'bigint' && value >= 0n) ||
           transferred + uncertain + reservedTransfer > q[3] || heldBytes + reservedRetention > q[4] ||
           peakRetention > q[4] || reservedExecution > q[5]) return -42;
       // Spent planning/attempt/wire history remains in Core. Only actual live
       // logical resources block this stop; it supplies no FD/native ACK.
-      state.usage = freeze([uncertain, reservedTransfer, heldBytes, reservedRetention, reservedExecution]);
+      state.usage = freeze([uncertain, reservedTransfer, heldBytes, reservedRetention, reservedExecution, BigInt(holdings), BigInt(reservedAttempts), BigInt(liveReservations), BigInt(liveDelegations)]);
       return 0;
     },
   });

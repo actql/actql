@@ -65,6 +65,36 @@ barrier, not infer it from a terminal Run status or a cleared JavaScript field.
 
 ## Resources and scratch cut
 
+### Live occupation, identity and spent budgets
+
+The same Ledger distinguishes pending attempt allowance and current reservation,
+delegation and holding occupation from consumed attempts, work, transfer and
+uncertain usage. Trusted Start consumes the original reserved attempt once,
+including a zero-byte operation. Returning unused allowance or confirming
+cleanup can decrease occupation; it cannot refund consumed or uncertain work.
+Byte-only preparation and read capacity do not establish a physical attempt.
+
+Reservation and holding identities advance independently of reusable inventory
+slots. Removing an expired record clears its actual reference; a scalar slot
+index is neither a new identity nor another grant. A closed reservation remains
+in the live inventory while a retained output still needs its original binding.
+The last holding's retirement can remove that record, while the issuance cursor
+continues to exclude stale identities and fresh-prefix reuse.
+
+An imported current observation may synchronously reenter the same Ledger.
+Final open/live, quota and bound checks therefore follow that observation.
+The subsequent debit and any internal component mutations invoke no second
+external callback between validation and mutation. Copies, closed originals
+and another Ledger remain invalid.
+
+Private snapshots carry issuance cursors, pending allowance and live counters
+separately from spent totals. Backed-child DATA distinguishes current occupation
+from the actual last observed final census: a later domain-stop acknowledgement
+does not rewrite that earlier observation. All original bootstrap envelopes must
+fund reusable control backing, scalar indices, snapshots and overlapping read
+controls before use. Bounded slots alone establish neither those coefficients,
+physical backing, process RSS nor coverage of another backend.
+
 The selected logical tariff prices record headers, references, scalar words,
 UTF-16 storage and wire bytes; it is not RSS or an allocator guarantee. Snapshot
 and capture constructors are funded before construction by the original

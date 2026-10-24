@@ -205,6 +205,9 @@ fn state_write_usage(
   state_write_long(writer, value.reserved_retention_bytes)
   state_write_long(writer, value.reserved_execution_bytes)
   state_write_long(writer, value.peak_retention_bytes)
+  state_write_int(writer, value.reserved_attempts)
+  state_write_int(writer, value.live_reservations)
+  state_write_int(writer, value.live_delegations)
   @encode.end_array(writer)
 }
 
@@ -261,6 +264,8 @@ fn state_write_reservation(
       @encode.end_array(writer)
     }
   }
+  @encode.bool_value(writer, value.attempt_reserved)
+  @encode.bool_value(writer, value.attempt_started)
   @encode.end_array(writer)
 }
 
@@ -299,7 +304,13 @@ fn[T] original_state_write_block(
       state_write_quantities(writer, state.quantities.consumed)
       @encode.end_array(writer)
     }
-    6 => state_write_optional_int(writer, state.next_capacity_serial)
+    6 => {
+      @encode.begin_array(writer)
+      state_write_optional_int(writer, state.next_capacity_serial)
+      state_write_optional_int(writer, state.next_attempt_serial)
+      state_write_optional_int(writer, state.next_holding_serial)
+      @encode.end_array(writer)
+    }
     7 => {
       @encode.begin_array(writer)
       let (reservations, holdings, delegations) = value.bounds
@@ -342,12 +353,24 @@ fn[T] original_state_write_block(
         state_write_int(writer, token.reservation.serial)
         state_write_limits(writer, token.limits)
         @encode.begin_array(writer)
-        let (planning, attempts, holdings, transfer, uncertain) = observed
+        let (
+          planning,
+          attempts,
+          holdings,
+          transfer,
+          uncertain,
+          pending,
+          reservations,
+          delegations,
+        ) = observed
         state_write_int(writer, planning)
         state_write_int(writer, attempts)
         state_write_int(writer, holdings)
         state_write_long(writer, transfer)
         state_write_long(writer, uncertain)
+        state_write_int(writer, pending)
+        state_write_int(writer, reservations)
+        state_write_int(writer, delegations)
         @encode.end_array(writer)
         @encode.end_array(writer)
       } else {
