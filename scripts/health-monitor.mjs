@@ -41,7 +41,9 @@ export function sourceIdentity(root = repository) {
     diffSha256: digest(git(['diff', 'HEAD', '--binary']))};
 }
 export async function environmentIdentity(options = {}) {
-  return {platform: platform(), architecture: arch(), osRelease: release(), cpuModel: cpus()[0]?.model ?? 'unavailable',
+  const pythonRuntime = options.pythonVenv
+    ? (await import('./health-monitor-release.mjs')).pythonRuntimeIdentity(options.pythonVenv) : undefined;
+  return {...(pythonRuntime === undefined ? {} : {pythonRuntime}), platform: platform(), architecture: arch(), osRelease: release(), cpuModel: cpus()[0]?.model ?? 'unavailable',
     logicalCpus: cpus().length, node: process.version, nodeExecutableSha256: digest(await readFile(process.execPath)),
     python: readCommand(options.python ?? 'python3', ['--version']), moon: readCommand('moon', ['version']),
     toolchainSha256: digest(await readFile(join(repository, 'toolchain.json'))),
@@ -57,6 +59,41 @@ export function requiredQuickMetrics() {
 export function missingReleaseInputs(options) {
   return ['nativeManifest', 'nativeConsumer', 'pythonManifest', 'pythonConsumer', 'pythonVenv', 'nodeControls', 'pythonControls']
     .filter(key => !options[key]);
+}
+
+export async function verifyPythonInstalledAfter(report, options) {
+  const before = report.artifacts.find(row => row.name === 'python-products-installed');
+  if (!before) return;
+  try {
+    const {pythonInstalledInventory} = await import('./health-monitor-release.mjs');
+    const after = await pythonInstalledInventory(options.pythonConsumer,
+      report.artifacts.filter(row => row.artifactKind === 'wheel'));
+    report.pythonInstalledInventoryAfter = after;
+    if (after.sha256 !== before.sha256) throw new Error('Python installed product namespaces changed after collection');
+    report.pythonInstalledPayloadsUnchanged = true;
+  } catch (error) {
+    report.pythonInstalledPayloadsUnchanged = false;
+    report.installedPayloadsUnchanged = false;
+    report.errors.push({target: 'python-package-after', message: error.message});
+  }
+}
+
+export async function verifyNativeInstalledAfter(report, options, command) {
+  const before = report.artifacts.find(row => row.name === 'native-products-installed');
+  if (!before) return;
+  try {
+    const result = await command(options.python ?? 'python3', ['-I', '-B', join(repository, 'scripts/health-release-artifacts.py'),
+      '--native-installed', options.nativeManifest, options.nativeConsumer, report.source.sha],
+    {cwd: repository, name: 'inspect-native-after'});
+    const after = JSON.parse(result.stdout);
+    report.nativeInstalledInventoryAfter = after;
+    if (jsonDigest(after) !== before.sha256) throw new Error('Native installed product payloads or selected cohort changed after collection');
+    report.nativeInstalledPayloadsUnchanged = true;
+  } catch (error) {
+    report.nativeInstalledPayloadsUnchanged = false;
+    report.installedPayloadsUnchanged = false;
+    report.errors.push({target: 'native-package-after', message: error.message});
+  }
 }
 
 export function recordGuardExit(report, code) {
@@ -170,6 +207,8 @@ export async function executeMonitor({mode, options, report, directory}) {
         report.installedPayloadsUnchanged = true;
       } catch (error) {report.errors.push({target: 'package-after', message: error.message});}
     }
+    await verifyNativeInstalledAfter(report, options, command);
+    await verifyPythonInstalledAfter(report, options);
     report.sourceAfter = sourceIdentity(); report.environmentAfter = await environmentIdentity(options);
     report.sourceChanged = jsonDigest(report.source) !== jsonDigest(report.sourceAfter);
     report.environmentChanged = jsonDigest(report.environment) !== jsonDigest(report.environmentAfter);
@@ -203,9 +242,10 @@ export async function main(args = process.argv.slice(2)) {
         baseSha256: digest(await readFile(parsed.options.base)), currentSha256: digest(await readFile(parsed.options.current))};
       finishReport(report); await saveReport(directory, report); console.log(markdown(report)); return report.exitCode;
     }
+    const methodologyFiles = await fixtureIdentities(parsed.mode);
     report = {format: 'actql-health/0.1', id: randomUUID(), mode: parsed.mode, startedAt: new Date().toISOString(),
       source: sourceIdentity(), environment: await environmentIdentity(parsed.options), selectedTargets: parsed.mode === 'quick' ? ['remote-sdk', 'node-local', 'run-host-core'] : ['remote-sdk', 'node-local', 'run-host-core', 'native', 'python', 'wasm'],
-      methodologySha256: jsonDigest({policy, fixtureFiles: await fixtureIdentities()}), config: policy,
+      methodologyFiles, methodologySha256: jsonDigest({policy, fixtureFiles: methodologyFiles}), config: policy,
       metrics: requiredQuickMetrics(), artifacts: [], errors: [], formalAcceptance: false,
       comparison: {available: false, reason: 'Comparison not yet performed'}};
     await saveReport(directory, finishReport(report));
@@ -248,9 +288,16 @@ export async function main(args = process.argv.slice(2)) {
   }
 }
 
-async function fixtureIdentities() {
+async function fixtureIdentities(mode = 'quick') {
+  if (!['quick', 'release'].includes(mode)) throw new Error('Unknown measurement methodology mode');
+  // Bind the actual selected entry collectors, timing/statistics and artifact
+  // inspection code. This is a fixed source inventory, not a dependency scanner.
   const files = ['scripts/benchmark-node-operations.mjs', 'adapters/host-node/fixtures/mock-project-effect-public.mjs',
-    'packages/native-cli/lib/project-template.mjs', 'scripts/health-monitor-adapters.mjs'];
+    'packages/native-cli/lib/project-template.mjs', 'scripts/health-monitor-adapters.mjs',
+    'scripts/health-monitor.mjs', 'scripts/health-monitor-report.mjs', 'scripts/measure-distribution-artifacts.mjs',
+    'scripts/package-release.mjs', 'scripts/operation-performance.mjs', 'scripts/ordinary-operation-packages.mjs'];
+  if (mode === 'release') files.push('scripts/benchmark-node-process-operations.mjs', 'scripts/benchmark-ordinary-processes.py',
+    'scripts/health-monitor-release.mjs', 'scripts/health-release-artifacts.py', 'scripts/native-cli-release.mjs');
   return Object.fromEntries(await Promise.all(files.map(async file => [file, digest(await readFile(join(repository, file)))])));
 }
 

@@ -68,9 +68,11 @@ export function measurementProfile(mode, environment = {}) {
   for (const target of ['native', 'python']) rows.push(...['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-decimal-sum'].map(id => latency(id, false, target)),
     ...['first-init', 'cold-existing'].map(id => latency(id, true, target)));
   rows.push(...['actql', 'actql-sdk', 'actql-local-runtime'].map(id => size(id, 'python', 'wheel')));
+  rows.push(size('installed:python-products', 'python', 'installed'));
   const key = {'darwin-arm64': 'darwin-arm64', 'linux-x64': 'linux-x64-gnu'}[environment.platform + '-' + environment.architecture];
   if (key) rows.push(size('actql', 'native', 'npm'), size('@actql/cli-' + key, 'native', 'npm'),
-    size('@actql/cli-' + key + ':bin/actql-native-client', 'native', 'native'));
+    size('@actql/cli-' + key + ':bin/actql-native-client', 'native', 'native'),
+    size('installed:actql', 'native', 'installed'), size('installed:@actql/cli-' + key, 'native', 'installed'));
   else rows.push(size('native-platform-artifacts', 'native', 'native'));
   return rows;
 }
@@ -102,6 +104,53 @@ function profileAssessment(report) {
     output.push(...assessMeasurements({metrics: [{...metric, ...expected}]}));
   }
   output.push(...assessMeasurements({metrics: metrics.filter(row => !keys.has(row.target + ':' + row.id))}).filter(row => row.metric !== 'required-measurements'));
+  if (mode === 'release') {
+    const platformKey = {'darwin-arm64': 'darwin-arm64', 'linux-x64': 'linux-x64-gnu'}[
+      report.environment?.platform + '-' + report.environment?.architecture];
+    const names = ['actql', '@actql/cli-' + platformKey].sort();
+    const artifacts = (report.artifacts ?? []).filter(row => row.name === 'native-products-installed');
+    const before = artifacts.length === 1 ? artifacts[0] : undefined, after = report.nativeInstalledInventoryAfter;
+    const valid = observation => platformKey && observation?.sourceSha === report.source?.sha &&
+      observation.platform === platformKey && typeof observation.cohortSha256 === 'string' &&
+      /^[a-f0-9]{64}$/u.test(observation.cohortSha256) &&
+      jsonDigest(Object.keys(observation.packages ?? {}).sort()) === jsonDigest(names) &&
+      Object.values(observation.packages).every(row => Number.isSafeInteger(row?.installedBytes) && row.installedBytes > 0 &&
+        Number.isSafeInteger(row?.payloads) && row.payloads > 0 && typeof row?.inventorySha256 === 'string' &&
+        /^[a-f0-9]{64}$/u.test(row.inventorySha256));
+    const changed = report.nativeInstalledPayloadsUnchanged === false ||
+      (before?.sha256 && after && before.sha256 !== jsonDigest(after));
+    if (changed || report.nativeInstalledPayloadsUnchanged !== true || !valid(before?.installedInventory) || !valid(after) ||
+        before.sourceSha !== report.source?.sha || before.sha256 !== jsonDigest(before.installedInventory) ||
+        before.installedBytes !== names.reduce((sum, name) => sum + before.installedInventory.packages[name].installedBytes, 0) ||
+        names.some(name => metrics.find(row => row.target === 'native' && row.id === 'installed:' + name)?.value !==
+          before.installedInventory.packages[name].installedBytes)) {
+      output.push({metric: 'native-installed-custody', target: 'native', required: true,
+        status: changed ? 'error' : 'incomplete', reason: changed
+          ? 'Native installed product payloads or selected cohort changed after collection'
+          : 'Native installed before/after identity observation missing or inconsistent'});
+    }
+  }
+  if (mode === 'release') {
+    const artifacts = (report.artifacts ?? []).filter(row => row.name === 'python-products-installed');
+    const before = artifacts.length === 1 ? artifacts[0] : undefined;
+    const after = report.pythonInstalledInventoryAfter;
+    const metric = metrics.find(row => row.target === 'python' && row.id === 'installed:python-products');
+    const valid = snapshot => Array.isArray(snapshot?.files) && snapshot.files.length > 0 &&
+      Number.isSafeInteger(snapshot.bytes) && snapshot.bytes > 0 &&
+      jsonDigest(snapshot.files) === snapshot.sha256 &&
+      snapshot.files.every(row => Number.isSafeInteger(row?.bytes) && row.bytes >= 0) &&
+      snapshot.files.reduce((sum, row) => sum + row.bytes, 0) === snapshot.bytes;
+    const changed = report.pythonInstalledPayloadsUnchanged === false ||
+      (before?.sha256 && after?.sha256 && before.sha256 !== after.sha256);
+    if (changed || report.pythonInstalledPayloadsUnchanged !== true || !valid(before?.installedInventory) ||
+        !valid(after) || before?.sourceSha !== report.source?.sha || before?.sha256 !== before?.installedInventory?.sha256 ||
+        before?.installedBytes !== metric?.value || after?.bytes !== metric?.value) {
+      output.push({metric: 'python-installed-custody', target: 'python', required: true,
+        status: changed ? 'error' : 'incomplete', reason: changed
+          ? 'Python installed product namespaces changed after collection'
+          : 'Python installed before/after identity observation missing or inconsistent'});
+    }
+  }
   if (mode === 'release' && !metrics.some(row => row.target === 'python' && row.artifactKind === 'wasm' && Number.isFinite(row.value))) {
     output.push({metric: 'distributed-wasm', target: 'python', required: true, status: 'incomplete', reason: 'Required actual distributed Wasm measurement absent'});
   }
@@ -117,6 +166,17 @@ export function compareReports(base, current, policy) {
     if (base.environment?.[key] == null || current.environment?.[key] == null ||
         String(base.environment[key]).startsWith('unavailable') || String(current.environment[key]).startsWith('unavailable') ||
         jsonDigest(base.environment[key]) !== jsonDigest(current.environment[key])) reasons.push(`environment.${key}`);
+  }
+  if (base.mode === 'release' || current.mode === 'release' ||
+      base.environment?.pythonRuntime !== undefined || current.environment?.pythonRuntime !== undefined) {
+    const valid = value => value !== null && typeof value === 'object' &&
+      typeof value.version === 'string' && typeof value.executableSha256 === 'string' &&
+      /^\d+\.\d+\.\d+[a-z0-9.+-]*$/iu.test(value.version ?? '') &&
+      /^[a-f0-9]{64}$/u.test(value.executableSha256 ?? '');
+    if (!valid(base.environment?.pythonRuntime) || !valid(current.environment?.pythonRuntime) ||
+        jsonDigest(base.environment.pythonRuntime) !== jsonDigest(current.environment.pythonRuntime)) {
+      reasons.push('environment.pythonRuntime');
+    }
   }
   if (base.mode !== current.mode) reasons.push('mode/sample methodology');
   if (base.methodologySha256 !== current.methodologySha256) reasons.push('fixture/methodology digest');

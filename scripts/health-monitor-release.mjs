@@ -1,8 +1,10 @@
 // Explicit Release selection reuses the existing collectors and their formal
 // final mode. Unsupported CLI retained-Host routes remain incomplete.
 import assert from 'node:assert/strict';
-import {readFile, writeFile} from 'node:fs/promises';
-import {join} from 'node:path';
+import {execFileSync} from 'node:child_process';
+import {readFile, writeFile, lstat} from 'node:fs/promises';
+import {join, resolve, basename} from 'node:path';
+import {inventory} from './package-release.mjs';
 import {cpus, platform, arch, release, totalmem} from 'node:os';
 import {runNodeWarmBenchmark} from './benchmark-node-operations.mjs';
 import {runNodeProcessBenchmark} from './benchmark-node-process-operations.mjs';
@@ -10,6 +12,24 @@ import {readFixedSQLiteComparison} from './ordinary-operation-packages.mjs';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {jsonDigest, digest} from './health-monitor-report.mjs';
 import {assessLatency} from './operation-performance.mjs';
+
+// Observe the interpreter that the existing ordinary collector will execute,
+// rather than substituting the controller's optional --python interpreter.
+export function pythonRuntimeIdentity(venv) {
+  const executable = resolve(venv, 'bin/python');
+  const program = 'import hashlib,json,pathlib,platform,sys;print(json.dumps(dict(version=platform.python_version(),executableSha256=hashlib.sha256(pathlib.Path(sys.executable).read_bytes()).hexdigest())))';
+  const value = JSON.parse(execFileSync(executable, ['-I', '-B', '-c', program],
+    {encoding: 'utf8', timeout: 30000, maxBuffer: 8192}));
+  assert.match(value.version, /^\d+\.\d+\.\d+[a-z0-9.+-]*$/iu);
+  assert.match(value.executableSha256, /^[a-f0-9]{64}$/u);
+  return {version: value.version, executableSha256: value.executableSha256};
+}
+
+export function assertPythonCollectorRuntime(result, expected) {
+  assert.equal(result.environment?.python, expected.version, 'Actual Python collector version changed');
+  assert.equal(result.environment?.pythonExecutableSha256, expected.executableSha256,
+    'Actual Python collector executable changed');
+}
 
 export function formalCollectorVerdict(result) {
   if (result.firstFailure || result.packageFailure || result.cleanup?.failure ||
@@ -20,6 +40,41 @@ export function formalCollectorVerdict(result) {
   if (!result.latency?.length || result.assessments?.length !== result.latency.length ||
       result.assessments?.some(row => row.status !== 'passed')) return {status: 'incomplete', reason: result.stoppedAt ?? 'Existing formal assessment incomplete'};
   return {};
+}
+
+// Inventory only the selected product-wheel namespaces, including installed
+// metadata/bytecode. The ordinary verifier owns payload identity; this reader
+// reuses its observations and the existing non-following inventory utility.
+export async function pythonInstalledInventory(consumer, artifacts) {
+  const directory = await lstat(consumer);
+  assert(directory.isDirectory() && !directory.isSymbolicLink(), 'Installed Python consumer cannot be linked');
+  assert.deepEqual(artifacts.map(row => row.name).sort(), ['actql', 'actql-local-runtime', 'actql-sdk']);
+  for (const artifact of artifacts) {
+    assert(Array.isArray(artifact.installedRoots) && artifact.installedRoots.length > 0);
+    assert(Array.isArray(artifact.verifiedPayloads) && artifact.verifiedPayloads.length > 0);
+  }
+  const roots = [...new Set(artifacts.flatMap(row => row.installedRoots))].sort();
+  const files = [];
+  for (const name of roots) {
+    assert(typeof name === 'string' && name !== '' && name !== '.' && name !== '..' &&
+      name === basename(name) && !name.includes('\\'), 'Unsafe installed wheel namespace');
+    const path = join(consumer, name), metadata = await lstat(path);
+    assert(!metadata.isSymbolicLink(), 'Installed wheel namespace cannot be linked');
+    if (metadata.isDirectory()) files.push(...await inventory(path, name + '/'));
+    else {
+      assert(metadata.isFile(), 'Installed wheel namespace must be regular');
+      const body = await readFile(path);
+      files.push({path: name, bytes: body.length, mode: metadata.mode & 0o777, sha256: digest(body)});
+    }
+  }
+  files.sort((a, b) => a.path.localeCompare(b.path));
+  const byPath = new Map(files.map(row => [row.path, row]));
+  for (const artifact of artifacts) for (const expected of artifact.verifiedPayloads) {
+    assert.deepEqual(byPath.get(expected.path), expected, 'Verified Python payload changed during size inspection');
+  }
+  const bytes = files.reduce((sum, row) => sum + row.bytes, 0);
+  assert(Number.isSafeInteger(bytes) && bytes > 0);
+  return {roots, files, bytes, sha256: jsonDigest(files)};
 }
 
 export async function releaseArtifacts({options, repository, source, command, onArtifact, onMetric}) {
@@ -44,9 +99,28 @@ export async function releaseArtifacts({options, repository, source, command, on
       const path = options.nativeManifest;
       const manifest = await verifyNativeCliRelease(join(path, '..'));
       assert.equal(manifest.sourceSha, source.sha);
+      assert.equal(jsonDigest(manifest), jsonDigest(selected), 'Selected Native manifest differs from the verified canonical release');
+      const result = await command(options.python ?? 'python3', ['-I', '-B', join(repository, 'scripts/health-release-artifacts.py'),
+        '--native-installed', path, options.nativeConsumer, source.sha], {cwd: repository, name: 'inspect-native'});
+      const installed = JSON.parse(result.stdout);
+      assert.equal(installed.sourceSha, source.sha);
+      assert.equal(installed.cohortSha256, digest(await readFile(path)));
+      assert.equal(installed.platform, platformKey);
+      assert.deepEqual(Object.keys(installed.packages).sort(), ['actql', '@actql/cli-' + platformKey].sort());
+      for (const row of Object.values(installed.packages)) {
+        assert(Number.isSafeInteger(row.installedBytes) && row.installedBytes > 0);
+        assert(Number.isSafeInteger(row.payloads) && row.payloads > 0);
+        assert.match(row.inventorySha256, /^[a-f0-9]{64}$/u);
+      }
+      await onArtifact({name: 'native-products-installed', artifactKind: 'installed', sourceSha: source.sha,
+        version: manifest.packages.find(row => row.name === 'actql').version,
+        sha256: jsonDigest(installed), installedInventory: installed,
+        installedBytes: Object.values(installed.packages).reduce((sum, row) => sum + row.installedBytes, 0)});
       artifacts = manifest.packages.map(pkg => ({name: pkg.name, version: pkg.version, sourceSha: source.sha,
-        artifactKind: 'npm', sha256: pkg.sha256, acquisitionBytes: pkg.bytes,
-        installedBytes: pkg.files.reduce((sum, row) => sum + row.bytes, 0), file: pkg.file,
+        artifactKind: 'npm', sha256: pkg.sha256, acquisitionBytes: pkg.bytes, file: pkg.file,
+        ...(installed.packages[pkg.name] ? {...installed.packages[pkg.name],
+          installedScope: 'Verified selected Native product payload bytes; npm metadata and unrelated dependencies excluded'}
+          : {installedStatus: 'unmeasured', installedReason: 'Package is not installed for the actual selected platform'}),
         bundled: pkg.files.filter(row => /duckdb|wasmtime|\.wasm$|actql-native-client$/u.test(row.path))}));
       for (const pkg of manifest.packages) for (const file of pkg.files.filter(row => /actql-native-client$/u.test(row.path))) {
         artifacts.push({name: pkg.name + ':' + file.path, version: pkg.version, sourceSha: source.sha,
@@ -56,12 +130,34 @@ export async function releaseArtifacts({options, repository, source, command, on
       const result = await command(options.python ?? 'python3', ['-I', '-B', join(repository, 'scripts/health-release-artifacts.py'),
         options.pythonManifest, options.pythonConsumer, source.sha], {cwd: repository, name: 'inspect-python'});
       artifacts = JSON.parse(result.stdout);
+      for (const artifact of artifacts) {
+        assert.equal(artifact.sourceSha, source.sha);
+        assert.equal(artifact.artifactKind, 'wheel');
+      }
+      const installed = await pythonInstalledInventory(options.pythonConsumer, artifacts);
+      await onArtifact({name: 'python-products-installed', artifactKind: 'installed', sourceSha: source.sha,
+        version: selected.package_version, sha256: installed.sha256, installedInventory: installed,
+        installedBytes: installed.bytes});
+      await onMetric({id: 'installed:python-products', target: 'python', kind: 'size', artifactKind: 'installed',
+        value: installed.bytes, unit: 'bytes', required: true,
+        scope: 'Complete selected product-wheel module and metadata namespaces, including generated bytecode; unrelated dependency roots and filesystem allocation excluded',
+        fixtureSha256: jsonDigest({kind: 'installed-python-product-namespaces', distributions: ['actql', 'actql-sdk', 'actql-local-runtime']}),
+        evidence: options.pythonManifest});
     }
     for (const artifact of artifacts) {
       await onArtifact(artifact);
       await onMetric({id: artifact.name, target: adapter, kind: 'size', artifactKind: artifact.artifactKind,
         value: artifact.acquisitionBytes, unit: 'bytes', required: true,
         fixtureSha256: jsonDigest({kind: artifact.artifactKind, name: artifact.name}), evidence: options[adapter + 'Manifest']});
+      if (adapter === 'native' && artifact.installedBytes !== undefined) {
+        await onMetric({id: 'installed:' + artifact.name, target: adapter, kind: 'size', artifactKind: 'installed',
+          value: artifact.installedBytes, unit: 'bytes', required: true, scope: artifact.installedScope,
+          fixtureSha256: jsonDigest({kind: 'installed', name: artifact.name}), evidence: options.nativeManifest});
+      } else if (adapter === 'native' && artifact.installedStatus === 'unmeasured') {
+        await onMetric({id: 'installed:' + artifact.name, target: adapter, kind: 'size', artifactKind: 'installed',
+          unit: 'bytes', required: false, status: 'incomplete', reason: artifact.installedReason,
+          fixtureSha256: jsonDigest({kind: 'installed', name: artifact.name}), evidence: options.nativeManifest});
+      }
       for (const member of artifact.bundled ?? []) if (member.path.endsWith('.wasm')) {
         await onArtifact({name: artifact.name + ':' + member.path, artifactKind: 'wasm', version: artifact.version,
           sourceSha: source.sha, sha256: member.sha256, acquisitionBytes: member.bytes});
@@ -112,6 +208,7 @@ export async function releaseMeasurements({options, prepared, repository, root, 
   await onMetric({id: 'peak-rss', kind: 'rss', target: 'node-local', unit: 'bytes', required: true,
     value: process.resourceUsage().maxRSS * 1024, fixtureSha256: jsonDigest('Release Node collector including verification and public Host'),
     scope: 'actual Release Node collector process high-water RSS, including verification/reporting; spawned compiler/Native/Python processes excluded; Node KiB converted to bytes', evidence: root});
+  const pythonRuntime = options.pythonVenv ? pythonRuntimeIdentity(options.pythonVenv) : null;
   const pythonControls = options.pythonControls ? JSON.parse(await readFile(options.pythonControls)) : null;
   for (const adapter of ['native', 'python']) for (const operation of ['first-init', 'cold-existing', 'warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-decimal-sum']) {
     if (adapter === 'native' && operation.startsWith('warm-')) {
@@ -130,6 +227,7 @@ export async function releaseMeasurements({options, prepared, repository, root, 
       '--load', options.load ?? 'concurrent', ...(adapter === 'python' ? ['--venv', options.pythonVenv] : [])],
     {cwd: repository, name: `formal-${adapter}-${operation}`, timeout: 0});
     const raw = JSON.parse(await readFile(join(output, 'measurements.json')));
+    if (adapter === 'python') assertPythonCollectorRuntime(raw, pythonRuntime);
     if (adapter === 'python' && pythonControls) {
       assert.equal(pythonControls.sourceSha, source.sha);
       assert.equal(pythonControls.cohortSha256, digest(await readFile(options.pythonManifest)));
@@ -144,6 +242,7 @@ export async function releaseMeasurements({options, prepared, repository, root, 
     raw.assessments = raw.latency.map(series => assessLatency(series, adapter === 'python' ? pythonControls?.comparison : undefined));
     const assessmentPath = join(output, 'health-assessments.json');
     await writeFile(assessmentPath, JSON.stringify({sourceSha: source.sha, assessments: raw.assessments,
+      ...(adapter === 'python' ? {pythonRuntime} : {}),
       controlsSha256: adapter === 'python' && options.pythonControls ? digest(await readFile(options.pythonControls)) : null}, null, 2), {flag: 'wx'});
     const verdict = formalCollectorVerdict(raw);
     for (const series of raw.latency) await onMetric({id: operation, target: adapter, kind: 'latency', required: true,

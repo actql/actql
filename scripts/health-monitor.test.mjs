@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {mkdtemp, readFile, writeFile, mkdir, readdir} from 'node:fs/promises';
+import {mkdtemp, readFile, writeFile, mkdir, readdir, symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
 import {compareReports, finishReport, markdown, summarize, exitStatus, digest, measurementProfile} from './health-monitor-report.mjs';
-import {parseArguments, requiredQuickMetrics, missingReleaseInputs, recordGuardExit, applyComparison} from './health-monitor.mjs';
+import {parseArguments, requiredQuickMetrics, missingReleaseInputs, recordGuardExit, applyComparison, environmentIdentity, verifyPythonInstalledAfter, verifyNativeInstalledAfter} from './health-monitor.mjs';
 import {packDistributionPackages} from './measure-distribution-artifacts.mjs';
-import {formalCollectorVerdict} from './health-monitor-release.mjs';
+import {formalCollectorVerdict, pythonRuntimeIdentity, assertPythonCollectorRuntime, pythonInstalledInventory} from './health-monitor-release.mjs';
 import {quickNodeMetrics} from './health-monitor-adapters.mjs';
 import {nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
 
@@ -24,10 +24,26 @@ function fixture(mode = 'quick') {
     methodologySha256: '2'.repeat(64), baseline: {id: 'synthetic-unit-only', reviewed: true, reason: 'test vector, never a product baseline'},
     artifacts: [{name: 'test', sourceSha: 'a'.repeat(40), sha256: '3'.repeat(64)}], errors: [],
     metrics: []};
+  if (mode === 'release') report.environment.pythonRuntime = {version: '3.12.12', executableSha256: '5'.repeat(64)};
   report.metrics = measurementProfile(mode, report.environment).map(row => ({...row, evidence: 'synthetic unit only',
     fixtureSha256: '4'.repeat(64), ...(row.kind === 'latency' ? {samples: samples(10, row.requiredSamples)} : {value: 1000})}));
   if (mode === 'release') report.metrics.push({id: 'synthetic-contained.wasm', target: 'python', kind: 'size',
     artifactKind: 'wasm', value: 1000, unit: 'bytes', required: true, fixtureSha256: '4'.repeat(64), evidence: 'synthetic unit only'});
+  if (mode === 'release') {
+    const files = [{path: 'synthetic-unit-only', bytes: 1000, mode: 0o644, sha256: '7'.repeat(64)}];
+    const installed = {roots: ['synthetic-unit-only'], files, bytes: 1000, sha256: digest(JSON.stringify(files))};
+    report.artifacts.push({name: 'python-products-installed', artifactKind: 'installed', sourceSha: report.source.sha,
+      sha256: installed.sha256, installedBytes: installed.bytes, installedInventory: installed});
+    report.pythonInstalledInventoryAfter = structuredClone(installed);
+    report.pythonInstalledPayloadsUnchanged = true;
+    const native = {sourceSha: report.source.sha, cohortSha256: '8'.repeat(64), platform: 'linux-x64-gnu',
+      packages: Object.fromEntries(['actql', '@actql/cli-linux-x64-gnu'].map(name => [name,
+        {installedBytes: 1000, payloads: 1, inventorySha256: '9'.repeat(64)}]))};
+    report.artifacts.push({name: 'native-products-installed', artifactKind: 'installed', sourceSha: report.source.sha,
+      sha256: digest(JSON.stringify(native)), installedBytes: 2000, installedInventory: native});
+    report.nativeInstalledInventoryAfter = structuredClone(native);
+    report.nativeInstalledPayloadsUnchanged = true;
+  }
   report.sourceAfter = structuredClone(report.source); report.environmentAfter = structuredClone(report.environment);
   report.installedPayloadsUnchanged = true; return report;
 }
@@ -71,6 +87,59 @@ test('CPU, toolchain, fixture, build or dirty mismatch refuses comparison', () =
     const result = compareReports(fixture(), current, policy);
     assert.equal(result.status, 'incomplete'); assert.equal(result.comparable, false);
   }
+});
+
+test('Release methodology identity binds actual cold and Native Python collector sources', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-health-methodology-'));
+  const files = ['scripts/benchmark-node-operations.mjs', 'adapters/host-node/fixtures/mock-project-effect-public.mjs',
+    'packages/native-cli/lib/project-template.mjs', 'scripts/health-monitor-adapters.mjs',
+    'scripts/benchmark-node-process-operations.mjs', 'scripts/benchmark-ordinary-processes.py',
+    'scripts/health-monitor-release.mjs', 'scripts/health-release-artifacts.py',
+    'scripts/health-monitor.mjs', 'scripts/health-monitor-report.mjs', 'scripts/measure-distribution-artifacts.mjs',
+    'scripts/package-release.mjs', 'scripts/operation-performance.mjs', 'scripts/ordinary-operation-packages.mjs',
+    'scripts/native-cli-release.mjs'];
+  for (const file of files) {
+    await mkdir(join(root, file, '..'), {recursive: true}); await writeFile(join(root, file), 'authored source-tool DATA\n');
+  }
+  const source = await readFile(new URL('./health-monitor.mjs', import.meta.url), 'utf8');
+  const begin = source.indexOf('async function fixtureIdentities('), end = source.indexOf('\nif (process.argv[1]', begin);
+  assert.ok(begin >= 0 && end > begin);
+  const identities = runInNewContext('(' + source.slice(begin, end) + ')', {repository: root, readFile, join, digest});
+  const original = await identities('release');
+  assert.deepEqual(Object.keys(original).sort(), [...files].sort());
+  for (const file of files.slice(4)) {
+    await writeFile(join(root, file), 'changed actual collector timing boundary DATA\n');
+    const changed = await identities('release');
+    assert.notEqual(digest(JSON.stringify(changed)), digest(JSON.stringify(original)), file + ' must change methodology identity');
+    await writeFile(join(root, file), 'authored source-tool DATA\n');
+  }
+  const quick = await identities('quick');
+  for (const file of files.slice(4, 8).concat(files.slice(14))) assert.equal(quick[file], undefined,
+    'unselected Release-only sources are not Quick collector inputs');
+  assert.equal(Object.keys(quick).length, 10);
+  await assert.rejects(identities('other'), /Unknown measurement methodology mode/u);
+  const base = fixture('release'), current = fixture('release');
+  base.methodologySha256 = digest(JSON.stringify(original));
+  await writeFile(join(root, files[4]), 'different actual cold collector DATA');
+  current.methodologySha256 = digest(JSON.stringify(await identities('release')));
+  assert.equal(compareReports(base, current, policy).comparable, false);
+  assert.match(compareReports(base, current, policy).reasons.join(';'), /methodology/u);
+});
+
+test('Release pre-admission report retains its actual selected methodology file hashes', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-health-methodology-report-')), output = join(root, 'report');
+  const result = spawnSync(process.execPath, [new URL('./health-monitor.mjs', import.meta.url).pathname,
+    'release', '--output', output], {encoding: 'utf8'});
+  assert.equal(result.status, 2, result.stderr);
+  const report = JSON.parse(await readFile(join(output, 'report.json')));
+  assert.equal(report.status, 'incomplete'); assert.equal(report.guardExitCode, undefined);
+  assert.equal(Object.keys(report.methodologyFiles).length, 15);
+  for (const [file, hash] of Object.entries(report.methodologyFiles)) {
+    assert.equal(hash, digest(await readFile(new URL('../' + file, import.meta.url))));
+  }
+  assert.equal(report.methodologySha256, digest(JSON.stringify({policy: report.config, fixtureFiles: report.methodologyFiles})));
+  assert.ok(report.metrics.some(row => row.id === 'required-release-inputs'));
+  assert.match(await readFile(join(output, 'summary.md'), 'utf8'), /incomplete/u);
 });
 test('different source SHAs compare when each artifact is bound to its actual source', () => {
   const current = fixture(); current.source.sha = current.artifacts[0].sourceSha = 'b'.repeat(40);
@@ -324,4 +393,336 @@ test('malformed default baseline preserves its error and never becomes a measure
     assert.equal(report.comparison.status, 'error'); assert.equal(finishReport(report).exitCode, 3);
     assert.equal(await readFile(path, 'utf8'), bytes);
   }
+});
+
+
+test('Release comparison binds the selected Python runtime independently of its controller', () => {
+  const runtime = {version: '3.12.12', executableSha256: '5'.repeat(64)};
+  const withRuntime = value => {
+    const report = fixture('release');
+    report.environment.pythonRuntime = value;
+    report.environmentAfter = structuredClone(report.environment);
+    return report;
+  };
+  const base = withRuntime(runtime);
+  for (const changed of [
+    {...runtime, version: '3.13.0'},
+    {...runtime, executableSha256: '6'.repeat(64)},
+    undefined,
+    {version: 'unavailable', executableSha256: 'unavailable'},
+  ]) {
+    const comparison = compareReports(base, withRuntime(changed), policy);
+    assert.equal(comparison.comparable, false, 'controller identity cannot substitute for the selected venv runtime');
+    assert.match(comparison.reasons.join(';'), /pythonRuntime/u);
+  }
+  for (const malformed of [
+    {version: [runtime.version], executableSha256: runtime.executableSha256},
+    {version: runtime.version, executableSha256: [runtime.executableSha256]},
+    {version: runtime.version},
+  ]) {
+    assert.equal(compareReports(withRuntime(malformed), withRuntime(malformed), policy).comparable, false,
+      'identical malformed runtime metadata cannot establish compatibility');
+  }
+  assert.equal(compareReports(base, withRuntime({...runtime}), policy).comparable, true);
+});
+
+
+test('Release identity observes only the selected Python interpreter metadata', async () => {
+  const probe = spawnSync('python3', ['-I', '-B', '-c',
+    'import json,platform,sys;print(json.dumps(dict(executable=sys.executable,version=platform.python_version())))'], {encoding: 'utf8'});
+  assert.equal(probe.status, 0, probe.stderr);
+  const selected = JSON.parse(probe.stdout), root = await mkdtemp(join(tmpdir(), 'actql-health-python-tool-'));
+  await mkdir(join(root, 'bin'));
+  await symlink(selected.executable, join(root, 'bin/python'));
+  const expected = {version: selected.version,
+    executableSha256: digest(await readFile(selected.executable))};
+  assert.deepEqual(pythonRuntimeIdentity(root), expected);
+  const observed = await environmentIdentity({pythonVenv: root, python: join(root, 'absent-controller')});
+  assert.deepEqual(observed.pythonRuntime, expected);
+  assert.match(observed.python, /^unavailable:/u, 'controller failure cannot substitute for selected runtime identity');
+  assert.equal(Object.hasOwn(await environmentIdentity(), 'pythonRuntime'), false,
+    'ordinary Quick without a venv retains its original environment shape');
+  assert.throws(() => pythonRuntimeIdentity(join(root, 'absent')));
+});
+
+test('Release adapter rejects a collector using a different Python runtime', () => {
+  const expected = {version: '3.12.12', executableSha256: '5'.repeat(64)};
+  const original = {environment: {python: expected.version, pythonExecutableSha256: expected.executableSha256}};
+  assert.doesNotThrow(() => assertPythonCollectorRuntime(original, expected));
+  for (const changed of [
+    {python: '3.13.0', pythonExecutableSha256: expected.executableSha256},
+    {python: expected.version, pythonExecutableSha256: '6'.repeat(64)},
+    {},
+  ]) assert.throws(() => assertPythonCollectorRuntime({environment: changed}, expected));
+});
+
+
+test('missing selected Release interpreter saves its original error without starting a workload', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-health-python-missing-'));
+  const result = spawnSync(process.execPath, [new URL('./health-monitor.mjs', import.meta.url).pathname,
+    'release', '--python-venv', join(root, 'absent'), '--output', join(root, 'requested')], {encoding: 'utf8'});
+  assert.equal(result.status, 3, result.stderr);
+  const saved = result.stderr.match(/Report: (.+)/u)?.[1]; assert.ok(saved, result.stderr);
+  const report = JSON.parse(await readFile(join(saved, 'report.json')));
+  assert.equal(report.status, 'error');
+  assert.match(report.errors[0].message, /ENOENT/u);
+  assert.equal(report.guardExitCode, undefined, 'metadata failure precedes collector admission');
+  assert.match(await readFile(join(saved, 'summary.md'), 'utf8'), /Error \(runner\)/u);
+});
+
+
+test('Native artifact adapter cannot publish installed observations before consumer verification', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-health-native-consumer-'));
+  const manifestPath = join(root, 'release.json'), absent = join(root, 'absent-consumer');
+  const source = 'a'.repeat(40);
+  const manifest = {sourceSha: source, platforms: {'darwin-arm64': {}},
+    packages: [{name: 'actql', version: '1.2.3', file: 'actql-1.2.3.tgz', bytes: 1,
+      sha256: 'b'.repeat(64), files: [{path: 'package.json', bytes: 2}]}]};
+  await writeFile(manifestPath, JSON.stringify(manifest));
+  const text = await readFile(new URL('./health-monitor-release.mjs', import.meta.url), 'utf8');
+  const start = text.indexOf('export async function releaseArtifacts(');
+  const end = text.indexOf('export async function releaseMeasurements(', start);
+  assert.ok(start >= 0 && end > start);
+  // Isolate the existing adapter route. Archive verification is a fulfilled
+  // dependency here; the real installed verifier is tested with tiny tar data.
+  const selected = runInNewContext('(' + text.slice(start, end).replace('export ', '') + ')', {
+    assert, readFile, join, platform: () => 'darwin', arch: () => 'arm64',
+    verifyNativeCliRelease: async () => manifest, jsonDigest: value => digest(JSON.stringify(value)), digest,
+  });
+  const original = new Error('Selected installed consumer absent'), artifacts = [], metrics = [];
+  let calls = 0;
+  await assert.rejects(selected({options: {nativeManifest: manifestPath, nativeConsumer: absent},
+    repository: root, source: {sha: source},
+    command: async (_command, args) => {calls++; assert.ok(args.includes(absent)); throw original;},
+    onArtifact: async row => artifacts.push(row), onMetric: async row => metrics.push(row)}), error => error === original);
+  assert.equal(calls, 1);
+  assert.equal(artifacts.length, 0, 'no unverified installed-size observation');
+});
+
+
+test('Native installed-byte inspection reuses the ordinary verifier without executable or SDK work', () => {
+  const fixture = new URL('./fixtures/health-native-installed.py', import.meta.url).pathname;
+  const inspector = new URL('./health-release-artifacts.py', import.meta.url).pathname;
+  const result = spawnSync('python3', ['-I', '-B', fixture, inspector], {encoding: 'utf8'});
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), {verifiedPackages: 2, refusedControls: 5, childExecutions: 0});
+});
+
+
+test('Native installed metrics cover only the selected platform while acquisition totals retain every package', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-health-native-sizes-'));
+  const path = join(root, 'release.json'), source = 'a'.repeat(40);
+  const names = ['@actql/cli-darwin-arm64', '@actql/cli-linux-x64-gnu', 'actql'];
+  const manifest = {sourceSha: source, platforms: {'darwin-arm64': {}, 'linux-x64-gnu': {}},
+    packages: names.map((name, i) => ({name, version: '1.2.3', file: `unit-${i}.tgz`, bytes: i + 10,
+      sha256: 'b'.repeat(64), files: [{path: 'package.json', bytes: 2},
+        {path: name === 'actql' ? 'bin/actql.mjs' : 'bin/actql-native-client', bytes: 3, sha256: 'c'.repeat(64)}]}))};
+  const bytes = JSON.stringify(manifest); await writeFile(path, bytes);
+  const text = await readFile(new URL('./health-monitor-release.mjs', import.meta.url), 'utf8');
+  const start = text.indexOf('export async function releaseArtifacts('), end = text.indexOf('export async function releaseMeasurements(', start);
+  const selected = runInNewContext('(' + text.slice(start, end).replace('export ', '') + ')', {
+    assert, readFile, join, platform: () => 'darwin', arch: () => 'arm64',
+    verifyNativeCliRelease: async () => manifest, jsonDigest: value => digest(JSON.stringify(value)), digest,
+  });
+  const installed = {sourceSha: source, cohortSha256: digest(bytes), platform: 'darwin-arm64',
+    packages: Object.fromEntries(['actql', names[0]].map(name => [name,
+      {installedBytes: 5, payloads: 2, inventorySha256: 'd'.repeat(64)}]))};
+  const run = async observation => {
+    const artifacts = [], metrics = [];
+    const ready = await selected({options: {nativeManifest: path, nativeConsumer: join(root, 'consumer')},
+      repository: root, source: {sha: source}, command: async () => ({stdout: JSON.stringify(observation)}),
+      onArtifact: async row => artifacts.push(row), onMetric: async row => metrics.push(row)});
+    return {ready, artifacts, metrics};
+  };
+  const result = await run(installed);
+  assert.equal(result.ready, false, 'the absent Python cohort remains incomplete');
+  assert.deepEqual(result.metrics.filter(row => row.target === 'native' && row.artifactKind === 'npm')
+    .map(row => [row.id, row.value]), names.map((name, i) => [name, i + 10]));
+  assert.deepEqual(result.metrics.filter(row => row.artifactKind === 'installed' && row.value !== undefined)
+    .map(row => [row.id, row.value]), [['installed:' + names[0], 5], ['installed:actql', 5]]);
+  const unmeasured = result.metrics.find(row => row.id === 'installed:' + names[1]);
+  assert.equal(unmeasured.value, undefined); assert.equal(unmeasured.status, 'incomplete');
+  assert.equal(unmeasured.required, false);
+  const foreign = result.artifacts.find(row => row.name === names[1]);
+  assert.equal(foreign.installedBytes, undefined); assert.equal(foreign.installedStatus, 'unmeasured');
+  for (const changed of [{...installed, sourceSha: 'e'.repeat(40)}, {...installed, cohortSha256: 'e'.repeat(64)},
+    {...installed, platform: 'linux-x64-gnu'}, {...installed, packages: {actql: installed.packages.actql}},
+    {...installed, packages: {...installed.packages, actql: {...installed.packages.actql, installedBytes: 0}}}]) {
+    await assert.rejects(run(changed));
+  }
+  const substituted = JSON.stringify({...manifest, unverifiedMetadata: 'different selected manifest'});
+  await writeFile(path, substituted);
+  await assert.rejects(run({...installed, cohortSha256: digest(substituted)}),
+    /Selected Native manifest differs/u);
+});
+
+test('Release cannot omit its required installed Native payload metrics', () => {
+  const current = fixture('release');
+  current.metrics = current.metrics.filter(row => !(row.target === 'native' && row.artifactKind === 'installed'));
+  assert.equal(finishReport(current).status, 'incomplete');
+});
+
+test('Release requires Native whole-run installed custody, including early collector failure', () => {
+  const current = fixture('release');
+  delete current.nativeInstalledInventoryAfter;
+  delete current.nativeInstalledPayloadsUnchanged;
+  assert.equal(finishReport(current).status, 'incomplete',
+    'precollection payload verification alone is not an after observation');
+});
+
+test('Release rejects inconsistent Native installed snapshots and retains changed observations', () => {
+  for (const mutate of [r => delete r.nativeInstalledInventoryAfter,
+    r => delete r.nativeInstalledPayloadsUnchanged,
+    r => r.artifacts.find(row => row.name === 'native-products-installed').sourceSha = 'b'.repeat(40),
+    r => r.metrics.find(row => row.id === 'installed:actql').value++,
+    r => r.artifacts.find(row => row.name === 'native-products-installed').installedBytes++]) {
+    const current = fixture('release'); mutate(current);
+    assert.equal(finishReport(current).status, 'incomplete');
+  }
+  const current = fixture('release'); current.nativeInstalledInventoryAfter.cohortSha256 = 'b'.repeat(64);
+  assert.equal(finishReport(current).status, 'error');
+  for (const mutate of [value => value.cohortSha256 = [value.cohortSha256],
+    value => value.packages.actql.inventorySha256 = [value.packages.actql.inventorySha256]]) {
+    const malformed = fixture('release');
+    const artifact = malformed.artifacts.find(row => row.name === 'native-products-installed');
+    mutate(artifact.installedInventory); artifact.sha256 = digest(JSON.stringify(artifact.installedInventory));
+    malformed.nativeInstalledInventoryAfter = structuredClone(artifact.installedInventory);
+    assert.equal(finishReport(malformed).status, 'incomplete', 'identical malformed snapshots cannot qualify');
+  }
+  assert.equal(finishReport(fixture('release')).status, 'pass');
+});
+
+test('Native after-check uses the original read-only verifier even after collector failure', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-health-native-after-'));
+  const helper = new URL('./health-release-artifacts.py', import.meta.url).pathname;
+  const data = spawnSync('python3', ['-I', '-B', new URL('./fixtures/health-native-installed.py', import.meta.url).pathname,
+    helper, root], {encoding: 'utf8'});
+  assert.equal(data.status, 0, data.stderr);
+  const {fixture: supplied, childExecutions} = JSON.parse(data.stdout);
+  assert.equal(childExecutions, 0);
+  const before = {name: 'native-products-installed', sha256: digest(JSON.stringify(supplied.observation)),
+    installedInventory: supplied.observation};
+  const options = {nativeManifest: supplied.manifest, nativeConsumer: supplied.consumer};
+  const original = {target: 'collector', message: 'Original selected workload failed'};
+  const report = () => ({source: {sha: supplied.source}, artifacts: [structuredClone(before)],
+    errors: [structuredClone(original)], installedPayloadsUnchanged: true});
+  let inspections = 0;
+  const command = async (executable, args, settings) => {
+    assert.equal(executable, 'python3'); assert.equal(settings.name, 'inspect-native-after');
+    assert.deepEqual(args, ['-I', '-B', helper, '--native-installed', supplied.manifest, supplied.consumer, supplied.source]);
+    inspections++;
+    const result = spawnSync(executable, args, {encoding: 'utf8'});
+    if (result.status !== 0) throw new Error(result.stderr);
+    return {stdout: result.stdout};
+  };
+  const stable = report(); await verifyNativeInstalledAfter(stable, options, command);
+  assert.equal(stable.nativeInstalledPayloadsUnchanged, true);
+  assert.deepEqual(stable.nativeInstalledInventoryAfter, supplied.observation);
+  assert.deepEqual(stable.errors, [original]);
+  const manifest = await readFile(supplied.manifest);
+  await writeFile(supplied.manifest, JSON.stringify({...JSON.parse(manifest), changedMetadata: 'unit-only'}));
+  const changed = report(); await verifyNativeInstalledAfter(changed, options, command);
+  assert.equal(changed.nativeInstalledPayloadsUnchanged, false);
+  assert.equal(changed.installedPayloadsUnchanged, false);
+  assert.deepEqual(changed.errors[0], original); assert.equal(changed.errors[1].target, 'native-package-after');
+  assert.notDeepEqual(changed.nativeInstalledInventoryAfter, supplied.observation);
+  await writeFile(supplied.manifest, manifest);
+  const binary = join(supplied.consumer, 'node_modules', '@actql/cli-' + supplied.observation.platform, 'bin/actql-native-client');
+  await writeFile(binary, 'CHANGED SYNTHETIC DATA; NEVER EXECUTE');
+  const failed = report(); await verifyNativeInstalledAfter(failed, options, command);
+  assert.equal(failed.nativeInstalledPayloadsUnchanged, false);
+  assert.deepEqual(failed.errors[0], original); assert.match(failed.errors[1].message, /Installed payload differs/u);
+  const absent = {artifacts: [], errors: []}; await verifyNativeInstalledAfter(absent, options, command);
+  assert.deepEqual(absent, {artifacts: [], errors: []}); assert.equal(inspections, 3);
+});
+
+
+test('Python installed sizes measure product namespaces instead of wheel expansion bytes', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-health-python-data-'));
+  const prepared = spawnSync('python3', ['-I', '-B',
+    new URL('./fixtures/health-python-installed.py', import.meta.url).pathname, root], {encoding: 'utf8'});
+  assert.equal(prepared.status, 0, prepared.stderr);
+  const fixture = JSON.parse(prepared.stdout);
+  const selected = JSON.parse(await readFile(fixture.manifest, 'utf8'));
+  const text = await readFile(new URL('./health-monitor-release.mjs', import.meta.url), 'utf8');
+  const start = text.indexOf('export async function releaseArtifacts('), end = text.indexOf('export async function releaseMeasurements(', start);
+  const adapter = runInNewContext('(' + text.slice(start, end).replace('export ', '') + ')', {
+    assert, readFile, join,
+    platform: () => selected.platform === 'darwin-arm64' ? 'darwin' : 'linux',
+    arch: () => selected.platform === 'darwin-arm64' ? 'arm64' : 'x64',
+    verifyNativeCliRelease: async () => {throw new Error('No Native selection');},
+    jsonDigest: value => digest(JSON.stringify(value)), digest, pythonInstalledInventory, JSON,
+  });
+  const artifacts = [], metrics = [];
+  await adapter({options: {pythonManifest: fixture.manifest, pythonConsumer: fixture.consumer},
+    repository: new URL('../', import.meta.url).pathname, source: {sha: fixture.source},
+    command: async (command, args) => {
+      const result = spawnSync(command, args, {encoding: 'utf8'});
+      assert.equal(result.status, 0, result.stderr); return {stdout: result.stdout};
+    }, onArtifact: async row => artifacts.push(row), onMetric: async row => metrics.push(row)});
+  const installed = metrics.find(row => row.id === 'installed:python-products');
+  assert.ok(installed, 'an actual installed observation is required');
+  assert.equal(installed.value, fixture.installedBytes);
+  for (const name of ['actql', 'actql-sdk', 'actql-local-runtime']) {
+    const wheel = artifacts.find(row => row.name === name);
+    assert.equal(wheel.unpackedBytes, fixture.unpackedBytes[name]);
+    assert.equal(wheel.verifiedPayloadBytes, fixture.verifiedPayloadBytes[name]);
+    assert.equal(wheel.installedBytes, undefined, 'archive expansion is not actual installed size');
+  }
+  const report = {artifacts, errors: [], installedPayloadsUnchanged: true};
+  await verifyPythonInstalledAfter(report, {pythonConsumer: fixture.consumer});
+  assert.equal(report.pythonInstalledPayloadsUnchanged, true);
+  assert.equal(report.errors.length, 0);
+  await writeFile(join(fixture.consumer, 'actql-1.2.3.dist-info/INSTALLER'), 'changed installer metadata');
+  const original = {target: 'collector', message: 'original source-tool error'};
+  report.errors.push(original);
+  await verifyPythonInstalledAfter(report, {pythonConsumer: fixture.consumer});
+  assert.equal(report.pythonInstalledPayloadsUnchanged, false);
+  assert.equal(report.installedPayloadsUnchanged, false);
+  assert.equal(report.errors[0], original);
+  assert.match(report.errors[1].message, /changed after collection/u);
+});
+
+
+test('Python product inventory deduplicates namespaces and refuses foreign paths or payload bindings', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-health-python-scope-'));
+  const prepared = spawnSync('python3', ['-I', '-B',
+    new URL('./fixtures/health-python-installed.py', import.meta.url).pathname, root], {encoding: 'utf8'});
+  assert.equal(prepared.status, 0, prepared.stderr);
+  const fixture = JSON.parse(prepared.stdout);
+  const inspected = spawnSync('python3', ['-I', '-B',
+    new URL('./health-release-artifacts.py', import.meta.url).pathname,
+    fixture.manifest, fixture.consumer, fixture.source], {encoding: 'utf8'});
+  assert.equal(inspected.status, 0, inspected.stderr);
+  const artifacts = JSON.parse(inspected.stdout);
+  const duplicate = artifacts.map(row => ({...row, installedRoots: [...row.installedRoots, fixture.roots[0]]}));
+  assert.equal((await pythonInstalledInventory(fixture.consumer, duplicate)).bytes, fixture.installedBytes);
+  for (const name of ['..', '../foreign', '/outside', 'a\\b', '']) {
+    const changed = structuredClone(artifacts); changed[0].installedRoots.push(name);
+    await assert.rejects(pythonInstalledInventory(fixture.consumer, changed), /Unsafe installed wheel namespace/u);
+  }
+  const alias = join(root, 'consumer-alias'); await symlink(fixture.consumer, alias, 'dir');
+  await assert.rejects(pythonInstalledInventory(alias, artifacts), /consumer cannot be linked/u);
+  const linked = join(fixture.consumer, 'linked-product');
+  await symlink(join(fixture.consumer, 'actql'), linked, 'dir');
+  const changed = structuredClone(artifacts); changed[0].installedRoots.push('linked-product');
+  await assert.rejects(pythonInstalledInventory(fixture.consumer, changed), /namespace cannot be linked/u);
+  const foreign = structuredClone(artifacts); foreign[0].verifiedPayloads[0].sha256 = 'f'.repeat(64);
+  await assert.rejects(pythonInstalledInventory(fixture.consumer, foreign), /Verified Python payload changed/u);
+});
+
+test('Release cannot omit its actual Python product installed observation', () => {
+  const current = fixture('release');
+  current.metrics = current.metrics.filter(row => row.id !== 'installed:python-products');
+  assert.equal(finishReport(current).status, 'incomplete');
+});
+
+
+test('Release requires consistent actual Python installed before and after observations', () => {
+  const missing = fixture('release'); delete missing.pythonInstalledInventoryAfter;
+  assert.equal(finishReport(missing).status, 'incomplete');
+  const changed = fixture('release'); changed.pythonInstalledInventoryAfter.sha256 = 'f'.repeat(64);
+  assert.equal(finishReport(changed).status, 'error');
+  const inconsistent = fixture('release'); inconsistent.pythonInstalledInventoryAfter.files[0].bytes++;
+  assert.equal(finishReport(inconsistent).status, 'incomplete');
 });
