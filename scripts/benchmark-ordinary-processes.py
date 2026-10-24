@@ -27,7 +27,19 @@ import zipfile
 EXPECTED = [{'id': 1}]
 SQL = 'SELECT 1 AS id'
 FIXTURE = (SQL + '\n[{"id":1}]\n').encode()
-OPERATIONS = ('first-init', 'cold-existing', 'warm-select', 'warm-result', 'warm-status')
+OPERATIONS = ('first-init', 'cold-existing', 'warm-select', 'warm-result', 'warm-status',
+              'warm-join', 'warm-decimal-sum')
+SMALL_QUERIES = {
+    'warm-join': dict(operation='warm-join',
+        text="WITH lhs AS (SELECT 1 AS id), rhs AS (SELECT 1 AS id, 'joined' AS label) "
+             'SELECT lhs.id AS id, rhs.label AS label FROM lhs JOIN rhs ON lhs.id = rhs.id MAX_OUTPUT_ROWS 1',
+        expected=[dict(id=1, label='joined')]),
+    'warm-decimal-sum': dict(operation='warm-decimal-sum',
+        text="WITH items AS (SELECT CAST('1.25' AS DECIMAL(8,2)) AS amount "
+             "UNION ALL SELECT CAST('2.50' AS DECIMAL(8,2)) AS amount "
+             "UNION ALL SELECT CAST('0.25' AS DECIMAL(8,2)) AS amount) "
+             'SELECT SUM(amount) AS total FROM items', expected=[dict(total='4.00')]),
+}
 
 
 def wire(value):
@@ -250,6 +262,7 @@ def python_sample(config):
             assert dict(execution.ref) == original
         result['originalRun'] = original
         operation = config['operation']
+        fixture = SMALL_QUERIES.get(operation)
         if operation == 'first-init':
             # Query.all already verified these rows. Initialization must not
             # manufacture an additional Result operation after that completion.
@@ -264,12 +277,14 @@ def python_sample(config):
             try:
                 if operation == 'warm-select':
                     value = client.sql(SQL).all()
+                elif fixture:
+                    value = client.sql(fixture['text']).all()
                 elif operation == 'warm-status':
                     status = execution.status()
                     value = {'status': status.status}
                 else:
                     value = execution.result('main').all()
-                expected = {'status': 'succeeded'} if operation == 'warm-status' else EXPECTED
+                expected = fixture['expected'] if fixture else ({'status': 'succeeded'} if operation == 'warm-status' else EXPECTED)
                 assert value == expected
             except BaseException as error:
                 failure = python_failure(error)
@@ -645,14 +660,15 @@ def collect(args):
     assert args.adapter != 'native' or not args.operation.startswith('warm-'), 'CLI process launches are not retained-Host warm samples'
     assert not output.exists(), 'Use distinct new benchmark state; no old Run replay'
     output.mkdir(mode=0o700, parents=True)
-    protocol = dict(adapter=args.adapter, operation=args.operation, fixture=SQL,
+    fixture = SMALL_QUERIES.get(args.operation)
+    protocol = dict(adapter=args.adapter, operation=args.operation, fixture=fixture['text'] if fixture else SQL,
                     cold='Each sample launches a new actual process; OS caches not evicted',
                     warm='Python only: same open public Host and actual SDK process',
                     close='Await synchronous public SDK close or actual CLI process exit',
                     earlyStop='One failed/Unknown sample stops; warm diagnostic over100ms stops without a p95 claim')
     environment = dict(platform=sys.platform, architecture=platform.machine(), osRelease=platform.release(),
                        python=platform.python_version(), pythonExecutableSha256=digest(Path(sys.executable).read_bytes()))
-    binding = dict(cohortSha256=cohort, fixtureSha256=digest(FIXTURE),
+    binding = dict(cohortSha256=cohort, fixtureSha256=digest(wire(fixture)) if fixture else digest(FIXTURE),
                    environmentSha256=digest(wire(environment)), historyProtocolSha256=digest(wire(protocol)))
     series = dict(operation=args.operation, mode=args.mode, **binding, profiled=False,
                   load=args.load, samples=[], stoppedEarly=False)
@@ -666,7 +682,7 @@ def collect(args):
                   qualification='Collector-only selected public operation. Counters unavailable here are missing, never zero. Separate required assessor must reject missing coverage.')
     original = None
     state = output / 'existing-state'
-    expected = {'status':'succeeded'} if args.operation == 'warm-status' else EXPECTED
+    expected = fixture['expected'] if fixture else ({'status':'succeeded'} if args.operation == 'warm-status' else EXPECTED)
     count = (100 if args.operation.startswith('warm-') else 30) if args.mode == 'final' else 3
     pids = set()
 

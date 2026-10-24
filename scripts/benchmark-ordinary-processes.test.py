@@ -4,6 +4,7 @@ import csv
 import hashlib
 import io
 import json
+import runpy
 from pathlib import Path
 import stat
 import subprocess
@@ -171,7 +172,7 @@ class CollectorTests(unittest.TestCase):
         return path, consumer, None
 
     def python(self, fail_close=False, alter_on_close=False, priority=False, fail_query=None,
-               repeat_reference=False, slow_query=None, failure_chain=False):
+               repeat_reference=False, slow_query=None, failure_chain=False, small_queries=False):
         root=self.root
         environment=root/'venv'
         venv.EnvBuilder(with_pip=False, symlinks=True).create(environment)
@@ -182,6 +183,14 @@ class CollectorTests(unittest.TestCase):
         key='darwin-arm64' if sys.platform=='darwin' else 'linux-x64-gnu'
         cohort=dict(source_sha=SOURCE,platform=key,wheels=[])
         code = PRIORITY_PYTHON if priority else PYTHON
+        if small_queries:
+            fixtures = runpy.run_path(str(SCRIPT))['SMALL_QUERIES']
+            literal_rows = {'warm-join': [{'id': 1, 'label': 'joined'}], 'warm-decimal-sum': [{'total': '4.00'}]}
+            answers = {'SELECT 1 AS id': [{'id': 1}], **{fixtures[key]['text']: value for key, value in literal_rows.items()}}
+            code = code.replace(" def __init__(self):self.execution=Execution()\n  def all(self):event('submit');return [{'id':1}]",
+                                " def __init__(self,value):self.execution=Execution();self.value=value\n  def all(self):event('submit');return self.value")
+            code = code.replace("def sql(self,text):assert text=='SELECT 1 AS id';return Query()",
+                                f"def sql(self,text):\n   values={answers!r}\n   assert text in values;event('sql:'+text);return Query(values[text])")
         if fail_query is not None:
             code = code.replace('FAIL_QUERY=None', f'FAIL_QUERY={fail_query}')
         if failure_chain:
@@ -286,6 +295,23 @@ def chain_failure():
         events=[json.loads(x) for x in (output/'existing-state/events').read_text().splitlines()]
         self.assertEqual([x['event'] for x in events],['open','submit','result','result','result','close'])
         self.assertTrue(report['cleanup']['closed']);self.assertIsNone(report['databaseReads'])
+
+    def test_python_join_and_aggregate_keep_the_same_retained_host(self):
+        fixture = self.python(small_queries=True)
+        for operation in ['warm-join', 'warm-decimal-sum']:
+            with self.subTest(operation=operation):
+                result, report, output = self.collect('python', fixture, operation, self.root/operation)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                rows = report['latency'][0]['samples']
+                self.assertEqual(len(rows), 3)
+                self.assertEqual(len({row['pid'] for row in rows}), 1)
+                self.assertEqual(len({row['hostId'] for row in rows}), 1)
+                events = [json.loads(line)['event'] for line in (output/'existing-state/events').read_text().splitlines()]
+                self.assertEqual(events.count('open'), 1)
+                self.assertEqual(events.count('submit'), 4)
+                self.assertEqual(events.count('close'), 1)
+                self.assertTrue(report['cleanup']['closed'])
+                self.assertTrue(all(row['verified'] for row in rows))
 
     def test_python_cold_retains_reference_without_another_submission(self):
         result,report,output=self.collect('python',self.python(),'cold-existing')

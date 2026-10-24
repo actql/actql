@@ -837,6 +837,17 @@ jobs:
             ${{ runner.temp }}/actql-client-packages/actql-node-0.0.0-development.tgz
           if-no-files-found: error
           retention-days: 7
+  health-quick:
+    needs: [client-packages]
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    uses: ./.github/workflows/health-monitor.yml
+    permissions:
+      contents: read
+      actions: read
+    with:
+      package-result: ${{ needs.client-packages.result }}
+      package-run-id: ${{ github.run_id }}
+      package-artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
   client-distribution:
     if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     needs: [select-targets, preflight, client-packages]
