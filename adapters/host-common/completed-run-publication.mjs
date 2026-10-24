@@ -446,7 +446,8 @@ function releaseCompletedResultOwner(storedResults, control, retainCapture) {
       try {
         await releasePreparedResults([...storedResults.results,
           ...(owner.effectDependencyPayloads ?? []),
-          ...(owner.effectDependencySchemas ?? [])], released, control);
+          ...(owner.effectDependencySchemas ?? []),
+          ...(owner.effectSourceSchemas ?? [])], released, control);
       } catch (error) {
         if (error !== released) {
           if (error.cleanupPending === true) owner.cleanupFailure = error;
@@ -596,8 +597,15 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
         !holding.record || !Array.isArray(holding.record.objects)) {
       fail('InvalidCompletedEffectSourceHolding');
     }
+    const schema = holding.schema;
+    if (schema !== undefined && (!exactKeys(schema, ['cid', 'wire']) ||
+        typeof schema.wire !== 'string' ||
+        schema.cid !== JSON.parse(holding.artifact.wire).result_schema_cid)) {
+      fail('InvalidCompletedEffectSourceSchema');
+    }
     return Object.freeze({
       source: holding.source,
+      ...(schema === undefined ? {} : {schema: Object.freeze({...schema})}),
       memberIndex: holding.memberIndex,
       localEvidence: holding.localEvidence,
       artifact: ownContract(control, holding.artifact, contractLimits,
@@ -734,6 +742,7 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
     authoring_context: authoringContext.wire,
     effect_source_artifacts: ownedHoldings.map(value => Object.freeze({
       member_index: value.memberIndex, artifact: value.artifact.wire,
+      ...(value.schema === undefined ? {} : {schema: value.schema}),
     })),
     connector_recovery: ownedConnectorRecovery.map(value => Object.freeze({
       member_index: value.memberIndex, kind: value.kind,
@@ -747,6 +756,29 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
   // Admit the complete inventory and serialize the capture before yielding.
   // Caller-owned plans and evidence cannot change while Store sync is pending.
   // A later invalid member must not leave earlier members partially synced.
+  const schemas = new Map();
+  for (const {schema} of ownedHoldings) {
+    if (schema === undefined) continue;
+    if (schemas.has(schema.cid) && schemas.get(schema.cid).wire !== schema.wire) {
+      fail('InvalidCompletedEffectSourceSchema');
+    }
+    schemas.set(schema.cid, schema);
+  }
+  const sourceSchemas = [...schemas.values()];
+  if (owner.effectSourceSchemaInputs === undefined) {
+    owner.effectSourceSchemaInputs = Object.freeze(sourceSchemas);
+    owner.effectSourceSchemas = [];
+  } else if (JSON.stringify(owner.effectSourceSchemaInputs) !== JSON.stringify(sourceSchemas)) {
+    fail('CompletedEffectfulCaptureConflict');
+  }
+  // Retain every successful preparation immediately. A later failure keeps
+  // its original cleanup and this same owner's already-acquired prefix.
+  for (let index = owner.effectSourceSchemas.length; index < sourceSchemas.length; index++) {
+    const schema = sourceSchemas[index];
+    owner.effectSourceSchemas.push(await store.putPreparedResultSchema(
+      schema.wire, schema.cid, runDefinition.identity,
+    ));
+  }
   const commitHolding = store.commitPhysicalHolding.bind(store);
   const prepared = [...objects.values()].map(result => result.physicalPrepared);
   const sourceHoldingCids = ownedHoldings.map(holding =>
@@ -862,12 +894,20 @@ export async function retireCompletedEffectfulCapture({store, control,
     fail('InvalidCompletedEffectfulCaptureChain');
   }
   const sources = body.effect_source_artifacts.map(item => {
-    if (!exactKeys(item, ['member_index', 'artifact']) ||
+    if (!exactKeys(item, ['member_index', 'artifact',
+      ...(Object.hasOwn(item ?? {}, 'schema') ? ['schema'] : [])]) ||
         !Number.isSafeInteger(item.member_index) || item.member_index < 0) {
       fail('InvalidCompletedEffectfulCaptureSource');
     }
-    return Object.freeze({memberIndex: item.member_index,
-      artifact: admit('effect_source_artifact', item.artifact)});
+    const artifact = admit('effect_source_artifact', item.artifact);
+    const schema = item.schema;
+    if (schema !== undefined && (!exactKeys(schema, ['cid', 'wire']) ||
+        typeof schema.wire !== 'string' ||
+        schema.cid !== JSON.parse(artifact.wire).result_schema_cid)) {
+      fail('InvalidCompletedEffectSourceSchema');
+    }
+    return Object.freeze({memberIndex: item.member_index, artifact,
+      ...(schema === undefined ? {} : {schema: Object.freeze({...schema})})});
   });
   if (!control.capturedEffectSourceInventoryFromCaptureValid(preview,
     sources, chain.invocation, chain.capturedRun, store.storeAuthorityCid,
@@ -1048,12 +1088,20 @@ export async function recoverCompletedEffectfulComputation(options) {
     fail('InvalidCompletedEffectfulCaptureChain');
   }
   const sourceInventory = captured.effect_source_artifacts.map(item => {
-    if (!exactKeys(item, ['member_index', 'artifact']) ||
+    if (!exactKeys(item, ['member_index', 'artifact',
+      ...(Object.hasOwn(item ?? {}, 'schema') ? ['schema'] : [])]) ||
         !Number.isSafeInteger(item.member_index) || item.member_index < 0) {
       fail('InvalidCompletedEffectfulCaptureSource');
     }
-    return Object.freeze({memberIndex: item.member_index,
-      artifact: admit('effect_source_artifact', item.artifact)});
+    const artifact = admit('effect_source_artifact', item.artifact);
+    const schema = item.schema;
+    if (schema !== undefined && (!exactKeys(schema, ['cid', 'wire']) ||
+        typeof schema.wire !== 'string' ||
+        schema.cid !== JSON.parse(artifact.wire).result_schema_cid)) {
+      fail('InvalidCompletedEffectSourceSchema');
+    }
+    return Object.freeze({memberIndex: item.member_index, artifact,
+      ...(schema === undefined ? {} : {schema: Object.freeze({...schema})})});
   });
   const sourceMemberIndices = new Set(sourceInventory.map(
     source => source.memberIndex));
@@ -1152,7 +1200,8 @@ export async function recoverCompletedEffectfulComputation(options) {
     // Named Result. Their original bodies are already authenticated inside
     // this CapturedRun's dependency inventory. Restore their Store custody
     // before apply, without publishing the private Result or rerunning Compute.
-    for (const schema of control.capturedEffectDependencySchemas(capturedRun)) {
+    for (const schema of [...control.capturedEffectDependencySchemas(capturedRun),
+      ...sourceInventory.flatMap(value => value.schema === undefined ? [] : [value.schema])]) {
       dependencySchemas.push(await store.putPreparedResultSchema(
         schema.wire, schema.cid, admittedRun.identity,
       ));

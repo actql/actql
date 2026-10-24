@@ -1018,6 +1018,7 @@ async function preparePinnedEffectSourcePayloadOwned({
   const dependent = local !== undefined && local.sourceFree !== true;
   const relationChunks = dependent ? [] : undefined;
   let schemaBody;
+  let sourceSchema;
   const retainText = text => {
     const bytes = Buffer.byteLength(text, 'utf8');
     if (bytes > local.dependencyText.remaining) {
@@ -1072,11 +1073,15 @@ async function preparePinnedEffectSourcePayloadOwned({
         },
       }),
       onReceipt: (input, receipt, importing) => {
+        // Retain the original exported schema even when this private Effect
+        // input is not a dependent or publicly named Result.
+        sourceSchema = Object.freeze({
+          cid: moon.clientProgramEffectInputExportSchemaCid(receipt),
+          wire: moon.clientProgramEffectInputExportSchemaWire(receipt),
+        });
         if (dependent) {
           schemaBody = Object.freeze({kind: 'relation_schema',
-            cid: moon.clientProgramEffectInputExportSchemaCid(receipt),
-            wire: retainText(moon.clientProgramEffectInputExportSchemaWire(
-              receipt)),
+            cid: sourceSchema.cid, wire: retainText(sourceSchema.wire),
           });
         }
         localResultArtifact = table && dependent
@@ -1150,7 +1155,7 @@ async function preparePinnedEffectSourcePayloadOwned({
       throw new Error('EffectSourcePhysicalIdentityMismatch');
     }
     const payload = Object.freeze({
-      summary,
+      summary, schema: sourceSchema,
       localResultDefinition,
       localInvocation,
       localResultArtifact,
@@ -1272,7 +1277,7 @@ function admitPinnedEffectSourceHolding({
     })]),
   });
   const holding = Object.freeze({source, memberIndex,
-    artifact: payload.summary.artifact,
+    artifact: payload.summary.artifact, schema: payload.schema,
     localResultDefinition: payload.localResultDefinition,
     localInvocation: payload.localInvocation,
     localResultArtifact: payload.localResultArtifact,

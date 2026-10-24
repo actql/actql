@@ -1,6 +1,7 @@
 # Audited Local capability completion (Draft)
 
-Baseline: `f74d8e6436f314092b412669ba1281d246b604a4`.
+Initial validation baseline: `f74d8e6436f314092b412669ba1281d246b604a4`.
+Subsequent own-branch integration includes upstream `a7fc10e9d2cbf9bcb51929f278028aa1bd5fd4cc` (#3249): its 16 disjoint files are byte-identical and the sole package.json overlap preserves both test registrations. The exact 42-case public suite and 25 file-store guards pass after rebuilding Node adapters; three nominal recovered-command guards also pass. No Moon source changes occur in this upstream delta. The full interface-owner check is unverified because the local dependency `acorn` is absent, not because a passing result was inferred.
 This is source-built Node Local evidence, not clean packed, Native/Wasm, hosted CI, or production acceptance.
 
 ## Scope and exact inputs

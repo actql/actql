@@ -4061,7 +4061,7 @@ function publicationControl(moon) {
       const original = {run, prepared, definition: token(definition), captured: token(captured),
         preview: admittedPreview, memberIndex, row, inputName};
       const view = checked(moon.clientProgramRecoverEffectCommandContent(run, prepared,
-        original.definition, original.captured, admittedPreview, token(invocation), source,
+        original.definition, original.captured, admittedPreview, token(invocation), effectSourceToken(source),
         storeAuthorityCid, generationIndex, memberIndex, row, inputName, candidate, issued,
         limits.maxFields, limits.maxWork, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
       let retained = original;

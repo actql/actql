@@ -1202,7 +1202,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-file-effects.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4ce39843bbdc5153b7a809d420baac1b0c4125bd6ff87a5965a77d678d8ade6b",
+      "sha256": "49b76202833a82c68d8dbffcf652a87ecede796f9f0aa717776ac6f3f3ea3a73",
       "role": "connector-semantics",
       "owner": "Existing installed Local collection/Row Effect, original Account/Run and physical Root children",
       "exports": [
@@ -1854,6 +1854,10 @@
               {
                 "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
                 "anchor": "test('actual Local STORE selection reaches its same command Owner without UPDATE substitution'"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-driver.test.mjs",
+                "anchor": "test('Local STORE projects a Command outcome admitted by actual Common without a provider action'"
               }
             ]
           }
@@ -2172,7 +2176,7 @@
     {
       "module": "adapters/connectors/local/host/local-file-store-target.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "314b939ede82f2b472ffdc820de80d992b2321b4168df91ca293c49a10b8abd6",
+      "sha256": "fe63f8a74519879ef23f7754dd68f131540f32533e088fbfaf276a23fd5763d5",
       "role": "connector-semantics",
       "owner": "Existing installed Local collection issuer and nominal checked StoreCommand/Mapping pair",
       "exports": [
@@ -2404,6 +2408,10 @@
               {
                 "path": "src/connectors_builtin_node/client_store_collection_reference_wbtest.mbt",
                 "anchor": "test "
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.test.mjs",
+                "anchor": "test('Local collection Reference binds the full installed Catalog member identity'"
               }
             ]
           }
