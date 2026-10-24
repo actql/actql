@@ -165,9 +165,11 @@ pub fn[C, E] start_local_dispatch(
           local_output_transfer(run, ticket, attempt, index, limits)
         }),
         execute: () => {
-          match @strategy.begin_task_execution_use(run, ticket) {
-            Err(issue) => return Err(Execution(Physical(issue)))
-            Ok(_) => ()
+          if !@local.local_materializing_started(attempt) {
+            match @strategy.begin_task_execution_use(run, ticket) {
+              Err(issue) => return Err(Execution(Physical(issue)))
+              Ok(_) => ()
+            }
           }
           match @local.execute_local_materializing_attempt(attempt) {
             Err(issue) =>
@@ -179,7 +181,9 @@ pub fn[C, E] start_local_dispatch(
           }
         },
         advance: quantum => {
-          if quantum > 0 {
+          // Only the first provider entry is a new Start. Later advances also
+          // carry the original stop observation after cancellation/close.
+          if !@local.local_materializing_started(attempt) {
             match @strategy.begin_task_execution_use(run, ticket) {
               Err(issue) => return Err(Execution(Physical(issue)))
               Ok(_) => ()
