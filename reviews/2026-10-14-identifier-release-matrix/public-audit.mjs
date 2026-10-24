@@ -29,8 +29,9 @@ export function auditIdentifierTransport(mode, report, receipt) {
     const fixture = successes[index];
     assert.equal(actual.mode, mode);
     assert.ok(actual.ref && typeof actual.ref === 'object' && Object.keys(actual.ref).length > 0);
-    assert.deepEqual(actual.results, {answer: {rows: fixture.expected, columns: fixture.columns}});
-    actualRows += actual.results.answer.rows.length;
+    const resultName = fixture.format === 'json' ? 'answer' : 'main';
+    assert.deepEqual(actual.results, {[resultName]: {rows: fixture.expected, columns: fixture.columns}});
+    actualRows += actual.results[resultName].rows.length;
     assert.equal(actual.beforeRead.acceptedRuns - actual.beforeSubmit.acceptedRuns, 1);
     for (const key of ['sourceIo', 'sourceReads', 'sourceReadSessions']) {
       assert.equal(actual.beforeRead[key] - actual.beforeSubmit[key], fixture.sourceReadSessionCount ?? 0);

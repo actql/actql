@@ -78,6 +78,18 @@ test('identifier selection retains all original thirty-eight normal and twenty-e
     assert.throws(() => selectReleaseIdentifierCases({refusals: changed}));
   }
 });
+test('public identifier fixtures name text main and retain authored JSON answer', () => {
+  const json = successes.filter(item => item.format === 'json');
+  const text = successes.filter(item => item.format !== 'json');
+  assert.equal(json.length, 5); assert.equal(text.length, 33);
+  for (const item of json) {
+    assert.deepEqual(Object.keys(JSON.parse(item.text).results), ['answer']);
+    assert.equal(item.results, undefined);
+  }
+  for (const item of text) {
+    assert.deepEqual(item.results, {main: {rows: item.expected, columns: item.columns}}, item.name);
+  }
+});
 test('the original nullable schema has no invented key or score facts', () => {
   assert.deepEqual(JSON.parse(identifierSchemaWire), {
     amount: {nullable: true, type: 'number'}, id: {nullable: false, type: 'number'}});
@@ -182,7 +194,8 @@ function auditInput() {
       const beforeRead = {acceptedRuns: index + 1, sourceIo: previous + acquired,
         sourceReads: previous + acquired, sourceReadSessions: previous + acquired};
       return {name: item.name, mode: 'local', ref: {unit_only: index},
-        results: {answer: {rows: structuredClone(item.expected), columns: structuredClone(item.columns)}},
+        results: {[item.format === 'json' ? 'answer' : 'main']: {
+          rows: structuredClone(item.expected), columns: structuredClone(item.columns)}},
         beforeSubmit, beforeRead, afterReplay: {...beforeRead}};
     }),
     refusals: refusals.map((item, index) => ({name: item.name, mode: 'local', submissionRef: `unit-${index}`,
@@ -190,6 +203,21 @@ function auditInput() {
       beforeSubmit: {acceptedRuns: 38, sourceIo: 6}, afterRefusal: {acceptedRuns: 38, sourceIo: 6}}))};
   return {report, receipt};
 }
+test('public identifier audit accepts exact result names and rejects historical text or renamed JSON', () => {
+  const current = auditInput();
+  for (const [index, fixture] of successes.entries()) {
+    const name = fixture.format === 'json' ? 'answer' : 'main';
+    current.receipt.cases[index].results = {[name]: {
+      rows: structuredClone(fixture.expected), columns: structuredClone(fixture.columns)}};
+  }
+  assert.equal(auditIdentifierTransport('local', current.report, current.receipt).actualRows, 53);
+  const historicalText = structuredClone(current);
+  historicalText.receipt.cases[1].results = {answer: historicalText.receipt.cases[1].results.main};
+  assert.throws(() => auditIdentifierTransport('local', historicalText.report, historicalText.receipt));
+  const renamedJson = structuredClone(current);
+  renamedJson.receipt.cases[0].results = {main: renamedJson.receipt.cases[0].results.answer};
+  assert.throws(() => auditIdentifierTransport('local', renamedJson.report, renamedJson.receipt));
+});
 test('independent identifier audit detects altered values, schema, refusal, replay and inventory', () => {
   const original = auditInput();
   assert.equal(auditIdentifierTransport('local', original.report, original.receipt).actualRows, 53);
