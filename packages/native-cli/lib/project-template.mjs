@@ -1,9 +1,9 @@
-// Project inputs from the public Quickstart. These files select no Host
+// Project inputs from the public examples. These files select no Host
 // authority, signers, credential grants or runtime implementation.
 const json = value => JSON.stringify(value, null, 2) + '\n';
 
 export function projectTemplateFiles(template) {
-  if (template !== undefined && template !== 'churn-risk-mock') {
+  if (template !== undefined && !['churn-risk-mock', 'deal-review-mock'].includes(template)) {
     throw Object.assign(new Error('Unknown project template.'), {code: 'ACTQL_E_TEMPLATE', exitCode: 2});
   }
   const configuration = {version: 'actql-config/0.1', connectors: './connectors.json',
@@ -12,6 +12,24 @@ export function projectTemplateFiles(template) {
     'actql.config.json': json(configuration),
     'connectors.json': json({version: 'actql-connectors/0.1', connections: {}}),
     'model-tasks.json': json({version: 'actql-model-tasks/0.1', tasks: {}, providers: {}}),
+  });
+  if (template === 'deal-review-mock') return Object.freeze({
+    'actql.config.json': json({...configuration, profile: 'deal-review-mock', mock: {
+      data: './mock/data.json',
+      answers: {'model-task:deal-review.v1': './mock/deal-review.v1.answers.yaml'},
+    }}),
+    'connectors.json': json({version: 'actql-connectors/0.1', connections: {
+      salesforce: {connector: 'salesforce'}, drive: {connector: 'drive'},
+    }}),
+    'model-tasks.json': json({version: 'actql-model-tasks/0.1',
+      tasks: {'model-task:deal-review.v1': './model-tasks/deal-review.v1.yaml'},
+      providers: {openai: {type: 'openai', api_key_env: 'OPENAI_API_KEY'}}, default_provider: 'openai'}),
+    // Raw fixture documents only. Resource and ContentRef issuance remains in
+    // the selected Source/Content Owners; file names are not declared keys.
+    'model-tasks/deal-review.v1.yaml': "task: model-task:deal-review.v1\ninput:\n  StageName: string\n  NextStep: {type: string, nullable: true}\n  notes: {type: content_ref, nullable: false}\ninstructions: |\n  Review only the current stage, current next step and the captured meeting\n  notes supplied for this deal. State whether the notes establish a change.\n  When they do, return the new stage and one specific next step supported by\n  those notes. Do not invent facts, external context or another document.\noutput:\n  changed: boolean\n  stage: string\n  next_step: string\n",
+    'mock/data.json': json({"salesforce":{"Opportunity":{"key":["id"],"rows":[{"id":"006Acme","name":"Acme Corp - Renewal","StageName":"Proposal","NextStep":null},{"id":"006Globex","name":"Globex - Expansion","StageName":"Negotiation","NextStep":"Legal review"}]}},"drive":{"files":{"key":["id"],"rows":[{"id":"file-acme-notes","name":"Acme Corp - Renewal","version":"mock-revision-acme-1","media_type":"text/plain","content_utf8":"Acme renewal meeting: move the deal to Negotiation. Send revised pricing by Friday.\n"},{"id":"file-globex-notes","name":"Globex - Expansion","version":"mock-revision-globex-1","media_type":"text/plain","content_utf8":"Globex expansion meeting: the deal is Closed Lost for this year. Revisit next fiscal year.\n"}]}}}),
+    'mock/deal-review.v1.answers.yaml': "task: model-task:deal-review.v1\nanswers:\n  default: {changed: false, stage: Proposal, next_step: \"\"}\n  by_key:\n    \"006Acme\": {changed: true, stage: Negotiation, next_step: \"Send revised pricing by Friday\"}\n    \"006Globex\": {changed: true, stage: \"Closed Lost\", next_step: \"Revisit next fiscal year\"}\n",
+    'deal-review.aql': "SELECT o.id AS id, o.StageName, o.NextStep,\n       c.content AS notes\nFROM salesforce.opportunities AS o\nJOIN drive.files AS f ON f.name = o.name\nJOIN drive.contents AS c USING (resource, version)\n|> INFER `model-task:deal-review.v1`\n     INPUT (StageName, NextStep, notes) AS review\n|> WHERE review.outcome = 'ok' AND review.value.changed\n|> RESULT updates\n|> EFFECT UPDATE salesforce.Opportunity\n     ID id SET (\n       StageName = review.value.stage,\n       NextStep = review.value.next_step\n     );\n",
   });
   return Object.freeze({
     'actql.config.json': json({...configuration, profile: 'mock', mock: {

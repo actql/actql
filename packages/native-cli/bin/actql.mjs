@@ -66,7 +66,7 @@ export function launch(args) {
   const timingStart = process.env.ACTQL_NATIVE_TIMINGS === '1' ? process.hrtime.bigint() : null;
   const initialization = projectInitArguments(args);
   if (initialization?.help) {
-    console.log('Usage: actql init [--template churn-risk-mock] [<directory>]');
+    console.log('Usage: actql init [--template churn-risk-mock|deal-review-mock] [<directory>]');
     return 0;
   }
   const glibc = process.platform === 'linux' ? process.report.getReport().header.glibcVersionRuntime : undefined;

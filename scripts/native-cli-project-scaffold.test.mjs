@@ -111,3 +111,60 @@ test('invalid paths fail without creating a project and returned template files 
   assert.throws(() => {files['churn-risk.aql'] = 'SELECT 1';}, TypeError);
   assert.match(projectTemplateFiles('churn-risk-mock')['churn-risk.aql'], /EFFECT UPDATE salesforce.Account/u);
 });
+
+test('root README deal-review template prepares its exact Program and typed Task without initializing state', async t => {
+  const root = await scratch(t), result = scaffoldProject(join(root, 'deal-review'), 'deal-review-mock');
+  assert.deepEqual([...result.files].sort(), ['actql.config.json', 'connectors.json', 'deal-review.aql',
+    'mock/data.json', 'mock/deal-review.v1.answers.yaml', 'model-tasks.json', 'model-tasks/deal-review.v1.yaml']);
+  const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8');
+  assert.equal(await readFile(join(result.directory, 'deal-review.aql'), 'utf8'),
+    readme.match(/```sql\n([\s\S]*?)```/u)[1]);
+  assert.deepEqual(await json(result.configuration), {version: 'actql-config/0.1',
+    connectors: './connectors.json', model_tasks: './model-tasks.json', state_dir: './.actql',
+    profile: 'deal-review-mock', mock: {data: './mock/data.json',
+      answers: {'model-task:deal-review.v1': './mock/deal-review.v1.answers.yaml'}}});
+  assert.deepEqual((await json(join(result.directory, 'connectors.json'))).connections,
+    {salesforce: {connector: 'salesforce'}, drive: {connector: 'drive'}});
+  assert.equal((await json(join(result.directory, 'model-tasks.json'))).tasks['model-task:deal-review.v1'],
+    './model-tasks/deal-review.v1.yaml');
+  const task = await readFile(join(result.directory, 'model-tasks/deal-review.v1.yaml'), 'utf8');
+  assert.match(task, /^task: model-task:deal-review\.v1\n/u);
+  assert.match(task, /  NextStep: \{type: string, nullable: true\}\n/u);
+  assert.match(task, /  notes: \{type: content_ref, nullable: false\}\n/u);
+  assert.doesNotMatch(task, /notes: string/u);
+  await assert.rejects(stat(result.stateDirectory), {code: 'ENOENT'});
+  assert.equal(Object.hasOwn(result, 'runnable'), false);
+});
+
+test('deal-review Mock DATA contains only original Opportunity rows and UTF8 Drive documents keyed by ID', async t => {
+  const root = await scratch(t), result = scaffoldProject(join(root, 'deal-review'), 'deal-review-mock');
+  const data = await json(join(result.directory, 'mock/data.json'));
+  assert.deepEqual(Object.keys(data).sort(), ['drive', 'salesforce']);
+  assert.deepEqual(Object.keys(data.salesforce), ['Opportunity']);
+  assert.deepEqual(Object.keys(data.drive), ['files']);
+  const opportunities = data.salesforce.Opportunity, files = data.drive.files;
+  assert.deepEqual(opportunities.key, ['id']);
+  assert.deepEqual(files.key, ['id']);
+  assert.deepEqual(opportunities.rows, [
+    {id: '006Acme', name: 'Acme Corp - Renewal', StageName: 'Proposal', NextStep: null},
+    {id: '006Globex', name: 'Globex - Expansion', StageName: 'Negotiation', NextStep: 'Legal review'},
+  ]);
+  assert.equal(files.rows.length, 2);
+  assert.equal(new Set(files.rows.map(row => row.id)).size, 2);
+  for (const row of files.rows) {
+    assert.deepEqual(Object.keys(row).sort(), ['content_utf8', 'id', 'media_type', 'name', 'version']);
+    assert.equal(row.media_type, 'text/plain');
+    assert.equal(typeof row.version, 'string');
+    assert(row.version.length > 0);
+    assert.equal(typeof row.content_utf8, 'string');
+    assert(row.content_utf8.endsWith('\n'));
+    assert(opportunities.rows.some(opportunity => opportunity.name === row.name));
+  }
+  // Names are join values, never declared keys or serialized physical subjects.
+  assert.equal(Object.hasOwn(data.drive, 'contents'), false);
+  assert.doesNotMatch(JSON.stringify(data), /"(?:resource|content_ref_cid|availability_evidence_cid|issuer_evidence|\$actql_ref)":/u);
+  const answers = await readFile(join(result.directory, 'mock/deal-review.v1.answers.yaml'), 'utf8');
+  assert.match(answers, /^task: model-task:deal-review\.v1\n/u);
+  assert.match(answers, /"006Acme": \{changed: true, stage: Negotiation, next_step: "Send revised pricing by Friday"\}/u);
+  assert.match(answers, /"006Globex": \{changed: true, stage: "Closed Lost", next_step: "Revisit next fiscal year"\}/u);
+});
