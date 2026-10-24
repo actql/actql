@@ -699,6 +699,38 @@ authorization, identity or dispatch owner. Empty or Host-only projections are
 valid for neutral compositions; the standard Local Host keeps the genuine
 Local Compute dependency used by its handwritten carrier and Program bridges.
 
+### Focused Connector source checks
+
+From a prepared development checkout, select the Connector and the affected
+test files in one command:
+
+```sh
+node scripts/check-connector.mjs notion --stage source \
+  --test adapters/connectors/notion/test/users-catalog.test.mjs \
+  --test src/connectors/notion/catalog/users_wbtest.mbt
+```
+
+The command reads the existing manifest selection, checks the complete normal
+Node and RelA generated assemblies without writing them, then runs exactly the
+selected files through the existing nonzero-execution guard. A provider subset
+must not replace the shared normal assembly. Node files end in `.test.mjs`;
+MoonBit files end in `_test.mbt` or `_wbtest.mbt` and run on JS. Each file is
+selected once. Shared regression files can also be selected explicitly.
+
+The whole sequence has one bounded local execution Owner and defaults to the
+lint workflow's time budget; `--timeout-seconds N` sets an explicit duration.
+A failed generation or test step stops the sequence. Missing dependencies,
+stale generated output and zero/skip-only test execution remain failures.
+Prepare the selected tests' ordinary dependencies first; this command does not
+build a runtime, pack a distribution, install dependencies or require a clean
+working tree. It supports editing an unfinished change.
+
+This first author entry implements `source` only. `installed` is refused rather
+than redirected to source checks. Standard-loader, authentication, capacity,
+public read/write and restart acceptance still require the actual family suite
+and matching ordinary distribution. Source success does not register an
+unfinished role or establish provider availability.
+
 ### Trusted external Compute builds
 
 `resolveConnectorBuildInputs` in `scripts/connector-build-inputs.mjs` accepts

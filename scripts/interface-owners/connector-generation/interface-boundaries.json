@@ -1312,6 +1312,148 @@
           }
         }
       ]
+    },
+    {
+      "module": "scripts/check-connector.mjs",
+      "sha256": "613b7af59261343231cd3b142d74d1aef34657e78fe404d8f702b0848a23731c",
+      "exports": [
+        "connectorCheckUsage",
+        "connectorSourceCheckPlan",
+        "parseConnectorCheckArguments"
+      ],
+      "operations": [
+        {
+          "name": "connectorSourceCheckPlan",
+          "parameters": [
+            "root",
+            "name",
+            "tests",
+            "timeoutSeconds"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectorSourceCheckPlan/connectorSourceCheckPlan",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectorSourceCheckPlan/connectorSourceCheckPlan#2",
+          "parameters": [
+            "role"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectorSourceCheckPlan/selected/selected",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "parseConnectorCheckArguments",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./connector-manifest-selection.mjs",
+        "./local-checks-guard.mjs",
+        "node:fs",
+        "node:path",
+        "node:url",
+        "yaml"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "common-semantics",
+      "owner": "existing connector generation and bounded local verification Owners",
+      "responsibilityFacet": "primary",
+      "rationale": "Author-side composition of the existing manifest selection, complete read-only generator and nonzero focused test guard. No runtime or installed acceptance is issued.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "connectorSourceCheckPlan",
+            "connectorSourceCheckPlan/connectorSourceCheckPlan",
+            "connectorSourceCheckPlan/connectorSourceCheckPlan#2",
+            "connectorSourceCheckPlan/selected/selected",
+            "parseConnectorCheckArguments"
+          ],
+          "exports": [
+            "connectorCheckUsage",
+            "connectorSourceCheckPlan",
+            "parseConnectorCheckArguments"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/development.md",
+                "anchor": "### Focused Connector source checks"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "scripts/check-connector.mjs",
+                "anchor": "export function parseConnectorCheckArguments"
+              }
+            ],
+            "identity": [
+              {
+                "path": "scripts/connector-manifest-selection.mjs",
+                "anchor": "export function connectorManifestSelection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "scripts/local-checks-guard.mjs",
+                "anchor": "export function runLocalCheck"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "scripts/check-connector.mjs",
+                "anchor": "name: 'complete normal connector generation (read-only)'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "scripts/check-connector.test.mjs",
+                "anchor": "unsupported stages and flags cannot silently turn installed acceptance into source checks"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "scripts/local-checks-guard.mjs",
+                "anchor": "process.on('SIGTERM', interrupt)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "scripts/check-connector.mjs",
+                "anchor": "checkBudget(timeoutSeconds, workflow.jobs.lint['timeout-minutes'])"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/check-connector.mjs",
+                "anchor": "Select each affected test file once."
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/check-connector.test.mjs",
+                "anchor": "author selection checks complete normal generation without selecting or writing a partial assembly"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
