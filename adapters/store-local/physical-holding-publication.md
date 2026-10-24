@@ -29,6 +29,12 @@ Attempt finalization and terminal/Unknown computation retirement stay separate.
 
 ## Selected native evidence originals
 
+Known publication kinds select the existing publication metadata table directly.
+A missing selected row keeps the original file fallback without searching
+delivery attempts. Untyped reads and delivery kinds retain their existing
+generic lookup; schema reads remain file-backed. Representation selection does
+not replace contract admission, physical verification or per-operation reads.
+
 The existing publication operation reader receives the same issued evidence
 wrapper already held by its caller. A native read still selects the actual row
 by CID and compares its name, identity and complete wire before the existing

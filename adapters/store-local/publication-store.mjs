@@ -82,7 +82,7 @@ const filePublicationContractNames = Object.freeze(['public_index_entry','schema
   ...nativeDeliveryContractNames]);
 const nativePublicationContract = name => !filePublicationContractNames.includes(name);
 const nativeContractRead = name => name === 'public_index_entry' ||
-  nativePublicationContract(name) || nativeDeliveryContractNames.includes(name);
+  nativePublicationContract(name) ? 'publication' : nativeDeliveryContractNames.includes(name);
 const metadataContractObject = object => object !== null && typeof object === 'object' &&
   cidPattern.test(object.semantic_cid) && quantity(object.byte_count) && (
     exactKeys(object, ['semantic_cid','physical_cid','byte_count']) && cidPattern.test(object.physical_cid) ||
@@ -3607,7 +3607,11 @@ async function openOriginalLocalPublicationStore(
   const readSemanticOriginal = async function readSemanticBytes(cid, includeNative = true, retainGeneration = false, retained) {
     const path = contractPath(cid);
     active();
-    const nativeRecord = includeNative ? deliveryIndex?.contract(cid) : undefined;
+    // A typed publication read already selected its table. A missing row may
+    // fall back to the original file, without probing unrelated deliveries.
+    const nativeRecord = includeNative === 'publication'
+      ? deliveryIndex?.publicationContract(cid)
+      : includeNative ? deliveryIndex?.contract(cid) : undefined;
     // A commit may already hold this same immutable issued contract. Compare
     // the actual selected row before asking its original control to reuse it;
     // changed rows and unknown/copy/legacy originals keep full admission.
@@ -3617,7 +3621,7 @@ async function openOriginalLocalPublicationStore(
       : admitNativeContract(nativeRecord,cid);
     if (native !== undefined && native.identity !== cid) fail('InvalidDeliveryAttemptIndex');
     if (native !== undefined) return Object.freeze({bytes: Buffer.from(native.wire,'utf8'), native,
-      publication: nativeRecord.publication === true});
+      publication: includeNative === 'publication' || nativeRecord.publication === true});
     // This is the original read duty in the same Store lifetime. Keep its
     // private failure reachable even when a public ingress redacts the Error.
     const reader = {cleanup: undefined, failure: undefined};
