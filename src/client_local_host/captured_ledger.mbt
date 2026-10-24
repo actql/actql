@@ -1,15 +1,33 @@
 ///|
+fn client_local_general_value_nodes() -> Int { 20000 }
+
+///|
 fn client_local_execution_limits(
   max_rows? : Int = 100,
+  scalar_sequences? : Array[@execution.GeneratedSequence]? = None,
+  scalar_inventory? : ClientLocalSchemaProofInventory? = None,
+  scalar_demand? : ClientLocalScalarDemand? = None,
+  value_node_demand? : ClientLocalValueNodeDemand? = None,
 ) -> (
   @execution.ValueLimits,
   @execution.SequenceExecutionLimits,
   @execution.FixedInputGuardMeasureLimits,
 ) {
-  // Value budgets over one task input: the text one acquisition captures
-  // (500 KB) and a value node for every cell of 100 rows by 100 columns.
+  // Preserve general text and execution envelopes. Only original checked
+  // Number/Boolean schemas can reduce the scalar input/output node envelope;
+  // the pre-admission quote and configured providers use this same policy.
+  let scalar_nodes = if value_node_demand is Some(demand) {
+    Some(demand.nodes)
+  } else if scalar_demand is Some(demand) {
+    Some(demand.value_nodes)
+  } else if scalar_inventory is Some(inventory) {
+    client_local_inventory_nodes(inventory,max_rows)
+  } else { match scalar_sequences {
+    Some(sequences) => client_local_scalar_nodes(sequences, max_rows)
+    None => None
+  }}
   let values : @execution.ValueLimits = {
-    max_nodes: 20000,
+    max_nodes: scalar_nodes.unwrap_or(client_local_general_value_nodes()),
     max_text_bytes: 500000,
     max_depth: 100,
     max_work: 20000000,
@@ -28,8 +46,9 @@ fn client_local_execution_limits(
   }
   let measurement : @execution.FixedInputGuardMeasureLimits = {
     max_work: values.max_work,
-    max_bytes: values.max_text_bytes,
-    max_nodes: values.max_nodes,
+    // Guard measurement counts serialized scalar bytes, not text payload.
+    max_bytes: scalar_demand.map(demand=>Int::max(500000,demand.wire_bytes)).unwrap_or(500000),
+    max_nodes: Int::max(20000,scalar_nodes.unwrap_or(20000)),
     max_depth: values.max_depth,
   }
   (values, execution, measurement)
@@ -50,12 +69,14 @@ priv struct ClientLocalSequenceCapacity {
 fn client_local_sequence_capacity(
   sequences : Array[@execution.GeneratedSequence],
   task_count : Int,
+  capacity_plan? : ClientLocalCapacityPlan? = None,
   retained_inputs? : Array[Int]? = None,
   max_rows? : Int = 100,
 ) -> (@resources.LedgerLimits, Int64, Int64)? {
   client_local_sequence_capacity_original(
     sequences,
     task_count,
+    capacity_plan~,
     retained_inputs~,
     max_rows~,
   ).map(value => {
@@ -67,15 +88,24 @@ fn client_local_sequence_capacity(
 fn client_local_sequence_capacity_original(
   sequences : Array[@execution.GeneratedSequence],
   task_count : Int,
+  capacity_plan? : ClientLocalCapacityPlan? = None,
   retained_inputs? : Array[Int]? = None,
   max_rows? : Int = 100,
   include_simultaneous? : Bool = false,
   simultaneous_graph? : @strategy.CheckedDAG? = None,
 ) -> ClientLocalSequenceCapacity? {
-  if task_count < 1 || task_count > 32 || sequences.length() > task_count {
+  if task_count < 1 || sequences.length() > task_count {
     return None
   }
-  let (_, execution, measurement) = client_local_execution_limits(max_rows~)
+  let plan = capacity_plan.unwrap_or_else(() => {
+    client_local_capacity_plan(sequences, max_rows)
+  })
+  if !client_local_capacity_plan_matches(plan, sequences, max_rows) {
+    return None
+  }
+  if plan.metadata_retained_bytes > 0L && retained_inputs is None { return None }
+  let execution = plan.execution
+  let measurement = plan.measurement
   let mut retained_bytes = 0L
   let mut execution_bytes = 0L
   let mut total_retained_bytes = 0L
@@ -117,12 +147,13 @@ fn client_local_sequence_capacity_original(
       }
       values.push(
         (
-          @execution.execution_capacity_retained_bytes(actual),
+          @execution.execution_capacity_retained_bytes(actual) +
+          plan.metadata_retained_bytes,
           @execution.execution_capacity_execution_bytes(actual),
         ),
       )
     }
-    if retained < 0L || retained > 536870912L - total_retained_bytes {
+    if retained < 0L || retained > client_local_retained_byte_ceiling() - total_retained_bytes {
       return None
     }
     total_retained_bytes += retained
@@ -138,24 +169,16 @@ fn client_local_sequence_capacity_original(
     if inputs.length() != sequences.length() {
       return None
     }
-    let (values, _, _) = client_local_execution_limits(max_rows~)
-    let import_limits = client_local_import_limits(
-      {
-        contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
-        max_rows,
-        max_value_bytes: 10000,
-        common_fragment: None,
-      },
-      values,
-    )
+    let import_limits = plan.imports
     guard @local.local_import_retention_capacity(import_limits)
       is Some(import_bytes) &&
-      @local.local_export_retention_capacity(
-        client_local_export_limits(max_rows, values),
-      )
-      is Some(export_bytes) &&
+      @local.local_export_retention_capacity(plan.exports) is Some(export_bytes) &&
       client_local_store_inventory(
-        inputs, retained_bytes, import_bytes, export_bytes, 536870912L,
+        inputs,
+        retained_bytes + plan.metadata_retained_bytes,
+        import_bytes,
+        export_bytes,
+        client_local_retained_byte_ceiling(),
       )
       is Some((retained, ports)) else {
       return None
@@ -178,7 +201,7 @@ fn client_local_sequence_capacity_original(
     } else {
       200000000L
     },
-    execution_bytes: 536870912L,
+    execution_bytes: client_local_execution_byte_ceiling(),
   }
   let simultaneous = match individual {
     None => None
@@ -299,7 +322,7 @@ fn client_local_family_task_inventory(
 /// Keep the original checked Effect owner while sizing its Local suffix.
 pub fn client_effect_local_ledger_limits(
   prepared : @publication_host.PreparedClientEffectComputation,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -308,7 +331,7 @@ pub fn client_effect_local_ledger_limits(
     @publication_host.prepared_client_effect_computation_graph(prepared),
   )
   guard prepare_client_effect_local_sequences(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
+      prepared, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Some(sequences) else {
     return None
@@ -329,7 +352,7 @@ pub fn client_effect_local_ledger_limits(
 /// to select the task; a metadata-only sequence allowance is not sufficient.
 pub fn client_effect_family_ledger_limits(
   prepared : @publication_host.PreparedClientEffectComputation,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -343,14 +366,13 @@ pub fn client_effect_family_ledger_limits(
   let count = @strategy.graph_task_count(graph)
   let first = @strategy.graph_captured_prefix(graph)
   if count < 1 ||
-    count > 32 ||
     first < 0 ||
     first >= count ||
     families.is_empty() {
     return None
   }
   guard prepare_client_effect_local_sequences(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
+      prepared, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Some(sequences) &&
     sequences.length() == count else {
@@ -378,7 +400,7 @@ pub fn client_effect_family_ledger_limits(
     is Some(export_bytes) else {
     return None
   }
-  let ceiling = 536870912L
+  let ceiling = client_local_joint_byte_ceiling()
   for task in first..<count {
     guard @local.local_bounded_relation_provider(
         execution,
@@ -435,7 +457,7 @@ pub fn prepare_client_effect_family_capture_ledger(
   capacity : ClientInstalledCaptureCapacity,
   transport_bytes : Int64,
   transport_execution_bytes : Int64,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -448,19 +470,19 @@ pub fn prepare_client_effect_family_capture_ledger(
   )
   guard @strategy.graph_captured_prefix(graph) == 1 &&
     prepare_effect_local_query_requirement(
-      prepared, 0, 0, registry_body, values_body, fragment_body, ordered_body,
+      prepared, 0, 0, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Ok(requirement) &&
     @planning.query_requirement_cid(requirement) ==
     @planning.query_requirement_cid(capacity.requirement) &&
     client_effect_family_ledger_limits(
-      prepared, registry_body, values_body, fragment_body, ordered_body, execution,
+      prepared, installed_contracts, values_body, fragment_body, ordered_body, execution,
       measurement, families,
     )
     is Some(limits) else {
     return None
   }
-  let ceiling = 536870912L
+  let ceiling = client_local_joint_byte_ceiling()
   if transport_bytes < 0L ||
     transport_execution_bytes < 0L ||
     capacity.retained_bytes < 0L ||
@@ -490,7 +512,7 @@ pub fn prepare_multi_captured_local_ledger(
   acquisitions : Array[@duckdb_host.NativeHostConfiguration],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -500,7 +522,7 @@ pub fn prepare_multi_captured_local_ledger(
     acquisitions.map(@duckdb_host.native_capture_configuration),
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -515,7 +537,7 @@ pub fn prepare_multi_captured_effect_local_ledger(
   acquisitions : Array[@duckdb_host.NativeHostConfiguration],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -525,7 +547,7 @@ pub fn prepare_multi_captured_effect_local_ledger(
     acquisitions.map(@duckdb_host.native_capture_configuration),
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -538,7 +560,7 @@ fn prepare_multi_captured_local_ledger_owned(
   acquisitions : Array[@duckdb_host.CaptureConfiguration],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -555,7 +577,7 @@ fn prepare_multi_captured_local_ledger_owned(
     capacities.push((capacity.retained_bytes, capacity.execution_bytes))
   }
   prepare_multi_captured_capacity_ledger_owned(
-    owner, capacities, transport_bytes, transport_execution_bytes, registry_body,
+    owner, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
     values_body, fragment_body, ordered_body,
   )
 }
@@ -566,14 +588,14 @@ fn prepare_multi_captured_capacity_ledger_owned(
   capacities : Array[(Int64, Int64)],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
   match
     multi_captured_capacity_limits_owned(
-      owner, capacities, transport_bytes, transport_execution_bytes, registry_body,
+      owner, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
       values_body, fragment_body, ordered_body,
     ) {
     None => None
@@ -589,7 +611,7 @@ fn multi_captured_capacity_limits_owned(
   capacities : Array[(Int64, Int64)],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -601,21 +623,42 @@ fn multi_captured_capacity_limits_owned(
         @publication_host.prepared_client_effect_computation_graph(prepared),
       )
   }
+  guard prepare_client_local_sequences_owned(
+      owner, installed_contracts, values_body, fragment_body, ordered_body,
+    )
+    is Some(sequences) else {
+    return None
+  }
+  multi_captured_capacity_limits_selected(
+    graph, capacities, transport_bytes, transport_execution_bytes, sequences,
+  )
+}
+
+///|
+// Immutable selected-input half of the existing calculator. Planned callers
+// already own these generated originals; no second preparation or quote is
+// needed during their managed-parent construction.
+fn multi_captured_capacity_limits_selected(
+  graph : @strategy.CheckedDAG,
+  capacities : Array[(Int64, Int64)],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  sequences : Array[@execution.GeneratedSequence],
+  local_capacity? : ClientLocalSequenceCapacity? = None,
+) -> @resources.LedgerLimits? {
   let count = @strategy.graph_task_count(graph)
   let captured = @strategy.graph_captured_prefix(graph)
   if captured < 1 ||
     captured > count ||
     capacities.length() != captured ||
-    count > 32 ||
     transport_bytes.length() != captured ||
     transport_execution_bytes.length() != captured {
     return None
   }
-  guard prepare_client_local_sequences_owned(
-      owner, registry_body, values_body, fragment_body, ordered_body,
-    )
-    is Some(sequences) else {
-    return None
+  if sequences.length() != count { return None }
+  for index, sequence in sequences {
+    guard @strategy.graph_task_owner(graph,index) is Some(original) &&
+      physical_equal(original,@execution.generated_sequence_owner(sequence)) else { return None }
   }
   let (_, execution, measurement) = client_local_execution_limits()
   let mut retained = 0L
@@ -635,8 +678,10 @@ fn multi_captured_capacity_limits_owned(
   if transfer_envelopes > 9223372036854775807L / 1000000L {
     return None
   }
-  let mut transfer = transfer_envelopes * 1000000L
-  let mut execution_capacity = 536870912L
+  let mut transfer = local_capacity.map(value => value.limits.transfer_bytes)
+    .unwrap_or(transfer_envelopes * 1000000L)
+  let mut execution_capacity = local_capacity.map(value => value.limits.execution_bytes)
+    .unwrap_or(client_local_execution_byte_ceiling())
   for index in 0..<captured {
     let (capture_retained, capture_execution) = capacities[index]
     if capture_retained < 0L ||
@@ -662,6 +707,7 @@ fn multi_captured_capacity_limits_owned(
   let native_retained = retained
   retained = 0L
   for task in captured..<count {
+    if local_capacity is Some(_) { break }
     guard @execution.generated_sequence_capacity(
         sequences[task],
         execution,
@@ -678,11 +724,8 @@ fn multi_captured_capacity_limits_owned(
   }
   // Preserve the existing Local import/output allowance in addition to,
   // rather than underneath, the independently held native inputs.
-  let compute_retained = if retained > 200000000L {
-    retained
-  } else {
-    200000000L
-  }
+  let compute_retained = local_capacity.map(value => value.limits.retained_bytes)
+    .unwrap_or(Int64::max(retained, 200000000L))
   if compute_retained > 9223372036854775807L - native_retained {
     return None
   }
@@ -738,18 +781,18 @@ pub fn installed_capture_capacity_values(
 pub fn single_captured_local_ledger_limits(
   prepared : @publication_host.PreparedClientProgram,
   selected : @duckdb_host.NativeHostConfiguration,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.LedgerLimits? {
   let graph = @publication_host.prepared_client_graph(prepared)
   let count = @strategy.graph_task_count(graph)
-  if @strategy.graph_captured_prefix(graph) != 1 || count < 2 || count > 32 {
+  if @strategy.graph_captured_prefix(graph) != 1 || count < 2 {
     return None
   }
   guard prepare_local_query_requirement(
-      prepared, 0, 0, registry_body, values_body, fragment_body, ordered_body,
+      prepared, 0, 0, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Ok(requirement) &&
     @planning.query_requirement_cid(requirement) ==
@@ -762,7 +805,7 @@ pub fn single_captured_local_ledger_limits(
     return None
   }
   guard single_captured_compute_limits(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
+      prepared, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Some(limits) else {
     return None
@@ -776,7 +819,7 @@ pub fn single_captured_local_ledger_limits(
 ///|
 fn single_captured_compute_limits(
   prepared : @publication_host.PreparedClientProgram,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -785,9 +828,8 @@ fn single_captured_compute_limits(
   let count = @strategy.graph_task_count(graph)
   guard @strategy.graph_captured_prefix(graph) == 1 &&
     count >= 2 &&
-    count <= 32 &&
     prepare_client_local_sequences(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
+      prepared, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Some(sequences) else {
     return None
@@ -820,7 +862,7 @@ fn single_captured_capacity_limits(
   // Keep the existing finite Local inventory ceiling. The Native receiver
   // remains live beside all completed outputs; it is not a substitute for
   // the suffix's import/output allowance.
-  let ceiling = 536870912L
+  let ceiling = client_local_joint_byte_ceiling()
   if native.0 < 0L ||
     native.1 < 0L ||
     native.1 > ceiling ||
@@ -887,14 +929,14 @@ pub fn prepare_serialization_captured_ledger(
   transport_execution_bytes : Int64,
   prefix_retained_bytes : Int64,
   prefix_execution_bytes : Int64,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
   guard (task == 0 || task == 1) &&
     prepare_local_query_requirement(
-      prepared, 0, 0, registry_body, values_body, fragment_body, ordered_body,
+      prepared, 0, 0, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Ok(requirement) &&
     @planning.query_requirement_cid(requirement) ==
@@ -935,19 +977,19 @@ pub fn prepare_single_captured_local_installed_ledger(
   capacity : ClientInstalledCaptureCapacity,
   transport_bytes : Int64,
   transport_execution_bytes : Int64,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
   guard prepare_local_query_requirement(
-      prepared, 0, 0, registry_body, values_body, fragment_body, ordered_body,
+      prepared, 0, 0, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Ok(requirement) &&
     @planning.query_requirement_cid(requirement) ==
     @planning.query_requirement_cid(capacity.requirement) &&
     single_captured_compute_limits(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
+      prepared, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Some(compute) &&
     single_captured_capacity_limits(
@@ -976,7 +1018,7 @@ pub fn prepare_multi_captured_local_installed_ledger(
   capacities : Array[ClientInstalledCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -986,7 +1028,7 @@ pub fn prepare_multi_captured_local_installed_ledger(
     capacities,
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -1001,7 +1043,7 @@ pub fn prepare_multi_captured_effect_installed_ledger(
   capacities : Array[ClientInstalledCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -1011,7 +1053,7 @@ pub fn prepare_multi_captured_effect_installed_ledger(
     capacities,
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -1024,14 +1066,14 @@ fn prepare_multi_captured_installed_ledger_owned(
   capacities : Array[ClientInstalledCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
   match
     multi_captured_installed_limits_owned(
-      owner, capacities, transport_bytes, transport_execution_bytes, registry_body,
+      owner, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
       values_body, fragment_body, ordered_body,
     ) {
     None => None
@@ -1045,7 +1087,7 @@ fn multi_captured_installed_limits_owned(
   capacities : Array[ClientInstalledCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -1060,11 +1102,11 @@ fn multi_captured_installed_limits_owned(
     let requirement = match owner {
       Pure(prepared) =>
         prepare_local_query_requirement(
-          prepared, index, 0, registry_body, values_body, fragment_body, ordered_body,
+          prepared, index, 0, installed_contracts, values_body, fragment_body, ordered_body,
         )
       Effect(prepared) =>
         prepare_effect_local_query_requirement(
-          prepared, index, 0, registry_body, values_body, fragment_body, ordered_body,
+          prepared, index, 0, installed_contracts, values_body, fragment_body, ordered_body,
         )
     }
     guard requirement is Ok(requirement) &&
@@ -1078,7 +1120,7 @@ fn multi_captured_installed_limits_owned(
     capacities.map(value => (value.retained_bytes, value.execution_bytes)),
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -1093,7 +1135,7 @@ pub fn prepare_multi_captured_local_acquisition_ledger(
   acquisitions : Array[@duckdb_host.CaptureConfiguration],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -1103,7 +1145,7 @@ pub fn prepare_multi_captured_local_acquisition_ledger(
     acquisitions,
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -1117,7 +1159,7 @@ pub fn prepare_multi_captured_effect_acquisition_ledger(
   acquisitions : Array[@duckdb_host.CaptureConfiguration],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -1127,7 +1169,7 @@ pub fn prepare_multi_captured_effect_acquisition_ledger(
     acquisitions,
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -1143,7 +1185,7 @@ pub fn prepare_multi_captured_effect_capacity_ledger(
   capacities : Array[ClientDuckDBCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -1153,7 +1195,7 @@ pub fn prepare_multi_captured_effect_capacity_ledger(
   }
   for index in 0..<2 {
     guard prepare_effect_local_query_requirement(
-        prepared, index, 0, registry_body, values_body, fragment_body, ordered_body,
+        prepared, index, 0, installed_contracts, values_body, fragment_body, ordered_body,
       )
       is Ok(requirement) &&
       client_duckdb_capture_capacity_matches_requirement(
@@ -1168,7 +1210,7 @@ pub fn prepare_multi_captured_effect_capacity_ledger(
     capacities.map(value => (value.retained_bytes, value.execution_bytes)),
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -1181,7 +1223,7 @@ pub fn prepare_multi_captured_local_capacity_ledger(
   capacities : Array[ClientDuckDBCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -1191,7 +1233,7 @@ pub fn prepare_multi_captured_local_capacity_ledger(
   }
   for index in 0..<2 {
     guard prepare_local_query_requirement(
-        prepared, index, 0, registry_body, values_body, fragment_body, ordered_body,
+        prepared, index, 0, installed_contracts, values_body, fragment_body, ordered_body,
       )
       is Ok(requirement) &&
       client_duckdb_capture_capacity_matches_requirement(
@@ -1206,7 +1248,7 @@ pub fn prepare_multi_captured_local_capacity_ledger(
     capacities.map(value => (value.retained_bytes, value.execution_bytes)),
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,

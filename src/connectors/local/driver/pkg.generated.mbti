@@ -14,7 +14,7 @@ import {
 // Values
 pub fn configure_local_compute(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, LocalComputeConfiguration) -> Result[LocalDispatchModule, LocalDispatchIssue]
 
-pub fn configure_local_retained_inputs(LocalDispatchModule, @local.LocalImportLimits, Int64?) -> Result[Unit, LocalDispatchIssue]
+pub fn configure_local_retained_inputs(LocalDispatchModule, @local.LocalImportLimits, Int64?, metadata? : LocalManagedMetadataLimits?) -> Result[Unit, LocalDispatchIssue]
 
 pub fn configure_local_retained_output(LocalDispatchModule, @local.LocalExportLimits, Int64?) -> Result[Unit, LocalDispatchIssue]
 
@@ -53,6 +53,8 @@ pub fn[T] local_managed_dispatch_uses_provider(LocalManagedDispatchConfiguration
 pub fn[T] local_managed_relation_output(@execution_relation.ManagedCompletedOutput[T]) -> LocalManagedAvailableOutput[T]
 
 pub fn[T] local_managed_supplied_relation_input() -> LocalManagedAvailableOutput[T]
+
+pub fn local_publication_bridge_limits(LocalDispatchModule, @physical_strategy.CapturedDAG) -> @execution_relation.ManagedPublicationBridgeLimits?
 
 pub fn prepare_local_dispatch(LocalDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, LocalDispatchIssue]
 
@@ -197,12 +199,22 @@ pub struct LocalManagedDispatchOperations[T] {
   close : () -> Unit
   cleanup_refresh : () -> Bool
   cleanup_progress : () -> Int64
+  cleanup_local_continuation : () -> Int64
 }
 
 pub struct LocalManagedInputTransfer[T] {
   input : @execution_relation.ManagedProducerRead[T]
   append : (String) -> Result[Unit, LocalDispatchIssue]
   finish : () -> Result[Unit, LocalDispatchIssue]
+}
+
+pub(all) struct LocalManagedMetadataLimits {
+  name_bytes : Int
+  bridge_entries : Int
+  completion_entries : Int
+  schema : @execution_relation.RelationSchemaIdentityLimits
+  result_workspace_entries : Int
+  retained_bytes : Int64
 }
 
 pub struct LocalManagedRelationSnapshot {

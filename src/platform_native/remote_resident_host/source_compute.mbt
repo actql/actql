@@ -4,7 +4,7 @@
 /// Host selects and executes the suffix; this adapter does not parse a plan.
 pub(all) struct ResidentSourceComputeConfiguration {
   source : ResidentSourceConfiguration
-  registry_body : String
+  installed_contracts : @local.ClientInstalledSequenceContracts
   values_body : String
   dispatch : @standard.TaskDispatchLimits
   estimates : Array[@standard.DispatchEstimateProfile]
@@ -155,7 +155,7 @@ fn resident_source_owner_requirement(
         prepared,
         0,
         0,
-        configuration.registry_body,
+        configuration.installed_contracts,
         configuration.values_body,
         Some(source.fragment_contract_body),
         None,
@@ -165,7 +165,7 @@ fn resident_source_owner_requirement(
         @host.prepared_client_effect_run_computation(run),
         0,
         0,
-        configuration.registry_body,
+        configuration.installed_contracts,
         configuration.values_body,
         Some(source.fragment_contract_body),
         source.source_ref,
@@ -184,7 +184,7 @@ fn resident_source_owner_sequences(
     Pure(prepared) =>
       @local.prepare_client_local_sequences(
         prepared,
-        configuration.registry_body,
+        configuration.installed_contracts,
         configuration.values_body,
         fragment,
         None,
@@ -192,7 +192,7 @@ fn resident_source_owner_sequences(
     Effect(run) =>
       @local.prepare_client_effect_local_sequences(
         @host.prepared_client_effect_run_computation(run),
-        configuration.registry_body,
+        configuration.installed_contracts,
         configuration.values_body,
         fragment,
         None,

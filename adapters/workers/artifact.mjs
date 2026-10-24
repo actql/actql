@@ -73,6 +73,9 @@ export function checkWorkersArtifact(metafile, source, allowedModules) {
 // preparation field declaration is a generated, dependency-free closed vector.
 // None supplies a physical key, permission, claim, signing port or I/O. This is
 // an exact source-closure allowance, not permission for adjacent Host modules.
+// Publication capacity accounting has no imports. It validates byte bounds
+// and computes a frozen DATA extent with TextEncoder/Map; it opens no Store,
+// issues no Resource or permission, and performs no physical operation.
 export const conformanceModules = [
   '_build/workers/modules/bridge.mjs',
   '_build/workers/modules/fixture.mjs',
@@ -101,6 +104,7 @@ export const conformanceModules = [
   'adapters/host-common/run-publication.mjs',
   'adapters/host-common/effect-receipt-custody.mjs',
   'adapters/host-common/run-publication-preflight.mjs',
+  'adapters/host-common/publication-capacity.mjs',
   'adapters/host-common/publication-action.mjs',
   'adapters/host-common/runtime-core.mjs',
   'adapters/host-common/local-signing-metadata.mjs',
@@ -148,6 +152,7 @@ export const hostModules = [
   'adapters/host-common/run-publication.mjs',
   'adapters/host-common/effect-receipt-custody.mjs',
   'adapters/host-common/run-publication-preflight.mjs',
+  'adapters/host-common/publication-capacity.mjs',
   'adapters/host-common/publication-action.mjs',
   'adapters/host-common/runtime-core.mjs',
   'adapters/host-common/local-signing-metadata.mjs',

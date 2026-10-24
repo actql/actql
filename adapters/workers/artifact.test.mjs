@@ -194,6 +194,38 @@ test('generated compiler binding review grants no sibling or dependency allowanc
   }
 });
 
+test('publication byte accounting has only its exact dependency-free Workers closure', async () => {
+  const accounting = 'adapters/host-common/publication-capacity.mjs';
+  const result = await build({
+    absWorkingDir: fileURLToPath(new URL('../../', import.meta.url)), entryPoints: [accounting],
+    bundle: true, platform: 'browser', format: 'esm', metafile: true, write: false,
+  });
+  assert.deepEqual(Object.keys(result.metafile.inputs), [accounting]);
+  assert.deepEqual(result.metafile.inputs[accounting].imports, []);
+  for (const modules of [hostModules, conformanceModules, finiteRuntimeModules, finiteConformanceModules]) {
+    checkWorkersArtifact(result.metafile, result.outputFiles[0].text, modules);
+  }
+});
+
+test('publication accounting review grants no sibling Node or dynamic dependency allowance', () => {
+  const accounting = 'adapters/host-common/publication-capacity.mjs';
+  const sibling = 'adapters/host-common/publication-capacity-unreviewed.mjs';
+  for (const modules of [hostModules, conformanceModules, finiteRuntimeModules, finiteConformanceModules]) {
+    assert.throws(() => checkWorkersArtifact({inputs: {[sibling]: {imports: []}},
+      outputs: {'bundle.mjs': {imports: []}}}, 'export {};', modules), /WorkersModuleRejected/);
+    for (const dependency of [sibling, 'node:fs']) {
+      assert.throws(() => checkWorkersArtifact({
+        inputs: {[accounting]: {imports: [{path: dependency, kind: 'import-statement'}]}},
+        outputs: {'bundle.mjs': {imports: []}},
+      }, 'export {};', modules), /WorkersDependencyRejected/);
+    }
+    assert.throws(() => checkWorkersArtifact({
+      inputs: {[accounting]: {imports: [{path: accounting, kind: 'dynamic-import'}]}},
+      outputs: {'bundle.mjs': {imports: []}},
+    }, 'export {};', modules), /WorkersDynamicDependency/);
+  }
+});
+
 test('generated strategy actions have the canonical dependency-free Workers graph', async () => {
   const root = new URL('../../', import.meta.url);
   const binding = 'adapters/host-common/strategy-actions.mjs';

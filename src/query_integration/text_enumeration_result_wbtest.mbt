@@ -14,7 +14,7 @@ test "original Values Text enum survives checked execution and retained Named Re
   ).unwrap()
   let setup = @client_local_host.open_source_free_local_retained_host(
     prepared,
-    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    registered_installed_sequence_contracts(),
     @identity.stringify_value(registered_values(), 100000, 10000, 100),
     1L,
     0L,

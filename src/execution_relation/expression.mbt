@@ -566,6 +566,7 @@ fn advance_expression_frame_impl(
           | Object(_)
           | Property(_, _, _)
           | Subscript(_, _)
+          | ArrayOffset(_, _, _)
           | Cast(_)
           | Binary(_, _, _)
           | VectorScore(_, _, _)
@@ -634,7 +635,7 @@ fn advance_expression_frame_impl(
             frame.stack.push(Property(expr, name, index))
             frame.state = Enter(child)
           }
-          Subscript(value, index) => {
+          Subscript(value, index) | ArrayOffset(value, index, _) => {
             frame.object_context += 1
             frame.stack.push(SubscriptValue(expr, index))
             frame.state = Enter(value)
@@ -1005,22 +1006,53 @@ fn advance_expression_frame_impl(
             if charge_value(value, frame.current_root) is Some(issue) {
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
-            // Validate even for NULL/empty receivers, before narrowing to Int.
-            guard value is Number(number) &&
-              @scalar.read_safe_integer(number) is Some(index) &&
-              index >= 0L else {
-              return Err({ kind: Scalar(InvalidOperand), expression: expr, })
-            }
-            let selected = match receiver {
-              Null => Null
-              Captured(@admitted.Array(items)) =>
-                if index >= @admitted.element_count(items).to_int64() {
+            let selected = if @lower.expression_body(expr)
+              is ArrayOffset(_, _, safe) {
+              // Both authored children have completed before NULL/domain handling.
+              if receiver is Null || value is Null {
+                Null
+              } else {
+                guard value is Number(number) && number.trunc() == number else {
+                  return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+                }
+                guard receiver is Captured(@admitted.Array(items)) else {
+                  return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+                }
+                // Compare in the admitted Number domain before bounded narrowing.
+                // Huge integral offsets are out of range, never a conversion cap.
+                if number < 0.0 ||
+                  number >= @admitted.element_count(items).to_double() {
+                  if !safe {
+                    return Err({
+                      kind: Scalar(InvalidOperand),
+                      expression: expr,
+                    })
+                  }
                   Null
                 } else {
-                  capture(@admitted.element_at(items, index.to_int()).unwrap())
+                  capture(@admitted.element_at(items, number.to_int()).unwrap())
                 }
-              _ =>
+              }
+            } else {
+              // Validate even for NULL/empty receivers, before narrowing to Int.
+              guard value is Number(number) &&
+                @scalar.read_safe_integer(number) is Some(index) &&
+                index >= 0L else {
                 return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+              }
+              match receiver {
+                Null => Null
+                Captured(@admitted.Array(items)) =>
+                  if index >= @admitted.element_count(items).to_int64() {
+                    Null
+                  } else {
+                    capture(
+                      @admitted.element_at(items, index.to_int()).unwrap(),
+                    )
+                  }
+                _ =>
+                  return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+              }
             }
             if release(frame.current_root) is Some(issue) {
               return Err({ kind: LogicalValue(issue), expression: expr, })
@@ -1328,6 +1360,8 @@ fn advance_expression_frame_impl(
               op == @lower.Reverse ||
               op == @lower.Upper ||
               op == @lower.Lower ||
+              op == @lower.Nfkc ||
+              op == @lower.CaseFold ||
               op == @lower.Trim ||
               op == @lower.LTrim ||
               op == @lower.RTrim {
@@ -1348,6 +1382,10 @@ fn advance_expression_frame_impl(
                     TextChr
                   } else if op == @lower.Upper {
                     TextUpper
+                  } else if op == @lower.Nfkc {
+                    TextNfkc
+                  } else if op == @lower.CaseFold {
+                    TextCaseFold
                   } else if op == @lower.Lower {
                     TextLower
                   } else if op == @lower.LTrim {

@@ -18,6 +18,7 @@ priv enum BoundedJoinPairPhase {
 priv struct BoundedJoinPairs {
   left : BoundedBindingInput
   right : BoundedBindingInput
+  reversed : Bool
   profile : @lower.PreparedInnerJoin
   keys : Array[(Int, Int)]
   orders : Array[ColumnOrder]
@@ -86,8 +87,8 @@ fn bounded_join_pair_compare(
 fn bounded_join_requires_unique(state : BoundedJoinPairs) -> Bool {
   match @lower.inner_join_assertion(state.profile) {
     Some(OneToOne) => true
-    Some(OneToMany) => state.on_left
-    Some(ManyToOne) => !state.on_left
+    Some(OneToMany) => state.on_left != state.reversed
+    Some(ManyToOne) => state.on_left == state.reversed
     _ => false
   }
 }
@@ -144,14 +145,19 @@ fn advance_bounded_join_pairs(
         }
         if value is Null {
           if @lower.inner_join_fails_null(state.profile) {
-            return Err(JoinNullKey(state.on_left, state.row, state.key))
+            return Err(
+              JoinNullKey(state.on_left != state.reversed, state.row, state.key),
+            )
           }
           state.row_null = true
         }
         state.key += 1
       } else {
         let full_right = !state.on_left &&
-          @lower.inner_join_kind(state.profile) == @join.Full
+          (
+            bounded_join_traversal_kind(state) == @join.Full ||
+            bounded_join_traversal_kind(state) == @join.Right
+          )
         if !reserve_slots(state.workspace, if full_right { 2 } else { 1 }) {
           return Err(RowLimit)
         }
@@ -223,7 +229,9 @@ fn advance_bounded_join_pairs(
     CheckUnique => {
       if state.position == state.index.length() {
         if state.duplicate is Some((row, previous)) {
-          return Err(JoinDuplicateKey(state.on_left, row, previous))
+          return Err(
+            JoinDuplicateKey(state.on_left != state.reversed, row, previous),
+          )
         }
         if state.on_left {
           bounded_join_begin_right(state)
@@ -329,12 +337,12 @@ fn advance_bounded_join_pairs(
             return Ok(JoinPairContinue)
           }
           state.matched = true
-          let kind = @lower.inner_join_kind(state.profile)
+          let kind = bounded_join_traversal_kind(state)
           if kind == @join.Semi || kind == @join.Anti {
             state.phase = FinishLeft
             return Ok(JoinPairContinue)
           }
-          if kind == @join.Full {
+          if kind == @join.Full || kind == @join.Right {
             state.right_matches[right] = true
           }
           state.position += 1
@@ -343,7 +351,7 @@ fn advance_bounded_join_pairs(
       }
     }
     FinishLeft => {
-      let kind = @lower.inner_join_kind(state.profile)
+      let kind = bounded_join_traversal_kind(state)
       let emit = if kind == @join.Semi {
         state.matched
       } else if kind == @join.Anti || kind == @join.Left || kind == @join.Full {
@@ -361,7 +369,10 @@ fn advance_bounded_join_pairs(
       }
     }
     UnmatchedRight => {
-      if @lower.inner_join_kind(state.profile) != @join.Full ||
+      if (
+          bounded_join_traversal_kind(state) != @join.Full &&
+          bounded_join_traversal_kind(state) != @join.Right
+        ) ||
         state.position == state.right_matches.length() {
         state.phase = Terminal
         return Ok(JoinPairsComplete)
@@ -394,4 +405,13 @@ fn cleanup_bounded_join_pairs(state : BoundedJoinPairs) -> Unit {
   state.right_matches.clear()
   state.keys.clear()
   state.orders.clear()
+}
+
+///|
+fn bounded_join_traversal_kind(state : BoundedJoinPairs) -> @join.Kind {
+  if state.reversed {
+    @join.Left
+  } else {
+    @lower.inner_join_kind(state.profile)
+  }
 }

@@ -186,7 +186,7 @@ class OriginalLiveChannelTests(unittest.TestCase):
         self.assertIsNotNone(c._reply.value)
         self.assertIs(c._domain, f.domain)
         before = list(f.events)
-        for action in (c.state, c.limits, c.admit, c.stop, lambda: c.report((0,) * 10)):
+        for action in (c.state, c.limits, c.admit, c.stop, lambda: c.report((0,) * 13)):
             with self.assertRaises(_OriginalLiveChannelError) as again: action()
             self.assertIs(again.exception, caught.exception)
         self.assertEqual(before, f.events)
@@ -336,7 +336,7 @@ class OriginalLiveChannelTests(unittest.TestCase):
         self.assertNotEqual(original._channel.value, None)
 
     def test_complete_usage_is_forwarded_without_python_accounting(self):
-        f = ChannelFixture(self); c = f.take(); usage = (1, 2, 3, 2**53 + 1, 5, 6, 7, 8, 9, 10)
+        f = ChannelFixture(self); c = f.take(); usage = (1, 2, 3, 2**53 + 1, 5, 6, 7, 8, 9, 10, 11, 12, 13)
         c.report(usage)
         self.assertIn(('report', usage), f.events)
         f.issues[6] = 8
@@ -347,7 +347,8 @@ class OriginalLiveChannelTests(unittest.TestCase):
     def test_nonrepresentable_usage_does_not_reach_native(self):
         f = ChannelFixture(self); c = f.take()
         before = list(f.events)
-        for value in ([0] * 10, (False,) * 10, (2**31,) + (0,) * 9, (0,) * 3 + (2**63,) + (0,) * 6):
+        for value in ((0,) * 10, [0] * 13, (False,) * 13, (2**31,) + (0,) * 12,
+                      (0,) * 3 + (2**63,) + (0,) * 9, (0,) * 12 + (2**31,)):
             with self.assertRaises(ValueError): c.report(value)
         self.assertEqual(f.events, before)
 

@@ -6815,7 +6815,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
+                "anchor": "max_bytes > 2147483519"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -10111,9 +10111,10 @@
     {
       "module": "packages/sdk/internal/private-source-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "75fba262bf412ebb5f6165cee11a73907cf7036ca011013796c78ad8252d584a",
+      "sha256": "57c30302d8ecba33ca32bee8fd33c3fad7be76cdacf39e87d7c2a00c45383642",
       "exports": [
         "captureSourcePreparation",
+        "matchesPublishedSubmissionSnapshot",
         "sourcePreparationPort"
       ],
       "operations": [
@@ -10157,7 +10158,8 @@
           "parameters": [
             "kind",
             "input",
-            "options"
+            "options",
+            "originalConnection"
           ],
           "async": false
         },
@@ -10205,6 +10207,15 @@
           "async": false
         },
         {
+          "name": "captureSourcePreparation/init:publishSourceSnapshot/init:publishSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "originalBody",
+            "publicationReceipt"
+          ],
+          "async": false
+        },
+        {
           "name": "captureSourcePreparation/methods/methods",
           "parameters": [
             "name"
@@ -10230,7 +10241,9 @@
           "async": false
         }
       ],
-      "imports": [],
+      "imports": [
+        "./submission-observation.mjs"
+      ],
       "compilerFields": [],
       "unresolvedSyntax": [],
       "role": "physical-io",
@@ -10477,6 +10490,112 @@
               {
                 "path": "packages/sdk/private-source-preparation.test.mjs",
                 "anchor": "Source intent identity refuses asynchronous or malformed observations without assimilation"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "captureSourcePreparation/init:publishSourceSnapshot/init:publishSourceSnapshot"
+          ],
+          "exports": [
+            "matchesPublishedSubmissionSnapshot"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "publishSourceSnapshot"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "publishSourceSnapshot"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "publishSourceSnapshot"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "publishSourceSnapshot"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "publishSourceSnapshot"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "publishSourceSnapshot"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "publishSourceSnapshot"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "publishSourceSnapshot"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/sdk/internal/private-source-preparation.mjs",
+                "anchor": "publishSourceSnapshot"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/submission-snapshot-publication.test.mjs",
+                "anchor": "publication callback failure preserves original producer cleanup and caller snapshot"
               }
             ]
           }
@@ -11904,7 +12023,7 @@
     {
       "module": "packages/sdk/internal/submission-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f31a8eaea981245a29911b311d348ee06b1828f121eab55afa3882cf5476af4d",
+      "sha256": "e2b432118f542966b2dff1bf596730b46e3b2b5be6ea018e8c42657471c6e796",
       "exports": [
         "RequestHeld",
         "createSubmissionOperations",
@@ -11915,6 +12034,7 @@
         "getSubmissionCheckObservation",
         "getSubmissionInput",
         "getSubmissionOutcome",
+        "matchesPublishedSubmissionSnapshot",
         "submissionNotSent",
         "submissionUnknown"
       ],
@@ -12134,6 +12254,16 @@
           "async": false
         },
         {
+          "name": "createSubmissionOperations/withSourceProducer/withSourceProducer/failed/failed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSubmissionOperations/withSourceProducer/withSourceProducer/failed/failed#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createSubmissionOperations/withSourceProducer/withSourceProducer/finish/finish",
           "parameters": [
             "terminal",
@@ -12210,6 +12340,22 @@
           "name": "getSubmissionOutcome",
           "parameters": [
             "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "matchesPublishedSubmissionSnapshot",
+          "parameters": [
+            "receipt",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "publishSnapshot/publishSnapshot",
+          "parameters": [
+            "destination",
+            "body"
           ],
           "async": false
         },
@@ -12677,7 +12823,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
+                "anchor": "max_bytes > 2147483519"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -12734,6 +12880,115 @@
               {
                 "path": "packages/sdk/named-submission.test.mjs",
                 "anchor": "test("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createSubmissionOperations/withSourceProducer/withSourceProducer/failed/failed",
+            "createSubmissionOperations/withSourceProducer/withSourceProducer/failed/failed#2",
+            "matchesPublishedSubmissionSnapshot",
+            "publishSnapshot/publishSnapshot"
+          ],
+          "exports": [
+            "matchesPublishedSubmissionSnapshot"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/internal/submission-observation.mjs",
+                "anchor": "const publishSnapshot ="
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/submission-observation.mjs",
+                "anchor": "const publishSnapshot ="
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/internal/submission-observation.mjs",
+                "anchor": "const publishSnapshot ="
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/internal/submission-observation.mjs",
+                "anchor": "const publishSnapshot ="
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/internal/submission-observation.mjs",
+                "anchor": "const publishSnapshot ="
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/internal/submission-observation.mjs",
+                "anchor": "const publishSnapshot ="
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/submission-observation.mjs",
+                "anchor": "const publishSnapshot ="
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/sdk/internal/submission-observation.mjs",
+                "anchor": "const publishSnapshot ="
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/sdk/internal/submission-observation.mjs",
+                "anchor": "const publishSnapshot ="
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/submission-snapshot-publication.test.mjs",
+                "anchor": "SDK publishes immutable snapshot before pending return and preserves caller value after Host close"
               }
             ]
           }
@@ -14697,7 +14952,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
+                "anchor": "max_bytes > 2147483519"
               }
             ],
             "extension": [

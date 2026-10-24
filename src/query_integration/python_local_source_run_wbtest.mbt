@@ -190,6 +190,12 @@ test "Local captured Run keeps its original pre-Source start and checked produce
   let fragment = Some(
     @identity.stringify_value(registered_fragment(), 100000, 10000, 100),
   )
+  let registry = @client_local_host.prepare_installed_sequence_contracts(
+    registry,
+    values,
+    fragment,
+    None,
+  ).unwrap()
   let requirement = @client_local_host.prepare_local_query_requirement(
     prepared,
     0,

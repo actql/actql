@@ -33,6 +33,27 @@ fn manifest_artifacts_by_definition(
 }
 
 ///|
+fn emit_result_manifest_fields(
+  run_definition_cid : String,
+  invocation_cid : String,
+  count : Int,
+  name_at : (Int) -> String,
+  artifact_at : (Int) -> @json.CanonicalValue?,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "invocation_cid")
+  @encode.string_value(writer, invocation_cid)
+  @encode.key(writer, "results")
+  emit_result_artifact_inventory(count, name_at, artifact_at, writer)
+  @encode.key(writer, "run_definition_cid")
+  @encode.string_value(writer, run_definition_cid)
+  @encode.key(writer, "version")
+  @encode.string_value(writer, "actql-result-manifest/0.1")
+  @encode.end_object(writer)
+}
+
+///|
 fn emit_result_manifest_body(
   run_definition_cid : String,
   invocation_cid : String,
@@ -40,25 +61,12 @@ fn emit_result_manifest_body(
   writer : @encode.Writer,
   placeholders? : Bool = false,
 ) -> Unit raise @encode.EncodeFailure {
-  @encode.begin_object(writer)
-  @encode.key(writer, "invocation_cid")
-  @encode.string_value(writer, invocation_cid)
-  @encode.key(writer, "results")
-  @encode.begin_object(writer)
-  for entry in entries {
-    @encode.key(writer, entry.name)
-    if placeholders {
-      @encode.null_value(writer)
-    } else {
-      @json.emit_value(entry.artifact.value, writer)
-    }
-  }
-  @encode.end_object(writer)
-  @encode.key(writer, "run_definition_cid")
-  @encode.string_value(writer, run_definition_cid)
-  @encode.key(writer, "version")
-  @encode.string_value(writer, "actql-result-manifest/0.1")
-  @encode.end_object(writer)
+  emit_result_manifest_fields(
+    run_definition_cid, invocation_cid, entries.length(),
+    index => entries[index].name,
+    index => if placeholders { None } else { Some(entries[index].artifact.value) },
+    writer,
+  )
 }
 
 ///|
@@ -199,4 +207,20 @@ pub fn issue_result_manifest(
     Ok(_) => Ok(manifest)
     Err(issue) => Err(ManifestIssuanceChain(issue))
   }
+}
+
+///|
+fn emit_result_artifact_inventory(
+  count : Int, name_at : (Int) -> String,
+  artifact_at : (Int) -> @json.CanonicalValue?, writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  for index in 0..<count {
+    @encode.key(writer, name_at(index))
+    match artifact_at(index) {
+      Some(value) => @json.emit_value(value, writer)
+      None => @encode.null_value(writer)
+    }
+  }
+  @encode.end_object(writer)
 }

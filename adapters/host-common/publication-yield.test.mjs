@@ -296,14 +296,16 @@ test('publication caller forwards its original Index to the existing Store commi
   const original = Object.freeze({name:'public_index_entry',wire:'original immutable body'});
   const inventory = Object.freeze([]), evidence = Object.freeze({original:'evidence'});
   const result = Object.freeze({committed:true});
-  const store = {commitIndex(actualWire, actualInventory, actualEvidence, actualOriginal) {
+  const handles = Object.freeze([Object.freeze({})]);
+  const store = {commitIndex(actualWire, actualInventory, actualEvidence, actualOriginal, actualHandles) {
     assert.strictEqual(this, store); assert.equal(actualWire, original.wire);
     assert.strictEqual(actualInventory, inventory); assert.strictEqual(actualEvidence, evidence);
-    assert.strictEqual(actualOriginal, original); return Promise.resolve(result);
+    assert.strictEqual(actualOriginal, original); assert.strictEqual(actualHandles, handles);
+    return Promise.resolve(result);
   }};
-  const call = new Function('store','index','inventory','evidence','commitEvidence',
+  const call = new Function('store','index','inventory','evidence','commitEvidence','originalPreparedHandles',
     'return ' + text.slice(calls[0].start,calls[0].end));
-  assert.strictEqual(await call(store,original,inventory,evidence,value=>value), result);
+  assert.strictEqual(await call(store,original,inventory,evidence,value=>value,handles), result);
 });
 
 function publicationCommitCallerFixture({committed = true, differentIndex = false} = {}) {
@@ -671,4 +673,18 @@ test('publication computation lifetime retires capture cancelled before publicat
       error.primaryFailure === reason && error.cleanupError === retirementFailure);
   assert.equal(retired, 1); assert.equal(released, 1);
   }
+});
+
+test('publication snapshots the original nominal holder inventory before asynchronous commit', async()=>{
+ const {publishEffectFreeRun}=await import('./run-publication.mjs');
+ const f=publicationCommitCallerFixture(), original=Object.freeze({}), replacement=Object.freeze({});
+ const handles=[original];f.options.preparedHandles=handles;
+ const commit=f.options.store.commitIndex;
+ let selected;
+ f.options.store.commitIndex=function(...args){selected=args[4];return Reflect.apply(commit,this,args);};
+ const operation=publishEffectFreeRun(f.options);
+ handles[0]=replacement;f.options.preparedHandles=[replacement];
+ await f.committing;
+ assert.deepEqual(selected,[original]);assert(Object.isFrozen(selected));
+ f.acknowledge();await operation;
 });

@@ -22,6 +22,7 @@ pub enum ExpressionBody {
   Object(Array[(String, Expression)])
   Property(Expression, String, Int)
   Subscript(Expression, Expression)
+  ArrayOffset(Expression, Expression, Bool)
   Cast(Expression)
   Unary(UnaryOperator, Expression)
   Binary(BinaryOperator, Expression, Expression)
@@ -86,6 +87,8 @@ pub(all) enum UnaryOperator {
   Quantize(String)
   TryNumber
   TryTimestamp
+  Nfkc
+  CaseFold
 } derive(Eq, Debug)
 
 ///|
@@ -214,6 +217,7 @@ pub fn expression_view_entries(value : Expression) -> Int {
     | EmptyArray
     | Property(_, _, _)
     | Subscript(_, _)
+    | ArrayOffset(_, _, _)
     | Cast(_)
     | Unary(_, _)
     | Binary(_, _, _)
@@ -352,6 +356,8 @@ fn expression_tag(
     | "try_decimal"
     | "try_number"
     | "try_timestamp"
+    | "nfkc"
+    | "case_fold"
     | "utf8_truncate"
     | "quantize"
     | "decimal_divide"
@@ -362,7 +368,13 @@ fn expression_tag(
     | "timestamp_add"
     | "timestamp_sub"
     | "date_trunc" => ()
-    "array" | "empty_array" | "object" | "property" | "subscript" => ()
+    "array"
+    | "empty_array"
+    | "object"
+    | "property"
+    | "subscript"
+    | "array_offset"
+    | "array_safe_offset" => ()
     other => expression_fail(source, ExpressionNotImplemented(other))
   }
 }
@@ -394,7 +406,7 @@ fn expression_children(
     }
     "property" =>
       [@decode.lookup(@decode.open_object(body).unwrap(), "value").unwrap()]
-    "subscript" => {
+    "subscript" | "array_offset" | "array_safe_offset" => {
       let object = @decode.open_object(body).unwrap()
       [
         @decode.lookup(object, "value").unwrap(),
@@ -443,6 +455,8 @@ fn expression_children(
         [body]
       }
     "negate"
+    | "nfkc"
+    | "case_fold"
     | "upper"
     | "lower"
     | "floor"
@@ -897,7 +911,9 @@ fn lower_typed_expression_measured(
               )
             None => None
           }
-          if (operation == "try_number" || operation == "utf8_truncate") &&
+          if ["try_number", "utf8_truncate", "nfkc", "case_fold"].contains(
+              operation,
+            ) &&
             original is Some(original) {
             let index = @decode.tree_index(root, node.source).unwrap()
             text_bounds[index] = original
@@ -954,6 +970,8 @@ fn lower_typed_expression_measured(
         "array" => Array(args)
         "empty_array" => EmptyArray
         "subscript" => Subscript(args[0], args[1])
+        "array_offset" => ArrayOffset(args[0], args[1], false)
+        "array_safe_offset" => ArrayOffset(args[0], args[1], true)
         "object" => {
           guard contract.shape is @contract.Object(contracts) else {
             expression_fail(cursor, MissingTypeAnnotation)
@@ -1118,6 +1136,8 @@ fn lower_typed_expression_measured(
         "cast" => Cast(args[0])
         "try_decimal" => Unary(TryDecimal, args[0])
         "try_number" => Unary(TryNumber, args[0])
+        "nfkc" => Unary(Nfkc, args[0])
+        "case_fold" => Unary(CaseFold, args[0])
         "try_timestamp" => Unary(TryTimestamp, args[0])
         "utf8_truncate" => Binary(Utf8Truncate, args[0], args[1])
         "decimal_divide" => {
@@ -1242,7 +1262,8 @@ fn lower_typed_expression_measured(
           VectorScore(_, _, _) | VectorConcat(_) => true
           Unary(_, child) => child.uses_veca
           Property(child, _, _) => child.uses_veca
-          Subscript(value, index) => value.uses_veca || index.uses_veca
+          Subscript(value, index) | ArrayOffset(value, index, _) =>
+            value.uses_veca || index.uses_veca
           Array(children) => children.any(child => child.uses_veca)
           Object(fields) => fields.any(field => field.1.uses_veca)
           Cast(child) => child.uses_veca

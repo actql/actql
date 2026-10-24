@@ -40,7 +40,7 @@ fn[T] finish_current_state_test_writer(
 test "original current write fixes parked current bytes quantum and work independently" {
   // Independent sixteen container/header blocks plus the one existing read
   // record. No second appended read, descriptor, reservation or serial.
-  let expected = "[\"actql-original-ledger-state/0.1\",[\"17\",\"16\",\"16\",\"100\",\"256\",\"256\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],\"-3\",[\"4\",\"0\",\"0\",true,true,false,\"parked\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]],[],[]]"
+  let expected = "[\"actql-original-ledger-state/0.1\",[\"17\",\"16\",\"16\",\"100\",\"256\",\"256\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\",\"0\",\"2\",\"0\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],[\"-3\",\"0\",\"0\"],[\"4\",\"0\",\"0\",true,true,false,\"parked\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false]],[],[]]"
   for quantum in [1, 3, 17, 100] {
     let (ledger, origin, claim, consumer) = current_state_test_consumer(17)
     let admitted = claim.admitted
@@ -87,7 +87,7 @@ test "original current write fixes parked current bytes quantum and work indepen
 test "original current write includes actual post-handoff capacity not initial admission" {
   // Two current records: original read (-2) and later Model capacity (-3).
   // Their 7/5 and 2/3 coexist with bootstrap 3/2. Eighteen logical blocks.
-  let expected = "[\"actql-original-ledger-state/0.1\",[\"18\",\"16\",\"16\",\"100\",\"256\",\"256\"],[\"18\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"12\",\"10\",\"12\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],\"-4\",[\"4\",\"0\",\"0\",true,true,false,\"parked\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null],[\"-3\",\"0\",\"2\",\"3\",true,false,null,null,[false,false,false],null]],[],[]]"
+  let expected = "[\"actql-original-ledger-state/0.1\",[\"18\",\"16\",\"16\",\"100\",\"256\",\"256\"],[\"18\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"12\",\"10\",\"12\",\"0\",\"3\",\"0\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],[\"-4\",\"0\",\"0\"],[\"4\",\"0\",\"0\",true,true,false,\"parked\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false],[\"-3\",\"0\",\"2\",\"3\",true,false,null,null,[false,false,false],null,false,false]],[],[]]"
   let (ledger, origin, claim, consumer) = current_state_test_consumer(18)
   let admitted = claim.admitted
   let (_, model_capacity) = handoff_funded_read_consumer_capacity(
@@ -111,16 +111,16 @@ test "original current write includes actual post-handoff capacity not initial a
 
 ///|
 test "original current write hash matches independent parked bytes and exact byte ceiling" {
-  // SHA-256 and 365 UTF-8 bytes of the preceding hand-written parked vector,
+  // SHA-256 and 411 UTF-8 bytes of the preceding hand-written parked vector,
   // calculated independently with pinned Node crypto, not this encoder.
   let (ledger, origin, _, consumer) = current_state_test_consumer(17)
   let park = park_original_resource_consumer_for_state_write(consumer, origin).unwrap()
-  let writer = @encode.hashing_writer(365, 200, 10)
+  let writer = @encode.hashing_writer(411, 200, 10)
   let cursor = start_original_current_state_write(park, origin, writer).unwrap()
   assert_eq(finish_current_state_test_writer(cursor, 1), 17)
   assert_eq(
     @encode.finish_hash(writer),
-    "dfb0ffa1268756b2c6aec774c29bfd66cb5960e5ed4f5a1ae07583871bd43bf0",
+    "55faf2cb0f9a1fa0849911a4ae63ff91f27135ca91e50015ef00dcc27105c5ba",
   )
   resource_park_test_invalidate(park)
   settle_funded_read_consumer(consumer, true).unwrap()
@@ -129,7 +129,7 @@ test "original current write hash matches independent parked bytes and exact byt
 
   let (ledger, origin, _, consumer) = current_state_test_consumer(17)
   let park = park_original_resource_consumer_for_state_write(consumer, origin).unwrap()
-  let writer = @encode.hashing_writer(364, 200, 10)
+  let writer = @encode.hashing_writer(410, 200, 10)
   let cursor = start_original_current_state_write(park, origin, writer).unwrap()
   assert_eq(finish_current_state_test_writer(cursor, 1), -1)
   assert_true(cursor.park is None && cursor.writer is None)
@@ -143,7 +143,7 @@ test "original current write hash matches independent parked bytes and exact byt
 
 ///|
 test "original current write preserves the actual stopping phase without read restart" {
-  let expected = "[\"actql-original-ledger-state/0.1\",[\"17\",\"16\",\"16\",\"100\",\"256\",\"256\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],\"-3\",[\"4\",\"0\",\"0\",true,true,false,\"stopping\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]],[],[]]"
+  let expected = "[\"actql-original-ledger-state/0.1\",[\"17\",\"16\",\"16\",\"100\",\"256\",\"256\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\",\"0\",\"2\",\"0\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],[\"-3\",\"0\",\"0\"],[\"4\",\"0\",\"0\",true,true,false,\"stopping\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false]],[],[]]"
   let (ledger, origin, claim, consumer) = current_state_test_consumer(17)
   let admitted = claim.admitted
   stop_funded_read_consumer(consumer).unwrap()

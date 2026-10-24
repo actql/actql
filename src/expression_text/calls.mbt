@@ -110,7 +110,9 @@ fn Parser::call(
     | "nullif"
     | "utf8_truncate"
     | "parse_timestamp"
-    | "format_timestamp" => (2, 2)
+    | "format_timestamp"
+    | "array_offset"
+    | "array_safe_offset" => (2, 2)
     "translate"
     | "replace"
     | "if"
@@ -202,6 +204,7 @@ fn Parser::call(
       } else {
         ["left", "right", "precision", "scale", "rounding"]
       }
+    "array_offset" | "array_safe_offset" => ["value", "index"]
     "split_part" => ["value", "delimiter", "index"]
     "substring" => ["value", "start", "length"]
     "utf8_truncate" => ["value", "max_bytes"]

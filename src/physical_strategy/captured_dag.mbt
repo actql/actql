@@ -326,7 +326,7 @@ pub fn open_captured_effect_run_dag(
 }
 
 ///|
-/// Keep both original acquisition holdings on their existing ledger while
+/// Keep all original acquisition holdings on their existing ledger while
 /// opening the same admitted Effect Run. The common DAG owner checks each
 /// source's task coordinate, identity and retained holdings before Compute.
 pub fn open_multi_captured_effect_run_dag(
@@ -335,7 +335,8 @@ pub fn open_multi_captured_effect_run_dag(
   ledger : @resources.Ledger,
   supplied? : Array[@execution.CapturedRows] = [],
 ) -> Result[CapturedEffectRunDAG, RunIssue] {
-  if checked.computation.graph.captured_prefix != 2 {
+  if checked.computation.graph.captured_prefix < 2 ||
+    sources.length() != checked.computation.graph.captured_prefix {
     return Err(UnsupportedGraph)
   }
   open_effect_run_captures(checked, sources, ledger, supplied)
@@ -936,6 +937,13 @@ pub fn captured_next_managed_obligations(
       break
     }
   }
+  // Check the exact retained identity inventory before allocating its arrays.
+  if max_entries < 0 {return Err(@execution.InvalidLimits)}
+  let mut result_count=0
+  for result in run.graph.results {if result.task==task {result_count+=1}}
+  let task_identity=has_consumer || result_count==0 || run.managed_host_identity
+  let required=result_count.to_int64()*(if run.managed_publication_identity {1L} else {0L}) + (if task_identity {1L} else {0L})
+  if required>max_entries.to_int64() {return Err(@execution.InvalidLimits)}
   let result_occurrences = run.graph.results.filter_map(result => {
     if result.task == task {
       Some(result.occurrence)

@@ -689,7 +689,7 @@ fn infer(
         _ => fail(source, TypeMismatch("closed object receiver"))
       }
     }
-    "subscript" => {
+    "subscript" | "array_offset" | "array_safe_offset" => {
       ignore(operand(t, nodes, node, 0))
       ignore(require_type(t, nodes, node.children[1], "number"))
       let (base, _) = head(t, values[0], source)
@@ -699,6 +699,13 @@ fn infer(
       }
     }
     "is_null" | "not_null" => {
+      let child = nodes[node.children[0]]
+      if immediate_null(child) {
+        // Null predicates need no non-null domain; Boolean supplies only the
+        // typed-null annotation required by the common execution owner.
+        let hint = primitive(t, BooleanType, false, child.source)
+        provide(t, child.inferred, hint, child.source)
+      }
       ignore(operand(t, nodes, node, 0))
       primitive(t, BooleanType, false, source)
     }

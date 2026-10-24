@@ -346,6 +346,8 @@ pub fn client_compiled_run_evaluation_policy_body(ClientCompiledRun) -> (String,
 
 pub fn client_compiled_run_has_infer(ClientCompiledRun, ClientInferPlanGraph) -> Bool
 
+pub fn client_compiled_run_has_original_definition(ClientCompiledRun, @run_publication.PublicationContract) -> Bool
+
 pub fn client_compiled_run_infer(ClientCompiledRun) -> ClientInferPlanGraph?
 
 pub fn client_compiled_run_infer_observation_policy(ClientCompiledRun) -> String?
@@ -1627,6 +1629,8 @@ pub fn issue_source_free_client_effect_local_result_artifact(PreparedClientEffec
 pub fn issue_source_free_client_effect_local_table_artifact(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @physical_strategy.CapturedEffectTableInput, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedPublicationBridge[Int], @execution_relation.CompletedTableInputRelationExportPreparation, ClientEffectLocalTableDefinition, ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
 
 pub fn issue_source_free_exported_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectLocalResultExport, ClientEffectLocalResultDefinition, ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+
+pub fn measure_prepared_client_values_pipeline(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[(Int, Int, Int), ClientValuesPipelineIssue]
 
 pub fn normalize_client_project_model_task(ClientProjectModelTaskSelection, ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration, ClientModelProviderDefaults, @check_environment.ModelTaskLimits) -> Result[@check_environment.NormalizedPublicModelTask, @check_environment.ModelTaskIssue]
 
@@ -4630,6 +4634,7 @@ pub fn PublicationOutputExport::result_schema_wire(Self) -> Result[String, Publi
 pub fn PublicationOutputExport::row_count(Self) -> Result[Int, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::rows_complete(Self) -> Result[Bool, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::schema_usage(Self) -> Result[(Int, Int, Int), PublicationOutputExportIssue]
+pub fn PublicationOutputExport::snapshot_original_extent(Self, @physical_strategy.CapturedDAG, @execution_relation.ManagedResultOccurrence) -> Result[(Int, Int, Int), PublicationOutputExportIssue]
 pub fn PublicationOutputExport::start_captured_snapshot(Self, Int, Int, Int) -> Result[PublicationOutputSnapshotPreparation, PublicationOutputExportIssue]
 
 pub(all) enum PublicationOutputExportIssue {

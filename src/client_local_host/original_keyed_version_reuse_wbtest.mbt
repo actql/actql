@@ -39,6 +39,7 @@ fn original_keyed_version_history(
   same_ledger_consumer? : Bool = false,
   one_short_census? : Bool = false,
 ) -> Unit raise {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let same_ledger_consumer = same_ledger_consumer || one_short_census
   let typed_content = typed_content || same_ledger_consumer
   let content = content || typed_content
@@ -69,7 +70,7 @@ fn original_keyed_version_history(
   let prefix_capacity = client_original_keyed_left_prefix_capacity(
     prepared,
     keyed,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
@@ -82,7 +83,7 @@ fn original_keyed_version_history(
       keyed,
       0,
       7,
-      source_query_original_registry,
+      source_contracts,
       source_query_original_values,
       Some(source_query_original_fragment),
       None,
@@ -98,7 +99,7 @@ fn original_keyed_version_history(
       keyed,
       0,
       7,
-      source_query_original_registry,
+      source_contracts,
       source_query_original_values,
       Some(source_query_original_fragment),
       None,
@@ -251,7 +252,7 @@ fn original_keyed_version_history(
     prepared,
     keyed,
     capture,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,

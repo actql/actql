@@ -76,9 +76,14 @@ fn acquired_serialization_model_environment() -> @program_check.CheckEnvironment
 }
 
 ///|
-fn acquired_serialization_contracts() -> (String, String, String?, String?) raise {
+fn acquired_serialization_contracts() -> (
+  @client_local_host.ClientInstalledSequenceContracts,
+  String,
+  String?,
+  String?,
+) raise {
   (
-    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    registered_installed_sequence_contracts(),
     @identity.stringify_value(registered_values(), 100000, 10000, 100),
     Some(@identity.stringify_value(registered_fragment(), 100000, 10000, 100)),
     Some(@identity.stringify_value(registered_ordered(), 100000, 10000, 100)),

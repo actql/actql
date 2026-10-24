@@ -22,7 +22,7 @@ pub fn client_program_composed_infer_occurrences(
 pub fn client_program_prepare_composed_infer_segments(
   prepared : @publication_host.PreparedClientProgram,
   occurrence : @publication_host.ClientInferOccurrence,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String,
   ordered : String,
@@ -33,7 +33,7 @@ pub fn client_program_prepare_composed_infer_segments(
   guard @client_local_host.prepare_client_composed_infer_prefix(
       prepared,
       occurrence,
-      registry,
+      sequence_contracts,
       values,
       fragment_body=Some(fragment),
       ordered_body=Some(ordered),
@@ -47,7 +47,7 @@ pub fn client_program_prepare_composed_infer_segments(
   guard @client_local_host.prepare_client_composed_infer_suffix(
       prepared,
       occurrence,
-      registry,
+      sequence_contracts,
       values,
       fragment_body=Some(fragment),
       ordered_body=Some(ordered),
@@ -65,7 +65,7 @@ pub fn client_program_prepare_composed_infer_segments(
 pub fn client_program_prepare_composed_infer_compute_suffix(
   prepared : @publication_host.PreparedClientProgram,
   occurrence : @publication_host.ClientInferOccurrence,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String,
   ordered : String,
@@ -80,7 +80,7 @@ pub fn client_program_prepare_composed_infer_compute_suffix(
     @client_local_host.prepare_client_composed_infer_suffix(
       prepared,
       occurrence,
-      registry,
+      sequence_contracts,
       values,
       fragment_body=Some(fragment),
       ordered_body=Some(ordered),
@@ -164,7 +164,7 @@ pub fn client_program_start_content_infer_observation_issuance(
 pub fn client_program_open_captured_composed_infer_host(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
@@ -173,7 +173,7 @@ pub fn client_program_open_captured_composed_infer_host(
   @client_local_host.open_captured_local_retained_host(
     prepared,
     source,
-    registry,
+    sequence_contracts,
     values,
     1L,
     0L,
@@ -199,7 +199,7 @@ pub fn client_program_open_installed_managed_source_free_composed_infer_host(
   value : @client_local_host.ClientInstalledManagedRun,
   prepared : @publication_host.PreparedClientProgram,
   request : @publication_host.ClientRequestIdentity,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
@@ -212,7 +212,7 @@ pub fn client_program_open_installed_managed_source_free_composed_infer_host(
     value,
     prepared,
     request,
-    registry,
+    sequence_contracts,
     values,
     fragment,
     ordered,
@@ -236,7 +236,7 @@ pub fn client_program_open_multi_captured_composed_infer_host(
   prepared : @publication_host.PreparedClientProgram,
   sources : Array[@query.CapturedInputSource],
   ledger : @resources.Ledger,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
@@ -249,7 +249,7 @@ pub fn client_program_open_multi_captured_composed_infer_host(
     prepared,
     [(0, sources[0]), (1, sources[1])],
     ledger,
-    registry,
+    sequence_contracts,
     values,
     fragment,
     ordered,
@@ -268,7 +268,7 @@ pub fn client_program_open_multi_captured_composed_infer_host(
 pub fn client_program_prepare_effect_infer_segments(
   prepared : @publication_host.PreparedClientEffectComputation,
   occurrence : @publication_host.ClientInferOccurrence,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String,
   ordered : String,
@@ -279,7 +279,7 @@ pub fn client_program_prepare_effect_infer_segments(
   guard @client_local_host.prepare_client_effect_infer_prefix(
       prepared,
       occurrence,
-      registry,
+      sequence_contracts,
       values,
       fragment_body=Some(fragment),
       ordered_body=Some(ordered),
@@ -293,7 +293,7 @@ pub fn client_program_prepare_effect_infer_segments(
   guard @client_local_host.prepare_client_effect_infer_suffix(
       prepared,
       occurrence,
-      registry,
+      sequence_contracts,
       values,
       fragment_body=Some(fragment),
       ordered_body=Some(ordered),
@@ -752,7 +752,7 @@ pub fn client_program_open_multi_captured_infer_effect_host(
   prepared : @publication_host.PreparedClientEffectRun,
   sources : Array[@query.CapturedInputSource],
   ledger : @resources.Ledger,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
@@ -764,7 +764,7 @@ pub fn client_program_open_multi_captured_infer_effect_host(
   open_client_local_effect_host(
     prepared,
     None,
-    registry,
+    sequence_contracts,
     values,
     1L,
     0L,
@@ -784,7 +784,7 @@ pub fn client_program_open_multi_captured_infer_effect_host(
 #export_name("clientProgramOpenSourceFreeInferEffectHost")
 pub fn client_program_open_source_free_infer_effect_host(
   prepared : @publication_host.PreparedClientEffectRun,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
@@ -793,7 +793,7 @@ pub fn client_program_open_source_free_infer_effect_host(
   open_client_local_effect_host(
     prepared,
     None,
-    registry,
+    sequence_contracts,
     values,
     1L,
     0L,

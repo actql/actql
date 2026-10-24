@@ -38,11 +38,17 @@ fn values_filter_pipeline_prepared(
 ///|
 test "larger filtered Values compose derive group and sort with exact independent rows" {
   let assets = @publication_host.client_local_product_assets()
+  let asset_contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   for count in [500, 1000] {
     let prepared = values_filter_pipeline_prepared(count)
     let sequence = prepare_client_local_sequences(
         prepared,
-        assets.registry,
+        asset_contracts,
         assets.values,
         Some(assets.fragment),
         assets.ordered,

@@ -384,14 +384,16 @@ fn local_submission_start(
     let run = match runtime_selection {
       Ok(Accepted) => return observe_original()
       Ok(Pending(None)) => run
-      Ok(Pending(Some(assets))) => {
+      Ok(Pending(Some((assets, installed_contracts)))) => {
         let installed = run.source_free.unwrap_or_else(() => {
           stop("LocalValuesInstallationRequired")
         })
         {
           ..run,
           source_free: Some(
-            local_current_values_installation(installed, assets),
+            local_current_values_installation(
+              installed, assets, installed_contracts,
+            ),
           ),
         }
       }

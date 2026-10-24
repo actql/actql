@@ -124,8 +124,10 @@ export function createNodeInProcessClientHost({
   }
   return Object.freeze({async perform(operation, body, signal) {
     try {
+      // Static preparation probes the same funded-original lookup, even
+      // though a plan read has no submission producer or execution grant.
       const tracksSource = bindOwnedRequest !== undefined &&
-        ['submit', 'submit-intent', 'submit-named-intent', 'restart-intent'].includes(operation);
+        ['plan', 'submit', 'submit-intent', 'submit-named-intent', 'restart-intent'].includes(operation);
       const own = (parent, derived) => {
         if (tracksSource && bindOwnedRequest(parent, derived) !== undefined) {
           fail('SourceManagedPreparationUnavailable');

@@ -212,7 +212,7 @@ pub fn execute_resident_effect_source_attempt(
       wire,
       binding,
       accepted_at,
-      configuration.registry_body,
+      configuration.installed_contracts,
       configuration.values_body,
       configuration.source.fragment_contract_body,
       require_current=false,

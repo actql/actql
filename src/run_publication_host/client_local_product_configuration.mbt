@@ -141,10 +141,18 @@ fn product_assemble_common(
     is Some(@canonical.String(evidence)) else {
     return Err(InvalidEnvironment)
   }
+  // Retained installations keep their original environment; only an exact
+  // installed text-time policy selects the capability, never a refreshed CID.
+  let text_time = match
+    @canonical.object_field(environment_value, "host_policy_profile") {
+    Some(profile) =>
+      @canonical.object_field(profile, "text_time_evaluation") is Some(_)
+    None => false
+  }
   if admit_client_check_environment(
       assets.environment,
       evidence,
-      { text_time: false, veca: false, },
+      { text_time, veca: false, },
       { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     )
     is None {

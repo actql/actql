@@ -11,9 +11,12 @@ const unavailable = () => {
 };
 const fields = freeze(['directory', 'storeAuthorityCid', 'capacityBytes',
   'maxObjectBytes', 'maxObjects', 'maxContractNodes', 'maxContractDepth']);
-const store = record({capacityBytes: 512 * 1024 * 1024, maxObjectBytes: 10000000,
-  maxObjects: 10000, maxContractNodes: 10000, maxContractDepth: 64});
-const result = record({maxResults: 10, maxRows: 10000, maxRowWireBytes: 1048576,
+const storeWireBytes = 10000000;
+// Structure support follows the already selected bounded object wire, rather
+// than an unrelated 10000-node rejection. This recipe issues no memory grant.
+const store = record({capacityBytes: 512 * 1024 * 1024, maxObjectBytes: storeWireBytes,
+  maxObjects: 10000, maxContractNodes: storeWireBytes, maxContractDepth: 64});
+const result = record({maxResults: 10, maxCollectedRows: 10000, maxRowWireBytes: 1048576,
   maxReadWireBytes: 10 * 1024 * 1024, maxBatchRows: 1000, maxValueNodes: 1000000,
   maxValueTextBytes: 10000000, maxValueDepth: 64, maxColumns: 100});
 const phases = record({
@@ -57,6 +60,16 @@ function selectHostResultStoreArguments(options, directory) {
   return record(selected);
 }
 
+// Representation validation for DATA already projected by the fixed callback
+// from the same checked Program/current request. This does not admit a Run,
+// allocate rows or replace provider/Store capacity. Collection/read support is
+// separate: maxCollectedRows bounds all(), not publication or rows().
+function validOriginalResultPublicationExtent(resultCount, maxRows, maxContractBytes, minimumResults) {
+  return Number.isSafeInteger(resultCount) && resultCount >= minimumResults &&
+    Number.isSafeInteger(maxRows) && maxRows >= 0 && maxRows <= 2147483647 &&
+    Number.isSafeInteger(maxContractBytes) && maxContractBytes >= 1 && maxContractBytes <= 2147483647;
+}
+
 function declareHostResultServiceRecipe(control, journal, sourceCompute, sourceFreeCompute) {
   if ([control, journal, sourceCompute, sourceFreeCompute].some(value =>
     value === null || typeof value !== 'object' || isProxy(value)) || journal.sharedControl !== control) unavailable();
@@ -76,5 +89,5 @@ const facilityFields = record({
   crypto: freeze(['createCipheriv', 'createDecipheriv', 'createHash', 'randomBytes', 'randomUUID']),
   buffer: freeze(['alloc', 'allocUnsafe', 'allocUnsafeSlow', 'byteLength', 'concat', 'from', 'isBuffer']),
 });
-module.exports = {declareHostResultServiceRecipe, facilityFields};
+module.exports = {declareHostResultServiceRecipe, facilityFields, validOriginalResultPublicationExtent};
 freeze(module.exports);

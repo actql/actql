@@ -37,6 +37,9 @@ struct CapturedResultSnapshotPreparation {
   mut live : Int
   mut peak : Int
   mut closed : Bool
+  mut row_wire_bytes : Int
+  mut row_nodes : Int
+  mut row_depth : Int
 }
 
 ///|
@@ -97,6 +100,9 @@ pub fn start_captured_result_snapshot(
     live: 8,
     peak: 8,
     closed: false,
+    row_wire_bytes: 0,
+    row_nodes: 0,
+    row_depth: 0,
   })
 }
 
@@ -150,6 +156,9 @@ fn start_captured_snapshot_value_check(
     live: 8,
     peak: 8,
     closed: false,
+    row_wire_bytes: 0,
+    row_nodes: 0,
+    row_depth: 0,
   })
 }
 
@@ -358,12 +367,17 @@ fn CapturedResultSnapshotPreparation::step(
         if @json.advance_emit(cursor) {
           let writer = self.writer.unwrap()
           @encode.end_object(writer)
-          let (digest, _, _) = @encode.finish_hash_usage(writer)
+          let (digest, bytes, nodes, depth) = @encode.finish_hash_metrics(writer)
           self.writer = None
           if contract_string(self.artifact, "logical_result_cid") !=
             Some("sha256:" + digest) {
             return Err(CaptureIssuanceReferenceMismatch("logical_result_cid"))
           }
+          // The same hash emits {"sort":"relation","value":rows}.
+          // Remove exactly its 28 UTF-8 bytes, two values and one container.
+          self.row_wire_bytes = bytes - 28
+          self.row_nodes = nodes - 2
+          self.row_depth = depth - 1
           self.phase = Done
         }
       Done => ()
@@ -416,6 +430,9 @@ pub fn CapturedResultSnapshotPreparation::finish(
     artifact: self.artifact,
     rows,
     fields,
+    row_wire_bytes: self.row_wire_bytes,
+    row_nodes: self.row_nodes,
+    row_depth: self.row_depth,
   })
 }
 

@@ -269,7 +269,7 @@ export async function releasePreparedResults(exported, primary, control) {
 async function exportCompletedRunResultSet({
   execution, store, control, runDefinition, invocation, results,
   outputLimits, contractLimits, signal,
-}, exported) {
+}, exported, publicationResource) {
   validateExecution(execution);
   if (!Array.isArray(results) ||
       results.length !== execution.resultInventory.length ||
@@ -293,7 +293,7 @@ async function exportCompletedRunResultSet({
       retention: result.retention,
       evidenceContext: result.evidenceContext,
       transformation: result.transformation,
-    }, signal);
+    }, signal, publicationResource);
     const expected = execution.publicationInventory.occurrences[index];
     if (stored?.occurrence?.name !== expected.name ||
         stored?.occurrence?.task !== expected.task ||
@@ -1439,7 +1439,7 @@ export async function publishCompletedEffectfulRun(options) {
   return Object.freeze({publication, computation, storedResults});
 }
 
-export async function publishCompletedEffectFreeRun(options) {
+export async function publishCompletedEffectFreeRun(options, publicationResource) {
   validateOptions(options);
   const {
     execution,
@@ -1468,7 +1468,7 @@ export async function publishCompletedEffectFreeRun(options) {
     await exportCompletedRunResultSet({
       execution, store, control, runDefinition, invocation, results,
       outputLimits, contractLimits, signal,
-    }, exported);
+    }, exported, publicationResource);
     signal?.throwIfAborted();
     const definitions = execution.publicationInventory.occurrences
       .map(value => value.definitionContract);
@@ -1504,7 +1504,7 @@ export async function publishCompletedEffectFreeRun(options) {
       ...(captureEvidence.contentGenerations === undefined ? {} : {
         contentGenerations: captureEvidence.contentGenerations,
       }),
-    }, contractLimits, signal);
+    }, contractLimits, signal, publicationResource);
     const evidence = Object.freeze({
       runDefinition,
       invocation,
@@ -1531,6 +1531,7 @@ export async function publishCompletedEffectFreeRun(options) {
     publicationEntered = true;
     const publication = await publishEffectFreeRun({
       store,
+      preparedHandles: Object.freeze(exported.flatMap(value => value.physicalPrepared === undefined ? [] : [value.physicalPrepared])),
       control,
       evidence,
       request,

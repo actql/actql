@@ -58,7 +58,7 @@ pub fn client_effect_content_local_provider(
   prepared : @publication_host.PreparedClientEffectComputation,
   task : Int,
   step : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -77,7 +77,7 @@ pub fn client_effect_content_local_provider(
     )
     is Ok(barrier) &&
     prepare_client_effect_serialization_prefix(
-      prepared, task, step, registry_body, values_body, fragment_body, ordered_body,
+      prepared, task, step, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Some(prefix) else {
     return None
@@ -95,7 +95,7 @@ pub fn client_content_local_provider(
   prepared : @publication_host.PreparedClientProgram,
   task : Int,
   step : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -117,7 +117,7 @@ pub fn client_content_local_provider(
       Pure(prepared),
       task,
       step,
-      registry_body,
+      installed_contracts,
       values_body,
       fragment_body,
       ordered_body,

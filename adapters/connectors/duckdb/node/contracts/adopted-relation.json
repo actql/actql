@@ -1,8 +1,8 @@
 {
   "source_revision": "9edb5a65db8b822b8629cfa4913fb1097fb99945",
-  "registry_cid": "sha256:33e430c0df46632f1d45949397dfccef2502542f2b762bdbef75eb3dc472ee35",
+  "registry_cid": "sha256:0ff18ae5087aa79d90acdf8fe25ce7534dec0b0687c2f350894ce0c960f9f505",
   "values_cid": "sha256:96c7925a693801dcb3bce9f3e2da9b4fd9ed39e517af90cbac0e1adbee5ad2ae",
-  "fragment_cid": "sha256:2da9df9713991a485457fbc2698dea01c68b91cb5bdb42c695d65bd835338a31",
+  "fragment_cid": "sha256:3d647ebc2757e8be9bf5944e32d73771147f3cac893f6c705430310cd03a3f48",
   "graph_cid": "sha256:0979999a64bb47f7fcb0d113c0bbcab592ad0a268b548a8776f8fac4fd6f6d84",
   "registry": {
     "REL.select": {
@@ -38,7 +38,7 @@
         "ordered_bindings": {
           "file": "spec/contracts/actql-aoa.json",
           "pointer": "/execution_contracts/REL.derive.ordered",
-          "cid": "sha256:a5448cec907faa08784d7a1c64fe9135f18e77f035f14d03d62e5f5e2bb07679"
+          "cid": "sha256:1db41372cc52cfe1fba3e4683285837533c745cd85d8038b646e531696869ecc"
         }
       }
     },
@@ -488,7 +488,7 @@
       "execution_contract": {
         "file": "spec/contracts/actql-aoa.json",
         "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
-        "cid": "sha256:2da9df9713991a485457fbc2698dea01c68b91cb5bdb42c695d65bd835338a31"
+        "cid": "sha256:3d647ebc2757e8be9bf5944e32d73771147f3cac893f6c705430310cd03a3f48"
       }
     },
     "TEA.calendar.bucket": {
@@ -1548,12 +1548,12 @@
       "expression_contract": {
         "file": "spec/contracts/actql-expressions.json",
         "pointer": "",
-        "cid": "sha256:76278686ed580a90862ab54680c2e1969b8e3c6b5bec8078e0049e5d9079e9f8"
+        "cid": "sha256:b5701b2178a3b2e624d0fbfbda877d0117c367e42a855161e26e0d2e133f1c2c"
       },
       "fragment_schema": {
         "file": "spec/contracts/actql-expressions.json",
         "pointer": "/schemas/fragment",
-        "cid": "sha256:2c4f84b31bf83d660d549b80b8dde8f0aa7ec01523650d9322a25cc39c83ddb5"
+        "cid": "sha256:be96b6072058cb165d5350a2575403a4fe35bafc229e669ca296aacc0ca79cdf"
       }
     },
     "params_schema": {

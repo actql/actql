@@ -15,6 +15,7 @@ priv struct OriginalKeyedPrefixFixture {
 
 ///|
 fn original_keyed_prefix_fixture() -> OriginalKeyedPrefixFixture raise {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let (declaration, prepared, compiled, definition, plan, keyed, requirement) = original_keyed_run_fixture(
     relation_versions=true,
   )
@@ -39,7 +40,7 @@ fn original_keyed_prefix_fixture() -> OriginalKeyedPrefixFixture raise {
   let capacity = client_original_keyed_left_prefix_capacity(
     prepared,
     keyed,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
@@ -145,6 +146,7 @@ fn original_keyed_prefix_fixture() -> OriginalKeyedPrefixFixture raise {
 fn original_keyed_prefix_start(
   value : OriginalKeyedPrefixFixture,
 ) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue] {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   start_client_original_keyed_left_prefix(
     value.scope,
     value.compiled,
@@ -153,7 +155,7 @@ fn original_keyed_prefix_start(
     value.prepared,
     value.keyed,
     value.capture,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
@@ -276,6 +278,7 @@ test "original keyed left prefix cancellation retires only its provider reservat
 
 ///|
 test "original keyed left prefix refuses a foreign Scope and a closing original before provider reservation" {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let value = original_keyed_prefix_fixture()
   let foreign = original_keyed_prefix_fixture()
   let before = @resources.ledger_usage(value.ledger)
@@ -289,7 +292,7 @@ test "original keyed left prefix refuses a foreign Scope and a closing original 
       value.prepared,
       value.keyed,
       value.capture,
-      source_query_original_registry,
+      source_contracts,
       source_query_original_values,
       Some(source_query_original_fragment),
       None,
@@ -322,12 +325,13 @@ test "original keyed left prefix refuses a foreign Scope and a closing original 
 
 ///|
 test "original keyed left prefix refuses workspace one above remaining retention before provider allocation" {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let value = original_keyed_prefix_fixture()
   let before = @resources.ledger_usage(value.ledger)
   let selected = client_original_keyed_left_prefix_capacity(
     value.prepared,
     value.keyed,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
@@ -354,7 +358,7 @@ test "original keyed left prefix refuses workspace one above remaining retention
       value.prepared,
       value.keyed,
       value.capture,
-      source_query_original_registry,
+      source_contracts,
       source_query_original_values,
       Some(source_query_original_fragment),
       None,

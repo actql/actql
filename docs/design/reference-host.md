@@ -682,17 +682,25 @@ remains Unknown; a visible row, error string or client Boolean cannot certify
 nonacceptance. No second lowering or serialization is needed to classify the
 original preparation result.
 
-The installation's immutable AoA projection has a different lifetime from a
-Run. The existing private Host installation bag retains only the Values,
-expression-fragment and ordered-derive contract strings after the first
-successful projection of its original asset. Source, managed Compute and Mock
-Model requirements pass those same strings to their existing checked readers;
-each still supplies its own Program, parameters, graph, limits and original
-Run. This avoids decoding the full unchanged asset and serializing its three
-static bodies for each Run or internal quote. The strings issue no permission,
-capacity, Ledger identity or cleanup ACK. They are tied to the same initial
-control, remain while child cleanup is pending, and are cut by the existing
-successful Host reference retirement. A new Host has its own installation bag.
+The installation's admitted AoA contract closure has a different lifetime from
+a Run. Its private Host owner interprets the exact registry, Values,
+expression-fragment and ordered-derive bodies once and retains the resulting
+nominal `ClientInstalledSequenceContracts`. Source, keyed acquisition, Content,
+Infer and managed Compute preparation require this same admitted bundle; no
+process-global cache, absent-original branch or request-time parser supplies a
+replacement. The retained source-free preparation additionally checks the
+physical installed original, not merely equal contract text. The remaining
+explicit contract-body arguments are checked against that bundle, never used
+as alternative admission inputs. An absent optional fragment or ordered body
+selects no such capability from the bundle; it does not reject a Values-only
+prefix merely because its installation also admitted additional capabilities.
+
+The bundle is immutable contract data, not permission, Resource capacity,
+Ledger identity or a cleanup ACK. Each caller still supplies its own checked
+Program, parameters, graph, limits and original Run. The Host binds the bundle
+to its initial control and runtime, retains it while child cleanup is pending,
+and cuts it during successful Host reference retirement. A new Host owns its
+own admission even when its contract bytes equal another Host's bytes.
 
 The Host retains the original admission before beginning the Run. A failed
 begin keeps that same admission's unpublished or started cleanup, never a
@@ -1197,20 +1205,23 @@ original cleanup, and neither failure nor close refills process-lived terms.
 
 The ordinary prefix retains a separate fixed Journal service recipe before
 loading the SQLite builtin or Host namespace. The recipe selects the existing
-database/source extent, SQL compilation, statement/parameter/result, schema,
-WAL and operation support counters together. It retains the same shared control
+database/source extent, live prepared-statement/SQL text, per-call parameter/result,
+schema and WAL support bounds together. It retains the same shared control
 declaration by reference; it does not duplicate that declaration's heap or
 native amounts. Recipe retention alone does not issue the operational service.
 The actual prefix must still bind the complete co-phase and original facility
 before native acquisition.
 
 Within the selected synchronous Journal connection, exact immutable SQL reuses
-the same captured bounded statement original. Each distinct native preparation
-attempt still consumes its compilation allowance, including failed attempts;
-reuse neither acquires another statement nor returns credit. Each execution
-rebinds its actual parameters and retains the current, cursor, WAL and execution
-limits. The same connection keeps its native originals until real close, then
-retires their managed aliases. The generic SQL-only path remains unchanged.
+the same captured bounded statement original. Before preparing another original,
+its live statement count and retained SQL extent must fit the selected envelope.
+A native call that returns no original creates no logical retained entry; a
+returned original remains held through later wrapper validation failure. Reuse
+neither acquires another statement nor returns credit. Each execution rebinds
+its actual parameters and retains the current, cursor, WAL and per-call limits.
+The same connection keeps its native originals until real close, then retires
+their managed aliases and refuses further use. No completed execution consumes
+a later request's lifetime allowance.
 
 The private service original is retained by the selected prefix before its
 builtin acquisition, then bound to the returned actual SQLite constructor and
@@ -1375,26 +1386,32 @@ outcomes independently of the process-lived loaded image and native allocator
 domain. Importing the loader control module does not acquire native bytes or
 issue the missing complete operational disposition.
 
-SQL and native-statement counters do not bound an operation that refuses
-before reaching SQL, including its validation and any earlier native crypto
-work. The selected Journal may therefore additionally impose an original
-lifetime operation ceiling before its delivered methods inspect arguments or
-invoke currentness. Failed validation or currentness consumes that attempt;
-reentrancy, rollback and property replacement cannot refill it. The same
-original receiver and method are captured from the authored Journal record.
-Its asynchronous admission remains asynchronous. Once exhausted, it retains
-and rethrows one refusal original rather than allocating a new error on each
-denied call. Close and separate observation-close remain their exact original
-operations, available without operation credit or currentness.
+Journal calls have no historical issuance or session-work ceiling. Each new
+operation checks the same installed original before argument work, and its
+actual input, SQL text, aggregate operand bytes and returned rows remain bounded
+at their consumers. Validation failure consumes no future request's allowance.
+The original receiver and method are captured from the authored Journal record;
+asynchronous admission remains asynchronous. Close and observation-close remain
+available without a work credit or currentness check.
 
 The delivered method record remains a nominal member of the original Journal
-custody observer; copying it is not independent custody. Its original method
-record, forwarding closures/receivers, operation count, retained refusal and
-escaped method aliases coexist for their real lifetimes. This support ceiling
-does not bound each operation's input/work by itself, fund any native or managed
-backing, create permission, or reset shared allocation domains. The full recipe
-must combine it with the original per-operation input/cardinality/SQL limits
-and physical facility before use. An unselected Journal is unchanged.
+custody observer; copying it is not independent custody. Its forwarding closures
+and escaped method aliases coexist for their real lifetimes. Distinct returned
+native statements and their SQL count against the live connection's retained
+statement/text envelope until actual connection close. A transient exec string
+is bounded per call, not accumulated as retained history. A native prepare that
+returns no statement creates no logical retained statement entry; this does not
+claim that native allocator backing has been freed. Returned native originals
+remain retained even if later wrapper validation fails. Only confirmed native
+close permits alias retirement, after which the wrapper cannot admit new work.
+
+These logical controls do not fund native or managed backing, create permission,
+or reset shared allocation domains. The selected opaque Host service still owns
+its independent physical obligations. In particular, the existing conservative
+WAL support counter remains a distinct unresolved lifetime restriction: database
+page limits do not bound live WAL/SHM extent, and no checkpoint/truncate witness
+currently permits safe replacement by a live-extent budget. Removing ordinary
+call counters does not silently remove or refill that physical-support envelope.
 
 Selected cold inspection may additionally bound the SQLite schema table's
 declared row payload and traversal before native SQLite opens the isolated

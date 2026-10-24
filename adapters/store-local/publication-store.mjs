@@ -30,6 +30,8 @@ import {Buffer as OriginalBuffer} from 'node:buffer';
 import {assertHostJournalDirectoryInspector, inspectHostJournalDirectory}
   from '../host-node/host-journal-directory.mjs';
 import {createObjectWriterOwner} from './object-writer-owner.mjs';
+import {createPreparedCustodyQueue} from './prepared-custody-queue.mjs';
+import {createPreparedHolderRegistry} from './prepared-holder-owner.mjs';
 import {createResultDeletionOwner} from './result-deletion-owner.mjs';
 import {createMetadataDeletionOwner} from './metadata-deletion-owner.mjs';
 import {createPublicationCommitOwner} from './publication-commit-owner.mjs';
@@ -1439,8 +1441,9 @@ async function openOriginalLocalPublicationStore(
   let closeRequested = false, closeFlight;
   const preparedObjects = new Map();
   const preparedSchemas = new Map();
-  const preparedObjectOwners = new WeakMap();
+  const preparedObjectOwners = createPreparedHolderRegistry(() => fail('InvalidPublicationPreparedOwner'));
   const reclaimableCustodies = new Map();
+  const withPreparedCustody = createPreparedCustodyQueue();
   let semanticCommitBusy = Promise.resolve();
   const withSemanticCommit = operation => {
     const flight = semanticCommitBusy.then(operation);
@@ -2603,6 +2606,23 @@ async function openOriginalLocalPublicationStore(
       },
     );
 
+  // The recovery record for the installed allocation is shared by every
+  // live holder of that generation. A losing seal's temporary inode record
+  // cannot replace it. Retiring its first holder transfers this SAME recovery
+  // duty to the remaining group, without new bytes or durable authority.
+  const retirePreparedHolderCustody = async (group, holder) => {
+    const finalHolder = group.holders.size === 1 && group.commitOwners.size === 0;
+    const selected = finalHolder ? [...group.custodies]
+      : holder.custody === undefined || holder.custody === group.allocationCustody
+        ? [] : [holder.custody];
+    for (const custody of selected) {
+      await removeCustodyRecord(custody);
+      group.custodies.delete(custody);
+      if (group.allocationCustody === custody) group.allocationCustody = undefined;
+    }
+    holder.custody = undefined;
+  };
+
   const createPreparedObjectWriter = maxBytes => {
     const writer = createObjectWriter(maxBytes, true);
     return Object.freeze({
@@ -2611,37 +2631,38 @@ async function openOriginalLocalPublicationStore(
       status: () => writer.status(),
       async seal(expectedCid) {
         const physical = await writer.seal(expectedCid);
-        let group = preparedObjects.get(physical.cid);
-        if (group === undefined) {
-          group = {
-            holders: new Set(),
-            commitOwners: new Set(),
-            removable: physical.created,
-            committed: false,
-            pendingUnlink: undefined,
-            custodies: new Set(),
-            busy: Promise.resolve(),
-          };
-          preparedObjects.set(physical.cid, group);
-        } else if (physical.created) {
-          group.removable = true;
-        }
-        if (physical.custody !== undefined) {
-          group.custodies.add(physical.custody);
-        }
+        // Join the current generation only after any prior adoption/release
+        // finished. Never append to a snapshot that is already being retired.
+        const {group, holder} = await withPreparedCustody(physical.cid, () => {
+          let group = preparedObjects.get(physical.cid);
+          if (group === undefined) {
+            group = {
+              holders: new Set(),
+              commitOwners: new Set(),
+              removable: physical.created,
+              committed: false,
+              pendingUnlink: undefined,
+              custodies: new Set(),
+              busy: Promise.resolve(),
+            };
+            preparedObjects.set(physical.cid, group);
+          } else if (physical.created) {
+            group.removable = true;
+          }
+          if (physical.custody !== undefined) {
+            group.custodies.add(physical.custody);
+            if (physical.created) group.allocationCustody = physical.custody;
+          }
+          const holder = {active: true, releasing: undefined, custody: physical.custody};
+          group.holders.add(holder);
+          return {group, holder};
+        });
         const errors = [];
-        const holder = {active: true, releasing: undefined};
-        group.holders.add(holder);
         const state = () => Object.freeze({
           pending: holder.active,
           errors: Object.freeze([...errors]),
         });
-        const clearCustodies = async () => {
-          for (const custody of [...group.custodies]) {
-            await removeCustodyRecord(custody);
-            group.custodies.delete(custody);
-          }
-        };
+        const clearCustodies = () => retirePreparedHolderCustody(group, holder);
         const finishPendingUnlink = async () => {
           const pending = group.pendingUnlink;
           if (pending === undefined) return;
@@ -2652,6 +2673,7 @@ async function openOriginalLocalPublicationStore(
           }
           await clearCustodies();
           pending.owner.active = false;
+          preparedObjectOwners.forgetHolder(pending.owner);
           group.holders.delete(pending.owner);
           group.pendingUnlink = undefined;
         };
@@ -2661,7 +2683,8 @@ async function openOriginalLocalPublicationStore(
           // A physical holding and its prepared release use the same existing
           // material queue. An awaited directory ACK must not race reclamation.
           const previous = group.busy;
-          const operation = materialRetentionBusy.then(() => previous).then(async () => {
+          const operation = materialRetentionBusy.then(() => previous).then(() =>
+            withPreparedCustody(physical.cid, async () => {
             if (!holder.active) return false;
             await finishPendingUnlink();
             if (!holder.active) {
@@ -2672,13 +2695,16 @@ async function openOriginalLocalPublicationStore(
               return true;
             }
             if (group.commitOwners.size > 0) return false;
-            if (group.committed || group.holders.size > 1 ||
+            const adoptedStillRetained = group.committed &&
+              await materialHasLiveReference(physical.cid);
+            if (adoptedStillRetained || group.holders.size > 1 ||
                 !group.removable) {
               const finalHolder = group.holders.size === 1 &&
                 group.commitOwners.size === 0;
-              if (finalHolder) await clearCustodies();
+              await clearCustodies();
               group.holders.delete(holder);
               holder.active = false;
+              preparedObjectOwners.forgetHolder(holder);
               if (finalHolder) {
                 preparedObjects.delete(physical.cid);
               }
@@ -2693,8 +2719,10 @@ async function openOriginalLocalPublicationStore(
             // their physical object. Never reclaim an allocation with another
             // filesystem owner, even if the prepared holder is the creator.
             if (before.nlink !== 1) {
+              await clearCustodies();
               group.holders.delete(holder);
               holder.active = false;
+              preparedObjectOwners.forgetHolder(holder);
               preparedObjects.delete(physical.cid);
               return true;
             }
@@ -2717,7 +2745,7 @@ async function openOriginalLocalPublicationStore(
               preparedObjects.delete(physical.cid);
             }
             return true;
-          });
+          }));
           group.busy = operation.catch(() => {});
           materialRetentionBusy = group.busy;
           holder.releasing = operation.catch(error => {
@@ -2740,10 +2768,10 @@ async function openOriginalLocalPublicationStore(
             return state();
           },
         });
-        preparedObjectOwners.set(prepared, Object.freeze({
+        preparedObjectOwners.register(prepared, {
           cid: physical.cid,
-          bytes: physical.bytes,
-        }));
+          bytes: physical.bytes, group, holder,
+        });
         return Object.freeze({
           cid: physical.cid,
           bytes: physical.bytes,
@@ -2754,49 +2782,105 @@ async function openOriginalLocalPublicationStore(
     });
   };
 
-  const adoptPreparedObjects = async cids => {
-    for (const cid of cids) {
+  // A durable witness can make an original holder releasable, but it cannot
+  // choose that holder's terminal transition. The handle still owns release.
+  const confirmPreparedMaterials = async cids => {
+    for (const cid of new Set(cids)) await withPreparedCustody(cid, () => {
       const group = preparedObjects.get(cid);
-      if (group === undefined) continue;
-      for (const custody of [...group.custodies]) {
-        await removeCustodyRecord(custody);
-        group.custodies.delete(custody);
-      }
-      group.committed = true;
-      for (const owner of group.commitOwners) {
-        owner.groups.delete(group);
-        if (owner.groups.size === 0) {
-          owner.pending = false;
-          owner.outcome = 'committed';
+      if (group !== undefined) group.committed = true;
+    });
+  };
+
+  // A durable adoption witness transfers only the selected original holders.
+  // Neither a CID match nor a read/confirmation grants another holder's duty.
+  const adoptPreparedObjects = async selected => {
+    for (const original of selected) {
+      const {cid, group, holder} = original;
+      await withPreparedCustody(cid, async () => {
+        if (!holder.active) return;
+        if (preparedObjects.get(cid) !== group || !group.holders.has(holder)) {
+          fail('InvalidPublicationPreparedOwner');
         }
-      }
-      group.commitOwners.clear();
-      for (const holder of group.holders) holder.active = false;
-      group.holders.clear();
-      preparedObjects.delete(cid);
+        await retirePreparedHolderCustody(group, holder);
+        group.committed = true;
+        holder.active = false;
+        preparedObjectOwners.forgetHolder(holder);
+        group.holders.delete(holder);
+        if (group.holders.size === 0 && group.commitOwners.size === 0) preparedObjects.delete(cid);
+      });
     }
   };
 
-  const beginPreparedCommit = (cids, key, indexCid) => {
+  const beginPreparedCommit = async (cids, key, indexCid, selected = [], ownRetention) => {
     const owner = {
       pending: false,
       outcome: undefined,
       groups: new Set(),
       errors: [],
     };
-    for (const cid of new Set(cids)) {
-      const group = preparedObjects.get(cid);
-      if (group === undefined || group.committed) continue;
-      group.commitOwners.add(owner);
-      owner.groups.add(group);
-      owner.pending = true;
-    }
-    const settleUncommitted = () => {
-      for (const group of owner.groups) group.commitOwners.delete(owner);
-      owner.groups.clear();
+    const acquired = [];
+    const settlePins = async outcome => {
+      // A pin can be the final borrower of an allocation's recovery record
+      // after its last holder transferred to a now-retired durable owner.
+      // End that shared duty under the SAME material -> metadata ordering.
+      const retirement = materialRetentionBusy.then(async () => {
+        for (const [cid, group] of acquired) {
+          await withPreparedCustody(cid, async () => {
+            group.commitOwners.delete(owner);
+            if (group.holders.size === 0 && group.commitOwners.size === 0) {
+              const durablyRetained = outcome === 'committed' &&
+                ownRetention !== undefined && await ownRetention(cid) ||
+                await materialHasLiveReference(cid);
+              for (const custody of [...group.custodies]) {
+                if (durablyRetained) await removeCustodyRecord(custody);
+                else if (!await reclaimCustody(custody)) fail('PublicationPreparedCustodyPending');
+                group.custodies.delete(custody);
+                if (group.allocationCustody === custody) group.allocationCustody = undefined;
+              }
+              if (preparedObjects.get(cid) === group) preparedObjects.delete(cid);
+            }
+            owner.groups.delete(group);
+          });
+        }
+      });
+      materialRetentionBusy = retirement.catch(() => {});
+      await retirement;
+      acquired.length = 0;
       owner.pending = false;
-      owner.outcome = 'uncommitted';
+      owner.outcome = outcome;
     };
+    try {
+      // Join physical reclamation before taking any per-CID metadata queue.
+      // Verification alone cannot pin an already adopted original: its last
+      // durable Result may be retiring while this new Index is installed.
+      const acquisition = materialRetentionBusy.then(async () => {
+        for (const cid of new Set(cids)) {
+          await withPreparedCustody(cid, async () => {
+            let group = preparedObjects.get(cid);
+            if (group === undefined) {
+              await verifyObject(cid);
+              // This is only a temporary retention pin, never new payload
+              // custody or permission to unlink the pre-existing original.
+              group = {holders: new Set(), commitOwners: new Set(),
+                removable: false, committed: false, pendingUnlink: undefined,
+                custodies: new Set(), busy: Promise.resolve()};
+              preparedObjects.set(cid, group);
+            }
+            group.commitOwners.add(owner);
+            owner.groups.add(group);
+            acquired.push([cid, group]);
+            owner.pending = true;
+          });
+        }
+      });
+      materialRetentionBusy = acquisition.catch(() => {});
+      await acquisition;
+    } catch (cause) {
+      // No install has started. Return only these temporary commit pins;
+      // prepared holders and any failed physical reader keep their own duties.
+      await settlePins('uncommitted');
+      throw cause;
+    }
     const status = () => Object.freeze({
       pending: owner.pending,
       outcome: owner.outcome,
@@ -2805,15 +2889,17 @@ async function openOriginalLocalPublicationStore(
     const resolveConfirmed = async entry => {
       if (!owner.pending) return status();
       if (entry?.public_index_entry_cid === indexCid) {
-        await adoptPreparedObjects(cids);
+        await adoptPreparedObjects(selected);
+        await settlePins('committed');
       } else {
-        settleUncommitted();
+        await settlePins('uncommitted');
       }
       return status();
     };
     return Object.freeze({
       status,
       resolveConfirmed,
+      settleAdopted: () => settlePins('committed'),
       async retry() {
         if (!owner.pending) return status();
         try {
@@ -3465,7 +3551,16 @@ async function openOriginalLocalPublicationStore(
       fail('InvalidPublicationContractWire');
     }
     let contract;
-    try { contract = contractControl.admit(name, wire, contractLimits); }
+    try {
+      // UTF-8 wire extent bounds JSON value-node count (including containers).
+      // Preserve an explicitly narrower configured policy. This does not grant
+      // parser memory: admission remains the selected Store service operation,
+      // under its object limit and existing opaque runtime support envelope.
+      const wireBytes = Buffer.byteLength(wire, 'utf8');
+      contract = contractControl.admit(name, wire, Object.freeze({
+        ...contractLimits, maxNodes: Math.min(contractLimits.maxNodes, wireBytes),
+      }));
+    }
     catch (error) { fail('InvalidPublicationContract', error); }
     if (!exactKeys(contract, ['name', 'identityField', 'identity', 'wire']) ||
         contract.name !== name || typeof contract.identityField !== 'string' ||
@@ -5732,8 +5827,13 @@ async function openOriginalLocalPublicationStore(
       fail('PublicationAttemptMismatch');
     }
     let chainValid = false;
+    // Same semantic-read custody as native inspection: close cannot release
+    // this Store while its owned checker is suspended between quanta.
+    const validationReader = {cleanup: undefined};
+    activeSemanticReaders.add(validationReader);
     try {
-      chainValid = await contractControl.effectFreeCommitValid(
+      active();
+      chainValid = await contractControl.effectFreeStoredCommitValid(
         suppliedEvidence.runDefinition,
         suppliedEvidence.invocation,
         suppliedEvidence.definitions,
@@ -5748,10 +5848,13 @@ async function openOriginalLocalPublicationStore(
         requestStored.contract,
         attemptStored.contract,
         admitted,
-        contractLimits,
+        active,
       );
     } catch (error) {
       fail('InvalidPublicationCommitChain', error);
+    } finally {
+      // The fixed control cancels its exact checker before this promise unwinds.
+      activeSemanticReaders.delete(validationReader);
     }
     if (chainValid !== true) fail('InvalidPublicationCommitChain');
     return Object.freeze(verifiedBindings);
@@ -5790,7 +5893,6 @@ async function openOriginalLocalPublicationStore(
     if (inventory?.physical_holding_cids.join('\0') !== expectedContent.join('\0')) {
       fail('InvalidPublicationMetadataInventoryStore');
     }
-    await adoptPreparedObjects(verifiedBindings.map(value => value.physical.cid));
     return true;
   };
 
@@ -6010,6 +6112,7 @@ async function openOriginalLocalPublicationStore(
     suppliedEvidence,
     effectfulEvidence,
     indexOriginal,
+    preparedHandles = [],
   ) => {
     active();
     if (indexOriginal !== undefined &&
@@ -6112,7 +6215,23 @@ async function openOriginalLocalPublicationStore(
         contractControl.recordAllowsCommit(previous) !== true) {
       fail('PublicationAttemptNotCommitting');
     }
-    const adoptObjects = () => adoptPreparedObjects(boundPhysicalCids);
+    const selectedPrepared = preparedObjectOwners.select(preparedHandles,
+      new Map(verifiedBindings.map(value => [value.physical.cid, value.physical.bytes])));
+    // Reuse this commit's verified original bindings. A known successful
+    // Index is immutable; only its exact deletion markers can retire its
+    // material ownership. Do not re-admit the same evidence during pin cleanup.
+    const ownRetention = async cid => {
+      if (await readMetadataDeletion(keyHash) !== undefined) return false;
+      for (const value of verifiedBindings) {
+        if (value.physical.cid === cid &&
+            await readResultDeletion(keyHash, value.binding.result_definition_cid) === undefined) return true;
+      }
+      return false;
+    };
+    const adoptObjects = async () => {
+      await confirmPreparedMaterials(boundPhysicalCids);
+      await adoptPreparedObjects(selectedPrepared);
+    };
     let inventoryOriginal;
     let nativeIndexPreparation;
     const adoptSchemas = async () => {
@@ -6222,7 +6341,7 @@ async function openOriginalLocalPublicationStore(
       },
       beginCustody() {
         return beginPreparedCommit(
-          boundPhysicalCids, key, entry.public_index_entry_cid,
+          boundPhysicalCids, key, entry.public_index_entry_cid, selectedPrepared, ownRetention,
         );
       },
       cancelStage() {nativeIndexPreparation?.reservation.release();},
@@ -6258,10 +6377,13 @@ async function openOriginalLocalPublicationStore(
 
   // A prepared schema cannot be retired between commit evidence validation
   // and installation of the inventory that acquires its durable ownership.
-  const commitIndex = (suppliedWire, requiredObjectCids, suppliedEvidence, indexOriginal) =>
-    withSemanticCommit(() => commitIndexInternal(
-      suppliedWire, requiredObjectCids, suppliedEvidence, undefined, indexOriginal,
+  const commitIndex = (suppliedWire, requiredObjectCids, suppliedEvidence, indexOriginal, preparedHandles = []) => {
+    if (!Array.isArray(preparedHandles)) fail('InvalidPublicationPreparedOwner');
+    const originalHandles = Object.freeze([...preparedHandles]);
+    return withSemanticCommit(() => commitIndexInternal(
+      suppliedWire, requiredObjectCids, suppliedEvidence, undefined, indexOriginal, originalHandles,
     ));
+  };
 
   const commitEffectfulIndex = (preparation, requiredObjectCids) => {
     if (!exactKeys(preparation, [
@@ -7258,6 +7380,11 @@ async function openOriginalLocalPublicationStore(
     if (await readPhysicalHoldingDeletion(record.holding_cid) !== undefined) {
       fail('PublicationPhysicalHoldingRetiring');
     }
+    const selected = preparedObjectOwners.select(prepared,
+      new Map(record.objects.map(object => [object.cid, object.byte_count])));
+    const retainSelected = () => {
+      preparedObjectOwners.retainTransfer(record.holding_cid, selected);
+    };
     const current = await readPhysicalHolding(record.holding_cid);
     if (current !== undefined) {
       if (!Buffer.from(JSON.stringify(current), 'utf8').equals(
@@ -7266,6 +7393,7 @@ async function openOriginalLocalPublicationStore(
         fail('PublicationPhysicalHoldingConflict');
       }
       await verifyPhysicalHoldingObjects(current);
+      retainSelected();
       await confirmPhysicalHoldingDirectory(current);
       return Object.freeze({record: current, created: false});
     }
@@ -7280,7 +7408,7 @@ async function openOriginalLocalPublicationStore(
     }
     const supplied = new Map();
     for (const handle of prepared) {
-      const owner = preparedObjectOwners.get(handle);
+      const owner = preparedObjectOwners.original(handle);
       if (owner === undefined || supplied.has(owner.cid)) {
         fail('InvalidPublicationPhysicalHoldingOwner');
       }
@@ -7318,6 +7446,7 @@ async function openOriginalLocalPublicationStore(
       fail('InvalidPublicationPhysicalHoldingOwner');
     }
     await verifyPhysicalHoldingObjects(record);
+    retainSelected();
     try {
       await writePhysicalHoldingRecord(
         physicalHoldingPath(record.holding_cid),
@@ -7487,7 +7616,14 @@ async function openOriginalLocalPublicationStore(
   const confirmPhysicalHoldingDirectory = async (record, adopt = true) => {
     try {
       await syncDirectory(physicalHoldingsDirectory);
-      if (adopt) await adoptPreparedObjects(record.objects.map(object => object.cid));
+      if (adopt) {
+        await confirmPreparedMaterials(record.objects.map(object => object.cid));
+        const selected = preparedObjectOwners.pendingTransfer(record.holding_cid);
+        if (selected !== undefined) {
+          await adoptPreparedObjects(selected);
+          preparedObjectOwners.finishTransfer(record.holding_cid);
+        }
+      }
     } catch (primary) {
       const child = primary?.cleanupHandle;
       if (child === undefined) throw primary;

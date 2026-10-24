@@ -142,31 +142,14 @@ pub fn client_program_installed_managed_run_requirements(
   evidence_contract_body : String,
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> Result[Array[Int64], @client_local_host.ClientInstalledManagedRunIssue] {
   @client_local_host.installed_managed_run_requirements(
     prepared, declarations, query_contract_body, evidence_contract_body, transport_bytes,
-    transport_execution_bytes, registry_body, values_body, fragment_body, ordered_body,
-  )
-}
-
-///|
-#export_name("clientProgramPrepareInstalledManagedSourceFree")
-pub fn client_program_prepare_installed_managed_source_free(
-  prepared : @publication_host.PreparedClientProgram,
-  registry_body : String,
-  values_body : String,
-  fragment_body : String?,
-  ordered_body : String?,
-) -> Result[
-  @client_local_host.ClientInstalledManagedSourceFreePreparation,
-  @client_local_host.ClientInstalledManagedRunIssue,
-] {
-  @client_local_host.prepare_installed_managed_source_free(
-    prepared, registry_body, values_body, fragment_body, ordered_body,
+    transport_execution_bytes, installed_contracts, values_body, fragment_body, ordered_body,
   )
 }
 
@@ -215,7 +198,7 @@ pub fn client_program_installed_mock_model_managed_run_requirements(
   evidence_contract_body : String,
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -233,7 +216,7 @@ pub fn client_program_installed_mock_model_managed_run_requirements(
   let base = match
     @client_local_host.installed_mock_model_run_requirements(
       prepared, declarations, query_contract_body, evidence_contract_body, transport_bytes,
-      transport_execution_bytes, registry_body, values_body, fragment_body, ordered_body,
+      transport_execution_bytes, installed_contracts, values_body, fragment_body, ordered_body,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
@@ -289,6 +272,24 @@ fn combine_installed_mock_model_run_requirements(
 }
 
 ///|
+#export_name("clientProgramInstalledManagedCaptureRunRequirements")
+pub fn client_program_installed_managed_capture_run_requirements(
+  prepared : @publication_host.PreparedClientProgram,
+  capacities : Array[@client_local_host.ClientInstalledCaptureCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[Array[Int64], @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.installed_managed_capture_run_requirements(
+    prepared, capacities, transport_bytes, transport_execution_bytes,
+    installed_contracts, values_body, fragment_body, ordered_body,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledManagedRunPrepareLedger")
 pub fn client_program_installed_managed_run_prepare_ledger(
   value : @client_local_host.ClientInstalledManagedRun,
@@ -297,7 +298,7 @@ pub fn client_program_installed_managed_run_prepare_ledger(
   capacities : Array[@client_local_host.ClientInstalledCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -307,7 +308,7 @@ pub fn client_program_installed_managed_run_prepare_ledger(
 ] {
   @client_local_host.prepare_installed_managed_run_ledger(
     value, prepared, request, capacities, transport_bytes, transport_execution_bytes,
-    registry_body, values_body, fragment_body, ordered_body,
+    installed_contracts, values_body, fragment_body, ordered_body,
   )
 }
 
@@ -348,7 +349,7 @@ pub fn client_program_installed_managed_keyed_content_prepare(
   transport_execution_bytes : Array[Int64],
   max_bytes : Int,
   max_work : Int,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -370,7 +371,7 @@ pub fn client_program_installed_managed_keyed_content_prepare(
     transport_execution_bytes,
     max_bytes,
     max_work,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,

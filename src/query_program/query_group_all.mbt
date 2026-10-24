@@ -113,10 +113,14 @@ fn inferred_group_keys(
           | Unary(_, child)
           | Cast(child, _)
           | Property(child, _) => pending.push(child)
-          Binary(_, left, right) => {
+          Binary(_, left, right) | ArrayOffset(left, right, _) => {
             pending.push(right)
             pending.push(left)
           }
+          StructConstructor(fields) =>
+            for (_, child) in fields {
+              pending.push(child)
+            }
           Call(_, args) | Predicate(_, args) | ArrayConstructor(args, _) =>
             pending.append(args)
           SearchedCase(branches, otherwise) => {

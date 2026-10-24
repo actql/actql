@@ -264,9 +264,9 @@ class _OriginalChildControlPipe:
                 raise ValueError('Invalid original execution import ordinal')
             payload = frames._ORDINAL.pack(arguments[0])
         elif operation == frames._REPORT:
-            if (len(arguments) != 10
-                    or any(type(v) is not int or not -(2**31) <= v < 2**31 for v in arguments[:3])
-                    or any(type(v) is not int or not -(2**63) <= v < 2**63 for v in arguments[3:])):
+            if (len(arguments) != 13
+                    or any(type(v) is not int or not -(2**31) <= v < 2**31 for v in (*arguments[:3], *arguments[10:]))
+                    or any(type(v) is not int or not -(2**63) <= v < 2**63 for v in arguments[3:10])):
                 raise ValueError('Invalid original execution usage fields')
             payload = frames._USAGE.pack(*arguments)
         else:

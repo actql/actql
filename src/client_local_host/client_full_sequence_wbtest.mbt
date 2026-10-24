@@ -47,9 +47,10 @@ test "Local generated execution consumes the original compilation full sequence"
     prepared, 0, limits,
   ).unwrap()
   let assets = @publication_host.client_local_product_assets()
+  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
   let sequences = prepare_client_local_sequences(
     prepared,
-    assets.registry,
+    asset_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
@@ -64,7 +65,7 @@ test "Local generated execution consumes the original compilation full sequence"
   let foreign = full_sequence_local_prepared()
   let other = prepare_client_local_sequences(
     foreign,
-    assets.registry,
+    asset_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
@@ -78,7 +79,7 @@ test "Local generated execution consumes the original compilation full sequence"
   assert_true(
     prepare_client_local_sequences(
       tighter,
-      assets.registry,
+      asset_contracts,
       assets.values,
       Some(assets.fragment),
       assets.ordered,

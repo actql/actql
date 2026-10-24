@@ -102,6 +102,7 @@ fn start_local_managed_test_task_operations(
         " physical failed: " +
         (match issue {
           @resources.InvalidLimits => "invalid limits"
+          @resources.IdentityOverflow => "identity overflow"
           @resources.PlanningLimit => "planning limit"
           @resources.AttemptLimit => "attempt limit"
           @resources.HoldingLimit => "holding limit"

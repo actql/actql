@@ -58,7 +58,7 @@ test "large cumulative checkpoints add deltas without integer wraparound" {
   settle_execution_delegation(ledger, child, None).unwrap()
   assert_eq(ledger_usage(ledger).planning_work, 2147483647)
   assert_eq(ledger_usage(ledger).attempts, 2147483647)
-  assert_eq(ledger_usage(ledger).holdings, 2147483647)
+  assert_eq(ledger_usage(ledger).holdings, 0)
 }
 
 ///|
@@ -76,14 +76,16 @@ test "delegated quotas exclude other work before child usage is reported" {
   assert_eq(ledger_admission_limits(ledger).holdings, 0)
   assert_eq(charge_planning(ledger, 1), Err(PlanningLimit))
   assert_true(reserve_attempt(ledger, 0L, 0L, 0L) is Err(AttemptLimit))
-  assert_eq(ledger_usage(ledger).attempts, 1)
+  assert_eq(ledger_usage(ledger).attempts, 0)
+  assert_eq(ledger_usage(ledger).reserved_attempts, 1)
   assert_eq(ledger_usage(ledger).reserved_transfer_bytes, 20L)
   let child_ledger = create_ledger(delegation_limits()).unwrap()
   settle_execution_delegation(ledger, child, Some(ledger_usage(child_ledger))).unwrap()
   charge_planning(ledger, 7).unwrap()
   let next = reserve_attempt(ledger, 20L, 30L, 40L).unwrap()
   retain_allocation(ledger, next, 30L).unwrap() |> ignore
-  assert_eq(ledger_usage(ledger).attempts, 2)
+  assert_eq(ledger_usage(ledger).attempts, 0)
+  assert_eq(ledger_usage(ledger).reserved_attempts, 1)
   assert_true(
     settle_execution_delegation(ledger, child, None) is Err(ClosedReservation),
   )
@@ -155,7 +157,7 @@ test "checkpoint usage is monotonic exact and unknown stop consumes remaining al
   settle_execution_delegation(ledger, child, None).unwrap()
   assert_eq(ledger_usage(ledger).planning_work, 7)
   assert_eq(ledger_usage(ledger).attempts, 4)
-  assert_eq(ledger_usage(ledger).holdings, 2)
+  assert_eq(ledger_usage(ledger).holdings, 0)
   assert_eq(ledger_usage(ledger).transferred_bytes, 6L)
   assert_eq(ledger_usage(ledger).uncertain_transfer_bytes, 14L)
   assert_eq(ledger_usage(ledger).reserved_transfer_bytes, 0L)

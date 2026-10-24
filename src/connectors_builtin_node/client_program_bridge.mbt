@@ -51,6 +51,17 @@ fn client_generated_compilation_manifests(
 }
 
 ///|
+/// Prewarm only this module's existing immutable compiler metadata at installed
+/// Host initialization. Query preparation borrows this admitted original.
+#export_name("clientPrepareInstalledCompilationManifests")
+pub fn client_prepare_installed_compilation_manifests() -> Result[
+  @publication_host.ClientCompilationManifests,
+  @publication_host.ClientCompilationManifestIssue,
+] {
+  client_generated_compilation_manifests()
+}
+
+///|
 /// Internal JS bridge. The environment is an admitted machine-contract value,
 /// and its selected pure-operation profiles are supplied by the installed
 /// Host. None of these handles is a wire credential or execution authority.
@@ -1968,7 +1979,7 @@ pub fn client_program_prepare_local_query_requirement(
   prepared : @publication_host.PreparedClientProgram,
   stage : Int,
   source_index : Int,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -1977,7 +1988,7 @@ pub fn client_program_prepare_local_query_requirement(
   @client_local_host.ClientLocalQueryIssue,
 ] {
   @client_local_host.prepare_local_query_requirement(
-    prepared, stage, source_index, registry_body, values_body, fragment_body, ordered_body,
+    prepared, stage, source_index, installed_contracts, values_body, fragment_body, ordered_body,
   )
 }
 
@@ -1987,7 +1998,7 @@ pub fn client_program_effect_prepare_local_query_requirement(
   prepared : @publication_host.PreparedClientEffectComputation,
   stage : Int,
   source_index : Int,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -1996,7 +2007,7 @@ pub fn client_program_effect_prepare_local_query_requirement(
   @client_local_host.ClientLocalQueryIssue,
 ] {
   @client_local_host.prepare_effect_local_query_requirement(
-    prepared, stage, source_index, registry_body, values_body, fragment_body, ordered_body,
+    prepared, stage, source_index, installed_contracts, values_body, fragment_body, ordered_body,
   )
 }
 
@@ -2008,7 +2019,7 @@ pub fn client_program_prepare_local_query_requirement_at_query_time(
   source_index : Int,
   original : @publication_host.ClientQueryTimePreparation,
   request : @publication_host.ClientRequestIdentity,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -2017,7 +2028,7 @@ pub fn client_program_prepare_local_query_requirement_at_query_time(
   @client_local_host.ClientLocalQueryIssue,
 ] {
   @client_local_host.prepare_local_query_requirement_at_query_time(
-    prepared, stage, source_index, original, request, registry_body, values_body,
+    prepared, stage, source_index, original, request, installed_contracts, values_body,
     fragment_body, ordered_body,
   )
 }
@@ -2030,7 +2041,7 @@ pub fn client_program_effect_prepare_local_query_requirement_at_query_time(
   source_index : Int,
   original : @publication_host.ClientQueryTimePreparation,
   request : @publication_host.ClientRequestIdentity,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -2039,7 +2050,7 @@ pub fn client_program_effect_prepare_local_query_requirement_at_query_time(
   @client_local_host.ClientLocalQueryIssue,
 ] {
   @client_local_host.prepare_effect_local_query_requirement_at_query_time(
-    prepared, stage, source_index, original, request, registry_body, values_body,
+    prepared, stage, source_index, original, request, installed_contracts, values_body,
     fragment_body, ordered_body,
   )
 }
@@ -2826,7 +2837,7 @@ pub fn client_program_admit_local_values_aoa_identity(
 #export_name("clientProgramOpenSourceFreeLocalHost")
 pub fn client_program_open_source_free_local_host(
   prepared : @publication_host.PreparedClientProgram,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fixed_ms : Int64,
   per_row_ms : Int64,
@@ -2837,7 +2848,7 @@ pub fn client_program_open_source_free_local_host(
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   @client_local_host.open_source_free_local_host(
     prepared,
-    registry_body,
+    installed_contracts,
     values_body,
     fixed_ms,
     per_row_ms,
@@ -2855,7 +2866,7 @@ pub fn client_program_open_source_free_local_host(
 #export_name("clientProgramOpenSourceFreeLocalRetainedHost")
 pub fn client_program_open_source_free_local_retained_host(
   prepared : @publication_host.PreparedClientProgram,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fixed_ms : Int64,
   per_row_ms : Int64,
@@ -2866,7 +2877,7 @@ pub fn client_program_open_source_free_local_retained_host(
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   @client_local_host.open_source_free_local_retained_host(
     prepared,
-    registry_body,
+    installed_contracts,
     values_body,
     fixed_ms,
     per_row_ms,
@@ -2896,7 +2907,7 @@ pub fn client_program_open_installed_managed_source_free_host(
   value : @client_local_host.ClientInstalledManagedRun,
   prepared : @publication_host.PreparedClientProgram,
   request : @publication_host.ClientRequestIdentity,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -2909,7 +2920,7 @@ pub fn client_program_open_installed_managed_source_free_host(
     value,
     prepared,
     request,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -2925,7 +2936,7 @@ pub fn client_program_open_installed_managed_source_free_host(
 pub fn client_program_open_captured_local_host(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fixed_ms : Int64,
   per_row_ms : Int64,
@@ -2937,7 +2948,7 @@ pub fn client_program_open_captured_local_host(
   @client_local_host.open_captured_local_host(
     prepared,
     source,
-    registry_body,
+    installed_contracts,
     values_body,
     fixed_ms,
     per_row_ms,
@@ -2956,7 +2967,7 @@ pub fn client_program_open_captured_local_host(
 pub fn client_program_open_captured_local_retained_host(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fixed_ms : Int64,
   per_row_ms : Int64,
@@ -2968,7 +2979,7 @@ pub fn client_program_open_captured_local_retained_host(
   @client_local_host.open_captured_local_retained_host(
     prepared,
     source,
-    registry_body,
+    installed_contracts,
     values_body,
     fixed_ms,
     per_row_ms,
@@ -4905,8 +4916,8 @@ fn client_program_configure_local_host(
     Ok(value) => value
     Err(_) => return reject_client_local_run(run)
   }
-  let registry = @connector.installed_bundle_registry(installed_bundles)
-  guard @connector.capability_registration_at(registry, 0)
+  let sequence_contracts = @connector.installed_bundle_registry(installed_bundles)
+  guard @connector.capability_registration_at(sequence_contracts, 0)
     is Some(local_registration) else {
     return reject_client_local_run(run)
   }
@@ -4920,7 +4931,7 @@ fn client_program_configure_local_host(
   let modules = match
     @builtin.configure_compute_modules(
       @host_driver.open_dispatch_driver(run),
-      registry,
+      sequence_contracts,
       1,
       _ => @strategy.RunIssue::ForeignCandidate,
       with_local=Some(
@@ -4980,7 +4991,7 @@ fn client_program_configure_local_host(
   }
   match
     @builtin.open_configured_compute_host(
-      modules, registry, capacity, 100, 10000, 1,
+      modules, sequence_contracts, capacity, 100, 10000, 1,
     ) {
     Ok(value) => Some(value)
     Err(_) => reject_client_local_run(run)
@@ -7222,7 +7233,7 @@ pub fn client_program_release_effect_inputs(
 #export_name("clientProgramOpenSourceFreeLocalEffectHost")
 pub fn client_program_open_source_free_local_effect_host(
   prepared : @publication_host.PreparedClientEffectRun,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fixed_ms : Int64,
   per_row_ms : Int64,
@@ -7234,7 +7245,7 @@ pub fn client_program_open_source_free_local_effect_host(
   open_client_local_effect_host(
     prepared,
     None,
-    registry_body,
+    installed_contracts,
     values_body,
     fixed_ms,
     per_row_ms,
@@ -7252,7 +7263,7 @@ pub fn client_program_open_source_free_local_effect_host_at_query_time(
   prepared : @publication_host.PreparedClientEffectRun,
   original : @publication_host.ClientQueryTimePreparation,
   request : @publication_host.ClientRequestIdentity,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fixed_ms : Int64,
   per_row_ms : Int64,
@@ -7264,7 +7275,7 @@ pub fn client_program_open_source_free_local_effect_host_at_query_time(
   open_client_local_effect_host(
     prepared,
     None,
-    registry_body,
+    installed_contracts,
     values_body,
     fixed_ms,
     per_row_ms,
@@ -7284,7 +7295,7 @@ pub fn client_program_open_source_free_local_effect_host_at_query_time(
 pub fn client_program_open_captured_local_effect_host(
   prepared : @publication_host.PreparedClientEffectRun,
   source : @query.CapturedInputSource,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fixed_ms : Int64,
   per_row_ms : Int64,
@@ -7296,7 +7307,7 @@ pub fn client_program_open_captured_local_effect_host(
   open_client_local_effect_host(
     prepared,
     Some(source),
-    registry_body,
+    installed_contracts,
     values_body,
     fixed_ms,
     per_row_ms,
@@ -7317,7 +7328,7 @@ pub fn client_program_open_local_effect_host_at_query_time(
   request : @publication_host.ClientRequestIdentity,
   sources : Array[@query.CapturedInputSource],
   ledger : @resources.Ledger?,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -7335,7 +7346,7 @@ pub fn client_program_open_local_effect_host_at_query_time(
   open_client_local_effect_host(
     prepared,
     source,
-    registry_body,
+    installed_contracts,
     values_body,
     1L,
     0L,
@@ -7366,7 +7377,7 @@ pub fn client_program_effect_run_query_time_matches(
 fn open_client_local_effect_host(
   prepared : @publication_host.PreparedClientEffectRun,
   source : @query.CapturedInputSource?,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fixed_ms : Int64,
   per_row_ms : Int64,
@@ -7427,7 +7438,7 @@ fn open_client_local_effect_host(
       Some(limits) => Some(limits)
       None =>
         @client_local_host.client_effect_local_ledger_limits(
-          computation, registry_body, values_body, fragment_body, ordered_body,
+          computation, installed_contracts, values_body, fragment_body, ordered_body,
         )
     }
     guard candidate_limits is Some(limits) else { return None }
@@ -7457,12 +7468,12 @@ fn open_client_local_effect_host(
   let prepared_sequences = match query_time {
     Some((original, request)) =>
       @client_local_host.prepare_client_effect_local_sequences_at_query_time(
-        computation, original, request, registry_body, values_body, fragment_body,
+        computation, original, request, installed_contracts, values_body, fragment_body,
         ordered_body,
       )
     None =>
       @client_local_host.prepare_client_effect_local_sequences(
-        computation, registry_body, values_body, fragment_body, ordered_body,
+        computation, installed_contracts, values_body, fragment_body, ordered_body,
       )
   }
   let sequences = match prepared_sequences {
@@ -7500,7 +7511,7 @@ pub fn client_program_open_captured_content_effect_host(
   prepared : @publication_host.PreparedClientEffectRun,
   source : @query.CapturedInputSource,
   ledger : @resources.Ledger,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
@@ -7509,7 +7520,7 @@ pub fn client_program_open_captured_content_effect_host(
   open_client_local_effect_host(
     prepared,
     Some(source),
-    registry,
+    sequence_contracts,
     values,
     1L,
     0L,
@@ -7530,7 +7541,7 @@ pub fn client_program_open_captured_family_effect_host(
   prepared : @publication_host.PreparedClientEffectRun,
   source : @query.CapturedInputSource,
   ledger : @resources.Ledger,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
@@ -7542,7 +7553,7 @@ pub fn client_program_open_captured_family_effect_host(
   open_client_local_effect_host(
     prepared,
     Some(source),
-    registry,
+    sequence_contracts,
     values,
     1L,
     0L,

@@ -155,7 +155,10 @@ fn number(text : String) -> Double raise Abort {
   }
   // Check the integer token's exact magnitude before any binary64 conversion.
   let mut start = 0
-  while start + 1 < text.length() && text[start] == '0' {
+  while start + 1 < text.length() &&
+        text[start] == '0' &&
+        text[start + 1] >= '0' &&
+        text[start + 1] <= '9' {
     start += 1
   }
   let normalized = text[start:].to_owned()
@@ -198,10 +201,7 @@ pub fn numeric_literal(text : String) -> Result[Double, Issue] {
   try {
     if text.has_prefix("-") {
       let value = number(text[1:].to_owned())
-      if value == 0.0 {
-        raise Abort(InvalidNumber)
-      }
-      Ok(-value)
+      Ok(if value == 0.0 { 0.0 } else { -value })
     } else {
       Ok(number(text))
     }
@@ -220,6 +220,13 @@ fn scalar_call(
     upper(path[0].value) == "ACTQL" &&
     upper(path[1].value) == "CONCAT" {
     return ("ACTQL.CONCAT", "concat", 1, 2147483647)
+  }
+  if path.length() == 2 && upper(path[0].value) == "ACTQL" {
+    match upper(path[1].value) {
+      "NFKC" => return ("ACTQL.NFKC", "nfkc", 1, 1)
+      "CASE_FOLD" => return ("ACTQL.CASE_FOLD", "case_fold", 1, 1)
+      _ => ()
+    }
   }
   if path.length() != 1 {
     raise Abort(UnsupportedFunction)
@@ -649,6 +656,22 @@ fn append_resolved(
           parameter = parameters[child]
           nodes[child]
         }
+        ArrayOffset(value, index, safe) =>
+          lowering.form(
+            if safe {
+              "array_safe_offset"
+            } else {
+              "array_offset"
+            },
+            lowering.object([("value", nodes[value]), ("index", nodes[index])]),
+          )
+        StructConstructor(fields) =>
+          lowering.form(
+            "object",
+            lowering.object(
+              fields.map(field => (field.0.value, nodes[field.1])),
+            ),
+          )
         ArrayConstructor(items, target) => {
           let value = lowering.arguments(
             "array",
@@ -679,10 +702,13 @@ fn append_resolved(
             "+" | "-" =>
               match numbers[child] {
                 Some(value) => {
-                  if op == "-" && value == 0.0 {
-                    raise Abort(InvalidNumber)
+                  let value = if value == 0.0 {
+                    0.0
+                  } else if op == "-" {
+                    -value
+                  } else {
+                    value
                   }
-                  let value = if op == "-" { -value } else { value }
                   numeric = Some(value)
                   let raw = lowering.add(Number(value))
                   literal = Some(raw)

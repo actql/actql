@@ -157,6 +157,12 @@ pub fn check_source_view_shapes(ProtocolValueContracts, SourceViewShapeLimits) -
 
 pub fn cid(WireEnvironment) -> String
 
+pub fn closed_values_catalog_dependencies(CatalogReferences, Int) -> ClosedValuesCatalogDependencies?
+
+pub fn closed_values_policy_owner_layout(Int) -> ClosedValuesPolicyOwnerLayout?
+
+pub fn closed_values_policy_shape(WireEnvironment) -> Bool
+
 pub fn command_input_contract_field_at(CommandInputContract, Int) -> @value_contract.Field?
 
 pub fn command_input_contract_field_count(CommandInputContract) -> Int
@@ -966,6 +972,20 @@ pub(all) enum CatalogIssue {
 type CatalogReference
 
 type CatalogReferences
+
+pub(all) struct ClosedValuesCatalogDependencies {
+  registry_entries : Int
+  reference_entries : Int
+  scanned_work : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClosedValuesPolicyOwnerLayout {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+  owned_wire_bytes : Int64
+} derive(Eq, @debug.Debug)
 
 pub struct CommandInputContract {
   fields : @value_contract.Fields

@@ -4,6 +4,7 @@
 struct NativeLocalPackagedRuntime {
   mut manifest : @host.ClientNativeLocalRuntime?
   mut assets : @host.ClientLocalProductAssets?
+  mut installed_contracts : @local.ClientInstalledSequenceContracts?
   roots : Array[@filesystem.Root]
   directories : Array[@filesystem.NativeDirectoryObservation]
   witnesses : Array[@filesystem.NativeFileObservation]
@@ -171,6 +172,7 @@ fn local_runtime_empty(
   {
     manifest: None,
     assets: None,
+    installed_contracts: None,
     roots: [],
     directories: [],
     witnesses: [],
@@ -575,14 +577,26 @@ fn local_runtime_capture(
         runtime.crypto = root_path + "/" + entry.path
       }
     }
-    runtime.assets = Some({
+    let assets : @host.ClientLocalProductAssets = {
       environment: bodies.get("environment").unwrap(),
       registry: bodies.get("registry").unwrap(),
       values: bodies.get("values").unwrap(),
       fragment: bodies.get("fragment").unwrap(),
       ordered: bodies.get("ordered"),
       result_policy: bodies.get("result-policy").unwrap(),
-    })
+    }
+    let installed_contracts = match
+      @local.prepare_installed_sequence_contracts(
+        assets.registry,
+        assets.values,
+        Some(assets.fragment),
+        assets.ordered,
+      ) {
+      Ok(value) => value
+      Err(_) => local_runtime_stop(InvalidManifest)
+    }
+    runtime.assets = Some(assets)
+    runtime.installed_contracts = Some(installed_contracts)
     runtime.ready = true
     match runtime.local_runtime_check_originals() {
       Ok(_) => Ok(runtime)
@@ -801,6 +815,30 @@ pub fn NativeLocalPackagedRuntime::assets(
 }
 
 ///|
+/// The same immutable installed DATA admitted by this physical Runtime owner.
+/// Current-file checks and cleanup remain on that owner; this grants no Run.
+pub fn NativeLocalPackagedRuntime::installed_assets(
+  self : NativeLocalPackagedRuntime,
+) -> Result[
+  (@host.ClientLocalProductAssets, @local.ClientInstalledSequenceContracts),
+  NativeLocalPackagedRuntimeIssue,
+] {
+  match local_runtime_read_begin(self) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let result = self
+    .local_runtime_require_live()
+    .bind(_ => {
+      match (self.assets, self.installed_contracts) {
+        (Some(assets), Some(contracts)) => Ok((assets, contracts))
+        _ => Err(InvalidManifest)
+      }
+    })
+  local_runtime_read_finish(self, result)
+}
+
+///|
 pub fn NativeLocalPackagedRuntime::library_paths(
   self : NativeLocalPackagedRuntime,
 ) -> Result[(String, String), NativeLocalPackagedRuntimeIssue] {
@@ -885,6 +923,7 @@ fn NativeLocalPackagedRuntime::local_runtime_close_originals(
   self.directories.clear()
   self.manifest = None
   self.assets = None
+  self.installed_contracts = None
   self.selection = None
   self.product = None
   self.sqlite = ""

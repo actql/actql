@@ -254,11 +254,20 @@
     {
       "module": "adapters/local-node/managed-output-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ccea4d1f193ae58d588f63be824d435a119df6e63c7ac31bd9f827b89e1eaaf7",
+      "sha256": "0934b69dc9ecd64b759ebddd216acec572bc7a218aed9f3f9f776301bc2157b6",
       "exports": [
-        "closeCompletedLocalManagedOutput"
+        "closeCompletedLocalManagedOutput",
+        "closeCompletedLocalManagedOutputAsync",
+        "continueLocalManagedFailureCleanup"
       ],
       "operations": [
+        {
+          "name": "cleanupContinuation",
+          "parameters": [
+            "operations"
+          ],
+          "async": false
+        },
         {
           "name": "closeCompletedLocalManagedOutput",
           "parameters": [
@@ -266,6 +275,54 @@
             "checked",
             "progress"
           ],
+          "async": false
+        },
+        {
+          "name": "closeCompletedLocalManagedOutputAsync",
+          "parameters": [
+            "operations",
+            "checked",
+            "progress",
+            "memory"
+          ],
+          "async": true
+        },
+        {
+          "name": "closeCompletedLocalManagedOutputAsync/closeCompletedLocalManagedOutputAsync",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "closeCompletedLocalManagedOutputAsync/closeCompletedLocalManagedOutputAsync#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "continueFailureCleanup",
+          "parameters": [
+            "failure",
+            "operations"
+          ],
+          "async": true
+        },
+        {
+          "name": "continueFailureCleanup/continueFailureCleanup",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "continueLocalManagedFailureCleanup",
+          "parameters": [
+            "failure",
+            "operations"
+          ],
+          "async": false
+        },
+        {
+          "name": "continueLocalManagedFailureCleanup/flight/flight",
+          "parameters": [],
           "async": false
         },
         {
@@ -301,6 +358,13 @@
         {
           "name": "retainProgressingCleanup/retry/retry/retry#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retirementProgress",
+          "parameters": [
+            "operations"
+          ],
           "async": false
         }
       ],
@@ -423,8 +487,129 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "cleanupContinuation",
+            "closeCompletedLocalManagedOutputAsync",
+            "closeCompletedLocalManagedOutputAsync/closeCompletedLocalManagedOutputAsync",
+            "closeCompletedLocalManagedOutputAsync/closeCompletedLocalManagedOutputAsync#2",
+            "continueFailureCleanup",
+            "continueFailureCleanup/continueFailureCleanup",
+            "continueLocalManagedFailureCleanup",
+            "continueLocalManagedFailureCleanup/flight/flight",
+            "retirementProgress"
+          ],
+          "exports": [
+            "closeCompletedLocalManagedOutputAsync",
+            "continueLocalManagedFailureCleanup"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-output-custody.mjs",
+                "anchor": "export function closeCompletedLocalManagedOutput("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-output-custody.mjs",
+                "anchor": "export function closeCompletedLocalManagedOutput("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-output-custody.mjs",
+                "anchor": "export function closeCompletedLocalManagedOutput("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-output-custody.mjs",
+                "anchor": "export function closeCompletedLocalManagedOutput("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-output-custody.mjs",
+                "anchor": "export function closeCompletedLocalManagedOutput("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-output-custody.mjs",
+                "anchor": "export function closeCompletedLocalManagedOutput("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-output-custody.mjs",
+                "anchor": "export function closeCompletedLocalManagedOutput("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-output-custody.mjs",
+                "anchor": "export function closeCompletedLocalManagedOutput("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-output-custody.mjs",
+                "anchor": "export function closeCompletedLocalManagedOutput("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-output-custody.test.mjs",
+                "anchor": "completed memory retirement refuses copied wrappers and replaced recovery handles"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/managed-failure.mjs",
+        "../store-local/managed-memory-representations.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/local-node/retained-input.mjs",
@@ -2022,13 +2207,14 @@
     {
       "module": "adapters/store-local/managed-memory-representations.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c2c5d4645f46b94236226d206448b98874561c8cce5bc1c74c390488b4394a37",
+      "sha256": "89b8483ce8077c1d30df205f54c3d424bbad6d75c313a42d01259c59a4d89c80",
       "exports": [
         "installManagedRepresentation",
         "managedInputCodecContractCid",
         "managedInputPhysicalManifestCid",
         "managedInputSupportsRows",
         "managedInputTransferEstimate",
+        "managedMemoryReleaseFailureMatches",
         "managedRepresentation",
         "planManagedInputRows",
         "registerManagedMemoryInput",
@@ -2083,6 +2269,14 @@
           "name": "managedInputTransferEstimate",
           "parameters": [
             "material"
+          ],
+          "async": false
+        },
+        {
+          "name": "managedMemoryReleaseFailureMatches",
+          "parameters": [
+            "owner",
+            "failure"
           ],
           "async": false
         },
@@ -2216,12 +2410,12 @@
           "async": false
         },
         {
-          "name": "registerManagedMemoryInput/init:close/init:close",
+          "name": "registerManagedMemoryInput/owner/init:close/init:close",
           "parameters": [],
           "async": true
         },
         {
-          "name": "registerManagedMemoryInput/init:close/init:close/init:close",
+          "name": "registerManagedMemoryInput/owner/init:close/init:close/init:close",
           "parameters": [
             "resolve",
             "reject"
@@ -2229,7 +2423,7 @@
           "async": false
         },
         {
-          "name": "registerManagedMemoryInput/registerManagedMemoryInput",
+          "name": "registerManagedMemoryInput/owner/owner",
           "parameters": [],
           "async": false
         },
@@ -2470,9 +2664,6 @@
             "registerManagedMemoryInput/held/held#3",
             "registerManagedMemoryInput/held/init:acquire/init:acquire",
             "registerManagedMemoryInput/held/init:releaseUse/init:releaseUse",
-            "registerManagedMemoryInput/init:close/init:close",
-            "registerManagedMemoryInput/init:close/init:close/init:close",
-            "registerManagedMemoryInput/registerManagedMemoryInput",
             "registerManagedMemoryInput/releaseCleanup/init:retry/init:retry",
             "registerManagedMemoryInput/releaseCleanup/init:status/init:status",
             "registerManagedMemoryInput/releaseError/releaseError",
@@ -2596,8 +2787,120 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "managedMemoryReleaseFailureMatches",
+            "registerManagedMemoryInput/owner/init:close/init:close",
+            "registerManagedMemoryInput/owner/init:close/init:close/init:close",
+            "registerManagedMemoryInput/owner/owner"
+          ],
+          "exports": [
+            "managedMemoryReleaseFailureMatches"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/managed-memory-representations.mjs",
+                "anchor": "export function managedMemoryReleaseFailureMatches("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/managed-memory-representations.mjs",
+                "anchor": "export function managedMemoryReleaseFailureMatches("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/managed-memory-representations.mjs",
+                "anchor": "export function managedMemoryReleaseFailureMatches("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/managed-memory-representations.mjs",
+                "anchor": "export function managedMemoryReleaseFailureMatches("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/managed-memory-representations.mjs",
+                "anchor": "export function managedMemoryReleaseFailureMatches("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/managed-memory-representations.mjs",
+                "anchor": "export function managedMemoryReleaseFailureMatches("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/managed-memory-representations.mjs",
+                "anchor": "export function managedMemoryReleaseFailureMatches("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/managed-memory-representations.mjs",
+                "anchor": "export function managedMemoryReleaseFailureMatches("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/managed-memory-representations.mjs",
+                "anchor": "export function managedMemoryReleaseFailureMatches("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-output-custody.test.mjs",
+                "anchor": "memory close shares one original failure and never converts error-bearing cleanup to release"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/store-local/managed-physical-representation.mjs",
@@ -4109,7 +4412,7 @@
     {
       "module": "adapters/store-local/publication-commit-owner.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2710bff73517e90a2c3dde4ff738d193a063feb5b7bd1ee11cdede72188be89c",
+      "sha256": "c9cdba89f7b99dd85900405862e4af27ae2af61670a09fa09be92d2a4b4d8b4f",
       "exports": [
         "createPublicationCommitOwner"
       ],
@@ -4221,7 +4524,7 @@
             "ownership": [
               {
                 "path": "adapters/store-local/publication-commit-owner.mjs",
-                "anchor": "custody = operations.beginCustody()"
+                "anchor": "custody = await operations.beginCustody()"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -4277,7 +4580,8 @@
       ],
       "imports": [],
       "compilerFields": [],
-      "unresolvedSyntax": []
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
     },
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
@@ -6607,7 +6911,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "efe4442c77ea06d6f7532fd156c5d965a51dacaadf782f3806e0aede667f454e",
+      "sha256": "d9b6e2cea804f32eabfa5a01f28587def837f23b361115f13b3c15951da60872",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6939,8 +7243,13 @@
         {
           "name": "openOriginalLocalPublicationStore/adoptPreparedObjects/adoptPreparedObjects",
           "parameters": [
-            "cids"
+            "selected"
           ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/adoptPreparedObjects/adoptPreparedObjects/adoptPreparedObjects",
+          "parameters": [],
           "async": true
         },
         {
@@ -7055,8 +7364,30 @@
           "parameters": [
             "cids",
             "key",
-            "indexCid"
+            "indexCid",
+            "selected",
+            "ownRetention"
           ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/acquisition/acquisition",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/acquisition/acquisition/acquisition",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/beginPreparedCommit",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/beginPreparedCommit#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -7072,7 +7403,24 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settleUncommitted/settleUncommitted",
+          "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins",
+          "parameters": [
+            "outcome"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins/retirement/retirement",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins/retirement/retirement/retirement",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins/settlePins",
           "parameters": [],
           "async": false
         },
@@ -7228,7 +7576,8 @@
             "suppliedWire",
             "requiredObjectCids",
             "suppliedEvidence",
-            "indexOriginal"
+            "indexOriginal",
+            "preparedHandles"
           ],
           "async": false
         },
@@ -7244,14 +7593,15 @@
             "requiredObjectCids",
             "suppliedEvidence",
             "effectfulEvidence",
-            "indexOriginal"
+            "indexOriginal",
+            "preparedHandles"
           ],
           "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/adoptObjects/adoptObjects",
           "parameters": [],
-          "async": false
+          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/adoptSchemas/adoptSchemas",
@@ -7393,11 +7743,25 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/ownRetention/ownRetention",
+          "parameters": [
+            "cid"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
           "parameters": [
             "cid",
             "includeNative",
             "retained"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/selectedPrepared/selectedPrepared",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -7441,6 +7805,18 @@
           "parameters": [
             "cid",
             "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/retainSelected/retainSelected",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/selected/selected",
+          "parameters": [
+            "object"
           ],
           "async": false
         },
@@ -7575,6 +7951,18 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPreparedMaterials/confirmPreparedMaterials",
+          "parameters": [
+            "cids"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPreparedMaterials/confirmPreparedMaterials/confirmPreparedMaterials",
           "parameters": [],
           "async": false
         },
@@ -7990,12 +8378,17 @@
         {
           "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/clearCustodies/clearCustodies",
           "parameters": [],
-          "async": true
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/finishPendingUnlink/finishPendingUnlink",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/init:seal",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/prepared/init:retry/init:retry",
@@ -8013,9 +8406,14 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/operation/operation#2",
+          "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/operation/operation/operation",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/operation/operation#2",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release",
@@ -8879,6 +9277,11 @@
             "bytes",
             "state"
           ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/preparedObjectOwners/preparedObjectOwners",
+          "parameters": [],
           "async": false
         },
         {
@@ -10107,6 +10510,14 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/retirePreparedHolderCustody/retirePreparedHolderCustody",
+          "parameters": [
+            "group",
+            "holder"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/retireUncommittedPublication/retireUncommittedPublication",
           "parameters": [
             "publicIndexEntryCid"
@@ -10282,13 +10693,6 @@
             "suppliedEvidence"
           ],
           "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence/validateCommittedEvidence",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/validateModelRawBinding/validateModelRawBinding",
@@ -11092,7 +11496,6 @@
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/init:retry/init:retry",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/resolveConfirmed/resolveConfirmed",
-            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settleUncommitted/settleUncommitted",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/status/status",
             "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt",
             "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt",
@@ -11501,7 +11904,6 @@
             "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/status/status",
             "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
             "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence",
-            "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence/validateCommittedEvidence",
             "openOriginalLocalPublicationStore/validateModelRawBinding/validateModelRawBinding",
             "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence",
             "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence/verifyCommitEvidence",
@@ -12349,7 +12751,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "await adoptPreparedObjects(verifiedBindings.map(value => value.physical.cid));"
+                "anchor": "await adoptPreparedObjects(selectedPrepared);"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -14109,6 +14511,128 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openOriginalLocalPublicationStore/adoptPreparedObjects/adoptPreparedObjects/adoptPreparedObjects",
+            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/acquisition/acquisition",
+            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/acquisition/acquisition/acquisition",
+            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/beginPreparedCommit",
+            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/beginPreparedCommit#2",
+            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins",
+            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins/retirement/retirement",
+            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins/retirement/retirement/retirement",
+            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settlePins/settlePins/settlePins",
+            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/ownRetention/ownRetention",
+            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/selectedPrepared/selectedPrepared",
+            "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/retainSelected/retainSelected",
+            "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/selected/selected",
+            "openOriginalLocalPublicationStore/confirmPreparedMaterials/confirmPreparedMaterials",
+            "openOriginalLocalPublicationStore/confirmPreparedMaterials/confirmPreparedMaterials/confirmPreparedMaterials",
+            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/init:seal",
+            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/operation/operation/operation",
+            "openOriginalLocalPublicationStore/preparedObjectOwners/preparedObjectOwners",
+            "openOriginalLocalPublicationStore/retirePreparedHolderCustody/retirePreparedHolderCustody"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const retirePreparedHolderCustody = async"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/prepared-holder-owner.test.mjs",
+                "anchor": "unknown private transfer retains exact immutable selection until original holder settles"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -14116,6 +14640,8 @@
         "./delivery-attempt-index.mjs",
         "./metadata-deletion-owner.mjs",
         "./object-writer-owner.mjs",
+        "./prepared-custody-queue.mjs",
+        "./prepared-holder-owner.mjs",
         "./publication-commit-owner.mjs",
         "./result-deletion-owner.mjs",
         "node:buffer",
@@ -14125,7 +14651,8 @@
         "node:path"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": []
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
     },
     {
       "module": "adapters/store-local/representations.mjs",

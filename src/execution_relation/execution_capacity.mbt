@@ -1,4 +1,9 @@
 ///|
+/// Logical retained/workspace allowance per value-node slot, not measured RSS.
+/// The row-policy necessary bound and actual capacity calculator share this unit.
+pub fn execution_capacity_node_bytes() -> Int64 { 256L }
+
+///|
 /// Host-private capacity allowances for the existing bounded row executor, not
 /// measured heap/RSS or a replacement for any selected logical budget.
 pub struct ExecutionCapacity {
@@ -78,7 +83,7 @@ pub fn generated_sequence_capacity(
     if count < 0 {
       return None
     }
-    retained += count.to_int64() * 256L
+    retained += count.to_int64() * execution_capacity_node_bytes()
   }
   if rows.output_values.max_text_bytes < 0 {
     return None
@@ -88,7 +93,7 @@ pub fn generated_sequence_capacity(
     if count < 0 {
       return None
     }
-    scratch += count.to_int64() * 256L
+    scratch += count.to_int64() * execution_capacity_node_bytes()
   }
   for count in scratch_text {
     if count < 0 {

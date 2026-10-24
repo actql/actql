@@ -262,13 +262,67 @@ pub fn issue_effect_free_run_receipt(
     _ => return Err(ReceiptIssuanceEncoding)
   }
   try {
+    emit_effect_free_run_receipt_body(
+      aoa_ir_version, aoa_logical_cid, derivations.length(), index => derivations[index],
+      barriers, bindings, check_environment_cid, admission.compiled_plan_cid,
+      compiler_version, cross_source_consistency, content_cids, model_cids, source_cids,
+      invocation.identity, normalization_journal.identity, observation.value,
+      observation.identity, admission.prepared.value, program_definition_cid,
+      program_semantics_cid, Some(result_artifacts), Some(manifest.value), manifest.identity,
+      admission.authorization.value, source_evidence, writer,
+    )
+  } catch {
+    _ => return Err(ReceiptIssuanceEncoding)
+  }
+  let body = @encode.finish(writer) catch {
+    _ => return Err(ReceiptIssuanceEncoding)
+  }
+  match
+    seal_publication_contract(
+      "run_receipt", body, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(ReceiptIssuanceContract(issue))
+  }
+}
+
+///|
+fn emit_receipt_optional_value(
+  value : @json.CanonicalValue?, writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  match value {
+    Some(value) => @json.emit_value(value, writer)
+    None => @encode.null_value(writer)
+  }
+}
+
+///|
+/// Actual issuance and capacity measurement share every field and nested slot.
+/// None means a four-byte measurement slot, never an issued successful value.
+fn emit_effect_free_run_receipt_body(
+  aoa_ir_version : String, aoa_logical_cid : String,
+  derivation_count : Int, derivation_at : (Int) -> String,
+  barriers : Array[String], bindings : Array[ReceiptBinding],
+  check_environment_cid : String, compiled_plan_cid : String,
+  compiler_version : String, cross_source_consistency : String,
+  content_cids : Array[String], model_cids : Array[String], source_cids : Array[String],
+  invocation_cid : String, normalization_journal_cid : String,
+  observation_value : @json.CanonicalValue, observation_cid : String,
+  prepared_value : @json.CanonicalValue, program_definition_cid : String,
+  program_semantics_cid : String, result_artifacts : @json.CanonicalValue?,
+  manifest_value : @json.CanonicalValue?, manifest_cid : String,
+  authorization_value : @json.CanonicalValue,
+  source_evidence : Array[RunEvidenceValue], writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
     @encode.begin_object(writer)
     @encode.key(writer, "aoa_ir_version")
     @encode.string_value(writer, aoa_ir_version)
     @encode.key(writer, "aoa_logical_cid")
     @encode.string_value(writer, aoa_logical_cid)
     @encode.key(writer, "artifact_derivation_evidence_cids")
-    emit_receipt_string_array(writer, derivations)
+    @encode.begin_array(writer)
+    for index in 0..<derivation_count { @encode.string_value(writer, derivation_at(index)) }
+    @encode.end_array(writer)
     @encode.key(writer, "barrier_attempt_receipt_cids")
     emit_receipt_string_array(writer, barriers)
     @encode.key(writer, "bindings")
@@ -285,7 +339,7 @@ pub fn issue_effect_free_run_receipt(
     @encode.key(writer, "check_environment_cid")
     @encode.string_value(writer, check_environment_cid)
     @encode.key(writer, "compiled_plan_cid")
-    @encode.string_value(writer, admission.compiled_plan_cid)
+    @encode.string_value(writer, compiled_plan_cid)
     @encode.key(writer, "compiler_version")
     @encode.string_value(writer, compiler_version)
     @encode.key(writer, "cross_source_consistency")
@@ -318,27 +372,27 @@ pub fn issue_effect_free_run_receipt(
     }
     @encode.end_array(writer)
     @encode.key(writer, "invocation_cid")
-    @encode.string_value(writer, invocation.identity)
+    @encode.string_value(writer, invocation_cid)
     @encode.key(writer, "normalization_journal_cid")
-    @encode.string_value(writer, normalization_journal.identity)
+    @encode.string_value(writer, normalization_journal_cid)
     @encode.key(writer, "observation_set")
-    @json.emit_value(observation.value, writer)
+    @json.emit_value(observation_value, writer)
     @encode.key(writer, "observation_set_cid")
-    @encode.string_value(writer, observation.identity)
+    @encode.string_value(writer, observation_cid)
     @encode.key(writer, "prepared_invocation")
-    @json.emit_value(admission.prepared.value, writer)
+    @json.emit_value(prepared_value, writer)
     @encode.key(writer, "program_definition_cid")
     @encode.string_value(writer, program_definition_cid)
     @encode.key(writer, "program_semantics_cid")
     @encode.string_value(writer, program_semantics_cid)
     @encode.key(writer, "result_artifacts")
-    @json.emit_value(result_artifacts, writer)
+    emit_receipt_optional_value(result_artifacts, writer)
     @encode.key(writer, "result_manifest")
-    @json.emit_value(manifest.value, writer)
+    emit_receipt_optional_value(manifest_value, writer)
     @encode.key(writer, "result_manifest_cid")
-    @encode.string_value(writer, manifest.identity)
+    @encode.string_value(writer, manifest_cid)
     @encode.key(writer, "run_authorization")
-    @json.emit_value(admission.authorization.value, writer)
+    @json.emit_value(authorization_value, writer)
     @encode.key(writer, "source_evidence")
     @encode.begin_array(writer)
     for source in source_evidence {
@@ -350,17 +404,4 @@ pub fn issue_effect_free_run_receipt(
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-run-receipt/0.1")
     @encode.end_object(writer)
-  } catch {
-    _ => return Err(ReceiptIssuanceEncoding)
-  }
-  let body = @encode.finish(writer) catch {
-    _ => return Err(ReceiptIssuanceEncoding)
-  }
-  match
-    seal_publication_contract(
-      "run_receipt", body, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => Ok(value)
-    Err(issue) => Err(ReceiptIssuanceContract(issue))
-  }
 }

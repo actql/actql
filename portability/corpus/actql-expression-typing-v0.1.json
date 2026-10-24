@@ -328,6 +328,14 @@
       "nullable": true,
       "precision": 38,
       "scale": 3
+    },
+    "null_predicate_boolean": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "null_comparison_boolean": {
+      "type": "boolean",
+      "nullable": true
     }
   },
   "positive": [
@@ -1858,6 +1866,22 @@
     {
       "source": "try_timestamp(s)",
       "type": "timestamp?"
+    },
+    {
+      "source": "NULL IS NULL",
+      "type": "null_predicate_boolean"
+    },
+    {
+      "source": "NULL IS NOT NULL",
+      "type": "null_predicate_boolean"
+    },
+    {
+      "source": "NULL = 1",
+      "type": "null_comparison_boolean"
+    },
+    {
+      "source": "NULL < 1",
+      "type": "null_comparison_boolean"
     }
   ],
   "negative": [

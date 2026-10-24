@@ -81,7 +81,7 @@ fn check_backend_capabilities(
           0
         Unary(_, _) | Cast(_) | Property(_, _, _) => 1
         Object(fields) => fields.length()
-        Binary(_, _, _) | Subscript(_, _) => 2
+        Binary(_, _, _) | Subscript(_, _) | ArrayOffset(_, _, _) => 2
         VectorScore(_, _, _) => 2
         Array(children) | VectorConcat(children) => children.length()
         Conditional(_, _, _) => 3
@@ -102,7 +102,7 @@ fn check_backend_capabilities(
           ()
         Unary(_, child) => pending.push(child)
         Property(child, _, _) => pending.push(child)
-        Subscript(value, index) => {
+        Subscript(value, index) | ArrayOffset(value, index, _) => {
           pending.push(index)
           pending.push(value)
         }

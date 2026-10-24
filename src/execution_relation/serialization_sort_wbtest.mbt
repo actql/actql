@@ -101,6 +101,14 @@ test "serialization sort runs inside the existing generated sequence" {
   assert_false(completed_output_matches_port(output, owner, Step(0)))
   let exported = completed_output_export_rows(output)
   assert_eq(@schema.field_count(exported.schema), 3)
+  // Producer metadata demand follows the physical relation projection, not
+  // the authored serialization target's five-field artifact schema.
+  let demand = producer_read_schema_demand(
+    exported.schema, completed_output_relation_schema(output), 0,
+  ).unwrap()
+  assert_eq(producer_read_demand_columns(demand), 3)
+  assert_eq(producer_read_demand_entries(demand), 12)
+  assert_eq(producer_read_demand_name_bytes(demand), 40)
   assert_true(@schema.lookup_reference(exported.schema, "content") is None)
   let rows = test_row_output(output)
   assert_eq(rows.names, ["id", "k", "payload"])

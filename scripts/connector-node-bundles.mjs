@@ -173,6 +173,19 @@ const host = '@builtin.ConfiguredComputeHost[@strategy.RunIssue]';
 let template = readFileSync(buildInputs === undefined
   ? join(coreRoot, 'scripts/templates/strategy-node.mbt')
   : buildInputs.resolveFile('actql/actql', 'scripts/templates/strategy-node.mbt'), 'utf8');
+// Only a selected Local module can project its sealed producer metadata.
+// Keep unrelated backend assemblies independent and explicitly legacy.
+const publicationPolicyBlock = /  \/\/ LOCAL_PUBLICATION_BRIDGE_POLICY_BEGIN[\s\S]*?  \/\/ LOCAL_PUBLICATION_BRIDGE_POLICY_END\n/;
+if (entries.some(({name}) => name === 'local')) {
+  const path = 'actql/actql/connectors/local/driver';
+  if (!dependencies.has(path)) dependencies.set(path, `binding${dependencies.size}`);
+  template = template.replaceAll('@publication_local_driver', `@${dependencies.get(path)}`)
+    .replace('  // LOCAL_PUBLICATION_BRIDGE_POLICY_BEGIN\n', '')
+    .replace('  // LOCAL_PUBLICATION_BRIDGE_POLICY_END\n', '');
+} else {
+  template = template.replace(publicationPolicyBlock,
+    '  let bridge_limits : @execution.ManagedPublicationBridgeLimits? = None\n');
+}
 if (!nativeRemoteStandard) {
   template = template.replace(
     /\/\/ NATIVE_REMOTE_STANDARD_BEGIN[\s\S]*?\/\/ NATIVE_REMOTE_STANDARD_END\n?/,

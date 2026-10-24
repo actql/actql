@@ -1,3 +1,5 @@
+// Read-only custody predicate on the existing private Host bridge; no issuer.
+export {matchesPublishedSubmissionSnapshot} from './submission-observation.mjs';
 // Private in-process transport connection, not a wire field, receipt issuer
 // or proof of capacity. Only the selected Host/Resource owner authenticates
 // its receiver, original installation and every returned opaque receipt.
@@ -30,6 +32,9 @@ export function captureSourcePreparation(port) {
       return field.value;
     });
   const [before, snapshot, request, finish, intent] = methods;
+  const publicationField = descriptor(receiver, 'publishSourceSnapshot');
+  const publication = publicationField !== undefined && hasOwn(publicationField, 'value') &&
+    typeof publicationField.value === 'function' ? publicationField.value : undefined;
   const queryField = descriptor(receiver, 'beforeSourceQuery');
   const beforeQuery = queryField !== undefined && hasOwn(queryField, 'value') &&
     typeof queryField.value === 'function' ? queryField.value : undefined;
@@ -65,8 +70,8 @@ export function captureSourcePreparation(port) {
     assertResultReadCurrent() {
       resultVoid(resultCurrent, []);
     },
-    beforeSourceSnapshot(kind, input, options) {
-      const receipt = apply(before, receiver, [kind, input, options]);
+    beforeSourceSnapshot(kind, input, options, originalConnection) {
+      const receipt = apply(before, receiver, [kind, input, options, originalConnection]);
       if (receipt instanceof originalPromise) {
         // Do not defer the original synchronous SDK capture until an await.
         // The original Host still owns any partial asynchronous preparation;
@@ -78,6 +83,10 @@ export function captureSourcePreparation(port) {
     },
     bindSourceSnapshot(receipt, originalFrozenBody) {
       return apply(snapshot, receiver, [receipt, originalFrozenBody]);
+    },
+    publishSourceSnapshot(receipt, originalBody, publicationReceipt) {
+      if (publication !== undefined) return apply(publication, receiver,
+        [receipt, originalBody, publicationReceipt]);
     },
     bindSourceRequest(receipt, originalBody, actualClonedRequest) {
       return apply(request, receiver, [receipt, originalBody, actualClonedRequest]);

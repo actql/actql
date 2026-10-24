@@ -4,11 +4,12 @@
 fn original_row_requirement(
   prepared : @publication_host.PreparedClientProgram,
 ) -> @planning.QueryRequirement {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   prepare_local_query_requirement(
     prepared,
     0,
     0,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,

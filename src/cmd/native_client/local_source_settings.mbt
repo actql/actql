@@ -377,6 +377,12 @@ fn local_source_installation(
   let batch = source_count(imports, "max_batch_rows")
   let transfer_bytes = source_bytes(source, "transfer_bytes")
   let execution_bytes = source_bytes(source, "execution_bytes")
+  let installed_contracts = @local_values.prepare_installed_sequence_contracts(
+    registry,
+    values,
+    Some(fragment),
+    None,
+  ).unwrap_or_else(() => stop("InvalidLocalSourceInstalledContracts"))
   {
     source_ref,
     source_contract_cid,
@@ -405,7 +411,7 @@ fn local_source_installation(
           execution_bytes: execution,
         },
       },
-      registry_body: registry,
+      installed_contracts,
       values_body: values,
       dispatch,
       estimates,

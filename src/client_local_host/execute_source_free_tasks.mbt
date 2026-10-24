@@ -56,7 +56,7 @@ pub fn execute_source_free_local_tasks_guarded(
   let count = @strategy.graph_task_count(graph)
   // Do not size the retained task table from an unsupported graph. Stopping
   // this original run is still its caller-owned cleanup, not another attempt.
-  if count < 1 || count > 32 {
+  if count < 1 {
     let cleanup = () => close_local_values_tasks(run, [])
     return Err({ issue: UnsupportedGraph, cleanup, cleaned: cleanup(), })
   }

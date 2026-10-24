@@ -88,7 +88,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         request === null || typeof request !== 'object') preparationChanged();
     for (const original of entry.handling.values()) {
       if (original !== undefined && (original.request === request ||
-          original.aliases.includes(request))) return original.request;
+          original.aliases.has(request))) return original.request;
     }
     preparationChanged();
   }
@@ -160,16 +160,16 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     for (const original of entry.handling.values()) {
       if (original === undefined) continue;
       if (original.request === originalRequest) selected = original;
-      else if (original.request === derived || original.aliases.includes(derived)) preparationChanged();
+      else if (original.request === derived || original.aliases.has(derived)) preparationChanged();
     }
-    if (derived === originalRequest || selected.aliases.includes(derived)) return;
-    // Selected private operational retention only. This does not change the
-    // public packet grammar, issue capacity or prove any clone's backing.
-    if (selected.aliases.length === 16) {
-      throw Object.assign(new Error('SourceManagedPreparationUnavailable'),
-        {code: 'SourceManagedPreparationUnavailable'});
-    }
-    selected.aliases.push(derived);
+    if (derived === originalRequest || selected.aliases.has(derived)) return;
+    // Alias identity is weak: the active operation/dispatch owns its payload.
+    // Keeping an authorization lookup alive must not root a retired compiler
+    // body. Membership belongs to this pending original only; cumulative
+    // alias issuance is not a live-resource census or an authorization limit.
+    // The fixed constructors own their copies and control-entry costs. This
+    // lookup grants no capacity and never changes packet grammar or identity.
+    selected.aliases.add(derived);
   },
   retirePreparation(host, installation, generation) {
     const entry = preparationFor(host, installation, generation);
@@ -357,9 +357,9 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     };
     const port = Object.freeze({
       ...(sourcePreparation === undefined ? {} : {[sourcePreparationPort]: Object.freeze({
-        beforeSourceSnapshot(kind, input, options) {
+        beforeSourceSnapshot(kind, input, options, originalConnection) {
           if (sealed || opened.closing) throw closing();
-          return retainSourceProducer(sourcePreparation.beforeSourceSnapshot(kind, input, options));
+          return retainSourceProducer(sourcePreparation.beforeSourceSnapshot(kind, input, options, originalConnection));
         },
         beforeSourceQuery(format, text, parameters, options) {
           if (sealed || opened.closing) throw closing();
@@ -378,6 +378,10 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         bindSourceSnapshot(receipt, body) {
           if (sealed || opened.closing) throw closing();
           return sourcePreparation.bindSourceSnapshot(receipt, body);
+        },
+        publishSourceSnapshot(receipt, body, publication) {
+          if (sealed || opened.closing || !sourceProducers.has(receipt)) throw closing();
+          return sourcePreparation.publishSourceSnapshot?.(receipt, body, publication);
         },
         bindSourceRequest(receipt, body, request) {
           if (sealed || opened.closing) throw closing();
@@ -436,7 +440,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         // Same pending operation, not a second request index or cache. The
         // supplier may retain an admitted original after this Promise retires;
         // deleting this association is neither a holding nor physical ACK.
-        opened.handling.set(pending, {request, aliases: []});
+        opened.handling.set(pending, {request, aliases: new WeakSet()});
         pending.finally(() => {
           handling.delete(pending);
           opened.handling.delete(pending);

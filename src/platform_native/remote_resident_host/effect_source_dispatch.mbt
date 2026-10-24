@@ -20,13 +20,13 @@ pub fn admit_resident_effect_source_dispatch(
   wire : String,
   binding : @remote.RemoteInputBinding,
   now : String,
-  registry_body : String,
+  installed_contracts : @local.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_contract_body : String,
 ) -> Result[@host.PreparedClientEffectRun, ResidentEffectSourceDispatchIssue] {
   admit_resident_effect_source_dispatch_owned(
     admission, effect_limits, delegation, site_generation, request, wire, binding,
-    now, registry_body, values_body, fragment_contract_body,
+    now, installed_contracts, values_body, fragment_contract_body,
   ).map(pair => pair.1)
 }
 
@@ -40,7 +40,7 @@ fn admit_resident_effect_source_dispatch_owned(
   wire : String,
   binding : @remote.RemoteInputBinding,
   now : String,
-  registry_body : String,
+  installed_contracts : @local.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_contract_body : String,
   require_current? : Bool = true,
@@ -95,7 +95,7 @@ fn admit_resident_effect_source_dispatch_owned(
       materials.prepared,
       0,
       0,
-      registry_body,
+      installed_contracts,
       values_body,
       Some(fragment_contract_body),
       source_ref,

@@ -462,7 +462,7 @@ test('managed usage retains one original reader and operation correlation across
   const observer = installHostObservation(connection, {journal: {observationStorage: () => ({
     consume(value) {charges.push(value); return {accepted: true};},
   })}});
-  const values = [7n, 2n, 3n, 64n, 128n, 256n, 1n, 2n, 3n, 4n, 0n, 0n, 8n, 0n, 0n, 16n];
+  const values = [7n, 2n, 3n, 64n, 128n, 256n, 1n, 2n, 3n, 4n, 0n, 0n, 8n, 0n, 0n, 16n, 0n, 2n, 1n];
   let reads = 0, complete;
   await observer.run('read', trace, () => {
     complete = captureManagedRunObservation(observer, ref, () => {reads++; return values;});
@@ -478,6 +478,9 @@ test('managed usage retains one original reader and operation correlation across
   assert.equal(usage[0].attributes['actql.resource.limit.retained_bytes'], '128');
   assert.equal(usage[0].attributes['actql.resource.usage.held_bytes'], '8');
   assert.equal(usage[0].attributes['actql.resource.usage.peak_retention'], '16');
+  assert.equal(usage[0].attributes['actql.resource.usage.reserved_attempts'], '0');
+  assert.equal(usage[0].attributes['actql.resource.usage.live_reservations'], '2');
+  assert.equal(usage[0].attributes['actql.resource.usage.live_delegations'], '1');
   assert(Object.isFrozen(usage[0].attributes));
   assert.equal(charges.length, 1, 'The resource record spends the real existing observation allowance');
   assert(connection.configuration().measurements.available.includes('resources'));
@@ -489,11 +492,11 @@ test('managed usage refuses foreign readers and missing or retired observations 
   let foreign = 0;
   assert.equal(captureManagedRunObservation({captureManagedRun() {foreign++;}}, ref, () => []), undefined);
   assert.equal(foreign, 0);
-  for (const value of [undefined, Array(16).fill(0), Array(15).fill(0n), Array(16).fill(-1n)]) {
+  for (const value of [undefined, Array(16).fill(0n), Array(19).fill(0), Array(18).fill(0n), Array(19).fill(-1n)]) {
     captureManagedRunObservation(observer, ref, () => value)();
   }
   captureManagedRunObservation(observer, ref, () => {throw new Error('Retired');})();
-  assert.equal(observer.status().loss.resourceUnavailable, 5);
+  assert.equal(observer.status().loss.resourceUnavailable, 6);
   assert.equal(records.length, 0);
   const excluded = installHostObservation(createHostObservationConnection({deliver() {},
     measurements: {exclude: ['resources']}}));

@@ -32,6 +32,9 @@
 //   `close()`.
 import {createHash, randomUUID} from 'node:crypto';
 import {isAbsolute} from 'node:path';
+import {readFile} from 'node:fs/promises';
+import {checked} from '../host-common/runtime-result.mjs';
+import {computePhysicalCapacity} from '../connectors/duckdb/node/physical-capacity.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
 import {loadDuckDBNativeRuntime} from '../connectors/duckdb/node/native-runtime.mjs';
@@ -222,6 +225,10 @@ function sourceIdentityFromParts(parts, queryAliases) {
 
 async function duckdbAdapter(profile, moon, {root, principalId}) {
   await loadDuckDBNativeRuntime();
+  const capacityContracts = await Promise.all([
+    'actql-query-acquisition.json', 'actql-query-process-evidence.json',
+    'actql-query-two-receipt.json',
+  ].map(name => readFile(new URL('../../spec/contracts/' + name, import.meta.url), 'utf8')));
   const common = {moon, database: profile.database, schema: profile.schema,
     table: profile.table, acquisitionPlanning: profile.acquisitionPlanning};
   const catalogIds = JSON.parse(profile.environmentWire).connector_catalogs
@@ -239,6 +246,18 @@ async function duckdbAdapter(profile, moon, {root, principalId}) {
     readAuthorization: profile.readAuthorization,
     sourceAccess: profile.sourceAccess,
     admitsSource: sourceRef => sourceRef === profile.sourceRef,
+    managedCaptureCapacity(requirement) {
+      if (moon.clientProgramQueryRequirementSourceRef(requirement) !== profile.sourceRef) {
+        throw new TypeError('InstalledSourceProgramMismatch');
+      }
+      const pending = checked(moon.clientProgramPrepareDuckDBCaptureCapacity(
+        requirement, profile.schema, profile.table, ...capacityContracts));
+      const capacity = moon.clientProgramInstalledPendingDuckDBCaptureCapacity(pending);
+      if (capacity === undefined) throw new TypeError('InstalledSourceCapacityUnavailable');
+      const physical = computePhysicalCapacity(profile.transportLimits);
+      return Object.freeze({capacity, transferBytes: physical.transferBytes,
+        executionBytes: physical.executionBytes});
+    },
     retainedCapture(prepared) {
       return Object.freeze({requirement: capturedDuckDBRequirement(prepared),
         capacity: moon.clientProgramInstalledPendingDuckDBCaptureCapacity(

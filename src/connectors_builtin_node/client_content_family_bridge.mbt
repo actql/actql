@@ -5,7 +5,7 @@
 #export_name("clientProgramOpenSourceFreeFamilyEffectHost")
 pub fn client_program_open_source_free_family_effect_host(
   prepared : @publication_host.PreparedClientEffectRun,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
@@ -13,7 +13,7 @@ pub fn client_program_open_source_free_family_effect_host(
 ) -> ClientLocalEffectHost? {
   open_client_source_free_family_effect_host(
     prepared,
-    registry,
+    sequence_contracts,
     values,
     fragment,
     ordered,
@@ -28,7 +28,7 @@ pub fn client_program_open_source_free_family_effect_host_at_query_time(
   prepared : @publication_host.PreparedClientEffectRun,
   original : @publication_host.ClientQueryTimePreparation,
   request : @publication_host.ClientRequestIdentity,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
@@ -36,7 +36,7 @@ pub fn client_program_open_source_free_family_effect_host_at_query_time(
 ) -> ClientLocalEffectHost? {
   open_client_source_free_family_effect_host(
     prepared,
-    registry,
+    sequence_contracts,
     values,
     fragment,
     ordered,
@@ -48,7 +48,7 @@ pub fn client_program_open_source_free_family_effect_host_at_query_time(
 ///|
 fn open_client_source_free_family_effect_host(
   prepared : @publication_host.PreparedClientEffectRun,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
@@ -72,7 +72,7 @@ fn open_client_source_free_family_effect_host(
   }
   let (execution, measurement) = client_program_local_execution_limits()
   guard @client_local_host.client_effect_family_ledger_limits(
-      computation, registry, values, fragment, ordered, execution, measurement, providers,
+      computation, sequence_contracts, values, fragment, ordered, execution, measurement, providers,
     )
     is Some(limits) else {
     return None
@@ -80,7 +80,7 @@ fn open_client_source_free_family_effect_host(
   open_client_local_effect_host(
     prepared,
     None,
-    registry,
+    sequence_contracts,
     values,
     1L,
     0L,
@@ -140,7 +140,7 @@ pub fn client_program_effect_content_local_provider(
   prepared : @publication_host.PreparedClientEffectComputation,
   task : Int,
   step : Int,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
@@ -156,7 +156,7 @@ pub fn client_program_effect_content_local_provider(
     prepared,
     task,
     step,
-    registry,
+    sequence_contracts,
     values,
     fragment,
     ordered,
@@ -193,7 +193,7 @@ pub fn client_program_prepare_retained_content_output(
 #export_name("clientProgramEffectContentLedgerLimits")
 pub fn client_program_effect_content_ledger_limits(
   prepared : @publication_host.PreparedClientEffectComputation,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
@@ -202,7 +202,7 @@ pub fn client_program_effect_content_ledger_limits(
   let (execution, measurement) = client_program_local_execution_limits()
   @client_local_host.client_effect_family_ledger_limits(
     prepared,
-    registry,
+    sequence_contracts,
     values,
     fragment,
     ordered,
@@ -219,7 +219,7 @@ pub fn client_program_prepare_content_effect_capture_ledger(
   capacity : @client_local_host.ClientInstalledCaptureCapacity,
   transport_bytes : Int64,
   transport_execution_bytes : Int64,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
@@ -231,7 +231,7 @@ pub fn client_program_prepare_content_effect_capture_ledger(
     capacity,
     transport_bytes,
     transport_execution_bytes,
-    registry,
+    sequence_contracts,
     values,
     fragment,
     ordered,
@@ -250,7 +250,7 @@ pub fn client_program_prepare_family_effect_capture_ledger(
   capacity : @client_local_host.ClientInstalledCaptureCapacity,
   transport_bytes : Int64,
   transport_execution_bytes : Int64,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
@@ -258,7 +258,7 @@ pub fn client_program_prepare_family_effect_capture_ledger(
 ) -> @resources.Ledger? {
   let (execution, measurement) = client_program_local_execution_limits()
   @client_local_host.prepare_client_effect_family_capture_ledger(
-    prepared, capacity, transport_bytes, transport_execution_bytes, registry, values,
+    prepared, capacity, transport_bytes, transport_execution_bytes, sequence_contracts, values,
     fragment, ordered, execution, measurement, providers,
   )
 }
