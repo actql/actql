@@ -4,7 +4,7 @@ import {cpus, arch, platform, release} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomUUID} from 'node:crypto';
-import {compareReports, digest, jsonDigest, finishReport, saveReport, markdown, summarize} from './health-monitor-report.mjs';
+import {compareReports, digest, jsonDigest, finishReport, saveReport, markdown, summarize, measurementProfile} from './health-monitor-report.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const self = fileURLToPath(import.meta.url);
@@ -49,15 +49,8 @@ export async function environmentIdentity(options = {}) {
       load: options.load ?? 'concurrent', osPageCache: 'not evicted'}};
 }
 
-const missing = (id, kind, target = 'node-local') => ({id, target, kind, required: true,
-  status: 'incomplete', reason: 'Required measurement not yet observed'});
 export function requiredQuickMetrics() {
-  return [...['client-wire', 'sdk', 'node', 'run-host-core', 'local-node'].map(name => missing('tarball:@actql/' + name, 'size', '@actql/' + name)),
-    missing('installed:node-local', 'size'), missing('installed:remote-sdk', 'size', 'remote-sdk'),
-    missing('browser-raw', 'size', 'remote-sdk'), missing('browser-gzip', 'size', 'remote-sdk'),
-    ...['warm-select', 'warm-join', 'warm-aggregate', 'warm-saved', 'warm-status', 'cold-process-first-result-close',
-      'cold-host-initialization', 'cold-first-query', 'cold-first-close', 'mock-workflow'].map(id => missing(id, 'latency')),
-    missing('peak-rss', 'rss')];
+  return measurementProfile('quick').map(row => ({...row, status: 'incomplete', reason: 'Required measurement not yet observed'}));
 }
 
 export function missingReleaseInputs(options) {

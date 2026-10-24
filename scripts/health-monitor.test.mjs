@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
-import {compareReports, finishReport, markdown, summarize, exitStatus, digest} from './health-monitor-report.mjs';
+import {compareReports, finishReport, markdown, summarize, exitStatus, digest, measurementProfile} from './health-monitor-report.mjs';
 import {parseArguments, requiredQuickMetrics, missingReleaseInputs, recordGuardExit} from './health-monitor.mjs';
 import {packDistributionPackages} from './measure-distribution-artifacts.mjs';
 import {formalCollectorVerdict} from './health-monitor-release.mjs';
@@ -22,8 +22,9 @@ function fixture() {
       toolchainSha256: '1'.repeat(64), buildSettings: {profile: 'release', load: 'isolated'}},
     methodologySha256: '2'.repeat(64), baseline: {id: 'synthetic-unit-only', reviewed: true, reason: 'test vector, never a product baseline'},
     artifacts: [{name: 'test', sourceSha: 'a'.repeat(40), sha256: '3'.repeat(64)}], errors: [],
-    metrics: [{id: 'npm', target: 'test', kind: 'size', artifactKind: 'npm', value: 1000, unit: 'bytes',
-      required: true, evidence: 'synthetic unit', fixtureSha256: '4'.repeat(64)}]};
+    metrics: []};
+  report.metrics = measurementProfile('quick').map(row => ({...row, evidence: 'synthetic unit only',
+    fixtureSha256: '4'.repeat(64), ...(row.kind === 'latency' ? {samples: samples(10, row.requiredSamples)} : {value: 1000})}));
   report.sourceAfter = structuredClone(report.source); report.environmentAfter = structuredClone(report.environment);
   report.installedPayloadsUnchanged = true; return report;
 }
@@ -31,31 +32,31 @@ test('size thresholds retain target, absolute and relative growth', () => {
   for (const [growth, expected] of [[0.09, 'pass'], [0.10, 'warning'], [0.25, 'regression']]) {
     const base = fixture(), current = fixture(); current.metrics[0].value = 1000 * (1 + growth);
     const result = compareReports(base, current, policy);
-    assert.equal(result.status, expected); assert.equal(result.verdicts[0].target, 'test');
+    assert.equal(result.status, expected); assert.equal(result.verdicts[0].target, '@actql/client-wire');
     assert.equal(result.verdicts[0].absoluteDelta, growth * 1000);
   }
 });
 test('Browser gzip has its own 5/15 percent thresholds', () => {
   const base = fixture(), current = fixture();
-  base.metrics[0].artifactKind = current.metrics[0].artifactKind = 'browser-gzip';
-  current.metrics[0].value = 1050; assert.equal(compareReports(base, current, policy).status, 'warning');
-  current.metrics[0].value = 1150; assert.equal(compareReports(base, current, policy).status, 'regression');
+  const metric = current.metrics.find(row => row.id === 'browser-gzip');
+  metric.value = 1050; assert.equal(compareReports(base, current, policy).status, 'warning');
+  metric.value = 1150; assert.equal(compareReports(base, current, policy).status, 'regression');
 });
 test('Quick latency requires both relative and absolute warning conditions; warning exits zero', () => {
   for (const [cold, before, after, expected] of [[false, 1, 2, 'pass'], [false, 10, 13, 'warning'],
     [true, 10, 40, 'pass'], [true, 100, 150, 'warning']]) {
     const base = fixture(), current = fixture();
-    for (const [report, ms] of [[base, before], [current, after]]) report.metrics = [{id: 'query', target: 'node',
-      kind: 'latency', temperature: cold ? 'cold' : 'warm', samples: samples(ms), requiredSamples: 10,
-      required: true, evidence: 'unit', fixtureSha256: '5'.repeat(64), unit: 'ms'}];
+    for (const [report, ms] of [[base, before], [current, after]]) {
+      const metric = report.metrics.find(row => row.id === (cold ? 'cold-host-initialization' : 'warm-select'));
+      metric.samples = samples(ms, metric.requiredSamples);
+    }
     const comparison = compareReports(base, current, policy); assert.equal(comparison.status, expected);
     current.comparison = comparison; assert.equal(finishReport(current).exitCode, 0);
   }
 });
 test('RSS 20 percent is a warning, not a CI failure', () => {
   const base = fixture(), current = fixture();
-  base.metrics[0].kind = current.metrics[0].kind = 'rss';
-  current.metrics[0].value = 1200;
+  current.metrics.find(row => row.id === 'peak-rss').value = 1200;
   assert.equal(compareReports(base, current, policy).status, 'warning');
   assert.equal(exitStatus('warning'), 0);
 });
@@ -78,10 +79,10 @@ test('missing samples, required observations and unreviewed baselines cannot pas
   assert.equal(finishReport(report).status, 'incomplete'); assert.equal(report.exitCode, 2);
   const base = fixture(); delete base.baseline;
   assert.equal(compareReports(base, fixture(), policy).comparable, false);
-  report.metrics = [{id: 'q', kind: 'latency', required: true, samples: samples(1, 9), requiredSamples: 10,
-    evidence: 'unit', fixtureSha256: 'unit'}];
+  report.metrics = fixture().metrics;
+  const metric = report.metrics.find(row => row.id === 'warm-select'); metric.samples = samples(1, 9);
   assert.equal(finishReport(report).status, 'incomplete');
-  report.metrics[0].samples[0].verified = false; assert.equal(finishReport(report).status, 'error');
+  metric.samples[0].verified = false; assert.equal(finishReport(report).status, 'error');
 });
 test('first run has no invented baseline or regression-free claim; optional platform missing is explicit', () => {
   const report = fixture(); report.comparison = {available: false};
@@ -199,4 +200,33 @@ test('original guard exit is recorded for both normal success and admission refu
   const refused = finishReport(fixture()); recordGuardExit(refused, 1);
   assert.equal(refused.guardExitCode, 1); assert.equal(refused.status, 'error');
   assert.match(refused.errors[0].message, /Original guard exited 1/);
+});
+test('collector errors disqualify a reviewed baseline even with complete measurements', () => {
+  const base = fixture(); base.errors.push({target: 'collector', message: 'original cleanup failure'});
+  finishReport(base); assert.equal(base.status, 'error');
+  const result = compareReports(base, fixture(), policy);
+  assert.equal(result.comparable, false); assert.match(result.reasons.join(';'), /collector\/guard/);
+});
+test('fixed Quick inventory cannot lose Aggregate or mark all required observations optional', () => {
+  const current = fixture(); current.metrics = current.metrics.filter(row => row.id !== 'warm-aggregate');
+  for (const row of current.metrics) row.required = false;
+  assert.equal(finishReport(current).status, 'incomplete');
+  assert.equal(compareReports(fixture(), current, policy).comparable, false);
+});
+test('saved reports cannot reduce fixed ten warm or five cold samples to one', () => {
+  for (const id of ['warm-select', 'cold-process-first-result-close']) {
+    const current = fixture(), metric = current.metrics.find(row => row.id === id);
+    metric.samples = metric.samples.slice(0, 1); metric.requiredSamples = 1; metric.required = false;
+    assert.equal(finishReport(current).status, 'incomplete');
+    assert.equal(compareReports(fixture(), current, policy).comparable, false);
+  }
+});
+test('build and artifact-reuse reference timing never gates compatible size or runtime metrics', () => {
+  const base = fixture(), current = fixture();
+  base.metrics.push({id: 'build-packaging', target: 'distribution', kind: 'reference', value: 100, unit: 'ms',
+    required: true, evidence: 'unit', fixtureSha256: digest('normal prepack')});
+  current.metrics.push({...base.metrics.at(-1), value: 1, fixtureSha256: digest('verified artifact reuse')});
+  const result = compareReports(base, current, policy);
+  assert.equal(result.status, 'pass'); assert.equal(result.comparable, true);
+  assert(!result.verdicts.some(row => row.metric === 'build-packaging'));
 });
