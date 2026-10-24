@@ -19,6 +19,32 @@ const policy = JSON.parse(await readFile(new URL('../benchmarks/health/config.js
 const samples = (ms, count = 10) => Array.from({length: count}, (_, iteration) => ({iteration,
   wallNs: ms * 1e6, cpuUserUs: 1, cpuSystemUs: 1, verified: true, completed: true}));
 
+test('missing Node comparison retains incomplete evidence without suppressing independent Native selection', async () => {
+  const text = await readFile(new URL('./health-monitor-release.mjs', import.meta.url), 'utf8');
+  const start = text.indexOf('export async function releaseMeasurements('); assert.ok(start >= 0);
+  for (const failure of [undefined, new Error('Original synthetic Native collector failure')]) {
+    const metrics = [], selections = [], options = {nativeManifest: '/synthetic/verified/native.json',
+      nativeConsumer: '/synthetic/verified/consumer'};
+    const selected = runInNewContext('(' + text.slice(start).replace('export ', '') + ')', {
+      platform: () => 'unit-os', arch: () => 'unit-arch', release: () => 'unit-release',
+      cpus: () => [{model: 'unit-cpu'}], totalmem: () => 1, process: {version: 'unit-node'},
+      releaseNativeOperations: async input => {selections.push(input); if (failure) throw failure;},
+    });
+    const input = {options, prepared: {}, repository: '/synthetic/repository', root: '/synthetic/report',
+      source: {sha: 'a'.repeat(40)}, command: () => assert.fail('No physical process may run in this routing test'),
+      onMetric: async row => metrics.push(row)};
+    if (failure) await assert.rejects(selected(input), error => error === failure);
+    else await selected(input);
+    assert.equal(selections.length, 1, 'Native selection must not depend on unrelated Node comparison controls');
+    assert.equal(selections[0].options, options);
+    assert.ok(metrics.some(row => row.id === 'formal-node-collector' && row.status === 'incomplete'));
+    const warm = metrics.filter(row => row.target === 'native');
+    assert.deepEqual(warm.map(row => row.id), ['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-decimal-sum']);
+    assert.ok(warm.every(row => row.status === 'incomplete' && row.required && row.requiredSamples === 100 &&
+      row.temperature === 'warm' && row.reason.includes('no retained-Host warm entry') && row.samples === undefined));
+  }
+});
+
 test('Release selects the existing Native operations collector instead of combined CLI routes', async () => {
   const root = await mkdtemp(join(tmpdir(), 'actql-health-native-selection-'));
   const manifest = join(root, 'native.json'), packages = join(root, 'node.json'), controls = join(root, 'controls.json');

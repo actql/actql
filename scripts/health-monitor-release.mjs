@@ -230,8 +230,15 @@ export async function releaseMeasurements({options, prepared, repository, root, 
   if (!options.nodeControls) {
     await onMetric({id: 'formal-node-collector', kind: 'latency', target: 'node-local', required: true,
       status: 'incomplete', reason: 'Existing final Node collector requires a fixed matched SQLite comparison'});
-    return;
   }
+  // Native CLI evidence is independent of the Node SQLite comparison.
+  for (const id of ['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-decimal-sum']) {
+    await onMetric({id, target: 'native', kind: 'latency', temperature: 'warm', unit: 'ms',
+      requiredSamples: 100, required: true, status: 'incomplete',
+      reason: 'Existing ordinary Native CLI collector has no retained-Host warm entry; new CLI processes cannot substitute'});
+  }
+  await releaseNativeOperations({options, repository, root, source, command, onMetric});
+  if (!options.nodeControls) return;
   const controlsPath = options.nodeControls, controls = JSON.parse(await readFile(controlsPath));
   assert.equal(controls.sourceSha, source.sha);
   assert.equal(controls.cohortSha256, digest(await readFile(prepared.manifestPath)));
@@ -260,15 +267,7 @@ export async function releaseMeasurements({options, prepared, repository, root, 
     scope: 'actual Release Node collector process high-water RSS, including verification/reporting; spawned compiler/Native/Python processes excluded; Node KiB converted to bytes', evidence: root});
   const pythonRuntime = options.pythonVenv ? pythonRuntimeIdentity(options.pythonVenv) : null;
   const pythonControls = options.pythonControls ? JSON.parse(await readFile(options.pythonControls)) : null;
-  await releaseNativeOperations({options, repository, root, source, command, onMetric});
-  for (const adapter of ['native', 'python']) for (const operation of ['first-init', 'cold-existing', 'warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-decimal-sum']) {
-    if (adapter === 'native') {
-      // The separate CLI selection above replaces combined Native cold routes.
-      if (operation.startsWith('warm-')) await onMetric({id: operation, target: adapter, kind: 'latency',
-        temperature: 'warm', unit: 'ms', requiredSamples: 100, required: true, status: 'incomplete',
-        reason: 'Existing ordinary Native CLI collector has no retained-Host warm entry; new CLI processes cannot substitute'});
-      continue;
-    }
+  for (const adapter of ['python']) for (const operation of ['first-init', 'cold-existing', 'warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-decimal-sum']) {
     if (adapter === 'python' && !options.pythonVenv) {
       await onMetric({id: operation, target: adapter, kind: 'latency', required: true, status: 'incomplete', reason: 'Matching ordinary Python venv absent'}); continue;
     }
