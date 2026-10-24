@@ -12,10 +12,156 @@ import {packDistributionPackages} from './measure-distribution-artifacts.mjs';
 import {formalCollectorVerdict, pythonRuntimeIdentity, assertPythonCollectorRuntime, pythonInstalledInventory} from './health-monitor-release.mjs';
 import {quickNodeMetrics} from './health-monitor-adapters.mjs';
 import {nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
+import * as releaseAdapters from './health-monitor-release.mjs';
+import {nativeOperationsData} from './fixtures/health-native-operations.mjs';
 
 const policy = JSON.parse(await readFile(new URL('../benchmarks/health/config.json', import.meta.url)));
 const samples = (ms, count = 10) => Array.from({length: count}, (_, iteration) => ({iteration,
   wallNs: ms * 1e6, cpuUserUs: 1, cpuSystemUs: 1, verified: true, completed: true}));
+
+test('Release selects the existing Native operations collector instead of combined CLI routes', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-health-native-selection-'));
+  const manifest = join(root, 'native.json'), packages = join(root, 'node.json'), controls = join(root, 'controls.json');
+  const source = {sha: 'a'.repeat(40)}, manifestBytes = '{"synthetic":"never executed Native DATA"}';
+  await writeFile(manifest, manifestBytes); await writeFile(packages, '{}');
+  const environment = {platform: 'unit-os', arch: 'unit-arch', osRelease: 'unit-release', node: 'unit-node',
+    cpuModel: 'unit-cpu', logicalCpus: 1, memoryBytes: 1};
+  await writeFile(controls, JSON.stringify({sourceSha: source.sha, cohortSha256: digest('{}'), environment, load: 'isolated'}));
+  const text = await readFile(new URL('./health-monitor-release.mjs', import.meta.url), 'utf8');
+  const start = text.indexOf('export async function releaseMeasurements('); assert.ok(start >= 0);
+  const selected = runInNewContext('(' + text.slice(start).replace('export ', '') + ')', {
+    assert, readFile, writeFile, join, digest, jsonDigest: value => digest(JSON.stringify(value)),
+    platform: () => 'unit-os', arch: () => 'unit-arch', release: () => 'unit-release',
+    cpus: () => [{model: 'unit-cpu'}], totalmem: () => 1, process: {version: 'unit-node', resourceUsage: () => ({maxRSS: 1})},
+    runNodeWarmBenchmark: async () => ({latency: []}), runNodeProcessBenchmark: async () => ({latency: []}),
+    formalCollectorVerdict: releaseAdapters.formalCollectorVerdict,
+    releaseNativeOperations: releaseAdapters.releaseNativeOperations,
+  });
+  const metrics = [], commands = [];
+  await selected({options: {nodeControls: controls, nativeManifest: manifest, nativeConsumer: join(root, 'unused-consumer'), load: 'isolated'},
+    prepared: {manifestPath: packages, consumer: join(root, 'unused-node')}, repository: new URL('../', import.meta.url).pathname,
+    root, source, command: async (_executable, args) => {
+      commands.push(args);
+      assert.ok(args.includes('--selection') && args.includes('native-operations'), 'Use the existing separate Native CLI operation selection');
+      assert.equal(args.includes('--operation'), false, 'Do not execute the older combined routes too');
+      const output = args[args.indexOf('--output') + 1]; await mkdir(output);
+      await writeFile(join(output, 'measurements.json'), JSON.stringify(nativeOperationsData(source.sha, digest(manifestBytes))));
+      return {stdout: ''};
+    }, onMetric: async row => metrics.push(row)});
+  assert.equal(commands.length, 1);
+  assert.deepEqual(metrics.filter(row => row.target === 'native' && row.temperature === 'cold').map(row => [row.id, row.samples.length, row.requiredSamples]),
+    [['cold-new-run', 100, 100], ['cold-result', 100, 100]]);
+  assert.equal(metrics.filter(row => row.target === 'native' && row.id.startsWith('warm-')).length, 5);
+  assert.ok(metrics.filter(row => row.target === 'native' && row.id.startsWith('warm-')).every(row => row.status === 'incomplete'));
+  const report = fixture('release');
+  for (const metric of metrics.filter(row => row.target === 'native')) {
+    const index = report.metrics.findIndex(row => row.target === metric.target && row.id === metric.id);
+    assert.ok(index >= 0); report.metrics[index] = metric;
+  }
+  finishReport(report);
+  const warm = report.verdicts.filter(row => row.target === 'native' && row.metric.startsWith('warm-'));
+  assert.equal(warm.length, 5); assert.ok(warm.every(row => row.status === 'incomplete' && row.reason.includes('no retained-Host warm entry')));
+});
+
+async function nativeReleaseDataCase({make = (source, cohort) => nativeOperationsData(source, cohort), commandError, omitRaw = false} = {}) {
+  const root = await mkdtemp(join(tmpdir(), 'actql-health-native-report-')), manifest = join(root, 'native.json');
+  const manifestBytes = '{"synthetic":"source-tool-only"}', source = {sha: 'a'.repeat(40)};
+  await writeFile(manifest, manifestBytes);
+  const raw = make(source.sha, digest(manifestBytes)), rawBytes = JSON.stringify(raw), metrics = [];
+  let commands = 0;
+  const run = () => releaseAdapters.releaseNativeOperations({options: {nativeManifest: manifest,
+    nativeConsumer: join(root, 'never-executed-consumer'), load: 'isolated'},
+  root, source, repository: new URL('../', import.meta.url).pathname,
+  command: async (executable, args, settings) => {
+    commands++;
+    assert.equal(executable, 'python3'); assert.equal(settings.name, 'formal-native-operations');
+    assert.equal(settings.timeout, 0); assert.equal(args[args.indexOf('--selection') + 1], 'native-operations');
+    assert.equal(args[args.indexOf('--mode') + 1], 'final'); assert.equal(args.includes('--operation'), false);
+    assert.equal(args[args.indexOf('--load') + 1], 'isolated');
+    if (!omitRaw) {const output = args[args.indexOf('--output') + 1]; await mkdir(output);
+      await writeFile(join(output, 'measurements.json'), rawBytes);}
+    if (commandError) throw commandError;
+    return {stdout: ''};
+  }, onMetric: async row => metrics.push(row)});
+  return {root, raw, rawBytes, metrics, run, commands: () => commands};
+}
+
+test('Native Release retains separate references, exact raw evidence and existing assessment purpose', async () => {
+  const fixture = await nativeReleaseDataCase(), assessment = await fixture.run();
+  assert.equal(fixture.commands(), 1); assert.equal(assessment.status, 'passed');
+  assert.equal(assessment.purpose, 'native-cli-latency-functional-only');
+  assert.equal(assessment.fullPerformanceAccepted, false); assert.equal(assessment.releaseAccepted, false);
+  const [init, first, fresh, saved] = fixture.metrics;
+  assert.deepEqual([init.id, init.kind, init.value, init.observedCount], ['init-separate', 'reference', 3, 1]);
+  assert.deepEqual([first.id, first.kind, first.value, first.observedCount], ['first-query-separate', 'reference', 80, 1]);
+  assert.deepEqual([fresh.id, saved.id], ['cold-new-run', 'cold-result']);
+  assert.equal(new Set(fresh.samples.concat(saved.samples).map(row => row.pid)).size, 200);
+  assert.deepEqual(fresh.samples, fixture.raw.latency[0].samples); assert.deepEqual(saved.samples, fixture.raw.latency[1].samples);
+  assert.equal(await readFile(fresh.evidence, 'utf8'), fixture.rawBytes, 'original collector report is never rewritten');
+  const stored = JSON.parse(await readFile(fresh.formalAssessment));
+  assert.equal(stored.rawSha256, digest(fixture.rawBytes)); assert.deepEqual(stored.assessment, assessment);
+  const profile = measurementProfile('release', {platform: 'linux', architecture: 'x64'});
+  assert.deepEqual(profile.filter(row => row.target === 'native' && row.temperature === 'cold').map(row => [row.id, row.requiredSamples]),
+    [['cold-new-run', 100], ['cold-result', 100]]);
+  assert.equal(profile.some(row => row.target === 'native' && ['first-init', 'cold-existing'].includes(row.id)), false);
+  assert.deepEqual(profile.filter(row => row.target === 'python' && row.temperature === 'cold').map(row => [row.id, row.requiredSamples]),
+    [['first-init', 30], ['cold-existing', 30]]);
+});
+
+test('Native Release preserves partial failed samples and the original command error without retry', async () => {
+  const original = new Error('Synthetic original CLI failure, not a product observation');
+  const fixture = await nativeReleaseDataCase({commandError: original, make: (source, cohort) => {
+    const report = nativeOperationsData(source, cohort);
+    report.firstFailure = {operation: 'cold-new-run', name: 'SyntheticFailure', message: original.message};
+    report.latency = [report.latency[0]]; report.latency[0].samples = [report.latency[0].samples[0]];
+    Object.assign(report.latency[0].samples[0], {completed: false, verified: false});
+    report.latency[0].stoppedEarly = true; report.functional.rows = [{...report.functional.rows[0], completed: false}];
+    report.publicCallAttempts = {init: 1, run: 2, result: 0}; return report;
+  }});
+  await assert.rejects(fixture.run(), error => error === original); assert.equal(fixture.commands(), 1);
+  const fresh = fixture.metrics.find(row => row.id === 'cold-new-run'), saved = fixture.metrics.find(row => row.id === 'cold-result');
+  assert.equal(fresh.samples.length, 1); assert.equal(fresh.samples[0].verified, false); assert.equal(fresh.status, 'error');
+  assert.ok(fresh.reason.includes(original.message));
+  assert.equal(saved.samples, undefined, 'unobserved route cannot become an empty successful population');
+  assert.equal(saved.status, 'error'); assert.equal(await readFile(fresh.evidence, 'utf8'), fixture.rawBytes);
+  const assessment = JSON.parse(await readFile(fresh.formalAssessment)).assessment;
+  assert.equal(assessment.status, 'failed'); assert.equal(assessment.fullPerformanceAccepted, false);
+  const absent = await nativeReleaseDataCase({commandError: original, omitRaw: true});
+  await assert.rejects(absent.run(), error => error === original); assert.equal(absent.commands(), 1); assert.equal(absent.metrics.length, 0);
+});
+
+test('Native Release rejects foreign identity and keeps incomplete and slow assessor results distinct', async () => {
+  for (const mutate of [r => r.sourceSha = 'b'.repeat(40), r => r.cohortSha256 = 'b'.repeat(64),
+    r => r.mode = 'diagnostic', r => r.environmentSha256 = 'b'.repeat(64),
+    r => r.latency[1].samples[0].publicRunId = 'foreign-synthetic-run']) {
+    const fixture = await nativeReleaseDataCase({make: (source, cohort) => {const report = nativeOperationsData(source, cohort); mutate(report); return report;}});
+    await assert.rejects(fixture.run()); assert.equal(fixture.commands(), 1); assert.equal(fixture.metrics.length, 0);
+  }
+  const incomplete = await nativeReleaseDataCase({make: (source, cohort) => {
+    const report = nativeOperationsData(source, cohort); report.installedPayloadsUnchanged = undefined; return report;
+  }});
+  assert.equal((await incomplete.run()).status, 'incomplete'); assert.ok(incomplete.metrics.every(row => row.status === 'incomplete'));
+  const slow = await nativeReleaseDataCase({make: (source, cohort) => nativeOperationsData(source, cohort, 250)});
+  assert.equal((await slow.run()).status, 'failed'); assert.ok(slow.metrics.every(row => row.status === 'regression'));
+  const cleanup = await nativeReleaseDataCase({make: (source, cohort) => {
+    const report = nativeOperationsData(source, cohort); report.cleanup.closed = false; return report;
+  }});
+  await cleanup.run(); assert.ok(cleanup.metrics.every(row => row.status === 'error'));
+});
+
+test('Release Native statistics retain the original 100-sample minimum without promoting Quick', async () => {
+  const text = await readFile(new URL('./health-monitor.mjs', import.meta.url), 'utf8');
+  const start = text.indexOf('const onMetric = async metric => {'), end = text.indexOf('  const command =', start);
+  assert.ok(start >= 0 && end > start);
+  for (const [mode, count, requiredSamples, expectedP95] of [['release', 50, 100, null], ['quick', 10, 10, null], ['release', 100, 100, 10]]) {
+    const report = {metrics: []};
+    const observe = await runInNewContext('(async () => {' + text.slice(start, end) + 'return onMetric;})()', {
+      report, mode, summarize, structuredClone, directory: '/unused', saveReport: async () => {}, finishReport: value => value,
+    });
+    await observe({id: 'cold-new-run', target: 'native', kind: 'latency', temperature: 'cold', requiredSamples, samples: samples(10, count)});
+    assert.equal(report.metrics[0].statistics.p95Ms, expectedP95);
+  }
+});
 function fixture(mode = 'quick') {
   const report = {format: 'actql-health/0.1', mode, source: {sha: 'a'.repeat(40), dirty: false},
     environment: {platform: 'linux', architecture: 'x64', osRelease: 'test-os', cpuModel: 'unit CPU', logicalCpus: 2,

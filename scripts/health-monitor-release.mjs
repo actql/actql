@@ -11,7 +11,7 @@ import {runNodeProcessBenchmark} from './benchmark-node-process-operations.mjs';
 import {readFixedSQLiteComparison} from './ordinary-operation-packages.mjs';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {jsonDigest, digest} from './health-monitor-report.mjs';
-import {assessLatency} from './operation-performance.mjs';
+import {assessLatency, assessNativeOperations} from './operation-performance.mjs';
 
 // Observe the interpreter that the existing ordinary collector will execute,
 // rather than substituting the controller's optional --python interpreter.
@@ -75,6 +75,56 @@ export async function pythonInstalledInventory(consumer, artifacts) {
   const bytes = files.reduce((sum, row) => sum + row.bytes, 0);
   assert(Number.isSafeInteger(bytes) && bytes > 0);
   return {roots, files, bytes, sha256: jsonDigest(files)};
+}
+
+export async function releaseNativeOperations({options, repository, root, source, command, onMetric}) {
+  const output = join(root, 'formal-native-operations'), path = join(output, 'measurements.json');
+  let commandFailure;
+  try {
+    await command(options.python ?? 'python3', ['-I', '-B', join(repository, 'scripts/benchmark-ordinary-processes.py'),
+      '--adapter', 'native', '--selection', 'native-operations', '--manifest', options.nativeManifest,
+      '--consumer', options.nativeConsumer, '--source', source.sha, '--output', output, '--mode', 'final',
+      '--load', options.load ?? 'concurrent'], {cwd: repository, name: 'formal-native-operations', timeout: 0});
+  } catch (error) {commandFailure = error;}
+  let raw, rawBytes, assessment;
+  try {
+    rawBytes = await readFile(path); raw = JSON.parse(rawBytes);
+    assert.equal(raw.sourceSha, source.sha, 'Native operation source differs');
+    assert.equal(raw.cohortSha256, digest(await readFile(options.nativeManifest)), 'Native operation cohort differs');
+    assert.equal(raw.mode, 'final', 'Native Release requires the existing final selection');
+    assessment = assessNativeOperations(raw);
+  } catch (error) {throw commandFailure ?? error;}
+  const assessmentPath = join(output, 'health-assessments.json');
+  await writeFile(assessmentPath, JSON.stringify({sourceSha: source.sha, cohortSha256: raw.cohortSha256,
+    rawSha256: digest(rawBytes), assessment}, null, 2) + '\n', {flag: 'wx'});
+  const routes = raw.latency ?? [];
+  const failedPublic = commandFailure || raw.firstFailure || raw.packageFailure || raw.cleanup?.closed === false ||
+    routes.some(series => series.samples.some(row => !row.verified || !row.completed));
+  const originalCause = raw.firstFailure ?? raw.packageFailure ?? raw.cleanup?.failure ?? commandFailure?.message ??
+    'Original Native process cleanup or public sample did not complete';
+  const verdict = failedPublic ? {status: 'error', reason: 'Original Native command/public/package failure: ' + JSON.stringify(originalCause)}
+    : assessment.status === 'failed' ? {status: 'regression', reason: 'Existing Native CLI latency/functional assessment failed'}
+      : assessment.status === 'incomplete' ? {status: 'incomplete', reason: 'Existing Native CLI latency/functional assessment incomplete'}
+        : {status: 'pass', reason: 'Native CLI latency/functional selection only; retained-Host warm, SQLite and release acceptance remain unproved'};
+  const evidence = {evidence: path, formalAssessment: assessmentPath, purpose: assessment.purpose,
+    fullPerformanceAccepted: false, releaseAccepted: false};
+  for (const [id, observation] of [['init-separate', raw.initialization], ['first-query-separate', raw.firstQuery]]) {
+    await onMetric({id, target: 'native', kind: 'reference', unit: 'ms', required: true,
+      ...(Number.isSafeInteger(observation?.wallNs) ? {value: observation.wallNs / 1e6} : {}),
+      observedCount: observation ? 1 : 0, fixtureSha256: raw.historyProtocolSha256,
+      scope: id === 'init-separate' ? 'Single original initialization CLI child; reference only, no SDK close ACK'
+        : 'Single separate first query/rows observation; parent includes child exit, response/file oracle; raw child duration retained',
+      ...evidence, ...verdict});
+  }
+  for (const operation of ['cold-new-run', 'cold-result']) {
+    const series = routes.find(row => row.operation === operation);
+    await onMetric({id: operation, target: 'native', kind: 'latency', temperature: 'cold', unit: 'ms', required: true,
+      requiredSamples: 100, ...(series ? {samples: series.samples, fixtureSha256: series.fixtureSha256} : {}),
+      scope: 'Distinct CLI child per durable NEW/file rows or original saved Result; launch through exit, response and row oracle; raw child duration retained',
+      ...evidence, ...verdict});
+  }
+  if (commandFailure) throw commandFailure; // No retry, failure replacement or later collector after the original failed child.
+  return assessment;
 }
 
 export async function releaseArtifacts({options, repository, source, command, onArtifact, onMetric}) {
@@ -210,9 +260,12 @@ export async function releaseMeasurements({options, prepared, repository, root, 
     scope: 'actual Release Node collector process high-water RSS, including verification/reporting; spawned compiler/Native/Python processes excluded; Node KiB converted to bytes', evidence: root});
   const pythonRuntime = options.pythonVenv ? pythonRuntimeIdentity(options.pythonVenv) : null;
   const pythonControls = options.pythonControls ? JSON.parse(await readFile(options.pythonControls)) : null;
+  await releaseNativeOperations({options, repository, root, source, command, onMetric});
   for (const adapter of ['native', 'python']) for (const operation of ['first-init', 'cold-existing', 'warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-decimal-sum']) {
-    if (adapter === 'native' && operation.startsWith('warm-')) {
-      await onMetric({id: operation, target: adapter, kind: 'latency', required: true, status: 'incomplete',
+    if (adapter === 'native') {
+      // The separate CLI selection above replaces combined Native cold routes.
+      if (operation.startsWith('warm-')) await onMetric({id: operation, target: adapter, kind: 'latency',
+        temperature: 'warm', unit: 'ms', requiredSamples: 100, required: true, status: 'incomplete',
         reason: 'Existing ordinary Native CLI collector has no retained-Host warm entry; new CLI processes cannot substitute'});
       continue;
     }

@@ -65,8 +65,10 @@ export function measurementProfile(mode, environment = {}) {
   if (mode !== 'release') return [];
   rows.push(...['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-union', 'warm-decimal-sum'].map(id => latency(id)),
     ...['first-init', 'cold-existing', 'mock-workflow'].map(id => latency(id, true)));
-  for (const target of ['native', 'python']) rows.push(...['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-decimal-sum'].map(id => latency(id, false, target)),
-    ...['first-init', 'cold-existing'].map(id => latency(id, true, target)));
+  for (const target of ['native', 'python']) rows.push(...['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-decimal-sum'].map(id => latency(id, false, target)));
+  rows.push(...['first-init', 'cold-existing'].map(id => latency(id, true, 'python')));
+  rows.push(...['cold-new-run', 'cold-result'].map(id => ({...latency(id, true, 'native'), requiredSamples: 100})),
+    ...['init-separate', 'first-query-separate'].map(id => ({id, target: 'native', kind: 'reference', unit: 'ms', required: true})));
   rows.push(...['actql', 'actql-sdk', 'actql-local-runtime'].map(id => size(id, 'python', 'wheel')));
   rows.push(size('installed:python-products', 'python', 'installed'));
   const key = {'darwin-arm64': 'darwin-arm64', 'linux-x64': 'linux-x64-gnu'}[environment.platform + '-' + environment.architecture];
