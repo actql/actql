@@ -2160,6 +2160,7 @@ pub(all) enum JoinRequirementIssue {
   BudgetExceeded
   ForeignOccurrence(Int)
   MissingEvidence(Int)
+  MissingStableIdentity(Int)
   MissingCapacity(Int)
   KeyEvidence(Int, @relation_evidence.IssueKind)
 } derive(Eq, @debug.Debug)
