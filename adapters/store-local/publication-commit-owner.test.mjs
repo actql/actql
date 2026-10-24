@@ -11,8 +11,17 @@ function fixture() {
   const calls = [];
   let current;
   let pending = true;
+  let objectsAdopted = false, schemasAdopted = false;
   const custody = Object.freeze({
     status: () => ({pending}),
+    async settleAdopted() {
+      assert.equal(this, custody);
+      assert.equal(pending, true);
+      assert.equal(objectsAdopted, true);
+      assert.equal(schemasAdopted, true);
+      calls.push('settle');
+      pending = false;
+    },
     async resolveConfirmed(confirmed) {
       calls.push('resolve');
       pending = false;
@@ -31,8 +40,8 @@ function fixture() {
       current = entry;
       calls.push('sync');
     },
-    async adoptObjects() { calls.push('objects'); pending = false; },
-    async adoptSchemas() { calls.push('schemas'); },
+    async adoptObjects() { calls.push('objects'); objectsAdopted = true; },
+    async adoptSchemas() { calls.push('schemas'); schemasAdopted = true; },
     async adopt() {
       await this.adoptObjects();
       await this.adoptSchemas();
@@ -65,7 +74,7 @@ test('existing public commit verifies inventory and adopts without linking',
 
 test('a lost response after link retains committed-versus-idempotent identity',
   async () => {
-    const {entry, admitted, key, operations, calls} = fixture();
+    const {entry, admitted, key, operations, calls, custody} = fixture();
     const syncFailure = failure('EIO');
     const install = operations.install;
     operations.install = async markInstalled => {
@@ -80,9 +89,31 @@ test('a lost response after link retains committed-versus-idempotent identity',
     });
     assert.deepEqual(calls, [
       'confirm', 'stage', 'custody', 'link', 'sync', 'confirm', 'same',
-      'objects', 'schemas',
+      'objects', 'schemas', 'settle',
     ]);
+    assert.equal(custody.status().pending, false);
   });
+
+test('new commit retains custody until both object and schema adoption finish', async () => {
+  const {entry, admitted, key, operations, calls, custody} = fixture();
+  let entered, release;
+  const reachedSchemas = new Promise(resolve => {entered = resolve;});
+  const schemaAdoption = new Promise(resolve => {release = resolve;});
+  const adoptSchemas = operations.adoptSchemas;
+  operations.adoptSchemas = async () => {
+    await adoptSchemas();
+    entered();
+    await schemaAdoption;
+  };
+  const commit = createPublicationCommitOwner({entry, admitted, key}, operations).commit();
+  await reachedSchemas;
+  assert.equal(custody.status().pending, true);
+  assert.deepEqual(calls, ['confirm', 'stage', 'custody', 'link', 'sync', 'objects', 'schemas']);
+  release();
+  assert.deepEqual(await commit, {entry, committed: true, idempotent: false});
+  assert.equal(custody.status().pending, false);
+  assert.deepEqual(calls, ['confirm', 'stage', 'custody', 'link', 'sync', 'objects', 'schemas', 'settle']);
+});
 
 test('unconfirmed commit retains primary, reconciliation and custody owner',
   async () => {
