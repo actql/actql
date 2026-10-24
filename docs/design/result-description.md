@@ -61,7 +61,17 @@ so the matching pass needs one comparison per child in that case. A position
 miss retains the existing search and full admission fallback, including when
 key normalization changes the order. Every match still requires the exact
 immutable child and the current wire, node and depth bounds. This does not
-change other Manifest inventory scans or establish a whole-issuer time bound.
+change the remaining Root validation traversals or establish a whole-issuer
+time bound.
+
+Before emission, the issuer indexes the supplied Artifact contracts by their
+Result Definition CID and tracks original Result names in an invocation-local
+table. A duplicate Artifact binding remains ambiguous rather than selecting a
+first or last original. Definitions still pass the same checks in their
+original order, preserving duplicate-name, missing-binding and wrong-contract
+diagnostics. Neither table changes emitted ordering or canonical names. Their
+entries are bounded by the supplied inventories; they are temporary lookup
+state, not a persistent cache, authorization or resource-funding evidence.
 
 Subsequent Root checks still bind the Run, Invocation, complete Definition and
 Artifact inventories, names and references. When a nested value is the exact

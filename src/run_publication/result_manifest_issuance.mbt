@@ -15,19 +15,21 @@ priv struct ResultManifestEntry {
 }
 
 ///|
-fn manifest_artifact_for_definition(
+fn manifest_artifacts_by_definition(
   artifacts : Array[PublicationContract],
-  definition : PublicationContract,
-) -> PublicationContract? {
-  let matches = artifacts.filter(artifact => {
-    contract_string(artifact, "result_definition_cid") ==
-    Some(definition.identity)
-  })
-  if matches.length() == 1 {
-    Some(matches[0])
-  } else {
-    None
+) -> Map[String, PublicationContract?] {
+  let indexed : Map[String, PublicationContract?] = Map([])
+  for artifact in artifacts {
+    if contract_string(artifact, "result_definition_cid") is Some(identity) {
+      // A repeated binding stays ambiguous, including its third occurrence.
+      indexed[identity] = if indexed.contains(identity) {
+        None
+      } else {
+        Some(artifact)
+      }
+    }
   }
+  indexed
 }
 
 ///|
@@ -80,7 +82,10 @@ pub fn issue_result_manifest(
     return Err(ManifestIssuanceInventoryMismatch)
   }
   let entries : Array[ResultManifestEntry] = []
-  let names : Array[String] = []
+  let names : Map[String, Unit] = Map([])
+  // This invocation-local index only pairs supplied immutable contracts.
+  // Validation and its original definition-order diagnostics remain below.
+  let artifacts_by_definition = manifest_artifacts_by_definition(artifacts)
   for definition in definitions {
     if definition.name != "result_definition" {
       return Err(ManifestIssuanceWrongContract)
@@ -91,9 +96,9 @@ pub fn issue_result_manifest(
     if names.contains(name) {
       return Err(ManifestIssuanceDuplicateResult(name))
     }
-    names.push(name)
-    guard manifest_artifact_for_definition(artifacts, definition)
-      is Some(artifact) else {
+    names[name] = ()
+    guard artifacts_by_definition.get(definition.identity)
+      is Some(Some(artifact)) else {
       return Err(ManifestIssuanceInventoryMismatch)
     }
     if artifact.name != "result_artifact" {
