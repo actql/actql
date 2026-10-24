@@ -5,6 +5,74 @@ fn original_document_test_wire() -> String {
 }
 
 ///|
+test "snapshot delegation pending and live fields reject noncounts on both existing readers" {
+  let original = original_match_full_wire()
+  let zeroes = [
+    "\"0\"", "\"0\"", "\"0\"", "\"0\"", "\"0\"", "\"0\"", "\"0\"", "\"0\"",
+  ]
+  let old = "[" + zeroes.join(",") + "]"
+  assert_true(original.contains(old))
+  for index in [5, 6, 7] {
+    for bad in ["\"-1\"", "\"2147483648\"", "true"] {
+      let fields = zeroes.copy()
+      fields[index] = bad
+      let changed = original.replace(old~, new="[" + fields.join(",") + "]")
+      let read = start_original_state_document_read(
+        original_document_test_cursor(changed),
+        3,
+        1,
+        1,
+        7,
+      ).unwrap()
+      assert_true(
+        advance_original_state_document_read(read, 100)
+        is DocumentFailed(InvalidRecord, ..),
+      )
+      let current = start_original_current_state_document_read(
+        original_document_test_cursor(
+          changed.replace(old="\"reading\"", new="\"parked\""),
+        ),
+        3,
+        1,
+        1,
+        7,
+        current_document_test_limits(),
+      ).unwrap()
+      assert_true(
+        advance_original_current_state_document_read(current, 100)
+        is CurrentDocumentFailed(InvalidRecord, ..),
+      )
+    }
+  }
+}
+
+///|
+test "snapshot byte-only bootstrap cannot claim reserved or consumed physical attempts" {
+  let original = original_document_test_wire()
+  let old = "[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false]"
+  assert_true(original.contains(old))
+  for flags in ["true,false", "false,true", "true,true"] {
+    let changed = original.replace(
+      old~,
+      new="[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null," +
+        flags +
+        "]",
+    )
+    let read = start_original_state_document_read(
+      original_document_test_cursor(changed),
+      1,
+      0,
+      0,
+      3,
+    ).unwrap()
+    assert_true(
+      advance_original_state_document_read(read, 100)
+      is DocumentFailed(InvalidRecord, ..),
+    )
+  }
+}
+
+///|
 fn original_document_test_cursor(wire : String) -> @decode.Cursor {
   let node = @source.parse_json(wire, {
     max_input_bytes: 4000,

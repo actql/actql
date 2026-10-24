@@ -152,7 +152,7 @@ pub fn advance_original_current_state_document_read(
         document_limits(document_at(record, 1)) |> ignore
         let observed = document_at(record, 2)
         document_array(observed, 8)
-        for index in 0..<3 {
+        for index in [0, 1, 2, 5, 6, 7] {
           document_count(document_at(observed, index)) |> ignore
         }
         for index in 3..<5 {

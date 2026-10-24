@@ -188,6 +188,15 @@ fn document_reservation(
   c : @decode.Cursor,
 ) -> OriginalReservationSnapshot raise OriginalStateDocumentFailure {
   document_array(c, 12)
+  let serial = document_int(document_at(c, 0))
+  let open = document_bool(document_at(c, 4))
+  let attempt_reserved = document_bool(document_at(c, 10))
+  let attempt_started = document_bool(document_at(c, 11))
+  if (serial < 0 && (attempt_reserved || attempt_started)) ||
+    (attempt_reserved && attempt_started) ||
+    (!open && attempt_reserved) {
+    raise BadDocument
+  }
   let observed = document_at(c, 8)
   document_array(observed, 3)
   let completed = document_at(c, 9)
@@ -208,13 +217,13 @@ fn document_reservation(
     )
   }
   {
-    serial: document_int(document_at(c, 0)),
+    serial,
     transfer: document_nonnegative(document_at(c, 1)),
     retention: document_nonnegative(document_at(c, 2)),
     execution: document_nonnegative(document_at(c, 3)),
-    open: document_bool(document_at(c, 4)),
-    attempt_reserved: document_bool(document_at(c, 10)),
-    attempt_started: document_bool(document_at(c, 11)),
+    open,
+    attempt_reserved,
+    attempt_started,
     cleanup_pending: document_bool(document_at(c, 5)),
     quantities: document_optional_quantities(document_at(c, 6)),
     uncertain_quantities: document_optional_quantities(document_at(c, 7)),
@@ -467,7 +476,7 @@ pub fn advance_original_state_document_read(
         document_limits(document_at(record, 1)) |> ignore
         let observed = document_at(record, 2)
         document_array(observed, 8)
-        for index in 0..<3 {
+        for index in [0, 1, 2, 5, 6, 7] {
           document_count(document_at(observed, index)) |> ignore
         }
         for index in 3..<5 {
