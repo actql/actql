@@ -149,6 +149,18 @@ incomplete. Python's existing retained-Host collector additionally selects the
 same JOIN/Decimal SUM literals/oracles; its prior default routes and 100 ms
 early-stop rule remain unchanged.
 
+Native Release uses the existing `native-operations` selection and
+`assessNativeOperations` gate: one separate initialization child and first query
+remain reference observations, followed by the collector's original 100 varied
+durable NEW/file-row operations and 100 cyclic original saved Result reads.
+Each operation uses its own CLI child and includes startup through exit. These
+replace the older combined Native first-init/cold-existing routes; Node and
+Python selections are unchanged. The original raw report is not rewritten;
+the separate assessment binds its hash and preserves the existing gate's
+latency/functional-only purpose and unverified comparator/safety boundaries.
+A failed child is never retried; any already-written partial raw report and
+failed samples remain visible, and the original command error is retained.
+
 The existing Native CLI adapter explicitly lacks retained-Host warm operations.
 Those required entries stay **incomplete**; a fresh CLI invocation is never
 called warm. Unsupported platform artifacts also stay incomplete. Even a full
@@ -187,7 +199,7 @@ automation remain later phases.
 | 05 | Fixed package/browser size delta unit vectors |
 | 06 | Warm/cold/RSS warning exit-zero unit vectors |
 | 07 | Required-missing, failed sample, dirty and unbound artifact negative tests |
-| 08 | Existing formal Node/Native/Python adapters, Python JOIN/Aggregate and wheel/Wasm inspection; Native retained warm unavailable, full matching-artifact Release unexecuted |
+| 08 | Existing formal Node/Python adapters and Native separate CLI-operation selection/assessor, Python JOIN/Aggregate and wheel/Wasm inspection; Native retained warm unavailable, full matching-artifact Release unexecuted |
 | 09 | Local offline public fixtures; Compare works without command tools/network |
 | 10 | Same command in fail-closed reusable/dispatch workflow; hosted execution unverified |
 | 11 | Monitor/collector adaptation only; no public API, Runtime or capacity change |

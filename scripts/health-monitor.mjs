@@ -139,7 +139,8 @@ export async function executeMonitor({mode, options, report, directory}) {
   const raw = join(directory, 'raw'); await mkdir(raw, {recursive: true});
   const onMetric = async metric => {
     if (metric.kind === 'latency' && metric.samples?.length) metric = {...metric,
-      statistics: summarize(metric.samples, metric.temperature === 'cold' ? 30 : 100)};
+      statistics: summarize(metric.samples, mode === 'release' ? metric.requiredSamples
+        : metric.temperature === 'cold' ? 30 : 100)};
     const index = report.metrics.findIndex(row => row.id === metric.id && row.target === metric.target);
     if (index < 0) report.metrics.push(structuredClone(metric)); else report.metrics[index] = structuredClone(metric);
     await saveReport(directory, finishReport(report));
