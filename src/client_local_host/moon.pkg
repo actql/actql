@@ -1,6 +1,8 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/expression_typing" @typing,
+  "actql/actql/relation_results" @results,
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_contract" @contract,
   "actql/actql/connectors_builtin" @builtin,

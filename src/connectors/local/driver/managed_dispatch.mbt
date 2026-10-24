@@ -49,6 +49,7 @@ struct LocalManagedDispatchConfiguration[T] {
   execution : @execution.SequenceExecutionLimits
   measurement : @execution.FixedInputGuardMeasureLimits
   imports : @local.LocalImportLimits
+  metadata : LocalManagedMetadataLimits
   capacity : @connector.ExecutionCapacity
   join_output_ceilings : Array[(Int, Int64)]
   interval_search_ceilings : Array[(Int, Int64)]
@@ -288,7 +289,8 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
   _output_file_bytes : Int64,
 ) -> Result[LocalManagedDispatchConfiguration[T]?, LocalDispatchIssue] {
   guard @strategy.next_captured_task(installed.run) is Some(task) &&
-    installed.import_policy is Some((imports, _)) else {
+    installed.import_policy is Some((imports, _)) &&
+    installed.import_metadata is Some(metadata) else {
     return Ok(None)
   }
   if installed.estimate_configuration is Some(configuration) &&
@@ -310,7 +312,7 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
             installed.run,
             task,
             @local.local_module_execution_limits(installed.implementation).rows.metadata_entries,
-            imports.wire.max_bytes,
+            metadata.name_bytes,
             input_index=index,
           ) {
           Ok(value) => value
@@ -366,7 +368,7 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
             task,
             output,
             @local.local_module_execution_limits(installed.implementation).rows.metadata_entries,
-            imports.wire.max_bytes,
+            metadata.name_bytes,
             input_index=index,
           ) {
           Ok(value) => {
@@ -560,6 +562,11 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     return Err(Configuration(InvalidLimits))
   }
   let imported = count * per_input
+  // Host metadata is a separately funded holding. It survives scratch release
+  // and follows the existing completed-output/borrower cleanup acknowledgement.
+  guard local_retained_with_metadata(base.retained_bytes,metadata.retained_bytes) is Some(retained_with_metadata) else {
+    return Err(Configuration(InvalidLimits))
+  }
   if base.retained_bytes > 9223372036854775807L - base.execution_bytes ||
     imported > 9223372036854775807L - base.execution_bytes - base.retained_bytes ||
     (
@@ -620,9 +627,10 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
         installed.implementation,
       ),
       imports,
+      metadata,
       capacity: {
         transfer_bytes: count * imports.wire.max_bytes.to_int64(),
-        retained_bytes: base.retained_bytes,
+        retained_bytes: retained_with_metadata,
         // The checked output view, independent copy and imported input may
         // overlap until the copy commits and every bridge is closed.
         scratch_bytes: base.execution_bytes + base.retained_bytes + imported,
@@ -898,8 +906,8 @@ pub fn[T] start_local_managed_dispatch(
                   input,
                   setup.imports.max_rows,
                   setup.imports.values,
-                  setup.imports.wire.max_nodes,
-                  setup.imports.wire.max_bytes,
+                  setup.metadata.bridge_entries,
+                  setup.metadata.name_bytes,
                   deferred_reclamation=true,
                 ) {
                 Ok(value) => value
@@ -1066,8 +1074,8 @@ pub fn[T] start_local_managed_dispatch(
         match
           @execution.finish_managed_producer_bridge(
             bridge,
-            setup.imports.wire.max_nodes,
-            setup.imports.wire.max_bytes,
+            setup.metadata.bridge_entries,
+            setup.metadata.name_bytes,
           ) {
           Ok(value) => {
             guard install_local_managed_input_read(
@@ -1641,18 +1649,13 @@ pub fn[T] start_local_managed_dispatch(
                       max_fields: setup.imports.wire.max_columns,
                       max_mapping_work: setup.imports.wire.max_order_work,
                       max_order_work: setup.execution.max_work,
-                      max_workspace_entries: setup.imports.max_rows,
+                      max_workspace_entries: setup.metadata.result_workspace_entries,
                     },
                     setup.imports.max_rows,
                     setup.imports.values,
                     setup.imports.wire,
                     setup.imports.wire,
-                    {
-                      max_fields: setup.imports.wire.max_columns,
-                      max_bytes: setup.imports.wire.max_bytes,
-                      max_nodes: setup.imports.wire.max_nodes,
-                      max_depth: setup.imports.wire.max_depth,
-                    },
+                    setup.metadata.schema,
                     setup.imports.max_batch_bytes,
                   ) {
                   Ok(value) => value
@@ -1831,8 +1834,8 @@ pub fn[T] start_local_managed_dispatch(
             @execution.selected_managed_execution_profile(),
             finalization_completion_preparation,
             target,
-            setup.imports.wire.max_nodes,
-            setup.imports.wire.max_bytes,
+            setup.metadata.completion_entries,
+            setup.metadata.name_bytes,
             fn(candidate : @execution.ManagedRetainedOutput[T]) {
               if physical_equal(candidate, material) {
                 Some(material)
@@ -2006,8 +2009,8 @@ pub fn[T] start_local_managed_dispatch(
           @execution.selected_managed_execution_profile(),
           @execution.generated_completion_preparation(setup.sequence),
           target,
-          setup.imports.wire.max_nodes,
-          setup.imports.wire.max_bytes,
+          setup.metadata.completion_entries,
+          setup.metadata.name_bytes,
           (_ : Unit) => {
             if @carrier_runtime.material_available(material) {
               Some(reference)

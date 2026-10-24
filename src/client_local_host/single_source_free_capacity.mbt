@@ -47,6 +47,7 @@ struct ClientLocalSourceFreeRequirements {
   fragment : String?
   ordered : String?
   sequences : Array[@execution.GeneratedSequence]
+  capacity_plan : ClientLocalCapacityPlan
   capacity : ClientLocalSequenceCapacity
 }
 
@@ -119,10 +120,16 @@ fn prepare_source_free_local_requirements_original(
     }
     inputs[consumer] += 1
   }
+  let capacity_plan = client_local_capacity_plan(
+    sequences,
+    @publication_host.prepared_client_values_max_rows(prepared),
+    scalar_values=true,
+    graph=Some(graph),
+  )
   client_local_sequence_capacity_original(
     sequences,
     count,
-    scalar_values=true,
+    capacity_plan=Some(capacity_plan),
     retained_inputs=Some(inputs),
     max_rows=@publication_host.prepared_client_values_max_rows(prepared),
     include_simultaneous~,
@@ -134,6 +141,7 @@ fn prepare_source_free_local_requirements_original(
     fragment: fragment_body,
     ordered: ordered_body,
     sequences,
+    capacity_plan,
     capacity,
   })
 }

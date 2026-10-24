@@ -4,6 +4,7 @@ import {runtimeField, runtimeOptionalField} from '../host-common/compiler-bindin
 import {createHash, randomUUID} from 'node:crypto';
 import {checked} from '../host-common/runtime-result.mjs';
 import {valuesHostPolicyOriginal, valuesExecutionContextCid} from './local-values-capacity.mjs';
+import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
 import {sampleOriginalQueryTime} from './query-evaluation-clock.mjs';
 
 function prepareQueryInvocation(control, prepared, request, retained) {
@@ -39,6 +40,17 @@ export const localOutputLimits = Object.freeze({
   maxSchemaFields: 100, maxSchemaBytes: 100000,
   maxSchemaNodes: 10000, maxSchemaDepth: 64, maxBatchBytes: 65536,
 });
+// Project the common checked policy; no adapter-specific row/field formula.
+export function checkedLocalOutputLimits(moon, preparedProgram) {
+  const values = moon.clientProgramLocalPublicationLimits(preparedProgram,
+    localOutputLimits.maxWireBytes);
+  const names = resultOutputLimitFields;
+  if (!Array.isArray(values) || values.length !== names.length ||
+      values.some(value => !Number.isSafeInteger(value) || value < 0)) {
+    throw new TypeError('InvalidCheckedLocalPublicationLimits');
+  }
+  return Object.freeze(Object.fromEntries(names.map((name,index) => [name,values[index]])));
+}
 export const localContractLimits = limits;
 
 const cid = value => `sha256:${createHash('sha256')
@@ -522,11 +534,9 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
     now, resultCount: moon.clientProgramResultCount(preparedProgram),
     compiled, preparedProgram,
     // The existing Result owner retains one row index per unsorted row.
-    // Follow the explicitly admitted row ceiling, preserving all other
-    // Result, value, work, wire and Store bounds. Ordered views retain their
-    // existing independent scratch requirement and can still be refused.
-    outputLimits: Object.freeze({...localOutputLimits,
-      maxResultWorkspaceEntries: Math.max(localOutputLimits.maxResultWorkspaceEntries, maxRows)}),
+    // Consume the common checked Result envelope and publication policy;
+    // the adapter does not infer workspace or field bounds from output rows.
+    outputLimits: checkedLocalOutputLimits(moon, preparedProgram),
   });
   const selectedPlan=Object.keys(queryTime).length===0?plan:Object.freeze({...plan,...queryTime});
   valuesAdmissions.set(selectedPlan, Object.freeze({
@@ -720,7 +730,8 @@ export function sourceFreeTaskPlan(options) {
     inputRelationCids: [], sourceEvidence: [], authorityScopeCid, namespaceId,
     storeAuthorityCid, dataPolicyCid, createdAt: acquired.createdAt, now,
     resultCount: moon.clientProgramResultCount(preparedProgram),
-    compiled: acquired.compiled, preparedProgram});
+    compiled: acquired.compiled, preparedProgram,
+    outputLimits: checkedLocalOutputLimits(moon, preparedProgram)});
   const selectedPlan=acquired.queryTime===undefined?plan:Object.freeze({...plan,
     queryTimePreparation:acquired.queryTimePreparation,queryTime:acquired.queryTime});
   valuesAdmissions.set(selectedPlan, Object.freeze({prepared: acquired.preparedEvidence.wire,

@@ -40,6 +40,7 @@ struct ClientInstalledManagedSourceFreePreparation {
   fragment_body : String?
   ordered_body : String?
   sequences : Array[@execution.GeneratedSequence]
+  capacity_plan : ClientLocalCapacityPlan
   limits : @resources.LedgerLimits
   provider_retained_bytes : Int64
   provider_execution_bytes : Int64
@@ -169,20 +170,27 @@ fn source_free_installed_managed_preparation_owned(
     }
     inputs[consumer] += 1
   }
+  let max_rows = match owner {
+    Pure(prepared) =>
+      @publication_host.prepared_client_values_max_rows(prepared)
+    Effect(_) =>
+      @publication_host.client_standard_values_sequence_limits().max_rows
+  }
+  let capacity_plan = client_local_capacity_plan(
+    sequences,
+    max_rows,
+    scalar_values=match owner {
+      Pure(_) => true
+      Effect(_) => false
+    },
+    graph=Some(graph),
+  )
   guard client_local_sequence_capacity(
       sequences,
       task_count,
-      scalar_values=match owner {
-        Pure(_) => true
-        Effect(_) => false
-      },
+      capacity_plan=Some(capacity_plan),
       retained_inputs=Some(inputs),
-      max_rows=match owner {
-        Pure(prepared) =>
-          @publication_host.prepared_client_values_max_rows(prepared)
-        Effect(_) =>
-          @publication_host.client_standard_values_sequence_limits().max_rows
-      },
+      max_rows~,
     )
     is Some((limits, provider_retained_bytes, provider_execution_bytes)) else {
     return None
@@ -194,6 +202,7 @@ fn source_free_installed_managed_preparation_owned(
     fragment_body,
     ordered_body,
     sequences,
+    capacity_plan,
     limits,
     provider_retained_bytes,
     provider_execution_bytes,

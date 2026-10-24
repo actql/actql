@@ -14,7 +14,7 @@ import {
 // Values
 pub fn configure_local_compute(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, LocalComputeConfiguration) -> Result[LocalDispatchModule, LocalDispatchIssue]
 
-pub fn configure_local_retained_inputs(LocalDispatchModule, @local.LocalImportLimits, Int64?) -> Result[Unit, LocalDispatchIssue]
+pub fn configure_local_retained_inputs(LocalDispatchModule, @local.LocalImportLimits, Int64?, metadata? : LocalManagedMetadataLimits?) -> Result[Unit, LocalDispatchIssue]
 
 pub fn configure_local_retained_output(LocalDispatchModule, @local.LocalExportLimits, Int64?) -> Result[Unit, LocalDispatchIssue]
 
@@ -203,6 +203,15 @@ pub struct LocalManagedInputTransfer[T] {
   input : @execution_relation.ManagedProducerRead[T]
   append : (String) -> Result[Unit, LocalDispatchIssue]
   finish : () -> Result[Unit, LocalDispatchIssue]
+}
+
+pub(all) struct LocalManagedMetadataLimits {
+  name_bytes : Int
+  bridge_entries : Int
+  completion_entries : Int
+  schema : @execution_relation.RelationSchemaIdentityLimits
+  result_workspace_entries : Int
+  retained_bytes : Int64
 }
 
 pub struct LocalManagedRelationSnapshot {

@@ -5,8 +5,16 @@ pub fn client_local_import_limits(
   capacity : @connector.FixedComputeCapacity,
   values : @execution.ValueLimits,
 ) -> @local.LocalImportLimits {
+  client_local_import_limits_for_rows(capacity.max_rows, values)
+}
+
+///|
+fn client_local_import_limits_for_rows(
+  max_rows : Int,
+  values : @execution.ValueLimits,
+) -> @local.LocalImportLimits {
   {
-    max_rows: capacity.max_rows,
+    max_rows,
     values,
     wire: {
       max_columns: 100,
@@ -396,16 +404,26 @@ fn open_checked_local_host(
     compute_sequences.push(generated[task])
   }
   let max_rows = @publication_host.prepared_client_values_max_rows(prepared)
-  let (values, execution, measurement) = client_local_execution_limits(
-    scalar_sequences=if source_free_requirements is Some(_) ||
-      source_free_preparation is Some(_) {
-      Some(compute_sequences)
-    } else {
-      None
-    },
-    max_rows~,
-  )
+  let capacity_plan = match
+    (source_free_requirements, source_free_preparation) {
+    (Some(original), None) => original.capacity_plan
+    (None, Some(original)) => original.capacity_plan
+    (None, None) => client_local_capacity_plan(compute_sequences, max_rows)
+    _ => return None
+  }
+  if !client_local_capacity_plan_matches(
+      capacity_plan, compute_sequences, max_rows,
+    ) {
+    return None
+  }
+  let values = capacity_plan.values
+  let execution = capacity_plan.execution
+  let measurement = capacity_plan.measurement
   let graph = @publication_host.prepared_client_graph(prepared)
+  if capacity_plan.graph is Some(original_graph) &&
+    !physical_equal(original_graph, graph) {
+    return None
+  }
   let retained_inputs = if retained_output {
     let inputs = Array::make(compute_sequences.length(), 0)
     for index in 0..<@strategy.graph_data_count(graph) {
@@ -440,6 +458,7 @@ fn open_checked_local_host(
       client_local_sequence_capacity(
         compute_sequences,
         task_count,
+        capacity_plan=Some(capacity_plan),
         retained_inputs~,
         max_rows~,
       )
@@ -487,9 +506,24 @@ fn open_checked_local_host(
     Err(_) => return None
   }
   configure_client_local_run(
-    run, graph, compute_sequences, first_compute, task_count, max_rows, values, execution,
-    measurement, retained_bytes, execution_bytes, retained_output, fixed_ms, per_row_ms,
-    per_wire_byte_ms, per_pair_ms, provider_factory,
+    run,
+    graph,
+    compute_sequences,
+    first_compute,
+    task_count,
+    max_rows,
+    values,
+    execution,
+    measurement,
+    retained_bytes,
+    execution_bytes,
+    retained_output,
+    fixed_ms,
+    per_row_ms,
+    per_wire_byte_ms,
+    per_pair_ms,
+    provider_factory,
+    capacity_plan=Some(capacity_plan),
   )
 }
 
@@ -517,6 +551,7 @@ fn configure_client_local_run(
   provider_factory : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  capacity_plan? : ClientLocalCapacityPlan? = None,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   let capacity : @connector.FixedComputeCapacity = {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
@@ -594,8 +629,11 @@ fn configure_client_local_run(
   match
     @local_driver.configure_local_retained_inputs(
       installed,
-      client_local_import_limits(capacity, values),
+      capacity_plan
+      .map(plan => plan.imports)
+      .unwrap_or_else(() => client_local_import_limits(capacity, values)),
       Some(0L),
+      metadata=capacity_plan.map(plan => plan.metadata),
     ) {
     Ok(_) => ()
     Err(_) => return reject_client_local_run(run)
@@ -605,7 +643,11 @@ fn configure_client_local_run(
     match
       @local_driver.configure_local_retained_output(
         installed,
-        client_local_export_limits(capacity.max_rows, values),
+        capacity_plan
+        .map(plan => plan.exports)
+        .unwrap_or_else(() => {
+          client_local_export_limits(capacity.max_rows, values)
+        }),
         Some(0L),
       ) {
       Ok(_) => ()

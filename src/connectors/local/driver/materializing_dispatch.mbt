@@ -1,4 +1,16 @@
 ///|
+/// Metadata admission is independent of payload and logical-row wire traversal.
+/// These are validation ceilings, not a claim that every slot is allocated.
+pub(all) struct LocalManagedMetadataLimits {
+  name_bytes : Int
+  bridge_entries : Int
+  completion_entries : Int
+  schema : @execution.RelationSchemaIdentityLimits
+  result_workspace_entries : Int
+  retained_bytes : Int64
+}
+
+///|
 /// Explicit conservative conversion allowance. Configuration is frozen before
 /// any estimate can escape; actual started capacity counts only missing copies.
 /// The work estimate covers all imports required by this task, not one file.
@@ -6,6 +18,7 @@ pub fn configure_local_retained_inputs(
   installed : LocalDispatchModule,
   limits : @local.LocalImportLimits,
   milliseconds : Int64?,
+  metadata? : LocalManagedMetadataLimits? = None,
 ) -> Result[Unit, LocalDispatchIssue] {
   if installed.policy_sealed ||
     installed.import_policy is Some(_) ||
@@ -18,6 +31,10 @@ pub fn configure_local_retained_inputs(
     (milliseconds is Some(value) && value < 0L) {
     return Err(Configuration(InvalidLimits))
   }
+  guard local_managed_metadata_limits(limits, metadata) is Some(selected) else {
+    return Err(Configuration(InvalidLimits))
+  }
+  installed.import_metadata = Some(selected)
   installed.import_policy = Some((limits, milliseconds))
   Ok(())
 }
@@ -267,4 +284,35 @@ fn local_materializing_failure(
     @strategy.fail_task_execution(run, ticket, Compute(computation)) |> ignore
   }
   local_materializing_issue(attempt, issue)
+}
+
+///|
+fn local_managed_metadata_limits(
+  limits : @local.LocalImportLimits,
+  metadata : LocalManagedMetadataLimits?,
+) -> LocalManagedMetadataLimits? {
+  let selected = metadata.unwrap_or({
+    name_bytes:limits.wire.max_bytes,
+    bridge_entries: limits.wire.max_nodes,
+    completion_entries: limits.wire.max_nodes,
+    schema: {max_fields:limits.wire.max_columns,max_bytes:limits.wire.max_bytes,max_nodes:limits.wire.max_nodes,max_depth:limits.wire.max_depth},
+    result_workspace_entries: limits.max_rows,
+    retained_bytes: 0L,
+  })
+  if selected.name_bytes < 0 || selected.bridge_entries < 0 ||
+    selected.completion_entries < 0 ||
+    selected.schema.max_nodes < 0 || selected.schema.max_fields < 0 || selected.schema.max_bytes < 0 || selected.schema.max_depth < 0 ||
+    selected.result_workspace_entries < 0 ||
+    selected.retained_bytes < 0L {
+    return None
+  }
+  Some(selected)
+}
+
+///|
+/// One checked conversion for the offer and the actual retained holding.
+fn local_retained_with_metadata(base : Int64, metadata : Int64) -> Int64? {
+  if base < 0L || metadata < 0L || metadata > 9223372036854775807L - base {
+    None
+  } else { Some(base + metadata) }
 }

@@ -57,14 +57,14 @@ priv struct ClientLocalSequenceCapacity {
 fn client_local_sequence_capacity(
   sequences : Array[@execution.GeneratedSequence],
   task_count : Int,
-  scalar_values? : Bool = false,
+  capacity_plan? : ClientLocalCapacityPlan? = None,
   retained_inputs? : Array[Int]? = None,
   max_rows? : Int = 100,
 ) -> (@resources.LedgerLimits, Int64, Int64)? {
   client_local_sequence_capacity_original(
     sequences,
     task_count,
-    scalar_values~,
+    capacity_plan~,
     retained_inputs~,
     max_rows~,
   ).map(value => {
@@ -76,7 +76,7 @@ fn client_local_sequence_capacity(
 fn client_local_sequence_capacity_original(
   sequences : Array[@execution.GeneratedSequence],
   task_count : Int,
-  scalar_values? : Bool = false,
+  capacity_plan? : ClientLocalCapacityPlan? = None,
   retained_inputs? : Array[Int]? = None,
   max_rows? : Int = 100,
   include_simultaneous? : Bool = false,
@@ -85,10 +85,15 @@ fn client_local_sequence_capacity_original(
   if task_count < 1 || task_count > 32 || sequences.length() > task_count {
     return None
   }
-  let (_, execution, measurement) = client_local_execution_limits(
-    max_rows~,
-    scalar_sequences=if scalar_values { Some(sequences) } else { None },
-  )
+  let plan = capacity_plan.unwrap_or_else(() => {
+    client_local_capacity_plan(sequences, max_rows)
+  })
+  if !client_local_capacity_plan_matches(plan, sequences, max_rows) {
+    return None
+  }
+  if plan.metadata_retained_bytes > 0L && retained_inputs is None { return None }
+  let execution = plan.execution
+  let measurement = plan.measurement
   let mut retained_bytes = 0L
   let mut execution_bytes = 0L
   let mut total_retained_bytes = 0L
@@ -130,7 +135,8 @@ fn client_local_sequence_capacity_original(
       }
       values.push(
         (
-          @execution.execution_capacity_retained_bytes(actual),
+          @execution.execution_capacity_retained_bytes(actual) +
+          plan.metadata_retained_bytes,
           @execution.execution_capacity_execution_bytes(actual),
         ),
       )
@@ -151,27 +157,16 @@ fn client_local_sequence_capacity_original(
     if inputs.length() != sequences.length() {
       return None
     }
-    let (values, _, _) = client_local_execution_limits(
-      max_rows~,
-      scalar_sequences=if scalar_values { Some(sequences) } else { None },
-    )
-    let import_limits = client_local_import_limits(
-      {
-        contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
-        max_rows,
-        max_value_bytes: 10000,
-        common_fragment: None,
-      },
-      values,
-    )
+    let import_limits = plan.imports
     guard @local.local_import_retention_capacity(import_limits)
       is Some(import_bytes) &&
-      @local.local_export_retention_capacity(
-        client_local_export_limits(max_rows, values),
-      )
-      is Some(export_bytes) &&
+      @local.local_export_retention_capacity(plan.exports) is Some(export_bytes) &&
       client_local_store_inventory(
-        inputs, retained_bytes, import_bytes, export_bytes, 536870912L,
+        inputs,
+        retained_bytes + plan.metadata_retained_bytes,
+        import_bytes,
+        export_bytes,
+        536870912L,
       )
       is Some((retained, ports)) else {
       return None

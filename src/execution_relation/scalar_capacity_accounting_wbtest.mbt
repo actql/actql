@@ -83,6 +83,10 @@ test "scalar capacity accounting measures actual binary scanner at exact row-nod
       let output = reads[0].bound.output
       let identity = identify_completed_rows(output, wire).unwrap()
       assert_eq(row_wire_usage(identity).1, wire_nodes)
+      let actual_bytes = row_wire_usage(identity).0
+      let scalar_byte_bound = 30 + count * (3 + 6 * (2 * width) + 29 * width)
+      assert_true(actual_bytes <= scalar_byte_bound)
+      assert_true(identify_completed_rows(output,{..wire,max_bytes:actual_bytes-1}) is Err(_))
       assert_true(
         identify_completed_rows(output, { ..wire, max_nodes: wire_nodes - 1, })
         is Err(_),
@@ -95,6 +99,9 @@ test "scalar capacity accounting measures actual binary scanner at exact row-nod
         logical=true,
       ).unwrap()
       assert_eq(logical.2, wire_nodes + 2)
+      assert_true(logical.1 <= scalar_byte_bound)
+      assert_eq(logical.1,actual_bytes+28)
+      assert_true(hash_row_wire(table,RelationRows::field_names(table),{..wire,max_nodes:wire_nodes+2,max_bytes:logical.1-1},logical=true) is Err(_))
       assert_true(
         hash_row_wire(
           table,
