@@ -11,6 +11,7 @@ import {selectReleaseSourcefreeQueryCases, releaseSourcefreeSuccessNames, releas
   from './release-sourcefree-query-cases.mjs';
 import {sequenceSourceSuccesses, sequenceSourceRefusals} from './fixtures/sequence-source-input.mjs';
 import {guardReleaseSourcefreeIo} from './fixtures/release-sourcefree-io.mjs';
+import {sourcefreeFixtureAuthorization} from './fixtures/release-sourcefree-authorization.mjs';
 
 const refusals = combinedRefusals.filter(value =>
   value.name.startsWith('in-unnest-literal-array-'));
@@ -147,4 +148,28 @@ test('provider guard permits only one exact fixture HTTPS origin', () => {
     assert.throws(() => io.allowTransportOrigin('https://127.0.0.1:444'));
     assert.throws(() => globalThis.fetch('https://127.0.0.1:444/'));
   } finally {io.close();}
+});
+
+
+test('membership fixture separately grants only its actual Run and main Result reads', async () => {
+  const selected = selectReleaseSourcefreeQueryCases();
+  assert.deepEqual([...new Set(selected.successes.flatMap(value => Object.keys(value.results)))], ['main']);
+  for (const mode of ['local', 'https']) {
+    const authorization = await sourcefreeFixtureAuthorization(mode, 'in-unnest');
+    const account = JSON.parse(authorization.accountConfiguration);
+    const entries = account.entries.filter(value => value.operation.any_of.includes('read'));
+    assert.deepEqual(entries, [
+      {entry_id: 'run-read', outcome: 'allow', principal: {all: true},
+        connection: {any_of: ['actql-remote-host']}, resource: {any_of: ['run']},
+        operation: {any_of: ['read']}, exclusions: []},
+      {entry_id: 'result-main-read', outcome: 'allow', principal: {all: true},
+        connection: {any_of: ['actql-remote-host']}, resource: {any_of: ['result/main']},
+        operation: {any_of: ['read']}, exclusions: []},
+    ]);
+    assert.deepEqual(account.entries[0], {entry_id: 'write', outcome: 'allow',
+      principal: {all: true}, connection: {all: true}, resource: {all: true},
+      operation: {any_of: ['write']}, exclusions: []});
+    const unchanged = JSON.parse((await sourcefreeFixtureAuthorization(mode, 'aql-format')).accountConfiguration);
+    assert.deepEqual(unchanged.entries, [account.entries[0]], 'other suites receive no new grants');
+  }
 });
