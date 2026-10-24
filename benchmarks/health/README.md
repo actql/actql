@@ -75,6 +75,13 @@ tool versions, build settings/load/instrumentation, artifact kind and fixture
 methodology. Different commits are expected; each artifact must belong to its
 own report's source. Dirty or changing source/environment is ineligible for a
 formal baseline. Non-comparable fields/reasons stay explicit.
+The report retains its fixed `methodologyFiles` source digest map. Both modes
+bind the selected public fixtures, Node collector, runner, statistics and
+artifact readers; Release additionally binds its cold-process, Native/Python
+collectors and installed-artifact inspectors. A selected collector change
+invalidates methodology compatibility even if the SQL literal is unchanged.
+Earlier reports keep their original digest; the monitor does not relabel them
+or regenerate a baseline to match this expanded source inventory.
 The fixed Quick/Release inventory and sample counts are checked independently
 of a saved report's required flags/count claims. Collector errors disqualify a
 baseline; an expected verdict exit (such as size-regression exit 1) does not.
@@ -109,12 +116,33 @@ with their fixed SQLite comparator, formal assessments, early stops and failure
 semantics unchanged. Missing artifacts/comparison are detected before a large
 formal workload starts. Python wheels are checked by the existing ordinary
 package verifier, including payload RECORD hashes; actual contained Wasm is
-measured. Native uses its normal release manifest/verifier. No alternate
-backend stands in for an unavailable target.
+measured. Native retains its normal release manifest/verifier and also uses the
+ordinary collector's package verifier against the selected installed consumer.
+Installed Native metrics sum the verified selected package payload bytes; npm
+metadata, unrelated dependencies and filesystem allocation are outside that
+scope. Other platforms' archives retain acquisition sizes with installed size
+explicitly unmeasured. Missing, linked or changed installed payloads are errors.
+The same read-only verifier checks the selected Native cohort and installed
+payload inventory again after collection, including an early collector error.
+The report retains the original failure and the separate after-check result;
+missing before/after identity observations cannot qualify a Release comparison.
+Python wheel expansion bytes remain separate from actual installed bytes.
+The Python product installed metric inventories only the union of namespaces
+owned by the three selected wheels, including installed metadata and generated
+bytecode. It excludes unrelated dependency roots and filesystem allocation;
+archive totals and bundled component breakdown remain intact. Original verified
+payloads must match that inventory, and the same namespaces are checked again
+after collection. Changes retain the original collector error and fail the
+report. No alternate backend stands in for an unavailable target.
 Node controls are the existing collector's original source/cohort/environment,
 history protocol, fixed comparison and actual per-operation comparison/settings
 observations. Python controls retain their own source/cohort/environment,
 runtime-matched comparison and observed operation/settings/result-key matches.
+Release separately records the version and executable hash of the selected
+`--python-venv/bin/python`, alongside the controller interpreter. Each ordinary
+Python collector must report that same runtime. Different, missing or malformed
+selected-runtime identities prevent comparison; earlier Release reports without
+this observation remain incomplete. Quick without a Python venv is unchanged.
 The monitor checks those bindings and invokes the existing assessor; it never
 copies baseline conditions into candidate observations. Missing facts remain
 incomplete. Python's existing retained-Host collector additionally selects the
