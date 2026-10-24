@@ -5,7 +5,7 @@ import {readLocalRetainedInput} from './retained-input.mjs';
 import {localComputeFaultInjection, localRetainedStore,
   localSnapshotStore, localExecutionPauseHandler} from './retained-store.mjs';
 import {prepareLocalRetainedOutput} from './retained-output.mjs';
-import {closeCompletedLocalManagedOutput} from './managed-output-custody.mjs';
+import {closeCompletedLocalManagedOutput, continueLocalManagedFailureCleanup} from './managed-output-custody.mjs';
 import {prepareLocalCarrierSnapshot, prepareLocalRelationSnapshot} from './carrier-snapshot.mjs';
 import {planManagedInputRows, registerManagedMemoryInput,
   withManagedInputRows, withManagedOutputRows} from
@@ -494,6 +494,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             close: snapshot.close, cleanupHandle: snapshot.cleanupHandle,
           }],
         );
+        await continueLocalManagedFailureCleanup(stopped, operations);
         if (checkpointPause !== undefined) return Object.freeze({
           status: 'waiting_checkpoint', checkpoint: checkpointPause.checkpoint,
           cleanupPending: stopped?.cleanupPending === true,
@@ -594,6 +595,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             cleanupHandle: output.cleanupHandle,
           }],
         );
+        await continueLocalManagedFailureCleanup(stopped, operations);
         if (checkpointPause !== undefined) return Object.freeze({
           status: 'waiting_checkpoint', checkpoint: checkpointPause.checkpoint,
           cleanupPending: stopped?.cleanupPending === true,

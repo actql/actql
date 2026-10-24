@@ -108,3 +108,64 @@ test('completed Local output stops automatic drain at a physical cleanup stall',
   await handle.retry();
   assert.equal(handle.status().pending, false);
 });
+
+const {continueLocalManagedFailureCleanup} = await import('./managed-output-custody.mjs');
+for (const mode of ['finite', 'blocked', 'stalled', 'error', 'blocked-after-yield']) {
+  test(`failed Local finalization continues only original runnable cleanup: ${mode}`, async () => {
+    let cursor = 0n, retries = 0, released = false, blocked = mode === 'blocked';
+    const primary = Object.assign(new Error('OriginalFinalizationFailure'), {code: 'OriginalFinalizationFailure'});
+    const failure = Object.assign(new Error('OwnedFailure', {cause: primary}), {
+      primaryFailure: primary, cleanupPending: true,
+      cleanupHandle: {
+        status() { return {pending: !released, errors: []}; },
+        async retry() {
+          retries++;
+          assert.equal(released, false);
+          if (mode === 'error') return {pending: true, errors: [new Error('CleanupError')]};
+          if (mode !== 'stalled') cursor += 64n;
+          if (cursor >= 640n) released = true;
+          failure.cleanupPending = !released;
+          return {pending: !released, errors: []};
+        },
+      },
+    });
+    const handle = failure.cleanupHandle;
+    const operations = {
+      cleanup_local_continuation() { return blocked ? -1n : cursor; },
+      advance() { assert.fail('cleanup must not repeat Compute'); },
+      request_cancel() { assert.fail('cleanup must not replace cancellation authority'); },
+    };
+    let yielded = false;
+    setTimeout(() => { yielded = true; if (mode === 'blocked-after-yield') blocked = true; }, 0);
+    assert.equal(await continueLocalManagedFailureCleanup(failure, operations), failure);
+    assert.equal(failure.primaryFailure, primary);
+    assert.equal(primary.code, 'OriginalFinalizationFailure');
+    assert.equal(failure.cleanupHandle, handle);
+    if (mode === 'finite') {
+      assert.equal(retries, 10); assert.equal(released, true); assert.equal(yielded, true);
+    } else {
+      assert.equal(released, false);
+      assert.ok(retries <= 1, 'blocked or non-progressing owner is not polled');
+    }
+  });
+}
+
+test('failure continuation shares one flight and retains reservation until release witness', async () => {
+  let cursor = 0n, charged = true, retries = 0, cancellationRequested = false;
+  const failure = {cleanupHandle: {
+    status() { return {pending: charged, errors: []}; },
+    async retry() {
+      assert.equal(charged, true, 'no early reservation refund');
+      retries++; cursor += 64n;
+      if (cursor === 640n) charged = false;
+      return {pending: charged, errors: []};
+    },
+  }};
+  const operations = {cleanup_local_continuation: () => cursor};
+  setTimeout(() => {cancellationRequested = true;}, 0);
+  const first = continueLocalManagedFailureCleanup(failure, operations);
+  assert.equal(continueLocalManagedFailureCleanup(failure, operations), first);
+  await first;
+  assert.equal(cancellationRequested, true, 'cancellation can run between cleanup slices');
+  assert.equal(charged, false); assert.equal(retries, 10);
+});

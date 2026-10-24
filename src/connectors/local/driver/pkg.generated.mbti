@@ -197,6 +197,7 @@ pub struct LocalManagedDispatchOperations[T] {
   close : () -> Unit
   cleanup_refresh : () -> Bool
   cleanup_progress : () -> Int64
+  cleanup_local_continuation : () -> Int64
 }
 
 pub struct LocalManagedInputTransfer[T] {

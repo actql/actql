@@ -239,6 +239,7 @@ pub struct LocalManagedDispatchOperations[T] {
   close : () -> Unit
   cleanup_refresh : () -> Bool
   cleanup_progress : () -> Int64
+  cleanup_local_continuation : () -> Int64
 }
 
 ///|
@@ -2641,6 +2642,27 @@ pub fn[T] start_local_managed_dispatch(
       )
     },
     cleanup_progress: fn() { finalization_reclamation_steps.val },
+    // -1 means no authorized local continuation, not a stop/release witness.
+    // Provider, borrowed input, snapshot and active-reader waits retain custody.
+    cleanup_local_continuation: fn() {
+      if !disposed.val || live.val || scratch_uses.val != 0 ||
+        provider_execution.val is Some(_) ||
+        relation_snapshot_cancel.val is Some(_) ||
+        input_stop.phase != Stopped || carrier.val is Some(_) ||
+        !retired_carriers.is_empty() || retained.val is Some(_) ||
+        snapshot_storage_released.val is Some(_) {
+        return -1L
+      }
+      if finalization_values.val is Some(values) &&
+        !@execution.managed_output_values_scratch_released(values) &&
+        !@execution.managed_output_values_reclamation_runnable(values) {
+        return -1L
+      }
+      if scratch_retirement.phase != Retired ||
+        finalization_values.val is Some(_) {
+        scratch_retirement.steps + finalization_reclamation_steps.val
+      } else { -1L }
+    },
   }
   Ok({
     ..operations,

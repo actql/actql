@@ -853,3 +853,11 @@ pub fn managed_output_value_measurement(
 ) -> (Int, Int, Int) {
   receipt.measured
 }
+
+///|
+/// Only local finite reclamation is runnable; a live reader remains a blocker.
+/// Observation grants no release and does not advance the original cursor.
+pub fn managed_output_values_reclamation_runnable(value : ManagedOutputValues) -> Bool {
+  value.disposal_requested && !value.disposal_complete &&
+  value.active_uses == 0 && !value.buffer.reading
+}

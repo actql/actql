@@ -46,3 +46,40 @@ export function closeCompletedLocalManagedOutput(operations, checked, progress) 
   const failure = settleFailedManagedOperations(operations, checked, reason, progress);
   if (failure !== reason) throw retainProgressingCleanup(failure, operations);
 }
+
+// Finalization failure can leave more than one local retirement quantum. Keep
+// the dispatch alive while the original driver proves runnable finite work;
+// never poll an external owner or substitute a new Compute attempt.
+const failureCleanupFlights = new WeakMap();
+export function continueLocalManagedFailureCleanup(failure, operations) {
+  if (failure === null || typeof failure !== 'object') return Promise.resolve(failure);
+  const existing = failureCleanupFlights.get(failure);
+  if (existing !== undefined) return existing;
+  const flight = continueFailureCleanup(failure, operations).finally(() => {
+    failureCleanupFlights.delete(failure);
+  });
+  failureCleanupFlights.set(failure, flight);
+  return flight;
+}
+
+async function continueFailureCleanup(failure, operations) {
+  const handle = failure?.cleanupHandle;
+  if (typeof operations.cleanup_local_continuation !== 'function' ||
+      typeof handle?.retry !== 'function' || typeof handle?.status !== 'function') return failure;
+  try {
+    let previous = operations.cleanup_local_continuation();
+    while (typeof previous === 'bigint' && previous >= 0n &&
+        handle.status()?.pending === true) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+      // A reader/cancellation may change eligibility while yielded.
+      const ready = operations.cleanup_local_continuation();
+      if (typeof ready !== 'bigint' || ready < previous) break;
+      const state = await handle.retry();
+      if (state?.pending !== true || state.errors?.length > 0) break;
+      const current = operations.cleanup_local_continuation();
+      if (typeof current !== 'bigint' || current <= previous) break;
+      previous = current;
+    }
+  } catch { /* Original failure and recovery owner remain authoritative. */ }
+  return failure;
+}
