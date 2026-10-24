@@ -8,13 +8,13 @@ fn client_local_scalar_metadata_envelope(
   max_rows : Int,
   result_envelope : ClientLocalResultEnvelope,
 ) -> (Int64, Int)? {
-  if inventory.original_count != @strategy.graph_task_count(graph) || max_rows<1 || max_rows>20000 {return None}
+  if inventory.original_count != @strategy.graph_task_count(graph) || max_rows<1 {return None}
   let fields=inventory.fields
   let mut names=inventory.names
   let ports=inventory.ports
   let bindings=inventory.bindings
   let result_count = @strategy.graph_result_count(graph)
-  if result_count > client_local_schema_proof_work() || names < 0 || names > 1000000 {
+  if result_count > client_local_schema_proof_work() || names < 0 {
     return None
   }
   let order_terms = result_envelope.order_terms
@@ -30,7 +30,7 @@ fn client_local_scalar_metadata_envelope(
     }
     names = Int::max(names, @schema.field_reference_name_bytes(schema))
   }
-  if names < 0 || names > 1000000 {
+  if names < 0 {
     return None
   }
   let f = fields.to_int64()
@@ -57,7 +57,7 @@ fn client_local_scalar_metadata_envelope(
       bridge_slots + completion_slots + export_slots + dispatch_slots
     ) *
     256L +
-    schema_bytes * 8L
+    schema_bytes * 8L + client_local_cleanup_retained_bytes()
   if retained < 0L || retained > client_local_retained_byte_ceiling() {
     None
   } else {
@@ -75,8 +75,8 @@ fn client_local_result_metadata_retained(
   max_rows : Int,
   schema_bytes : Int,
 ) -> Int64? {
-  if max_rows < 1 || max_rows > 20000 || schema_bytes < 0 || schema_bytes > 1000000 { return None }
+  if max_rows < 1 || schema_bytes < 0 { return None }
   let slots=24L*envelope.fields.to_int64()+2L*max_rows.to_int64()+envelope.order_terms.to_int64()+64L
-  let bytes=slots*256L+8L*schema_bytes.to_int64()
+  let bytes=slots*256L+8L*schema_bytes.to_int64()+client_local_cleanup_retained_bytes()
   if bytes < 0L || bytes > client_local_retained_byte_ceiling() {None} else {Some(bytes)}
 }

@@ -50,7 +50,7 @@ test "capacity plan quote funds metadata and narrows only scalar wire" {
     ).unwrap()
     let sequences = prepare_client_local_sequences_owned(
       Pure(prepared),
-      assets.registry,
+      prepare_installed_sequence_contracts(assets.registry,assets.values,Some(assets.fragment),assets.ordered).unwrap(),
       assets.values,
       Some(assets.fragment),
       assets.ordered,
@@ -78,6 +78,18 @@ test "capacity plan quote funds metadata and narrows only scalar wire" {
       graph=Some(graph),
     )
     assert_true(client_local_capacity_plan_matches(plan, sequences, max_rows))
+    let general=client_local_capacity_plan(sequences,max_rows,scalar_values=false,graph=Some(graph))
+    assert_eq(general.metadata_retained_bytes,client_local_cleanup_retained_bytes())
+    assert_eq(general.metadata.retained_bytes,general.metadata_retained_bytes)
+    assert_true(client_local_capacity_plan_matches(general,sequences,max_rows))
+    assert_false(client_local_capacity_plan_matches({..plan,metadata:{..plan.metadata,retained_bytes:0L},metadata_retained_bytes:0L},sequences,max_rows))
+    // A missing or foreign typed demand cannot silently select generic/zero
+    // metadata after the original scalar proof has been established.
+    assert_false(client_local_capacity_plan_matches({..plan,scalar_demand:None},sequences,max_rows))
+    let original_demand=plan.scalar_demand.unwrap()
+    let foreign_inventory={..original_demand.original}
+    let foreign_demand={..original_demand,original:foreign_inventory}
+    assert_false(client_local_capacity_plan_matches({..plan,scalar_demand:Some(foreign_demand)},sequences,max_rows))
     assert_false(
       client_local_capacity_plan_matches(plan, sequences, max_rows + 1),
     )
@@ -135,7 +147,7 @@ test "capacity plan quote funds metadata and narrows only scalar wire" {
     let exported=24*f+2*plan.execution.rows.max_rows+terms+64
     let dispatch=8*p+8*i+64
     let schema_bytes=6*n+96*f+2
-    let expected_metadata=(bridge+completion+exported+dispatch).to_int64()*256L+schema_bytes.to_int64()*8L
+    let expected_metadata=(bridge+completion+exported+dispatch).to_int64()*256L+schema_bytes.to_int64()*8L+client_local_cleanup_retained_bytes()
     assert_eq(plan.metadata_retained_bytes,expected_metadata)
     println("METADATA_PROOF name=\{name} F=\{f} N=\{n} P=\{p} B=\{b} I=\{i} R=\{plan.execution.rows.max_rows} O=\{terms} bridge=\{bridge} completion=\{completion} export=\{exported} dispatch=\{dispatch} schema_bytes=\{schema_bytes}")
 
@@ -160,7 +172,7 @@ test "capacity plan quote funds metadata and narrows only scalar wire" {
       ports.to_int64() * import_bytes
     let accepted = source_free_installed_managed_preparation_owned(
         Pure(prepared),
-        assets.registry,
+        prepare_installed_sequence_contracts(assets.registry,assets.values,Some(assets.fragment),assets.ordered).unwrap(),
         assets.values,
         Some(assets.fragment),
         assets.ordered,
@@ -202,7 +214,7 @@ test "capacity plan derives task inventory from charged graph work beyond thirty
     let prepared=ordinary.unwrap()
     assert_eq(@publication_host.prepared_client_values_max_rows(prepared),100)
     let tasks=@strategy.graph_task_count(@publication_host.prepared_client_graph(prepared))
-    let sequences=prepare_client_local_sequences_owned(Pure(prepared),assets.registry,assets.values,Some(assets.fragment),assets.ordered).unwrap()
+    let sequences=prepare_client_local_sequences_owned(Pure(prepared),prepare_installed_sequence_contracts(assets.registry,assets.values,Some(assets.fragment),assets.ordered).unwrap(),assets.values,Some(assets.fragment),assets.ordered).unwrap()
     let inventory=client_local_schema_proof_inventory(sequences,graph=Some(@publication_host.prepared_client_graph(prepared))).unwrap()
     assert_eq(inventory.original_count,tasks)
     assert_eq(inventory.closed_rows,Some(terms))
@@ -221,7 +233,7 @@ test "capacity plan derives task inventory from charged graph work beyond thirty
     assert_true(client_local_schema_proof_inventory(sequences,max_work=inventory.work_used-1) is None)
     println("PROOF_INVENTORY tasks=\{tasks} original_owners=\{inventory.owner_count} work=\{inventory.work_used}")
 
-    let admitted=source_free_installed_managed_preparation_owned(Pure(prepared),assets.registry,assets.values,Some(assets.fragment),assets.ordered,false) is Some(_)
+    let admitted=source_free_installed_managed_preparation_owned(Pure(prepared),prepare_installed_sequence_contracts(assets.registry,assets.values,Some(assets.fragment),assets.ordered).unwrap(),assets.values,Some(assets.fragment),assets.ordered,false) is Some(_)
     assert_eq(tasks,4*terms+1)
     assert_true(admitted)
     println("TASK_BOUNDARY terms=\{terms} tasks=\{tasks} admitted=\{admitted}")

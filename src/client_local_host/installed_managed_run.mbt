@@ -28,6 +28,7 @@ struct ClientInstalledManagedRun {
   mut keyed : ClientInstalledManagedKeyedPreparation?
   keyed_reads : Array[ClientInstalledKeyedSourceRead]
   mut source_free_preparation : ClientInstalledManagedSourceFreePreparation?
+  mut preparation_retirement : ClientManagedPreparationRetirement?
 }
 
 ///|
@@ -35,7 +36,7 @@ struct ClientInstalledManagedRun {
 /// Run. The generated originals serve both the quote and actual Host setup.
 struct ClientInstalledManagedSourceFreePreparation {
   owner : ClientLocalSequenceOwner
-  registry_body : String
+  installed_contracts : ClientInstalledSequenceContracts
   values_body : String
   fragment_body : String?
   ordered_body : String?
@@ -122,21 +123,21 @@ fn installed_managed_owner_shape_supported(
 /// This is demand only; it neither constructs a Ledger nor supplies admission.
 fn source_free_installed_managed_limits_owned(
   owner : ClientLocalSequenceOwner,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
   mock_model : Bool,
 ) -> @resources.LedgerLimits? {
   source_free_installed_managed_preparation_owned(
-    owner, registry_body, values_body, fragment_body, ordered_body, mock_model,
+    owner, installed_contracts, values_body, fragment_body, ordered_body, mock_model,
   ).map(value => value.limits)
 }
 
 ///|
 fn source_free_installed_managed_preparation_owned(
   owner : ClientLocalSequenceOwner,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -153,7 +154,7 @@ fn source_free_installed_managed_preparation_owned(
     return None
   }
   guard prepare_client_local_sequences_owned(
-      owner, registry_body, values_body, fragment_body, ordered_body,
+      owner, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Some(sequences) &&
     sequences.length() == task_count else {
@@ -197,7 +198,7 @@ fn source_free_installed_managed_preparation_owned(
   }
   Some({
     owner,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -210,9 +211,9 @@ fn source_free_installed_managed_preparation_owned(
 }
 
 ///|
-pub fn prepare_installed_managed_source_free(
+pub fn prepare_installed_managed_source_free_with_contracts(
   prepared : @publication_host.PreparedClientProgram,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -223,7 +224,7 @@ pub fn prepare_installed_managed_source_free(
   match
     source_free_installed_managed_preparation_owned(
       Pure(prepared),
-      registry_body,
+      installed_contracts,
       values_body,
       fragment_body,
       ordered_body,
@@ -255,7 +256,7 @@ pub fn prepared_installed_managed_source_free_requirements(
 fn installed_source_free_preparation_matches(
   value : ClientInstalledManagedSourceFreePreparation,
   owner : ClientLocalSequenceOwner,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -266,7 +267,7 @@ fn installed_source_free_preparation_matches(
     _ => false
   }
   same_owner &&
-  value.registry_body == registry_body &&
+  physical_equal(value.installed_contracts, installed_contracts) &&
   value.values_body == values_body &&
   value.fragment_body == fragment_body &&
   value.ordered_body == ordered_body
@@ -305,7 +306,7 @@ pub fn installed_managed_run_requirements(
   evidence_contract_body : String,
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -317,7 +318,7 @@ pub fn installed_managed_run_requirements(
     evidence_contract_body,
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -335,7 +336,7 @@ pub fn installed_mock_model_run_requirements(
   evidence_contract_body : String,
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -347,7 +348,7 @@ pub fn installed_mock_model_run_requirements(
     evidence_contract_body,
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -363,7 +364,7 @@ fn installed_managed_run_requirements_owned(
   evidence_contract_body : String,
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -379,7 +380,7 @@ fn installed_managed_run_requirements_owned(
       return Err(Unsupported)
     }
     guard source_free_installed_managed_limits_owned(
-        owner, registry_body, values_body, fragment_body, ordered_body, mock_model,
+        owner, installed_contracts, values_body, fragment_body, ordered_body, mock_model,
       )
       is Some(limits) else {
       return Err(Unsupported)
@@ -402,7 +403,7 @@ fn installed_managed_run_requirements_owned(
   let capacities = []
   for index in 0..<captured {
     guard prepare_local_query_requirement_owned(
-        owner, index, 0, registry_body, values_body, fragment_body, ordered_body,
+        owner, index, 0, installed_contracts, values_body, fragment_body, ordered_body,
       )
       is Ok(requirement) &&
       @row_source_host.prepare_row_acquisition(
@@ -418,7 +419,7 @@ fn installed_managed_run_requirements_owned(
     capacities.push(capacity)
   }
   guard multi_captured_installed_limits_owned(
-      owner, capacities, transport_bytes, transport_execution_bytes, registry_body,
+      owner, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
       values_body, fragment_body, ordered_body,
     )
     is Some(limits) else {
@@ -534,6 +535,7 @@ fn new_installed_managed_run_owned(
     keyed: None,
     keyed_reads: [],
     source_free_preparation: None,
+    preparation_retirement: None,
   }
   value.original = Some(value)
   value
@@ -698,7 +700,7 @@ pub fn prepare_installed_managed_run_ledger(
   capacities : Array[ClientInstalledCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -708,7 +710,7 @@ pub fn prepare_installed_managed_run_ledger(
     Ok(_) => ()
   }
   prepare_installed_managed_run_ledger_owned(
-    value, capacities, transport_bytes, transport_execution_bytes, registry_body,
+    value, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
     values_body, fragment_body, ordered_body,
   )
 }
@@ -719,7 +721,7 @@ fn prepare_installed_managed_run_ledger_owned(
   capacities : Array[ClientInstalledCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -746,7 +748,7 @@ fn prepare_installed_managed_run_ledger_owned(
       capacities[0],
       transport_bytes[0],
       transport_execution_bytes[0],
-      registry_body,
+      installed_contracts,
       values_body,
       fragment_body,
       ordered_body,
@@ -760,7 +762,7 @@ fn prepare_installed_managed_run_ledger_owned(
     match value.source_free_preparation {
       Some(original) => {
         if !installed_source_free_preparation_matches(
-            original, owner, registry_body, values_body, fragment_body, ordered_body,
+            original, owner, installed_contracts, values_body, fragment_body, ordered_body,
           ) {
           return Err(ForeignOriginal)
         }
@@ -769,7 +771,7 @@ fn prepare_installed_managed_run_ledger_owned(
       None =>
         source_free_installed_managed_limits_owned(
           owner,
-          registry_body,
+          installed_contracts,
           values_body,
           fragment_body,
           ordered_body,
@@ -778,7 +780,7 @@ fn prepare_installed_managed_run_ledger_owned(
     }
   } else {
     multi_captured_installed_limits_owned(
-      owner, capacities, transport_bytes, transport_execution_bytes, registry_body,
+      owner, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
       values_body, fragment_body, ordered_body,
     )
   }
@@ -818,7 +820,7 @@ pub fn open_installed_managed_source_free_host(
   value : ClientInstalledManagedRun,
   prepared : @publication_host.PreparedClientProgram,
   request : @publication_host.ClientRequestIdentity,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -842,7 +844,7 @@ pub fn open_installed_managed_source_free_host(
   if value.source_free_preparation is None {
     guard source_free_installed_managed_preparation_owned(
         Pure(prepared),
-        registry_body,
+        installed_contracts,
         values_body,
         fragment_body,
         ordered_body,
@@ -861,7 +863,7 @@ pub fn open_installed_managed_source_free_host(
       [],
       [],
       [],
-      registry_body,
+      installed_contracts,
       values_body,
       fragment_body,
       ordered_body,
@@ -873,7 +875,7 @@ pub fn open_installed_managed_source_free_host(
     open_checked_local_host(
       prepared,
       None,
-      registry_body,
+      installed_contracts,
       values_body,
       1L,
       0L,
@@ -911,6 +913,9 @@ pub fn retire_installed_managed_run(
     if !read.retired {
       return Err(CleanupPending)
     }
+  }
+  if value.preparation_retirement is Some(original) {
+    return retire_preparation_owned_installed_run(value, original)
   }
   // Use the original admission's complete cleanup path too. It retains an
   // early read bootstrap when later Scope construction did not return a view;

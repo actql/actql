@@ -1034,7 +1034,7 @@
     },
     {
       "module": "adapters/host-node/captured-duckdb-source.mjs",
-      "sha256": "2964f7d4be3dec0b91d00107c03580bcb0577442c6b101ee18e782d763ec3c11",
+      "sha256": "4de0c786a6224f74858d8686dbdc055cb2895d1836818db23b1d9912552677d7",
       "exports": [
         "capturedDuckDBConfiguration",
         "capturedDuckDBNativeConfiguration",
@@ -1343,7 +1343,7 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
-      "sha256": "4005a717dd05656075c6c0c49ce1a4b5cdb70c4a147a27747908537433640939",
+      "sha256": "30b365d029d8789d7eee65735d8b35e651a7268d06edee7f76b2665b56e3ac24",
       "exports": [
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
@@ -1381,6 +1381,20 @@
             "facts"
           ],
           "async": true
+        },
+        {
+          "name": "dispatchFailureSnapshot",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "dispatchFailureSnapshot/text/text",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         },
         {
           "name": "installNodeClientDispatchOwner",
@@ -1917,6 +1931,25 @@
             "moon",
             "control",
             "outcome"
+          ],
+          "async": false
+        },
+        {
+          "name": "releaseDispatchPreparationHost",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainDispatchPreparationHost",
+          "parameters": [
+            "entry",
+            "moon",
+            "managedRun",
+            "prepared",
+            "request",
+            "hasCustody"
           ],
           "async": false
         }
@@ -2468,6 +2501,113 @@
               {
                 "path": "adapters/host-node/client-preparation-custody-public.test.mjs",
                 "anchor": "test('retired Pure preparation preserves saved plan and original lookup after reopen', async () => {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "dispatchFailureSnapshot",
+            "dispatchFailureSnapshot/text/text",
+            "releaseDispatchPreparationHost",
+            "retainDispatchPreparationHost"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retainDispatchPreparationHost("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retainDispatchPreparationHost("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retainDispatchPreparationHost("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retainDispatchPreparationHost("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retainDispatchPreparationHost("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retainDispatchPreparationHost("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retainDispatchPreparationHost("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retainDispatchPreparationHost("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retainDispatchPreparationHost("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/preparation-host-custody.test.mjs",
+                "anchor": "Host holder uses exact original and returns once after clearing local aliases"
               }
             ]
           }
@@ -4623,7 +4763,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "016f0a0f9a28f1d97a8b13b94542bb1cedb52f746a378fd30c33bc3387bdccf8",
+      "sha256": "73836e87310c3b7af065ca23a78acf44866c64ae77c706c47f7f6998f7999230",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -4641,6 +4781,7 @@
         "openOriginalHostRequestJournal",
         "originalSourceManagedHostRequest",
         "prepareInstalledMockSourcePreparation",
+        "prepareInstalledSequenceContractOriginal",
         "prepareOriginalHostPublicationOwnership",
         "publishInstalledEffect",
         "publishInstalledSource",
@@ -4653,10 +4794,13 @@
         "readInstalledProjectSourcePreparation",
         "readLocalContentRunRequirements",
         "readLocalMockModelRunRequirements",
+        "readLocalPreparationContext",
+        "readLocalPreparationResourceRequirements",
         "readManagedComputeRunRequirements",
         "readSourceManagedEffectRunRequirements",
         "readSourceManagedOriginalInput",
         "readSourceManagedRunRequirements",
+        "retireSourceManagedInitialPreparation",
         "snapshotInitialControlHostInput",
         "sourceManagedSubmittedIntentCid"
       ],
@@ -4781,8 +4925,24 @@
           "async": false
         },
         {
+          "name": "connectEmbeddedLocal/preparation/init:borrowManagedPreparation/init:borrowManagedPreparation",
+          "parameters": [
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
           "name": "connectEmbeddedLocal/preparation/init:canRetireManagedPreparation/init:canRetireManagedPreparation",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:fundedPreparation/init:fundedPreparation",
+          "parameters": [
+            "request",
+            "environment"
+          ],
           "async": false
         },
         {
@@ -5064,6 +5224,11 @@
           "async": false
         },
         {
+          "name": "connectEmbeddedLocal/preparation/init:readSequenceContracts/init:readSequenceContracts",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "connectEmbeddedLocal/preparation/init:requestPreparation/init:requestPreparation",
           "parameters": [],
           "async": false
@@ -5090,6 +5255,14 @@
           "async": false
         },
         {
+          "name": "connectEmbeddedLocal/preparation/init:retainUndispatchedRetirement/init:retainUndispatchedRetirement",
+          "parameters": [
+            "original",
+            "initial"
+          ],
+          "async": false
+        },
+        {
           "name": "connectEmbeddedLocal/preparation/init:retireManagedComputeRun/init:retireManagedComputeRun",
           "parameters": [
             "prepared"
@@ -5099,6 +5272,13 @@
         {
           "name": "connectEmbeddedLocal/preparation/init:sourcePreparation/init:sourcePreparation",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:submittedIntentOriginal/init:submittedIntentOriginal",
+          "parameters": [
+            "request"
+          ],
           "async": false
         },
         {
@@ -5174,8 +5354,22 @@
           "parameters": [
             "originals",
             "originalComputeInstallation",
-            "body"
+            "body",
+            "preparationOwner"
           ],
+          "async": false
+        },
+        {
+          "name": "managedPreparationRetirementContinuation",
+          "parameters": [
+            "run",
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "managedPreparationRetirementContinuation/managedPreparationRetirementContinuation",
+          "parameters": [],
           "async": false
         },
         {
@@ -5965,6 +6159,14 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/localPreparationCustody/localPreparationCustody#3",
+          "parameters": [
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupCancellation/lookupCancellation",
           "parameters": [
             "ref",
@@ -6188,6 +6390,14 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit",
+          "parameters": [
+            "request",
+            "selectedEnvironment"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit#2",
           "parameters": [
             "original",
             "definition",
@@ -6493,6 +6703,13 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#2",
           "parameters": [
             "value"
           ],
@@ -7131,6 +7348,13 @@
           "async": true
         },
         {
+          "name": "prepareInstalledSequenceContractOriginal",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
           "name": "publicKeyCid/publicKeyCid",
           "parameters": [
             "value"
@@ -7271,6 +7495,34 @@
           "async": false
         },
         {
+          "name": "readLocalPreparationContext",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "readLocalPreparationResourceRequirements",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "readLocalPreparationResourceRequirements/readLocalPreparationResourceRequirements",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readLocalPreparationResourceRequirements/readLocalPreparationResourceRequirements#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "readManagedComputeRunRequirements",
           "parameters": [
             "originals",
@@ -7356,6 +7608,14 @@
           "name": "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned#2",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "retireSourceManagedInitialPreparation",
+          "parameters": [
+            "originals",
+            "prepared"
           ],
           "async": false
         },
@@ -8179,7 +8439,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
+                "anchor": "max_bytes > 2147483519"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -9340,8 +9600,8 @@
                 "anchor": "For an ordinary source-free Compute Run, the existing Host Run record retains"
               },
               {
-                "path": "docs/design/reference-host.md",
-                "anchor": "The installation's immutable AoA projection has a different lifetime from a"
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Installed contract originals contain validated immutable contract data."
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -9359,7 +9619,7 @@
               },
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
-                "anchor": "pub fn prepare_installed_managed_source_free("
+                "anchor": "pub fn prepare_installed_managed_source_free_with_contracts("
               },
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
@@ -9428,8 +9688,8 @@
                 "anchor": "run.admission = checked(Reflect.apply(run.prepare, runtime, [run.original, prepared]));"
               },
               {
-                "path": "docs/design/reference-host.md",
-                "anchor": "control, remain while child cleanup is pending, and are cut by the existing"
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Installed contract originals contain validated immutable contract data."
               }
             ],
             "failure": [
@@ -9520,8 +9780,8 @@
                 "anchor": "permission. It remains bound to the original checked Program and exact contract"
               },
               {
-                "path": "docs/design/reference-host.md",
-                "anchor": "successful Host reference retirement. A new Host has its own installation bag."
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Installed contract originals contain validated immutable contract data."
               }
             ],
             "verification": [
@@ -11273,10 +11533,133 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:borrowManagedPreparation/init:borrowManagedPreparation",
+            "connectEmbeddedLocal/preparation/init:fundedPreparation/init:fundedPreparation",
+            "connectEmbeddedLocal/preparation/init:readSequenceContracts/init:readSequenceContracts",
+            "connectEmbeddedLocal/preparation/init:retainUndispatchedRetirement/init:retainUndispatchedRetirement",
+            "connectEmbeddedLocal/preparation/init:submittedIntentOriginal/init:submittedIntentOriginal",
+            "managedPreparationRetirementContinuation",
+            "managedPreparationRetirementContinuation/managedPreparationRetirementContinuation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/localPreparationCustody/localPreparationCustody#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#2",
+            "prepareInstalledSequenceContractOriginal",
+            "readLocalPreparationContext",
+            "readLocalPreparationResourceRequirements",
+            "readLocalPreparationResourceRequirements/readLocalPreparationResourceRequirements",
+            "readLocalPreparationResourceRequirements/readLocalPreparationResourceRequirements#2",
+            "retireSourceManagedInitialPreparation"
+          ],
+          "exports": [
+            "prepareInstalledSequenceContractOriginal",
+            "readLocalPreparationContext",
+            "readLocalPreparationResourceRequirements",
+            "retireSourceManagedInitialPreparation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function readLocalPreparationContext("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function readLocalPreparationContext("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function readLocalPreparationContext("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function readLocalPreparationContext("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function readLocalPreparationContext("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function readLocalPreparationContext("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function readLocalPreparationContext("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function readLocalPreparationContext("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function readLocalPreparationContext("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/preparation-initial-failure-public.test.mjs",
+                "anchor": "Ready initial preparations retire before Run adoption after Result refusal"
+              }
+            ]
+          }
         }
       ],
       "imports": [
-        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../_build/native/directory-darwin-arm64.node",
         "../../_build/native/directory-darwin-x64.node",
         "../../packages/client-wire/index.mjs",
@@ -11320,6 +11703,7 @@
         "./client-run-plan.mjs",
         "./client-run-start.mjs",
         "./client-submission.mjs",
+        "./closed-values-preparation-adapter.mjs",
         "./effect-run-recovery.mjs",
         "./effect-target-read-continuation.mjs",
         "./effect-target-read-inventory.mjs",
@@ -11355,6 +11739,7 @@
         "./local-account-config.mjs",
         "./local-checkpoint-answer.mjs",
         "./local-continuation-evidence.mjs",
+        "./local-preparation-registry.mjs",
         "./local-result-authorization.mjs",
         "./local-values-plan.mjs",
         "./node-host-journal-installation.mjs",
@@ -11379,7 +11764,9 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [],
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
+      ],
       "referenceQualification": "Existing Host/Source/Resource and compiler-binding responsibilities only. Declaration coverage and explicit-port tests do not issue capacity, authority, cleanup ACK or installed acceptance."
     },
     {
@@ -12181,7 +12568,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "121b56e247e5fd97b21a9dbf8d3469d3d64004df5255cfac62efc0af87150434",
+      "sha256": "249098cc93f80593260a202ee0efb686f1b4bb6495e8bc09c2c31b690cabc977",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -13334,6 +13721,7 @@
       ],
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
+        "../host-common/result-output-limits.mjs",
         "../host-common/runtime-result.mjs",
         "./local-values-capacity.mjs",
         "./query-evaluation-clock.mjs",

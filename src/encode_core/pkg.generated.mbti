@@ -68,6 +68,8 @@ pub fn finish_measurement_usage(Writer) -> (Int, Int, Int) raise EncodeFailure
 
 pub fn finish_text_usage(Writer) -> (String, Int, Int, Int) raise EncodeFailure
 
+pub fn hash_writer_construction_inventory(Int, Int) -> HashWriterConstructionInventory?
+
 pub fn hashing_writer(Int, Int, Int) -> Writer raise EncodeFailure
 
 pub fn key(Writer, String) -> Unit raise EncodeFailure
@@ -103,6 +105,14 @@ pub(all) suberror EncodeFailure {
 
 // Types and methods
 type EncodedDocument
+
+pub(all) struct HashWriterConstructionInventory {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+  owned_wire_bytes : Int64
+} derive(Eq, @debug.Debug)
 
 type OrderedKeyEmitCursor
 

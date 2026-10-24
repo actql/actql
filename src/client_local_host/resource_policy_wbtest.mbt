@@ -8,6 +8,12 @@ test "Local materialized row default is a necessary bound from the original byte
   assert_true((rows.to_int64()+1L)*unit>policy.retained_bytes)
   assert_eq(rows,2097152)
   assert_eq(client_local_joint_byte_ceiling(),536870912L)
-  let foreign : ClientLocalResourcePolicy={retained_bytes:policy.retained_bytes,execution_bytes:policy.execution_bytes}
+  // Equal current policy fields are still a foreign allocation, not authority.
+  let foreign : ClientLocalResourcePolicy={
+    retained_bytes:policy.retained_bytes,execution_bytes:policy.execution_bytes,
+    dispatch_planning_work:policy.dispatch_planning_work,
+    graph_work:policy.graph_work,relation_wire_bytes:policy.relation_wire_bytes,
+  }
+  assert_false(physical_equal(policy,foreign))
   assert_true(client_local_materialized_row_ceiling(foreign) is None)
 }

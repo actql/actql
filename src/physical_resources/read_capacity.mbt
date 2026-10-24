@@ -145,3 +145,36 @@ pub fn settle_capacity(
 ) -> Result[Unit, LedgerIssue] {
   settle_reservation(ledger, reservation.reservation)
 }
+
+///|
+/// The sole byte-vector mutation for an original byte-only capacity token. Callers
+/// prove consumer-specific growth or disposal; all capacity checks occur before
+/// any mutation. This is not a grant and cannot change Ledger identity.
+fn resize_capacity_reservation(
+  ledger : Ledger,capacity : CapacityReservation,retained : Int64,execution : Int64,
+) -> Result[Unit,LedgerIssue] {
+  let token=capacity.reservation
+  if retained<0L || execution<0L {return Err(InvalidCharge)}
+  match reservation_check(ledger,token) {Err(issue)=>return Err(issue);Ok(_)=>()}
+  if token.transfer!=0L || token.quantities is Some(_) || token.uncertain_quantities is Some(_) || token.cleanup_pending {return Err(InvalidCharge)}
+  let usage=ledger.usage
+  let retained_delta=retained-token.retention
+  let execution_delta=execution-token.execution
+  // Original stopping permits disposal, never new allocation. The preceding
+  // reservation check has refreshed currentness and may have latched stopping.
+  if (retained_delta>0L || execution_delta>0L) &&
+    ledger.imported_child is Some(origin) && origin.stopping {
+    return Err(ClosedReservation)
+  }
+  if retained_delta>ledger.limits.retained_bytes-usage.held_bytes-usage.reserved_retention_bytes {return Err(RetentionLimit)}
+  if execution_delta>ledger.limits.execution_bytes-usage.reserved_execution_bytes {return Err(ExecutionLimit)}
+  ledger.usage={..usage,
+    reserved_retention_bytes:usage.reserved_retention_bytes+retained_delta,
+    reserved_execution_bytes:usage.reserved_execution_bytes+execution_delta,
+    peak_retention_bytes:Int64::max(usage.peak_retention_bytes,usage.held_bytes+usage.reserved_retention_bytes+retained_delta),
+  }
+  token.retention=retained
+  token.execution=execution
+  Ok(())
+}
+

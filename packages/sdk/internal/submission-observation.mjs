@@ -19,6 +19,21 @@ import {clientSourceFormats, snapshotClientRequest, validClientAdmission, validO
 // Original request data is available only through explicit SDK access, never
 // by serializing an error or Run handle. It does not establish acceptance.
 const submissionInputs = new WeakMap();
+// A private receipt records publication of an immutable caller-facing value.
+// It owns no Host, Ledger, Prepared, or destination Promise reference. Host
+// aliases remain separately funded until their actual retirement.
+const snapshotPublications = new WeakMap();
+export function matchesPublishedSubmissionSnapshot(receipt, body) {
+  return snapshotPublications.get(receipt)?.body === body && body !== undefined;
+}
+const publishSnapshot = (destination, body) => {
+  const snapshot = submissionInputs.get(destination);
+  if (snapshot === undefined || snapshot.input !== body.input ||
+      snapshot.submissionRef !== body.submissionRef) return undefined;
+  const receipt = Object.freeze({});
+  snapshotPublications.set(receipt, {body, snapshot});
+  return receipt;
+};
 
 const submissionOutcomes = new WeakMap();
 
@@ -187,11 +202,14 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       // Synchronous admission precedes the first SDK capture, option getter,
       // serialization, hash or Promise workspace of this submitted original.
       const receipt = acquire === undefined
-        ? sourcePreparation.beforeSourceSnapshot(kind, originalInput, originalOptions)
+        ? sourcePreparation.beforeSourceSnapshot(kind, originalInput, originalOptions, selected.wire)
         : acquire();
       producer = {receipt, body: undefined};
     } catch (cause) {return Promise.reject(cause);}
     const finish = (terminal, primary, originalResult) => {
+      // The caller-facing snapshot has its own SDK value association. This
+      // private producer keeps only its original cleanup receipt from now on.
+      producer.body = undefined;
       try {sourcePreparation.finishSourceProducer(producer.receipt, terminal);}
       catch (cause) {
         // Reuse this connection's existing cleanup owner. A retry cuts only
@@ -215,6 +233,18 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       return result;
     }, cause => {throw finish('failed', cause);});
     retainQueryResult(original, pending);
+    if (producer.body !== undefined) {
+      const publication = publishSnapshot(pending, producer.body);
+      if (publication !== undefined) {
+        try {sourcePreparation.publishSourceSnapshot(producer.receipt, producer.body, publication);}
+        catch (cause) {
+          retainQueryResult(pending, cause);
+          const failed = pending.then(() => {throw cause;}, () => {throw cause;});
+          retainQueryResult(pending, failed);
+          return failed;
+        }
+      }
+    }
     return pending;
   };
   const submitIntent = (kind, input, options, sourceProducer, requestName) => {

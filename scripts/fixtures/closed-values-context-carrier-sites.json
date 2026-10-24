@@ -1,0 +1,616 @@
+{
+  "status": "conservative transient carrier upper, not measured ownership or complete phase",
+  "precondition": "one stage, one Values, no nested expression/producer; generic recursive tree walks separately priced",
+  "rows": [
+    {
+      "path": "src/capacity_host_witness/witness.mbt",
+      "sites": 74,
+      "payload_slots_upper": 121,
+      "live_multiplier": 1,
+      "max_slots": 7,
+      "source_sha256": "a2399963669a8f97d93d8fed65c58f37d8946772925f3de1b6387676ff2ecedc"
+    },
+    {
+      "path": "src/capacity_witness/constructed_limit.mbt",
+      "sites": 80,
+      "payload_slots_upper": 160,
+      "live_multiplier": 1,
+      "max_slots": 7,
+      "source_sha256": "dd55fba2b748affc43c2ee4b5fddea219f9856f16b794fd515545e3fe134e4f3"
+    },
+    {
+      "path": "src/capacity_witness/host_source.mbt",
+      "sites": 82,
+      "payload_slots_upper": 152,
+      "live_multiplier": 1,
+      "max_slots": 11,
+      "source_sha256": "0b35d5c0baa346b4bbf9e9c6b4d885fa67a068cfd616ba6e04180e1ca743df1b"
+    },
+    {
+      "path": "src/capacity_witness/program_proof.mbt",
+      "sites": 75,
+      "payload_slots_upper": 133,
+      "live_multiplier": 1,
+      "max_slots": 9,
+      "source_sha256": "14d8bebc1198b995e1749115555730adb60368318d4c23562d37d95e987df62f"
+    },
+    {
+      "path": "src/capacity_witness/witness.mbt",
+      "sites": 260,
+      "payload_slots_upper": 446,
+      "live_multiplier": 5,
+      "max_slots": 11,
+      "source_sha256": "2a1aa130be261ee2507c5560c0b9d17dbeacf8e5c382d2d1bf4c6ac0335f0f53"
+    },
+    {
+      "path": "src/pipeline_check_context/analytic_numeric_slots.mbt",
+      "sites": 50,
+      "payload_slots_upper": 73,
+      "live_multiplier": 1,
+      "max_slots": 9,
+      "source_sha256": "f3a659a6038ff23ce0c4bc3e4aad72779426d9df5bb33cf25c7ae72d1eb980ed"
+    },
+    {
+      "path": "src/pipeline_check_context/check.mbt",
+      "sites": 73,
+      "payload_slots_upper": 175,
+      "live_multiplier": 1,
+      "max_slots": 9,
+      "source_sha256": "72ae6e759bfe47add2ead3d2352830bcc6c77f0315781f260b0645680177e4e5"
+    },
+    {
+      "path": "src/pipeline_check_context/direct_execution.mbt",
+      "sites": 96,
+      "payload_slots_upper": 124,
+      "live_multiplier": 1,
+      "max_slots": 7,
+      "source_sha256": "266890c30852e63f1c7fa46610a8a98f76d300d563fed8fb6f5cdd908139d4ae"
+    },
+    {
+      "path": "src/pipeline_check_context/expression_closure.mbt",
+      "sites": 49,
+      "payload_slots_upper": 69,
+      "live_multiplier": 1,
+      "max_slots": 4,
+      "source_sha256": "7e43cb1249962a900f01a0d944c53b4406c9b1a5024962ca411a83fcecc86540"
+    },
+    {
+      "path": "src/pipeline_check_context/expression_profiles.mbt",
+      "sites": 26,
+      "payload_slots_upper": 41,
+      "live_multiplier": 1,
+      "max_slots": 5,
+      "source_sha256": "9703720d7d50fa7aa52ba5293a7e14dda6d3d8e92ac7ab8fc3471a1aea973a10"
+    },
+    {
+      "path": "src/pipeline_check_context/expression_validation.mbt",
+      "sites": 48,
+      "payload_slots_upper": 86,
+      "live_multiplier": 1,
+      "max_slots": 10,
+      "source_sha256": "6483178ddff4ab898b1f9251ebca4ee602cac60f8894e7c401191fea8f167482"
+    },
+    {
+      "path": "src/pipeline_check_context/expressions.mbt",
+      "sites": 33,
+      "payload_slots_upper": 55,
+      "live_multiplier": 1,
+      "max_slots": 8,
+      "source_sha256": "a0e692498615ebe051dff13402d98b86d142bb521be60cf7e6bba76d974448c6"
+    },
+    {
+      "path": "src/pipeline_check_context/incoming_closure.mbt",
+      "sites": 44,
+      "payload_slots_upper": 63,
+      "live_multiplier": 1,
+      "max_slots": 4,
+      "source_sha256": "70c96962250c47cfc5364334f19f0056f42c855b0c3e0326ca0a6e7d4b218e4c"
+    },
+    {
+      "path": "src/pipeline_check_context/incoming_gates.mbt",
+      "sites": 34,
+      "payload_slots_upper": 66,
+      "live_multiplier": 1,
+      "max_slots": 7,
+      "source_sha256": "fcb9845143d04b71ec4d368f27633e85c6d5ddb7290f6228abfa47d3a1842c51"
+    },
+    {
+      "path": "src/pipeline_check_context/incoming_links.mbt",
+      "sites": 38,
+      "payload_slots_upper": 66,
+      "live_multiplier": 1,
+      "max_slots": 6,
+      "source_sha256": "2368eac1a02e0ee0daeaec018dab64bd8c9adc7677181bad086181dad1d4e78b"
+    },
+    {
+      "path": "src/pipeline_check_context/inputs.mbt",
+      "sites": 33,
+      "payload_slots_upper": 50,
+      "live_multiplier": 1,
+      "max_slots": 7,
+      "source_sha256": "74740bfabbbb1b0b03db215e9041609f010449a0816e37a51165f26a661d1a64"
+    },
+    {
+      "path": "src/pipeline_check_context/local_input_closure.mbt",
+      "sites": 46,
+      "payload_slots_upper": 70,
+      "live_multiplier": 1,
+      "max_slots": 5,
+      "source_sha256": "d3f39a5d763b65a45f40fc5460777541a91ae4c912557b7a93b7bca7c117342a"
+    },
+    {
+      "path": "src/pipeline_check_context/numeric_slots.mbt",
+      "sites": 59,
+      "payload_slots_upper": 82,
+      "live_multiplier": 1,
+      "max_slots": 8,
+      "source_sha256": "7bf1d20e4e361cf01659622393e6bce680e659f3c99b16b16462ed7369aed30e"
+    },
+    {
+      "path": "src/pipeline_check_context/operation_calendar.mbt",
+      "sites": 69,
+      "payload_slots_upper": 106,
+      "live_multiplier": 1,
+      "max_slots": 6,
+      "source_sha256": "25870754b33dcf4d7daa61f3972ae3b6c0a98dcb98e061b09a9fbb58a06cf224"
+    },
+    {
+      "path": "src/pipeline_check_context/operation_cells.mbt",
+      "sites": 68,
+      "payload_slots_upper": 111,
+      "live_multiplier": 1,
+      "max_slots": 6,
+      "source_sha256": "33782a01055d1fd487ccbf709ebad4a6b4a83886b4806b50abfb62cbf316ca85"
+    },
+    {
+      "path": "src/pipeline_check_context/operation_closure.mbt",
+      "sites": 90,
+      "payload_slots_upper": 102,
+      "live_multiplier": 1,
+      "max_slots": 4,
+      "source_sha256": "76bbc17ed60e7b48fa299340b293deb05fc071c2ac564d3eb324661b3f2f0fb2"
+    },
+    {
+      "path": "src/pipeline_check_context/operation_fills.mbt",
+      "sites": 96,
+      "payload_slots_upper": 150,
+      "live_multiplier": 1,
+      "max_slots": 6,
+      "source_sha256": "3713544b1cf6a1dcbed954b31ac0032e209bcb64df76b03eae8eb27e50db134a"
+    },
+    {
+      "path": "src/pipeline_check_context/operation_frames.mbt",
+      "sites": 81,
+      "payload_slots_upper": 136,
+      "live_multiplier": 1,
+      "max_slots": 8,
+      "source_sha256": "5341183d444a16e8328be77e3a3cf3bdd845a722b0239bc5ada69ec6a329b69a"
+    },
+    {
+      "path": "src/pipeline_check_context/operation_lexical.mbt",
+      "sites": 67,
+      "payload_slots_upper": 107,
+      "live_multiplier": 1,
+      "max_slots": 6,
+      "source_sha256": "a54717aa325c1638d2e1072fcca8040aaeb461f7359d84e2065f1b4720c80ae1"
+    },
+    {
+      "path": "src/pipeline_check_context/operation_orders.mbt",
+      "sites": 89,
+      "payload_slots_upper": 124,
+      "live_multiplier": 1,
+      "max_slots": 4,
+      "source_sha256": "ff46aa6c0466d90a08ff31b797e0106bce323d9724117c5e2066937f6cfdd45c"
+    },
+    {
+      "path": "src/pipeline_check_context/operation_profile_links.mbt",
+      "sites": 54,
+      "payload_slots_upper": 80,
+      "live_multiplier": 1,
+      "max_slots": 6,
+      "source_sha256": "4770d88382c35a0dc84eb7d528bf840cdeccd075ba0bb8ec3d6047c5ca82d485"
+    },
+    {
+      "path": "src/pipeline_check_context/operation_profiles.mbt",
+      "sites": 31,
+      "payload_slots_upper": 59,
+      "live_multiplier": 1,
+      "max_slots": 6,
+      "source_sha256": "fd62a52de51bc97dc3b913a0411f58539e13e40d28e0dfa6f9564fbfd6dd0c36"
+    },
+    {
+      "path": "src/pipeline_check_context/operation_queries.mbt",
+      "sites": 114,
+      "payload_slots_upper": 159,
+      "live_multiplier": 1,
+      "max_slots": 5,
+      "source_sha256": "2cc1fb4a76d805211ac96ca3f6e6fbf2cb4859f5fc45ded46c350585a9521ec3"
+    },
+    {
+      "path": "src/pipeline_check_context/operation_ranges.mbt",
+      "sites": 103,
+      "payload_slots_upper": 153,
+      "live_multiplier": 1,
+      "max_slots": 7,
+      "source_sha256": "40c9a4ec9efc0c31bb16fda41528cee6c0f1dacd7e61b692e6ad83f5347cc750"
+    },
+    {
+      "path": "src/pipeline_check_context/operation_requirements.mbt",
+      "sites": 31,
+      "payload_slots_upper": 57,
+      "live_multiplier": 1,
+      "max_slots": 9,
+      "source_sha256": "0d23588a87225cdd6ed0f54c35f178c7ae6f9d9478fac7a0ca8145afafeaa06e"
+    },
+    {
+      "path": "src/pipeline_check_context/operation_resolution_index.mbt",
+      "sites": 234,
+      "payload_slots_upper": 359,
+      "live_multiplier": 1,
+      "max_slots": 11,
+      "source_sha256": "342c3a198cade296c94212cd9496108319e6fc787eda084249529b7b150b5e6f"
+    },
+    {
+      "path": "src/pipeline_check_context/operation_scalars.mbt",
+      "sites": 108,
+      "payload_slots_upper": 158,
+      "live_multiplier": 1,
+      "max_slots": 5,
+      "source_sha256": "65bb1b2595523c35320836b83c84bfdadba63d84c03f3a1b0946e8335a0aeb29"
+    },
+    {
+      "path": "src/pipeline_check_context/parameters.mbt",
+      "sites": 49,
+      "payload_slots_upper": 78,
+      "live_multiplier": 1,
+      "max_slots": 8,
+      "source_sha256": "2ffcb6fc2d578fd69f9dd591486a1dd3b01b64a801a506a290fb58a82b613b41"
+    },
+    {
+      "path": "src/pipeline_check_context/patterns.mbt",
+      "sites": 95,
+      "payload_slots_upper": 129,
+      "live_multiplier": 1,
+      "max_slots": 8,
+      "source_sha256": "fd59eb8f6d9d8d18f8ba5b7185a67d8828d0eed7278ec2fcaca2e3856d60528e"
+    },
+    {
+      "path": "src/pipeline_check_context/pivot_numeric_slots.mbt",
+      "sites": 81,
+      "payload_slots_upper": 123,
+      "live_multiplier": 1,
+      "max_slots": 7,
+      "source_sha256": "9fecf81f8f55d372c314e9583ca34a58a79e79f569c4b57a44f2e27afddff00a"
+    },
+    {
+      "path": "src/pipeline_check_context/preparation.mbt",
+      "sites": 16,
+      "payload_slots_upper": 38,
+      "live_multiplier": 1,
+      "max_slots": 15,
+      "source_sha256": "89970f33c4b764b0913955596e3be2b595cc3c105e7da1aaaff3b4e7828c60e6"
+    },
+    {
+      "path": "src/pipeline_check_context/program_incoming.mbt",
+      "sites": 126,
+      "payload_slots_upper": 241,
+      "live_multiplier": 1,
+      "max_slots": 6,
+      "source_sha256": "02f383c8ca929975e5c138c6c9a39daf4ca22795045a06d3f62430e4f6cfa451"
+    },
+    {
+      "path": "src/pipeline_check_context/publication_closure.mbt",
+      "sites": 78,
+      "payload_slots_upper": 128,
+      "live_multiplier": 1,
+      "max_slots": 7,
+      "source_sha256": "0a7cd99f3de8ceaaf1c59dca5ad6dc448c8827038a0c9927bdae11d59fc1f488"
+    },
+    {
+      "path": "src/pipeline_check_context/reconciled.mbt",
+      "sites": 105,
+      "payload_slots_upper": 161,
+      "live_multiplier": 1,
+      "max_slots": 11,
+      "source_sha256": "1c547ebe7e8c9d2de355546ec5aaff52cb6bb79dae2d7c1292d254ddbb811371"
+    },
+    {
+      "path": "src/pipeline_check_context/selected_policy.mbt",
+      "sites": 38,
+      "payload_slots_upper": 67,
+      "live_multiplier": 1,
+      "max_slots": 11,
+      "source_sha256": "00df7993bb070de589fa1b09c7152f2e7dc08b16358b4ff620efc6a6551dd54d"
+    },
+    {
+      "path": "src/pipeline_check_context/source_capacity.mbt",
+      "sites": 18,
+      "payload_slots_upper": 32,
+      "live_multiplier": 1,
+      "max_slots": 5,
+      "source_sha256": "bd8c559ae01d25326b65cf672d228a2d2c749abc25c3645fb9f1c51b624a209f"
+    },
+    {
+      "path": "src/pipeline_check_context/source_contracts.mbt",
+      "sites": 106,
+      "payload_slots_upper": 177,
+      "live_multiplier": 1,
+      "max_slots": 6,
+      "source_sha256": "97a1c6edc1e526c6a2fc25b5194a10510558d36846be8afe7051e7fc93a20db0"
+    },
+    {
+      "path": "src/pipeline_check_context/source_mode_closure.mbt",
+      "sites": 37,
+      "payload_slots_upper": 62,
+      "live_multiplier": 1,
+      "max_slots": 4,
+      "source_sha256": "3f97671aab9f2be4a2001c9fd510eba522df147db391c94df52d6641e4b3fc15"
+    },
+    {
+      "path": "src/pipeline_check_context/source_policy.mbt",
+      "sites": 11,
+      "payload_slots_upper": 19,
+      "live_multiplier": 1,
+      "max_slots": 4,
+      "source_sha256": "6899098698420ad88cbacd311977e1fe867dd4e2dc8297f92b0f0e75ed637271"
+    },
+    {
+      "path": "src/pipeline_check_context/source_producers.mbt",
+      "sites": 35,
+      "payload_slots_upper": 56,
+      "live_multiplier": 1,
+      "max_slots": 5,
+      "source_sha256": "0c28a5348b9c801c26ab65a1e91795357072da55fd2ee45e65f4a0358e837ca6"
+    },
+    {
+      "path": "src/pipeline_check_context/source_requests.mbt",
+      "sites": 97,
+      "payload_slots_upper": 168,
+      "live_multiplier": 1,
+      "max_slots": 14,
+      "source_sha256": "c5043c5370e4fcfec8bf453fb50b97db5c501f21f092f9f2029d8f8a4e184a3a"
+    },
+    {
+      "path": "src/pipeline_check_context/source_rows.mbt",
+      "sites": 75,
+      "payload_slots_upper": 124,
+      "live_multiplier": 1,
+      "max_slots": 5,
+      "source_sha256": "ddbbba62e6b203208620e3b9142d8b1409371e21d18095eff241bae674ed4288"
+    },
+    {
+      "path": "src/pipeline_check_context/stage_requirement_closure.mbt",
+      "sites": 83,
+      "payload_slots_upper": 127,
+      "live_multiplier": 1,
+      "max_slots": 9,
+      "source_sha256": "ddb2255434c080b41168f3c58a462a8a25b666bcb84ec1dc018b252b59ef74f0"
+    },
+    {
+      "path": "src/pipeline_check_context/stages.mbt",
+      "sites": 57,
+      "payload_slots_upper": 87,
+      "live_multiplier": 1,
+      "max_slots": 10,
+      "source_sha256": "fbfef9cb840c2e59bea0a199c8dd523f5621023087a12fb607feef1f16945775"
+    },
+    {
+      "path": "src/pipeline_check_context/text_bounds.mbt",
+      "sites": 226,
+      "payload_slots_upper": 371,
+      "live_multiplier": 1,
+      "max_slots": 8,
+      "source_sha256": "c60cc0d7bad906a10dda051a44f33a3f9ab609db45e3d03be3886b986f5e7188"
+    },
+    {
+      "path": "src/pipeline_check_context/wiring.mbt",
+      "sites": 32,
+      "payload_slots_upper": 50,
+      "live_multiplier": 1,
+      "max_slots": 5,
+      "source_sha256": "f9b8d9b80db7830bbb07ae0f83ff6d33d54e5c8b328c860bf3b716bd7860484e"
+    },
+    {
+      "path": "src/program_check/operation_proof.mbt",
+      "sites": 40,
+      "payload_slots_upper": 64,
+      "live_multiplier": 1,
+      "max_slots": 6,
+      "source_sha256": "d358a9fe3c171f086b632e42d680dca27a7e4fb7e3d670dbfe89a81b944b7b5c"
+    },
+    {
+      "path": "src/program_check/operation_source.mbt",
+      "sites": 34,
+      "payload_slots_upper": 63,
+      "live_multiplier": 1,
+      "max_slots": 6,
+      "source_sha256": "c1358216a3bf20762d9a66dd90cb66351fed310e484310b71de19e7682458e3e"
+    },
+    {
+      "path": "src/program_check/proof_conversion.mbt",
+      "sites": 43,
+      "payload_slots_upper": 75,
+      "live_multiplier": 1,
+      "max_slots": 4,
+      "source_sha256": "58c5189cb4a8cfbf7211a1eac7eb3ed5d1e5de0bde97d8ef0be1e1ab5ad6c99c"
+    },
+    {
+      "path": "src/program_check/publication_artifact.mbt",
+      "sites": 148,
+      "payload_slots_upper": 303,
+      "live_multiplier": 1,
+      "max_slots": 10,
+      "source_sha256": "26da38a553d0f8f8724870d04e34e2dff239639ab9876b54b5758c1129e191d3"
+    },
+    {
+      "path": "src/program_check/publication_bytes.mbt",
+      "sites": 27,
+      "payload_slots_upper": 50,
+      "live_multiplier": 1,
+      "max_slots": 8,
+      "source_sha256": "7bc8edebc4bd6cd996f95726c7643e8337622bfe359439e3a4cfb8784a2e6528"
+    },
+    {
+      "path": "src/program_check/publication_execution.mbt",
+      "sites": 22,
+      "payload_slots_upper": 52,
+      "live_multiplier": 1,
+      "max_slots": 7,
+      "source_sha256": "fd110b74b40bfa682c87e8d2a895136ff0554746b6206dfecf57dbfec38ea441"
+    },
+    {
+      "path": "src/program_check/publication_proofs.mbt",
+      "sites": 57,
+      "payload_slots_upper": 85,
+      "live_multiplier": 1,
+      "max_slots": 5,
+      "source_sha256": "3b42c1a28f7f58b50f7ff231f33d8b2732d1ffaefde17e6325109fc3811abd96"
+    },
+    {
+      "path": "src/program_check/publication_wire.mbt",
+      "sites": 78,
+      "payload_slots_upper": 131,
+      "live_multiplier": 1,
+      "max_slots": 7,
+      "source_sha256": "5be49d52bee5f3976b5465d7ad9b2f2b2906b964a7040ed38b32b06a55e179f3"
+    },
+    {
+      "path": "src/program_check/reidentified_graph.mbt",
+      "sites": 62,
+      "payload_slots_upper": 107,
+      "live_multiplier": 1,
+      "max_slots": 6,
+      "source_sha256": "fb6ad89c87bb9b4a56983a9f1c80ae051189d2673886ca4629461eb4563246b9"
+    },
+    {
+      "path": "src/program_check/reidentified_step.mbt",
+      "sites": 244,
+      "payload_slots_upper": 397,
+      "live_multiplier": 1,
+      "max_slots": 7,
+      "source_sha256": "c66557f314356776cf869359f4dc140cb90108e3210dd596d706d2d319e8590a"
+    },
+    {
+      "path": "src/sourceview_input/input.mbt",
+      "sites": 186,
+      "payload_slots_upper": 257,
+      "live_multiplier": 1,
+      "max_slots": 10,
+      "source_sha256": "8ce0ac04800b8d3f8101477808acaf74be817797ccfdb4091fcd915acc9669bc"
+    },
+    {
+      "path": "src/sourceview_resolution/keyed_facts.mbt",
+      "sites": 38,
+      "payload_slots_upper": 57,
+      "live_multiplier": 1,
+      "max_slots": 5,
+      "source_sha256": "0da498f0381242ae70c085aa396bfc4e0063edead09974189af5579b0ebfdbba"
+    },
+    {
+      "path": "src/sourceview_resolution/keyed_joins.mbt",
+      "sites": 96,
+      "payload_slots_upper": 166,
+      "live_multiplier": 1,
+      "max_slots": 9,
+      "source_sha256": "ac62eacec994a607fee55c74a087b3ccc6039243cd9d174a270ce19c8e753751"
+    },
+    {
+      "path": "src/sourceview_resolution/pipeline.mbt",
+      "sites": 90,
+      "payload_slots_upper": 140,
+      "live_multiplier": 1,
+      "max_slots": 5,
+      "source_sha256": "532aa87fb53eaa2ef9225b75f9871260c7a9e481ec22abe645b79c18e8a1ef8e"
+    },
+    {
+      "path": "src/sourceview_resolution/request.mbt",
+      "sites": 167,
+      "payload_slots_upper": 304,
+      "live_multiplier": 1,
+      "max_slots": 9,
+      "source_sha256": "2065fa8026f048783c3de962294f971e624ad712733d64355b530e76d960cd5b"
+    },
+    {
+      "path": "src/sourceview_resolution/request_parameters.mbt",
+      "sites": 72,
+      "payload_slots_upper": 130,
+      "live_multiplier": 1,
+      "max_slots": 6,
+      "source_sha256": "081ad32459e1caa2e9dda385738b3ad687fbb1516f1126b29799b86b96dbb3ab"
+    },
+    {
+      "path": "src/sourceview_resolution/resolve.mbt",
+      "sites": 155,
+      "payload_slots_upper": 270,
+      "live_multiplier": 1,
+      "max_slots": 5,
+      "source_sha256": "92580d14f2ed87811e29ed336cb72b1909a925f89a88353cacbd632ac9bf4a89"
+    },
+    {
+      "path": "src/sourceview_resolution/uses.mbt",
+      "sites": 71,
+      "payload_slots_upper": 95,
+      "live_multiplier": 1,
+      "max_slots": 5,
+      "source_sha256": "088f10ed4913f062863464fee44c022c77444306e316d296515cdf4e4d01c95a"
+    },
+    {
+      "path": "src/stage_local_inputs/check.mbt",
+      "sites": 109,
+      "payload_slots_upper": 161,
+      "live_multiplier": 1,
+      "max_slots": 9,
+      "source_sha256": "faa3f5775148497eae7d38dc5adb5adce532f9fe305f25895ba3ae5f621bad7a"
+    },
+    {
+      "path": "src/stage_local_inputs/environment.mbt",
+      "sites": 81,
+      "payload_slots_upper": 125,
+      "live_multiplier": 1,
+      "max_slots": 10,
+      "source_sha256": "bc7cf19450808ae7aaa20dfb1272b84dd1e0f77e7b87d93a503d5304d6c2bc28"
+    },
+    {
+      "path": "src/stage_local_inputs/prepare_environment.mbt",
+      "sites": 81,
+      "payload_slots_upper": 133,
+      "live_multiplier": 1,
+      "max_slots": 8,
+      "source_sha256": "6566fb3d55f9cbeb7667e82dcf5d9e1fa60e5300360616d0e5874665baba88a3"
+    },
+    {
+      "path": "src/stage_local_inputs/program_environment.mbt",
+      "sites": 60,
+      "payload_slots_upper": 87,
+      "live_multiplier": 1,
+      "max_slots": 8,
+      "source_sha256": "1792d5b3ccca9eef164828f9e7ac914139137a453452e06b724430b9400d5c93"
+    },
+    {
+      "path": "src/stage_local_inputs/schemas.mbt",
+      "sites": 41,
+      "payload_slots_upper": 64,
+      "live_multiplier": 1,
+      "max_slots": 7,
+      "source_sha256": "2e59c5c3c38b6591db3b9553c1b55afc8136f06cc43b7a4ffcf437c718caa0c9"
+    },
+    {
+      "path": "src/stage_local_inputs/snapshots.mbt",
+      "sites": 68,
+      "payload_slots_upper": 103,
+      "live_multiplier": 1,
+      "max_slots": 9,
+      "source_sha256": "5096389d616e901993c850be00181c14c620efd232e627e41c1fbebed2c35570"
+    },
+    {
+      "path": "src/stage_source_refs/resolve.mbt",
+      "sites": 93,
+      "payload_slots_upper": 141,
+      "live_multiplier": 1,
+      "max_slots": 6,
+      "source_sha256": "c8a0bd24835f0a07bc065c11fde16d9dcec729afd4781d047df5913b005753b5"
+    }
+  ],
+  "sites": 7003,
+  "payload_slots_upper": 11475
+}

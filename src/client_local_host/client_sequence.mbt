@@ -3,7 +3,7 @@
 /// downstream Local compute. No Run or physical provider starts here.
 pub fn prepare_client_local_sequences(
   prepared : @publication_host.PreparedClientProgram,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -11,7 +11,7 @@ pub fn prepare_client_local_sequences(
 ) -> Array[@execution.GeneratedSequence]? {
   prepare_client_local_sequences_owned(
     Pure(prepared),
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -24,7 +24,7 @@ pub fn prepare_client_local_sequences(
 /// physical sequence preparation handles the acquired root and Local tasks.
 pub fn prepare_client_effect_local_sequences(
   prepared : @publication_host.PreparedClientEffectComputation,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -32,7 +32,7 @@ pub fn prepare_client_effect_local_sequences(
 ) -> Array[@execution.GeneratedSequence]? {
   prepare_client_local_sequences_owned(
     Effect(prepared),
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -53,14 +53,14 @@ pub fn prepare_client_local_sequences_at_query_time(
   prepared : @publication_host.PreparedClientProgram,
   original : @publication_host.ClientQueryTimePreparation,
   request : @publication_host.ClientRequestIdentity,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> Array[@execution.GeneratedSequence]? {
   prepare_client_local_sequences_owned(
     Pure(prepared),
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -73,14 +73,14 @@ pub fn prepare_client_effect_local_sequences_at_query_time(
   prepared : @publication_host.PreparedClientEffectComputation,
   original : @publication_host.ClientQueryTimePreparation,
   request : @publication_host.ClientRequestIdentity,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> Array[@execution.GeneratedSequence]? {
   prepare_client_local_sequences_owned(
     Effect(prepared),
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -107,7 +107,7 @@ pub fn prepare_client_infer_prefix(
   prepared : @publication_host.PreparedClientProgram,
   task : Int,
   step : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body? : String? = None,
   ordered_body? : String? = None,
@@ -120,7 +120,7 @@ pub fn prepare_client_infer_prefix(
   }
   prepare_client_local_sequences_owned(
     Pure(prepared),
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -136,7 +136,7 @@ pub fn prepare_client_serialization_prefix(
   prepared : @publication_host.PreparedClientProgram,
   task : Int,
   step : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -150,7 +150,7 @@ pub fn prepare_client_serialization_prefix(
     Pure(prepared),
     task,
     step,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -164,7 +164,7 @@ pub fn prepare_client_acquired_serialization_prefix(
   prepared : @publication_host.PreparedClientProgram,
   task : Int,
   step : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -188,7 +188,7 @@ pub fn prepare_client_acquired_serialization_prefix(
         Pure(prepared),
         task,
         step,
-        registry_body,
+        installed_contracts,
         values_body,
         fragment_body,
         ordered_body,
@@ -222,7 +222,7 @@ pub fn prepare_client_acquired_serialization_prefix(
       Pure(prepared),
       task,
       step,
-      registry_body,
+      installed_contracts,
       values_body,
       fragment_body,
       ordered_body,
@@ -235,7 +235,7 @@ pub fn prepare_client_acquired_serialization_prefix(
       Pure(prepared),
       task,
       step,
-      registry_body,
+      installed_contracts,
       values_body,
       fragment_body,
       ordered_body,
@@ -261,7 +261,7 @@ pub fn prepare_client_effect_serialization_prefix(
   prepared : @publication_host.PreparedClientEffectComputation,
   task : Int,
   step : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -276,7 +276,7 @@ pub fn prepare_client_effect_serialization_prefix(
     Effect(prepared),
     task,
     step,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -288,7 +288,7 @@ fn prepare_client_serialization_prefix_owned(
   prepared : ClientLocalSequenceOwner,
   task : Int,
   step : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -326,7 +326,7 @@ fn prepare_client_serialization_prefix_owned(
   }
   prepare_client_local_sequences_owned(
     prepared,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -354,7 +354,7 @@ fn prepare_client_serialization_prefix_owned(
 pub fn prepare_client_infer_suffix(
   prepared : @publication_host.PreparedClientProgram,
   step : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body? : String? = None,
   ordered_body? : String? = None,
@@ -367,7 +367,7 @@ pub fn prepare_client_infer_suffix(
   }
   prepare_client_local_sequences_owned(
     Pure(prepared),
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -380,7 +380,7 @@ pub fn prepare_client_infer_suffix(
 pub fn prepare_client_composed_infer_prefix(
   prepared : @publication_host.PreparedClientProgram,
   occurrence : @publication_host.ClientInferOccurrence,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body? : String? = None,
   ordered_body? : String? = None,
@@ -391,7 +391,7 @@ pub fn prepare_client_composed_infer_prefix(
   prepare_owned_infer_segment(
     Pure(prepared),
     occurrence,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -403,7 +403,7 @@ pub fn prepare_client_composed_infer_prefix(
 pub fn prepare_client_effect_infer_prefix(
   prepared : @publication_host.PreparedClientEffectComputation,
   occurrence : @publication_host.ClientInferOccurrence,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body? : String? = None,
   ordered_body? : String? = None,
@@ -416,7 +416,7 @@ pub fn prepare_client_effect_infer_prefix(
   prepare_owned_infer_segment(
     Effect(prepared),
     occurrence,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -428,7 +428,7 @@ pub fn prepare_client_effect_infer_prefix(
 pub fn prepare_client_composed_infer_suffix(
   prepared : @publication_host.PreparedClientProgram,
   occurrence : @publication_host.ClientInferOccurrence,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body? : String? = None,
   ordered_body? : String? = None,
@@ -439,7 +439,7 @@ pub fn prepare_client_composed_infer_suffix(
   prepare_owned_infer_segment(
     Pure(prepared),
     occurrence,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -451,7 +451,7 @@ pub fn prepare_client_composed_infer_suffix(
 pub fn prepare_client_effect_infer_suffix(
   prepared : @publication_host.PreparedClientEffectComputation,
   occurrence : @publication_host.ClientInferOccurrence,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body? : String? = None,
   ordered_body? : String? = None,
@@ -464,7 +464,7 @@ pub fn prepare_client_effect_infer_suffix(
   prepare_owned_infer_segment(
     Effect(prepared),
     occurrence,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -476,7 +476,7 @@ pub fn prepare_client_effect_infer_suffix(
 fn prepare_owned_infer_segment(
   prepared : ClientLocalSequenceOwner,
   occurrence : @publication_host.ClientInferOccurrence,
-  registry : String,
+  registry : ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
@@ -508,7 +508,7 @@ fn prepare_client_query_acquisition_prefix(
   prepared : ClientLocalSequenceOwner,
   task : Int,
   source_index : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -541,7 +541,7 @@ fn prepare_client_query_acquisition_prefix(
   }
   prepare_client_local_sequences_owned(
     prepared,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -560,7 +560,7 @@ fn prepare_client_restored_serialization_sequence(
   prepared : @publication_host.PreparedClientProgram,
   occurrence : @publication_host.ClientInferOccurrence,
   serialization_step : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -578,7 +578,7 @@ fn prepare_client_restored_serialization_sequence(
   }
   prepare_client_local_sequences_owned(
     Pure(prepared),
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -592,7 +592,7 @@ fn prepare_client_restored_serialization_sequence(
 ///|
 fn prepare_client_local_sequences_owned(
   prepared : ClientLocalSequenceOwner,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -608,15 +608,19 @@ fn prepare_client_local_sequences_owned(
     @publication_host.ClientRequestIdentity,
   )? = None,
 ) -> Array[@execution.GeneratedSequence]? {
-  guard client_local_sequence_contracts(
-      registry_body, values_body, fragment_body, ordered_body,
-    )
-    is Some(admitted) else {
-    return None
-  }
+  guard client_local_sequence_selection_matches(
+    installed_contracts, values_body, fragment_body, ordered_body,
+  ) else { return None }
+  let admitted = installed_contracts.original.value
   let contracts = admitted.contracts
-  let fragment_contract = admitted.fragment_contract
-  let ordered_contract = admitted.ordered_contract
+  let fragment_contract = match fragment_body {
+    None => None
+    Some(_) => admitted.fragment_contract
+  }
+  let ordered_contract = match ordered_body {
+    None => None
+    Some(_) => admitted.ordered_contract
+  }
   // The Fragment consumes the same row domain admitted for this original
   // task owner. A larger Values profile must not revert to the default 100
   // after the first Values step; all other Fragment budgets stay independent.

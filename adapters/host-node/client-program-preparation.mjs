@@ -86,7 +86,7 @@ function serializeProgram({kind, input, parameters}) {
 export function installNodeClientProgramPreparation({moon, environment,
   allowEffects = false, effectEvidence = [], sourcePublication, valuesMaxRows, check,
   verifyRequestValuePolicy, restoreEffectOriginal, restoreInferOriginal,
-  getPreparedSourceEnvironment}) {
+  getPreparedSourceEnvironment, getFundedPreparation}) {
   if (!moon || typeof moon.clientProgramPrepareEffectFreeWithParameters !==
       'function' || typeof moon.clientProgramPreparationReady !== 'function' ||
       typeof moon.clientProgramPreparationIssue !== 'function' ||
@@ -97,6 +97,7 @@ export function installNodeClientProgramPreparation({moon, environment,
       (restoreInferOriginal !== undefined && typeof restoreInferOriginal !== 'function') ||
       (check !== undefined && typeof check !== 'function') ||
       (getPreparedSourceEnvironment !== undefined && typeof getPreparedSourceEnvironment !== 'function') ||
+      (getFundedPreparation !== undefined && typeof getFundedPreparation !== 'function') ||
       (verifyRequestValuePolicy !== undefined &&
         (typeof verifyRequestValuePolicy !== 'function' ||
           typeof moon.clientProgramRequestValuePolicySubjects !== 'function' ||
@@ -145,6 +146,18 @@ export function installNodeClientProgramPreparation({moon, environment,
     : request => preparePublishedEffect(request, environment);
   const prepare = (request, selectedEnvironment = environment) => {
     if (retired) fail('ClientProgramPreparationFailure');
+    // Fixed Local owner may already have parsed/checked this exact pending
+    // original under its same preparation reservation. Ask BEFORE serializing
+    // so the funded route never makes an unquoted second document/AST copy.
+    // No values override is silently applied to that original owner.
+    if (getFundedPreparation !== undefined && valuesMaxRows === undefined) {
+      const original = getFundedPreparation(request, selectedEnvironment);
+      if (original !== undefined) {
+        if (request.kind !== 'program' || request.parameters !== null) fail('ClientProgramInvalidInput');
+        owned.set(original, Object.freeze({environment: selectedEnvironment, parameters: undefined}));
+        return original;
+      }
+    }
     const {document, format, supplied, declarations} =
       serializeProgram(request);
     let outcome;
@@ -276,7 +289,7 @@ export function installNodeClientProgramPreparation({moon, environment,
       sourcePreparation?.retireSourceEnvironment();
       prepareEffect?.retireSourceEnvironment?.();
       sourcePreparation = prepareEffect = undefined;
-      environment = sourcePublication = installedEvidence = getPreparedSourceEnvironment = undefined;
+      environment = sourcePublication = installedEvidence = getPreparedSourceEnvironment = getFundedPreparation = undefined;
       // Installation callbacks may themselves retain the same Environment.
       check = verifyRequestValuePolicy = restoreEffectOriginal = restoreInferOriginal = undefined;
     },

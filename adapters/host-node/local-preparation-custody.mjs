@@ -1,7 +1,8 @@
-// Private, presently unactivated Local ownership helper. This is neither a
-// public preparation API nor a resource reservation or heap-size proof.
-// The installing cleanup owner alone retains the controller. It may confirm
-// retirement only after its existing original cleanup duties have completed.
+// Private Local reference custody, not a public preparation API, resource
+// reservation or heap-size proof. The installing cleanup owner alone retains
+// the controller. Its confirmation permits payload severing after dispatch
+// quiescence; remaining registered handlers keep their own slots. This does
+// not acknowledge imported-child cleanup or release a Core reservation.
 export function createLocalPreparationCustody(prepared) {
   if (prepared === null || typeof prepared !== 'object') {
     throw new TypeError('InvalidLocalPreparation');
@@ -47,8 +48,9 @@ export function createLocalPreparationCustody(prepared) {
       retirementRequested = true;
       clearIfRetired();
     },
-    // Private completion capability: never expose this controller to clients
-    // or call this from a terminal-status Boolean or an uncertain cleanup path.
+    // Private payload-release permission, not a physical-stop or resource ACK.
+    // Never expose this controller to clients or infer it from terminal status.
+    // A separate light cleanup continuation may still own imported settlement.
     confirmRetired() {
       if (!retirementRequested) throw new Error('LocalPreparationRetirementNotRequested');
       retirementConfirmed = true;

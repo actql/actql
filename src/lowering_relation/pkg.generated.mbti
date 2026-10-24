@@ -903,6 +903,8 @@ pub fn prepared_frame_end(PreparedRowsFrame) -> PreparedFrameBoundary
 
 pub fn prepared_frame_start(PreparedRowsFrame) -> PreparedFrameBoundary
 
+pub fn prepared_sequence_preparation_demand(Prepared, Int) -> Result[SequencePreparationDemand, SequencePreparationDemandIssue]
+
 pub fn projection_field_at(PreparedProjection, Int) -> @relation_typing.ProjectionField?
 
 pub fn projection_field_count(PreparedProjection) -> Int
@@ -1969,6 +1971,18 @@ pub(all) enum SequenceMatchIssue {
   MissingSequenceMatchParameter(String)
   InvalidSequenceMatchParameter(String)
 }
+
+pub(all) struct SequencePreparationDemand {
+  authored_literal_rows : Int
+  authored_literal_cells : Int
+  work_used : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SequencePreparationDemandIssue {
+  InvalidLimits
+  WorkLimit
+  CountOverflow
+} derive(Eq, @debug.Debug)
 
 type SequenceRequirements
 

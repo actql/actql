@@ -10,7 +10,7 @@
 pub fn configure_source_free_effect_local_retained_host(
   bound : @publication_host.PreparedClientEffectRun,
   captured : @strategy.CapturedEffectRunDAG,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -37,7 +37,7 @@ pub fn configure_source_free_effect_local_retained_host(
     return None
   }
   guard prepare_client_effect_local_sequences(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
+      prepared, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Some(sequences) &&
     sequences.length() == 1 else {

@@ -31,6 +31,7 @@ struct PreparedClientProgram {
   check_environment_cid : String
   source : @syntax.Program
   local_values_max_rows : Int
+  sequence_preparation_demand : @lower.SequencePreparationDemand
   mut local_normalization : ClientLocalNormalization?
   full_sequences : Array[ClientFullSequence]
 }
@@ -74,7 +75,8 @@ pub fn prepared_client_values_sequence_limits(
 ) -> @lower.SequenceLimits {
   {
     ..client_standard_values_sequence_limits(),
-    max_rows: value.local_values_max_rows,
+    max_rows: Int::max(client_standard_values_sequence_limits().max_rows,value.sequence_preparation_demand.authored_literal_rows),
+    max_cells: Int::max(client_standard_values_sequence_limits().max_cells,value.sequence_preparation_demand.authored_literal_cells),
   }
 }
 
@@ -1604,6 +1606,10 @@ pub fn prepare_parsed_effect_free_client_program(
         },
       )
   }
+  let sequence_preparation_demand = match client_sequence_preparation_demand(owners,limits.max_graph_work) {
+    Ok(value) => value
+    Err(issue) => return Err(Graph(issue))
+  }
   match
     @strategy.prepare_checked_dag(
       checked,
@@ -1619,6 +1625,7 @@ pub fn prepare_parsed_effect_free_client_program(
     Ok(graph) =>
       Ok({
         graph,
+        sequence_preparation_demand,
         check_environment_cid: @checked.checking_environment_cid(environment),
         source: parsed,
         local_normalization: None,

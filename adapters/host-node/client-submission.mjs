@@ -36,14 +36,15 @@ export async function issueNodeClientSubmissionEpoch({journal, moon, authorizedS
 }
 
 export function installNodeClientSubmission({journal, moon, authorizedScope,
-  prepareSubmit, submit, lookupRequest, checkSubmissionInput, bindOwnedRequest, admitPreparedSubmission, preparationCustody}) {
+  prepareSubmit, submit, lookupRequest, checkSubmissionInput, bindOwnedRequest, admitPreparedSubmission, preparationCustody, submittedIntentOriginal}) {
   if (typeof journal?.recordSubmittedIntent !== 'function' ||
       typeof journal?.checkSubmittedIntent !== 'function' ||
       typeof moon?.clientSubmittedIntent !== 'function' ||
       [authorizedScope, prepareSubmit, submit, lookupRequest].some(value => typeof value !== 'function') ||
       bindOwnedRequest !== undefined && typeof bindOwnedRequest !== 'function' ||
       admitPreparedSubmission !== undefined && typeof admitPreparedSubmission !== 'function' ||
-      checkSubmissionInput !== undefined && typeof checkSubmissionInput !== 'function') {
+      checkSubmissionInput !== undefined && typeof checkSubmissionInput !== 'function' ||
+      submittedIntentOriginal !== undefined && typeof submittedIntentOriginal !== 'function') {
     throw new TypeError('InvalidClientSubmissionInstallation');
   }
   const copyRequest = (value, changes) => preparationCustody === undefined
@@ -79,9 +80,13 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
   const ownedSnapshot = value => ownedSnapshots.has(value) ? value : captureSnapshot(value);
   const operation = (action, bind = true) => async request => {
     const value = captureSnapshot(request, bind);
-    const release = validSubmissionRef(value.submissionRef) ?
-      journal.retainSubmissionOperation?.(value.submissionRef.epoch, moon) : undefined;
-    try {return await action(value);}
+    let release;
+    try {
+      release = validSubmissionRef(value.submissionRef) ?
+        journal.retainSubmissionOperation?.(value.submissionRef.epoch, moon,
+          submittedIntentOriginal?.(value)) : undefined;
+      return await action(value);
+    }
     finally {
       try {release?.();} finally {preparationCustody?.finishHandler(value);}
     }
@@ -255,6 +260,11 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     return await flight;
   };
   const submittedInput = value => {
+    const original = submittedIntentOriginal?.(value);
+    if (original !== undefined) {
+      if (moon.clientSubmittedIntentCid(original) !== value.intentCid) fail('InvalidClientSubmittedIntent');
+      return original;
+    }
     const wire = canonicalJson({kind: value.kind, input: value.input,
       parameters: value.parameters,
       ...(Object.hasOwn(value, 'stopBefore') ? {stopBefore: value.stopBefore} : {}),
@@ -464,7 +474,8 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       // Another connection may only observe this original, never replay it or
       // replace its epoch because its first outcome is still preparing/unknown.
       const release = retained.submissionRef.epoch === value.submissionRef.epoch ? undefined :
-        journal.retainSubmissionOperation?.(retained.submissionRef.epoch, moon, value.submissionRef.epoch);
+        journal.retainSubmissionOperation?.(retained.submissionRef.epoch, moon,
+          submittedIntentOriginal?.(value));
       try {
         const lookup = Object.freeze({principalId: value.principalId, connection: value.connection,
           submissionRef: retained.submissionRef});

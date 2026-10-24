@@ -369,7 +369,7 @@ pub fn client_program_serialization_prefix_capacity(
   program : @publication_host.PreparedClientProgram,
   task : Int,
   step : Int,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
@@ -388,11 +388,11 @@ pub fn client_program_serialization_prefix_capacity(
   )
   let capacity = if acquired {
     @client_local_host.client_acquired_serialization_prefix_capacity(
-      program, task, step, registry, values, fragment, ordered, execution, measurement,
+      program, task, step, sequence_contracts, values, fragment, ordered, execution, measurement,
     )
   } else {
     @client_local_host.client_serialization_prefix_capacity(
-      program, task, step, registry, values, fragment, ordered, execution, measurement,
+      program, task, step, sequence_contracts, values, fragment, ordered, execution, measurement,
     )
   }
   capacity.map(capacity => {
@@ -409,7 +409,7 @@ pub fn client_program_start_serialization_prefix(
   program : @publication_host.PreparedClientProgram,
   task : Int,
   step : Int,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
@@ -438,7 +438,7 @@ pub fn client_program_start_serialization_prefix(
       task,
       step,
       source,
-      registry,
+      sequence_contracts,
       values,
       fragment,
       ordered,
@@ -453,7 +453,7 @@ pub fn client_program_start_serialization_prefix(
     program,
     task,
     step,
-    registry,
+    sequence_contracts,
     values,
     fragment,
     ordered,

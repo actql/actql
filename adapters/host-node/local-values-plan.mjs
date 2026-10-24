@@ -3,7 +3,7 @@
 import {runtimeField, runtimeOptionalField} from '../host-common/compiler-binding.generated.mjs';
 import {createHash, randomUUID} from 'node:crypto';
 import {checked} from '../host-common/runtime-result.mjs';
-import {valuesHostPolicyOriginal, valuesExecutionContextCid} from './local-values-capacity.mjs';
+import {valuesExecutionContextCid} from './local-values-capacity.mjs';
 import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
 import {sampleOriginalQueryTime} from './query-evaluation-clock.mjs';
 
@@ -520,10 +520,10 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
   const createdAt = retained?.created_at ?? queryInvocation?.createdAt ?? instant(at);
   const validUntil = retained?.valid_until ??
     instant(at + 24 * 60 * 60 * 1000);
-  const maxRows = moon.clientProgramValuesMaxRows(preparedProgram);
-  const originalPolicy = valuesHostPolicyOriginal(maxRows);
-  const hostPolicyCid = originalPolicy?.cid ?? policyCid('source-free-values');
-  const contextCid = valuesExecutionContextCid(authorityScopeCid, originalPolicy);
+  // The original checked plan and installed publication owner enforce row,
+  // cell and byte demand. Authored/output counts are not a new Host profile.
+  const hostPolicyCid = policyCid('source-free-values');
+  const contextCid = valuesExecutionContextCid(authorityScopeCid);
   const compiled = control.prepareCheckedClientCompiledRun(preparedProgram,
     'values', {executionContextCid: contextCid,
       hostPolicyCid, expiresAt: validUntil});
@@ -552,7 +552,6 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
   valuesAdmissions.set(selectedPlan, Object.freeze({
     prepared: compiled.preparedEvidence.wire,
     authorization: compiled.authorization.wire,
-    ...(originalPolicy === undefined ? {} : {valuesHostPolicyOriginal: originalPolicy}),
   }));
   return retainOriginalPlan(selectedPlan, compiled, preparedProgram, control);
 }

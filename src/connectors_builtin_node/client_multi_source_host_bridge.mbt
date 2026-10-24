@@ -57,13 +57,13 @@ pub fn client_program_prepare_multi_captured_local_installed_ledger(
   capacities : Array[@client_local_host.ClientInstalledCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
   @client_local_host.prepare_multi_captured_local_installed_ledger(
-    prepared, capacities, transport_bytes, transport_execution_bytes, registry_body,
+    prepared, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
     values_body, fragment_body, ordered_body,
   )
 }
@@ -78,14 +78,14 @@ pub fn client_program_prepare_serialization_captured_ledger(
   transport_execution_bytes : Int64,
   prefix_retained_bytes : Int64,
   prefix_execution_bytes : Int64,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
   @client_local_host.prepare_serialization_captured_ledger(
     prepared, task, capacity, transport_bytes, transport_execution_bytes, prefix_retained_bytes,
-    prefix_execution_bytes, registry_body, values_body, fragment_body, ordered_body,
+    prefix_execution_bytes, installed_contracts, values_body, fragment_body, ordered_body,
   )
 }
 
@@ -96,13 +96,13 @@ pub fn client_program_prepare_multi_captured_effect_installed_ledger(
   capacities : Array[@client_local_host.ClientInstalledCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
   @client_local_host.prepare_multi_captured_effect_installed_ledger(
-    prepared, capacities, transport_bytes, transport_execution_bytes, registry_body,
+    prepared, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
     values_body, fragment_body, ordered_body,
   )
 }
@@ -134,13 +134,13 @@ pub fn client_program_prepare_multi_captured_local_ledger(
   acquisitions : Array[@duckdb_host.NativeHostConfiguration],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
   @client_local_host.prepare_multi_captured_local_ledger(
-    prepared, acquisitions, transport_bytes, transport_execution_bytes, registry_body,
+    prepared, acquisitions, transport_bytes, transport_execution_bytes, installed_contracts,
     values_body, fragment_body, ordered_body,
   )
 }
@@ -151,7 +151,7 @@ pub fn client_program_open_multi_captured_local_host(
   prepared : @publication_host.PreparedClientProgram,
   sources : Array[@query.CapturedInputSource],
   ledger : @resources.Ledger,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -163,7 +163,7 @@ pub fn client_program_open_multi_captured_local_host(
     prepared,
     [(0, sources[0]), (1, sources[1])],
     ledger,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -179,7 +179,7 @@ pub fn client_program_open_multi_captured_local_retained_host(
   prepared : @publication_host.PreparedClientProgram,
   sources : Array[@query.CapturedInputSource],
   ledger : @resources.Ledger,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -191,7 +191,7 @@ pub fn client_program_open_multi_captured_local_retained_host(
     prepared,
     [(0, sources[0]), (1, sources[1])],
     ledger,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -206,13 +206,13 @@ pub fn client_program_prepare_multi_captured_effect_local_ledger(
   acquisitions : Array[@duckdb_host.NativeHostConfiguration],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
   @client_local_host.prepare_multi_captured_effect_local_ledger(
-    prepared, acquisitions, transport_bytes, transport_execution_bytes, registry_body,
+    prepared, acquisitions, transport_bytes, transport_execution_bytes, installed_contracts,
     values_body, fragment_body, ordered_body,
   )
 }
@@ -223,7 +223,7 @@ pub fn client_program_open_multi_captured_local_effect_host(
   prepared : @publication_host.PreparedClientEffectRun,
   sources : Array[@query.CapturedInputSource],
   ledger : @resources.Ledger,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -234,7 +234,7 @@ pub fn client_program_open_multi_captured_local_effect_host(
   open_client_local_effect_host(
     prepared,
     None,
-    registry_body,
+    installed_contracts,
     values_body,
     1L,
     0L,
@@ -254,13 +254,13 @@ pub fn client_program_prepare_multi_captured_effect_acquisition_ledger(
   acquisitions : Array[@duckdb_host.CaptureConfiguration],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
   @client_local_host.prepare_multi_captured_effect_acquisition_ledger(
-    prepared, acquisitions, transport_bytes, transport_execution_bytes, registry_body,
+    prepared, acquisitions, transport_bytes, transport_execution_bytes, installed_contracts,
     values_body, fragment_body, ordered_body,
   )
 }
@@ -272,13 +272,13 @@ pub fn client_program_prepare_multi_captured_local_acquisition_ledger(
   acquisitions : Array[@duckdb_host.CaptureConfiguration],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
   @client_local_host.prepare_multi_captured_local_acquisition_ledger(
-    prepared, acquisitions, transport_bytes, transport_execution_bytes, registry_body,
+    prepared, acquisitions, transport_bytes, transport_execution_bytes, installed_contracts,
     values_body, fragment_body, ordered_body,
   )
 }

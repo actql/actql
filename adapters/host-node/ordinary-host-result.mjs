@@ -1,3 +1,4 @@
+import {validOriginalResultPublicationExtent} from './host-result-service-recipe.cjs';
 import {join} from 'node:path';
 import {ordinaryHostJournalInstallation} from './ordinary-host-journal.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
@@ -109,10 +110,11 @@ export function prepareOrdinaryHostResult(originals, subject, requirements, effe
     // Program inventory under the pending request's custody. Do not impose
     // a second structural Result-count cap here; Store bytes/objects remain
     // independently admitted before publication.
-    if (!Number.isSafeInteger(value.resultCount) || value.resultCount < minimumResults ||
-        !Number.isSafeInteger(value.maxRows) || value.maxRows < 0 || value.maxRows > 10000 ||
-        !Number.isSafeInteger(value.maxContractBytes) || value.maxContractBytes < 1 ||
-        value.maxContractBytes > 2147483647) {
+    // The fixed requirements callback already reads the checked original's
+    // extent under its live request. Publication eligibility must not replace
+    // that extent with the independent all() collection limit.
+    if (!validOriginalResultPublicationExtent(value.resultCount, value.maxRows,
+        value.maxContractBytes, minimumResults)) {
       throw new TypeError('HostResultPublicationUnsupported');
     }
     current();

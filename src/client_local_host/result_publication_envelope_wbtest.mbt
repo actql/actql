@@ -32,16 +32,16 @@ test "result envelope counts aliases and repeated order occurrences without outp
 }
 
 ///|
-test "result envelope accepts exact row boundaries and falls back outside them" {
+test "result envelope derives row workspace and rejects representation overflow" {
   let graph = @publication_host.prepared_client_graph(result_envelope_fixture())
-  for (rows, workspace) in [(1, 8), (20000, 40006)] {
+  for (rows, workspace) in [(1, 8), (20000, 40006), (100000,200006)] {
     let envelope = client_local_result_envelope(graph, rows).unwrap()
     assert_eq(envelope.fields, 2)
     assert_eq(envelope.mapping_work, 16)
     assert_eq(envelope.order_terms, 6)
     assert_eq(envelope.workspace_entries, workspace)
   }
-  for rows in [-1, 0, 20001] {
+  for rows in [-1, 0, 2147483647] {
     assert_true(client_local_result_envelope(graph, rows) is None)
   }
 }
@@ -123,7 +123,7 @@ test "publication bridge metadata is projected only from the exact sealed Run" {
   let prepared = result_envelope_fixture()
   let first = open_source_free_local_retained_host(
     prepared,
-    assets.registry,
+    prepare_installed_sequence_contracts(assets.registry,assets.values,Some(assets.fragment),assets.ordered).unwrap(),
     assets.values,
     0L,
     0L,
@@ -134,7 +134,7 @@ test "publication bridge metadata is projected only from the exact sealed Run" {
   ).unwrap()
   let second = open_source_free_local_retained_host(
     prepared,
-    assets.registry,
+    prepare_installed_sequence_contracts(assets.registry,assets.values,Some(assets.fragment),assets.ordered).unwrap(),
     assets.values,
     0L,
     0L,
@@ -167,9 +167,9 @@ test "publication projection borrows the original plan before admission and reje
   let prepared = result_envelope_fixture()
   let foreign = result_envelope_fixture()
   let assets = @publication_host.client_local_product_assets()
-  let original = prepare_installed_managed_source_free(
+  let original = prepare_installed_managed_source_free_with_contracts(
     prepared,
-    assets.registry,
+    prepare_installed_sequence_contracts(assets.registry,assets.values,Some(assets.fragment),assets.ordered).unwrap(),
     assets.values,
     Some(assets.fragment),
     assets.ordered,

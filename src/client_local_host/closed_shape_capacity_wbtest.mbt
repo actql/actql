@@ -23,12 +23,19 @@ test "closed checked Values derive envelopes while retaining explicit Host row p
     }
     let prepared=result.unwrap()
     assert_eq(@publication_host.prepared_client_values_max_rows(prepared),Int::max(@publication_host.client_standard_values_sequence_limits().max_rows,rows))
-    let sequences=prepare_client_local_sequences_owned(Pure(prepared),assets.registry,assets.values,Some(assets.fragment),assets.ordered).unwrap()
+    let sequences=prepare_client_local_sequences_owned(Pure(prepared),prepare_installed_sequence_contracts(assets.registry,assets.values,Some(assets.fragment),assets.ordered).unwrap(),assets.values,Some(assets.fragment),assets.ordered).unwrap()
     let plan=client_local_capacity_plan(sequences,@publication_host.prepared_client_values_max_rows(prepared),scalar_values=true,graph=Some(@publication_host.prepared_client_graph(prepared)))
     assert_eq(plan.imports.wire.max_columns,width)
     assert_eq(plan.metadata.schema.max_fields,width)
     assert_eq(plan.execution.rows.max_rows,Int::max(1,rows))
-    assert_true(source_free_installed_managed_preparation_owned(Pure(prepared),assets.registry,assets.values,Some(assets.fragment),assets.ordered,false) is Some(_))
+    if rows==0 {
+      let demand=plan.scalar_demand.unwrap()
+      assert_eq(demand.rows,1)
+      assert_eq(demand.value_nodes,width+1)
+      assert_true(physical_equal(demand.original,plan.schema_inventory.unwrap()))
+      assert_true(client_local_capacity_plan_matches(plan,sequences,@publication_host.prepared_client_values_max_rows(prepared)))
+    }
+    assert_true(source_free_installed_managed_preparation_owned(Pure(prepared),prepare_installed_sequence_contracts(assets.registry,assets.values,Some(assets.fragment),assets.ordered).unwrap(),assets.values,Some(assets.fragment),assets.ordered,false) is Some(_))
     println("CLOSED_SHAPE width=\{width} rows=\{rows} nodes=\{plan.values.max_nodes}")
   }
 }

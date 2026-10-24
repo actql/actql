@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "f25444fe68634000dec87c0c2f25a589aa9c962d79f82b5a72787b9e2efe7a0f",
+      "sha256": "abf842e5f878e298e10b474f2755848e42f2cfafb463352ca0899e1dcfb00821",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -6992,6 +6992,14 @@
         {
           "name": "runtimeCore/runtimeCore#25",
           "parameters": [
+            "value",
+            "holder"
+          ],
+          "async": false
+        },
+        {
+          "name": "runtimeCore/runtimeCore#26",
+          "parameters": [
             "value"
           ],
           "async": false
@@ -9518,6 +9526,110 @@
               {
                 "path": "adapters/host-node/client-publication-capacity.test.mjs",
                 "anchor": "test('public Local publishes every one of 100 aliases including distinct projections and empty rows',async()=>{"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "runtimeCore/runtimeCore#26"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "preparationUsageIsolated: (value, holder)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "preparationUsageIsolated: (value, holder)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "preparationUsageIsolated: (value, holder)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "preparationUsageIsolated: (value, holder)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "preparationUsageIsolated: (value, holder)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "preparationUsageIsolated: (value, holder)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "preparationUsageIsolated: (value, holder)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "preparationUsageIsolated: (value, holder)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "preparationUsageIsolated: (value, holder)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/preparation-host-custody.test.mjs",
+                "anchor": "Preflight retained debit requires nominal isolation="
               }
             ]
           }
@@ -14463,7 +14575,7 @@
     },
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
-      "sha256": "70557f66d87c7fc2d55b52741387491e860dd8db16215458b7da45f1434be292",
+      "sha256": "345163893ae19eb2d038eb9702c676a962eb257e857a12c11337a11593afe548",
       "role": "physical-io",
       "exports": [
         "localStrategyContribution"
@@ -14996,7 +15108,7 @@
             "cancellation": [
               {
                 "path": "adapters/local-node/strategy-bundle.mjs",
-                "anchor": "import {closeCompletedLocalManagedOutput} from './managed-output-custody.mjs';"
+                "anchor": "from './managed-output-custody.mjs';"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",

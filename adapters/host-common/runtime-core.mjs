@@ -6631,6 +6631,9 @@ export function runtimeCore(moon) {
     ),
     transferReceipt: moon.strategyHostTransferReceipt,
     explain: (value, bytes, nodes) => JSON.parse(checked(moon.strategyHostExplain(value, bytes, nodes))),
+    preparationUsageIsolated: (value, holder) =>
+      typeof moon.clientProgramPreparationBorrowUsageIsolated === 'function' &&
+      moon.clientProgramPreparationBorrowUsageIsolated(holder, moon.strategyHostRun(value)) === true,
     usage: value => Object.freeze(Object.fromEntries(
       moon.strategyHostUsage(value).map((count, index) => [usageKeys[index], count]),
     )),

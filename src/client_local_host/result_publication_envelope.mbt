@@ -16,7 +16,6 @@ fn client_local_result_envelope(
 ) -> ClientLocalResultEnvelope? {
   let count = @strategy.graph_result_count(graph)
   if max_rows < 1 ||
-    max_rows > 20000 ||
     count < 1 ||
     count > client_local_schema_proof_work() {
     return None
@@ -67,16 +66,19 @@ fn client_local_result_envelope(
     fields = Int::max(fields, Int::max(width, columns))
     order_terms += terms
   }
+  let row_slots=2L*max_rows.to_int64()+order_terms.to_int64()
+  let field_slots=8L+5L*fields.to_int64()
+  if row_slots>2147483647L || field_slots>2147483647L {return None}
   Some({
     fields,
     mapping_work,
     order_terms,
-    workspace_entries: 2 * max_rows + order_terms,
+    workspace_entries: row_slots.to_int(),
     // Snapshot admission retains 8 owner entries +3F field tuples +2F sort
     // indices. Its counter is separate from Result view construction.
     publication_workspace_entries: Int::max(
       100,
-      Int::max(2 * max_rows + order_terms, 8 + 5 * fields),
+      Int::max(row_slots.to_int(),field_slots.to_int()),
     ),
   })
 }

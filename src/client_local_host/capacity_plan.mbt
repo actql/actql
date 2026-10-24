@@ -11,6 +11,7 @@ priv struct ClientLocalCapacityPlan {
   result_envelope : ClientLocalResultEnvelope?
   publication : ClientLocalResultPublicationPlan?
   schema_inventory : ClientLocalSchemaProofInventory?
+  scalar_demand : ClientLocalScalarDemand?
   values : @execution.ValueLimits
   execution : @execution.SequenceExecutionLimits
   measurement : @execution.FixedInputGuardMeasureLimits
@@ -44,17 +45,16 @@ fn client_local_capacity_plan(
       Int::min(max_rows, Int::max(1, bound))
     _ => max_rows
   }
+  let scalar_demand=match inventory {Some(proof)=>client_local_scalar_demand(proof,max_rows);None=>None}
   let (values, execution, measurement) = client_local_execution_limits(
     max_rows~,
     scalar_inventory=inventory,
+    scalar_demand~,
   )
   // IO observes scalar cells plus row field names, not evaluator intermediates.
   // Keep expression text independent unless every original typed child and
   // generated step has a separate text-free proof.
-  let io_text = match inventory {
-    Some(value) => client_local_inventory_names(value, max_rows)
-    None => None
-  }
+  let io_text=scalar_demand.map(demand=>demand.name_bytes)
   let values = match io_text {
     Some(bytes) => { ..values, max_text_bytes: bytes, }
     None => values
@@ -135,7 +135,9 @@ fn client_local_capacity_plan(
       client_node_publication_schema_bytes(),
     ).unwrap_or(0L)
   } else {
-    0L
+    // Managed Effect/general outputs still own the same fixed cleanup state.
+    // Graph-less low-level calculators do not construct the Node registry.
+    if graph is Some(_) {client_local_cleanup_retained_bytes()} else {0L}
   }
   match scalar_metadata {
     None =>
@@ -149,6 +151,7 @@ fn client_local_capacity_plan(
         result_envelope,
         publication,
         schema_inventory: inventory,
+        scalar_demand: None,
         values,
         execution,
         measurement,
@@ -158,7 +161,7 @@ fn client_local_capacity_plan(
           ..metadata,
           retained_bytes: result_metadata,
           result_workspace_entries: if result_metadata > 0L {
-            result_envelope.unwrap().workspace_entries
+            result_envelope.map(value=>value.workspace_entries).unwrap_or(metadata.result_workspace_entries)
           } else {
             metadata.result_workspace_entries
           },
@@ -188,6 +191,7 @@ fn client_local_capacity_plan(
         result_envelope,
         publication,
         schema_inventory: inventory,
+        scalar_demand,
         values,
         execution,
         measurement,
@@ -224,11 +228,16 @@ fn client_local_capacity_plan_matches(
   sequences : Array[@execution.GeneratedSequence],
   max_rows : Int,
 ) -> Bool {
-  if !physical_equal(plan.resource_policy, client_local_resource_policy()) ||
+  if plan.metadata.retained_bytes!=plan.metadata_retained_bytes ||
+    (plan.graph is Some(_) && plan.metadata_retained_bytes<client_local_cleanup_retained_bytes()) ||
+    (plan.schema_inventory is Some(_) && plan.scalar_demand is None) ||
+    !physical_equal(plan.resource_policy, client_local_resource_policy()) ||
     plan.admitted_rows != max_rows ||
     plan.sequences.length() != sequences.length() {
     return false
   }
+  if plan.scalar_demand is Some(demand) &&
+    !(plan.schema_inventory is Some(original) && physical_equal(original,demand.original) && demand.rows==plan.execution.rows.max_rows && demand.value_nodes==plan.values.max_nodes) {return false}
   for index, sequence in sequences {
     if !physical_equal(plan.sequences[index], sequence) {
       return false

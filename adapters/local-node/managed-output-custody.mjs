@@ -2,6 +2,16 @@
 // cleanup refresh confirms release. Reuse the common recovery progression;
 // it never starts or advances another Compute attempt.
 import {settleFailedManagedOperations} from '../host-common/managed-failure.mjs';
+import {managedMemoryReleaseFailureMatches} from '../store-local/managed-memory-representations.mjs';
+
+const completedRetirements = new WeakMap();
+const completedRetirementFlights = new WeakMap();
+function retirementProgress(operations) {
+  if (typeof operations.cleanup_progress !== 'function') return undefined;
+  const value = operations.cleanup_progress();
+  return typeof value === 'bigint' && value >= 0n && value <= (1n << 63n) - 1n
+    ? value : undefined;
+}
 
 function retainProgressingCleanup(failure, operations) {
   if (typeof operations.cleanup_progress !== 'function') return failure;
@@ -16,7 +26,7 @@ function retainProgressingCleanup(failure, operations) {
       let previous = observe();
       for (;;) {
         const state = await Reflect.apply(originalRetry, original, []);
-        if (state.pending !== true) return state;
+        if (state.pending !== true || state.errors?.length > 0) return state;
         const current = observe();
         // Only original bounded scratch retirement justifies another slice.
         // A provider/reader stall or failed observation stays caller-retryable.
@@ -35,6 +45,9 @@ function retainProgressingCleanup(failure, operations) {
 }
 
 export function closeCompletedLocalManagedOutput(operations, checked, progress) {
+  let before;
+  try { before = retirementProgress(operations); } catch { /* No automatic continuation. */ }
+  let synthetic = true;
   let reason = new Error('LocalManagedOutputCleanupPending');
   try {
     operations.close();
@@ -42,9 +55,57 @@ export function closeCompletedLocalManagedOutput(operations, checked, progress) 
       throw new Error('MissingLocalManagedCleanupRefresh');
     }
     if (operations.cleanup_refresh() === true) return;
-  } catch (error) { reason = error; }
+  } catch (error) { reason = error; synthetic = false; }
   const failure = settleFailedManagedOperations(operations, checked, reason, progress);
-  if (failure !== reason) throw retainProgressingCleanup(failure, operations);
+  if (failure !== reason) {
+    const owned = retainProgressingCleanup(failure, operations);
+    if (synthetic && typeof before === 'bigint') {
+      try {
+        const after = retirementProgress(operations);
+        if (typeof after === 'bigint' && after > before &&
+            owned.cleanupHandle.status().errors.length === 0) {
+          completedRetirements.set(owned, {operations, after});
+        }
+      } catch { /* Original failure remains caller-retryable. */ }
+    }
+    throw owned;
+  }
+}
+
+// Await only an original completed-output retirement that already made finite
+// scratch progress. The memory registry's release callback stays synchronous;
+// its own recovery handle alone acknowledges the physical representation cut.
+export async function closeCompletedLocalManagedOutputAsync(operations, checked, progress, memory) {
+  try {
+    await (memory === undefined
+      ? closeCompletedLocalManagedOutput(operations, checked, progress) : memory.close());
+    return;
+  } catch (failure) {
+    if (memory !== undefined && !managedMemoryReleaseFailureMatches(memory, failure)) throw failure;
+    const inner = completedRetirements.has(failure) ? failure : failure?.primaryFailure;
+    const original = completedRetirements.get(inner);
+    const handle = failure?.cleanupHandle;
+    if (original?.operations !== operations || typeof handle?.retry !== 'function' ||
+        typeof handle?.status !== 'function') throw failure;
+    let flight = completedRetirementFlights.get(inner);
+    if (flight === undefined) {
+      flight = (async () => {
+        try {
+          const now = retirementProgress(operations);
+          if (typeof now !== 'bigint' || now < original.after) return false;
+          // One original bounded retry; its existing progress-limited driver
+          // stops at a physical stall or error and cannot advance Compute.
+          const result = await handle.retry();
+          const final = handle.status();
+          const local = inner.cleanupHandle.status();
+          return local?.pending === false && local.errors?.length === 0 && result?.pending === false && result.errors?.length === 0 &&
+            final?.pending === false && final.errors?.length === 0;
+        } catch { return false; }
+      })().finally(() => { completedRetirementFlights.delete(inner); });
+      completedRetirementFlights.set(inner, flight);
+    }
+    if (!await flight) throw failure;
+  }
 }
 
 // Finalization failure can leave more than one local retirement quantum. Keep
@@ -62,21 +123,31 @@ export function continueLocalManagedFailureCleanup(failure, operations) {
   return flight;
 }
 
+// MoonBit's JS ABI may expose an Int64 as its unsigned 64-bit bit pattern.
+// Normalize the original witness, but never wrap an out-of-domain value into
+// authority to run cleanup. In particular, unsigned -1 still means blocked.
+function cleanupContinuation(operations) {
+  const value = operations.cleanup_local_continuation();
+  if (typeof value !== 'bigint' || value < -(1n << 63n) ||
+      value > (1n << 64n) - 1n) return undefined;
+  return BigInt.asIntN(64, value);
+}
+
 async function continueFailureCleanup(failure, operations) {
   const handle = failure?.cleanupHandle;
   if (typeof operations.cleanup_local_continuation !== 'function' ||
       typeof handle?.retry !== 'function' || typeof handle?.status !== 'function') return failure;
   try {
-    let previous = operations.cleanup_local_continuation();
+    let previous = cleanupContinuation(operations);
     while (typeof previous === 'bigint' && previous >= 0n &&
         handle.status()?.pending === true) {
       await new Promise(resolve => setTimeout(resolve, 0));
       // A reader/cancellation may change eligibility while yielded.
-      const ready = operations.cleanup_local_continuation();
+      const ready = cleanupContinuation(operations);
       if (typeof ready !== 'bigint' || ready < previous) break;
       const state = await handle.retry();
       if (state?.pending !== true || state.errors?.length > 0) break;
-      const current = operations.cleanup_local_continuation();
+      const current = cleanupContinuation(operations);
       if (typeof current !== 'bigint' || current <= previous) break;
       previous = current;
     }

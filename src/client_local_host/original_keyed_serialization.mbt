@@ -6,7 +6,7 @@ fn original_keyed_serialization_suffix_provider(
   keyed : @publication_host.ClientKeyedAcquisition,
   task : Int,
   step : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -28,7 +28,7 @@ fn original_keyed_serialization_suffix_provider(
       Pure(prepared),
       task,
       step,
-      registry_body,
+      installed_contracts,
       values_body,
       fragment_body,
       ordered_body,
@@ -57,7 +57,7 @@ pub fn client_original_keyed_serialization_suffix_capacity(
   keyed : @publication_host.ClientKeyedAcquisition,
   task : Int,
   step : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -65,7 +65,7 @@ pub fn client_original_keyed_serialization_suffix_capacity(
   measurement : @execution.FixedInputGuardMeasureLimits,
 ) -> @execution.ExecutionCapacity? {
   original_keyed_serialization_suffix_provider(
-    prepared, keyed, task, step, registry_body, values_body, fragment_body, ordered_body,
+    prepared, keyed, task, step, installed_contracts, values_body, fragment_body, ordered_body,
     execution, measurement,
   ).map(value => value.2)
 }
@@ -85,7 +85,7 @@ pub fn start_client_original_keyed_serialization_suffix(
   keyed : @publication_host.ClientKeyedAcquisition,
   task : Int,
   step : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -94,7 +94,7 @@ pub fn start_client_original_keyed_serialization_suffix(
   workspace? : @execution.ExecutionCapacity? = None,
 ) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue] {
   guard original_keyed_serialization_suffix_provider(
-      prepared, keyed, task, step, registry_body, values_body, fragment_body, ordered_body,
+      prepared, keyed, task, step, installed_contracts, values_body, fragment_body, ordered_body,
       execution, measurement,
     )
     is Some((sequence, provider, capacity)) else {

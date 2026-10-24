@@ -69,3 +69,39 @@ test('ordinary resource failed currentness preserves pending cleanup and never r
   assert.equal(ports.cancelUnpublished(), 0);
   assert.equal(ports.status(0), -42);
 });
+
+test('ordinary resource weak original receipt never admits equal-shaped or sibling identities', () => {
+  const first = fixture(), sibling = fixture();
+  assert.doesNotThrow(() => resources.assertOrdinaryManagedRunCurrent(first.original, first.prepared));
+  assert.throws(() => resources.assertOrdinaryManagedRunCurrent(first.original, {...first.prepared}),
+    {code: 'NodeManagedRunAdmissionUnavailable'});
+  assert.throws(() => resources.assertOrdinaryManagedRunCurrent(first.original, sibling.prepared),
+    {code: 'NodeManagedRunAdmissionUnavailable'});
+  assert.equal(resources.prepareOriginalManagedRunPorts(first.original, sibling.prepared), null);
+  assert.equal(resources.prepareOriginalLocalMockModelRunPorts(first.original, first.prepared), null);
+  const ports = resources.prepareOriginalManagedRunPorts(first.original, first.prepared);
+  assert.ok(ports);
+  assert.equal(ports.cancelUnpublished(), 0);
+  assert.equal(resources.prepareOriginalManagedRunPorts(first.original, first.prepared), null);
+  assert.throws(() => resources.assertOrdinaryManagedRunCurrent(first.original, first.prepared),
+    {code: 'NodeManagedRunAdmissionUnavailable'});
+});
+
+test('preparation original has a separate once-only supplier and preserves live debit until cleanup', () => {
+  const input = {}, original = resources.retainOrdinaryManagedRun(input, {
+    planningWork: 10, attempts: 10, holdings: 10,
+    transferBytes: 100n, retainedBytes: 100n, executionBytes: 100n,
+  }, () => {}, () => false, 'local-preparation');
+  assert.equal(resources.prepareOriginalManagedRunPorts(original, input), null);
+  assert.equal(resources.prepareOriginalLocalPreparationPorts(original, {}), null);
+  const ports = resources.prepareOriginalLocalPreparationPorts(original, input);
+  assert.ok(ports);
+  assert.equal(resources.prepareOriginalLocalPreparationPorts(original, input), null);
+  assert.equal(ports.status(0), 0);
+  assert.equal(ports.status(0), -42);
+  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 30n, 0n, 30n), 0);
+  assert.equal(ports.status(2), -42);
+  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 30n), 0);
+  assert.equal(ports.status(2), 0);
+  assert.equal(resources.prepareOriginalLocalPreparationPorts(original, input), null);
+});

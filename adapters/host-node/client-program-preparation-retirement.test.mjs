@@ -41,3 +41,19 @@ test('private Pure preparation retirement rejects foreign and restored Infer own
   assert.throws(() => prepare.retireOriginal(infer), /Foreign Pure Client preparation/);
   assert.equal(prepare.originalInferRun(infer), restored);
 });
+
+test('fixed funded original bypasses serialization and retains ordinary ownership metadata',()=>{
+ const original={},input={toJSON(){throw Error('unexpected second serialization');}};
+ let seen;
+ const {environment,prepare}=fixture({getFundedPreparation(request,selected){seen=[request,selected];return original;}});
+ const request={kind:'program',input,parameters:null};
+ assert.equal(prepare(request),original);assert.deepEqual(seen,[request,environment]);
+ assert.deepEqual(prepare.originalInputs(original),{environment,parameters:undefined});
+ prepare.retireOriginal(original);assert.throws(()=>prepare.assertOwned(original));
+});
+test('undefined funded original keeps legacy serialization and failure is not silent fallback',()=>{
+ const {prepare}=fixture({getFundedPreparation(){return undefined;}});
+ assert.ok(prepare({kind:'program',input:{},parameters:null}));
+ const broken=fixture({getFundedPreparation(){throw Error('original funding failed');}}).prepare;
+ assert.throws(()=>broken({kind:'program',input:{},parameters:null}),/original funding failed/);
+});

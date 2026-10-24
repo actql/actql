@@ -5,7 +5,7 @@ import {readLocalRetainedInput} from './retained-input.mjs';
 import {localComputeFaultInjection, localRetainedStore,
   localSnapshotStore, localExecutionPauseHandler} from './retained-store.mjs';
 import {prepareLocalRetainedOutput} from './retained-output.mjs';
-import {closeCompletedLocalManagedOutput, continueLocalManagedFailureCleanup} from './managed-output-custody.mjs';
+import {closeCompletedLocalManagedOutput, closeCompletedLocalManagedOutputAsync, continueLocalManagedFailureCleanup} from './managed-output-custody.mjs';
 import {prepareLocalCarrierSnapshot, prepareLocalRelationSnapshot} from './carrier-snapshot.mjs';
 import {planManagedInputRows, registerManagedMemoryInput,
   withManagedInputRows, withManagedOutputRows} from
@@ -423,7 +423,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         if (carrierMaterial != null) return Object.freeze({
           completed,
           carrierMaterial,
-          close: () => closeCompletedLocalManagedOutput(operations, checked, failureProgress),
+          close: () => closeCompletedLocalManagedOutputAsync(operations, checked, failureProgress),
           diagnostic: Object.freeze({
             realization: 'local-managed',
             outputRepresentation: 'managed-local-carrier',
@@ -475,7 +475,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           readRetained: (emit, readSignal) => withManagedOutputRows(
             material, emit, readSignal, () => undefined,
           ),
-          close: () => memory.close(),
+          close: () => closeCompletedLocalManagedOutputAsync(operations, checked, failureProgress, memory),
           diagnostic: Object.freeze({
             realization: 'local-managed',
             outputRepresentation: 'managed-local-memory',
@@ -581,7 +581,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
               }
               throw failure;
             }
-            closeCompletedLocalManagedOutput(operations, checked, failureProgress);
+            await closeCompletedLocalManagedOutputAsync(operations, checked, failureProgress);
           }};
       } catch (error) {
         stopBoundedExecution(operations, checked);

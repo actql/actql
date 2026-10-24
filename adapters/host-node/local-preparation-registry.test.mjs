@@ -74,3 +74,155 @@ test('handler failure before dispatch preserves original preparation for uncerta
   assert.equal(candidate.preparedProgram,prepared);
   assert.deepEqual(candidate.input,{text:'SELECT 1'});
 });
+
+test('retirement continuation retries after dispatch slots clear without rereading the body', () => {
+  let begun=0,finished=0,handlerDone=false;
+  const prepared={};
+  const registry=installLocalPreparationRegistry(()=>true, original=>{
+    assert.equal(original,prepared);begun++;
+    return ()=>{finished++;if(!handlerDone)throw new Error('OriginalCleanupPending');};
+  });
+  const request=registry.capture({kind:'program',input:{stages:[]},parameters:null});
+  const handle=registry.adopt(prepared,request);
+  const submission=registry.attach(registry.copy(request),handle);
+  const dispatch=registry.begin(submission);
+  assert.throws(()=>dispatch.retire(),/OriginalCleanupPending/);
+  assert.throws(()=>dispatch.preparedProgram,/BorrowReleased/);
+  assert.equal(submission.preparedProgram,prepared); // Original handler still owns its slot.
+  registry.finishHandler(request);handlerDone=true;
+  assert.throws(()=>submission.preparedProgram,/Retired/);
+  dispatch.retire();dispatch.retire();
+  assert.equal(begun,1);assert.equal(finished,2);
+});
+
+test('Core handler and dispatch tokens return only after their JS payload slots are severed',()=>{
+ const prepared={},tokens=new Set();let begun=false,request,submission;
+ const token=()=>{const value={};tokens.add(value);return value;};
+ const handler=token();
+ const runtime={clientProgramPreparationBorrowRead(h){assert(tokens.has(h));return prepared;},
+ clientProgramPreparationBorrowSibling(h){assert.equal(h,handler);return {$tag:1,_0:token()};},
+ clientProgramPreparationBorrowReturn(h){assert(tokens.delete(h));
+   if(tokens.size===0){assert.throws(()=>request.input,/Retired/);assert.throws(()=>submission.preparedProgram,/Retired/);}
+   return {$tag:1,_0:tokens.size===0};}};
+ const registry=installLocalPreparationRegistry(()=>true,()=>{begun=true;return()=>{
+   if(tokens.size)throw new Error('OriginalCoreCleanupPending');
+ };},{runtime,borrow:()=>handler});
+ request=registry.capture({kind:'program',input:{stages:[]},parameters:null});
+ const handle=registry.adopt(prepared,request);submission=registry.attach(registry.copy(request),handle);
+ const dispatch=registry.begin(submission);assert.equal(tokens.size,2);
+ assert.throws(()=>dispatch.retire(),/OriginalCoreCleanupPending/);assert(begun);assert.equal(tokens.size,1);
+ assert.equal(submission.preparedProgram,prepared);
+ registry.finishHandler(request);assert.equal(tokens.size,0);
+ dispatch.retire();dispatch.retire();
+});
+test('foreign Core handler body is returned to its original owner before rejection',()=>{
+ let returned=0;const holder={};
+ const runtime={clientProgramPreparationBorrowRead:()=>({}),
+ clientProgramPreparationBorrowSibling(){assert.fail();},
+ clientProgramPreparationBorrowReturn(h){assert.equal(h,holder);returned++;return {$tag:1,_0:false};}};
+ const registry=installLocalPreparationRegistry(()=>true,undefined,{runtime,borrow:()=>holder});
+ assert.throws(()=>registry.adopt({}),/ForeignLocalPreparationResource/);assert.equal(returned,1);
+});
+
+test('Host close retires finished undispatched original, not uncertain handler completion', () => {
+  let starts=0, finishes=0;
+  const prepared={};
+  const registry=installLocalPreparationRegistry(()=>true, original=>{
+    assert.equal(original,prepared); starts++; return()=>{finishes++;};
+  });
+  const request=registry.capture({kind:'program',input:{stages:[]}});
+  const handle=registry.adopt(prepared,request);
+  const submission=registry.attach(registry.copy(request),handle);
+  registry.finishHandler(request);
+  assert.equal(submission.preparedProgram,prepared);
+  registry.retireQuiescentUndispatched(); registry.retireQuiescentUndispatched();
+  assert.equal(starts,1); assert.equal(finishes,1);
+  assert.throws(()=>submission.preparedProgram,/Retired/);
+  assert.throws(()=>registry.begin(submission),/RegistryClosing/);
+  assert.throws(()=>registry.adopt({}),/RegistryClosing/);
+});
+
+test('Host close refuses active handler without cutting it, then retries original', () => {
+  let starts=0;
+  const registry=installLocalPreparationRegistry(()=>true,()=>{starts++;});
+  const request=registry.capture({kind:'program',input:{stages:[]}});
+  const prepared={},handle=registry.adopt(prepared,request);
+  const submission=registry.attach(registry.copy(request),handle);
+  assert.throws(()=>registry.retireQuiescentUndispatched(),/HandlerCleanupPending/);
+  assert.equal(starts,0); assert.equal(submission.preparedProgram,prepared);
+  registry.finishHandler(request); registry.retireQuiescentUndispatched();
+  assert.equal(starts,1); assert.throws(()=>request.input,/Retired/);
+});
+
+for (const failReturn of [false,true]) test(`undispatched close retries light continuation; consumed return failure=${failReturn}`,()=>{
+  const prepared={},holder={}; let returns=0,starts=0,finishes=0,request;
+  const runtime={clientProgramPreparationBorrowRead:()=>prepared,
+    clientProgramPreparationBorrowSibling(){assert.fail('No new dispatch holder');},
+    clientProgramPreparationBorrowReturn(token){
+      assert.equal(token,holder);returns++;
+      assert.throws(()=>request.input,/Retired/);
+      if(failReturn)throw new Error('ConsumedReturnSettlementPending');
+      return {$tag:1,_0:true};
+    }};
+  const registry=installLocalPreparationRegistry(()=>true,()=>{
+    starts++; return()=>{finishes++;if(finishes===1)throw new Error('OriginalCleanupPending');};
+  },{runtime,borrow:()=>holder});
+  request=registry.capture({kind:'program',input:{stages:[]}});
+  registry.adopt(prepared,request); registry.finishHandler(request);
+  assert.throws(()=>registry.retireQuiescentUndispatched(), failReturn ? /ConsumedReturn/ : /OriginalCleanupPending/);
+  if(failReturn) assert.throws(()=>registry.retireQuiescentUndispatched(),/OriginalCleanupPending/);
+  registry.retireQuiescentUndispatched(); registry.retireQuiescentUndispatched();
+  assert.equal(returns,1); assert.equal(starts,1); assert.equal(finishes,2);
+});
+
+test('held original may dispatch after handler completion before Host close',()=>{
+  const registry=installLocalPreparationRegistry(()=>true);
+  const request=registry.capture({kind:'program',input:{stages:[]}});
+  const handle=registry.adopt({},request),submission=registry.attach(registry.copy(request),handle);
+  registry.finishHandler(request);
+  const dispatch=registry.begin(submission);
+  dispatch.retire();
+  assert.throws(()=>request.input,/Retired/);
+  registry.retireQuiescentUndispatched();
+});
+
+test('unselected source snapshot is not retired by Pure installation-close hook',()=>{
+  const registry=installLocalPreparationRegistry(()=>false,()=>assert.fail());
+  const input={stages:[]},request=registry.capture({kind:'program',input});
+  registry.adopt({},request); registry.finishHandler(request);
+  registry.retireQuiescentUndispatched(); assert.equal(request.input,input);
+});
+
+test('initial retirement cuts only the exact finished, retiring original without closing other entries',()=>{
+ const prepared={},other={},holder={},otherHolder={};let retiring=false,returns=0,started=0;
+ const values=new Map([[holder,prepared],[otherHolder,other]]);
+ const runtime={clientProgramPreparationBorrowRead:h=>values.get(h),
+  clientProgramPreparationBorrowSibling(){assert.fail('No dispatch');},
+  clientProgramPreparationBorrowRetirementStarted:h=>h===holder&&retiring,
+  clientProgramPreparationBorrowReturn(h){assert.equal(h,holder);returns++;return {$tag:1,_0:false};}};
+ const registry=installLocalPreparationRegistry(()=>true,()=>{started++;},{runtime,borrow:p=>p===prepared?holder:otherHolder});
+ const request=registry.capture({kind:'program',input:{x:1}}),active=registry.capture({kind:'program',input:{x:2}});
+ registry.adopt(prepared,request);registry.adopt(other,active);
+ assert.throws(()=>registry.retireRetiringOriginal(prepared),/HandlerCleanupPending/);
+ registry.finishHandler(request);
+ assert.throws(()=>registry.retireRetiringOriginal(prepared),/RetirementNotStarted/);
+ retiring=true;
+ registry.retireRetiringOriginal({});assert.equal(returns,0);
+ registry.retireRetiringOriginal(prepared);registry.retireRetiringOriginal(prepared);
+ assert.equal(returns,1);assert.equal(started,1);assert.throws(()=>request.input,/Retired/);
+ assert.deepEqual(active.input,{x:2});
+ assert.throws(()=>registry.retireRetiringOriginal(other),/HandlerCleanupPending/);
+ assert.ok(registry.capture({kind:'program',input:{x:3}}));
+});
+
+test('initial retirement retry does not reread a consumed Core handler',()=>{
+ const prepared={},holder={};let returned=false,returns=0;
+ const runtime={clientProgramPreparationBorrowRead(h){assert.equal(returned,false);assert.equal(h,holder);return prepared;},
+  clientProgramPreparationBorrowSibling(){assert.fail();},
+  clientProgramPreparationBorrowRetirementStarted:()=>true,
+  clientProgramPreparationBorrowReturn(){returned=true;returns++;throw Error('ConsumedSettlementPending');}};
+ const registry=installLocalPreparationRegistry(()=>true,()=>undefined,{runtime,borrow:()=>holder});
+ const request=registry.capture({kind:'program',input:{x:1}});registry.adopt(prepared,request);registry.finishHandler(request);
+ assert.throws(()=>registry.retireRetiringOriginal(prepared),/ConsumedSettlementPending/);
+ registry.retireRetiringOriginal(prepared);assert.equal(returns,1);
+});

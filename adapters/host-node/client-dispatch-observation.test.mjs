@@ -18,7 +18,12 @@ const source = readFileSync(new URL('./client-dispatch-owner.mjs', import.meta.u
 const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 const declarations = ast.body.flatMap(node => {
   const value = node.type === 'ExportNamedDeclaration' ? node.declaration : node;
-  return value?.type === 'FunctionDeclaration' ? [source.slice(value.start, value.end)] : [];
+  // Retirement's diagnostic-only field inventory is an actual module-level
+  // dependency. Keep its original declaration, not a fixture-maintained copy.
+  const retirementInventory = value?.type === 'VariableDeclaration' &&
+    value.declarations.some(entry => entry.id.type === 'Identifier' && entry.id.name === 'dispatchFailureFields');
+  return value?.type === 'FunctionDeclaration' || retirementInventory
+    ? [source.slice(value.start, value.end)] : [];
 });
 const installNodeClientDispatchOwner = compileFunction(
   declarations.join('\n') + '\nreturn installNodeClientDispatchOwner;',
@@ -75,10 +80,11 @@ async function actualScalarFailureStop(t,managed,interleaveObservation=false){
     await mkdir(snapshot,{recursive:true});
     return createLocalRetainedStore({parentDirectory:snapshot,capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1});
   });
-  const registry=await readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',import.meta.url),'utf8');
+  const registryWire=await readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',import.meta.url),'utf8');
   const aoa=JSON.parse(await readFile(new URL('../../spec/contracts/actql-aoa.json',import.meta.url),'utf8'));
   const values=JSON.stringify(aoa.execution_contracts['REL.values']),fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
     ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const registry=checked(moon.clientPrepareInstalledSequenceContracts(registryWire,values,fragment,ordered));
   const entry=createNodeHostEntry(()=>Promise.resolve(moon),installStrategyContributions);
   let failure,execution,dispatch,managedRun,managedAdmission;
   let observations=0;
@@ -105,7 +111,7 @@ async function actualScalarFailureStop(t,managed,interleaveObservation=false){
       // Common module, never the source checkout's independent WeakMap.
       const {default:resources}=await import(new URL('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs',
         pathToFileURL(commonRuntimePath)));
-      const sequences=checked(moon.clientProgramPrepareInstalledManagedSourceFree(
+      const sequences=checked(moon.clientProgramPrepareInstalledManagedSourceFreeWithContracts(
         preparedProgram,registry,values,fragment,ordered));
       const limits=moon.clientProgramPreparedInstalledManagedSourceFreeRequirements(sequences);
       assert.equal(limits.length,6);

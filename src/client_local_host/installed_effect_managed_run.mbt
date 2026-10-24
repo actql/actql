@@ -9,7 +9,7 @@ pub fn installed_effect_managed_run_requirements(
   evidence_contract_body : String,
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -21,7 +21,7 @@ pub fn installed_effect_managed_run_requirements(
     evidence_contract_body,
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -37,7 +37,7 @@ pub fn installed_effect_mock_model_run_requirements(
   evidence_contract_body : String,
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -49,7 +49,7 @@ pub fn installed_effect_mock_model_run_requirements(
     evidence_contract_body,
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -187,7 +187,7 @@ pub fn prepare_installed_effect_managed_run_ledger(
   capacities : Array[ClientInstalledCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -197,7 +197,7 @@ pub fn prepare_installed_effect_managed_run_ledger(
     Ok(_) => ()
   }
   prepare_installed_managed_run_ledger_owned(
-    value, capacities, transport_bytes, transport_execution_bytes, registry_body,
+    value, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
     values_body, fragment_body, ordered_body,
   )
 }

@@ -412,6 +412,10 @@ pub fn emit_content_serialization_options(ContentSerializationProfile, @encode_c
 
 pub fn empty_initial_input_artifact_set_cid() -> String
 
+pub fn empty_normalization_journal_retained_layout() -> EmptyNormalizationJournalLayout
+
+pub fn empty_normalization_validation_layout() -> EmptyNormalizationValidationLayout
+
 pub fn encode_model_original_resource_document(String, String, String, String, Int, Int, Int) -> Result[String, PublicationContractIssue]
 
 pub fn existing_delivery_attempt_action_code(ExistingDeliveryAttemptAction) -> Int
@@ -1575,6 +1579,23 @@ pub(all) enum EffectfulPublicationCommitIssue {
   FinalChain(EffectfulFinalChainIssue)
   Index(PublicationCommitIssue)
 } derive(@debug.Debug)
+
+pub(all) struct EmptyNormalizationJournalLayout {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+  body_wire_units : Int64
+  sealed_wire_units : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EmptyNormalizationValidationLayout {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  pending_frames_upper : Int
+  live_frames_upper : Int
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ExistingDeliveryAttemptAction {
   DeliveryConfirmSucceededRecord

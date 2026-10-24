@@ -12,6 +12,7 @@ priv enum NodeManagedRunPurpose {
 pub struct NodeManagedRunAdmission[P] {
   priv mut original : NodeManagedRunAdmission[P]?
   priv mut prepared : P?
+  priv mut preparation_holder : PreparationBodyBorrow[P]?
   priv purpose : NodeManagedRunPurpose
   priv child : ImportedChildLedger
   priv abort_unpublished : () -> Result[Unit, ImportedChildLedgerIssue]
@@ -34,6 +35,7 @@ fn[P] prepare_node_managed_run_original(
   let value : NodeManagedRunAdmission[P] = {
     original: None,
     prepared: Some(prepared),
+    preparation_holder: None,
     purpose,
     abort_unpublished,
     child,

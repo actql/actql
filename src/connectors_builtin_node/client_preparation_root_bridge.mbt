@@ -1,0 +1,249 @@
+///|
+/// JS-only identity erasure for the fixed ordinary producer receipt. An empty
+/// record supplied by a caller is not admitted: the original Node supplier
+/// checks membership and purpose before returning its one child port.
+#external
+type ClientLocalPreparationInputOriginal
+
+///|
+/// The fixed manager stores this unstarted admission before calling the
+/// separate phase driver. A later rejection/unknown outcome must clean this
+/// same original and cannot acquire another child for the same receipt.
+#export_name("clientProgramPrepareLocalPreparationAdmission")
+pub fn client_program_prepare_local_preparation_admission(
+  original : @resources.OriginalNodeManagedRunReference,
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[
+  @resources.NodePreparationAdmission[ClientLocalPreparationInputOriginal],
+  @resources.ImportedChildLedgerIssue,
+] {
+  @resources.prepare_node_local_preparation_admission(original, input)
+}
+
+///|
+/// The original cleanup census refuses while a preparation debit or child
+/// duty remains. This operation is not a replacement for phase retirement.
+#export_name("clientProgramCleanupLocalPreparationAdmission")
+pub fn client_program_cleanup_local_preparation_admission(
+  original : @resources.NodePreparationAdmission[
+    ClientLocalPreparationInputOriginal,
+  ],
+) -> Result[Unit, @resources.ImportedChildLedgerIssue] {
+  @resources.cleanup_node_preparation_admission(original)
+}
+
+///|
+#export_name("clientProgramClosedValuesInitialControl")
+pub fn client_program_closed_values_initial_control(
+  policy : @client_local_host.ClientLocalResourcePolicy,
+) -> Array[Int64] {
+  match
+    @client_local_host.client_closed_values_initial_control_capacity(policy) {
+    Some((retained, execution)) => [retained, execution]
+    None => []
+  }
+}
+
+///|
+#export_name("clientProgramBeginClosedValuesPreparation")
+pub fn client_program_begin_closed_values_preparation(
+  initial : @resources.NodePreparationAdmission[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  policy : @client_local_host.ClientLocalResourcePolicy,
+) -> Result[
+  @client_local_host.ClientClosedValuesPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  @client_local_host.ClientClosedValuesPreparationIssue,
+] {
+  @client_local_host.begin_closed_values_preparation(initial, input, policy)
+}
+
+///|
+#export_name("clientProgramBeginClosedValuesHeader")
+pub fn client_program_begin_closed_values_header(
+  owner : @client_local_host.ClientClosedValuesPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+) -> Result[
+  @resources.PreparationPhaseWork,
+  @client_local_host.ClientClosedValuesPreparationIssue,
+] {
+  @client_local_host.begin_closed_values_header(owner)
+}
+
+///|
+#export_name("clientProgramBeginClosedValuesScan")
+pub fn client_program_begin_closed_values_scan(
+  owner : @client_local_host.ClientClosedValuesPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  fields : Int,
+  rows : Int,
+) -> Result[
+  @resources.PreparationPhaseWork,
+  @client_local_host.ClientClosedValuesPreparationIssue,
+] {
+  @client_local_host.begin_closed_values_scan(owner, fields, rows)
+}
+
+///|
+#export_name("clientProgramSpendPreparationPhaseWork")
+pub fn client_program_spend_preparation_phase_work(
+  work : @resources.PreparationPhaseWork,
+  amount : Int,
+) -> Result[Unit, @resources.PreparationWorkIssue] {
+  @resources.spend_preparation_phase_work(work, amount)
+}
+
+///|
+#export_name("clientProgramFinishClosedValuesScan")
+pub fn client_program_finish_closed_values_scan(
+  owner : @client_local_host.ClientClosedValuesPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue] {
+  @client_local_host.finish_closed_values_scan(owner)
+}
+
+///|
+#export_name("clientProgramAbortClosedValuesPreparationAfterCleanup")
+pub fn client_program_abort_closed_values_preparation_after_cleanup(
+  owner : @client_local_host.ClientClosedValuesPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue] {
+  @client_local_host.abort_closed_values_preparation_after_cleanup(owner)
+}
+
+///|
+#export_name("clientProgramBeginClosedValuesTextCheck")
+pub fn client_program_begin_closed_values_text_check(
+  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+  quoted_utf16_units : Int,
+) -> Result[@resources.PreparationPhaseWork, @client_local_host.ClientClosedValuesPreparationIssue] {
+  @client_local_host.begin_closed_values_text_check(owner, quoted_utf16_units)
+}
+
+///|
+#export_name("clientProgramFinishClosedValuesTextCheck")
+pub fn client_program_finish_closed_values_text_check(
+  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue] {
+  @client_local_host.finish_closed_values_text_check(owner)
+}
+
+///|
+/// Private fixed Node scanner projection. The original phase owner, not these
+/// numeric facts, owns capacity; JavaScript proves same-input synchronous
+/// custody before this call. No caller resource budget is accepted here.
+#export_name("clientProgramReserveClosedValuesSnapshot")
+pub fn client_program_reserve_closed_values_snapshot(
+  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+  input_bytes_upper : Int, node_upper : Int, objects : Int, arrays : Int,
+  fields_upper : Int, quoted_tokens : Int, quoted_utf16_units : Int,
+  longest_quoted_utf16 : Int, longest_atom_utf16 : Int, depth_upper : Int,
+  fields : Int, rows : Int, consent_refs : Int,
+) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue] {
+  @client_local_host.reserve_closed_values_snapshot(owner, {
+    input_bytes_upper, node_upper, objects, arrays, fields_upper, quoted_tokens,
+    quoted_utf16_units, longest_quoted_utf16, longest_atom_utf16, depth_upper,
+    fields, rows,
+  }, consent_refs)
+}
+
+///|
+#export_name("clientProgramBindClosedValuesDocument")
+pub fn client_program_bind_closed_values_document(
+  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+  document : String,
+) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue] {
+  @client_local_host.bind_closed_values_document(owner, document)
+}
+
+///|
+#export_name("clientProgramPrepareClosedValuesBody")
+pub fn client_program_prepare_closed_values_body(
+  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+  environment : @program_check.CheckEnvironment,
+  publication_environment : @source_publication.PreparedPublishedQueryEnvironment,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue] {
+  @client_local_host.prepare_closed_values_body(owner, environment, publication_environment, contracts)
+}
+
+///|
+#export_name("clientProgramCompleteClosedValuesBody")
+pub fn client_program_complete_closed_values_body(
+  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+) -> Result[@resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram], @client_local_host.ClientClosedValuesPreparationIssue] {
+  @client_local_host.complete_closed_values_body(owner)
+}
+
+///|
+#export_name("clientProgramAdoptClosedValuesPreparation")
+pub fn client_program_adopt_closed_values_preparation(
+  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_closed_values_owned_run(owner, prepared, request)
+}
+
+///|
+#export_name("clientProgramSeverClosedValuesBody")
+pub fn client_program_sever_closed_values_body(
+  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+  holder : @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+) -> Bool {
+  @client_local_host.sever_closed_values_body(owner, holder)
+}
+
+///|
+/// Exact initial-owner/issued-manager-token cut witness. Not physical stop.
+#export_name("clientProgramClosedValuesInitialRetirementStarted")
+pub fn client_program_closed_values_initial_retirement_started(
+  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+  holder : @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+) -> Bool {
+  @client_local_host.closed_values_initial_retirement_started(owner, holder)
+}
+
+///|
+/// Read-only logical accounting for the exact original owner. No grant.
+#export_name("clientProgramClosedValuesPreparationAccounting")
+pub fn client_program_closed_values_preparation_accounting(
+  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+) -> Result[(Int64, Int64, Int64, Int64, Int64, Int64), @client_local_host.ClientClosedValuesPreparationIssue] {
+  @client_local_host.closed_values_preparation_accounting(owner)
+}
+
+///|
+/// Immutable failure DATA only; no owner, Ledger, reservation or grant escapes.
+#export_name("clientProgramPreparationCapacityRefusal")
+pub fn client_program_preparation_capacity_refusal(
+  issue : @client_local_host.ClientClosedValuesPreparationIssue,
+) -> (String, String, Int64, Int64, Int64, Int64)? {
+  @client_local_host.closed_values_preparation_capacity_refusal(issue)
+}
+
+///|
+/// Fixed original-owner intent admission; no caller numeric limit or grant.
+#export_name("clientProgramPrepareClosedValuesSubmittedIntent")
+pub fn client_program_prepare_closed_values_submitted_intent(
+  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+  wire : String,
+) -> Result[String, @client_local_host.ClientClosedValuesPreparationIssue] {
+  @client_local_host.prepare_closed_values_submitted_intent(owner, wire)
+}
+
+///|
+/// Borrowed exact semantic intent; fixed active handler lifetime only.
+#export_name("clientProgramClosedValuesSubmittedIntentOriginal")
+pub fn client_program_closed_values_submitted_intent_original(
+  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+) -> @publication_host.ClientSubmittedIntent? {
+  @client_local_host.closed_values_submitted_intent_original(owner)
+}

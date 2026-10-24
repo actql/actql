@@ -21,7 +21,7 @@ pub fn start_client_original_keyed_prefix_input(
   prepared : @publication_host.PreparedClientProgram,
   keyed : @publication_host.ClientKeyedAcquisition,
   capture : @row_source_host.RowSourceCapture,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -32,7 +32,7 @@ pub fn start_client_original_keyed_prefix_input(
   workspace? : @execution.ExecutionCapacity? = None,
 ) -> Result[ClientOriginalKeyedPrefixInput, ClientSerializationPrefixIssue] {
   start_client_original_keyed_left_prefix_owned(
-    scope, compiled, definition, plan, prepared, keyed, capture, registry_body, values_body,
+    scope, compiled, definition, plan, prepared, keyed, capture, installed_contracts, values_body,
     fragment_body, ordered_body, execution, measurement, max_entries, max_name_bytes,
     workspace,
   ).map(tuple => {

@@ -169,3 +169,113 @@ test('failure continuation shares one flight and retains reservation until relea
   assert.equal(cancellationRequested, true, 'cancellation can run between cleanup slices');
   assert.equal(charged, false); assert.equal(retries, 10);
 });
+
+for (const witness of [-1n, 0xffffffffffffffffn, 1n << 64n, -(1n << 63n) - 1n]) {
+  test(`failure continuation refuses blocked or invalid Int64 witness ${witness}`, async () => {
+    let retries = 0;
+    const failure = {cleanupHandle: {
+      status: () => ({pending: true, errors: []}),
+      async retry() { retries++; return {pending: true, errors: []}; },
+    }};
+    const operations = {cleanup_local_continuation: () => witness};
+    assert.equal(await continueLocalManagedFailureCleanup(failure, operations), failure);
+    assert.equal(retries, 0, 'blocked or non-Int64 witness cannot authorize a cleanup slice');
+    assert.equal(failure.cleanupHandle.status().pending, true);
+  });
+}
+
+
+const {closeCompletedLocalManagedOutputAsync} = await import('./managed-output-custody.mjs');
+const {registerManagedMemoryInput} = await import('../store-local/managed-memory-representations.mjs');
+for (const mode of ['finite','stalled','error','foreign','negative','overflow']) {
+  test(`completed output async close preserves original retirement: ${mode}`, async () => {
+    let retired=0n, refreshes=0, closeCalls=0;
+    const originalIssue=new Error('OriginalRetirementIssue');
+    const operations={
+      close(){closeCalls++;},
+      settle(){assert.fail('completed execution cannot settle again');},
+      advance(){assert.fail('cleanup cannot execute Compute');},
+      cleanup_progress(){return mode==='negative'?-1n:mode==='overflow'?(1n<<63n):retired;},
+      cleanup_refresh(){
+        refreshes++;
+        if(mode==='error' && refreshes>=3)throw originalIssue;
+        if(mode==='stalled' && refreshes>=3)return false;
+        retired+=64n;return retired>=1024n;
+      },
+    };
+    const progress=beginManagedFailureProgress(moon,true,false);
+    recordManagedFailureExecutionSettled(progress);
+    const material={};
+    const memory=registerManagedMemoryInput(material,()=>true,()=>true,{async read(){}},
+      ()=>closeCompletedLocalManagedOutput(operations,checked,progress));
+    let outer;
+    const selected=mode==='foreign'?{...operations}:operations;
+    if(mode==='finite') {
+      await Promise.all([closeCompletedLocalManagedOutputAsync(selected,checked,progress,memory),
+        closeCompletedLocalManagedOutputAsync(selected,checked,progress,memory)]);
+      assert.equal(memory.status().released,true);
+      assert.equal(retired,1024n);
+      const done=refreshes;await memory.close();assert.equal(refreshes,done);
+    } else {
+      await assert.rejects(closeCompletedLocalManagedOutputAsync(selected,checked,progress,memory),error=>{outer=error;return error.code==='ManagedInputReleaseFailed';});
+      if(mode!=='error')assert.equal(memory.status().released,false);
+      assert.ok(refreshes<=4,'blocked/nonprogressing cleanup cannot be polled');
+      if(mode==='error')assert.ok(outer.primaryFailure.cleanupHandle.status().errors.includes(originalIssue));
+    }
+    assert.equal(closeCalls,2,'one original release plus managed failure close, never a replacement');
+  });
+}
+
+test('completed memory retirement refuses copied wrappers and replaced recovery handles', async () => {
+  const {managedMemoryReleaseFailureMatches}=await import('../store-local/managed-memory-representations.mjs');
+  let retired=0n,retries=0;
+  const operations={close(){},settle(){assert.fail('no new settlement');},
+    cleanup_progress:()=>retired,cleanup_refresh(){retired+=1n;return false;}};
+  const progress=beginManagedFailureProgress(moon,true,false);
+  recordManagedFailureExecutionSettled(progress);
+  const memory=registerManagedMemoryInput({},()=>true,()=>true,{async read(){}},
+    ()=>closeCompletedLocalManagedOutput(operations,checked,progress));
+  let failure;await assert.rejects(memory.close(),error=>{failure=error;return true;});
+  assert.equal(managedMemoryReleaseFailureMatches(memory,failure),true);
+  const copied={...failure};
+  const fakeHandle={status:()=>({pending:false,errors:[]}),retry:async()=>{retries++;return {pending:false,errors:[]};}};
+  copied.cleanupHandle=fakeHandle;
+  const foreign={close:async()=>{throw copied;}};
+  await assert.rejects(closeCompletedLocalManagedOutputAsync(operations,checked,progress,foreign),error=>error===copied);
+  assert.equal(managedMemoryReleaseFailureMatches(memory,copied),false);
+  failure.cleanupHandle=fakeHandle;
+  assert.equal(managedMemoryReleaseFailureMatches(memory,failure),false);
+  assert.equal(retries,0);
+});
+
+
+test('memory close shares one original failure and never converts error-bearing cleanup to release', async () => {
+  let releases=0,retries=0;
+  const physicalIssue=new Error('RealCleanupObservationFailure');
+  const handle={status:()=>({pending:false,errors:[physicalIssue]}),
+    async retry(){retries++;return this.status();}};
+  const original=Object.assign(new Error('OriginalPendingClose'),{cleanupPending:true,cleanupHandle:handle});
+  const memory=registerManagedMemoryInput({},()=>true,()=>true,{async read(){}},()=>{releases++;throw original;});
+  const outcomes=await Promise.allSettled([memory.close(),memory.close(),memory.close()]);
+  const failure=outcomes[0].reason;
+  assert.ok(outcomes.every(item=>item.status==='rejected' && item.reason===failure));
+  assert.equal(failure.primaryFailure,original);
+  assert.equal((await failure.cleanupHandle.retry()).pending,true);
+  assert.equal(memory.status().released,false);
+  await assert.rejects(memory.close(),error=>error===failure);
+  await failure.cleanupHandle.retry();
+  assert.equal(memory.status().released,false);
+  assert.ok(failure.cleanupHandle.status().errors.includes(physicalIssue));
+  assert.equal(releases,1);assert.equal(retries,2);
+});
+
+test('memory recovery cannot acknowledge a stopped owner with recorded cleanup errors', async () => {
+  const physicalIssue=new Error('RecordedStopError');
+  const handle={status:()=>({pending:false,errors:[physicalIssue]}),async retry(){return this.status();}};
+  const original=Object.assign(new Error('PendingOwner'),{cleanupPending:true,cleanupHandle:handle});
+  const memory=registerManagedMemoryInput({},()=>true,()=>true,{async read(){}},()=>{throw original;});
+  let failure;await assert.rejects(memory.close(),error=>{failure=error;return true;});
+  assert.equal((await failure.cleanupHandle.retry()).pending,true);
+  assert.equal(memory.status().released,false);
+  await assert.rejects(memory.close());
+});

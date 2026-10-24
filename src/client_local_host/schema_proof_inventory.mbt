@@ -119,12 +119,10 @@ fn client_local_schema_proof_inventory(
 
 ///|
 fn client_local_inventory_nodes(inventory : ClientLocalSchemaProofInventory,max_rows : Int) -> Int? {
-  if max_rows<1 || max_rows>20000 || inventory.max_node_width>20000L/max_rows.to_int64() {None}
-  else {Some((inventory.max_node_width*max_rows.to_int64()).to_int())}
+  client_local_scalar_product(inventory.max_node_width,max_rows,3)
 }
 
 ///|
 fn client_local_inventory_names(inventory : ClientLocalSchemaProofInventory,max_rows : Int) -> Int? {
-  if max_rows<1 || max_rows>20000 || inventory.max_name_width>500000L/max_rows.to_int64() {None}
-  else {Some((inventory.max_name_width*max_rows.to_int64()).to_int())}
+  client_local_scalar_product(inventory.max_name_width,max_rows,0)
 }

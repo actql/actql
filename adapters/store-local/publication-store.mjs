@@ -3443,7 +3443,16 @@ async function openOriginalLocalPublicationStore(
       fail('InvalidPublicationContractWire');
     }
     let contract;
-    try { contract = contractControl.admit(name, wire, contractLimits); }
+    try {
+      // UTF-8 wire extent bounds JSON value-node count (including containers).
+      // Preserve an explicitly narrower configured policy. This does not grant
+      // parser memory: admission remains the selected Store service operation,
+      // under its object limit and existing opaque runtime support envelope.
+      const wireBytes = Buffer.byteLength(wire, 'utf8');
+      contract = contractControl.admit(name, wire, Object.freeze({
+        ...contractLimits, maxNodes: Math.min(contractLimits.maxNodes, wireBytes),
+      }));
+    }
     catch (error) { fail('InvalidPublicationContract', error); }
     if (!exactKeys(contract, ['name', 'identityField', 'identity', 'wire']) ||
         contract.name !== name || typeof contract.identityField !== 'string' ||

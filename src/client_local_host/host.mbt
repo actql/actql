@@ -70,7 +70,7 @@ fn reject_client_local_run(
 /// must finish before the Host invokes it or starts physical work.
 pub fn open_source_free_local_host(
   prepared : @publication_host.PreparedClientProgram,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fixed_ms : Int64,
   per_row_ms : Int64,
@@ -85,7 +85,7 @@ pub fn open_source_free_local_host(
   open_checked_local_host(
     prepared,
     None,
-    registry_body,
+    installed_contracts,
     values_body,
     fixed_ms,
     per_row_ms,
@@ -102,7 +102,7 @@ pub fn open_source_free_local_host(
 /// This is trusted Compute configuration, not permission to start a Run.
 pub fn open_source_free_local_retained_host(
   prepared : @publication_host.PreparedClientProgram,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fixed_ms : Int64,
   per_row_ms : Int64,
@@ -117,7 +117,7 @@ pub fn open_source_free_local_retained_host(
   open_checked_local_host(
     prepared,
     None,
-    registry_body,
+    installed_contracts,
     values_body,
     fixed_ms,
     per_row_ms,
@@ -136,7 +136,7 @@ pub fn open_source_free_local_retained_host(
 pub fn open_captured_local_host(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fixed_ms : Int64,
   per_row_ms : Int64,
@@ -151,7 +151,7 @@ pub fn open_captured_local_host(
   open_checked_local_host(
     prepared,
     Some(source),
-    registry_body,
+    installed_contracts,
     values_body,
     fixed_ms,
     per_row_ms,
@@ -169,7 +169,7 @@ pub fn open_captured_local_host(
 pub fn open_captured_local_retained_host(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fixed_ms : Int64,
   per_row_ms : Int64,
@@ -184,7 +184,7 @@ pub fn open_captured_local_retained_host(
   open_checked_local_host(
     prepared,
     Some(source),
-    registry_body,
+    installed_contracts,
     values_body,
     fixed_ms,
     per_row_ms,
@@ -203,7 +203,7 @@ pub fn open_captured_local_host_on_ledger(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource,
   ledger : @resources.Ledger,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -214,7 +214,7 @@ pub fn open_captured_local_host_on_ledger(
   open_checked_local_host(
     prepared,
     Some(source),
-    registry_body,
+    installed_contracts,
     values_body,
     1L,
     0L,
@@ -234,7 +234,7 @@ pub fn open_captured_local_retained_host_on_ledger(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource,
   ledger : @resources.Ledger,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -245,7 +245,7 @@ pub fn open_captured_local_retained_host_on_ledger(
   open_checked_local_host(
     prepared,
     Some(source),
-    registry_body,
+    installed_contracts,
     values_body,
     1L,
     0L,
@@ -266,7 +266,7 @@ pub fn open_captured_local_retained_host_on_ledger(
 pub fn open_source_free_local_retained_host_on_ledger(
   prepared : @publication_host.PreparedClientProgram,
   ledger : @resources.Ledger,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -275,7 +275,7 @@ pub fn open_source_free_local_retained_host_on_ledger(
   open_checked_local_host(
     prepared,
     None,
-    registry_body,
+    installed_contracts,
     values_body,
     1L,
     0L,
@@ -293,7 +293,7 @@ pub fn open_source_free_local_retained_host_on_ledger(
 fn open_checked_local_host(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource?,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fixed_ms : Int64,
   per_row_ms : Int64,
@@ -311,7 +311,7 @@ fn open_checked_local_host(
   source_free_requirements? : ClientLocalSourceFreeRequirements? = None,
   source_free_preparation? : ClientInstalledManagedSourceFreePreparation? = None,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
-  if registry_body.length() > 100000 ||
+  if installed_contracts.original.registry_body.length() > 100000 ||
     values_body.length() > 100000 ||
     fixed_ms < 0L ||
     per_row_ms < 0L ||
@@ -345,7 +345,7 @@ fn open_checked_local_host(
   let generated = match (source_free_requirements, source_free_preparation) {
     (Some(original), None) => {
       if !original.matches(
-          prepared, registry_body, values_body, fragment_body, ordered_body,
+          prepared, installed_contracts, values_body, fragment_body, ordered_body,
         ) ||
         source is Some(_) ||
         !captured_sources.is_empty() ||
@@ -363,7 +363,7 @@ fn open_checked_local_host(
         !installed_source_free_preparation_matches(
           value,
           Pure(prepared),
-          registry_body,
+          installed_contracts,
           values_body,
           fragment_body,
           ordered_body,
@@ -375,7 +375,7 @@ fn open_checked_local_host(
     (None, None) =>
       match
         prepare_client_local_sequences(
-          prepared, registry_body, values_body, fragment_body, ordered_body,
+          prepared, installed_contracts, values_body, fragment_body, ordered_body,
         ) {
         Some(value) => value
         None => return None
@@ -766,7 +766,7 @@ pub fn open_multi_captured_local_host(
   prepared : @publication_host.PreparedClientProgram,
   sources : Array[(Int, @query.CapturedInputSource)],
   ledger : @resources.Ledger,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -777,7 +777,7 @@ pub fn open_multi_captured_local_host(
   open_checked_local_host(
     prepared,
     None,
-    registry_body,
+    installed_contracts,
     values_body,
     1L,
     0L,
@@ -798,7 +798,7 @@ pub fn open_multi_captured_local_retained_host(
   prepared : @publication_host.PreparedClientProgram,
   sources : Array[(Int, @query.CapturedInputSource)],
   ledger : @resources.Ledger,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -809,7 +809,7 @@ pub fn open_multi_captured_local_retained_host(
   open_checked_local_host(
     prepared,
     None,
-    registry_body,
+    installed_contracts,
     values_body,
     1L,
     0L,

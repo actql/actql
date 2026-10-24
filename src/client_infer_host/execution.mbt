@@ -124,7 +124,7 @@ pub struct OutputUse {
 pub fn start(
   prepared : @publication_host.PreparedClientProgram,
   step : Int,
-  registry : String,
+  sequence_contracts : @input.ClientInstalledSequenceContracts,
   values : String,
   provider : @model.ModelProvider,
   fixed_request_cid : String,
@@ -137,7 +137,7 @@ pub fn start(
   start_owned(
     prepared,
     step,
-    registry,
+    sequence_contracts,
     values,
     Physical(provider),
     fixed_request_cid,
@@ -435,7 +435,7 @@ fn start_serialized_occurrence(
 pub fn start_replay(
   prepared : @publication_host.PreparedClientProgram,
   step : Int,
-  registry : String,
+  sequence_contracts : @input.ClientInstalledSequenceContracts,
   values : String,
   capture : @model.VerifiedModelCapture,
   limits : Limits,
@@ -450,7 +450,7 @@ pub fn start_replay(
   let started = start_owned(
     prepared,
     step,
-    registry,
+    sequence_contracts,
     values,
     Replay(retained),
     @publication_host.client_infer_plan_graph_request_cid(plan),
@@ -472,7 +472,7 @@ pub fn start_replay(
 pub fn start_restored_replay(
   prepared : @publication_host.PreparedClientProgram,
   step : Int,
-  registry : String,
+  sequence_contracts : @input.ClientInstalledSequenceContracts,
   values : String,
   capture : @publication.ModelCaptureBundleRead,
   limits : Limits,
@@ -487,7 +487,7 @@ pub fn start_restored_replay(
   let started = start_owned(
     prepared,
     step,
-    registry,
+    sequence_contracts,
     values,
     Restored(retained),
     @publication_host.client_infer_plan_graph_request_cid(plan),
@@ -509,7 +509,7 @@ pub fn start_restored_replay(
 pub fn start_restored_slot_replay(
   prepared : @publication_host.PreparedClientProgram,
   step : Int,
-  registry : String,
+  sequence_contracts : @input.ClientInstalledSequenceContracts,
   values : String,
   read : @model.ModelSlotReplayRead,
   limits : Limits,
@@ -524,7 +524,7 @@ pub fn start_restored_slot_replay(
   let started = start_owned(
     prepared,
     step,
-    registry,
+    sequence_contracts,
     values,
     RestoredSlots(retained),
     @publication_host.client_infer_plan_graph_request_cid(plan),
@@ -565,7 +565,7 @@ pub fn acquire_outcomes(active : Execution) -> @model.ModelOutcomeRead? {
 fn start_owned(
   prepared : @publication_host.PreparedClientProgram,
   step : Int,
-  registry : String,
+  sequence_contracts : @input.ClientInstalledSequenceContracts,
   values : String,
   source : Source,
   fixed_request_cid : String,
@@ -605,7 +605,7 @@ fn start_owned(
           0,
           step,
           input_source,
-          registry,
+          sequence_contracts,
           values,
           limits.input,
           limits.measurement,
@@ -618,7 +618,7 @@ fn start_owned(
           prepared,
           0,
           step,
-          registry,
+          sequence_contracts,
           values,
           limits.input,
           limits.measurement,

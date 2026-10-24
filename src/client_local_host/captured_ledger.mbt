@@ -3,6 +3,7 @@ fn client_local_execution_limits(
   max_rows? : Int = 100,
   scalar_sequences? : Array[@execution.GeneratedSequence]? = None,
   scalar_inventory? : ClientLocalSchemaProofInventory? = None,
+  scalar_demand? : ClientLocalScalarDemand? = None,
 ) -> (
   @execution.ValueLimits,
   @execution.SequenceExecutionLimits,
@@ -11,7 +12,9 @@ fn client_local_execution_limits(
   // Preserve general text and execution envelopes. Only original checked
   // Number/Boolean schemas can reduce the scalar input/output node envelope;
   // the pre-admission quote and configured providers use this same policy.
-  let scalar_nodes = if scalar_inventory is Some(inventory) {
+  let scalar_nodes = if scalar_demand is Some(demand) {
+    Some(demand.value_nodes)
+  } else if scalar_inventory is Some(inventory) {
     client_local_inventory_nodes(inventory,max_rows)
   } else { match scalar_sequences {
     Some(sequences) => client_local_scalar_nodes(sequences, max_rows)
@@ -38,8 +41,8 @@ fn client_local_execution_limits(
   let measurement : @execution.FixedInputGuardMeasureLimits = {
     max_work: values.max_work,
     // Guard measurement counts serialized scalar bytes, not text payload.
-    max_bytes: 500000,
-    max_nodes: 20000,
+    max_bytes: scalar_demand.map(demand=>Int::max(500000,demand.wire_bytes)).unwrap_or(500000),
+    max_nodes: Int::max(20000,scalar_nodes.unwrap_or(20000)),
     max_depth: values.max_depth,
   }
   (values, execution, measurement)
@@ -313,7 +316,7 @@ fn client_local_family_task_inventory(
 /// Keep the original checked Effect owner while sizing its Local suffix.
 pub fn client_effect_local_ledger_limits(
   prepared : @publication_host.PreparedClientEffectComputation,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -322,7 +325,7 @@ pub fn client_effect_local_ledger_limits(
     @publication_host.prepared_client_effect_computation_graph(prepared),
   )
   guard prepare_client_effect_local_sequences(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
+      prepared, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Some(sequences) else {
     return None
@@ -343,7 +346,7 @@ pub fn client_effect_local_ledger_limits(
 /// to select the task; a metadata-only sequence allowance is not sufficient.
 pub fn client_effect_family_ledger_limits(
   prepared : @publication_host.PreparedClientEffectComputation,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -363,7 +366,7 @@ pub fn client_effect_family_ledger_limits(
     return None
   }
   guard prepare_client_effect_local_sequences(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
+      prepared, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Some(sequences) &&
     sequences.length() == count else {
@@ -448,7 +451,7 @@ pub fn prepare_client_effect_family_capture_ledger(
   capacity : ClientInstalledCaptureCapacity,
   transport_bytes : Int64,
   transport_execution_bytes : Int64,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -461,13 +464,13 @@ pub fn prepare_client_effect_family_capture_ledger(
   )
   guard @strategy.graph_captured_prefix(graph) == 1 &&
     prepare_effect_local_query_requirement(
-      prepared, 0, 0, registry_body, values_body, fragment_body, ordered_body,
+      prepared, 0, 0, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Ok(requirement) &&
     @planning.query_requirement_cid(requirement) ==
     @planning.query_requirement_cid(capacity.requirement) &&
     client_effect_family_ledger_limits(
-      prepared, registry_body, values_body, fragment_body, ordered_body, execution,
+      prepared, installed_contracts, values_body, fragment_body, ordered_body, execution,
       measurement, families,
     )
     is Some(limits) else {
@@ -503,7 +506,7 @@ pub fn prepare_multi_captured_local_ledger(
   acquisitions : Array[@duckdb_host.NativeHostConfiguration],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -513,7 +516,7 @@ pub fn prepare_multi_captured_local_ledger(
     acquisitions.map(@duckdb_host.native_capture_configuration),
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -528,7 +531,7 @@ pub fn prepare_multi_captured_effect_local_ledger(
   acquisitions : Array[@duckdb_host.NativeHostConfiguration],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -538,7 +541,7 @@ pub fn prepare_multi_captured_effect_local_ledger(
     acquisitions.map(@duckdb_host.native_capture_configuration),
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -551,7 +554,7 @@ fn prepare_multi_captured_local_ledger_owned(
   acquisitions : Array[@duckdb_host.CaptureConfiguration],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -568,7 +571,7 @@ fn prepare_multi_captured_local_ledger_owned(
     capacities.push((capacity.retained_bytes, capacity.execution_bytes))
   }
   prepare_multi_captured_capacity_ledger_owned(
-    owner, capacities, transport_bytes, transport_execution_bytes, registry_body,
+    owner, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
     values_body, fragment_body, ordered_body,
   )
 }
@@ -579,14 +582,14 @@ fn prepare_multi_captured_capacity_ledger_owned(
   capacities : Array[(Int64, Int64)],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
   match
     multi_captured_capacity_limits_owned(
-      owner, capacities, transport_bytes, transport_execution_bytes, registry_body,
+      owner, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
       values_body, fragment_body, ordered_body,
     ) {
     None => None
@@ -602,7 +605,7 @@ fn multi_captured_capacity_limits_owned(
   capacities : Array[(Int64, Int64)],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -624,7 +627,7 @@ fn multi_captured_capacity_limits_owned(
     return None
   }
   guard prepare_client_local_sequences_owned(
-      owner, registry_body, values_body, fragment_body, ordered_body,
+      owner, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Some(sequences) else {
     return None
@@ -750,7 +753,7 @@ pub fn installed_capture_capacity_values(
 pub fn single_captured_local_ledger_limits(
   prepared : @publication_host.PreparedClientProgram,
   selected : @duckdb_host.NativeHostConfiguration,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -761,7 +764,7 @@ pub fn single_captured_local_ledger_limits(
     return None
   }
   guard prepare_local_query_requirement(
-      prepared, 0, 0, registry_body, values_body, fragment_body, ordered_body,
+      prepared, 0, 0, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Ok(requirement) &&
     @planning.query_requirement_cid(requirement) ==
@@ -774,7 +777,7 @@ pub fn single_captured_local_ledger_limits(
     return None
   }
   guard single_captured_compute_limits(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
+      prepared, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Some(limits) else {
     return None
@@ -788,7 +791,7 @@ pub fn single_captured_local_ledger_limits(
 ///|
 fn single_captured_compute_limits(
   prepared : @publication_host.PreparedClientProgram,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -798,7 +801,7 @@ fn single_captured_compute_limits(
   guard @strategy.graph_captured_prefix(graph) == 1 &&
     count >= 2 &&
     prepare_client_local_sequences(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
+      prepared, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Some(sequences) else {
     return None
@@ -898,14 +901,14 @@ pub fn prepare_serialization_captured_ledger(
   transport_execution_bytes : Int64,
   prefix_retained_bytes : Int64,
   prefix_execution_bytes : Int64,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
   guard (task == 0 || task == 1) &&
     prepare_local_query_requirement(
-      prepared, 0, 0, registry_body, values_body, fragment_body, ordered_body,
+      prepared, 0, 0, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Ok(requirement) &&
     @planning.query_requirement_cid(requirement) ==
@@ -946,19 +949,19 @@ pub fn prepare_single_captured_local_installed_ledger(
   capacity : ClientInstalledCaptureCapacity,
   transport_bytes : Int64,
   transport_execution_bytes : Int64,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
   guard prepare_local_query_requirement(
-      prepared, 0, 0, registry_body, values_body, fragment_body, ordered_body,
+      prepared, 0, 0, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Ok(requirement) &&
     @planning.query_requirement_cid(requirement) ==
     @planning.query_requirement_cid(capacity.requirement) &&
     single_captured_compute_limits(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
+      prepared, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Some(compute) &&
     single_captured_capacity_limits(
@@ -987,7 +990,7 @@ pub fn prepare_multi_captured_local_installed_ledger(
   capacities : Array[ClientInstalledCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -997,7 +1000,7 @@ pub fn prepare_multi_captured_local_installed_ledger(
     capacities,
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -1012,7 +1015,7 @@ pub fn prepare_multi_captured_effect_installed_ledger(
   capacities : Array[ClientInstalledCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -1022,7 +1025,7 @@ pub fn prepare_multi_captured_effect_installed_ledger(
     capacities,
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -1035,14 +1038,14 @@ fn prepare_multi_captured_installed_ledger_owned(
   capacities : Array[ClientInstalledCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
   match
     multi_captured_installed_limits_owned(
-      owner, capacities, transport_bytes, transport_execution_bytes, registry_body,
+      owner, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
       values_body, fragment_body, ordered_body,
     ) {
     None => None
@@ -1056,7 +1059,7 @@ fn multi_captured_installed_limits_owned(
   capacities : Array[ClientInstalledCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -1071,11 +1074,11 @@ fn multi_captured_installed_limits_owned(
     let requirement = match owner {
       Pure(prepared) =>
         prepare_local_query_requirement(
-          prepared, index, 0, registry_body, values_body, fragment_body, ordered_body,
+          prepared, index, 0, installed_contracts, values_body, fragment_body, ordered_body,
         )
       Effect(prepared) =>
         prepare_effect_local_query_requirement(
-          prepared, index, 0, registry_body, values_body, fragment_body, ordered_body,
+          prepared, index, 0, installed_contracts, values_body, fragment_body, ordered_body,
         )
     }
     guard requirement is Ok(requirement) &&
@@ -1089,7 +1092,7 @@ fn multi_captured_installed_limits_owned(
     capacities.map(value => (value.retained_bytes, value.execution_bytes)),
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -1104,7 +1107,7 @@ pub fn prepare_multi_captured_local_acquisition_ledger(
   acquisitions : Array[@duckdb_host.CaptureConfiguration],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -1114,7 +1117,7 @@ pub fn prepare_multi_captured_local_acquisition_ledger(
     acquisitions,
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -1128,7 +1131,7 @@ pub fn prepare_multi_captured_effect_acquisition_ledger(
   acquisitions : Array[@duckdb_host.CaptureConfiguration],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -1138,7 +1141,7 @@ pub fn prepare_multi_captured_effect_acquisition_ledger(
     acquisitions,
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -1154,7 +1157,7 @@ pub fn prepare_multi_captured_effect_capacity_ledger(
   capacities : Array[ClientDuckDBCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -1164,7 +1167,7 @@ pub fn prepare_multi_captured_effect_capacity_ledger(
   }
   for index in 0..<2 {
     guard prepare_effect_local_query_requirement(
-        prepared, index, 0, registry_body, values_body, fragment_body, ordered_body,
+        prepared, index, 0, installed_contracts, values_body, fragment_body, ordered_body,
       )
       is Ok(requirement) &&
       client_duckdb_capture_capacity_matches_requirement(
@@ -1179,7 +1182,7 @@ pub fn prepare_multi_captured_effect_capacity_ledger(
     capacities.map(value => (value.retained_bytes, value.execution_bytes)),
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -1192,7 +1195,7 @@ pub fn prepare_multi_captured_local_capacity_ledger(
   capacities : Array[ClientDuckDBCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -1202,7 +1205,7 @@ pub fn prepare_multi_captured_local_capacity_ledger(
   }
   for index in 0..<2 {
     guard prepare_local_query_requirement(
-        prepared, index, 0, registry_body, values_body, fragment_body, ordered_body,
+        prepared, index, 0, installed_contracts, values_body, fragment_body, ordered_body,
       )
       is Ok(requirement) &&
       client_duckdb_capture_capacity_matches_requirement(
@@ -1217,7 +1220,7 @@ pub fn prepare_multi_captured_local_capacity_ledger(
     capacities.map(value => (value.retained_bytes, value.execution_bytes)),
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,

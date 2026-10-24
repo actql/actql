@@ -12,7 +12,7 @@ function retainOrdinaryManagedRun(prepared, requirements, assertCurrent,
   childrenPending, purpose = 'source-compute') {
   if (prepared === null || typeof prepared !== 'object' ||
       typeof assertCurrent !== 'function' || typeof childrenPending !== 'function' ||
-      !['source-compute', 'local-mock-model', 'local-content'].includes(purpose)) unavailable();
+      !['source-compute', 'local-mock-model', 'local-content', 'local-preparation'].includes(purpose)) unavailable();
   const quotas = ['planningWork', 'attempts', 'holdings', 'transferBytes', 'retainedBytes', 'executionBytes']
     .map((name, index) => {
       const amount = requirements[name];
@@ -22,20 +22,25 @@ function retainOrdinaryManagedRun(prepared, requirements, assertCurrent,
     });
   assertCurrent();
   const original = freeze(Object.create(null));
-  runs.set(original, {prepared, quotas: freeze(quotas), assertCurrent, childrenPending, purpose,
+  // Exact identity membership is provenance, not ownership of the heavy body.
+  // The active preparation/Run owns that body; this fixed Root retains only a
+  // weak original receipt and cannot accept an equal-shaped replacement.
+  const preparedOriginals = new WeakSet();
+  preparedOriginals.add(prepared);
+  runs.set(original, {preparedOriginals, quotas: freeze(quotas), assertCurrent, childrenPending, purpose,
     portsTaken: false, admitted: false, stopped: false, retiring: false, usage: undefined});
   return original;
 }
 function originalRun(original, prepared) {
   const state = runs.get(original);
-  if (state === undefined || state.prepared !== prepared || state.stopped || state.retiring) unavailable();
+  if (state === undefined || state.stopped || state.retiring || !state.preparedOriginals.has(prepared)) unavailable();
   try {state.assertCurrent();} catch (cause) {state.retiring = true; throw cause;}
   return state;
 }
 function ports(original, prepared, purpose) {
   const state = runs.get(original);
-  if (state === undefined || state.prepared !== prepared || state.purpose !== purpose ||
-      state.portsTaken || state.stopped) return null;
+  if (state === undefined || state.stopped || state.preparedOriginals === undefined ||
+      !state.preparedOriginals.has(prepared) || state.purpose !== purpose || state.portsTaken) return null;
   try {originalRun(original, prepared);} catch {return null;}
   state.portsTaken = true;
   return retainedPorts(original, state);
@@ -44,7 +49,7 @@ function ports(original, prepared, purpose) {
 // initial ports check has already established its original identity.
 function retainedPorts(original, state) {
   const releasePreparation = () => {
-    state.prepared = undefined;
+    state.preparedOriginals = undefined;
     state.assertCurrent = undefined;
     state.childrenPending = undefined;
   };
@@ -96,6 +101,8 @@ module.exports = {retainOrdinaryManagedRun,
     if (state === undefined) unavailable();
     return freeze({admitted: state.admitted, stopped: state.stopped, retiring: state.retiring});
   },
+  // Distinct original purpose: its imported child is later adopted, never restarted.
+  prepareOriginalLocalPreparationPorts(original, input) {return ports(original, input, 'local-preparation');},
   prepareOriginalManagedRunPorts(original, prepared) {return ports(original, prepared, 'source-compute');},
   prepareOriginalLocalMockModelRunPorts(original, prepared) {return ports(original, prepared, 'local-mock-model');},
   prepareOriginalLocalContentRunPorts(original, prepared) {return ports(original, prepared, 'local-content');},
