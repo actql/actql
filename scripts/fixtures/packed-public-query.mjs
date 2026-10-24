@@ -40,7 +40,8 @@ import {correlatedUnnestSuccesses, correlatedUnnestRefusals} from './correlated-
 import {unnestCheckedArraySuccesses, unnestCheckedArrayRefusals} from './unnest-checked-array-source-input.mjs';
 import {negatedPredicateReuseSuccesses, negatedPredicateReuseRefusals} from './negated-predicate-reuse-source-input.mjs';
 import {membershipReuseSuccesses, membershipReuseRefusals} from './membership-expression-reuse-source-input.mjs';
-import {inUnnestLiteralArraySuccesses, inUnnestLiteralArrayRefusals} from './in-unnest-literal-array-source-input.mjs';
+import {inUnnestLiteralArraySuccesses, inUnnestLiteralArrayRefusals,
+  inUnnestLiteralArrayExecutionFailures} from './in-unnest-literal-array-source-input.mjs';
 import {arrayLiteralSuccesses, arrayLiteralRefusals} from './array-literal-source-input.mjs';
 import {unnestSuccesses, unnestRefusals} from './unnest-source-input.mjs';
 import {pipeUnpivotSuccesses, pipeUnpivotRefusals} from './pipe-unpivot-source-input.mjs';
@@ -416,7 +417,8 @@ const scopeInputs = distinctJoinOrderOnly ? {successes: distinctJoinOrderSuccess
   : ifnullCoalesceReuseOnly ? {successes: ifnullCoalesceReuseSuccesses, refusals: ifnullCoalesceReuseRefusals, executionFailures: ifnullCoalesceReuseExecutionFailures}
   : negatedPredicateReuseOnly ? {successes: negatedPredicateReuseSuccesses, refusals: negatedPredicateReuseRefusals}
   : membershipReuseOnly ? {successes: membershipReuseSuccesses, refusals: membershipReuseRefusals}
-  : inUnnestLiteralArrayOnly ? {successes: inUnnestLiteralArraySuccesses, refusals: inUnnestLiteralArrayRefusals}
+  : inUnnestLiteralArrayOnly ? {successes: inUnnestLiteralArraySuccesses, refusals: inUnnestLiteralArrayRefusals,
+    executionFailures: inUnnestLiteralArrayExecutionFailures}
   : arrayLiteralOnly ? {successes: arrayLiteralSuccesses, refusals: arrayLiteralRefusals}
   : graphQuantifierFormsOnly ? {successes: graphQuantifierFormsSuccesses, refusals: graphQuantifierFormsRefusals}
   : graphAbbreviatedOnly ? {successes: graphAbbreviatedSuccesses, refusals: graphAbbreviatedRefusals}
@@ -596,6 +598,7 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...membershipReuseRefusals);
   scopeInputs.successes.push(...inUnnestLiteralArraySuccesses);
   scopeInputs.refusals.push(...inUnnestLiteralArrayRefusals);
+  scopeInputs.executionFailures.push(...inUnnestLiteralArrayExecutionFailures);
   scopeInputs.successes.push(...arrayLiteralSuccesses);
   scopeInputs.refusals.push(...arrayLiteralRefusals);
   scopeInputs.successes.push(...unpivotMulticolumnSuccesses);
