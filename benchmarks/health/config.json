@@ -1,0 +1,15 @@
+{
+  "version": "actql-health-config/0.1",
+  "methodology": "ordinary-release-public-offline-v1",
+  "quick": {"warmSamples": 10, "coldSamples": 5},
+  "release": {"warmSamples": 100, "coldSamples": 30},
+  "size": {
+    "package": {"warning": 0.10, "regression": 0.25},
+    "browserGzip": {"warning": 0.05, "regression": 0.15}
+  },
+  "performance": {
+    "warm": {"relative": 0.30, "absoluteMs": 3},
+    "cold": {"relative": 0.30, "absoluteMs": 50},
+    "rssRelative": 0.20
+  }
+}
