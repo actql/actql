@@ -217,7 +217,12 @@ fn issue_prepared_client_values_executable_plan_parts(
     max_wire_bytes,
     max_nodes,
     max_depth,
-  ).map(plan => { owner: value, plan, template, fragment, })
+  ).map(plan => {
+    // This Values result has no task-reader continuation. Do not retain its
+    // temporary parsed trees in a standalone Plan or completed compilation.
+    plan.read_originals = None
+    { owner: value, plan, template, fragment, }
+  })
 }
 
 ///|
@@ -237,7 +242,11 @@ pub fn issue_prepared_client_task_executable_plan(
   issue_prepared_client_task_plan_parts(
     value, manifests, sequence_limits, max_facts, max_witnesses, max_wire_bytes,
     max_nodes, max_depth,
-  ).map(parts => parts.0)
+  ).map(parts => {
+    // Only the private compilation path consumes these reader originals.
+    parts.0.plan.read_originals = None
+    parts.0
+  })
 }
 
 ///|
