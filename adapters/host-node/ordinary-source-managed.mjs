@@ -34,7 +34,7 @@ export async function prepareOrdinaryProjectSourceManagedInstallation(originals,
 }
 
 async function prepareOrdinaryManagedInstallation(originals, callbacks, source, project) {
-  let closing = false, closed = false, bundle, flight, count = 0, checkingBundle = false;
+  let closing = false, closed = false, bundle, flight, checkingBundle = false;
   const receipts = new WeakMap(), producers = new Set(), runs = new Map();
   const current = () => {
     if (closing || closed) fail('SourceManagedPreparationUnavailable');
@@ -185,8 +185,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     assertCurrent: current,
     beforeSourceSnapshot(kind, input, options) {
       current();
-      if (count === 4096 || producers.size === 32) fail('InstalledSourceProducerLimit');
-      count++;
+      if (producers.size === 32) fail('InstalledSourceProducerLimit');
       const receipt = Object.freeze({});
       const producer = {receipt, kind, body: undefined, request: undefined, finished: false};
       receipts.set(receipt, producer); producers.add(producer);
