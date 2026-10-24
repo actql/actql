@@ -542,9 +542,21 @@ pub fn settle_completed_output_reservation(
   if reservation.completed_output is Some(previous) {
     return if previous == notification { Ok(()) } else { Err(InvalidCharge) }
   }
-  match reservation_check(ledger, reservation) {
+  if !reservation.open {
+    return Err(ClosedReservation)
+  }
+  match check_original_resources_mutable(ledger) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  // Currentness can synchronously complete this same original. The first
+  // immutable notification wins, including an identical final completion;
+  // never overwrite its pending scratch or reject it merely because it closed.
+  if reservation.completed_output is Some(previous) {
+    return if previous == notification { Ok(()) } else { Err(InvalidCharge) }
+  }
+  if !reservation.open {
+    return Err(ClosedReservation)
   }
   if remaining_execution > reservation.execution ||
     (holding is Some(value) && !value.live) {
