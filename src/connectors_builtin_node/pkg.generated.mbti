@@ -1453,6 +1453,8 @@ pub fn client_program_installed_effect_managed_plan_operation(@client_local_host
 
 pub fn client_program_installed_effect_managed_plan_prepare(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Array[@client_local_host.ClientInstalledEffectOperationDemand]) -> Result[@client_local_host.ClientInstalledEffectManagedPlan, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_effect_managed_plan_prepare_at_query_time(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientQueryTimePreparation, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Array[@client_local_host.ClientInstalledEffectOperationDemand]) -> Result[@client_local_host.ClientInstalledEffectManagedPlan, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_managed_plan_requirements(@client_local_host.ClientInstalledEffectManagedPlan) -> Array[Int64]
 
 pub fn client_program_installed_effect_managed_plan_shape(@client_local_host.ClientInstalledEffectManagedPlan) -> (Int, Int, Int)

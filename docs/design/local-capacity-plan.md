@@ -260,3 +260,13 @@ operation. Failure retains the same cleanup responsibility and never certifies
 physical release. Legacy openers remain separate until their real consumers
 have migrated; the planned opener cannot fall back to a fresh Ledger or repeat
 preparation from equal wire bodies.
+
+For query-time-dependent work, the same definition preparation first binds its
+original sampled context to the admitted Effect Run and request. The timed plan
+entry prepares both Source requirements and generated sequences with that
+already-bound context, then quotes those actual originals. Opening Compute uses
+them unchanged and requires the same nominal Run admission and definition.
+Equal saved wires cannot substitute newly admitted tokens for that live plan.
+A cold restoration chooses its own genuine restored originals before preparing
+a new plan; it cannot revive a previous process's plan. These computation facts
+do not discharge current Account, physical claim, CAS or cleanup obligations.

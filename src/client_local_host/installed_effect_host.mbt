@@ -40,6 +40,13 @@ fn select_installed_effect_managed_host(
   if !physical_equal(plan.prepared, @publication_host.prepared_client_effect_run_computation(bound)) {
     return Err(ForeignOriginal)
   }
+  // The plan already prepared its Source requirements and sequences with this
+  // admitted invocation original. Equal wire/CIDs or another restored context
+  // cannot replace its actual Run admission/definition during the handoff.
+  if plan.query_time is Some(original) &&
+    !@publication_host.client_effect_run_query_time_matches(bound, original, plan.request) {
+    return Err(ForeignOriginal)
+  }
   let graph = installed_managed_owner_graph(Effect(plan.prepared))
   let first = @strategy.graph_captured_prefix(graph)
   if sources.length() != first || plan.sequences.length() != @strategy.graph_task_count(graph) ||

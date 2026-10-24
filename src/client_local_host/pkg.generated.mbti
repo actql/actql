@@ -397,7 +397,7 @@ pub fn prepare_effect_local_query_requirement(@run_publication_host.PreparedClie
 
 pub fn prepare_effect_local_query_requirement_at_query_time(@run_publication_host.PreparedClientEffectComputation, Int, Int, @run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, ClientInstalledSequenceContracts, String, String?, String?) -> Result[@query_planning.QueryRequirement, ClientLocalQueryIssue]
 
-pub fn prepare_installed_effect_managed_plan(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?, Array[ClientInstalledEffectOperationDemand]) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue]
+pub fn prepare_installed_effect_managed_plan(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?, Array[ClientInstalledEffectOperationDemand], query_time? : @run_publication_host.ClientQueryTimePreparation?) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue]
 
 pub fn prepare_installed_effect_managed_run_ledger(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Array[ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?) -> Result[@physical_resources.Ledger, ClientInstalledManagedRunIssue]
 

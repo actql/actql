@@ -471,3 +471,186 @@ test "planned Effect callback current loss retains original DAG cleanup and star
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
 }
+
+///|
+fn effect_parent_temporal_inputs() -> (
+  @publication_host.PreparedClientEffectComputation,
+  @publication_host.ClientRequestIdentity,
+  ClientInstalledSequenceContracts,
+) {
+  let environment = @publication_host.admit_client_check_environment(
+    source_query_original_environment,
+    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let document =
+    #|{"version":"actql/0.1","id":"planned-effect-query-time","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"seed"},{"from":"seed","derive":{"stamp":"current_timestamp()"},"as":"clock"}],"results":{"rows":{"from":"clock","fields":["id","stamp"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
+  let prepared = @publication_host.prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    @publication_host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  let request = @publication_host.prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "effect-temporal-parent",
+    @publication_host.source_free_caller_input_intent_cid(),
+  ).unwrap()
+  let contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
+  (prepared, request, contracts)
+}
+
+///|
+test "temporal planned Effect executes the original sampled timestamp on the same quoted sequences and Ledger" {
+  let (prepared, request, contracts) = effect_parent_temporal_inputs()
+  assert_true(
+    @publication_host.prepared_client_effect_requires_query_time(
+      prepared, 100000, 100000,
+    ).unwrap(),
+  )
+  let (bound, original) = effect_operation_time_run(
+    prepared, request, "2026-10-25T01:02:03.123Z",
+  )
+  let plan = effect_operation_plan_fixture(
+    prepared,
+    request,
+    contracts,
+    query_time=Some(original),
+  )
+  assert_true(plan.query_time is Some(value) && physical_equal(value, original))
+  let context = @publication_host.client_query_time_preparation_context(
+    original,
+  ).unwrap()
+  for sequence in plan.sequences {
+    assert_true(
+      @execution.generated_sequence_query_time(sequence) is Some(value) &&
+      physical_equal(value, context),
+    )
+  }
+  let admission = effect_parent_test_admission(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  let owner = begin_prepared_installed_effect_managed_run(
+    admission, prepared, request, plan,
+  ).unwrap()
+  let ledger = require_installed_managed_run(owner).unwrap()
+  let (foreign, other_time) = effect_operation_time_run(
+    prepared, request, "2026-10-25T01:02:03.123Z",
+  )
+  let other_context = @publication_host.client_query_time_preparation_context(
+    other_time,
+  ).unwrap()
+  let original_definition = @publication.query_evaluation_time_definition(
+    context,
+  )
+  let other_definition = @publication.query_evaluation_time_definition(
+    other_context,
+  )
+  assert_eq(
+    @publication.publication_contract_identity(original_definition),
+    @publication.publication_contract_identity(other_definition),
+  )
+  assert_false(physical_equal(original_definition, other_definition))
+  assert_true(
+    open_installed_effect_managed_host(owner, foreign, [])
+    is Err(ForeignOriginal),
+  )
+  assert_true(owner.source_free_captured is None)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+  let (host, captured, sequences) = open_installed_effect_managed_host(
+      owner,
+      bound,
+      [],
+    )
+    .unwrap()
+    .unwrap()
+  assert_true(physical_equal(sequences, plan.sequences))
+  assert_true(
+    physical_equal(
+      @strategy.captured_dag_ledger(@strategy.captured_effect_run_dag(captured)),
+      ledger,
+    ),
+  )
+  assert_eq(plan.sequences.length(), 1)
+  let execution = execute_source_free_values_guarded(host, 64, 10000, () => true).unwrap()
+  assert_eq(execution.rows().unwrap(), [
+    "{\"id\":1,\"stamp\":\"2026-10-25T01:02:03.123Z\"}",
+  ])
+  assert_eq(@resources.ledger_usage(ledger).attempts, plan.sequences.length())
+  assert_true(execution.close())
+  retire_installed_managed_run(owner).unwrap()
+  assert_true(owner.preparation is None)
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+}
+
+///|
+test "temporal plan refuses an unbound context and copied request without a second admission" {
+  let (prepared, request, contracts) = effect_parent_temporal_inputs()
+  let (_, original) = effect_operation_time_run(
+    prepared, request, "2026-10-25T01:02:03.123Z",
+  )
+  let plan = effect_operation_plan_fixture(
+    prepared,
+    request,
+    contracts,
+    query_time=Some(original),
+  )
+  let unbound = @publication_host.prepare_client_effect_query_time(
+    prepared, request, "2026-10-25T01:02:03.123Z",
+  ).unwrap()
+  assert_true(
+    prepare_installed_effect_managed_plan(
+      prepared,
+      request,
+      [],
+      "",
+      "",
+      [],
+      [],
+      contracts,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      plan.operations,
+      query_time=Some(unbound),
+    )
+    is Err(Unsupported),
+  )
+  let copied_request = @publication_host.prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "effect-temporal-parent",
+    @publication_host.source_free_caller_input_intent_cid(),
+  ).unwrap()
+  assert_true(request == copied_request)
+  assert_false(physical_equal(request, copied_request))
+  assert_true(
+    prepare_installed_effect_managed_plan(
+      prepared,
+      copied_request,
+      [],
+      "",
+      "",
+      [],
+      [],
+      contracts,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      plan.operations,
+      query_time=Some(original),
+    )
+    is Err(Unsupported),
+  )
+}

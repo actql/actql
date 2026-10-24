@@ -148,6 +148,7 @@ fn source_free_installed_managed_preparation_owned(
   fragment_body : String?,
   ordered_body : String?,
   mock_model : Bool,
+  query_time? : (@publication_host.ClientQueryTimePreparation, @publication_host.ClientRequestIdentity)? = None,
 ) -> ClientInstalledManagedSourceFreePreparation? {
   let graph = installed_managed_owner_graph(owner)
   if !installed_managed_owner_shape_supported(owner, mock_model) ||
@@ -161,6 +162,7 @@ fn source_free_installed_managed_preparation_owned(
   }
   guard prepare_client_local_sequences_owned(
       owner, installed_contracts, values_body, fragment_body, ordered_body,
+      query_time~,
     )
     is Some(sequences) &&
     sequences.length() == task_count else {
@@ -437,6 +439,7 @@ fn prepare_installed_managed_acquisitions_owned(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
+  query_time? : (@publication_host.ClientQueryTimePreparation, @publication_host.ClientRequestIdentity)? = None,
 ) -> Result[Array[@row_source_host.RowAcquisition], ClientInstalledManagedRunIssue] {
   let captured = @strategy.graph_captured_prefix(
     installed_managed_owner_graph(owner),
@@ -448,6 +451,7 @@ fn prepare_installed_managed_acquisitions_owned(
   for index in 0..<captured {
     guard prepare_local_query_requirement_owned(
         owner, index, 0, installed_contracts, values_body, fragment_body, ordered_body,
+        query_time~,
       )
       is Ok(requirement) &&
       @row_source_host.prepare_row_acquisition(

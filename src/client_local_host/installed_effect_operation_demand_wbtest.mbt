@@ -90,6 +90,7 @@ fn effect_operation_plan_fixture(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
   contracts : ClientInstalledSequenceContracts,
+  query_time? : @publication_host.ClientQueryTimePreparation? = None,
 ) -> ClientInstalledEffectManagedPlan {
   let metadata = prepare_installed_effect_operation_extent(
     "operation",
@@ -129,6 +130,7 @@ fn effect_operation_plan_fixture(
     Some(source_query_original_fragment),
     None,
     [demand],
+    query_time~,
   ).unwrap()
 }
 
@@ -136,7 +138,12 @@ fn effect_operation_plan_fixture(
 // Authored primitive Source and checked Effect closure. Declaration/Environment
 // generation supplies only fixture inputs; no Source/physical observation is
 // generated, and expected identities/rows are not taken from execution output.
-fn effect_operation_source_plan_fixture() -> ClientInstalledEffectManagedPlan raise {
+fn effect_operation_source_plan_fixture(
+  query_time_for? : ((
+    @publication_host.PreparedClientEffectComputation,
+    @publication_host.ClientRequestIdentity,
+  ) -> @publication_host.ClientQueryTimePreparation)? = None,
+) -> ClientInstalledEffectManagedPlan raise {
   let declaration = @row_source_host.generate_row_declaration(
     "operation-source",
     "fixture",
@@ -211,6 +218,14 @@ fn effect_operation_source_plan_fixture() -> ClientInstalledEffectManagedPlan ra
   ).unwrap()
   let document =
     #|{"version":"actql/0.1","id":"source-effect-operation-plan","stages":[{"id":"acquire","inputs":{"remote":{"connector":"operation-source","resource":"r"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id"]}}},{"id":"apply","inputs":{"input":{"result":{"stage":"acquire","result":"rows"}}},"steps":[{"filter":"id > 2","as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}}}],"results":{"rows":{"from":{"stage":"apply","result":"rows"}}}}
+  let document = if query_time_for is Some(_) {
+    document.replace(
+      old="id > 0",
+      new="current_timestamp() = current_timestamp()",
+    )
+  } else {
+    document
+  }
   let prepared = match
     @publication_host.prepare_client_effect_computation(
       document,
@@ -240,7 +255,11 @@ fn effect_operation_source_plan_fixture() -> ClientInstalledEffectManagedPlan ra
     prepared,
     "sha256:" + "a".repeat(64),
     "source-effect-operation-plan",
-    "sha256:" + "b".repeat(64),
+    if query_time_for is Some(_) {
+      @publication_host.source_free_caller_input_intent_cid()
+    } else {
+      "sha256:" + "b".repeat(64)
+    },
   ).unwrap()
   let contracts = prepare_installed_sequence_contracts(
     source_query_original_registry,
@@ -274,7 +293,103 @@ fn effect_operation_source_plan_fixture() -> ClientInstalledEffectManagedPlan ra
     Some(source_query_original_fragment),
     None,
     [demand],
+    query_time=query_time_for.map(make => make(prepared, request)),
   ).unwrap()
+}
+
+///|
+// Existing compilation, Allow DATA and original definition issue/binding.
+// No clock, Journal, Account, physical provider or second Run owner.
+fn effect_operation_time_run(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  created : String,
+) -> (
+  @publication_host.PreparedClientEffectRun,
+  @publication_host.ClientQueryTimePreparation,
+) {
+  let manifests = @publication_host.admit_client_compilation_manifests(
+    @environment.compiler_grammar_manifest_wire(),
+    @environment.compiler_barrier_contract_manifest_wire(),
+    100000,
+    10000,
+    100,
+  ).unwrap()
+  let compiled = @publication_host.issue_prepared_client_effect_compilation(
+    prepared,
+    manifests,
+    @publication_host.client_standard_values_sequence_limits(),
+    1000,
+    10000,
+    1000000,
+    100000,
+    100,
+  ).unwrap()
+  let time = @publication_host.prepare_client_effect_query_time(
+    prepared, request, created,
+  ).unwrap()
+  let allowed = @publication_host.issue_client_effect_allowed_run(
+    compiled,
+    "sha256:" + "c".repeat(64),
+    "sha256:" + "d".repeat(64),
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = @publication_host.issue_client_effect_run_definition(
+    allowed, "scope", "effect-query-time", created, "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  @publication_host.bind_client_effect_query_evaluation_time(
+    time, prepared, allowed, definition, request,
+  ).unwrap()
+  |> ignore
+  (
+    @publication_host.bind_client_effect_compiled_run(
+      prepared, allowed, definition,
+    ).unwrap(),
+    time,
+  )
+}
+
+///|
+test "temporal Effect plan quotes original Source requirement and retained contexts from the same invocation" {
+  let plan = effect_operation_source_plan_fixture(
+    query_time_for=Some((prepared, request) => {
+      let (_, original) = effect_operation_time_run(
+        prepared, request, "2026-10-25T01:02:03.123Z",
+      )
+      original
+    }),
+  )
+  guard plan.query_time is Some(original) &&
+    @publication_host.client_query_time_preparation_context(original)
+    is Some(context) else {
+    fail("same admitted invocation must remain in the plan")
+  }
+  for sequence in plan.sequences {
+    assert_true(
+      @execution.generated_sequence_query_time(sequence) is Some(value) &&
+      physical_equal(value, context),
+    )
+  }
+  let (declaration, requirement, acquisition, capacity) = prepared_installed_effect_managed_source(
+    plan, 0,
+  ).unwrap()
+  @row_source_host.check_row_acquisition_original(
+    acquisition, declaration, requirement,
+  ).unwrap()
+  assert_true(physical_equal(requirement, capacity.requirement))
+  let wire = @encode.document_text(
+    @planning.query_requirement_document(requirement),
+  )
+  let definition = @publication.query_evaluation_time_definition(context)
+  assert_true(
+    wire.contains(
+      "\"run_definition_cid\":\"" +
+      @publication.publication_contract_identity(definition) +
+      "\"",
+    ),
+  )
+  assert_true(plan.capacity_plan.demand_inventory is Some(_))
+  assert_eq(plan.capacity_plan.graph_offset, 1)
 }
 
 ///|

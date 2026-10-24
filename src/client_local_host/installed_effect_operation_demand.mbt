@@ -68,6 +68,7 @@ pub fn prepare_installed_effect_operation_demand(
 struct ClientInstalledEffectManagedPlan {
   prepared : @publication_host.PreparedClientEffectComputation
   request : @publication_host.ClientRequestIdentity
+  query_time : @publication_host.ClientQueryTimePreparation?
   declarations : Array[@row_source_host.RowDeclaration]
   acquisitions : Array[@row_source_host.RowAcquisition]
   captures : Array[ClientInstalledCaptureCapacity]
@@ -146,6 +147,7 @@ pub fn prepare_installed_effect_managed_plan(
   fragment_body : String?,
   ordered_body : String?,
   selected_operations : Array[ClientInstalledEffectOperationDemand],
+  query_time? : @publication_host.ClientQueryTimePreparation? = None,
 ) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
   if !installed_effect_managed_request_matches(prepared, request) {
     return Err(ForeignOriginal)
@@ -171,19 +173,23 @@ pub fn prepare_installed_effect_managed_plan(
     }
   }
   let graph = installed_managed_owner_graph(Effect(prepared))
+  let invocation = query_time.map(original => (original, request))
   let source_free = if @strategy.graph_captured_prefix(graph) == 0 {
     source_free_installed_managed_preparation_owned(
       Effect(prepared), installed_contracts, values_body, fragment_body, ordered_body, false,
+      query_time=invocation,
     )
   } else { None }
   let acquisitions = match prepare_installed_managed_acquisitions_owned(
     Effect(prepared), declarations, query_contract_body, evidence_contract_body,
     installed_contracts, values_body, fragment_body, ordered_body,
+    query_time=invocation,
   ) { Err(issue) => return Err(issue); Ok(value) => value }
   let sequences = match source_free {
     Some(value) => value.sequences
     None => match prepare_client_local_sequences_owned(
       Effect(prepared), installed_contracts, values_body, fragment_body, ordered_body,
+      query_time=invocation,
     ) {
       Some(value) => value
       None => return Err(Unsupported)
@@ -288,21 +294,24 @@ pub fn prepare_installed_effect_managed_plan(
   // actual owners. Array spare capacity uses the existing pinned builtin rule.
   let members = selected_operations.length().to_int64()
   let sources = declarations.length().to_int64()
+  let time_holder = if query_time is Some(_) { 1L } else { 0L }
   let acquisition_slots = closed_values_append_capacity(declarations.length()).unwrap()
   let owner_slots = closed_values_append_capacity(workspace.owners).unwrap()
   let row_slots = closed_values_append_capacity(workspace.rows).unwrap()
   let input_slots = closed_values_append_capacity(workspace.input_rows).unwrap()
-  // Fixed retained controls: Plan(1H,18R,4W), six Array wrappers/backings
+  // Fixed retained controls: Plan(1H,19R,4W), six Array wrappers/backings
   // (12H,6R,6W), two LedgerLimits(2H,0R,12W), source-free Some(1H,1R,1W).
   // Operations/declarations are exact copies; transport arrays own scalar
   // slots; acquisitions are appended with pinned spare capacity. Per selected
   // member: Demand(1H,4R,2W) and two exact extent-reference copies(4H,2R,2W).
+  // The optional query-time holder adds one Some header/payload/tag. Its
+  // original caller-owned sample/Run backing is borrowed, not copied here.
   // Existing generated sequences and acquisition bodies remain charged by
   // their original Compute/capture components, not decoded/copied here.
   let controls = preparation_representation_cost({
-    record_headers: 16L + 5L * members + sources,
-    reference_slots: 25L + members + sources + 2L * acquisition_slots + 6L * members + extent_count + 2L * sources,
-    scalar_words: 23L + 5L * sources + 4L * members,
+    record_headers: 16L + 5L * members + sources + time_holder,
+    reference_slots: 26L + members + sources + 2L * acquisition_slots + 6L * members + extent_count + 2L * sources + time_holder,
+    scalar_words: 23L + 5L * sources + 4L * members + time_holder,
     owned_utf16_units: 0L, owned_wire_bytes: 0L,
   }).unwrap()
   // Scratch controls: workspace/Some, proof inventory/Some/closed-row Some,
@@ -313,8 +322,8 @@ pub fn prepare_installed_effect_managed_plan(
   // These peaks are recorded by the SAME traversal, including refusal paths;
   // neither work counts nor a failed proof allocate hypothetical backing.
   let temporary = preparation_representation_cost({
-    record_headers: 21L + workspace.row_bounds.to_int64(), reference_slots: 12L + owner_slots + row_slots,
-    scalar_words: 40L + input_slots + 2L * workspace.row_bounds.to_int64(),
+    record_headers: 21L + workspace.row_bounds.to_int64() + 2L * time_holder, reference_slots: 12L + owner_slots + row_slots + 3L * time_holder,
+    scalar_words: 40L + input_slots + 2L * workspace.row_bounds.to_int64() + time_holder,
     owned_utf16_units: 0L, owned_wire_bytes: 0L,
   }).unwrap()
   if retained > 9223372036854775807L - controls ||
@@ -323,7 +332,7 @@ pub fn prepare_installed_effect_managed_plan(
   }
   let limits = { ..compute_limits, attempts: attempts.to_int(), transfer_bytes: transfer,
     retained_bytes: retained + controls, execution_bytes: execution + controls + temporary }
-  Ok({prepared, request, declarations: declarations.copy(), acquisitions, captures, transport_bytes: transport_bytes.copy(),
+  Ok({prepared, request, query_time, declarations: declarations.copy(), acquisitions, captures, transport_bytes: transport_bytes.copy(),
     transport_execution_bytes: transport_execution_bytes.copy(), installed_contracts,
     values_body, fragment_body, ordered_body, operations: selected_operations.copy(),
     source_free, sequences, compute_sequences, capacity_plan,
