@@ -28,6 +28,7 @@ const bindings = new WeakMap();
 // The exact returned response is the key; bytes/CIDs or a replayed Journal row
 // cannot construct the original physical claim. This contains no secret.
 const runResponseOriginals = new WeakMap();
+const compareBodyBytes = Buffer.compare;
 
 // Private synchronous consumer for an original legacy Run response. This is
 // historical DATA, not current authority, a new use, Store custody or an ACK.
@@ -43,7 +44,7 @@ export function withHttpsCredentialRunResponseOriginal(response, control,
   if (original.failure !== undefined) throw original.failure;
   const body = response.body;
   if (body !== original.body || body.byteLength !== original.byteLength ||
-      createHash('sha256').update(body).digest('hex') !== original.facts.responseSha256) {
+      compareBodyBytes(body, original.bodySnapshot) !== 0) {
     original.failure = Object.assign(new Error('RemoteCredentialRunResponseChanged'),
       {code: 'RemoteCredentialRunResponseChanged'});
     throw original.failure;
@@ -925,6 +926,9 @@ async function callCredentialResource({
     // All fallible allocation/hash work precedes the outcome COMMIT. No
     // receiver runs here, and a failed COMMIT publishes no original response.
     const retained = {control, journal, body: response.body,
+      // This bounded copy has its own backing buffer, never exposed to a
+      // consumer. Later checks compare bytes instead of rehashing the response.
+      bodySnapshot: new Uint8Array(response.body),
       byteLength: response.body.byteLength, confirmed: false,
       failure: undefined, facts: Object.freeze({grant: claimed.grant,
         use: claimed.use, scope, response: result, method: operation.method,
