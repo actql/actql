@@ -182,6 +182,7 @@ pub fn prepared_client_requires_task_compilation(
   value : PreparedClientProgram,
 ) -> Bool {
   if @strategy.graph_task_count(value.graph) > 1 ||
+    prepared_client_result_count(value) != 1 ||
     prepared_client_uses_graph_carrier(value) {
     return true
   }
