@@ -8,7 +8,7 @@ fn local_effect_dispatch_fixture(
 ) -> (
   @publication_host.PreparedClientEffectRun,
   @strategy.CapturedEffectRunDAG,
-  String,
+  @client_local_host.ClientInstalledSequenceContracts,
   String,
   String?,
 ) raise {
@@ -51,12 +51,7 @@ fn local_effect_dispatch_fixture(
   let bound = @publication_host.bind_client_effect_compiled_run(
     prepared, allowed, definition,
   ).unwrap()
-  let registry = @identity.stringify_value(
-    registered_body(),
-    100000,
-    10000,
-    100,
-  )
+  let registry = registered_installed_sequence_contracts()
   let values = @identity.stringify_value(
     registered_values(),
     100000,
@@ -188,15 +183,24 @@ test "source-free Effect refuses one-short original capacity and invalid install
       short_execution=short,
     )
     assert_true(
+      @client_local_host.prepare_installed_sequence_contracts(
+        "{}",
+        values,
+        fragment,
+        None,
+      )
+      is Err(_),
+    )
+    assert_true(
       @client_local_host.configure_source_free_effect_local_retained_host(
         bound,
         captured,
+        registry,
         if short {
-          registry
+          values
         } else {
           "{}"
         },
-        values,
         fragment,
         None,
       )

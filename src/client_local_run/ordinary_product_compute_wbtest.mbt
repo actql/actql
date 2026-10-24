@@ -5,10 +5,16 @@ test "ordinary Python source-free configuration uses the packaged assets and ori
     "ordinary-python-root",
   )
   let assets = @host.client_local_product_assets()
+  let installed = @local.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   assert_true(
     @local.prepare_client_local_sequences(
       original.prepared,
-      assets.registry,
+      installed,
       assets.values,
       Some(assets.fragment),
       assets.ordered,
@@ -17,7 +23,7 @@ test "ordinary Python source-free configuration uses the packaged assets and ori
   )
   let quote = @local.single_source_free_local_ledger_limits(
     original.prepared,
-    assets.registry,
+    installed,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
@@ -39,7 +45,7 @@ test "ordinary Python source-free configuration uses the packaged assets and ori
     configure_source_free_local_compute_on_ledger(
       original,
       root,
-      assets.registry,
+      installed,
       assets.values,
       Some(assets.fragment),
       assets.ordered,
@@ -69,6 +75,12 @@ test "ordinary Python insufficient original root refuses without a replacement o
     "ordinary-short-root",
   )
   let assets = @host.client_local_product_assets()
+  let installed = @local.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   let root = @resources.create_ledger({
     planning_work: 1000000,
     attempts: 4096,
@@ -82,7 +94,7 @@ test "ordinary Python insufficient original root refuses without a replacement o
     configure_source_free_local_compute_on_ledger(
       original,
       root,
-      assets.registry,
+      installed,
       assets.values,
       Some(assets.fragment),
       assets.ordered,

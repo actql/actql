@@ -11,9 +11,10 @@ fn cli_values_installation_document(
   cid? : String = cli_values_policy_cid,
   extra? : (String, Json)? = None,
 ) -> String raise ClientStop {
+  let assets = @run_host.client_local_product_assets()
   let fields = Map([
-    ("registry", Json::string("original-registry")),
-    ("values", Json::string("original-values")),
+    ("registry", Json::string(assets.registry)),
+    ("values", Json::string(assets.values)),
     ("result_policy_cid", Json::string(cid)),
     ("result_policy_wire", Json::string(policy)),
   ])
@@ -40,12 +41,12 @@ test "CLI Values configuration retains exact unknown Policy without installing a
   )
   assert_eq(installed.result_policy_wire, cli_values_policy_original)
   assert_eq(installed.result_policy_cid, cli_values_policy_cid)
-  assert_eq(installed.registry_body, "original-registry")
-  assert_eq(installed.values_body, "original-values")
+  let assets = @run_host.client_local_product_assets()
+  assert_eq(installed.registry_body, assets.registry)
+  assert_eq(installed.values_body, assets.values)
   assert_true(installed.fragment_body is None)
   assert_true(installed.ordered_body is None)
-  // These strings are configuration metadata, not installed engine evidence.
-  // The existing work Owner must admit their pinned originals before start.
+  // Installed contract DATA is retained once; it grants no Source or execution authority.
 }
 
 ///|
@@ -110,25 +111,28 @@ test "CLI Values caller uses existing Native work publication and immutable poli
 ///|
 // Pure metadata definitions, compiler-only until matching Native execution.
 test "current runtime asset selection keeps original Result Policy identity and bytes" {
+  let current = @run_host.client_local_product_assets()
   let original : LocalValuesInstallation = {
-    registry_body: "old-registry",
-    values_body: "old-values",
-    fragment_body: Some("old-fragment"),
-    ordered_body: Some("old-ordered"),
+    registry_body: current.registry,
+    installed_contracts: @local_values.prepare_installed_sequence_contracts(
+      current.registry,
+      current.values,
+      None,
+      None,
+    ).unwrap(),
+    values_body: current.values,
+    fragment_body: None,
+    ordered_body: None,
     result_policy_cid: "sha256:" + "a".repeat(64),
     result_policy_wire: "original-policy\r\n",
   }
   let assets : @run_host.ClientLocalProductAssets = {
-    environment: "original-environment",
-    registry: "current-registry",
-    values: "current-values",
-    fragment: "current-fragment",
-    ordered: Some("current-ordered"),
+    ..current,
     result_policy: "original-policy\r\n",
   }
   let installed = local_current_values_installation(original, assets)
-  assert_eq(installed.registry_body, "current-registry")
-  assert_eq(installed.values_body, "current-values")
+  assert_eq(installed.registry_body, assets.registry)
+  assert_eq(installed.values_body, assets.values)
   assert_eq(installed.result_policy_cid, "sha256:" + "a".repeat(64))
   assert_eq(installed.result_policy_wire, "original-policy\r\n")
   let rejected = try {

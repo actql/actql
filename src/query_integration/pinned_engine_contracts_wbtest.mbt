@@ -47,3 +47,13 @@ fn registered_fragment() -> @identity.CanonicalValue raise {
     100000,
   )
 }
+
+///|
+fn registered_installed_sequence_contracts() -> @client_local_host.ClientInstalledSequenceContracts raise {
+  @client_local_host.prepare_installed_sequence_contracts(
+    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    @identity.stringify_value(registered_values(), 100000, 10000, 100),
+    Some(@identity.stringify_value(registered_fragment(), 100000, 10000, 100)),
+    Some(@identity.stringify_value(registered_ordered(), 100000, 10000, 100)),
+  ).unwrap()
+}

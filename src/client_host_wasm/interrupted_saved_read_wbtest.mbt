@@ -38,7 +38,18 @@ test "saved interruption cleanup spends normal entry but retains original loans 
   }).unwrap()
   let capacity = @resources.reserve_shared_capacity(root, 16777216L).unwrap()
   let pool = @buffers.open_pool_on_ledger(root, 8388608L, 16, 1048576).unwrap()
-  assert_eq(install_buffer_instance(1901L, root, capacity, None, pool, 16), 0)
+  assert_eq(
+    install_buffer_instance(
+      1901L,
+      root,
+      capacity,
+      None,
+      pool,
+      16,
+      prepare_product_sequence_contracts().unwrap(),
+    ),
+    0,
+  )
   let value = selected(1901L).unwrap()
   let parent_slot = @buffers.reserve_output_buffer(pool, 64, 64L, () => true).unwrap()
   let parent : StoredSubmissionProjection = {

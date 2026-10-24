@@ -207,7 +207,7 @@ fn retained_consumer_checked_edge(
           materials.prepared,
           0,
           0,
-          configuration.registry_body,
+          configuration.installed_contracts,
           configuration.values_body,
           Some(configuration.source.fragment_contract_body),
           source_ref,

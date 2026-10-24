@@ -71,7 +71,7 @@ pub fn NativeLocalHostConnection::open_source_work(
       prepared,
       0,
       0,
-      configuration.registry_body,
+      configuration.installed_contracts,
       configuration.values_body,
       Some(source.fragment_contract_body),
       None,

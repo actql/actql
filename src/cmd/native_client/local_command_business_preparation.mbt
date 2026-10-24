@@ -19,6 +19,7 @@ priv struct LocalCommandBusinessPreparation {
   preparation : @local_host.NativeClientSubmittedPreparation
   prepared : @run_host.PreparedClientProgram
   requirements : @local_values.ClientLocalSourceFreeRequirements
+  installed_contracts : @local_values.ClientInstalledSequenceContracts
 }
 
 ///|
@@ -109,7 +110,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   let assets = runtime.assets
   let requirements = @local_values.prepare_source_free_local_requirements(
     prepared,
-    assets.registry,
+    runtime.installed_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
@@ -119,7 +120,12 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
     stage=Some("business-capacity"),
   )
   command_preparation_result(
-    self.require_business_program(prepared, assets, requirements),
+    self.require_business_program(
+      prepared,
+      runtime.installed_contracts,
+      assets,
+      requirements,
+    ),
     stage=Some("business-program"),
   )
   |> ignore
@@ -140,6 +146,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
     preparation,
     prepared,
     requirements,
+    installed_contracts: runtime.installed_contracts,
   }
   if !selection.current(host, settings, environment) {
     stop("LocalSubmissionAuthorizationDenied")

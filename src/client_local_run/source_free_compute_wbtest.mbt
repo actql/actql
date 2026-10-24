@@ -18,7 +18,7 @@ fn source_free_shared_host(
   configure_source_free_local_compute_on_ledger(
     plan,
     root,
-    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    registered_installed_contracts(),
     @identity.stringify_value(registered_values(), 100000, 10000, 100),
     Some(@identity.stringify_value(registered_fragment(), 100000, 10000, 100)),
     Some(@identity.stringify_value(registered_ordered(), 100000, 10000, 100)),
