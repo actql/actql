@@ -181,22 +181,10 @@ fn local_values_installation(
 fn local_current_values_installation(
   original : LocalValuesInstallation,
   assets : @run_host.ClientLocalProductAssets,
+  installed_contracts : @local_values.ClientInstalledSequenceContracts,
 ) -> LocalValuesInstallation raise ClientStop {
   if assets.result_policy != original.result_policy_wire {
     stop("LocalValuesResultPolicyOriginalChanged")
-  }
-  let installed_contracts = if assets.registry == original.registry_body &&
-    assets.values == original.values_body &&
-    Some(assets.fragment) == original.fragment_body &&
-    assets.ordered == original.ordered_body {
-    original.installed_contracts
-  } else {
-    @local_values.prepare_installed_sequence_contracts(
-      assets.registry,
-      assets.values,
-      Some(assets.fragment),
-      assets.ordered,
-    ).unwrap_or_else(() => stop("InvalidLocalValuesInstalledContracts"))
   }
   {
     ..original,

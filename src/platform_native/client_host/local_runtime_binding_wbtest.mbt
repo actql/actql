@@ -58,6 +58,7 @@ test "Native runtime package refuses missing observations and closes an empty pr
   let missing : NativeLocalPackagedRuntime = {
     manifest: None,
     assets: None,
+    installed_contracts: None,
     roots: [],
     directories: [],
     witnesses: [],

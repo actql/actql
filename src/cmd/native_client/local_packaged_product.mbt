@@ -160,18 +160,12 @@ fn local_packaged_runtime_from_physical(
   let manifest = physical
     .manifest()
     .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
-  let assets = physical
-    .assets()
+  let (assets, installed_contracts) = physical
+    .installed_assets()
     .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
   let (sqlite, crypto) = physical
     .library_paths()
     .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
-  let installed_contracts = @local_values.prepare_installed_sequence_contracts(
-    assets.registry,
-    assets.values,
-    Some(assets.fragment),
-    assets.ordered,
-  ).unwrap_or_else(() => stop("PackagedLocalInstalledContractsUnavailable"))
   { manifest, sqlite, crypto, assets, installed_contracts, physical, }
 }
 

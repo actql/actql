@@ -44,7 +44,9 @@ pub fn NativeLocalHostConnection::require_packaged_runtime_upgrade(
 /// execute or to replace the original Run's assets.
 pub(all) enum NativeLocalRuntimeSubmission {
   Accepted
-  Pending(@host.ClientLocalProductAssets?)
+  Pending(
+    (@host.ClientLocalProductAssets, @local.ClientInstalledSequenceContracts)?
+  )
 }
 
 ///|
@@ -56,8 +58,10 @@ pub fn NativeLocalHostConnection::packaged_runtime_assets_for_submission(
   preparation : NativeClientSubmittedPreparation,
   max_work : Int,
 ) -> Result[NativeLocalRuntimeSubmission, NativeClientRunJournalIssue] {
-  guard self.packaged_runtime is Some(binding) && binding.pair is Some(pair) else {
-    return Ok(Pending(None))
+  guard self.packaged_runtime is Some(binding) else { return Ok(Pending(None)) }
+  guard binding.pair is Some(pair) else {
+    // Immutable installation DATA only; no Journal or Run acceptance is issued.
+    return Ok(Pending(Some(binding.installed_assets)))
   }
   let current = () => {
     local_runtime_binding_current(self, binding) &&
@@ -118,13 +122,9 @@ pub fn NativeLocalHostConnection::packaged_runtime_assets_for_submission(
       is Err(_) {
       return Err(UnsupportedPreparation)
     }
-    let assets = match binding.current.assets() {
-      Ok(value) => value
-      Err(_) => return Err(CustodyLost)
-    }
     if !current() {
       return Err(AuthorizationDenied)
     }
-    Ok(Pending(Some(assets)))
+    Ok(Pending(Some(binding.installed_assets)))
   })
 }

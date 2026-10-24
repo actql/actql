@@ -130,16 +130,24 @@ test "current runtime asset selection keeps original Result Policy identity and 
     ..current,
     result_policy: "original-policy\r\n",
   }
-  let installed = local_current_values_installation(original, assets)
+  let contracts = @local_values.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let installed = local_current_values_installation(original, assets, contracts)
+  assert_true(physical_equal(installed.installed_contracts, contracts))
   assert_eq(installed.registry_body, assets.registry)
   assert_eq(installed.values_body, assets.values)
   assert_eq(installed.result_policy_cid, "sha256:" + "a".repeat(64))
   assert_eq(installed.result_policy_wire, "original-policy\r\n")
   let rejected = try {
-    local_current_values_installation(original, {
-      ..assets,
-      result_policy: "original-policy\n",
-    })
+    local_current_values_installation(
+      original,
+      { ..assets, result_policy: "original-policy\n", },
+      contracts,
+    )
     |> ignore
     false
   } catch {
