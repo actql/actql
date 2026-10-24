@@ -889,17 +889,22 @@ fn validate_nested_identities(
     return Err(InvalidField("results"))
   }
   let artifact_spec = contract_spec("result_artifact").unwrap()
-  for (_, artifact) in results {
+  for index in 0..<results.length() {
+    let (_, artifact) = results[index]
     // Only an issuer in this package can supply its exact immutable child.
     // External Manifest text has no such original and keeps full admission.
-    if known_artifacts.any(original => {
-        original.name == "result_artifact" &&
-        physical_equal(original.value, artifact) &&
-        publication_contract_check_limits(
-          original, max_wire_bytes, max_nodes, max_depth,
-        )
-        is Ok(_)
-      }) {
+    let matches = fn(original : PublicationContract) -> Bool {
+      original.name == "result_artifact" &&
+      physical_equal(original.value, artifact) &&
+      publication_contract_check_limits(
+        original, max_wire_bytes, max_nodes, max_depth,
+      )
+      is Ok(_)
+    }
+    // The issuer already supplies these originals in emitted Result order.
+    // Reordered or normalized keys retain the existing full search fallback.
+    if (index < known_artifacts.length() && matches(known_artifacts[index])) ||
+      known_artifacts.any(matches) {
       continue
     }
     match
