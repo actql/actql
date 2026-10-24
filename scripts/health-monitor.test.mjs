@@ -7,7 +7,7 @@ import {spawnSync} from 'node:child_process';
 import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
 import {compareReports, finishReport, markdown, summarize, exitStatus, digest, measurementProfile} from './health-monitor-report.mjs';
-import {parseArguments, requiredQuickMetrics, missingReleaseInputs, recordGuardExit} from './health-monitor.mjs';
+import {parseArguments, requiredQuickMetrics, missingReleaseInputs, recordGuardExit, applyComparison} from './health-monitor.mjs';
 import {packDistributionPackages} from './measure-distribution-artifacts.mjs';
 import {formalCollectorVerdict} from './health-monitor-release.mjs';
 import {quickNodeMetrics} from './health-monitor-adapters.mjs';
@@ -16,16 +16,18 @@ import {nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
 const policy = JSON.parse(await readFile(new URL('../benchmarks/health/config.json', import.meta.url)));
 const samples = (ms, count = 10) => Array.from({length: count}, (_, iteration) => ({iteration,
   wallNs: ms * 1e6, cpuUserUs: 1, cpuSystemUs: 1, verified: true, completed: true}));
-function fixture() {
-  const report = {format: 'actql-health/0.1', mode: 'quick', source: {sha: 'a'.repeat(40), dirty: false},
+function fixture(mode = 'quick') {
+  const report = {format: 'actql-health/0.1', mode, source: {sha: 'a'.repeat(40), dirty: false},
     environment: {platform: 'linux', architecture: 'x64', osRelease: 'test-os', cpuModel: 'unit CPU', logicalCpus: 2,
       node: 'test-node', nodeExecutableSha256: '0'.repeat(64), python: 'test-python', moon: 'test-moon',
       toolchainSha256: '1'.repeat(64), buildSettings: {profile: 'release', load: 'isolated'}},
     methodologySha256: '2'.repeat(64), baseline: {id: 'synthetic-unit-only', reviewed: true, reason: 'test vector, never a product baseline'},
     artifacts: [{name: 'test', sourceSha: 'a'.repeat(40), sha256: '3'.repeat(64)}], errors: [],
     metrics: []};
-  report.metrics = measurementProfile('quick').map(row => ({...row, evidence: 'synthetic unit only',
+  report.metrics = measurementProfile(mode, report.environment).map(row => ({...row, evidence: 'synthetic unit only',
     fixtureSha256: '4'.repeat(64), ...(row.kind === 'latency' ? {samples: samples(10, row.requiredSamples)} : {value: 1000})}));
+  if (mode === 'release') report.metrics.push({id: 'synthetic-contained.wasm', target: 'python', kind: 'size',
+    artifactKind: 'wasm', value: 1000, unit: 'bytes', required: true, fixtureSha256: '4'.repeat(64), evidence: 'synthetic unit only'});
   report.sourceAfter = structuredClone(report.source); report.environmentAfter = structuredClone(report.environment);
   report.installedPayloadsUnchanged = true; return report;
 }
@@ -258,5 +260,68 @@ test('installed and raw-browser bytes report deltas without inventing an unspeci
     const result = compareReports(base, current, policy), delta = result.verdicts.find(row => row.metric === id);
     assert.equal(result.status, 'pass'); assert.equal(delta.absoluteDelta, 4000);
     assert.equal(delta.relativeDelta, 4); assert.match(delta.reason, /no configured gate/);
+  }
+});
+test('zero-option measurement selects an existing reviewed platform baseline without changing it', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-health-default-unit-'));
+  const directory = join(root, 'benchmarks/health/baselines'); await mkdir(directory, {recursive: true});
+  const path = join(directory, 'linux-x64.json');
+  for (const mode of ['quick', 'release']) {
+    const base = fixture(mode), report = fixture(mode);
+    const bytes = JSON.stringify(base); await writeFile(path, bytes);
+    await applyComparison(report, {}, root);
+    assert.equal(report.comparison.available, true); assert.equal(report.comparison.comparable, true);
+    assert.equal(report.comparison.baselineId, base.baseline.id);
+    assert.equal(report.comparison.baselineSelection, 'default'); assert.equal(report.comparison.baselinePath, path);
+    assert.equal(report.comparison.baselineSha256, digest(bytes)); assert.equal(finishReport(report).exitCode, 0);
+    assert.equal(await readFile(path, 'utf8'), bytes);
+  }
+});
+test('absent default baseline remains measurement-only and never creates or adopts a baseline', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-health-absent-unit-')), report = fixture();
+  await applyComparison(report, {}, root);
+  assert.equal(report.comparison.available, false); assert.equal(report.comparison.baselineSelection, 'default');
+  assert.equal(finishReport(report).exitCode, 0);
+  assert.deepEqual(await readdir(root), []);
+});
+test('explicit baseline overrides the default and a missing override never falls back', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-health-override-unit-'));
+  const directory = join(root, 'benchmarks/health/baselines'); await mkdir(directory, {recursive: true});
+  const defaultPath = join(directory, 'linux-x64.json'); await writeFile(defaultPath, '{malformed default');
+  const explicit = join(root, 'selected.json'), base = fixture(); base.baseline.id = 'synthetic-explicit-unit-only';
+  await writeFile(explicit, JSON.stringify(base));
+  const report = fixture(); await applyComparison(report, {base: explicit}, root);
+  assert.equal(report.comparison.comparable, true); assert.equal(report.comparison.baselineSelection, 'explicit');
+  assert.equal(report.comparison.baselineId, base.baseline.id); assert.equal(report.comparison.baselinePath, explicit);
+  const missing = fixture();
+  await assert.rejects(applyComparison(missing, {base: join(root, 'absent.json')}, root), {code: 'ENOENT'});
+  assert.equal(finishReport(missing).status, 'error');
+  assert.equal(await readFile(defaultPath, 'utf8'), '{malformed default');
+});
+test('incompatible or unreviewed default evidence is rejected, not treated as optional absence', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-health-incompatible-unit-'));
+  const directory = join(root, 'benchmarks/health/baselines'); await mkdir(directory, {recursive: true});
+  const path = join(directory, 'linux-x64.json');
+  for (const mismatch of ['cpu', 'review', 'mode']) {
+    const base = fixture(), report = fixture();
+    if (mismatch === 'cpu') {base.environment.cpuModel = 'other CPU'; base.environmentAfter = structuredClone(base.environment);}
+    else if (mismatch === 'review') delete base.baseline;
+    else report.mode = 'release'; // Release uses the same default selection, retaining strict methodology compatibility.
+    await writeFile(path, JSON.stringify(base)); await applyComparison(report, {}, root);
+    assert.equal(report.comparison.available, true); assert.equal(report.comparison.comparable, false);
+    assert.equal(report.comparison.baselineSelection, 'default'); assert.equal(finishReport(report).exitCode, 2);
+    assert.ok(report.comparison.reasons.length);
+  }
+});
+test('malformed default baseline preserves its error and never becomes a measurement-only pass', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-health-malformed-unit-'));
+  const directory = join(root, 'benchmarks/health/baselines'); await mkdir(directory, {recursive: true});
+  const path = join(directory, 'linux-x64.json');
+  for (const bytes of ['{bad json', 'null']) {
+    const report = fixture(); await writeFile(path, bytes);
+    await assert.rejects(applyComparison(report, {}, root));
+    assert.equal(report.comparison.available, true); assert.equal(report.comparison.comparable, false);
+    assert.equal(report.comparison.status, 'error'); assert.equal(finishReport(report).exitCode, 3);
+    assert.equal(await readFile(path, 'utf8'), bytes);
   }
 });

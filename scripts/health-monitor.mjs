@@ -68,10 +68,33 @@ export function recordGuardExit(report, code) {
   return report;
 }
 
-async function applyComparison(report, options) {
-  report.comparison = options.base ? compareReports(JSON.parse(await readFile(options.base)), report, policy)
-    : {available: false, comparable: false, baselineId: null,
-      reason: 'No reviewed baseline selected; measurement-only first run; baseline not created or updated'};
+export async function applyComparison(report, options, root = repository) {
+  const explicit = Object.hasOwn(options, 'base');
+  const selection = explicit ? 'explicit' : 'default';
+  let baselinePath;
+  try {
+    if (explicit) baselinePath = resolve(options.base);
+    else {
+      const {platform, architecture} = report.environment ?? {};
+      if (![platform, architecture].every(value => typeof value === 'string' && /^[a-z0-9_-]+$/u.test(value))) {
+        throw new Error('Invalid platform/architecture for default health baseline');
+      }
+      baselinePath = join(root, 'benchmarks/health/baselines', `${platform}-${architecture}.json`);
+    }
+    const bytes = await readFile(baselinePath);
+    report.comparison = {...compareReports(JSON.parse(bytes), report, policy),
+      baselineSelection: selection, baselinePath, baselineSha256: digest(bytes)};
+  } catch (error) {
+    if (!explicit && baselinePath && error.code === 'ENOENT') {
+      report.comparison = {available: false, comparable: false, baselineId: null,
+        baselineSelection: selection, baselinePath,
+        reason: 'Default reviewed baseline absent; measurement-only first run; baseline not created or updated'};
+      return;
+    }
+    report.comparison = {available: true, comparable: false, baselineId: null, status: 'error',
+      baselineSelection: selection, baselinePath: baselinePath ?? null, reasons: [error.message], verdicts: []};
+    throw error; // Malformed/unreadable evidence and missing explicit overrides never become first-run absence.
+  }
 }
 
 export async function executeMonitor({mode, options, report, directory}) {

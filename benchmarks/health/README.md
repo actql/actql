@@ -58,9 +58,14 @@ Each invocation creates `_build/health/<time>-<uuid>/report.json`, `summary.md`
 and `raw/`. Existing output directories are refused. Failures, including
 pre-admission failure, produce reports too. Fresh owned business state, keys,
 handoffs and original failed evidence are retained there; they are not replayed
-or cleaned by the monitor. Routine reports are ignored by Git. No baseline is
-invented or automatically updated. A first run without `--base` is measurement
-only: it says comparison unavailable, and does not assert regression freedom.
+or cleaned by the monitor. Routine reports are ignored by Git. Quick and Release
+automatically read `benchmarks/health/baselines/<platform>-<arch>.json` for the
+observed platform/architecture, including the zero-option command used by CI.
+`--base <file>` overrides that selection. A missing default baseline is
+measurement-only: it says comparison unavailable, and does not assert regression
+freedom. An existing unreviewed/incompatible baseline is incomplete; malformed
+or unreadable evidence is an error. A missing explicit override is an error and
+never falls back. The monitor never creates, adopts or updates a baseline file.
 
 Reports bind source SHA/dirty diff, before/after environment and package
 inventories, source-bound artifact hashes, fixtures, raw samples, exact counts,
@@ -88,6 +93,8 @@ to `baselines/<platform>-<arch>.json`, adding `baseline: {id, reason,
 reviewed: true}`. Commit that real reviewed report and reason. There are no
 placeholder metric values in this repository. CI never writes baselines;
 until a real baseline is reviewed, size comparisons do not gate an initial run.
+Baseline selection does not weaken CPU/OS/toolchain/fixture/methodology checks;
+use an explicit matching Release baseline when the platform default is Quick.
 
 Exit codes: pass/warning **0**; size regression **1**; required missing or
 non-comparable evidence **2**; build, execution, fixture, collector or integrity
