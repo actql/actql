@@ -148,3 +148,11 @@ export const bindingIdentifierRefusals = [
 })));
 quotedIdentifierSuccesses.push(...bindingIdentifierSuccesses);
 quotedIdentifierRefusals.push(...bindingIdentifierRefusals);
+
+// Public SQL/Text preparation names its default Result main. The authored
+// JSON Programs retain their explicit answer Result and original identities.
+for (const fixture of quotedIdentifierSuccesses) {
+  if (fixture.format === 'sql' || fixture.format === 'aql-text') {
+    fixture.results = {main: {rows: fixture.expected, columns: fixture.columns}};
+  }
+}
