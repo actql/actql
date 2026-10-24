@@ -1,3 +1,6 @@
+import {inUnnestSuccesses, inUnnestRefusals, inUnnestExecutionFailures}
+  from './in-unnest-source-input.mjs';
+
 // Independent membership truth table and ordinary Program control. Array
 // constructors are not evaluated by the oracle or regenerated from lowering.
 const boolean = (name, nullable = true) => ({name, contract: {type: 'boolean', nullable}});
@@ -75,3 +78,17 @@ export const inUnnestLiteralArrayRefusals = [
   {name: 'nonfinite', text: 'SELECT 2 IN UNNEST([1e9999]) AS found'},
   {name: 'negative-zero', text: 'SELECT 2 IN UNNEST([-(0)]) AS found'},
 ].map(value => ({...value, name: 'in-unnest-literal-array-' + value.name, format: 'sql'}));
+
+// SQL uses its public default main; this Pipe case explicitly authors answer.
+for (const fixture of inUnnestLiteralArraySuccesses) {
+  if (fixture.format === 'sql') {
+    fixture.results = {main: {rows: fixture.expected, columns: fixture.columns}};
+  } else if (fixture.name === 'in-unnest-literal-array-pipe-signed-atoms') {
+    fixture.results = {answer: {rows: fixture.expected, columns: fixture.columns}};
+  }
+}
+
+// Keep whole-ARRAY parameter boundaries in the same active membership corpus.
+inUnnestLiteralArraySuccesses.push(...inUnnestSuccesses);
+inUnnestLiteralArrayRefusals.push(...inUnnestRefusals);
+export const inUnnestLiteralArrayExecutionFailures = inUnnestExecutionFailures;

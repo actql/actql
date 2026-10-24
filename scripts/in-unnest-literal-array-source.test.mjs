@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {inUnnestLiteralArraySuccesses, inUnnestLiteralArrayRefusals}
+import {inUnnestLiteralArraySuccesses, inUnnestLiteralArrayRefusals, inUnnestLiteralArrayExecutionFailures}
   from './fixtures/in-unnest-literal-array-source-input.mjs';
 
 test('literal membership controls distinguish matching, unknown and empty sets', () => {
@@ -28,9 +28,10 @@ test('literal membership controls distinguish matching, unknown and empty sets',
   assert.deepEqual(source.expected, [{id: 2}, {id: 3}, {id: 3}]);
   assert.equal(source.sourceReadCount, 1);
   assert.equal(source.sourceReadSessionCount, 1);
-  const all = [...inUnnestLiteralArraySuccesses, ...inUnnestLiteralArrayRefusals];
-  assert.equal(inUnnestLiteralArraySuccesses.length, 14);
-  assert.equal(inUnnestLiteralArrayRefusals.length, 6);
+  const all = [...inUnnestLiteralArraySuccesses, ...inUnnestLiteralArrayRefusals, ...inUnnestLiteralArrayExecutionFailures];
+  assert.equal(inUnnestLiteralArraySuccesses.length, 25);
+  assert.equal(inUnnestLiteralArrayRefusals.length, 13);
+  assert.equal(inUnnestLiteralArrayExecutionFailures.length, 1);
   assert.equal(new Set(all.map(value => value.name)).size, all.length);
 });
 
@@ -38,7 +39,7 @@ test('normal packed acceptance and its narrow selector register the same literal
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'inUnnestLiteralArraySuccesses'],
-    ['refusals', 'inUnnestLiteralArrayRefusals']]) {
+    ['refusals', 'inUnnestLiteralArrayRefusals'], ['executionFailures', 'inUnnestLiteralArrayExecutionFailures']]) {
     const registration = `scopeInputs.${kind}.push(...${group})`;
     assert.equal(fixture.split(registration).length - 1, 1);
   }
@@ -71,4 +72,17 @@ test('general ARRAY membership corpus fixes field, conditional and lazy results'
   }
   assert.deepEqual(cases.get('in-unnest-literal-array-general-element').expected, [{found: true}]);
   assert.ok(!inUnnestLiteralArrayRefusals.some(value => value.name.endsWith('-general-element')));
+});
+
+test('active membership corpus retains exact public and explicitly authored Result names', () => {
+  for (const item of inUnnestLiteralArraySuccesses) {
+    if (item.format === 'json') {
+      assert.deepEqual(Object.keys(JSON.parse(item.text).results), ['answer']);
+      assert.equal(item.results, undefined);
+    } else {
+      const name = item.name === 'in-unnest-literal-array-pipe-signed-atoms' ? 'answer' : 'main';
+      assert.deepEqual(item.results, {[name]: {rows: item.expected, columns: item.columns}}, item.name);
+    }
+  }
+  assert.deepEqual(inUnnestLiteralArrayExecutionFailures[0].resultNames, ['main']);
 });

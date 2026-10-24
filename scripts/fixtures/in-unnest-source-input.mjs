@@ -71,6 +71,9 @@ export const inUnnestSuccesses = [
       sourceReadCount: 0, sourceReadSessionCount: 0,
       columns: flags.map(column => ({...column, contract: {type: 'boolean', nullable: false}})),
     }),
+  success('general-array-expression', 'SELECT 1 IN UNNEST(IF(TRUE, @xs, @xs)) AS included',
+    [{included: true}], {parameters: {xs: [1]}, columns: [flags[0]], sourceRows: undefined,
+      sourceReadCount: 0, sourceReadSessionCount: 0}),
 ];
 export const inUnnestRefusals = [
   {name: 'undeclared', text: projection, parameters: {xs: [2]}},
@@ -85,10 +88,15 @@ export const inUnnestRefusals = [
     parameterDeclarations: {xs: {...array, items: {type: 'boolean'}}}, parameters: {xs: [true]}},
   {name: 'multiple-arguments', text: 'SELECT 1 IN UNNEST(@xs, @xs) AS included',
     parameterDeclarations: declarations, parameters: {xs: [1]}},
-  {name: 'general-array-expression-gap', text: 'SELECT 1 IN UNNEST(IF(TRUE, @xs, @xs)) AS included',
-    parameterDeclarations: declarations, parameters: {xs: [1]}},
 ].map(item => ({...item, name: 'in-unnest-' + item.name, format: 'sql'}));
 export const inUnnestExecutionFailures = [{name: 'in-unnest-demanded-left-on-empty-set',
   format: 'sql', text: 'SELECT (1 / 0) IN UNNEST(@xs) AS included',
   parameterDeclarations: {xs: {...array, max_items: 0}}, parameters: {xs: []},
-  resultNames: ['answer'], sourceReadSessionCount: 0}];
+  resultNames: ['main'], sourceReadSessionCount: 0}];
+
+// Public text preparation uses main; the authored JSON control keeps answer.
+for (const fixture of inUnnestSuccesses) {
+  if (fixture.format === 'sql' || fixture.format === 'aql-text') {
+    fixture.results = {main: {rows: fixture.expected, columns: fixture.columns}};
+  }
+}

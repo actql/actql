@@ -68,6 +68,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/negated-predicate-reuse-source-input.mjs', 'negated-predicate-reuse-source-input.mjs'],
   ['scripts/fixtures/membership-expression-reuse-source-input.mjs', 'membership-expression-reuse-source-input.mjs'],
   ['scripts/fixtures/in-unnest-literal-array-source-input.mjs', 'in-unnest-literal-array-source-input.mjs'],
+  ['scripts/fixtures/in-unnest-source-input.mjs', 'in-unnest-source-input.mjs'],
   ['scripts/fixtures/array-literal-source-input.mjs', 'array-literal-source-input.mjs'],
   ['scripts/fixtures/unnest-source-input.mjs', 'unnest-source-input.mjs'],
   ['scripts/fixtures/pipe-unpivot-source-input.mjs', 'pipe-unpivot-source-input.mjs'],
