@@ -1623,7 +1623,10 @@ pub fn prepare_parsed_effect_free_client_program(
         source: parsed,
         local_normalization: None,
         full_sequences: [],
-        local_values_max_rows: client_standard_values_sequence_limits().max_rows,
+        // Preserve the historical admission/profile identity for already accepted
+        // small programs. This is a compatibility floor, not an execution cap:
+        // the owned capacity plan independently tightens the actual row envelope.
+        local_values_max_rows: Int::max(client_standard_values_sequence_limits().max_rows,client_closed_owner_rows(owners,limits.max_graph_work).unwrap_or(0)),
       })
     Err(issue) => Err(Graph(issue))
   }

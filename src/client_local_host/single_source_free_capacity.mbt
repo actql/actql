@@ -82,8 +82,7 @@ fn prepare_source_free_local_requirements_original(
     @publication_host.prepared_client_uses_graph_carrier(prepared) ||
     @strategy.graph_program_has_effects(graph) ||
     !@strategy.graph_source_free_inputs_complete(graph) ||
-    count < 1 ||
-    count > 32 {
+    count < 1 {
     return None
   }
   for task in 0..<count {

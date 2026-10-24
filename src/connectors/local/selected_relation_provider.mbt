@@ -285,12 +285,10 @@ fn relation_chain_step_inputs(
   position : Int,
   inputs : Array[ManagedProviderInput],
   completed : Array[@execution.CompletedOutput?],
-  max_entries : Int,
-  max_value_bytes : Int,
 ) -> Result[Array[ManagedProviderInput], @connector.FixedComputeIssue] {
   let cursor = match
     start_relation_chain_inputs(
-      sequence, position, inputs, completed, max_entries, max_value_bytes,
+      sequence, position, inputs, completed,
     ) {
     Ok(cursor) => cursor
     Err(issue) => return Err(issue)
@@ -500,8 +498,6 @@ fn bounded_relation_chain_execution_state(
       0,
       inputs,
       state.completed,
-      execution.rows.operation_entries,
-      max_value_bytes,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -604,8 +600,6 @@ fn bounded_relation_chain_execution_state(
                 state.position,
                 inputs,
                 state.completed,
-                execution.rows.operation_entries,
-                max_value_bytes,
               ) {
               Err(issue) => Err(issue)
               Ok(cursor) =>
@@ -773,8 +767,6 @@ fn bounded_relation_chain_execution_state(
                   state.position,
                   inputs,
                   state.completed,
-                  execution.rows.operation_entries,
-                  max_value_bytes,
                 ) {
                 Ok(cursor) => cursor
                 Err(issue) => {

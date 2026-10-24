@@ -11,7 +11,7 @@ priv enum NodeManagedRunPurpose {
 ///|
 pub struct NodeManagedRunAdmission[P] {
   priv mut original : NodeManagedRunAdmission[P]?
-  priv prepared : P
+  priv mut prepared : P?
   priv purpose : NodeManagedRunPurpose
   priv child : ImportedChildLedger
   priv abort_unpublished : () -> Result[Unit, ImportedChildLedgerIssue]
@@ -33,7 +33,7 @@ fn[P] prepare_node_managed_run_original(
 ) -> NodeManagedRunAdmission[P] {
   let value : NodeManagedRunAdmission[P] = {
     original: None,
-    prepared,
+    prepared: Some(prepared),
     purpose,
     abort_unpublished,
     child,
@@ -72,6 +72,7 @@ pub fn[P] cleanup_node_managed_run_admission(
     return match child.stop_outcome {
       Some(issue) => Err(issue)
       None => {
+        value.prepared = None
         value.cleaned = true
         Ok(())
       }
@@ -130,6 +131,7 @@ pub fn[P] cleanup_node_managed_run_admission(
       }
     }
   }
+  value.prepared = None
   value.cleaned = true
   Ok(())
 }
@@ -294,7 +296,10 @@ pub fn[P] check_node_managed_run_preparation(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if physical_equal(value.prepared, prepared) {
+  if value.cleaned {
+    return Err(AlreadyConsumed)
+  }
+  if value.prepared is Some(original) && physical_equal(original, prepared) {
     Ok(())
   } else {
     Err(ForeignOriginal)

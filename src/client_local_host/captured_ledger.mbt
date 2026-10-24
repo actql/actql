@@ -2,6 +2,7 @@
 fn client_local_execution_limits(
   max_rows? : Int = 100,
   scalar_sequences? : Array[@execution.GeneratedSequence]? = None,
+  scalar_inventory? : ClientLocalSchemaProofInventory? = None,
 ) -> (
   @execution.ValueLimits,
   @execution.SequenceExecutionLimits,
@@ -10,10 +11,12 @@ fn client_local_execution_limits(
   // Preserve general text and execution envelopes. Only original checked
   // Number/Boolean schemas can reduce the scalar input/output node envelope;
   // the pre-admission quote and configured providers use this same policy.
-  let scalar_nodes = match scalar_sequences {
+  let scalar_nodes = if scalar_inventory is Some(inventory) {
+    client_local_inventory_nodes(inventory,max_rows)
+  } else { match scalar_sequences {
     Some(sequences) => client_local_scalar_nodes(sequences, max_rows)
     None => None
-  }
+  }}
   let values : @execution.ValueLimits = {
     max_nodes: scalar_nodes.unwrap_or(20000),
     max_text_bytes: 500000,
@@ -82,7 +85,7 @@ fn client_local_sequence_capacity_original(
   include_simultaneous? : Bool = false,
   simultaneous_graph? : @strategy.CheckedDAG? = None,
 ) -> ClientLocalSequenceCapacity? {
-  if task_count < 1 || task_count > 32 || sequences.length() > task_count {
+  if task_count < 1 || sequences.length() > task_count {
     return None
   }
   let plan = capacity_plan.unwrap_or_else(() => {
@@ -141,7 +144,7 @@ fn client_local_sequence_capacity_original(
         ),
       )
     }
-    if retained < 0L || retained > 536870912L - total_retained_bytes {
+    if retained < 0L || retained > client_local_retained_byte_ceiling() - total_retained_bytes {
       return None
     }
     total_retained_bytes += retained
@@ -166,7 +169,7 @@ fn client_local_sequence_capacity_original(
         retained_bytes + plan.metadata_retained_bytes,
         import_bytes,
         export_bytes,
-        536870912L,
+        client_local_retained_byte_ceiling(),
       )
       is Some((retained, ports)) else {
       return None
@@ -189,7 +192,7 @@ fn client_local_sequence_capacity_original(
     } else {
       200000000L
     },
-    execution_bytes: 536870912L,
+    execution_bytes: client_local_execution_byte_ceiling(),
   }
   let simultaneous = match individual {
     None => None
@@ -354,7 +357,6 @@ pub fn client_effect_family_ledger_limits(
   let count = @strategy.graph_task_count(graph)
   let first = @strategy.graph_captured_prefix(graph)
   if count < 1 ||
-    count > 32 ||
     first < 0 ||
     first >= count ||
     families.is_empty() {
@@ -389,7 +391,7 @@ pub fn client_effect_family_ledger_limits(
     is Some(export_bytes) else {
     return None
   }
-  let ceiling = 536870912L
+  let ceiling = client_local_joint_byte_ceiling()
   for task in first..<count {
     guard @local.local_bounded_relation_provider(
         execution,
@@ -471,7 +473,7 @@ pub fn prepare_client_effect_family_capture_ledger(
     is Some(limits) else {
     return None
   }
-  let ceiling = 536870912L
+  let ceiling = client_local_joint_byte_ceiling()
   if transport_bytes < 0L ||
     transport_execution_bytes < 0L ||
     capacity.retained_bytes < 0L ||
@@ -617,7 +619,6 @@ fn multi_captured_capacity_limits_owned(
   if captured < 1 ||
     captured > count ||
     capacities.length() != captured ||
-    count > 32 ||
     transport_bytes.length() != captured ||
     transport_execution_bytes.length() != captured {
     return None
@@ -647,7 +648,7 @@ fn multi_captured_capacity_limits_owned(
     return None
   }
   let mut transfer = transfer_envelopes * 1000000L
-  let mut execution_capacity = 536870912L
+  let mut execution_capacity = client_local_execution_byte_ceiling()
   for index in 0..<captured {
     let (capture_retained, capture_execution) = capacities[index]
     if capture_retained < 0L ||
@@ -756,7 +757,7 @@ pub fn single_captured_local_ledger_limits(
 ) -> @resources.LedgerLimits? {
   let graph = @publication_host.prepared_client_graph(prepared)
   let count = @strategy.graph_task_count(graph)
-  if @strategy.graph_captured_prefix(graph) != 1 || count < 2 || count > 32 {
+  if @strategy.graph_captured_prefix(graph) != 1 || count < 2 {
     return None
   }
   guard prepare_local_query_requirement(
@@ -796,7 +797,6 @@ fn single_captured_compute_limits(
   let count = @strategy.graph_task_count(graph)
   guard @strategy.graph_captured_prefix(graph) == 1 &&
     count >= 2 &&
-    count <= 32 &&
     prepare_client_local_sequences(
       prepared, registry_body, values_body, fragment_body, ordered_body,
     )
@@ -831,7 +831,7 @@ fn single_captured_capacity_limits(
   // Keep the existing finite Local inventory ceiling. The Native receiver
   // remains live beside all completed outputs; it is not a substitute for
   // the suffix's import/output allowance.
-  let ceiling = 536870912L
+  let ceiling = client_local_joint_byte_ceiling()
   if native.0 < 0L ||
     native.1 < 0L ||
     native.1 > ceiling ||

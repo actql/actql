@@ -1000,12 +1000,18 @@ function freezeAdmissionEvidence(value) {
   return Object.freeze(value);
 }
 
-function retainedResultNames(row) {
+function retainedResultNames(row, maxWireBytes) {
   if (row.result_names_json === null) return undefined;
+  // Reuse the installed per-metadata-object wire allowance before JSON
+  // expansion. This is not an aggregate database or whole-record grant;
+  // Result cardinality comes from the retained original inventory.
+  if (Buffer.byteLength(row.result_names_json, 'utf8') > maxWireBytes) {
+    fail('ClientRequestJournalCorrupt');
+  }
   let names;
   try { names = JSON.parse(row.result_names_json); }
   catch (cause) { fail('ClientRequestJournalCorrupt', cause); }
-  if (!Array.isArray(names) || names.length > 100 ||
+  if (!Array.isArray(names) ||
       names.some(name => typeof name !== 'string' || !name) ||
       new Set(names).size !== names.length) {
     fail('ClientRequestJournalCorrupt');
@@ -1048,7 +1054,7 @@ function retainedRunFacts(row, publicationControl, maxWireBytes, updateOriginalC
   return Object.freeze({
     runDefinition,
     programDefinitionCid: row.program_definition_cid,
-    resultNames: retainedResultNames(row),
+    resultNames: retainedResultNames(row, maxWireBytes),
     runAdmissionEvidence,
     cancellationRequested: row.cancellation_requested === 1,
     physicalCloseConfirmed: row.physical_close_confirmed === 1,
@@ -2683,10 +2689,9 @@ export function openClientRequestJournal(directory, {
               maxRunDefinitionWireBytes) ||
         !Number.isSafeInteger(revision) || revision < 0 ||
         resultNames !== undefined && (!Array.isArray(resultNames) ||
-          resultNames.length > 100 ||
           resultNames.some(name => typeof name !== 'string' || !name) ||
           new Set(resultNames).size !== resultNames.length ||
-          Buffer.byteLength(JSON.stringify(resultNames)) > 8192) ||
+          Buffer.byteLength(JSON.stringify(resultNames), 'utf8') > maxRunDefinitionWireBytes) ||
         !instant(lookupExpiresAt) ||
         Date.parse(lookupExpiresAt) <= Date.now()) {
       fail('InvalidClientRequestAdmission');
@@ -2763,7 +2768,7 @@ export function openClientRequestJournal(directory, {
           runAdmissionEvidence: existingEvidence,
           ...(runDefinitionWire === undefined ? {} :
             {runDefinitionWire: existing.run_definition_wire}),
-          resultNames: retainedResultNames(existing)});
+          resultNames: retainedResultNames(existing, maxRunDefinitionWireBytes)});
       }
       const epochValidity = checkSubmissionBinding(fields, submission, control, true);
       if (epochValidity !== 'admissible') {

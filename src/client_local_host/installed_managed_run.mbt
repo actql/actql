@@ -21,7 +21,7 @@ priv enum ClientInstalledManagedRunOriginal {
 ///|
 struct ClientInstalledManagedRun {
   mut original : ClientInstalledManagedRun?
-  preparation : ClientInstalledManagedRunOriginal
+  mut preparation : ClientInstalledManagedRunOriginal?
   request : @publication_host.ClientRequestIdentity
   mut ledger : @resources.Ledger?
   reads : Array[ClientInstalledSourceRead?]
@@ -149,7 +149,7 @@ fn source_free_installed_managed_preparation_owned(
     return None
   }
   let task_count = @strategy.graph_task_count(graph)
-  if task_count < 1 || task_count > 32 {
+  if task_count < 1 {
     return None
   }
   guard prepare_client_local_sequences_owned(
@@ -486,11 +486,12 @@ fn new_installed_managed_run(
 ///|
 fn installed_managed_run_owner(
   value : ClientInstalledManagedRun,
-) -> ClientLocalSequenceOwner {
+) -> Result[ClientLocalSequenceOwner, ClientInstalledManagedRunIssue] {
   match value.preparation {
-    PureManaged(_, prepared) => Pure(prepared)
-    EffectManaged(_, prepared) => Effect(prepared)
-    ContentManaged(_, prepared) => Pure(prepared)
+    Some(PureManaged(_, prepared)) => Ok(Pure(prepared))
+    Some(EffectManaged(_, prepared)) => Ok(Effect(prepared))
+    Some(ContentManaged(_, prepared)) => Ok(Pure(prepared))
+    None => Err(Retired)
   }
 }
 
@@ -515,7 +516,7 @@ fn new_installed_managed_run_owned(
 ) -> ClientInstalledManagedRun {
   let value : ClientInstalledManagedRun = {
     original: None,
-    preparation,
+    preparation: Some(preparation),
     request,
     ledger: Some(ledger),
     reads: Array::make(
@@ -546,7 +547,8 @@ fn require_installed_managed_run(
     return Err(ForeignOriginal)
   }
   guard value.ledger is Some(ledger) else { return Err(Retired) }
-  let checked = match value.preparation {
+  guard value.preparation is Some(preparation) else { return Err(Retired) }
+  let checked = match preparation {
     PureManaged(admission, prepared) =>
       check_installed_managed_run_admission(admission, prepared, ledger)
     EffectManaged(admission, prepared) =>
@@ -634,7 +636,8 @@ pub fn check_installed_managed_run(
   prepared : @publication_host.PreparedClientProgram,
   request : @publication_host.ClientRequestIdentity,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
-  let selected = match value.preparation {
+  guard value.preparation is Some(preparation) else { return Err(Retired) }
+  let selected = match preparation {
     PureManaged(_, prepared) => Some(prepared)
     ContentManaged(_, prepared) => Some(prepared)
     EffectManaged(_, _) => None
@@ -664,12 +667,16 @@ pub fn begin_installed_managed_run_source_read(
   if value.reads[occurrence] is Some(_) {
     return Err(AlreadyBound)
   }
+  let owner = match installed_managed_run_owner(value) {
+    Err(issue) => return Err(issue)
+    Ok(owner) => owner
+  }
   let read : ClientInstalledSourceRead = {
     original: None,
     child: None,
     managed_run: Some((value, occurrence)),
     ledger: Some(ledger),
-    owner: Some(installed_managed_run_owner(value)),
+    owner: Some(owner),
     declaration: None,
     requirement: None,
     acquisition: None,
@@ -721,7 +728,10 @@ fn prepare_installed_managed_run_ledger_owned(
     Err(issue) => return Err(issue)
     Ok(ledger) => ledger
   }
-  let owner = installed_managed_run_owner(value)
+  let owner = match installed_managed_run_owner(value) {
+    Err(issue) => return Err(issue)
+    Ok(owner) => owner
+  }
   if capacities.length() != value.reads.length() ||
     transport_bytes.length() != capacities.length() ||
     transport_execution_bytes.length() != capacities.length() {
@@ -905,7 +915,8 @@ pub fn retire_installed_managed_run(
   // Use the original admission's complete cleanup path too. It retains an
   // early read bootstrap when later Scope construction did not return a view;
   // successful child cleanup cannot strand that same initialization token.
-  let cleaned = match value.preparation {
+  guard value.preparation is Some(preparation) else { return Err(Retired) }
+  let cleaned = match preparation {
     PureManaged(admission, _) =>
       @resources.cleanup_node_managed_run_admission(admission)
     EffectManaged(admission, _) =>
@@ -918,9 +929,49 @@ pub fn retire_installed_managed_run(
     Ok(_) => ()
   }
   value.ledger = None
+  // The original cleanup proved every borrower stopped. Retained Run handles
+  // keep identity and terminal state, not the heavy immutable preparation.
+  value.preparation = None
   value.reads.clear()
   value.keyed_reads.clear()
   value.keyed = None
   value.source_free_preparation = None
   Ok(())
+}
+
+///|
+/// Project publication facts from the same nominal preparation already used by
+/// quote and execution. A same-shaped but foreign checked Program is not its
+/// owner, and cannot borrow its closed-row or schema proofs.
+pub fn prepared_installed_managed_publication_limits(
+  value : ClientInstalledManagedSourceFreePreparation,
+  prepared : @publication_host.PreparedClientProgram,
+  max_payload_bytes : Int,
+) -> @publication_host.PublicationOutputExportLimits? {
+  guard value.owner is Pure(original) && physical_equal(original, prepared) else {
+    return None
+  }
+  client_node_values_publication_limits_with_plan(
+    prepared,
+    max_payload_bytes,
+    Some(value.capacity_plan),
+  )
+}
+
+///|
+/// Borrow the publication projection through the live installed owner. The
+/// staging preparation may already have moved into this owner; never recreate
+/// it or introduce a second strong cache merely to read its checked facts.
+pub fn installed_managed_publication_limits(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  max_payload_bytes : Int,
+) -> @publication_host.PublicationOutputExportLimits? {
+  guard require_installed_managed_run(value) is Ok(_) &&
+    value.source_free_preparation is Some(original) else {
+    return None
+  }
+  prepared_installed_managed_publication_limits(
+    original, prepared, max_payload_bytes,
+  )
 }

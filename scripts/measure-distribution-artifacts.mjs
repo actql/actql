@@ -6,11 +6,36 @@ import {createHash} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, readdir, stat, writeFile} from
   'node:fs/promises';
 import {arch, platform, release} from 'node:os';
-import {join} from 'node:path';
+import {basename, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {performance} from 'node:perf_hooks';
 import {gzipSync} from 'node:zlib';
 
+// Shared normal-prepack adapter. npm owns package versions and filenames.
+export async function packDistributionPackages({repository, destination, run}) {
+  const packages = [];
+  for (const name of ['client-wire', 'sdk', 'node', 'run-host-core', 'local-node']) {
+    const result = await run('npm', ['pack', '--pack-destination', destination, '--json'],
+      join(repository, 'packages', name));
+    const text = result.stdout.trim();
+    let metadata;
+    for (let offset = text.indexOf('['); offset >= 0; offset = text.indexOf('[', offset + 1)) {
+      try { const value = JSON.parse(text.slice(offset));
+        if (Array.isArray(value) && value.length === 1) {metadata = value[0]; break;}
+      } catch { /* npm lifecycle output can precede the final JSON value. */ }
+    }
+    assert.equal(metadata?.name, `@actql/${name}`, 'npm pack name differs');
+    assert.equal(basename(metadata.filename), metadata.filename);
+    assert(metadata.filename.endsWith('.tgz') && typeof metadata.version === 'string');
+    const path = join(destination, metadata.filename), bytes = await readFile(path);
+    assert.equal(bytes.length, metadata.size);
+    packages.push({name: metadata.name, version: metadata.version, file: metadata.filename,
+      path, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex')});
+  }
+  return packages;
+}
+
+export async function measureDistributionArtifacts() {
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
 const repetitions = 5;
@@ -59,14 +84,8 @@ function measure(command, args, cwd) {
 }
 
 const tarballs = {};
-for (const name of ['client-wire', 'sdk', 'node', 'run-host-core',
-  'local-node']) {
-  run('npm', ['pack', '--pack-destination', root, '--json'],
-    join(repository, 'packages', name));
-  const path = join(root, `actql-${name}-0.0.0-development.tgz`);
-  const bytes = await readFile(path);
-  tarballs[name] = {path, bytes: bytes.byteLength,
-    sha256: createHash('sha256').update(bytes).digest('hex')};
+for (const pkg of await packDistributionPackages({repository, destination: root, run})) {
+  tarballs[pkg.name.slice('@actql/'.length)] = pkg;
 }
 const profiles = {};
 
@@ -126,7 +145,7 @@ const client = await connect({mode: 'remote',
   endpoint: 'https://measure.invalid/', token: 'fixture-token'});
 assert.equal(client.profile.mode, 'remote');
 assert.equal(calls, 1);
-client.close();
+await client.close();
 `;
 for (const name of ['sdk', 'node']) {
   const installation = join(root, `install-${name}`);
@@ -160,7 +179,7 @@ await writeFile(join(localInstallation, 'values.json'),
 await writeFile(join(localInstallation, 'local-probe.mjs'), `
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {join} from 'node:path';
+import {basename, join, resolve} from 'node:path';
 import {performance} from 'node:perf_hooks';
 process.env.ACTQL_LOCAL_STATE_DIR = join(process.cwd(),
   process.argv[2] === 'connect' ? 'local-connect-state' : 'local-run-state');
@@ -186,7 +205,7 @@ if (process.argv[2] === 'run') {
     else followingRunMs = elapsed;
   }
 }
-client.close();
+await client.close();
 console.log(JSON.stringify({import_ms: imported - started,
   first_local_connect_ms: connected - imported,
   first_run_to_result_ms: firstRunMs,
@@ -262,3 +281,8 @@ const report = {
 const output = join(build, 'distribution-artifacts-measurement.json');
 await writeFile(output, `${JSON.stringify(report, null, 2)}\n`);
 console.log(output);
+
+}
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  await measureDistributionArtifacts();
+}

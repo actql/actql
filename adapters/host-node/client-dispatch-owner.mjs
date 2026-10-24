@@ -110,7 +110,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
   ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
   faultInjection, runInfer, runContent, computeConfigurations = {},
-  observation,
+  observation, preparationCustody,
   managedComputeRequired = false,
   retainedRelationOutput = false,
   runPublished = runPublishedCapturedStrategy}) {
@@ -293,6 +293,16 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         !entry.releasePending &&
         (!entry.physicalStarted || entry.stopObserved ||
           !entry.physicalWorkMayHaveStarted)) {
+      try {
+        entry.retirePreparation?.();
+      } catch (failure) {
+        // Keep the original retirement capability and identity for drain.
+        // A settled operation alone does not release preparation custody.
+        entry.preparationRetirementFailure = failure;
+        return;
+      }
+      entry.retirePreparation = undefined;
+      entry.preparationRetirementFailure = undefined;
       entries.delete(keyOf(entry.ref));
     }
   }
@@ -420,7 +430,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   }
 
   const start = (submission, requested, accepted, held, finished, gate) => {
-    const {preparedProgram, principalId: actual, connection} = submission;
+    const {principalId: actual, connection} = submission;
     const unstarted = accepted.dispatchReserved !== true ||
       accepted.physicalStartReserved === false &&
       !accepted.preDispatchFailureConfirmed;
@@ -432,6 +442,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     if (gate === undefined && checkpoints?.heldOrigin(submission.requestId)) {
       return Promise.resolve('not_started');
     }
+    let preparationLease = preparationCustody?.begin(submission);
+    let preparedProgram = preparationLease === undefined
+      ? submission.preparedProgram : preparationLease.preparedProgram;
     let reached;
     const physical = new Promise(resolve => { reached = resolve; });
     const entry = {ref: accepted.ref, requestId: submission.requestId,
@@ -444,6 +457,20 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       finishPending: false, releasePending: checkpoints !== undefined,
       cleanupOwner: undefined, cleanupHandle: undefined,
       unresolvedCleanup: false, sourceCapture: undefined};
+    if (preparationLease !== undefined) {
+      entry.retirePreparation = () => {
+        // The complete retirement predicate has settled callbacks, physical
+        // custody and acquisition release. No later drain needs these raw
+        // aliases; discard them before the private owner returns its charge.
+        preparedProgram = undefined;
+        if (held !== undefined) held.plan = undefined;
+        submission = requested = accepted = held = finished = gate = undefined;
+        entry.finished = undefined;
+        entry.observeStopped = undefined;
+        preparationLease.retire();
+        preparationLease = undefined;
+      };
+    }
     entries.set(keyOf(accepted.ref), entry);
     entry.promise = Promise.resolve().then(async () => {
       const claim = await startRun({identity: requested, namespaceId,
@@ -1170,7 +1197,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           close: entry.closeFailure,
           cleanup: entry.cleanupFailure,
           finish: entry.finishFailure,
-          release: entry.releaseFailure})),
+          release: entry.releaseFailure,
+          preparation: entry.preparationRetirementFailure})),
       });
     }
   };

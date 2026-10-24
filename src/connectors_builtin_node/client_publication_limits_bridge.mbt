@@ -45,3 +45,35 @@ fn client_publication_limit_values(
     limits.max_batch_bytes,
   ]
 }
+
+///|
+#export_name("clientProgramPreparedLocalPublicationLimits")
+pub fn client_program_prepared_local_publication_limits(
+  original : @client_local_host.ClientInstalledManagedSourceFreePreparation,
+  prepared : @publication_host.PreparedClientProgram,
+  max_payload_bytes : Int,
+) -> Array[Int] {
+  guard @client_local_host.prepared_installed_managed_publication_limits(
+      original, prepared, max_payload_bytes,
+    )
+    is Some(limits) else {
+    return []
+  }
+  client_publication_limit_values(limits)
+}
+
+///|
+#export_name("clientProgramInstalledManagedPublicationLimits")
+pub fn client_program_installed_managed_publication_limits(
+  original : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  max_payload_bytes : Int,
+) -> Array[Int] {
+  guard @client_local_host.installed_managed_publication_limits(
+      original, prepared, max_payload_bytes,
+    )
+    is Some(limits) else {
+    return []
+  }
+  client_publication_limit_values(limits)
+}

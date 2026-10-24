@@ -15,9 +15,13 @@ fn client_local_result_envelope(
   max_rows : Int,
 ) -> ClientLocalResultEnvelope? {
   let count = @strategy.graph_result_count(graph)
-  if max_rows < 1 || max_rows > 20000 || count < 1 || count > 1024 {
+  if max_rows < 1 ||
+    max_rows > 20000 ||
+    count < 1 ||
+    count > client_local_schema_proof_work() {
     return None
   }
+  let mut remaining = client_local_schema_proof_work() - count
   let mut mapping_work = 0
   let mut fields = 0
   let mut order_terms = 0
@@ -28,9 +32,10 @@ fn client_local_result_envelope(
     let port = @execution.managed_result_occurrence_port(occurrence)
     let width = @schema.field_count(@results.port_schema(port))
     let terms = @results.port_order_term_count(port)
-    if width < 0 || width > 100 || terms < 0 || terms > 10000 - order_terms {
+    if width < 0 || width > remaining || terms < 0 || terms > remaining - width {
       return None
     }
+    remaining -= width + terms
     let input = @results.port_input(port)
     guard @pipeline.schema_at(
         @pipeline.producer_pipeline(input),
@@ -40,13 +45,15 @@ fn client_local_result_envelope(
       return None
     }
     let columns = @schema.field_count(source_schema)
-    if columns < 0 || columns > 100 {
+    if columns < 0 || columns > remaining {
       return None
     }
+    remaining -= columns
     let projected = @results.port_projection_count(port)
-    if projected < 0 || projected > 100 {
+    if projected < 0 || projected > remaining {
       return None
     }
+    remaining -= projected
     // Each projected field pays the full projection search, one matched
     // reference and at most C source columns. Each order term pays one
     // reference plus C columns. UTF-16 traversal is separately resumable.
@@ -57,7 +64,7 @@ fn client_local_result_envelope(
       return None
     }
     mapping_work = Int::max(mapping_work, mapping.to_int())
-    fields = Int::max(fields, width)
+    fields = Int::max(fields, Int::max(width, columns))
     order_terms += terms
   }
   Some({
@@ -82,9 +89,10 @@ fn client_local_result_scalar_wire_bytes(
   max_rows : Int,
 ) -> Int? {
   let count = @strategy.graph_result_count(graph)
-  if count < 1 || count > 1024 {
+  if count < 1 || count > client_local_schema_proof_work() {
     return None
   }
+  let mut remaining = client_local_schema_proof_work() - count
   let mut fields = 0
   let mut names = 0
   for index in 0..<count {
@@ -94,6 +102,11 @@ fn client_local_result_scalar_wire_bytes(
     let schema = @results.port_schema(
       @execution.managed_result_occurrence_port(occurrence),
     )
+    let width = @schema.field_count(schema)
+    if width > remaining {
+      return None
+    }
+    remaining -= width
     guard client_local_scalar_schema_width(schema) is Some(width) else {
       return None
     }
@@ -101,4 +114,81 @@ fn client_local_result_scalar_wire_bytes(
     names = Int::max(names, @schema.field_reference_name_bytes(schema))
   }
   client_local_scalar_wire_byte_bound(fields, names, max_rows)
+}
+
+///|
+/// Measure the exact checked projected Result schemas with the publication
+/// encoder itself. This is a work-bounded optimization, not a new acceptance
+/// limit: an incomplete proof retains the existing schema allowance. Repeated
+/// immutable schema owners reuse a measurement; distinct owners are measured
+/// independently even when their eventual content identities coincide.
+fn client_local_result_schema_bytes(
+  graph : @strategy.CheckedDAG,
+  limits : @execution.RelationSchemaIdentityLimits,
+  max_work? : Int = client_local_schema_proof_work(),
+) -> Int? {
+  let count = @strategy.graph_result_count(graph)
+  if count < 1 || count > max_work {
+    return None
+  }
+  let mut remaining = max_work - count
+  let seen : Array[@schema.Schema] = []
+  let mut maximum = 0
+  for index in 0..<count {
+    guard @strategy.graph_result_occurrence(graph, index) is Some(occurrence) else {
+      return None
+    }
+    let schema = @results.port_schema(
+      @execution.managed_result_occurrence_port(occurrence),
+    )
+    let mut found = false
+    for previous in seen {
+      if remaining <= 0 {
+        return None
+      }
+      remaining -= 1
+      if physical_equal(previous, schema) {
+        found = true
+        break
+      }
+    }
+    if found {
+      continue
+    }
+    guard @execution.start_relation_schema_identity(schema, limits)
+      is Ok(preparation) else {
+      return None
+    }
+    while true {
+      if remaining <= 0 {
+        @execution.cancel_relation_schema_identity(preparation) |> ignore
+        return None
+      }
+      match
+        @execution.advance_relation_schema_identity(
+          preparation,
+          Int::min(64, remaining),
+        ) {
+        Ok((done, used)) => {
+          remaining -= used
+          if done {
+            break
+          }
+        }
+        Err(_) => {
+          @execution.cancel_relation_schema_identity(preparation) |> ignore
+          return None
+        }
+      }
+    }
+    guard @execution.finish_relation_schema_identity(preparation)
+      is Ok(identity) else {
+      @execution.cancel_relation_schema_identity(preparation) |> ignore
+      return None
+    }
+    let (bytes, _, _) = @execution.relation_schema_usage(identity)
+    maximum = Int::max(maximum, bytes)
+    seen.push(schema)
+  }
+  Some(maximum)
 }

@@ -103,7 +103,7 @@ test "formal join rejects missing capacity and missing full-join identity atomic
         assert_eq(visit, 0)
         assert_eq(step, 0)
       }
-      LocalConstructionFailure::Closure(Joins(MissingEvidence(_))) =>
+      LocalConstructionFailure::Closure(Joins(MissingStableIdentity(_))) =>
         assert_true(full)
       error => raise error
     } noraise {

@@ -169,6 +169,10 @@ pub fn client_local_checkpoint_proof_seal(@run_publication_host.ClientLocalCheck
 
 pub fn client_local_checkpoint_run_lifetime(@run_publication.PublicationContract, String) -> Result[(String, String), @run_publication_host.ClientLocalCheckpointProofIssue]
 
+pub fn client_local_resource_policy_original() -> @client_local_host.ClientLocalResourcePolicy
+
+pub fn client_local_resource_policy_row_ceiling(@client_local_host.ClientLocalResourcePolicy) -> Int
+
 pub fn client_local_signing_bootstrap_issue(String, String, String, Int64, Int64) -> Result[(String, Int64, Int64, Int), @run_publication_host.ClientLocalSigningBootstrapIssueError]
 
 pub fn client_local_signing_bootstrap_original() -> (String, String)
@@ -1413,6 +1417,8 @@ pub fn client_program_installed_managed_keyed_content_run_begin(@physical_resour
 
 pub fn client_program_installed_managed_keyed_source_read(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedRequest, @client_row_source_host.RowDeclaration) -> Result[@client_local_host.ClientInstalledKeyedSourceRead, @client_local_host.ClientInstalledSourceReadIssue]
 
+pub fn client_program_installed_managed_publication_limits(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, Int) -> Array[Int]
+
 pub fn client_program_installed_managed_run_begin(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_run_check(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
@@ -2322,6 +2328,8 @@ pub fn client_program_prepare_source_computation_with_parameters(String, String,
 pub fn client_program_prepare_source_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?) -> ClientProgramBridgeOutcome
 
 pub fn client_program_prepared_installed_managed_source_free_requirements(@client_local_host.ClientInstalledManagedSourceFreePreparation) -> Array[Int64]
+
+pub fn client_program_prepared_local_publication_limits(@client_local_host.ClientInstalledManagedSourceFreePreparation, @run_publication_host.PreparedClientProgram, Int) -> Array[Int]
 
 pub fn client_program_private_continuation_retention_shape(Bytes, String, Int, Int) -> String
 
@@ -3767,6 +3775,12 @@ pub fn strategy_manifest_result_names(@run_publication.PublicationContract, Int,
 
 pub fn strategy_next_result_delivery_row(@run_publication.ResultDeliverySerializer, String) -> String raise NodeHostFailure
 
+pub fn strategy_ordinary_publication_frontier_byte_bounds(@run_publication.PublicationContract, Int, Int, Int, Int) -> Array[Int]
+
+pub fn strategy_ordinary_publication_manifest_byte_bound(@run_publication.PublicationContract, Int, Int, Int) -> Int
+
+pub fn strategy_ordinary_publication_receipt_byte_bound(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int) -> Int
+
 pub fn strategy_prepare_durable_result_row_frames(Int, Int, Int, Int, Int) -> @run_publication.DurableResultRowFrames raise NodeHostFailure
 
 pub fn strategy_prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> @run_publication.ResultDeliverySerializer raise NodeHostFailure
@@ -4580,6 +4594,8 @@ pub fn strategy_remote_transition_projection(@remote_site_protocol.DispatchTrans
 pub fn strategy_result_access_progress_action(@run_publication.ResultAccessProgress) -> Int
 
 pub fn strategy_result_metadata_retention_state(@run_publication.PublicationContract, String) -> String raise NodeHostFailure
+
+pub fn strategy_result_publication_contract_byte_bounds(Array[String], Int, Int, Int, Int) -> Array[Int]
 
 pub fn strategy_result_read_availability(@run_publication.PublicationContract, String, @run_publication.PublicationContract, String) -> String raise NodeHostFailure
 

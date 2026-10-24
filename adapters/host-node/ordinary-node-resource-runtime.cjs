@@ -38,22 +38,34 @@ function ports(original, prepared, purpose) {
       state.portsTaken || state.stopped) return null;
   try {originalRun(original, prepared);} catch {return null;}
   state.portsTaken = true;
+  return retainedPorts(original, state);
+}
+// Keep the admitted preparation out of every retained port closure. The
+// initial ports check has already established its original identity.
+function retainedPorts(original, state) {
+  const releasePreparation = () => {
+    state.prepared = undefined;
+    state.assertCurrent = undefined;
+    state.childrenPending = undefined;
+  };
   const current = () => {
     if (state.stopped || state.retiring) return 1;
-    try {originalRun(original, prepared); return 0;} catch {return 1;}
+    if (runs.get(original) !== state) return 1;
+    try {state.assertCurrent(); return 0;} catch {state.retiring = true; return 1;}
   };
   return freeze({
     cancelUnpublished() {
       if (state.unpublished) return 0;
       if (state.stopped || state.usage !== undefined || state.childrenPending()) return -42;
-      state.unpublished = true; state.stopped = true; return 0;
+      state.unpublished = true; state.stopped = true;
+      releasePreparation(); return 0;
     },
     status(operation) {
       if (operation === 2) {
         const usage = state.usage;
         if (!state.admitted || state.stopped || usage === undefined || usage.some(value => value !== 0n) ||
             state.childrenPending()) return -42;
-        state.stopped = true; return 0;
+        state.stopped = true; releasePreparation(); return 0;
       }
       if (operation === 1) return current();
       if (operation !== 0 || state.admitted || current() !== 0) return -42;

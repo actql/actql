@@ -118,21 +118,51 @@ Unsupported proof shapes retain conservative policy, not a new language rule.
 
 ## Installed inventory bounds
 
-The existing installed preparation and Host independently cap a Run at 32 tasks.
-This refactor does not relabel that implementation/profile bound as a language
-restriction. A six-term constant UNION/ORDER graph has 25 tasks, seven terms has
-29, and eight has 33; the last is refused by standard preparation before a plan
-quote. Raising that bound requires its own planning, attempts, holdings and
-scheduler inventory review, not removing an optimization guard.
+Task, Result occurrence and proven field inventories follow the original checked
+graph and its bounded work, not independent structural counts. A planning work
+budget is consumed before constructing inventory entries. Representation overflow
+and exhausted installed resource authority remain meaningful refusals; a task
+count is not itself a language restriction or a new resource grant.
+
+The prepared profile can retain a historical row floor for canonical identity
+compatibility. Closed-row proofs can narrow execution capacity without rewriting
+that profile. Every consumer must distinguish the compatible profile from the
+proved actual envelope; using the profile as a new estimator creates unnecessary
+slack and can diverge from dispatch. Unknown shapes require a named conservative
+adapter, not an inferred cardinality from observed output.
+
+## Preparation and capacity authority
+
+Retained bytes and execution bytes are distinct budget dimensions. Their minimum
+is a conservative compatibility helper, not an additional joint memory pool.
+A capacity plan is neither a debit nor an authorization to replenish either
+budget. Concurrent Runs do not acquire a process-wide memory proof merely by
+having individually valid plans.
+
+Preparation and execution must use the same original request-parent Ledger.
+Before parsing, checking, lowering, lazy sequence construction or serializer
+proof work, the corresponding phase needs a bounded reservation. Constructed
+representations overlap: a shared indexed tree is charged once by nominal owner,
+while each view and newly owned array is accounted separately. Post-construction
+extents can validate or narrow a pre-admitted envelope, not fund it retroactively.
+Lazy replacement includes old/new overlap until original borrowers retire.
+
+Transfer into a Run changes the owner of the same retained obligation; it must
+not release one pool and acquire a fresh independent grant. Scratch release
+requires the original logical owner to end and its borrowers to release;
+physical resources additionally require their original cleanup acknowledgement.
+None of these logical transitions asserts immediate garbage collection or RSS
+reclamation. Unknown outcomes retain their original obligations.
 
 ## Publication boundary
 
 Compute dispatch retains `ClientLocalCapacityPlan`. Ordinary Node publication
-has a separate checked policy projection bound to `PreparedClientProgram` and
-its publication lifetime. Both derive Result facts through
-`client_local_result_envelope`; this is not a claim that they share one object.
-The adapter consumes a named ABI projection rather than recomputing row/field
-formulas. Content serialization has its own explicit workspace capacity; that
+projects its typed policy from that same original capacity plan: the staged
+original before dispatch and the live Run preparation after acquisition. Equal
+Program shape, a repeated CID, or a freshly prepared Run cannot replace this
+owner. The ABI projection is a view of checked facts, not another grant or an
+independent row/field estimator. Legacy callers without an original plan retain
+an explicitly separate compatibility calculator. Content serialization has its own explicit workspace capacity; that
 is not evidence that ordinary Values publication is funded. The ordinary
 publication retention/cleanup owner covers the incremental borrowed-view and
 snapshot metadata through the retained allowance below; Content workspace is
@@ -159,3 +189,28 @@ previous field/workspace/mapping mismatch; proven scalar Result wire uses the
 same byte-bound formula as Local compute. Text and nested publication keep
 conservative wire defaults. The existing Content publication profile remains a
 separate unchanged caller contract.
+
+## Shared publication encoders
+
+Index and progress, Result manifest and receipt envelopes use the same Common
+encoders for issuance and bounded measurement. Known original names, canonical
+contracts and fixed-format timestamps are measured directly. Unknown Result
+bodies contribute their independently checked bounds, including escaped names
+and row-count digits. The progress frontier includes an independently committed
+winner as well as the current attempt's preparing, committing, unknown and
+terminal records; it is not a hard-coded four-record allowance. Capture uses its
+separate conservative envelope until its complete shared layout is available.
+
+A Node preflight snapshot owns its input arrays and data records before quoting.
+It reads dense own data indices and never invokes caller-supplied array methods,
+iterators or property accessors. Later mutations cannot alter the measured
+bindings, Result occurrences, or dependency inventories. This snapshot remains
+subject to the caller's original preparation authority; measuring a wire bound
+is not permission to allocate an unfunded snapshot or serializer workspace.
+
+Store preflight, live reservations and stored-byte accounting are different
+quantities. A confirmed native transaction transfers the same reservation into
+stored ownership synchronously; the intermediate accounting order is not a
+second concurrent grant. Unknown outcomes retain the original reservation and
+recovery duty until that transaction is confirmed. None of these logical byte
+quantities is an operating-system heap or resident-memory measurement.

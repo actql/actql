@@ -352,3 +352,74 @@ test('installed observation follows the actual tracked work after ingress return
     assert.deepEqual(projection.status().loss, {});
   } finally {release(); if (flight) await flight; await owner.drain(); await projection.close();}
 });
+
+test('preparation custody retires only after original dispatch and clears held plan first', async () => {
+  const ref = {runDefinitionCid: 'preparation-custody'};
+  const prepared = {}, held = {plan: {raw: prepared}};
+  let begin = 0, retired = 0, reads = 0, claims = 0;
+  let finish;
+  const barrier = new Promise(resolve => {finish = resolve;});
+  const owner = installNodeClientDispatchOwner({
+    startRun: async () => {claims++; await barrier; return {kind: 'existing'};},
+    preparationCustody: {begin(submission) {
+      begin++; assert.equal(submission.preparedProgram, prepared);
+      return {get preparedProgram() {reads++; return prepared;}, retire() {
+        assert.equal(held.plan, undefined); retired++;
+      }};
+    }},
+  });
+  const submission = {preparedProgram: prepared, requestId: 'custody-request'};
+  const accepted = {ref, dispatchReserved: false};
+  const started = owner.start(submission, {}, accepted, held);
+  assert.equal(await owner.start(submission, {}, accepted, held), 'not_started');
+  assert.equal(begin, 1); assert.equal(retired, 0);
+  finish(); await started; await owner.drain();
+  assert.equal(claims, 1); assert.equal(reads, 1); assert.equal(retired, 1);
+  await owner.drain(); assert.equal(retired, 1);
+});
+
+test('preparation retirement failure retains original owner for drain without dispatch retry', async () => {
+  const ref = {runDefinitionCid: 'preparation-retirement-retry'};
+  let attempts = 0, begins = 0, claims = 0;
+  const held = {plan: {}};
+  const owner = installNodeClientDispatchOwner({
+    startRun: async () => {claims++; return {kind: 'existing'};},
+    preparationCustody: {begin() {begins++; return {preparedProgram: {}, retire() {
+      assert.equal(held.plan, undefined);
+      if (++attempts < 3) throw new Error('RetirementPending');
+    }};}},
+  });
+  await owner.start({requestId: 'retry'}, {}, {ref, dispatchReserved: false}, held);
+  assert.equal(attempts, 1);
+  await assert.rejects(owner.drain(), {code: 'ClientDispatchCleanupPending'});
+  await owner.drain();
+  assert.equal(attempts, 3); assert.equal(begins, 1); assert.equal(claims, 1);
+  assert.equal(owner.operation(ref), undefined);
+});
+
+test('preparation custody remains borrowed while original cleanup is pending', async () => {
+  const {installLocalPreparationRegistry} = await import('./local-preparation-registry.mjs');
+  const registry = installLocalPreparationRegistry(() => true);
+  const prepared = {}, handle = registry.adopt(prepared);
+  const submission = Object.freeze(registry.attach({requestId: 'pending-custody'}, handle));
+  const candidate = Object.freeze(registry.attach({}, handle));
+  let pending = true, claims = 0;
+  const cleanupHandle = {status: () => ({pending}), retry: async () => {}};
+  const owner = installNodeClientDispatchOwner({
+    preparationCustody: registry,
+    startRun: async () => {
+      claims++;
+      throw Object.assign(new Error('OriginalCleanupPending'), {cleanupPending: true, cleanupHandle});
+    },
+  });
+  const ref = {runDefinitionCid: 'pending-custody'};
+  await owner.start(submission, {}, {ref, dispatchReserved: false}, {});
+  await assert.rejects(owner.drain(), {code: 'ClientDispatchCleanupPending'});
+  assert.equal(candidate.preparedProgram, prepared);
+  assert.notEqual(owner.operation(ref), undefined);
+  pending = false;
+  await owner.drain();
+  assert.equal(claims, 1);
+  assert.equal(owner.operation(ref), undefined);
+  assert.throws(() => candidate.preparedProgram, /BorrowReleased|Retired/);
+});

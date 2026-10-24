@@ -1,3 +1,4 @@
+import {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
 import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
 // Private selected-namespace DATA reader. Exporting this pure operation does
 // not expose the startup issuer or authenticate a caller-created packet.
@@ -11,7 +12,7 @@ import {configureInferEvidence} from './infer-evaluation-evidence.mjs';
 // Host in process; the journal and publication Store own durable physical I/O.
 import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
 import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy,
-  selectInstalledHostEnvironment, localFilesLookupExecutionPolicy} from './installed-host-policy.mjs';
+  selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment, localFilesLookupExecutionPolicy} from './installed-host-policy.mjs';
 import {createHash, createPublicKey, randomBytes, randomUUID} from 'node:crypto';
 import {mkdir, readFile, stat} from 'node:fs/promises';
 import {homedir, userInfo} from 'node:os';
@@ -971,7 +972,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     'spec/local-check-environment.json'), 'utf8') : preparation.readEnvironmentSource();
   const selectedLookupPolicy = hostLookupExecutionPolicy ??
     preparation?.localFilesLookupExecutionPolicy?.(moon);
-  const baseEnvironmentWire = selectInstalledHostEnvironment(moon, environmentSource.trimEnd(), hostCapacityPolicy,
+  const baseEnvironmentWire = selectInstalledLocalMaterializationEnvironment(moon, environmentSource.trimEnd(), hostCapacityPolicy,
     selectedLookupPolicy);
   // Both adapters restore published declarations without provider I/O. The
   // combined environment is admitted before either can dispatch work.
@@ -1790,6 +1791,19 @@ async function openInstalledHost(originalInstallation, preparation) {
       control.admitStoredClientInferRunOriginal(original, definition, request, evidence,
         [false, true, true, true, true, calendarArtifact !== undefined, false], localContractLimits),
     allowEffects: effectInstallation !== undefined});
+  // Only the source-free, model-free pure route has complete dispatch custody.
+  // Other execution kinds retain their existing preparation ownership.
+  const localPreparationCustody = installLocalPreparationRegistry(prepared => {
+    if (preparation?.canRetireManagedPreparation?.() !== true) return false;
+    if (prepareSubmit.kindOf(prepared) !== 'effect_free' ||
+        moon.clientProgramAcquisitionCount(prepared) !== 0 ||
+        moon.clientProgramSerializationOccurrences(prepared).length !== 0) return false;
+    const inventory = moon.clientProgramComposedInferOccurrences(prepared);
+    return runtimeIsOk(inventory) && runtimeField(inventory, 0).length === 0;
+  }, prepared => {
+    preparation?.retireManagedComputeRun(prepared);
+    prepareSubmit.retireOriginal(prepared);
+  });
   clientProgramPreparationReferences = Object.freeze({owner: prepareSubmit,
     retire: prepareSubmit.retireReferences});
   const prepareCapturedSubmission = async (submission, ref) => {
@@ -2693,6 +2707,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       return restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity});
     }
     const common = {moon, control, preparedProgram,
+      publicationOriginal: preparation?.managedComputePublicationOriginal?.(moon, preparedProgram),
       authorityScopeCid, namespaceId, requestId, storeAuthorityCid, now,
       ...(requestIdentity === undefined ? {} : {requestIdentity}),
       ...(retainedDefinitionWire === undefined ? {} :
@@ -2857,6 +2872,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     faultInjection: authorization?.faultInjection,
     fragment, ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
     runInfer, runContent, retainedRelationOutput, observation,
+    preparationCustody: localPreparationCustody,
     managedComputeRequired: originalRequestPreparation !== undefined,
     computeConfigurations: {local:localSnapshotConfiguration}});
   const startDispatch = dispatchOwner.start;
@@ -3524,7 +3540,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       ...(captured.updateTargetPreparedOriginal === undefined ? {} :
         {updateTargetPreparedOriginal: captured.updateTargetPreparedOriginal}),
       ...(captured.submission === undefined ? {} : {submission: captured.submission})};
-    submission.preparedProgram = await prepareCapturedSubmission(submission);
+    localPreparationCustody.attach(submission,
+      localPreparationCustody.adopt(await prepareCapturedSubmission(submission), submission));
     const {requested, resultNames, acquired, acquisitionCount, keyedAcquisition, effectful} = requestOf(submission);
     const preparedSources = acquisitionCount === 2
       ? await prepareAcquisitions(submission.preparedProgram) : undefined;
@@ -3841,6 +3858,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     authorizedScope: value => hostConnection(value) ? authorizedScope(value) : undefined,
     prepareSubmit, submit, lookupRequest: lookupHeld, checkSubmissionInput: check,
     bindOwnedRequest,
+    preparationCustody: localPreparationCustody,
     admitPreparedSubmission});
   const checkpointOperations = checkpoints === undefined ? {} : {
     checkpoints: value => checkpoints.listCheckpoints({principalId: value.principalId,
@@ -5260,7 +5278,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
         return run.value;
       }
-      run = {runtime, prepared, request, original: undefined, admission: undefined,
+      run = {runtime, prepared, request, manager, original: undefined, admission: undefined,
         value: undefined, failure: undefined, closed: false};
       if (runs.size === 4096) throw clientOperationError('InstalledComputeRunLimit');
       runs.set(prepared, run);
@@ -5286,6 +5304,24 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         return run.value;
       } catch (error) {run.failure = error; throw error;}
     },
+    canRetireManagedPreparation() {
+      return typeof (computeManaged ?? sourceManaged)?.retireRun === 'function';
+    },
+    retireManagedComputeRun(prepared) {
+      const run = record.computeRuns?.get(prepared);
+      if (run === undefined) return;
+      if (run.prepared !== prepared || run.runtime !== moon) {
+        throw clientOperationError('ForeignInstalledComputeRun');
+      }
+      // This private operation is called by the complete dispatch retirement
+      // predicate, not by a terminal result projection or handler completion.
+      if (run.value !== undefined) checked(Reflect.apply(run.retire, run.runtime, [run.value]));
+      else if (run.admission !== undefined) checked(Reflect.apply(run.cleanup, run.runtime, [run.admission]));
+      if (run.original !== undefined) run.manager.retireRun(prepared, run.original);
+      run.closed = true;
+      record.computeRuns.delete(prepared);
+      for (const key of Object.keys(run)) run[key] = undefined;
+    },
     isOriginalManagedComputePreparationRefusal(error, prepared, request) {
       const run = record.computeRuns?.get(prepared), original = run?.preAdmissionRefusal;
       if (original === undefined || request === undefined || original.error !== error || run.failure !== error ||
@@ -5299,6 +5335,19 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       else if (sourceManaged !== undefined) assertSourceManagedInstallationCurrent(sourceManaged, originals);
       else return false;
       return true;
+    },
+    managedComputePublicationOriginal(runtime, prepared) {
+      const run = record.computeRuns?.get(prepared);
+      if (run === undefined) return undefined; // Explicit non-managed compatibility path.
+      if (run.runtime !== runtime || run.prepared !== prepared || run.closed) {
+        throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+      }
+      // Before admission, borrow the staged pure preparation. After begin, its
+      // canonical owner has moved into the live Core Run. Neither path creates
+      // a Run, reruns proof, nor retains a second strong plan cache.
+      if (run.value !== undefined) return Object.freeze({kind: 'installed_run', value: run.value});
+      if (run.preparedSequences !== undefined) return Object.freeze({kind: 'preparation', value: run.preparedSequences});
+      throw clientOperationError('NodeManagedRunRuntimeUnavailable');
     },
     bindManagedComputeRunObservation(prepared, ref) {
       const run = record.computeRuns?.get(prepared);

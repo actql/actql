@@ -1,4 +1,17 @@
 ///|
+/// Original producer re-admission dimensions. This immutable data projection
+/// is not execution authority; a backend must bind it to its sealed policy and
+/// exact live Run before publication borrows it. Final Result encoding and
+/// ordering workspace are deliberately absent from this ingress record.
+pub(all) struct ManagedPublicationBridgeLimits {
+  entries : Int
+  name_bytes : Int
+  max_rows : Int
+  values : ValueLimits
+  row : RetainedRowDecodeLimits
+}
+
+///|
 /// Bounded re-admission of one exact managed Relation generation for formal
 /// publication. The installed representation reader supplies rows while the
 /// common runtime retains the completion, schema, and occurrence authority.

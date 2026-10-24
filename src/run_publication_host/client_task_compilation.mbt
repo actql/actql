@@ -66,7 +66,7 @@ pub fn issue_prepared_client_task_compilation(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue] {
-  let (plan, material, graph) = match
+  let (plan, template, graph) = match
     issue_prepared_client_task_plan_parts(
       value, manifests, sequence_limits, max_facts, max_witnesses, max_wire_bytes,
       max_nodes, max_depth,
@@ -74,17 +74,8 @@ pub fn issue_prepared_client_task_compilation(
     Ok(parts) => parts
     Err(issue) => return Err(Plan(issue))
   }
-  let template = match
-    @publication.admit_run_evidence_value(
-      "bound_invocation_template",
-      material.invocation_template_wire,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(template) => template
-    Err(issue) => return Err(Template(issue))
-  }
+  // The private Plan composition issued this exact template under these
+  // same bounds. Keep its admitted original instead of decoding its wire again.
   finish_client_task_compilation(
     value, plan, template, graph, max_wire_bytes, max_nodes, max_depth,
   )
@@ -103,20 +94,31 @@ fn finish_client_task_compilation(
   infers? : Array[ClientInferPlanGraph] = [],
   serialization? : ClientSerializationPlanGraph? = None,
 ) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue] {
+  // Consume before any fallible work. The completed Plan retains no extra
+  // parsed graph/material tree, including after a refused continuation.
+  let original = plan.plan.read_originals
+  plan.plan.read_originals = None
   // Project only the canonical selection in this exact executable Plan.
   // No caller flag or reconstructed alias inventory can mark a Run.
   let selection_cid = match
     client_task_plan_target_selections_cid(
-      plan, max_wire_bytes, max_nodes, max_depth,
+      plan,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      original~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  guard parse_plan_identity_value(
-      graph.wire,
+  guard client_task_compilation_graph_original(
+      value,
+      plan,
+      graph,
       max_wire_bytes,
       max_nodes,
       max_depth,
+      original~,
     )
     is Some(graph_value) else {
     return Err(Encoding)
@@ -270,16 +272,27 @@ fn client_task_plan_target_selections_cid(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  original? : ClientExecutablePlanReadOriginals? = None,
 ) -> Result[String?, ClientTaskCompilationIssue] {
-  guard parse_plan_identity_value(
-      client_task_executable_plan_wire(plan),
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    )
-    is Some(body) &&
-    @canonical.object_field(body, "execution_material") is Some(material) else {
-    return Err(Encoding)
+  let material = if original is Some(original) &&
+    plan.plan.wire == original.plan_wire &&
+    client_executable_plan_original_limits_fit(
+      original, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    original.material
+  } else {
+    // Tighter callers retain the complete original wire admission and order.
+    guard parse_plan_identity_value(
+        client_task_executable_plan_wire(plan),
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      )
+      is Some(body) &&
+      @canonical.object_field(body, "execution_material") is Some(material) else {
+      return Err(Encoding)
+    }
+    material
   }
   match @canonical.object_field(material, "effect_target_selections") {
     None => Ok(None)
@@ -321,4 +334,27 @@ pub fn client_task_compilation_serialization(
   value : ClientTaskCompilation,
 ) -> ClientSerializationPlanGraph? {
   value.serialization
+}
+
+///|
+fn client_task_compilation_graph_original(
+  owner : PreparedClientProgram,
+  plan : ClientTaskExecutablePlan,
+  graph : ClientTaskPlanGraph,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  original? : ClientExecutablePlanReadOriginals? = None,
+) -> @canonical.CanonicalValue? {
+  if original is Some(original) &&
+    physical_equal(owner, original.owner) &&
+    plan.plan.wire == original.plan_wire &&
+    graph.wire == original.graph_wire &&
+    client_executable_plan_original_limits_fit(
+      original, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Some(original.graph)
+  } else {
+    parse_plan_identity_value(graph.wire, max_wire_bytes, max_nodes, max_depth)
+  }
 }

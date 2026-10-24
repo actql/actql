@@ -88,7 +88,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         request === null || typeof request !== 'object') preparationChanged();
     for (const original of entry.handling.values()) {
       if (original !== undefined && (original.request === request ||
-          original.aliases.includes(request))) return original.request;
+          original.aliases.has(request))) return original.request;
     }
     preparationChanged();
   }
@@ -160,16 +160,20 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     for (const original of entry.handling.values()) {
       if (original === undefined) continue;
       if (original.request === originalRequest) selected = original;
-      else if (original.request === derived || original.aliases.includes(derived)) preparationChanged();
+      else if (original.request === derived || original.aliases.has(derived)) preparationChanged();
     }
-    if (derived === originalRequest || selected.aliases.includes(derived)) return;
+    if (derived === originalRequest || selected.aliases.has(derived)) return;
+    // Alias identity is weak: the active operation/dispatch owns its payload.
+    // Keeping an authorization lookup alive must not root a retired compiler
+    // body. Identity membership, original request and count guard are unchanged.
     // Selected private operational retention only. This does not change the
     // public packet grammar, issue capacity or prove any clone's backing.
-    if (selected.aliases.length === 16) {
+    if (selected.aliasCount === 16) {
       throw Object.assign(new Error('SourceManagedPreparationUnavailable'),
         {code: 'SourceManagedPreparationUnavailable'});
     }
-    selected.aliases.push(derived);
+    selected.aliases.add(derived);
+    selected.aliasCount++;
   },
   retirePreparation(host, installation, generation) {
     const entry = preparationFor(host, installation, generation);
@@ -436,7 +440,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         // Same pending operation, not a second request index or cache. The
         // supplier may retain an admitted original after this Promise retires;
         // deleting this association is neither a holding nor physical ACK.
-        opened.handling.set(pending, {request, aliases: []});
+        opened.handling.set(pending, {request, aliases: new WeakSet(), aliasCount: 0});
         pending.finally(() => {
           handling.delete(pending);
           opened.handling.delete(pending);

@@ -82,19 +82,19 @@ test "capacity plan quote funds metadata and narrows only scalar wire" {
       client_local_capacity_plan_matches(plan, sequences, max_rows + 1),
     )
     assert_false(client_local_capacity_plan_matches(plan, [], max_rows))
-    assert_eq(plan.imports.wire.max_nodes, values.max_nodes + 3)
-    assert_eq(plan.exports.wire.max_nodes, values.max_nodes + 3)
+    assert_eq(plan.imports.wire.max_nodes, plan.values.max_nodes + 3)
+    assert_eq(plan.exports.wire.max_nodes, plan.values.max_nodes + 3)
     assert_eq(plan.metadata.schema.max_nodes, 100000)
     assert_eq(plan.metadata.schema.max_bytes,1000000)
-    assert_eq(plan.metadata.schema.max_fields,100)
+    assert_eq(plan.metadata.schema.max_fields,plan.schema_inventory.unwrap().fields)
     assert_eq(plan.metadata.bridge_entries, 100000)
     assert_eq(plan.metadata.completion_entries, 100000)
     assert_eq(
       plan.values.max_text_bytes,
-      client_local_scalar_name_bytes(sequences, max_rows).unwrap(),
+      client_local_scalar_name_bytes(sequences, plan.execution.rows.max_rows).unwrap(),
     )
     assert_eq(plan.measurement.max_bytes, 500000)
-    assert_eq(plan.imports.wire.max_bytes,client_local_scalar_wire_bytes(sequences,max_rows).unwrap())
+    assert_eq(plan.imports.wire.max_bytes,client_local_scalar_wire_bytes(sequences,plan.execution.rows.max_rows).unwrap())
     assert_eq(plan.metadata.name_bytes,1000000)
     assert_true(plan.metadata_retained_bytes > 0L)
     assert_eq(plan.metadata.retained_bytes, plan.metadata_retained_bytes)
@@ -105,7 +105,7 @@ test "capacity plan quote funds metadata and narrows only scalar wire" {
         @execution.managed_result_occurrence_port(occurrence),
       )
     }
-    assert_eq(plan.metadata.result_workspace_entries, 2 * max_rows + terms)
+    assert_eq(plan.metadata.result_workspace_entries, 2 * plan.execution.rows.max_rows + terms)
     let mut f = 0
     let mut n = 0
     let mut p = 0
@@ -132,12 +132,12 @@ test "capacity plan quote funds metadata and narrows only scalar wire" {
     let i = @strategy.graph_result_count(graph)+1
     let bridge=p*(3*f+2*b+8)
     let completion=4*p+2*b+64*i+16
-    let exported=24*f+2*max_rows+terms+64
+    let exported=24*f+2*plan.execution.rows.max_rows+terms+64
     let dispatch=8*p+8*i+64
     let schema_bytes=6*n+96*f+2
     let expected_metadata=(bridge+completion+exported+dispatch).to_int64()*256L+schema_bytes.to_int64()*8L
     assert_eq(plan.metadata_retained_bytes,expected_metadata)
-    println("METADATA_PROOF name=\{name} F=\{f} N=\{n} P=\{p} B=\{b} I=\{i} R=\{max_rows} O=\{terms} bridge=\{bridge} completion=\{completion} export=\{exported} dispatch=\{dispatch} schema_bytes=\{schema_bytes}")
+    println("METADATA_PROOF name=\{name} F=\{f} N=\{n} P=\{p} B=\{b} I=\{i} R=\{plan.execution.rows.max_rows} O=\{terms} bridge=\{bridge} completion=\{completion} export=\{exported} dispatch=\{dispatch} schema_bytes=\{schema_bytes}")
 
     let mut provider = 0L
     for sequence in sequences {
@@ -169,7 +169,7 @@ test "capacity plan quote funds metadata and narrows only scalar wire" {
       is Some(_)
     assert_eq(accepted, retained <= 536870912L)
     println(
-      "CAPACITY_PLAN_QUOTE name=\{name} rows=\{max_rows} nodes=\{nodes} tasks=\{tasks} ports=\{ports} provider=\{provider} import=\{import_bytes} export=\{export_bytes} metadata=\{plan.metadata_retained_bytes} retained=\{retained} accepted=\{accepted}",
+      "CAPACITY_PLAN_QUOTE name=\{name} rows=\{plan.execution.rows.max_rows} nodes=\{plan.values.max_nodes} tasks=\{tasks} ports=\{ports} provider=\{provider} import=\{import_bytes} export=\{export_bytes} metadata=\{plan.metadata_retained_bytes} retained=\{retained} accepted=\{accepted}",
     )
   }
 }
@@ -182,30 +182,48 @@ test "scalar wire capacity byte proof bounds empty rows and checked arithmetic" 
   assert_eq(client_local_scalar_wire_byte_bound(-1,0,1),None)
   assert_eq(client_local_scalar_wire_byte_bound(1,-1,1),None)
   assert_eq(client_local_scalar_wire_byte_bound(1,1,-1),None)
-  assert_eq(client_local_scalar_wire_byte_bound(101,1,1),None)
+  assert_eq(client_local_scalar_wire_byte_bound(101,1,1),Some(2968))
   assert_eq(client_local_scalar_wire_bytes([],100),None)
 }
 
 ///|
-test "capacity plan reports the existing task inventory boundary independently of rows" {
+test "capacity plan derives task inventory from charged graph work beyond thirty two" {
   let assets = @publication_host.client_local_product_assets()
   let evidence="sha256:2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f"
   let environment=@publication_host.admit_client_check_environment(assets.environment,evidence,{text_time:true,veca:false},{rela:true,sga:false,tea:false,calendar:false,text_rank:false}).unwrap()
-  for terms in [6,7,8] {
+  for terms in [6,7,8,9,10] {
     let parts=[]
     for index in 1..<(terms+1) { parts.push("SELECT "+index.to_string()+" AS x") }
     let query="SELECT x FROM ("+parts.join(" UNION ALL ")+") ORDER BY x"
     let lowered=@frontend.lower(query,@frontend.Sql,Some(@frontend.bind_query_context([],evidence).unwrap()),public_primary=true).unwrap()
     let limits=@publication_host.client_standard_program_preparation_limits()
     let ordinary=@publication_host.prepare_effect_free_client_program(lowered.document,lowered.format,environment,None,limits)
-    assert_eq(ordinary is Ok(_),terms<8)
-    // Test-only diagnostic compilation exposes the checked count beyond the
-    // unchanged installed task ceiling; it does not change runtime admission.
-    let prepared=@publication_host.prepare_effect_free_client_program(lowered.document,lowered.format,environment,None,{..limits,max_tasks:64}).unwrap()
+    assert_true(ordinary is Ok(_))
+    let prepared=ordinary.unwrap()
+    assert_eq(@publication_host.prepared_client_values_max_rows(prepared),100)
     let tasks=@strategy.graph_task_count(@publication_host.prepared_client_graph(prepared))
+    let sequences=prepare_client_local_sequences_owned(Pure(prepared),assets.registry,assets.values,Some(assets.fragment),assets.ordered).unwrap()
+    let inventory=client_local_schema_proof_inventory(sequences,graph=Some(@publication_host.prepared_client_graph(prepared))).unwrap()
+    assert_eq(inventory.original_count,tasks)
+    assert_eq(inventory.closed_rows,Some(terms))
+    let plan=client_local_capacity_plan(sequences,100,scalar_values=true,graph=Some(@publication_host.prepared_client_graph(prepared)))
+    assert_eq(plan.admitted_rows,100)
+    assert_eq(plan.execution.rows.max_rows,terms)
+    assert_true(plan.dispatch_entries>=2)
+    assert_true(plan.dispatch_name_bytes>=inventory.names)
+    let wider={..inventory,fields:101,names:303}
+    assert_eq(client_local_dispatch_bounds(Some(wider),Some(@publication_host.prepared_client_graph(prepared))),(20604,30906))
+    assert_true(client_local_capacity_plan_matches(plan,sequences,100))
+    assert_false(client_local_capacity_plan_matches(plan,sequences,99))
+    assert_true(inventory.owner_count<tasks)
+    assert_true(inventory.work_used>0)
+    assert_true(client_local_schema_proof_inventory(sequences,max_work=inventory.work_used) is Some(_))
+    assert_true(client_local_schema_proof_inventory(sequences,max_work=inventory.work_used-1) is None)
+    println("PROOF_INVENTORY tasks=\{tasks} original_owners=\{inventory.owner_count} work=\{inventory.work_used}")
+
     let admitted=source_free_installed_managed_preparation_owned(Pure(prepared),assets.registry,assets.values,Some(assets.fragment),assets.ordered,false) is Some(_)
     assert_eq(tasks,4*terms+1)
-    assert_eq(admitted,terms<8)
+    assert_true(admitted)
     println("TASK_BOUNDARY terms=\{terms} tasks=\{tasks} admitted=\{admitted}")
   }
 }

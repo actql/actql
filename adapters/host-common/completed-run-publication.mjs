@@ -1531,6 +1531,7 @@ export async function publishCompletedEffectFreeRun(options) {
     publicationEntered = true;
     const publication = await publishEffectFreeRun({
       store,
+      preparedHandles: Object.freeze(exported.flatMap(value => value.physicalPrepared === undefined ? [] : [value.physicalPrepared])),
       control,
       evidence,
       request,

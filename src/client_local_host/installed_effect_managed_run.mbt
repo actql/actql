@@ -170,7 +170,8 @@ pub fn check_installed_effect_managed_run(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
-  guard value.preparation is EffectManaged(_, original) &&
+  guard value.preparation is Some(preparation) else { return Err(Retired) }
+  guard preparation is EffectManaged(_, original) &&
     physical_equal(original, prepared) &&
     value.request == request else {
     return Err(ForeignOriginal)

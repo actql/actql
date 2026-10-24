@@ -319,13 +319,13 @@ fn open_checked_local_host(
     per_pair_ms < 0L {
     return None
   }
-  // The checked graph admits at most 32 tasks. Reserve one physical attempt
+  // The checked graph already consumed its finite preparation work. Reserve one physical attempt
   // and one retained output per task; a fixed ten-attempt cap would reject a
   // valid longer task graph before its final computation can start.
   let task_count = @strategy.graph_task_count(
     @publication_host.prepared_client_graph(prepared),
   )
-  if task_count < 1 || task_count > 32 {
+  if task_count < 1 {
     return None
   }
   if opened_run is Some(run) &&
@@ -686,7 +686,9 @@ fn configure_client_local_run(
   }
   match
     @builtin.open_configured_compute_host(
-      modules, registry, capacity, 100, 10000, 1,
+      modules, registry, capacity,
+      capacity_plan.map(plan=>plan.dispatch_entries).unwrap_or(100),
+      capacity_plan.map(plan=>plan.dispatch_name_bytes).unwrap_or(10000), 1,
     ) {
     Ok(value) => {
       if first_compute == 1 {

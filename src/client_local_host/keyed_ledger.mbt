@@ -85,7 +85,6 @@ fn keyed_captured_local_installed_limits(
   let count = @strategy.graph_task_count(graph)
   if (serialization is Some(_) && infer is Some(_)) ||
     count < (if serialization is Some(_) || infer is Some(_) { 1 } else { 2 }) ||
-    count > 32 ||
     keyed_task <
     (if serialization is Some(_) || infer is Some(_) { 0 } else { 1 }) ||
     keyed_task >= count ||

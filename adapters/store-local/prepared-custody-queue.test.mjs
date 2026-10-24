@@ -25,13 +25,17 @@ const start=source.indexOf('  const beginPreparedCommit =');
 const end=source.indexOf('  const putBytesInternal =',start);
 assert.ok(start>=0&&end>start);
 const bindCommit=compileFunction('let materialRetentionBusy = Promise.resolve();\n'+source.slice(start,end)+'\nreturn beginPreparedCommit;',
-  ['withPreparedCustody','preparedObjects','verifyObject','adoptPreparedObjects','confirmCommittedIndex']);
+  ['withPreparedCustody','preparedObjects','verifyObject','adoptPreparedObjects','confirmCommittedIndex','reclaimCustody','fail','materialHasLiveReference','removeCustodyRecord']);
 test('failed later commit acquisition returns earlier original pins without retiring holders',async()=>{
  const group={committed:false,commitOwners:new Set(),holders:new Set(['original-holder']),custodies:new Set()};
  const groups=new Map([['present',group]]);
  const failure=new Error('MissingLaterMaterial'),seen=[];
  const begin=bindCommit(createPreparedCustodyQueue(),groups,async cid=>{seen.push(cid);throw failure;},
-  ()=>assert.fail('failed acquisition cannot adopt'),()=>assert.fail('failed acquisition cannot install'));
+  ()=>assert.fail('failed acquisition cannot adopt'),()=>assert.fail('failed acquisition cannot install'),
+  ()=>assert.fail('a surviving holder prevents reclamation'),
+  code=>assert.fail(`unexpected Store refusal: ${code}`),
+  ()=>assert.fail('a surviving holder needs no durable-reference lookup'),
+  ()=>assert.fail('a surviving holder prevents custody removal'));
  await assert.rejects(begin(['present','missing'],{},'index'),error=>error===failure);
  assert.deepEqual(seen,['missing']);
  assert.equal(group.commitOwners.size,0);
@@ -57,13 +61,18 @@ for(const refused of [false,true])test(`index install awaits original custody ac
 
 
 test('uncommitted adopted-original pin removes only its exact empty metadata group',async()=>{
- const groups=new Map();
+ const groups=new Map(), references=[];
  const begin=bindCommit(createPreparedCustodyQueue(),groups,async()=>({bytes:30}),
-  ()=>assert.fail('uncommitted attempt cannot adopt'),async()=>undefined);
+  ()=>assert.fail('uncommitted attempt cannot adopt'),async()=>undefined,
+  ()=>assert.fail('an empty temporary pin owns no allocation to reclaim'),
+  code=>assert.fail(`unexpected Store refusal: ${code}`),
+  async cid=>{references.push(cid);return false;},
+  ()=>assert.fail('an empty temporary pin owns no custody record to remove'));
  const custody=await begin(['original'],{},'index');
  const group=groups.get('original');
  assert.equal(group.removable,false);assert.equal(group.custodies.size,0);
  assert.equal(group.commitOwners.size,1);assert.equal(custody.status().pending,true);
  await custody.resolveConfirmed(undefined);
  assert.equal(groups.has('original'),false);assert.equal(custody.status().pending,false);
+ assert.deepEqual(references,['original']);
 });

@@ -9,7 +9,6 @@ fn client_local_text_free_scalar_sequences(
   max_slots? : Int = 10000,
 ) -> Bool {
   if sequences.is_empty() ||
-    sequences.length() > 32 ||
     max_work < 1 ||
     max_slots < 0 {
     return false

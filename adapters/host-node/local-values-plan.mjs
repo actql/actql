@@ -41,9 +41,19 @@ export const localOutputLimits = Object.freeze({
   maxSchemaNodes: 10000, maxSchemaDepth: 64, maxBatchBytes: 65536,
 });
 // Project the common checked policy; no adapter-specific row/field formula.
-export function checkedLocalOutputLimits(moon, preparedProgram) {
-  const values = moon.clientProgramLocalPublicationLimits(preparedProgram,
-    localOutputLimits.maxWireBytes);
+export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal) {
+  let values;
+  if (publicationOriginal === undefined) {
+    values = moon.clientProgramLocalPublicationLimits(preparedProgram, localOutputLimits.maxWireBytes);
+  } else if (publicationOriginal.kind === 'preparation') {
+    values = moon.clientProgramPreparedLocalPublicationLimits(publicationOriginal.value,
+      preparedProgram, localOutputLimits.maxWireBytes);
+  } else if (publicationOriginal.kind === 'installed_run') {
+    values = moon.clientProgramInstalledManagedPublicationLimits(publicationOriginal.value,
+      preparedProgram, localOutputLimits.maxWireBytes);
+  } else {
+    throw new TypeError('InvalidCheckedLocalPublicationOriginal');
+  }
   const names = resultOutputLimitFields;
   if (!Array.isArray(values) || values.length !== names.length ||
       values.some(value => !Number.isSafeInteger(value) || value < 0)) {
@@ -501,7 +511,7 @@ export function acquiredInferEffectPublicationPlan({acquired, sources,
 
 export function sourceFreeValuesPlan({moon, control, preparedProgram,
   authorityScopeCid, namespaceId, storeAuthorityCid, now,
-  retainedDefinitionWire, requestIdentity}) {
+  retainedDefinitionWire, requestIdentity, publicationOriginal}) {
   const at = Date.parse(now());
   if (!Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
   const retained = retainedDefinitionWire === undefined ? undefined :
@@ -536,7 +546,7 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
     // The existing Result owner retains one row index per unsorted row.
     // Consume the common checked Result envelope and publication policy;
     // the adapter does not infer workspace or field bounds from output rows.
-    outputLimits: checkedLocalOutputLimits(moon, preparedProgram),
+    outputLimits: checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal),
   });
   const selectedPlan=Object.keys(queryTime).length===0?plan:Object.freeze({...plan,...queryTime});
   valuesAdmissions.set(selectedPlan, Object.freeze({
@@ -719,7 +729,7 @@ function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializ
 export function sourceFreeTaskPlan(options) {
   const acquired = acquiredTaskRunAdmission(options);
   const {moon, control, preparedProgram, authorityScopeCid, namespaceId,
-    storeAuthorityCid, now} = options;
+    storeAuthorityCid, now, publicationOriginal} = options;
   const dataPolicyCid = policyCid('local-result-data');
   const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
     acquired.compiled, acquired.runDefinition, {dataPolicyCid}, limits);
@@ -731,7 +741,7 @@ export function sourceFreeTaskPlan(options) {
     storeAuthorityCid, dataPolicyCid, createdAt: acquired.createdAt, now,
     resultCount: moon.clientProgramResultCount(preparedProgram),
     compiled: acquired.compiled, preparedProgram,
-    outputLimits: checkedLocalOutputLimits(moon, preparedProgram)});
+    outputLimits: checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)});
   const selectedPlan=acquired.queryTime===undefined?plan:Object.freeze({...plan,
     queryTimePreparation:acquired.queryTimePreparation,queryTime:acquired.queryTime});
   valuesAdmissions.set(selectedPlan, Object.freeze({prepared: acquired.preparedEvidence.wire,

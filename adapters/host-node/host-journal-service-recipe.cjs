@@ -24,14 +24,18 @@ const unavailable = () => {
 // Database/source extent and record limits retain the existing Journal
 // defaults. SQL and operation ceilings bound cumulative construction/history;
 // primary and optional observation connections still have separate lifetimes.
+const journalParameterBytes = MiB;
 const journal = record({maxRecords: 100000, maxInspectionEntries: 100000,
   maxInspectionBytes: 64 * MiB, maxDatabaseBytes: 64 * MiB,
   maxWalFrames: 268435456, maxJournalOperations: 4096,
-  maxRunDefinitionWireBytes: 65536,
+  // Metadata is bounded by the selected native statement operand envelope.
+  // The journal still sums every operand against that envelope before bind;
+  // these per-object checks do not allocate it independently per field.
+  maxRunDefinitionWireBytes: journalParameterBytes,
   primarySqlLimits: record({maxCalls: 4096, maxPreparedStatements: 1024,
     maxSqlBytes: 8192, maxTotalSqlBytes: 32 * MiB}),
   primaryExecutionLimits: record({maxStatementCalls: 65536, maxParameters: 64,
-    maxParameterBytes: MiB, maxResultRows: 100000}),
+    maxParameterBytes: journalParameterBytes, maxResultRows: 100000}),
   primarySchemaLimits: record({maxSchemaBytes: 65536, maxSchemaEntries: 128,
     maxSchemaPages: 256, maxWalFrames: 131072}),
   primarySchemaSqlSupport: sql,

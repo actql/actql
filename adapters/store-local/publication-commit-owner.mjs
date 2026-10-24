@@ -94,8 +94,12 @@ export function createPublicationCommitOwner({entry, admitted, key}, operations)
             primary, custody, reconciliation, operations.makeFailure,
           );
         }
-        await operations.adoptSchemas();
-        await custody.settleAdopted();
+        try {
+          await operations.adoptSchemas();
+          await custody.settleAdopted();
+        } catch (reconciliation) {
+          throw custodyFailure(primary, custody, reconciliation, operations.makeFailure);
+        }
         return Object.freeze({
           entry: existing,
           committed: installed,

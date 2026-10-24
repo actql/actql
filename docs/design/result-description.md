@@ -481,3 +481,21 @@ and draining provisional text fragments. It exposes neither serialized output
 nor a digest. Publication comparison keeps its existing workspace admission,
 incremental emitter quantum and cancellation/cleanup owner. Pair comparisons
 and full identity hashing retain their separate existing sinks.
+
+
+## Compiler reader continuation
+
+Fresh task compilation passes the exact immutable graph and execution-material
+reader inputs through its existing Executable Plan holder. The continuation
+consumes and clears those extra references before fallible work; completed and
+refused compilation do not retain the additional trees. Reuse requires the
+original complete Plan wire and the issuer's byte, node and depth limits; graph
+reuse additionally requires the same prepared owner and exact graph wire. A
+tighter request or different input follows the complete prior reader. The
+selection projection still checks its original nonempty array and hashes its
+complete canonical body. This continuation neither admits external wire nor
+supplies current authority, physical availability, execution or cleanup ACK.
+
+Standalone Plan projections and the Values compilation path discard these
+continuation-only references before returning. They retain the original wire,
+identity and compilation material without keeping unused reader trees alive.

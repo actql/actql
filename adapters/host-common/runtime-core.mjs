@@ -4997,6 +4997,69 @@ function publicationControl(moon) {
         limits.maxDepth,
       )), limits);
     },
+    resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits) {
+      limits = captureContractLimits(limits, 'Result publication capacity');
+      if (!Array.isArray(inputRelationCids) ||
+          !inputRelationCids.every(value => typeof value === 'string' &&
+            /^sha256:[0-9a-f]{64}$/u.test(value)) ||
+          !Number.isSafeInteger(maxSchemaBytes) || maxSchemaBytes < 0) {
+        throw new TypeError('Invalid Result publication capacity');
+      }
+      const values = moon.strategyResultPublicationContractByteBounds(
+        inputRelationCids, maxSchemaBytes, limits.maxWireBytes,
+        limits.maxNodes, limits.maxDepth,
+      );
+      if (!Array.isArray(values) || values.length !== 4 ||
+          !values.every(value => Number.isSafeInteger(value) && value >= 0 &&
+            value <= limits.maxWireBytes)) {
+        throw new TypeError('Invalid Result publication capacity projection');
+      }
+      return Object.freeze([...values]);
+    },
+    ordinaryPublicationReceiptByteBound(plan, request, limits) {
+      limits = captureContractLimits(limits, 'Publication receipt capacity');
+      const provenance = plan.receiptEvidence;
+      const value = moon.strategyOrdinaryPublicationReceiptByteBound(
+        admissionToken(plan.admission), token(request), token(plan.invocation),
+        evidenceToken(plan.observation), evidenceToken(plan.normalizationJournal),
+        provenance.bindings.map(binding => binding.name),
+        provenance.bindings.map(binding => binding.sha256),
+        provenance.sourceEvidence.map(evidenceToken),
+        provenance.modelEvidence.map(evidenceToken), provenance.barrierAttemptReceiptCids,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+      );
+      if (!Number.isSafeInteger(value) || value < 0 || value > limits.maxWireBytes) {
+        throw new TypeError('Invalid publication receipt capacity projection');
+      }
+      return value;
+    },
+    ordinaryPublicationFrontierByteBounds(request, resultCount, limits) {
+      limits = captureContractLimits(limits, 'Publication frontier capacity');
+      if (!Number.isSafeInteger(resultCount) || resultCount < 0 || resultCount > 2147483647) {
+        throw new TypeError('Invalid publication frontier inventory');
+      }
+      const values = moon.strategyOrdinaryPublicationFrontierByteBounds(
+        token(request), resultCount, limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+      );
+      if (!Array.isArray(values) || values.length !== 6 ||
+          !values.every(value => Number.isSafeInteger(value) && value >= 0 &&
+            value <= limits.maxWireBytes)) {
+        throw new TypeError('Invalid publication frontier capacity projection');
+      }
+      const manifest = moon.strategyOrdinaryPublicationManifestByteBound(
+        token(request), limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+      );
+      if (!Number.isSafeInteger(manifest) || manifest < 0 || manifest > limits.maxWireBytes) {
+        throw new TypeError('Invalid publication manifest capacity projection');
+      }
+      return Object.freeze({
+        manifest,
+        index: values[0],
+        current: Object.freeze({preparing: values[1], committing: values[2],
+          publicationUnknown: values[3], terminal: values[4]}),
+        possibleForeignWinnerTerminal: values[5],
+      });
+    },
     issuePublicationRequest(runDefinition, definitions, intent, limits) {
       limits = captureContractLimits(limits, 'Publication Request');
       if (intent === null || typeof intent !== 'object') {

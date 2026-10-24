@@ -936,6 +936,13 @@ pub fn captured_next_managed_obligations(
       break
     }
   }
+  // Check the exact retained identity inventory before allocating its arrays.
+  if max_entries < 0 {return Err(@execution.InvalidLimits)}
+  let mut result_count=0
+  for result in run.graph.results {if result.task==task {result_count+=1}}
+  let task_identity=has_consumer || result_count==0 || run.managed_host_identity
+  let required=result_count.to_int64()*(if run.managed_publication_identity {1L} else {0L}) + (if task_identity {1L} else {0L})
+  if required>max_entries.to_int64() {return Err(@execution.InvalidLimits)}
   let result_occurrences = run.graph.results.filter_map(result => {
     if result.task == task {
       Some(result.occurrence)

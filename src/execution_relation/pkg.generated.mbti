@@ -252,6 +252,8 @@ pub fn bind_managed_table_input_occurrence(@lowering_relation.BoundPrepared, @re
 
 pub fn boolean_pair(@lowering_relation.ManyOperator, Value, Value) -> Result[Value, ScalarIssue]
 
+pub fn bound_producer_read_demand(@lowering_relation.BoundPrepared, BoundProducerInput) -> ProducerReadDemand?
+
 pub fn bounded_append_cleanup_pending(BoundedAppendExecution) -> Bool
 
 pub fn bounded_asof_join_cleanup_pending(BoundedAsOfJoinExecution) -> Bool
@@ -647,6 +649,8 @@ pub fn execute_selected_relation_step(GeneratedSequence, ProducerRead, SequenceE
 pub fn execution_capacity(Int64, Int64) -> ExecutionCapacity?
 
 pub fn execution_capacity_execution_bytes(ExecutionCapacity) -> Int64
+
+pub fn execution_capacity_node_bytes() -> Int64
 
 pub fn execution_capacity_retained_bytes(ExecutionCapacity) -> Int64
 
@@ -1174,6 +1178,12 @@ pub fn producer_read_cell_present(ProducerRead, Int, Int) -> Result[Bool, Relati
 
 pub fn producer_read_checked_cell(ProducerRead, Int, Int, @value_admission.Limits) -> @value_admission.CheckedValue?
 
+pub fn producer_read_demand_columns(ProducerReadDemand) -> Int
+
+pub fn producer_read_demand_entries(ProducerReadDemand) -> Int
+
+pub fn producer_read_demand_name_bytes(ProducerReadDemand) -> Int
+
 pub fn producer_read_has_cell_access(ProducerRead) -> Bool
 
 pub fn producer_read_input_index(ProducerRead) -> Int
@@ -1193,6 +1203,8 @@ pub fn producer_read_row_count(ProducerRead) -> Int
 pub fn producer_read_same_binding(ProducerRead, ProducerRead) -> Bool
 
 pub fn producer_read_schema(ProducerRead) -> @relation_schema.Schema
+
+pub fn producer_read_schema_demand(@relation_schema.Schema, @relation_schema.Schema, Int) -> ProducerReadDemand?
 
 pub fn producer_storage_available(ProducerStorage) -> Bool
 
@@ -2341,6 +2353,14 @@ pub(all) enum ManagedProfileIssue {
 
 type ManagedPublicationBridge[T]
 
+pub(all) struct ManagedPublicationBridgeLimits {
+  entries : Int
+  name_bytes : Int
+  max_rows : Int
+  values : ValueLimits
+  row : RetainedRowDecodeLimits
+}
+
 pub(all) enum ManagedPublicationRequirement {
   ManagedUse
   LogicalContentAddressed
@@ -2489,6 +2509,12 @@ pub(all) enum ProducerBindingIssue {
 }
 
 type ProducerRead
+
+pub struct ProducerReadDemand {
+  entry_visits : Int
+  name_visit_bytes : Int
+  retained_columns : Int
+}
 
 pub(all) enum ProducerReadIssue {
   InvalidLimits

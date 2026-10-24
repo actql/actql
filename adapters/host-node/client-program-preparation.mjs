@@ -115,6 +115,7 @@ export function installNodeClientProgramPreparation({moon, environment,
     throw new TypeError('InvalidLocalValuesRowLimit');
   }
   const owned = new WeakMap();
+  const retiredOriginals = new WeakSet();
   const effectOwned = new WeakSet();
   const sourceCheckFailures = new WeakSet();
   let installedEvidence = Object.freeze([...effectEvidence]);
@@ -278,6 +279,18 @@ export function installNodeClientProgramPreparation({moon, environment,
       environment = sourcePublication = installedEvidence = getPreparedSourceEnvironment = undefined;
       // Installation callbacks may themselves retain the same Environment.
       check = verifyRequestValuePolicy = restoreEffectOriginal = restoreInferOriginal = undefined;
+    },
+    // Private installing Local cleanup owner only. This releases the exact
+    // Pure preparation metadata, not the shared Environment or another Run.
+    // Call only after all original borrowers have confirmed cleanup.
+    retireOriginal(prepared) {
+      if (retiredOriginals.has(prepared)) return;
+      const original = owned.get(prepared);
+      if (original === undefined || original.inferRun !== undefined) {
+        throw new TypeError('Foreign Pure Client preparation');
+      }
+      owned.delete(prepared);
+      retiredOriginals.add(prepared);
     },
     originalInputs(prepared) {
       const original = owned.get(prepared);

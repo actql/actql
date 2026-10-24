@@ -3,62 +3,18 @@
 /// scalar payload nodes. All arrays below may coexist; no lifetime reuse or
 /// identity/port deduplication is assumed. Text budgets remain unchanged.
 fn client_local_scalar_metadata_envelope(
-  sequences : Array[@execution.GeneratedSequence],
+  inventory : ClientLocalSchemaProofInventory,
   graph : @strategy.CheckedDAG,
   max_rows : Int,
   result_envelope : ClientLocalResultEnvelope,
 ) -> (Int64, Int)? {
-  if sequences.length() != @strategy.graph_task_count(graph) ||
-    sequences.is_empty() ||
-    sequences.length() > 32 ||
-    max_rows < 1 ||
-    max_rows > 20000 {
-    return None
-  }
-  let mut fields = 0
-  let mut names = 0
-  let mut ports = 0
-  let mut bindings = 0
-  for sequence in sequences {
-    let prepared = @lower.bound_preparation(
-      @execution.generated_sequence_owner(sequence),
-    )
-    let inputs = @lower.preparation_input_count(prepared)
-    if inputs > 32 || @lower.node_count(prepared) > 256 {
-      return None
-    }
-    if inputs > bindings {
-      bindings = inputs
-    }
-    if inputs > ports {
-      ports = inputs
-    }
-    for input in 0..<inputs {
-      guard @lower.preparation_input_schema(prepared, input) is Some(schema) &&
-        client_local_scalar_schema_width(schema) is Some(width) else {
-        return None
-      }
-      fields = Int::max(fields, width)
-      names = Int::max(names, @schema.field_reference_name_bytes(schema))
-    }
-    for index in 0..<@lower.node_count(prepared) {
-      guard @lower.node_at(prepared, index) is Some(node) &&
-        @lower.node_relation_schema(node) is Some(schema) &&
-        client_local_scalar_schema_width(schema) is Some(width) else {
-        return None
-      }
-      fields = Int::max(fields, width)
-      names = Int::max(names, @schema.field_reference_name_bytes(schema))
-      let count = @lower.node_input_count(node)
-      if count > 32 {
-        return None
-      }
-      ports = Int::max(ports, count)
-      bindings = Int::max(bindings, count)
-    }
-  }
+  if inventory.original_count != @strategy.graph_task_count(graph) || max_rows<1 || max_rows>20000 {return None}
+  let fields=inventory.fields
+  let mut names=inventory.names
+  let ports=inventory.ports
+  let bindings=inventory.bindings
   let result_count = @strategy.graph_result_count(graph)
-  if result_count > 1024 || names < 0 || names > 1000000 {
+  if result_count > client_local_schema_proof_work() || names < 0 || names > 1000000 {
     return None
   }
   let order_terms = result_envelope.order_terms
@@ -102,7 +58,7 @@ fn client_local_scalar_metadata_envelope(
     ) *
     256L +
     schema_bytes * 8L
-  if retained < 0L || retained > 536870912L {
+  if retained < 0L || retained > client_local_retained_byte_ceiling() {
     None
   } else {
     Some((retained, result_envelope.workspace_entries))
@@ -122,5 +78,5 @@ fn client_local_result_metadata_retained(
   if max_rows < 1 || max_rows > 20000 || schema_bytes < 0 || schema_bytes > 1000000 { return None }
   let slots=24L*envelope.fields.to_int64()+2L*max_rows.to_int64()+envelope.order_terms.to_int64()+64L
   let bytes=slots*256L+8L*schema_bytes.to_int64()
-  if bytes < 0L || bytes > 536870912L {None} else {Some(bytes)}
+  if bytes < 0L || bytes > client_local_retained_byte_ceiling() {None} else {Some(bytes)}
 }

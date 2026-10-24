@@ -36,7 +36,7 @@ export async function issueNodeClientSubmissionEpoch({journal, moon, authorizedS
 }
 
 export function installNodeClientSubmission({journal, moon, authorizedScope,
-  prepareSubmit, submit, lookupRequest, checkSubmissionInput, bindOwnedRequest, admitPreparedSubmission}) {
+  prepareSubmit, submit, lookupRequest, checkSubmissionInput, bindOwnedRequest, admitPreparedSubmission, preparationCustody}) {
   if (typeof journal?.recordSubmittedIntent !== 'function' ||
       typeof journal?.checkSubmittedIntent !== 'function' ||
       typeof moon?.clientSubmittedIntent !== 'function' ||
@@ -46,6 +46,12 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       checkSubmissionInput !== undefined && typeof checkSubmissionInput !== 'function') {
     throw new TypeError('InvalidClientSubmissionInstallation');
   }
+  const copyRequest = (value, changes) => preparationCustody === undefined
+    ? {...value, ...changes} : preparationCustody.copy(value, changes);
+  const preparedValue = value => preparationCustody === undefined ? value : preparationCustody.read(value);
+  const preparedSubmission = (value, prepared) => preparationCustody === undefined
+    ? {...value, preparedProgram: prepared}
+    : preparationCustody.attach(value, prepared);
   const flights = new Map();
   const ownedSnapshots = new WeakSet();
   // The installed callback and its own original projection are one port.
@@ -64,7 +70,9 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     return derived;
   };
   const captureSnapshot = (value, bind = true) => {
-    const captured = bind ? own(value, snapshot(value)) : snapshot(value);
+    const raw = snapshot(value);
+    const selected = preparationCustody === undefined ? raw : preparationCustody.capture(raw);
+    const captured = bind ? own(value, selected) : selected;
     ownedSnapshots.add(captured);
     return captured;
   };
@@ -74,16 +82,22 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     const release = validSubmissionRef(value.submissionRef) ?
       journal.retainSubmissionOperation?.(value.submissionRef.epoch, moon) : undefined;
     try {return await action(value);}
-    finally {release?.();}
+    finally {
+      try {release?.();} finally {preparationCustody?.finishHandler(value);}
+    }
   };
   const prepareOwned = (value, requestId) => {
-    const request = own(value, {...value, requestId});
+    const request = own(value, copyRequest(value, {requestId}));
     const prepared = prepareSubmit(request);
     // Preserve the unselected caller's original single await. Only the
     // selected Source retains an additional continuation for its nominal
     // returned handle; that continuation issues no capacity or permission.
-    return bindOwnedRequest === undefined ? prepared :
-      Promise.resolve(prepared).then(original => own(request, original));
+    return bindOwnedRequest === undefined ? (preparationCustody === undefined ? prepared :
+      Promise.resolve(prepared).then(original => preparationCustody.adopt(original, request))) :
+      Promise.resolve(prepared).then(original => {
+        own(request, original);
+        return preparationCustody === undefined ? original : preparationCustody.adopt(original, request);
+      });
   };
   const unresolved = (submissionRef, code = 'submission_history_unresolvable') =>
     immutable({kind: 'unresolvable', submissionRef, problem: {code}});
@@ -139,7 +153,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
   };
   const refresh = async (value, retained, fields) => {
     if (['not_accepted', 'preparation_failed'].includes(retained.phase)) return storedOutcome(retained);
-    const found = await lookupRequest({...value, requestId: retained.requestId});
+    const found = await lookupRequest(copyRequest(value, {requestId: retained.requestId}));
     // Revalidate current authority after the async lookup before changing facts.
     const current = await authorize(value);
     if (current.authorityScopeCid !== fields.authorityScopeCid ||
@@ -188,7 +202,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
   };
   const assertOriginalPreparation = (prepared, input, value) => {
     if (typeof prepareSubmit.assertSubmittedIntent === 'function') {
-      prepareSubmit.assertSubmittedIntent(prepared, input);
+      prepareSubmit.assertSubmittedIntent(preparedValue(prepared), input);
     } else if (Object.hasOwn(value, 'readOnly')) {
       // An installation without the original Common boundary cannot accept
       // this continuation choice. Older unselected installations are unchanged.
@@ -223,9 +237,9 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       const current = await authorize(value);
       if (current.authorityScopeCid !== fields.authorityScopeCid ||
           current.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
-      const reply = await submit(own(value, {...value, requestId, preparedProgram,
+      const reply = await submit(own(value, preparedSubmission(copyRequest(value, {requestId,
         submission: {epoch: value.submissionRef.epoch, nonce: value.submissionRef.nonce,
-          intentCid: value.intentCid, currentAuthorization: true}}));
+          intentCid: value.intentCid, currentAuthorization: true}}), preparedProgram)));
       const observed = await authorize(value);
       if (observed.authorityScopeCid !== fields.authorityScopeCid ||
           observed.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
@@ -323,7 +337,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     // issue the service or replace authorization; unselected callers retain
     // their original path, and Promise/Bool is not synchronous acceptance.
     const admissionCandidate = admitPreparedSubmission === undefined ? undefined :
-      Object.freeze(own(value, {...value, requestId, preparedProgram}));
+      Object.freeze(own(value, preparedSubmission(copyRequest(value, {requestId}), preparedProgram)));
     try {
       if (admitPreparedSubmission !== undefined && admitPreparedSubmission(
         admissionCandidate) !== undefined) fail('ClientPreparedSubmissionUnavailable');
@@ -348,9 +362,9 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     if (flights.has(requestId)) return storedOutcome(retained);
     const flight = (async () => {
       try {
-        const reply = await submit(own(value, {...value, requestId, preparedProgram,
+        const reply = await submit(own(value, preparedSubmission(copyRequest(value, {requestId,
           submission: {epoch: value.submissionRef.epoch, nonce: value.submissionRef.nonce,
-            intentCid: value.intentCid, currentAuthorization: true}}));
+            intentCid: value.intentCid, currentAuthorization: true}}), preparedProgram)));
         const outcome = reply.kind === 'held'
           ? {kind: 'held', submissionRef: value.submissionRef, intentCid: value.intentCid,
             held: {...reply, requestId: value.submissionRef.nonce}}
@@ -444,7 +458,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         ...(resolution.kind === 'refused' ? {guarantee: resolution.guarantee} : {})};
     } else {
       const retained = resolution.submission;
-      const bound = Object.freeze(own(value, {...value, submissionRef: retained.submissionRef}));
+      const bound = Object.freeze(own(value, copyRequest(value, {submissionRef: retained.submissionRef})));
       ownedSnapshots.add(bound);
       // The original name and intent are already committed before preparation.
       // Another connection may only observe this original, never replay it or

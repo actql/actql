@@ -443,6 +443,7 @@ fn closure_diagnostic_category(
         | Queries(InvalidQuery(_) | DimensionMismatch(_, _, _)) => InvalidInput
         _ => UnclassifiedFailure
       }
+    Values(RowsExceeded(_)) => InvalidInput
     InvalidLimits => InvalidConfiguration
     BudgetExceeded
     | Values(BudgetExceeded)
@@ -511,6 +512,9 @@ fn closure_diagnostic_category(
     | Requirements(InvalidLimits)
     | Gates(InvalidLimits)
     | Contracts(InvalidLimits) => InvalidConfiguration
+    // A required stable join identity is an authored precondition. Missing
+    // cached evidence or foreign ownership still stays unclassified below.
+    Joins(MissingStableIdentity(_)) => InvalidInput
     // An unclosed static obligation is not proof that the language rejects it
     // or that an external input could resolve it.
     _ => UnclassifiedFailure

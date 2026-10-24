@@ -34,8 +34,12 @@ export async function prepareOrdinaryProjectSourceManagedInstallation(originals,
 }
 
 async function prepareOrdinaryManagedInstallation(originals, callbacks, source, project) {
-  let closing = false, closed = false, bundle, flight, count = 0, checkingBundle = false;
+  let closing = false, closed = false, bundle, flight, checkingBundle = false;
   const receipts = new WeakMap(), producers = new Set(), runs = new Map();
+  const retiredRuns = new WeakMap();
+  const releaseFinishedProducer = producer => {
+    if (producer.finished && producer.liveRuns === 0) producer.request = undefined;
+  };
   const current = () => {
     if (closing || closed) fail('SourceManagedPreparationUnavailable');
     callbacks.validator(originals);
@@ -107,6 +111,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
   }
   function prepareRun(prepared, purpose, model, effectful = false, content) {
     current();
+    if (retiredRuns.has(prepared)) fail('ForeignInstalledModelPreparation');
     const old = runs.get(prepared);
     if (old !== undefined) {
       if (old.purpose !== purpose || old.model !== model || old.effectful !== effectful || old.content !== content) {
@@ -119,6 +124,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     if (producer === undefined || runs.size === 4096) fail('ForeignInstalledSourceProducer');
     const run = {prepared, request, producer, purpose, model, effectful, content, original: undefined,
       children: [], fileIdentity: undefined};
+    if (producer.liveRuns === Number.MAX_SAFE_INTEGER) fail('InstalledSourceProducerLimit');
+    producer.liveRuns++;
     runs.set(prepared, run);
     // A failed quote remains attached to this one preparation. It cannot be
     // retried under a different purpose or replaced by another original.
@@ -185,10 +192,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     assertCurrent: current,
     beforeSourceSnapshot(kind, input, options) {
       current();
-      if (count === 4096 || producers.size === 32) fail('InstalledSourceProducerLimit');
-      count++;
+      if (producers.size === 32) fail('InstalledSourceProducerLimit');
       const receipt = Object.freeze({});
-      const producer = {receipt, kind, body: undefined, request: undefined, finished: false};
+      const producer = {receipt, kind, body: undefined, request: undefined, finished: false, liveRuns: 0};
       receipts.set(receipt, producer); producers.add(producer);
       return receipt;
     },
@@ -216,8 +222,34 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const producer = producerFor(receipt);
       if (terminal !== 'failed' && terminal !== 'returned') fail('ForeignInstalledSourceProducer');
       producer.finished = true; producer.body = undefined; producers.delete(producer);
+      releaseFinishedProducer(producer);
     },
     beforeResultRead() {current();}, assertResultReadCurrent: current,
+    // Existing original cleanup only; neither a caller terminal flag nor
+    // request completion can acknowledge this Run or its physical children.
+    retireRun(prepared, original) {
+      if (retiredRuns.has(prepared)) {
+        if (retiredRuns.get(prepared) !== original) fail('ForeignInstalledSourceProducer');
+        return;
+      }
+      const run = runs.get(prepared);
+      if (run === undefined || original === undefined || run.original !== original) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      const observed = resourceRuntime.ordinaryManagedRunStatus(original);
+      if (!observed.stopped || run.children.some(child => child.flight !== undefined || !child.closed)) {
+        fail('InstalledSourceRunCleanupPending');
+      }
+      const producer = run.producer;
+      if (producer.liveRuns < 1) fail('ForeignInstalledSourceProducer');
+      runs.delete(prepared);
+      retiredRuns.set(prepared, original);
+      producer.liveRuns--;
+      run.prepared = run.request = run.producer = undefined;
+      run.model = run.content = run.required = run.fileIdentity = undefined;
+      run.children = [];
+      releaseFinishedProducer(producer);
+    },
     prepareRun(prepared) {
       return prepareRun(prepared, 'source-compute', undefined);
     },
@@ -302,6 +334,17 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         }
         if (failure !== undefined) throw failure;
         if (childPending) return status();
+        // The same successful installation cleanup also owns unfinished
+        // preparation records which never obtained an original Run.
+        for (const run of runs.values()) {
+          const producer = run.producer;
+          if (producer.liveRuns < 1) fail('ForeignInstalledSourceProducer');
+          producer.liveRuns--;
+          run.prepared = run.request = run.producer = undefined;
+          run.model = run.content = run.required = run.fileIdentity = undefined;
+          run.children = [];
+          releaseFinishedProducer(producer);
+        }
         bundle = undefined; runs.clear(); closed = true; return status();
       });
       flight = work;

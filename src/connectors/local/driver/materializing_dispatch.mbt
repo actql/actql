@@ -292,16 +292,25 @@ fn local_managed_metadata_limits(
   metadata : LocalManagedMetadataLimits?,
 ) -> LocalManagedMetadataLimits? {
   let selected = metadata.unwrap_or({
-    name_bytes:limits.wire.max_bytes,
+    name_bytes: limits.wire.max_bytes,
     bridge_entries: limits.wire.max_nodes,
     completion_entries: limits.wire.max_nodes,
-    schema: {max_fields:limits.wire.max_columns,max_bytes:limits.wire.max_bytes,max_nodes:limits.wire.max_nodes,max_depth:limits.wire.max_depth},
+    schema: {
+      max_fields: limits.wire.max_columns,
+      max_bytes: limits.wire.max_bytes,
+      max_nodes: limits.wire.max_nodes,
+      max_depth: limits.wire.max_depth,
+    },
     result_workspace_entries: limits.max_rows,
     retained_bytes: 0L,
   })
-  if selected.name_bytes < 0 || selected.bridge_entries < 0 ||
+  if selected.name_bytes < 0 ||
+    selected.bridge_entries < 0 ||
     selected.completion_entries < 0 ||
-    selected.schema.max_nodes < 0 || selected.schema.max_fields < 0 || selected.schema.max_bytes < 0 || selected.schema.max_depth < 0 ||
+    selected.schema.max_nodes < 0 ||
+    selected.schema.max_fields < 0 ||
+    selected.schema.max_bytes < 0 ||
+    selected.schema.max_depth < 0 ||
     selected.result_workspace_entries < 0 ||
     selected.retained_bytes < 0L {
     return None
@@ -314,5 +323,41 @@ fn local_managed_metadata_limits(
 fn local_retained_with_metadata(base : Int64, metadata : Int64) -> Int64? {
   if base < 0L || metadata < 0L || metadata > 9223372036854775807L - base {
     None
-  } else { Some(base + metadata) }
+  } else {
+    Some(base + metadata)
+  }
+}
+
+///|
+/// Read only the immutable installed metadata policy for this exact captured
+/// Run. Publication re-admission checks original producer names, not the
+/// projected durable Result schema; those quantities must not share a limit.
+/// This does not reserve capacity or grant a new execution allowance.
+
+///|
+pub fn local_publication_bridge_limits(
+  installed : LocalDispatchModule,
+  run : @strategy.CapturedDAG,
+) -> @execution.ManagedPublicationBridgeLimits? {
+  if !installed.policy_sealed || !physical_equal(installed.run, run) {
+    return None
+  }
+  guard installed.import_metadata is Some(metadata) &&
+    installed.import_policy is Some((imports, _)) else {
+    return None
+  }
+  Some({
+    entries: metadata.bridge_entries,
+    name_bytes: metadata.name_bytes,
+    max_rows: imports.max_rows,
+    values: imports.values,
+    // A producer row is a subset of its independently admitted original IO
+    // envelope. It is not bounded by a narrower projected Result's wire.
+    row: {
+      max_bytes: imports.wire.max_bytes,
+      max_nodes: imports.wire.max_nodes,
+      max_depth: imports.wire.max_depth,
+      max_text_bytes: imports.values.max_text_bytes,
+    },
+  })
 }

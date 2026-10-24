@@ -145,6 +145,10 @@ pub fn client_local_content_step_generation(ClientLocalContentStep) -> @run_publ
 
 pub fn client_local_import_limits(@connector_sdk.FixedComputeCapacity, @execution_relation.ValueLimits) -> @local.LocalImportLimits
 
+pub fn client_local_materialized_row_ceiling(ClientLocalResourcePolicy) -> Int?
+
+pub fn client_local_resource_policy() -> ClientLocalResourcePolicy
+
 pub fn client_local_values_publication_limits(@run_publication_host.PreparedClientProgram, Int) -> (@execution_relation.RetainedRowDecodeLimits, @run_publication_host.PublicationOutputExportLimits)?
 
 pub fn client_node_values_publication_limits(@run_publication_host.PreparedClientProgram, Int) -> @run_publication_host.PublicationOutputExportLimits?
@@ -212,6 +216,8 @@ pub fn installed_keyed_source_read_acquisition(ClientInstalledKeyedSourceRead) -
 pub fn installed_listing_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> ClientInstalledCaptureCapacity?
 
 pub fn installed_managed_keyed_content_requirements(ClientInstalledManagedKeyedPreparation) -> Array[Int64]
+
+pub fn installed_managed_publication_limits(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, Int) -> @run_publication_host.PublicationOutputExportLimits?
 
 pub fn installed_managed_run_requirements(@run_publication_host.PreparedClientProgram, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], String, String, String?, String?) -> Result[Array[Int64], ClientInstalledManagedRunIssue]
 
@@ -336,6 +342,8 @@ pub fn prepare_serialization_captured_ledger(@run_publication_host.PreparedClien
 pub fn prepare_single_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, ClientInstalledCaptureCapacity, Int64, Int64, String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn prepare_source_free_local_requirements(@run_publication_host.PreparedClientProgram, String, String, String?, String?) -> ClientLocalSourceFreeRequirements?
+
+pub fn prepared_installed_managed_publication_limits(ClientInstalledManagedSourceFreePreparation, @run_publication_host.PreparedClientProgram, Int) -> @run_publication_host.PublicationOutputExportLimits?
 
 pub fn prepared_installed_managed_source_free_requirements(ClientInstalledManagedSourceFreePreparation) -> Array[Int64]
 
@@ -540,6 +548,8 @@ pub(all) enum ClientLocalQueryIssue {
   MissingStage
   Requirement(@run_publication_host.ClientQueryRequirementIssue)
 }
+
+type ClientLocalResourcePolicy
 
 type ClientLocalSourceFreeRequirements
 pub fn ClientLocalSourceFreeRequirements::matches(Self, @run_publication_host.PreparedClientProgram, String, String, String?, String?) -> Bool
