@@ -26,6 +26,32 @@ pub struct ClientValuesExecutablePlan {
   fact_manifest_cid : String
   transformations : Array[ClientResultTransformation]
   graph_logical_cid : String?
+  priv mut read_originals : ClientExecutablePlanReadOriginals?
+}
+
+///|
+// Same-issuer immutable reader inputs. These are DATA, not current authority.
+priv struct ClientExecutablePlanReadOriginals {
+  owner : PreparedClientProgram
+  plan_wire : String
+  graph_wire : String
+  graph : @canonical.CanonicalValue
+  material : @canonical.CanonicalValue
+  max_wire_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+///|
+fn client_executable_plan_original_limits_fit(
+  original : ClientExecutablePlanReadOriginals,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  max_wire_bytes >= original.max_wire_bytes &&
+  max_nodes >= original.max_nodes &&
+  max_depth >= original.max_depth
 }
 
 ///|
@@ -229,7 +255,7 @@ fn issue_prepared_client_task_plan_parts(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[
-  (ClientTaskExecutablePlan, ClientExecutionMaterial, ClientTaskPlanGraph),
+  (ClientTaskExecutablePlan, @publication.RunEvidenceValue, ClientTaskPlanGraph),
   ClientValuesExecutablePlanIssue,
 ] {
   if max_facts <= 0 ||
@@ -274,7 +300,7 @@ fn issue_prepared_client_task_plan_parts(
     max_wire_bytes,
     max_nodes,
     max_depth,
-  ).map(plan => ({ plan, }, material, graph))
+  ).map(plan => ({ plan, }, template, graph))
 }
 
 ///|
@@ -458,6 +484,16 @@ fn issue_prepared_client_executable_plan_with_parts(
       cid,
       fact_manifest_wire: manifest.wire,
       fact_manifest_cid: manifest.cid,
+      read_originals: Some({
+        owner: value,
+        plan_wire: wire,
+        graph_wire,
+        graph: graph_value,
+        material: material_value,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      }),
       transformations: transformations.copy(),
       graph_logical_cid: if transformations.is_empty() {
         None

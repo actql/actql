@@ -4454,6 +4454,7 @@ pub struct ClientValuesExecutablePlan {
   fact_manifest_cid : String
   transformations : Array[ClientResultTransformation]
   graph_logical_cid : String?
+  // private fields
 }
 
 pub(all) enum ClientValuesExecutablePlanAdmissionIssue {
