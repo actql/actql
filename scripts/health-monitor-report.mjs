@@ -154,9 +154,11 @@ export function compareReports(base, current, policy) {
     const absoluteDelta = after - before, relativeDelta = absoluteDelta / before;
     let status = 'pass', reason = 'Within configured comparison thresholds';
     if (metric.kind === 'size') {
-      const threshold = metric.artifactKind === 'browser-gzip' ? policy.size.browserGzip : policy.size.package;
-      if (relativeDelta >= threshold.regression) status = 'regression';
-      else if (relativeDelta >= threshold.warning) status = 'warning';
+      const threshold = metric.artifactKind === 'browser-gzip' ? policy.size.browserGzip
+        : ['npm', 'wheel', 'native', 'wasm'].includes(metric.artifactKind) ? policy.size.package : null;
+      if (threshold && relativeDelta >= threshold.regression) status = 'regression';
+      else if (threshold && relativeDelta >= threshold.warning) status = 'warning';
+      if (!threshold) reason = 'Reference size delta; no configured gate for this artifact kind';
     } else if (metric.kind === 'latency') {
       const threshold = metric.temperature === 'cold' ? policy.performance.cold : policy.performance.warm;
       if (relativeDelta >= threshold.relative && absoluteDelta >= threshold.absoluteMs) status = 'warning';

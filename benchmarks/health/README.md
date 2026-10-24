@@ -80,6 +80,8 @@ Size deltas show both bytes and percentage: npm/wheel/Native/Wasm +10% warns,
 and +3 ms warm, or +30% and +50 ms cold. Peak RSS +20% warns. Performance
 warnings alone exit zero. First failures remain retained if a human later
 deliberately repeats an experiment.
+Installed bytes and raw-browser bytes retain their measured deltas without an
+invented size gate; the initial policy specifies package and browser-gzip gates.
 
 To establish/rebaseline, review an actual clean, complete report and copy it
 to `baselines/<platform>-<arch>.json`, adding `baseline: {id, reason,

@@ -252,3 +252,11 @@ test('ordinary Python JOIN/Aggregate fixtures exactly match the existing Node li
     assert.deepEqual(fixtures[operation], nodeWarmSmallQueryFixtures.find(row => row.operation === operation));
   }
 });
+test('installed and raw-browser bytes report deltas without inventing an unspecified size gate', () => {
+  for (const id of ['installed:node-local', 'browser-raw']) {
+    const base = fixture(), current = fixture(); current.metrics.find(row => row.id === id).value = 5000;
+    const result = compareReports(base, current, policy), delta = result.verdicts.find(row => row.metric === id);
+    assert.equal(result.status, 'pass'); assert.equal(delta.absoluteDelta, 4000);
+    assert.equal(delta.relativeDelta, 4); assert.match(delta.reason, /no configured gate/);
+  }
+});
