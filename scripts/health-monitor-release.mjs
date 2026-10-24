@@ -4,11 +4,12 @@ import assert from 'node:assert/strict';
 import {readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {cpus, platform, arch, release, totalmem} from 'node:os';
-import {nodeOperationProtocol, runNodeWarmBenchmark} from './benchmark-node-operations.mjs';
+import {runNodeWarmBenchmark} from './benchmark-node-operations.mjs';
 import {runNodeProcessBenchmark} from './benchmark-node-process-operations.mjs';
 import {readFixedSQLiteComparison} from './ordinary-operation-packages.mjs';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {jsonDigest, digest} from './health-monitor-report.mjs';
+import {assessLatency} from './operation-performance.mjs';
 
 export function formalCollectorVerdict(result) {
   if (result.firstFailure || result.packageFailure || result.cleanup?.failure ||
@@ -16,7 +17,8 @@ export function formalCollectorVerdict(result) {
     return {status: 'error', reason: JSON.stringify(result.firstFailure ?? result.packageFailure ?? result.cleanup?.failure ?? 'Original failed public sample')};
   }
   if (result.assessments?.some(row => row.status === 'failed')) return {status: 'regression', reason: 'Existing formal assessment failed; original evidence retained'};
-  if (!result.latency?.length || result.assessments?.some(row => row.status !== 'passed')) return {status: 'incomplete', reason: result.stoppedAt ?? 'Existing formal assessment incomplete'};
+  if (!result.latency?.length || result.assessments?.length !== result.latency.length ||
+      result.assessments?.some(row => row.status !== 'passed')) return {status: 'incomplete', reason: result.stoppedAt ?? 'Existing formal assessment incomplete'};
   return {};
 }
 
@@ -79,16 +81,18 @@ export async function releaseArtifacts({options, repository, source, command, on
 export async function releaseMeasurements({options, prepared, repository, root, source, command, onMetric}) {
   const env = {platform: platform(), arch: arch(), osRelease: release(), node: process.version,
     cpuModel: cpus()[0].model, logicalCpus: cpus().length, memoryBytes: totalmem()};
-  if (!options.comparison) {
+  if (!options.nodeControls) {
     await onMetric({id: 'formal-node-collector', kind: 'latency', target: 'node-local', required: true,
       status: 'incomplete', reason: 'Existing final Node collector requires a fixed matched SQLite comparison'});
     return;
   }
-  const comparison = await readFixedSQLiteComparison(options.comparison, env, options.load ?? 'concurrent');
-  const controlsPath = join(root, 'release-controls.json');
-  await writeFile(controlsPath, JSON.stringify({sourceSha: source.sha,
-    cohortSha256: digest(await readFile(prepared.manifestPath)), environment: env,
-    load: options.load ?? 'concurrent', historyProtocolSha256: jsonDigest(nodeOperationProtocol('final')), comparison}, null, 2));
+  const controlsPath = options.nodeControls, controls = JSON.parse(await readFile(controlsPath));
+  assert.equal(controls.sourceSha, source.sha);
+  assert.equal(controls.cohortSha256, digest(await readFile(prepared.manifestPath)));
+  assert.deepEqual(controls.environment, env);
+  assert.equal(controls.load, options.load ?? 'concurrent');
+  if (options.comparison) assert.deepEqual(controls.comparison,
+    await readFixedSQLiteComparison(options.comparison, env, options.load ?? 'concurrent'));
   const common = {manifestPath: prepared.manifestPath, consumer: prepared.consumer, controlsPath, mode: 'final'};
   for (const id of ['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-union', 'warm-decimal-sum', 'first-init', 'cold-existing']) {
     await onMetric({id, kind: 'latency', target: 'node-local', required: true, status: 'incomplete', reason: 'Required final collector family not yet observed'});
@@ -105,7 +109,11 @@ export async function releaseMeasurements({options, prepared, repository, root, 
       fixtureSha256: series.fixtureSha256, evidence: join(output, 'measurements.json'), unit: 'ms',
       ...verdict});
   }
-  for (const adapter of ['native', 'python']) for (const operation of ['first-init', 'cold-existing', 'warm-select', 'warm-result', 'warm-status']) {
+  await onMetric({id: 'peak-rss', kind: 'rss', target: 'node-local', unit: 'bytes', required: true,
+    value: process.resourceUsage().maxRSS * 1024, fixtureSha256: jsonDigest('Release Node collector including verification and public Host'),
+    scope: 'actual Release Node collector process high-water RSS, including verification/reporting; spawned compiler/Native/Python processes excluded; Node KiB converted to bytes', evidence: root});
+  const pythonControls = options.pythonControls ? JSON.parse(await readFile(options.pythonControls)) : null;
+  for (const adapter of ['native', 'python']) for (const operation of ['first-init', 'cold-existing', 'warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-decimal-sum']) {
     if (adapter === 'native' && operation.startsWith('warm-')) {
       await onMetric({id: operation, target: adapter, kind: 'latency', required: true, status: 'incomplete',
         reason: 'Existing ordinary Native CLI collector has no retained-Host warm entry; new CLI processes cannot substitute'});
@@ -115,15 +123,32 @@ export async function releaseMeasurements({options, prepared, repository, root, 
       await onMetric({id: operation, target: adapter, kind: 'latency', required: true, status: 'incomplete', reason: 'Matching ordinary Python venv absent'}); continue;
     }
     const output = join(root, `formal-${adapter}-${operation}`);
-    await command(options.python ?? 'python3', ['-I', '-B', join(repository, 'scripts/benchmark-ordinary-processes.py'),
+    const interpreter = adapter === 'python' ? join(options.pythonVenv, 'bin/python') : options.python ?? 'python3';
+    await command(interpreter, ['-I', '-B', join(repository, 'scripts/benchmark-ordinary-processes.py'),
       '--adapter', adapter, '--manifest', options[adapter + 'Manifest'], '--consumer', options[adapter + 'Consumer'],
       '--source', source.sha, '--output', output, '--operation', operation, '--mode', 'final',
       '--load', options.load ?? 'concurrent', ...(adapter === 'python' ? ['--venv', options.pythonVenv] : [])],
     {cwd: repository, name: `formal-${adapter}-${operation}`, timeout: 0});
     const raw = JSON.parse(await readFile(join(output, 'measurements.json')));
+    if (adapter === 'python' && pythonControls) {
+      assert.equal(pythonControls.sourceSha, source.sha);
+      assert.equal(pythonControls.cohortSha256, digest(await readFile(options.pythonManifest)));
+      assert.equal(pythonControls.environmentSha256, raw.environmentSha256);
+      for (const series of raw.latency) {
+        Object.assign(series, {executableSha256: raw.environment.pythonExecutableSha256,
+          expectedSha256: raw.functional.rows.find(row => row.operation === operation)?.expectedSha256,
+          comparisonMatch: pythonControls.comparisonMatches?.[operation], comparisonSettings: pythonControls.comparisonSettings,
+          resultStorageMatch: pythonControls.resultStorageMatches?.[operation]});
+      }
+    }
+    raw.assessments = raw.latency.map(series => assessLatency(series, adapter === 'python' ? pythonControls?.comparison : undefined));
+    const assessmentPath = join(output, 'health-assessments.json');
+    await writeFile(assessmentPath, JSON.stringify({sourceSha: source.sha, assessments: raw.assessments,
+      controlsSha256: adapter === 'python' && options.pythonControls ? digest(await readFile(options.pythonControls)) : null}, null, 2), {flag: 'wx'});
+    const verdict = formalCollectorVerdict(raw);
     for (const series of raw.latency) await onMetric({id: operation, target: adapter, kind: 'latency', required: true,
       unit: 'ms', temperature: operation.startsWith('warm-') ? 'warm' : 'cold', requiredSamples: operation.startsWith('warm-') ? 100 : 30,
       fixtureSha256: series.fixtureSha256, samples: series.samples, evidence: join(output, 'measurements.json'),
-      ...(raw.assessments?.some(row => row.status !== 'passed') ? {status: 'incomplete', reason: 'Existing formal assessment incomplete/failed'} : {})});
+      formalAssessments: assessmentPath, ...verdict});
   }
 }

@@ -65,7 +65,7 @@ export function measurementProfile(mode, environment = {}) {
   if (mode !== 'release') return [];
   rows.push(...['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-union', 'warm-decimal-sum'].map(id => latency(id)),
     ...['first-init', 'cold-existing', 'mock-workflow'].map(id => latency(id, true)));
-  for (const target of ['native', 'python']) rows.push(...['warm-select', 'warm-result', 'warm-status'].map(id => latency(id, false, target)),
+  for (const target of ['native', 'python']) rows.push(...['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-decimal-sum'].map(id => latency(id, false, target)),
     ...['first-init', 'cold-existing'].map(id => latency(id, true, target)));
   rows.push(...['actql', 'actql-sdk', 'actql-local-runtime'].map(id => size(id, 'python', 'wheel')));
   const key = {'darwin-arm64': 'darwin-arm64', 'linux-x64': 'linux-x64-gnu'}[environment.platform + '-' + environment.architecture];
@@ -125,7 +125,8 @@ export function compareReports(base, current, policy) {
   if (!base.baseline?.id || !base.baseline?.reason || base.baseline?.reviewed !== true) reasons.push('reviewed baseline id/reason absent');
   if (base.sourceChanged || current.sourceChanged || base.environmentChanged || current.environmentChanged) reasons.push('source/environment changed during measurement');
   for (const [label, report] of [['base', base], ['current', current]]) {
-    if (report.errors?.length || report.status === 'error' || (report.guardExitCode != null && report.guardExitCode !== 0)) reasons.push(`${label}: collector/guard errors retained`);
+    if (report.errors?.length || report.status === 'error' ||
+        (report.guardExitCode != null && report.guardExitCode !== exitStatus(report.status))) reasons.push(`${label}: collector/guard errors retained`);
     if (!report.installedPayloadsUnchanged || !report.sourceAfter || !report.environmentAfter) reasons.push(`${label}: before/after custody observation missing`);
     if (report.sourceAfter && jsonDigest(report.sourceAfter) !== jsonDigest(report.source)) reasons.push(`${label}: source before/after differs`);
     if (report.environmentAfter && jsonDigest(report.environmentAfter) !== jsonDigest(report.environment)) reasons.push(`${label}: environment before/after differs`);

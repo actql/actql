@@ -11,6 +11,7 @@ import {parseArguments, requiredQuickMetrics, missingReleaseInputs, recordGuardE
 import {packDistributionPackages} from './measure-distribution-artifacts.mjs';
 import {formalCollectorVerdict} from './health-monitor-release.mjs';
 import {quickNodeMetrics} from './health-monitor-adapters.mjs';
+import {nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
 
 const policy = JSON.parse(await readFile(new URL('../benchmarks/health/config.json', import.meta.url)));
 const samples = (ms, count = 10) => Array.from({length: count}, (_, iteration) => ({iteration,
@@ -168,6 +169,7 @@ test('original failed formal observations are errors; incomplete assessments sta
   assert.equal(formalCollectorVerdict({firstFailure: {message: 'original arithmetic refusal'}, latency: []}).status, 'error');
   assert.equal(formalCollectorVerdict({latency: [{samples: [{verified: false}]}]}).status, 'error');
   assert.equal(formalCollectorVerdict({latency: [], assessments: []}).status, 'incomplete');
+  assert.equal(formalCollectorVerdict({latency: [{samples: samples(1)}]}).status, 'incomplete');
   assert.equal(formalCollectorVerdict({latency: [{samples: samples(1)}], assessments: [{status: 'failed'}]}).status, 'regression');
 });
 test('original failed warm samples are retained without a cold retry or new public operation', async () => {
@@ -184,7 +186,7 @@ test('original failed warm samples are retained without a cold retry or new publ
   assert.equal(emitted[0].samples[0].verified, false);
 });
 test('Release missing mandatory platform inputs exits incomplete before any Runtime build', async () => {
-  assert.equal(missingReleaseInputs({}).length, 6);
+  assert.equal(missingReleaseInputs({}).length, 7);
   const root = await mkdtemp(join(tmpdir(), 'actql-health-release-unit-')), output = join(root, 'run');
   const result = spawnSync(process.execPath, [new URL('./health-monitor.mjs', import.meta.url).pathname,
     'release', '--output', output], {encoding: 'utf8'});
@@ -229,4 +231,24 @@ test('build and artifact-reuse reference timing never gates compatible size or r
   const result = compareReports(base, current, policy);
   assert.equal(result.status, 'pass'); assert.equal(result.comparable, true);
   assert(!result.verdicts.some(row => row.metric === 'build-packaging'));
+});
+test('saved size regression preserves its expected guard exit and remains comparable on round trip', () => {
+  const base = fixture(), current = fixture(); current.metrics[0].value = 1250;
+  current.comparison = compareReports(base, current, policy); finishReport(current); recordGuardExit(current, 1);
+  const restored = JSON.parse(JSON.stringify(current));
+  assert.equal(restored.status, 'regression'); assert.equal(restored.errors.length, 0);
+  const result = compareReports(base, restored, policy);
+  assert.equal(result.comparable, true); assert.equal(result.status, 'regression');
+  const mismatch = finishReport(fixture()); mismatch.guardExitCode = 1;
+  assert.equal(compareReports(base, mismatch, policy).comparable, false);
+});
+test('ordinary Python JOIN/Aggregate fixtures exactly match the existing Node literal oracles', () => {
+  const script = new URL('./benchmark-ordinary-processes.py', import.meta.url).pathname;
+  const result = spawnSync('python3', ['-I', '-B', '-c',
+    'import json,runpy,sys;print(json.dumps(runpy.run_path(sys.argv[1])["SMALL_QUERIES"]))', script], {encoding: 'utf8'});
+  assert.equal(result.status, 0, result.stderr);
+  const fixtures = JSON.parse(result.stdout);
+  for (const operation of ['warm-join', 'warm-decimal-sum']) {
+    assert.deepEqual(fixtures[operation], nodeWarmSmallQueryFixtures.find(row => row.operation === operation));
+  }
 });

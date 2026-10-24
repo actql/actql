@@ -267,7 +267,7 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
     }
     await writeFile(join(project, 'workflow.mjs'), fixture, {flag: 'wx'});
     await symlink(join(prepared.consumer, 'node_modules'), join(project, 'node_modules'), 'dir');
-    const started = process.hrtime.bigint(), phases = [];
+    const started = process.hrtime.bigint(), cpu = process.cpuUsage(), phases = [];
     try {
       for (const [phase, expected] of [['capture', 9], ['approve', 11], ['recover', 7]]) {
         const observation = await command(process.execPath, [join(project, 'workflow.mjs'), phase, join(project, 'handoff.json')],
@@ -277,11 +277,17 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
         assert.equal(rows.at(-1).status, 'passed'); assert.equal(rows.at(-1).firstFailedStep, null);
         phases.push({phase, pid: observation.pid, wallNs: observation.wallNs, assertions: expected});
       }
-      metric.samples.push({iteration, wallNs: Number(process.hrtime.bigint() - started),
-        cpuAvailable: false, completed: true, verified: true, phases});
+      const used = process.cpuUsage(cpu);
+      metric.samples.push({iteration, pid: process.pid, stateId: project, wallNs: Number(process.hrtime.bigint() - started),
+        cpuUserUs: used.user, cpuSystemUs: used.system,
+        cpuScope: 'actual workflow coordinator process only; separately recorded phase child CPU excluded',
+        completed: true, verified: true, phases});
     } catch (error) {
-      metric.samples.push({iteration, wallNs: Number(process.hrtime.bigint() - started),
-        cpuAvailable: false, completed: false, verified: false, phases, error: nodeBenchmarkFailure(error)});
+      const used = process.cpuUsage(cpu);
+      metric.samples.push({iteration, pid: process.pid, stateId: project, wallNs: Number(process.hrtime.bigint() - started),
+        cpuUserUs: used.user, cpuSystemUs: used.system,
+        cpuScope: 'actual workflow coordinator process only; separately recorded phase child CPU excluded',
+        completed: false, verified: false, phases, error: nodeBenchmarkFailure(error)});
       await onMetric(metric); throw error;
     } finally {await unlink(join(project, 'node_modules'));}
     await onMetric(metric);

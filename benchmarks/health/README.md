@@ -10,7 +10,8 @@ npm run health:quick
 npm run health:release -- --packages /path/to/same-sha/packages \
   --native-manifest /path/to/release.json --native-consumer /path/to/native-install \
   --python-manifest /path/to/cohort.json --python-consumer /path/to/site-packages \
-  --python-venv /path/to/venv --comparison /path/to/fixed-sqlite-comparison.json
+  --python-venv /path/to/venv --node-controls /path/to/node-controls.json \
+  --python-controls /path/to/python-controls.json
 npm run health:compare -- --base baseline.json --current report.json
 ```
 
@@ -69,6 +70,10 @@ tool versions, build settings/load/instrumentation, artifact kind and fixture
 methodology. Different commits are expected; each artifact must belong to its
 own report's source. Dirty or changing source/environment is ineligible for a
 formal baseline. Non-comparable fields/reasons stay explicit.
+The fixed Quick/Release inventory and sample counts are checked independently
+of a saved report's required flags/count claims. Collector errors disqualify a
+baseline; an expected verdict exit (such as size-regression exit 1) does not.
+Build/reuse reference timing never gates otherwise comparable size/runtime data.
 
 Size deltas show both bytes and percentage: npm/wheel/Native/Wasm +10% warns,
 +25% regresses; browser gzip +5%/+15%. Quick median warnings require both +30%
@@ -97,16 +102,29 @@ formal workload starts. Python wheels are checked by the existing ordinary
 package verifier, including payload RECORD hashes; actual contained Wasm is
 measured. Native uses its normal release manifest/verifier. No alternate
 backend stands in for an unavailable target.
+Node controls are the existing collector's original source/cohort/environment,
+history protocol, fixed comparison and actual per-operation comparison/settings
+observations. Python controls retain their own source/cohort/environment,
+runtime-matched comparison and observed operation/settings/result-key matches.
+The monitor checks those bindings and invokes the existing assessor; it never
+copies baseline conditions into candidate observations. Missing facts remain
+incomplete. Python's existing retained-Host collector additionally selects the
+same JOIN/Decimal SUM literals/oracles; its prior default routes and 100 ms
+early-stop rule remain unchanged.
 
 The existing Native CLI adapter explicitly lacks retained-Host warm operations.
 Those required entries stay **incomplete**; a fresh CLI invocation is never
 called warm. Unsupported platform artifacts also stay incomplete. Even a full
 set of latency samples does not supply unrelated-history, once-validation,
 durability, fault or all-path Conformance proof. `formalAcceptance` stays false.
-Release's three-process Mock workflow retains its actual observations but
-cannot claim the formal single-sample PID/CPU/approved-work interval. That
-binding and Release Node peak RSS remain explicitly incomplete. Missing
-mandatory Release paths/comparison exit incomplete before a Runtime build.
+Release's three-process Mock workflow keeps the actual coordinator PID/clock
+and CPU scope (child CPU excluded), each phase PID and original public checks.
+It invokes the existing 30-sample/5000 ms Mock assessor without subtracting
+startup or inventing an allowance. That assessment may fail or remain incomplete;
+five successful Quick workflows do not qualify it. Release Node RSS scopes
+the actual collector process including package verification/reporting, excluding
+spawned compiler/Native/Python processes. Both Release paths remain unexecuted
+here. Missing mandatory Release paths/controls exit incomplete before a build.
 This implementation's fast unit tests do not establish Native/Python runtime
 or a completed Release population.
 
@@ -132,7 +150,7 @@ automation remain later phases.
 | 05 | Fixed package/browser size delta unit vectors |
 | 06 | Warm/cold/RSS warning exit-zero unit vectors |
 | 07 | Required-missing, failed sample, dirty and unbound artifact negative tests |
-| 08 | Existing formal Node/Native/Python adapters plus wheel/Wasm inspection; full Release unexecuted |
+| 08 | Existing formal Node/Native/Python adapters, Python JOIN/Aggregate and wheel/Wasm inspection; Native retained warm unavailable, full matching-artifact Release unexecuted |
 | 09 | Local offline public fixtures; Compare works without command tools/network |
 | 10 | Same command in fail-closed reusable/dispatch workflow; hosted execution unverified |
 | 11 | Monitor/collector adaptation only; no public API, Runtime or capacity change |

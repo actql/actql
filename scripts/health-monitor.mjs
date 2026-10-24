@@ -12,7 +12,8 @@ const policy = JSON.parse(await readFile(new URL('../benchmarks/health/config.js
 const optionKeys = {'--base': 'base', '--current': 'current', '--output': 'output', '--packages': 'packages',
   '--native-manifest': 'nativeManifest', '--native-consumer': 'nativeConsumer', '--python-manifest': 'pythonManifest',
   '--python-consumer': 'pythonConsumer', '--python-venv': 'pythonVenv', '--python': 'python',
-  '--comparison': 'comparison', '--load': 'load', '--run': 'run'};
+  '--comparison': 'comparison', '--node-controls': 'nodeControls', '--python-controls': 'pythonControls',
+  '--load': 'load', '--run': 'run'};
 
 export function parseArguments(args) {
   const [mode, ...rest] = args;
@@ -54,7 +55,7 @@ export function requiredQuickMetrics() {
 }
 
 export function missingReleaseInputs(options) {
-  return ['nativeManifest', 'nativeConsumer', 'pythonManifest', 'pythonConsumer', 'pythonVenv', 'comparison']
+  return ['nativeManifest', 'nativeConsumer', 'pythonManifest', 'pythonConsumer', 'pythonVenv', 'nodeControls', 'pythonControls']
     .filter(key => !options[key]);
 }
 
@@ -115,11 +116,20 @@ export async function executeMonitor({mode, options, report, directory}) {
       const {releaseArtifacts, releaseMeasurements} = await import('./health-monitor-release.mjs');
       const ready = await releaseArtifacts({options, repository, source: report.source, command,
         onArtifact: async artifact => report.artifacts.push(artifact), onMetric});
-      if (ready && options.comparison) {
+      if (ready) {
         await releaseMeasurements({options, prepared, repository, root: raw, source: report.source, command, onMetric});
+        const {assessLatency} = await import('./operation-performance.mjs');
+        const {nodeBenchmarkInstrumentation} = await import('./benchmark-node-operations.mjs');
         await mockWorkflowMetrics({prepared, root: raw, repository, command, counts,
-          onMetric: metric => onMetric({...metric, status: 'incomplete',
-            reason: 'Actual three-process workflow retained; formal approved-work interval/PID/CPU correspondence remains unavailable, not synthesized'})});
+          onMetric: async metric => {
+            const binding = {cohortSha256: digest(await readFile(prepared.manifestPath)), fixtureSha256: metric.fixtureSha256};
+            const assessment = assessLatency({operation: 'mock-workflow', mode: 'final', ...binding,
+              environmentSha256: jsonDigest(report.environment), ...nodeBenchmarkInstrumentation(), load: options.load ?? 'concurrent',
+              samples: metric.samples.map(row => ({...row, ...binding}))});
+            await onMetric({...metric, formalAssessment: assessment,
+              ...(assessment.status === 'passed' ? {} : {status: assessment.status === 'failed' ? 'regression' : 'incomplete',
+                reason: 'Existing formal Mock assessment: ' + [...assessment.failures, ...assessment.missing].join('; ')})});
+          }});
       } else await onMetric({id: 'release-public-collectors', target: 'all', kind: 'latency', required: true, status: 'incomplete',
         reason: 'Required matching Native/Python artifacts or fixed SQLite comparison absent; formal workload not started'});
     }
