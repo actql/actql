@@ -80,6 +80,10 @@ struct ClientInstalledEffectManagedPlan {
   operations : Array[ClientInstalledEffectOperationDemand]
   source_free : ClientInstalledManagedSourceFreePreparation?
   sequences : Array[@execution.GeneratedSequence]
+  compute_sequences : Array[@execution.GeneratedSequence]
+  capacity_plan : ClientLocalCapacityPlan
+  provider_retained_bytes : Int64
+  provider_execution_bytes : Int64
   rows : Int
   held_children : Int
   compute_limits : @resources.LedgerLimits
@@ -190,6 +194,35 @@ pub fn prepare_installed_effect_managed_plan(
     guard installed_row_capture_capacity(acquisition) is Some(capacity) else { return Err(Unsupported) }
     captures.push(capacity)
   }
+  // Retain the same concrete Local configuration used for this quote. Opening
+  // Compute never selects the sequences or derives their capacity a second time.
+  let (compute_sequences, capacity_plan, local_capacity) = match source_free {
+    Some(original) => (original.sequences, original.capacity_plan, {
+      limits: original.limits,
+      provider_retained: original.provider_retained_bytes,
+      provider_execution: original.provider_execution_bytes,
+      simultaneous: None,
+    })
+    None => {
+      let first = @strategy.graph_captured_prefix(graph)
+      let tail = []
+      for task in first..<sequences.length() { tail.push(sequences[task]) }
+      let max_rows = @publication_host.client_standard_values_sequence_limits().max_rows
+      let configuration = client_local_capacity_plan(tail, max_rows, graph=Some(graph), graph_offset=first)
+      let inputs = Array::make(tail.length(), 0)
+      for task in first..<sequences.length() {
+        guard @strategy.graph_task_input_count(graph, task) is Some(count) else {
+          return Err(Unsupported)
+        }
+        inputs[task-first] = count
+      }
+      guard client_local_sequence_capacity_original(
+        tail, @strategy.graph_task_count(graph), capacity_plan=Some(configuration),
+        retained_inputs=Some(inputs), max_rows~,
+      ) is Some(capacity) else { return Err(Unsupported) }
+      (tail, configuration, capacity)
+    }
+  }
   let compute_limits = match source_free {
     Some(original) => {
       if !declarations.is_empty() || !transport_bytes.is_empty() ||
@@ -200,7 +233,7 @@ pub fn prepare_installed_effect_managed_plan(
       if @strategy.graph_captured_prefix(graph) == 0 { return Err(Unsupported) }
       guard multi_captured_capacity_limits_selected(
         graph, captures.map(value => (value.retained_bytes, value.execution_bytes)),
-        transport_bytes, transport_execution_bytes, sequences,
+        transport_bytes, transport_execution_bytes, sequences, local_capacity=Some(local_capacity),
       ) is Some(limits) else { return Err(Unsupported) }
       limits
     }
@@ -259,7 +292,7 @@ pub fn prepare_installed_effect_managed_plan(
   let owner_slots = closed_values_append_capacity(workspace.owners).unwrap()
   let row_slots = closed_values_append_capacity(workspace.rows).unwrap()
   let input_slots = closed_values_append_capacity(workspace.input_rows).unwrap()
-  // Fixed retained controls: Plan(1H,16R,2W), six Array wrappers/backings
+  // Fixed retained controls: Plan(1H,18R,4W), six Array wrappers/backings
   // (12H,6R,6W), two LedgerLimits(2H,0R,12W), source-free Some(1H,1R,1W).
   // Operations/declarations are exact copies; transport arrays own scalar
   // slots; acquisitions are appended with pinned spare capacity. Per selected
@@ -268,8 +301,8 @@ pub fn prepare_installed_effect_managed_plan(
   // their original Compute/capture components, not decoded/copied here.
   let controls = preparation_representation_cost({
     record_headers: 16L + 5L * members + sources,
-    reference_slots: 23L + members + sources + 2L * acquisition_slots + 6L * members + extent_count + 2L * sources,
-    scalar_words: 21L + 5L * sources + 4L * members,
+    reference_slots: 25L + members + sources + 2L * acquisition_slots + 6L * members + extent_count + 2L * sources,
+    scalar_words: 23L + 5L * sources + 4L * members,
     owned_utf16_units: 0L, owned_wire_bytes: 0L,
   }).unwrap()
   // Scratch controls: workspace/Some, proof inventory/Some/closed-row Some,
@@ -293,7 +326,10 @@ pub fn prepare_installed_effect_managed_plan(
   Ok({prepared, request, declarations: declarations.copy(), acquisitions, captures, transport_bytes: transport_bytes.copy(),
     transport_execution_bytes: transport_execution_bytes.copy(), installed_contracts,
     values_body, fragment_body, ordered_body, operations: selected_operations.copy(),
-    source_free, sequences, rows, held_children: held_children.to_int(), compute_limits, limits})
+    source_free, sequences, compute_sequences, capacity_plan,
+    provider_retained_bytes: local_capacity.provider_retained,
+    provider_execution_bytes: local_capacity.provider_execution,
+    rows, held_children: held_children.to_int(), compute_limits, limits})
 }
 
 ///|

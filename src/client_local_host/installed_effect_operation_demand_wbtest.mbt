@@ -186,7 +186,9 @@ fn effect_operation_source_plan_fixture() -> ClientInstalledEffectManagedPlan ra
     manifest["connectors"] is Array(connectors) else {
     fail("fixture connector manifest")
   }
-  manifest["connectors"] = effect_plan_fixture_members(manifest["connectors"], [declaration.manifest_entry])
+  manifest["connectors"] = effect_plan_fixture_members(manifest["connectors"], [
+    declaration.manifest_entry,
+  ])
   let wire = @identity.stringify_value(
     @identity.from_json(parsed, 100000, 100, 1000000),
     1000000,
@@ -527,36 +529,154 @@ test "Source Effect plan retains original declaration requirement acquisition ca
 }
 
 ///|
+test "Source Effect tail keeps checked input schema and exact graph offset in its retained configuration" {
+  let plan = effect_operation_source_plan_fixture()
+  let graph = installed_managed_owner_graph(Effect(plan.prepared))
+  assert_eq(plan.capacity_plan.graph_offset, 1)
+  guard plan.capacity_plan.demand_inventory is Some(inventory) else {
+    fail("known Source-input schema must retain its inventory")
+  }
+  assert_eq(inventory.fields, 1)
+  assert_true(inventory.ports > 0)
+  assert_true(inventory.closed_rows is None)
+  assert_eq(plan.capacity_plan.imports.wire.max_columns, 1)
+  assert_eq(plan.capacity_plan.exports.wire.max_columns, 1)
+  assert_true(
+    client_local_capacity_plan_matches(
+      plan.capacity_plan,
+      plan.compute_sequences,
+      plan.capacity_plan.admitted_rows,
+    ),
+  )
+  assert_true(
+    client_local_schema_proof_inventory(
+      plan.compute_sequences,
+      graph=Some(graph),
+      graph_offset=0,
+      scalar_only=false,
+    )
+    is None,
+  )
+  let wrong_offset = { ..plan.capacity_plan, graph_offset: 0, }
+  assert_false(
+    client_local_capacity_plan_matches(
+      wrong_offset,
+      plan.compute_sequences,
+      wrong_offset.admitted_rows,
+    ),
+  )
+  let foreign = effect_operation_source_plan_fixture()
+  assert_true(
+    client_local_schema_proof_inventory(
+      foreign.compute_sequences,
+      graph=Some(graph),
+      graph_offset=1,
+      scalar_only=false,
+    )
+    is None,
+  )
+}
+
+///|
 test "operation demand follows checked zero or three rows and both ordered Effect members" {
   let environment = @publication_host.admit_client_check_environment(
     source_query_original_environment,
     "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
-    {text_time:false,veca:false},{rela:true,sga:false,tea:false,calendar:false,text_rank:false},
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
   let contracts = prepare_installed_sequence_contracts(
-    source_query_original_registry,source_query_original_values,Some(source_query_original_fragment),None,
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
   ).unwrap()
-  for count in [0,3] {
-    let rows = if count == 0 { "[]" } else { "[{\"id\":1},{\"id\":2},{\"id\":3}]" }
-    let document = "{\"version\":\"actql/0.1\",\"id\":\"two-operation-members\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":"+rows+"},\"as\":\"seed\"}],\"results\":{\"rows\":{\"from\":\"seed\",\"fields\":[\"id\"]}},\"effects\":{\"first\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"set\":{\"Name\":{\"field\":\"id\"}}}},\"second\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"set\":{\"Name\":{\"field\":\"id\"}}}}}}],\"results\":{\"rows\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}"
+  for count in [0, 3] {
+    let rows = if count == 0 {
+      "[]"
+    } else {
+      "[{\"id\":1},{\"id\":2},{\"id\":3}]"
+    }
+    let document = "{\"version\":\"actql/0.1\",\"id\":\"two-operation-members\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":" +
+      rows +
+      "},\"as\":\"seed\"}],\"results\":{\"rows\":{\"from\":\"seed\",\"fields\":[\"id\"]}},\"effects\":{\"first\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"set\":{\"Name\":{\"field\":\"id\"}}}},\"second\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"set\":{\"Name\":{\"field\":\"id\"}}}}}}],\"results\":{\"rows\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}"
     let prepared = @publication_host.prepare_client_effect_computation(
-      document,Json,environment,None,[],@publication_host.client_standard_effect_computation_limits(),
+      document,
+      Json,
+      environment,
+      None,
+      [],
+      @publication_host.client_standard_effect_computation_limits(),
     ).unwrap()
     let request = @publication_host.prepare_client_effect_request_identity(
-      prepared,"sha256:"+"a".repeat(64),"two-operation-members","sha256:"+"b".repeat(64),
+      prepared,
+      "sha256:" + "a".repeat(64),
+      "two-operation-members",
+      "sha256:" + "b".repeat(64),
     ).unwrap()
-    let extent = prepare_installed_effect_operation_extent("operation",@execution.execution_capacity(4L,8L).unwrap(),3L,true).unwrap()
-    let first = prepare_installed_effect_operation_demand(prepared,0,"first",[extent],[extent]).unwrap()
-    let second = prepare_installed_effect_operation_demand(prepared,0,"second",[extent],[extent]).unwrap()
+    let extent = prepare_installed_effect_operation_extent(
+      "operation",
+      @execution.execution_capacity(4L, 8L).unwrap(),
+      3L,
+      true,
+    ).unwrap()
+    let first = prepare_installed_effect_operation_demand(
+      prepared,
+      0,
+      "first",
+      [extent],
+      [extent],
+    ).unwrap()
+    let second = prepare_installed_effect_operation_demand(
+      prepared,
+      0,
+      "second",
+      [extent],
+      [extent],
+    ).unwrap()
     let plan = prepare_installed_effect_managed_plan(
-      prepared,request,[],"","",[],[],contracts,source_query_original_values,Some(source_query_original_fragment),None,[first,second],
+      prepared,
+      request,
+      [],
+      "",
+      "",
+      [],
+      [],
+      contracts,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      [first, second],
     ).unwrap()
-    assert_eq(plan.rows,count)
-    assert_eq(plan.limits.attempts-plan.compute_limits.attempts,2+2*count)
-    assert_eq(plan.limits.transfer_bytes-plan.compute_limits.transfer_bytes,(2+2*count).to_int64()*3L)
-    assert_eq(prepared_installed_effect_managed_capture_children(plan),2+2*count)
-    assert_true(prepare_installed_effect_managed_plan(
-      prepared,request,[],"","",[],[],contracts,source_query_original_values,Some(source_query_original_fragment),None,[second,first],
-    ) is Err(ForeignOriginal))
+    assert_eq(plan.rows, count)
+    assert_eq(
+      plan.limits.attempts - plan.compute_limits.attempts,
+      2 + 2 * count,
+    )
+    assert_eq(
+      plan.limits.transfer_bytes - plan.compute_limits.transfer_bytes,
+      (2 + 2 * count).to_int64() * 3L,
+    )
+    assert_eq(
+      prepared_installed_effect_managed_capture_children(plan),
+      2 + 2 * count,
+    )
+    assert_true(
+      prepare_installed_effect_managed_plan(
+        prepared,
+        request,
+        [],
+        "",
+        "",
+        [],
+        [],
+        contracts,
+        source_query_original_values,
+        Some(source_query_original_fragment),
+        None,
+        [second, first],
+      )
+      is Err(ForeignOriginal),
+    )
   }
 }

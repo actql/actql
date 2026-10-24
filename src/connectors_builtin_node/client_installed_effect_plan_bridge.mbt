@@ -1,6 +1,29 @@
 ///|
 // Typed original DATA and the existing managed-parent supplier, never a
 // physical dispatcher, permission issuer or provider-owned Resource root.
+
+///|
+#export_name("clientProgramInstalledEffectManagedHostOpen")
+pub fn client_program_installed_effect_managed_host_open(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  bound : @publication_host.PreparedClientEffectRun,
+  sources : Array[@query.CapturedInputSource],
+  providers : Array[@local.ManagedProvider],
+) -> Result[
+  ClientLocalEffectHost?,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.open_installed_effect_managed_host(owner, bound, sources, provider_factory=_ => {
+    return providers
+  }).map(value => {
+    value.map(tuple => {
+      let (host, run, sequences) = tuple
+      { host, run, prepared: bound, sequences, }
+    })
+  })
+}
+
+///|
 #export_name("clientProgramInstalledEffectOperationExtentPrepare")
 pub fn client_program_installed_effect_operation_extent_prepare(
   operation : String,

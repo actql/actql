@@ -326,7 +326,7 @@ pub fn open_captured_effect_run_dag(
 }
 
 ///|
-/// Keep both original acquisition holdings on their existing ledger while
+/// Keep all original acquisition holdings on their existing ledger while
 /// opening the same admitted Effect Run. The common DAG owner checks each
 /// source's task coordinate, identity and retained holdings before Compute.
 pub fn open_multi_captured_effect_run_dag(
@@ -335,7 +335,8 @@ pub fn open_multi_captured_effect_run_dag(
   ledger : @resources.Ledger,
   supplied? : Array[@execution.CapturedRows] = [],
 ) -> Result[CapturedEffectRunDAG, RunIssue] {
-  if checked.computation.graph.captured_prefix != 2 {
+  if checked.computation.graph.captured_prefix < 2 ||
+    sources.length() != checked.computation.graph.captured_prefix {
     return Err(UnsupportedGraph)
   }
   open_effect_run_captures(checked, sources, ledger, supplied)

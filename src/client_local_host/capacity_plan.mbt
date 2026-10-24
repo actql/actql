@@ -8,6 +8,7 @@ priv struct ClientLocalCapacityPlan {
   dispatch_entries : Int
   dispatch_name_bytes : Int
   graph : @strategy.CheckedDAG?
+  graph_offset : Int
   result_envelope : ClientLocalResultEnvelope?
   publication : ClientLocalResultPublicationPlan?
   schema_inventory : ClientLocalSchemaProofInventory?
@@ -29,9 +30,10 @@ fn client_local_capacity_plan(
   max_rows : Int,
   scalar_values? : Bool = false,
   graph? : @strategy.CheckedDAG? = None,
+  graph_offset? : Int = 0,
 ) -> ClientLocalCapacityPlan {
   let inventory = if scalar_values {
-    client_local_schema_proof_inventory(sequences, graph~)
+    client_local_schema_proof_inventory(sequences, graph~, graph_offset~)
   } else {
     None
   }
@@ -39,12 +41,12 @@ fn client_local_capacity_plan(
     Some(value) => Some(value)
     None =>
       if scalar_values {
-        client_local_schema_proof_inventory(sequences, graph~, scalar_only=false, leaf_only=true)
+        client_local_schema_proof_inventory(sequences, graph~, graph_offset~, scalar_only=false, leaf_only=true)
       } else { None }
   }
   let dispatch_inventory = match node_inventory {
     Some(value) => Some(value)
-    None => client_local_schema_proof_inventory(sequences, graph~, scalar_only=false)
+    None => client_local_schema_proof_inventory(sequences, graph~, graph_offset~, scalar_only=false)
   }
   let dispatch_bounds = client_local_dispatch_bounds(dispatch_inventory, graph)
   let admitted_rows = max_rows
@@ -163,6 +165,7 @@ fn client_local_capacity_plan(
         dispatch_entries: dispatch_bounds.0,
         dispatch_name_bytes: dispatch_bounds.1,
         graph,
+        graph_offset,
         result_envelope,
         publication,
         schema_inventory: inventory,
@@ -205,6 +208,7 @@ fn client_local_capacity_plan(
         dispatch_entries: dispatch_bounds.0,
         dispatch_name_bytes: dispatch_bounds.1,
         graph,
+        graph_offset,
         result_envelope,
         publication,
         schema_inventory: inventory,
@@ -247,6 +251,18 @@ fn client_local_capacity_plan_matches(
   sequences : Array[@execution.GeneratedSequence],
   max_rows : Int,
 ) -> Bool {
+  if plan.graph_offset < 0 { return false }
+  match plan.graph {
+    Some(graph) => {
+      let count = @strategy.graph_task_count(graph)
+      if plan.graph_offset > count || sequences.length() != count - plan.graph_offset { return false }
+      for index, sequence in sequences {
+        guard @strategy.graph_task_owner(graph, index + plan.graph_offset) is Some(original) &&
+          physical_equal(original, @execution.generated_sequence_owner(sequence)) else { return false }
+      }
+    }
+    None => if plan.graph_offset != 0 { return false }
+  }
   if plan.metadata.retained_bytes!=plan.metadata_retained_bytes ||
     (plan.graph is Some(_) && plan.metadata_retained_bytes<client_local_cleanup_retained_bytes()) ||
     (plan.schema_inventory is Some(_) && plan.scalar_demand is None) ||

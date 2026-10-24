@@ -37,12 +37,20 @@ fn client_local_schema_proof_inventory(
   sequences : Array[@execution.GeneratedSequence],
   max_work? : Int = client_local_schema_proof_work(),
   graph? : @strategy.CheckedDAG? = None,
+  graph_offset? : Int = 0,
   scalar_only? : Bool = true,
   leaf_only? : Bool = false,
   workspace? : ClientLocalSchemaProofWorkspace? = None,
 ) -> ClientLocalSchemaProofInventory? {
   if sequences.is_empty() || max_work < 1 || sequences.length() > max_work { return None }
-  if graph is Some(original) && sequences.length()!=@strategy.graph_task_count(original) { return None }
+  if graph_offset < 0 { return None }
+  match graph {
+    Some(original) => {
+      let count = @strategy.graph_task_count(original)
+      if graph_offset > count || sequences.length() != count - graph_offset { return None }
+    }
+    None => if graph_offset != 0 { return None }
+  }
   let mut remaining=max_work
   let seen : Array[@lower.BoundPrepared]=[]
   let mut nodes=1L
@@ -56,7 +64,7 @@ fn client_local_schema_proof_inventory(
     if remaining<1 {return None}
     remaining-=1
     let owner=@execution.generated_sequence_owner(sequence)
-    if graph is Some(original) && !(@strategy.graph_task_owner(original,index) is Some(expected) && physical_equal(owner,expected)) {return None}
+    if graph is Some(original) && !(@strategy.graph_task_owner(original,index + graph_offset) is Some(expected) && physical_equal(owner,expected)) {return None}
     let mut found=false
     for previous in seen {
       if remaining<1 {return None}

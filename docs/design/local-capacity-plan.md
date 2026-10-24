@@ -245,3 +245,18 @@ child. A smaller overlap needs actual retirement of its original references.
 Scratch quoting observes peak owner/row/input-row arrays in the existing schema
 traversal, including failed proofs; work visits are not memory slots. These are
 logical representation allowances, not physical allocation or RSS evidence.
+
+The planned Compute opener binds the existing admitted Effect Run to this same
+parent Ledger and retained generated sequences. The plan keeps the actual Local
+configuration and provider allowance used by its quote. Source captures remain
+on that Ledger; their downstream sequences carry an explicit offset into the
+original full graph. Every sequence owner must match that graph coordinate,
+and its input schemas retain the original Source fields without pretending
+that an open Source has a known row count.
+
+Opening retains the original captured DAG before fallible configuration and
+provider callbacks. Reentry cannot replace it or retire the parent during that
+operation. Failure retains the same cleanup responsibility and never certifies
+physical release. Legacy openers remain separate until their real consumers
+have migrated; the planned opener cannot fall back to a fresh Ledger or repeat
+preparation from equal wire bodies.

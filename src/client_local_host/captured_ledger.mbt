@@ -644,6 +644,7 @@ fn multi_captured_capacity_limits_selected(
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
   sequences : Array[@execution.GeneratedSequence],
+  local_capacity? : ClientLocalSequenceCapacity? = None,
 ) -> @resources.LedgerLimits? {
   let count = @strategy.graph_task_count(graph)
   let captured = @strategy.graph_captured_prefix(graph)
@@ -677,8 +678,10 @@ fn multi_captured_capacity_limits_selected(
   if transfer_envelopes > 9223372036854775807L / 1000000L {
     return None
   }
-  let mut transfer = transfer_envelopes * 1000000L
-  let mut execution_capacity = client_local_execution_byte_ceiling()
+  let mut transfer = local_capacity.map(value => value.limits.transfer_bytes)
+    .unwrap_or(transfer_envelopes * 1000000L)
+  let mut execution_capacity = local_capacity.map(value => value.limits.execution_bytes)
+    .unwrap_or(client_local_execution_byte_ceiling())
   for index in 0..<captured {
     let (capture_retained, capture_execution) = capacities[index]
     if capture_retained < 0L ||
@@ -704,6 +707,7 @@ fn multi_captured_capacity_limits_selected(
   let native_retained = retained
   retained = 0L
   for task in captured..<count {
+    if local_capacity is Some(_) { break }
     guard @execution.generated_sequence_capacity(
         sequences[task],
         execution,
@@ -720,11 +724,8 @@ fn multi_captured_capacity_limits_selected(
   }
   // Preserve the existing Local import/output allowance in addition to,
   // rather than underneath, the independently held native inputs.
-  let compute_retained = if retained > 200000000L {
-    retained
-  } else {
-    200000000L
-  }
+  let compute_retained = local_capacity.map(value => value.limits.retained_bytes)
+    .unwrap_or(Int64::max(retained, 200000000L))
   if compute_retained > 9223372036854775807L - native_retained {
     return None
   }

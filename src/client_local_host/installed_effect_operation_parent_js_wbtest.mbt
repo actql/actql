@@ -297,3 +297,177 @@ test "physical extent membership retains original identity without another curre
     is Err(ForeignOriginal),
   )
 }
+
+///|
+// Real checked compilation and nominal Run binding, with explicit in-memory
+// publication Allow DATA. This is not actual Account/Journal admission.
+fn effect_parent_bound_run(
+  prepared : @publication_host.PreparedClientEffectComputation,
+) -> @publication_host.PreparedClientEffectRun {
+  let manifests = @publication_host.admit_client_compilation_manifests(
+    @environment.compiler_grammar_manifest_wire(),
+    @environment.compiler_barrier_contract_manifest_wire(),
+    100000,
+    10000,
+    100,
+  ).unwrap()
+  let compiled = @publication_host.issue_prepared_client_effect_compilation(
+    prepared,
+    manifests,
+    @publication_host.client_standard_values_sequence_limits(),
+    1000,
+    10000,
+    1000000,
+    100000,
+    100,
+  ).unwrap()
+  let allowed = @publication_host.issue_client_effect_allowed_run(
+    compiled,
+    "sha256:" + "c".repeat(64),
+    "sha256:" + "d".repeat(64),
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = @publication_host.issue_client_effect_run_definition(
+    allowed, "scope", "planned-effect-compute", "2026-10-25T00:00:00.000Z", "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  @publication_host.bind_client_effect_compiled_run(
+    prepared, allowed, definition,
+  ).unwrap()
+}
+
+///|
+test "planned Effect Compute executes retained sequence on the original managed parent Ledger" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let bound = effect_parent_bound_run(prepared)
+  let admission = effect_parent_test_admission(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  let owner = begin_prepared_installed_effect_managed_run(
+    admission, prepared, request, plan,
+  ).unwrap()
+  let ledger = require_installed_managed_run(owner).unwrap()
+  let (host, captured, sequences) = open_installed_effect_managed_host(
+      owner,
+      bound,
+      [],
+    )
+    .unwrap()
+    .unwrap()
+  let dag = @strategy.captured_effect_run_dag(captured)
+  assert_true(physical_equal(@strategy.captured_dag_ledger(dag), ledger))
+  assert_true(
+    physical_equal(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+      dag,
+    ),
+  )
+  assert_true(physical_equal(sequences, plan.sequences))
+  assert_true(physical_equal(sequences[0], plan.compute_sequences[0]))
+  assert_true(physical_equal(owner.source_free_captured.unwrap(), dag))
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+  assert_true(
+    open_installed_effect_managed_host(owner, bound, []) is Err(AlreadyBound),
+  )
+  let execution = execute_source_free_values_guarded(host, 64, 10000, () => true).unwrap()
+  assert_eq(execution.rows().unwrap(), ["{\"id\":1}"])
+  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_true(execution.close())
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_true(owner.source_free_captured is None)
+}
+
+///|
+test "planned Effect Compute rejects foreign bound Run and fences same-parent callback reentry" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let bound = effect_parent_bound_run(prepared)
+  let foreign = effect_parent_bound_run(installed_effect_managed_fixture())
+  let admission = effect_parent_test_admission(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  let owner = begin_prepared_installed_effect_managed_run(
+    admission, prepared, request, plan,
+  ).unwrap()
+  assert_true(
+    open_installed_effect_managed_host(owner, foreign, [])
+    is Err(ForeignOriginal),
+  )
+  assert_true(owner.source_free_captured is None)
+  let called = Ref(0)
+  let reentry_refused = Ref(false)
+  let retirement_pending = Ref(false)
+  let (host, captured, _) = open_installed_effect_managed_host(
+      owner,
+      bound,
+      [],
+      provider_factory=_ => {
+        called.val += 1
+        reentry_refused.val = open_installed_effect_managed_host(owner, bound, [])
+          is Err(AlreadyBound)
+        retirement_pending.val = retire_installed_managed_run(owner)
+          is Err(CleanupPending)
+        []
+      },
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(called.val, 1)
+  assert_true(reentry_refused.val)
+  assert_true(retirement_pending.val)
+  assert_true(
+    physical_equal(
+      owner.source_free_captured.unwrap(),
+      @strategy.captured_effect_run_dag(captured),
+    ),
+  )
+  let execution = execute_source_free_values_guarded(host, 64, 10000, () => true).unwrap()
+  assert_true(execution.close())
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+extern "js" fn effect_parent_test_require_current(available : Bool) -> Unit =
+  #|available => {if (!available) throw new Error('explicit test current loss');}
+
+///|
+test "planned Effect callback current loss retains original DAG cleanup and starts no task" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let bound = effect_parent_bound_run(prepared)
+  let available = Ref(true)
+  let admission = effect_parent_test_admission(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+    current=() => effect_parent_test_require_current(available.val),
+  )
+  let owner = begin_prepared_installed_effect_managed_run(
+    admission, prepared, request, plan,
+  ).unwrap()
+  let ledger = require_installed_managed_run(owner).unwrap()
+  let outcome = open_installed_effect_managed_host(owner, bound, [], provider_factory=_ => {
+    available.val = false
+    []
+  })
+  assert_false(available.val)
+  assert_true(outcome is Err(Resource(Unavailable)))
+  assert_false(owner.source_free_opening)
+  guard owner.source_free_captured is Some(dag) else {
+    fail("failed configuration must retain its original cleanup DAG")
+  }
+  assert_true(physical_equal(@strategy.captured_dag_ledger(dag), ledger))
+  assert_false(@strategy.captured_task_completed(dag, 0))
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+  assert_true(
+    open_installed_effect_managed_host(owner, bound, []) is Err(AlreadyBound),
+  )
+  retire_installed_managed_run(owner).unwrap()
+  assert_true(owner.source_free_captured is None)
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+}
