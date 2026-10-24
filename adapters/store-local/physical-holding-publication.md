@@ -988,17 +988,19 @@ the aggregate row refuse rather than resetting or rebuilding coverage.
 Every possible new final object has recovery coverage before link. Tracked
 and untracked byte writers retain the existing internal prepared-custody record
 until installation accounting or original cleanup settles; untracked callers
-do not receive another public capability. In the legacy direct index mode, a
-semantic batch retains its bounded generation originals in the same native
-database before linking. Its real object-directory ACK precedes the transaction that records installed
-usage and removes those pending originals together. No per-item custody file
-or custody-directory ACK is introduced by that batch.
+do not receive another public capability. A semantic batch retains its bounded
+generation originals in the same native database before linking. Its real
+object-directory ACK records installation accounting while the original
+preparation remains pending until semantic alias acknowledgement or actual
+cleanup. No per-item custody file or custody-directory ACK is introduced by
+that batch.
 
 Legacy pending-only cold recovery observes the selected original generations. An
 installed generation is charged after the real directory ACK; an absent or
 different generation only retires that pending preparation, never a successor's
-installed charge. Immutable objects left by an interrupted semantic publication
-remain charged even when no semantic alias was published. The existing staging
+installed charge. An interrupted, unpublished semantic generation stays charged
+until its same original cleanup confirms physical reclamation; a separately
+adopted or intended published alias retains the allocation. The existing staging
 cleanup is separate from final-name and native transaction acknowledgement.
 
 Unlink and its containing-directory ACK precede decrementing the same physical
@@ -1054,8 +1056,10 @@ refuse; missing adopted physical tables or usage still refuse. This header is
 derived quota recovery metadata, never Account, Run, authority or a file ACK.
 
 After that ACK, the same index retains bounded quota changes and preparation
-generations in memory. Payload sync/close, object/alias directory ACKs and all
-physical cleanup still occur before their existing success boundaries. A failed
+generations in memory. Unsettled semantic aliases additionally retain bounded
+durable preparations as described below. Payload sync/close, object/alias
+directory ACKs and all physical cleanup still occur before their existing
+success boundaries. A failed
 unlink ACK keeps its original generation charged; a same-CID successor can be
 charged separately without replacing that retiring original. Only its own real
 ACK decrements the old charge. The current physical count bounds live and
@@ -1149,3 +1153,45 @@ callback are unchanged. Three definition descriptors and the fallback
 descriptor object overlap the existing inspection descriptors/control frame;
 they are not free storage or a proof of the retained error graph's byte size.
 
+
+## Semantic preparation crash recovery
+
+Before a new semantic batch acquires object names, the existing native physical
+preparation records durably retain each exact digest, extent, device/inode and
+intended semantic CID. The same bounded transaction serves the whole batch;
+there is no per-item custody file. Private metadata format fourteen preserves
+older targetless preparations without inventing a semantic target. Physical
+quota recovery preserves these separate pending duties.
+
+A physical-directory acknowledgement alone does not settle the semantic alias.
+Successful alias publication retires its original preparation after the actual
+contracts-directory acknowledgement. Restart can freshly acknowledge the exact
+intended alias only when it names that same physical generation. A conflicting
+alias never adopts the new allocation. Unpublished, unreferenced generations
+are reclaimed through the existing custody/unlink/directory-ACK/quota owner.
+An unknown extra link retains the original cleanup until that borrower leaves;
+link count alone proves neither adoption nor successful semantic publication.
+An independently accepted raw writer may instead settle the same preparation
+while retaining its physical allocation and quota exactly once.
+
+A lost native settlement reply retains the same settlement phase. Its retry
+confirms that original mutation before another indexed read and never repeats
+an acknowledged unlink or substitutes another generation. Failed grow/adoption,
+foreign or stale generations and Unknown cannot discard another pending duty.
+The existing Store queues, bounded preparation map and cleanup holder retain
+request metadata through their actual terminal; no second recovery engine or
+new authority is introduced.
+
+File-backed Index publication stages its existing complete publication inventory
+before installing the Index body. That same durable owner covers the intended
+Index digest and already owns terminal uncommitted metadata reclamation; it
+needs no duplicate physical-preparation transactions. Independently present
+Index aliases still undergo their actual original acquisition and physical
+binding checks. All file/directory acknowledgements, commit reconciliation,
+Result custody, current checks and selected readers remain mandatory.
+
+The real SQLite/filesystem tests distinguish pre-alias process exit, an alias
+whose directory reply was lost, an unknown borrower, independent adoption and
+both committed and rolled-back native settlement uncertainty. Raw quota census
+fixtures interrupt only an unlinked write or an already acknowledged raw writer;
+an unacknowledged semantic body is not an adopted physical Result.

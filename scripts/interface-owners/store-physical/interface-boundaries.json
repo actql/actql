@@ -3624,7 +3624,7 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "usage and removes those pending originals together. No per-item custody file"
+                "anchor": "preparation remains pending until semantic alias acknowledgement or actual"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -4282,7 +4282,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "80d3a51719cd942573512276b4e25b10c5d67ffac888a2aa1144f2aa9129029a",
+      "sha256": "e51c6758a86f0b371c368ab6d91b19394fbe4f7e427da8ab25a59204877fee66",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -4468,6 +4468,13 @@
         {
           "name": "openDeliveryAttemptIndex/init:beginPhysicalObjectLifetime/init:beginPhysicalObjectLifetime/init:beginPhysicalObjectLifetime",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:beginPhysicalObjectLifetime/init:beginPhysicalObjectLifetime/preparations/preparations",
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -4754,6 +4761,13 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:pendingPhysicalObject/init:pendingPhysicalObject",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:pendingPhysicalObjects/init:pendingPhysicalObjects",
           "parameters": [],
           "async": false
@@ -4876,7 +4890,8 @@
         {
           "name": "openDeliveryAttemptIndex/init:recordPhysicalObjects/init:recordPhysicalObjects",
           "parameters": [
-            "values"
+            "values",
+            "retainPreparations"
           ],
           "async": false
         },
@@ -4970,7 +4985,8 @@
         {
           "name": "openDeliveryAttemptIndex/init:stagePhysicalObjects/init:stagePhysicalObjects",
           "parameters": [
-            "values"
+            "values",
+            "durable"
           ],
           "async": false
         },
@@ -5009,7 +5025,22 @@
           "name": "openDeliveryAttemptIndex/mutateLifetimePhysical/mutateLifetimePhysical",
           "parameters": [
             "kind",
-            "originals"
+            "originals",
+            "retainPreparations"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/mutateLifetimePhysical/mutateLifetimePhysical/durable/durable",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/mutateLifetimePhysical/mutateLifetimePhysical/durable/durable#2",
+          "parameters": [
+            "row"
           ],
           "async": false
         },
@@ -5017,7 +5048,8 @@
           "name": "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical",
           "parameters": [
             "kind",
-            "values"
+            "values",
+            "retainPreparations"
           ],
           "async": false
         },
@@ -5066,7 +5098,15 @@
           "name": "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation",
           "parameters": [
             "kind",
-            "values"
+            "values",
+            "durable"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation/added/added",
+          "parameters": [
+            "row"
           ],
           "async": false
         },
@@ -5094,6 +5134,13 @@
         {
           "name": "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation/mutatePhysicalPreparation#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation/persisted/persisted",
+          "parameters": [
+            "row"
+          ],
           "async": false
         },
         {
@@ -5274,6 +5321,13 @@
         },
         {
           "name": "openDeliveryAttemptIndex/preparationKey/preparationKey",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/preparationOriginal/preparationOriginal",
           "parameters": [
             "row"
           ],
@@ -5600,6 +5654,14 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/samePreparation/samePreparation",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/sameProgress/sameProgress",
           "parameters": [
             "a",
@@ -5748,6 +5810,7 @@
             "openDeliveryAttemptIndex/init:attempt/init:attempt",
             "openDeliveryAttemptIndex/init:beginPhysicalObjectLifetime/init:beginPhysicalObjectLifetime",
             "openDeliveryAttemptIndex/init:beginPhysicalObjectLifetime/init:beginPhysicalObjectLifetime/init:beginPhysicalObjectLifetime",
+            "openDeliveryAttemptIndex/init:beginPhysicalObjectLifetime/init:beginPhysicalObjectLifetime/preparations/preparations",
             "openDeliveryAttemptIndex/init:claim/init:claim",
             "openDeliveryAttemptIndex/init:claim/init:claim/result/result",
             "openDeliveryAttemptIndex/init:complete/init:complete",
@@ -5791,6 +5854,7 @@
             "openDeliveryAttemptIndex/init:needsMigration/init:needsMigration",
             "openDeliveryAttemptIndex/init:needsPublicationRecoveryMigration/init:needsPublicationRecoveryMigration",
             "openDeliveryAttemptIndex/init:pending/init:pending",
+            "openDeliveryAttemptIndex/init:pendingPhysicalObject/init:pendingPhysicalObject",
             "openDeliveryAttemptIndex/init:pendingPhysicalObjects/init:pendingPhysicalObjects",
             "openDeliveryAttemptIndex/init:pendingPublication/init:pendingPublication",
             "openDeliveryAttemptIndex/init:pendingPublications/init:pendingPublications",
@@ -5830,6 +5894,8 @@
             "openDeliveryAttemptIndex/insertPublicationRows/insertPublicationRows/insertPublicationRows#2",
             "openDeliveryAttemptIndex/inventoryUsage/inventoryUsage",
             "openDeliveryAttemptIndex/mutateLifetimePhysical/mutateLifetimePhysical",
+            "openDeliveryAttemptIndex/mutateLifetimePhysical/mutateLifetimePhysical/durable/durable",
+            "openDeliveryAttemptIndex/mutateLifetimePhysical/mutateLifetimePhysical/durable/durable#2",
             "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical",
             "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical/changes/changes",
             "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical/mutatePhysical",
@@ -5838,10 +5904,12 @@
             "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical/sameOriginals/sameOriginals",
             "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical/sameOriginals/sameOriginals/sameOriginals",
             "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation",
+            "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation/added/added",
             "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation/changes/changes",
             "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation/changes/changes#2",
             "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation/mutatePhysicalPreparation",
             "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation/mutatePhysicalPreparation#2",
+            "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation/persisted/persisted",
             "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation/retry/retry",
             "openDeliveryAttemptIndex/mutatePublicationRecovery/mutatePublicationRecovery",
             "openDeliveryAttemptIndex/mutatePublicationRecovery/mutatePublicationRecovery/mutatePublicationRecovery",
@@ -5874,6 +5942,7 @@
             "openDeliveryAttemptIndex/physicalOriginal/physicalOriginal",
             "openDeliveryAttemptIndex/physicalState/physicalState",
             "openDeliveryAttemptIndex/preparationKey/preparationKey",
+            "openDeliveryAttemptIndex/preparationOriginal/preparationOriginal",
             "openDeliveryAttemptIndex/prepare/prepare",
             "openDeliveryAttemptIndex/prepare/prepare/prepare",
             "openDeliveryAttemptIndex/prepare/prepare/prepare#2",
@@ -5921,6 +5990,7 @@
             "openDeliveryAttemptIndex/sameOptionalPhysical/sameOptionalPhysical",
             "openDeliveryAttemptIndex/samePhysical/samePhysical",
             "openDeliveryAttemptIndex/samePhysical/samePhysical/samePhysical",
+            "openDeliveryAttemptIndex/samePreparation/samePreparation",
             "openDeliveryAttemptIndex/sameProgress/sameProgress",
             "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress",
             "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress#2",
@@ -6006,6 +6076,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "### Native Index publication"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Semantic preparation crash recovery"
               }
             ],
             "inputsOutputs": [
@@ -6131,7 +6205,7 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "usage and removes those pending originals together. No per-item custody file"
+                "anchor": "preparation remains pending until semantic alias acknowledgement or actual"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -6240,6 +6314,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "setup operations; an explicit refusal never falls back to another write."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Semantic preparation crash recovery"
               }
             ],
             "cancellation": [
@@ -6529,7 +6607,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3ffc767d916a96e6414d5854998f98ef4e908982ab082e0044a5da4b02f23f06",
+      "sha256": "efe4442c77ea06d6f7532fd156c5d965a51dacaadf782f3806e0aede667f454e",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -7265,6 +7343,21 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/inventoryContractObjects/inventoryContractObjects",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/inventoryContractObjects/inventoryContractObjects#2",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/objects/objects",
           "parameters": [
             "cid"
@@ -7445,7 +7538,8 @@
         {
           "name": "openOriginalLocalPublicationStore/confirmPhysicalCapacity/confirmPhysicalCapacity",
           "parameters": [
-            "originals"
+            "originals",
+            "retainPreparations"
           ],
           "async": false
         },
@@ -7814,6 +7908,16 @@
             "installed"
           ],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled/adoption/adoption",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled/init:confirmInstalled",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:discardInstallation/init:discardInstallation",
@@ -9122,7 +9226,8 @@
           "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch",
           "parameters": [
             "supplied",
-            "retainedOriginals"
+            "retainedOriginals",
+            "recoveryInventory"
           ],
           "async": true
         },
@@ -9144,6 +9249,20 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry/init:retry/closed/closed",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry/init:retry/init:retry",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry/init:retry#2",
           "parameters": [],
           "async": false
@@ -9153,6 +9272,13 @@
           "parameters": [
             "wire",
             "semanticCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/member/member",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -9663,6 +9789,23 @@
             "unconfirmedObjects"
           ],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/reclaimNativePreparation/reclaimNativePreparation",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/reclaimNativePreparation/reclaimNativePreparation/operation/operation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/reclaimNativePreparation/reclaimNativePreparation/reclaimNativePreparation",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/recoverMetadataInventory/recoverMetadataInventory",
@@ -10988,6 +11131,8 @@
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/bindings/bindings",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/inventory/inventory",
+            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/inventoryContractObjects/inventoryContractObjects",
+            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/inventoryContractObjects/inventoryContractObjects#2",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/objects/objects",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory",
@@ -11063,6 +11208,8 @@
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/createObjectWriter",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:accountInstalled/init:accountInstalled",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled",
+            "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled/adoption/adoption",
+            "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled/init:confirmInstalled",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:discardInstallation/init:discardInstallation",
             "openOriginalLocalPublicationStore/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup",
             "openOriginalLocalPublicationStore/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/cleanup/init:retry/init:retry",
@@ -11290,6 +11437,9 @@
             "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract",
             "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract/reclaimMetadataContract",
             "openOriginalLocalPublicationStore/reclaimMetadataContractInternal/reclaimMetadataContractInternal",
+            "openOriginalLocalPublicationStore/reclaimNativePreparation/reclaimNativePreparation",
+            "openOriginalLocalPublicationStore/reclaimNativePreparation/reclaimNativePreparation/operation/operation",
+            "openOriginalLocalPublicationStore/reclaimNativePreparation/reclaimNativePreparation/reclaimNativePreparation",
             "openOriginalLocalPublicationStore/recoverMetadataInventory/recoverMetadataInventory",
             "openOriginalLocalPublicationStore/recoverPhysicalHoldingDeletions/recoverPhysicalHoldingDeletions",
             "openOriginalLocalPublicationStore/recoverPreparedCustodies/recoverPreparedCustodies",
@@ -11604,6 +11754,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "### Native Index publication"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Semantic preparation crash recovery"
               }
             ],
             "inputsOutputs": [
@@ -11921,7 +12075,7 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "usage and removes those pending originals together. No per-item custody file"
+                "anchor": "preparation remains pending until semantic alias acknowledgement or actual"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -12174,6 +12328,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "setup operations; an explicit refusal never falls back to another write."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Semantic preparation crash recovery"
               }
             ],
             "cancellation": [
@@ -13515,7 +13673,10 @@
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry",
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry/init:retry#2",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry/init:retry/closed/closed",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/items/items",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/member/member",
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/originals/originals",
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/originals/originals#2",
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/putSemanticBatch",
@@ -13543,12 +13704,16 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "During one serialized Index commit, a newly written semantic body may also"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Semantic preparation crash recovery"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const putSemanticBatch = async (supplied, retainedOriginals) => {"
+                "anchor": "const putSemanticBatch = async (supplied, retainedOriginals, recoveryInventory) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -13560,7 +13725,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const putSemanticBatch = async (supplied, retainedOriginals) => {"
+                "anchor": "const putSemanticBatch = async (supplied, retainedOriginals, recoveryInventory) => {"
               }
             ],
             "identity": [
@@ -13588,7 +13753,7 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "usage and removes those pending originals together. No per-item custody file"
+                "anchor": "preparation remains pending until semantic alias acknowledgement or actual"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -13633,6 +13798,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "reader and its hard-link validation. Failed durability never publishes this"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Semantic preparation crash recovery"
               }
             ],
             "cancellation": [
@@ -13808,7 +13977,7 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "usage and removes those pending originals together. No per-item custody file"
+                "anchor": "preparation remains pending until semantic alias acknowledgement or actual"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -14277,7 +14446,7 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "usage and removes those pending originals together. No per-item custody file"
+                "anchor": "preparation remains pending until semantic alias acknowledgement or actual"
               }
             ],
             "synchronization": [

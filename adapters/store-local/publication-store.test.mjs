@@ -1343,9 +1343,9 @@ test(`publication inventory staging retains its ${afterCommit ? 'committed' : 'r
   assert.equal(commits, 1);
   assert.equal(failure.cleanupHandle?.status().pending, true,
     'the same original native staging ACK must remain reachable from the Store failure');
-  await assert.rejects(store.close(), code('PublicationStoreCleanupPending'));
   await assert.rejects(store.inspectCommittedIndex(indexKeyFor(request)),
     code('DeliveryAttemptIndexCommitOutcomeUnknown'));
+  assert.equal(failure.cleanupHandle.status().pending, true);
   const first = failure.cleanupHandle.retry(), concurrent = failure.cleanupHandle.retry();
   assert.equal(first, concurrent, 'concurrent finalization owns one original write');
   assert.equal((await first).pending, false);
@@ -3892,12 +3892,14 @@ test(`unclean physical quota recovery retains ${afterLink?'installed':'unlinked'
     const store=await openLocalPublicationStore(configuration,createPublicationContractControlFixture());
     fs.link=async function(from,to,...args){
       if(String(to).startsWith(join(configuration.directory,'objects')+'/')) {
-        if(${afterLink})await Reflect.apply(link,this,[from,to,...args]);
-        process.exit(45);
+        if(!${afterLink})process.exit(45);
       }
       return Reflect.apply(link,this,[from,to,...args]);
     };syncBuiltinESMExports();
-    await store.putSemantic(${JSON.stringify(resultSchemaWire)},${JSON.stringify(cids.schema)});
+    const writer=store.createObjectWriter(${Buffer.byteLength(resultSchemaWire)});
+    await writer.append(${JSON.stringify(resultSchemaWire)});
+    await writer.seal();
+    process.exit(45);
   `);
   assert.equal(child.exitCode,45,child.stderr);
   const reopened=await openLocalPublicationStore(configuration,contractControl);
@@ -4086,6 +4088,154 @@ test('restart reclaims a semantic object from a pre-link process crash',
     assert.deepEqual(await readdir(join(directory, 'prepared-custody')), []);
     assert.deepEqual(await readdir(join(directory, 'staging')), []);
   });
+
+test('restart retains the original semantic alias across a lost directory reply', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-publication-semantic-alias-crash-'));
+  t.after(() => removeFixtureDirectory(directory));
+  const configuration = {directory, storeAuthorityCid: cids.authority,
+    capacityBytes: 1024 * 1024, maxObjectBytes: 64 * 1024, maxObjects: 100,
+    maxContractNodes: limits.maxNodes, maxContractDepth: limits.maxDepth};
+  const value = invocation();
+  const admitted = contractControl.admit('run_invocation', wire(value), limits);
+  const physicalCid = digest(admitted.wire);
+  const child = await runStoreChild(`
+    import {constants} from 'node:fs';
+    import {open} from 'node:fs/promises';
+    import {join} from 'node:path';
+    import {openLocalPublicationStore} from ${JSON.stringify(new URL('./publication-store.mjs', import.meta.url).href)};
+    import {createPublicationContractControlFixture} from ${JSON.stringify(new URL('../host-common/publication-contract-control.fixture.mjs', import.meta.url).href)};
+    const directory = ${JSON.stringify(directory)};
+    const durability = Object.freeze({async syncDirectory(path) {
+      const handle = await open(path, constants.O_RDONLY);
+      try { await handle.sync(); } finally { await handle.close(); }
+      if (path === join(directory, 'contracts')) process.exit(73);
+    }});
+    const store = await openLocalPublicationStore(${JSON.stringify(configuration)},
+      createPublicationContractControlFixture(), durability);
+    await store.putPublicationContract('run_invocation', ${JSON.stringify(admitted.wire)});
+  `);
+  assert.equal(child.exitCode, 73, child.stderr);
+  assert.equal(child.signal, null);
+  const objectBefore = await stat(join(directory, 'objects', physicalCid.slice(7)));
+  const aliasBefore = await stat(join(directory, 'contracts', value.invocation_cid.slice(7) + '.json'));
+  assert.equal(objectBefore.ino, aliasBefore.ino);
+  const store = await openLocalPublicationStore(configuration, contractControl);
+  t.after(() => store.close());
+  assert.equal((await store.verifyObject(physicalCid)).bytes, Buffer.byteLength(admitted.wire));
+  assert.deepEqual(await store.readJsonObject(value.invocation_cid, 'run_invocation'), value);
+  assert.equal((await stat(join(directory, 'objects', physicalCid.slice(7)))).ino, objectBefore.ino);
+  assert.deepEqual(await readdir(join(directory, 'prepared-custody')), []);
+  assert.deepEqual(await readdir(join(directory, 'staging')), []);
+});
+
+test('an unknown extra link retains the original semantic cleanup until its borrower leaves', async t => {
+  const {store, directory} = await fixture(t);
+  const value = invocation();
+  const admitted = contractControl.admit('run_invocation', wire(value), limits);
+  const physicalCid = digest(admitted.wire);
+  const target = join(directory, 'contracts', value.invocation_cid.slice(7) + '.json');
+  const borrowed = join(directory, 'unconfirmed-borrower');
+  const originalLink = fsPromises.link;
+  const primary = Object.assign(new Error('semantic alias failed with an unknown borrower'), {code: 'EIO'});
+  let failure;
+  fsPromises.link = async function(from, to) {
+    if (to !== target) return Reflect.apply(originalLink, fsPromises, [from, to]);
+    await Reflect.apply(originalLink, fsPromises, [from, borrowed]);
+    throw primary;
+  };
+  syncBuiltinESMExports();
+  const restore = () => {fsPromises.link = originalLink; syncBuiltinESMExports();};
+  t.after(async () => {
+    restore();
+    try { await unlink(borrowed); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    if (failure?.cleanupHandle?.status().pending) await failure.cleanupHandle.retry();
+  });
+  await assert.rejects(store.putPublicationContract('run_invocation', admitted.wire), error => {
+    failure = error;
+    return error.primaryFailure === primary && error.cleanupPending === true;
+  });
+  restore();
+  assert.equal((await store.verifyObject(physicalCid)).bytes, Buffer.byteLength(admitted.wire));
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  await unlink(borrowed);
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  await assert.rejects(store.verifyObject(physicalCid), code('PublicationObjectMissing'));
+});
+
+for (const afterCommit of [false, true]) {
+test(`semantic cleanup retains its ${afterCommit ? 'committed' : 'rolled-back'} native settlement reply`, async t => {
+  let store, directory, target;
+  const value = invocation(), admitted = contractControl.admit('run_invocation', wire(value), limits);
+  const physicalCid = digest(admitted.wire);
+  const link = fsPromises.link, prepare = DatabaseSync.prototype.prepare, exec = DatabaseSync.prototype.exec;
+  const primary = Object.assign(new Error('original semantic alias refused'), {code:'EIO'});
+  let deleting = false, lost = false, failure;
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql, ...args) {
+    const statement = Reflect.apply(prepare, this, [sql, ...args]);
+    if (sql === 'DELETE FROM physical_object_preparations WHERE cid=? AND device=? AND inode=?') {
+      const run = statement.run;
+      t.mock.method(statement, 'run', function(...values) {
+        deleting = true;
+        return Reflect.apply(run, this, values);
+      });
+    }
+    return statement;
+  });
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql, ...args) {
+    if (deleting && !lost && sql === 'COMMIT') {
+      lost = true;
+      if (afterCommit) Reflect.apply(exec, this, [sql, ...args]);
+      throw Object.assign(new Error('original native settlement reply lost'), {code:'EIO'});
+    }
+    return Reflect.apply(exec, this, [sql, ...args]);
+  });
+  t.mock.method(fsPromises, 'link', function(from, to, ...args) {
+    if (to === target) throw primary;
+    return Reflect.apply(link, this, [from, to, ...args]);
+  });
+  syncBuiltinESMExports();
+  ({store, directory} = await fixture(t));
+  target = join(directory, 'contracts', value.invocation_cid.slice(7) + '.json');
+  await assert.rejects(store.putPublicationContract('run_invocation', admitted.wire), error => {
+    failure = error;
+    return error.primaryFailure === primary && error.cleanupPending === true;
+  });
+  assert.equal(lost, true);
+  const first = failure.cleanupHandle.retry(), concurrent = failure.cleanupHandle.retry();
+  assert.strictEqual(first, concurrent);
+  assert.equal((await first).pending, false);
+  assert.equal(failure.cleanupHandle.status().pending, false);
+  await assert.rejects(store.verifyObject(physicalCid), code('PublicationObjectMissing'));
+});
+}
+
+test('an independently adopted physical body survives a failed semantic alias', async t => {
+  const {store, directory} = await fixture(t);
+  const value = invocation();
+  const admitted = contractControl.admit('run_invocation', wire(value), limits);
+  const physicalCid = digest(admitted.wire);
+  const target = join(directory, 'contracts', value.invocation_cid.slice(7) + '.json');
+  const originalLink = fsPromises.link;
+  const primary = Object.assign(new Error('semantic alias failed after independent physical adoption'), {code: 'EIO'});
+  let adopted;
+  fsPromises.link = async function(from, to) {
+    if (to !== target) return Reflect.apply(originalLink, fsPromises, [from, to]);
+    const writer = store.createObjectWriter(Buffer.byteLength(admitted.wire));
+    await writer.append(admitted.wire);
+    adopted = await writer.seal();
+    throw primary;
+  };
+  syncBuiltinESMExports();
+  const restore = () => {fsPromises.link = originalLink; syncBuiltinESMExports();};
+  t.after(restore);
+  await assert.rejects(store.putPublicationContract('run_invocation', admitted.wire), error => error === primary);
+  restore();
+  assert.equal(adopted.cid, physicalCid);
+  assert.equal((await store.verifyObject(physicalCid)).bytes, Buffer.byteLength(admitted.wire));
+  await assert.rejects(store.readJsonObject(value.invocation_cid, 'run_invocation'), code('PublicationContractMissing'));
+  assert.deepEqual(await readdir(join(directory, 'prepared-custody')), []);
+  assert.deepEqual(await readdir(join(directory, 'staging')), []);
+});
 
 test('crash custody cannot reclaim a committed shared allocation',
   async t => {
@@ -6859,7 +7009,16 @@ test('Result cleanup legacy coverage is audited once and a selected corrupt mark
   assert.equal((await store.retireCommittedResult(indexKeyFor(request), request.inventory[0].result_definition_cid)).deleted, true);
   await store.close();
   const database = new DatabaseSync(join(directory, 'delivery-attempts.sqlite3'));
-  try {database.exec('DROP TABLE native_publication_materials; DROP TABLE native_publication_indexes; DROP TRIGGER native_publication_references_insert; DROP TRIGGER native_publication_references_update; DROP TABLE native_publication_references; DROP TABLE result_deletion_recovery; UPDATE coverage SET version=10 WHERE id=1');}
+  try {database.exec(`DROP TABLE native_publication_materials; DROP TABLE native_publication_indexes;
+DROP TRIGGER native_publication_references_insert; DROP TRIGGER native_publication_references_update;
+DROP TABLE native_publication_references; DROP TABLE result_deletion_recovery;
+DROP TABLE physical_object_preparations;
+CREATE TABLE physical_object_preparations (
+  cid TEXT NOT NULL, byte_count INTEGER NOT NULL CHECK(byte_count>=0),
+  device TEXT NOT NULL, inode TEXT NOT NULL,
+  PRIMARY KEY(cid,device,inode)
+) WITHOUT ROWID;
+UPDATE coverage SET version=10 WHERE id=1;`);}
   finally {database.close();}
   const parent = join(directory, 'deletions', (await readdir(join(directory, 'deletions')))[0]);
   const marker = join(parent, (await readdir(parent))[0]);
