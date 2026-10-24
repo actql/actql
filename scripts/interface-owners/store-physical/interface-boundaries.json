@@ -6529,7 +6529,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9a238db3c1d35033dbef9f0142bbf8d7d8932d248d9e55e63793f2a4a5523f93",
+      "sha256": "3ffc767d916a96e6414d5854998f98ef4e908982ab082e0044a5da4b02f23f06",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -12906,6 +12906,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "native Index shared Result payload keeps the same allocation until final real unlink ACK"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('known file-backed Result metadata performs no unrelated native delivery probe'"
               }
             ]
           }
