@@ -124,7 +124,7 @@ test "UNNEST FULL JOIN retains the common identity premises" {
     @check.check_parsed(unkeyed, check_environment(), supplied, check_limits()) {
     Rejected(error) =>
       assert_true(
-        @check.diagnostic_cause(error) is Closure(Joins(MissingEvidence(_))),
+        @check.diagnostic_cause(error) is Closure(Joins(MissingStableIdentity(_))),
       )
     _ => fail("FULL must not manufacture identity evidence after expansion")
   }
