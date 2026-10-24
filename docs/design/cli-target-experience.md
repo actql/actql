@@ -215,3 +215,28 @@ only its closed classification across the existing Read return. It never
 rechecks a rejected Program or infers a code from internal reason strings.
 Primary and cleanup failures remain distinct; successful stdout and real Run
 contracts retain their existing meaning.
+
+
+## Project example preparation
+
+The project template is a finite set of authored inputs. `deal-review-mock`
+selects the root README Program, its typed task and answer files, and raw
+Opportunity rows and Drive documents. `churn-risk-mock` retains the Quickstart
+inputs and its `mock` profile. The deal-review project selects the distinct
+`deal-review-mock` profile; an explicit profile override retains its exact
+meaning and does not acquire consent from a project default.
+
+Drive document inputs contain IDs, original revision names, MIME types and
+UTF-8 text. Their declared key is the ID, not the document name used by the
+join. They contain no serialized Resource or ContentRef. The selected Source
+and Content Owners issue and capture those originals, while the Model Owner
+checks the declared Content role, original bytes, issuer, currentness and
+egress. Authored answer keys supply no uniqueness or execution evidence.
+
+Template selection prepares no Host, state directory, signing key, credential,
+grant or runtime. The launcher first admits its installed Native image, then
+passes the prepared project through the existing initial-adoption operation.
+Only that operation can initialize the project Store. Partial preparations
+remain exclusive and cannot overwrite an existing project or state. Preparing
+the example files does not establish that its Source, Model, Mapping,
+approval or recovery path is installed or available.

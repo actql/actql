@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {mkdtemp, readdir, rm} from 'node:fs/promises';
+import {mkdtemp, readdir, rm, readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -67,7 +67,7 @@ test('public init help does not need a runtime or create project files', async t
     assert.equal(result.error, undefined);
     assert.equal(result.status, 0);
     assert.equal(result.stderr, '');
-    assert.equal(result.stdout, 'Usage: actql init [--template churn-risk-mock] [<directory>]\n');
+    assert.equal(result.stdout, 'Usage: actql init [--template churn-risk-mock|deal-review-mock] [<directory>]\n');
   }
   assert.deepEqual(await readdir(root), []);
 });
@@ -99,4 +99,14 @@ test('a real unavailable Native cohort refuses init before even template prepara
   }
   assert.equal(result.stdout, '');
   assert.deepEqual(await readdir(root), []);
+});
+
+// The root README and the churn Quickstart are distinct public examples.
+// This checks the documented argv only: no Native runtime, Host or file write.
+test('root README deal-review init selects its exact documented template and directory', async () => {
+  const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8');
+  const line = readme.split(/\r?\n/u).find(value => value.startsWith('actql init --template '));
+  assert.equal(line, 'actql init --template deal-review-mock deal-review && cd deal-review');
+  const args = line.split(' && ')[0].split(' ').slice(1);
+  assert.deepEqual(projectInitArguments(args), {directory: 'deal-review', template: 'deal-review-mock'});
 });

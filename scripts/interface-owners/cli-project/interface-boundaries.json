@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "packages/native-cli/lib/project-template.mjs",
-      "sha256": "e9fff14b4d834377135d0fee1a4235190a61e9b15bb85dfd8693760574f8091f",
+      "sha256": "fbfe2427019a3ea02ffc7ac204219d99093d58b4f15cec32f9e78ed3dedc88a7",
       "exports": [
         "projectTemplateFiles"
       ],
@@ -43,11 +43,15 @@
             "responsibility": [
               {
                 "path": "packages/native-cli/lib/project-template.mjs",
-                "anchor": "// Project inputs from the public Quickstart."
+                "anchor": "// Project inputs from the public examples."
               },
               {
                 "path": "docs/getting-started/quickstart.md",
                 "anchor": "## 1. The project"
+              },
+              {
+                "path": "docs/design/cli-target-experience.md",
+                "anchor": "## Project example preparation"
               }
             ],
             "inputsOutputs": [
@@ -74,7 +78,7 @@
             "failure": [
               {
                 "path": "packages/native-cli/lib/project-template.mjs",
-                "anchor": "if (template !== undefined && template !== 'churn-risk-mock')"
+                "anchor": "if (template !== undefined && !['churn-risk-mock', 'deal-review-mock'].includes(template))"
               }
             ],
             "cancellation": {
@@ -96,6 +100,14 @@
               {
                 "path": "scripts/native-cli-project-scaffold.test.mjs",
                 "anchor": "test('the Quickstart template prepares seven inputs"
+              },
+              {
+                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "anchor": "test('root README deal-review template prepares its exact Program"
+              },
+              {
+                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "anchor": "test('deal-review Mock DATA contains only original Opportunity"
               }
             ]
           }

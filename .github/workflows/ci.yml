@@ -235,7 +235,7 @@ jobs:
         run: node --test scripts/ordinary-operation-packages.test.mjs
       - name: Test Client CI partition and aggregate requirements
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
-        run: node --test scripts/client-ci.test.mjs
+        run: node --test scripts/client-ci.test.mjs scripts/native-cli-project-init.test.mjs scripts/native-cli-project-scaffold.test.mjs
       - name: Test read-only CI evidence reporting
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/ci-evidence.test.mjs
