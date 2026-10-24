@@ -623,6 +623,28 @@ fn multi_captured_capacity_limits_owned(
         @publication_host.prepared_client_effect_computation_graph(prepared),
       )
   }
+  guard prepare_client_local_sequences_owned(
+      owner, installed_contracts, values_body, fragment_body, ordered_body,
+    )
+    is Some(sequences) else {
+    return None
+  }
+  multi_captured_capacity_limits_selected(
+    graph, capacities, transport_bytes, transport_execution_bytes, sequences,
+  )
+}
+
+///|
+// Immutable selected-input half of the existing calculator. Planned callers
+// already own these generated originals; no second preparation or quote is
+// needed during their managed-parent construction.
+fn multi_captured_capacity_limits_selected(
+  graph : @strategy.CheckedDAG,
+  capacities : Array[(Int64, Int64)],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  sequences : Array[@execution.GeneratedSequence],
+) -> @resources.LedgerLimits? {
   let count = @strategy.graph_task_count(graph)
   let captured = @strategy.graph_captured_prefix(graph)
   if captured < 1 ||
@@ -632,11 +654,10 @@ fn multi_captured_capacity_limits_owned(
     transport_execution_bytes.length() != captured {
     return None
   }
-  guard prepare_client_local_sequences_owned(
-      owner, installed_contracts, values_body, fragment_body, ordered_body,
-    )
-    is Some(sequences) else {
-    return None
+  if sequences.length() != count { return None }
+  for index, sequence in sequences {
+    guard @strategy.graph_task_owner(graph,index) is Some(original) &&
+      physical_equal(original,@execution.generated_sequence_owner(sequence)) else { return None }
   }
   let (_, execution, measurement) = client_local_execution_limits()
   let mut retained = 0L

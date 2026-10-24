@@ -12,6 +12,10 @@ priv enum ClientInstalledManagedRunOriginal {
     ],
     @publication_host.PreparedClientEffectComputation
   )
+  PlannedEffectManaged(
+    @resources.NodeManagedRunAdmission[ClientInstalledEffectManagedPlan],
+    ClientInstalledEffectManagedPlan
+  )
   ContentManaged(
     @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
     @publication_host.PreparedClientProgram
@@ -396,28 +400,13 @@ fn installed_managed_run_requirements_owned(
       limits.execution_bytes,
     ])
   }
-  let captured = @strategy.graph_captured_prefix(
-    installed_managed_owner_graph(owner),
-  )
-  if declarations.length() != captured {
-    return Err(Unsupported)
-  }
+  let acquisitions = match prepare_installed_managed_acquisitions_owned(
+    owner, declarations, query_contract_body, evidence_contract_body,
+    installed_contracts, values_body, fragment_body, ordered_body,
+  ) { Err(issue) => return Err(issue); Ok(value) => value }
   let capacities = []
-  for index in 0..<captured {
-    guard prepare_local_query_requirement_owned(
-        owner, index, 0, installed_contracts, values_body, fragment_body, ordered_body,
-      )
-      is Ok(requirement) &&
-      @row_source_host.prepare_row_acquisition(
-        declarations[index],
-        requirement,
-        query_contract_body,
-        evidence_contract_body,
-      )
-      is Ok(acquisition) &&
-      installed_row_capture_capacity(acquisition) is Some(capacity) else {
-      return Err(Unsupported)
-    }
+  for acquisition in acquisitions {
+    guard installed_row_capture_capacity(acquisition) is Some(capacity) else { return Err(Unsupported) }
     capacities.push(capacity)
   }
   guard multi_captured_installed_limits_owned(
@@ -435,6 +424,44 @@ fn installed_managed_run_requirements_owned(
     limits.retained_bytes,
     limits.execution_bytes,
   ])
+}
+
+///|
+// One set of original acquisition constructors serves quote and retained plan.
+fn prepare_installed_managed_acquisitions_owned(
+  owner : ClientLocalSequenceOwner,
+  declarations : Array[@row_source_host.RowDeclaration],
+  query_contract_body : String,
+  evidence_contract_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[Array[@row_source_host.RowAcquisition], ClientInstalledManagedRunIssue] {
+  let captured = @strategy.graph_captured_prefix(
+    installed_managed_owner_graph(owner),
+  )
+  if declarations.length() != captured {
+    return Err(Unsupported)
+  }
+  let acquisitions = []
+  for index in 0..<captured {
+    guard prepare_local_query_requirement_owned(
+        owner, index, 0, installed_contracts, values_body, fragment_body, ordered_body,
+      )
+      is Ok(requirement) &&
+      @row_source_host.prepare_row_acquisition(
+        declarations[index],
+        requirement,
+        query_contract_body,
+        evidence_contract_body,
+      )
+      is Ok(acquisition) else {
+      return Err(Unsupported)
+    }
+    acquisitions.push(acquisition)
+  }
+  Ok(acquisitions)
 }
 
 ///|
@@ -493,6 +520,7 @@ fn installed_managed_run_owner(
   match value.preparation {
     Some(PureManaged(_, prepared)) => Ok(Pure(prepared))
     Some(EffectManaged(_, prepared)) => Ok(Effect(prepared))
+    Some(PlannedEffectManaged(_, plan)) => Ok(Effect(plan.prepared))
     Some(ContentManaged(_, prepared)) => Ok(Pure(prepared))
     None => Err(Retired)
   }
@@ -528,6 +556,7 @@ fn new_installed_managed_run_owned(
           match preparation {
             PureManaged(_, prepared) => Pure(prepared)
             EffectManaged(_, prepared) => Effect(prepared)
+            PlannedEffectManaged(_, plan) => Effect(plan.prepared)
             ContentManaged(_, prepared) => Pure(prepared)
           },
         ),
@@ -559,6 +588,8 @@ fn require_installed_managed_run(
       check_installed_managed_run_admission(admission, prepared, ledger)
     EffectManaged(admission, prepared) =>
       check_installed_managed_run_admission(admission, prepared, ledger)
+    PlannedEffectManaged(admission, plan) =>
+      check_installed_managed_run_admission(admission, plan, ledger)
     ContentManaged(admission, prepared) =>
       match
         @resources.check_node_local_content_run_preparation(admission, prepared) {
@@ -650,6 +681,7 @@ pub fn check_installed_managed_run(
     PureManaged(_, prepared) => Some(prepared)
     ContentManaged(_, prepared) => Some(prepared)
     EffectManaged(_, _) => None
+    PlannedEffectManaged(_, _) => None
   }
   guard selected is Some(original) &&
     physical_equal(original, prepared) &&
@@ -745,6 +777,12 @@ fn prepare_installed_managed_run_ledger_owned(
     transport_bytes.length() != capacities.length() ||
     transport_execution_bytes.length() != capacities.length() {
     return Err(Unsupported)
+  }
+  if value.preparation is Some(PlannedEffectManaged(_, plan)) {
+    return prepare_planned_installed_effect_ledger(
+      value, plan, capacities, transport_bytes, transport_execution_bytes,
+      installed_contracts, values_body, fragment_body, ordered_body,
+    )
   }
   let required = if value.keyed is Some(keyed) {
     guard capacities.length() == 1 else { return Err(Unsupported) }
@@ -980,6 +1018,8 @@ pub fn retire_installed_managed_run(
     PureManaged(admission, _) =>
       @resources.cleanup_node_managed_run_admission(admission)
     EffectManaged(admission, _) =>
+      @resources.cleanup_node_managed_run_admission(admission)
+    PlannedEffectManaged(admission, _) =>
       @resources.cleanup_node_managed_run_admission(admission)
     ContentManaged(admission, _) =>
       @resources.cleanup_node_managed_run_admission(admission)

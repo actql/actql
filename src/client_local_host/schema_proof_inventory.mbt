@@ -15,6 +15,17 @@ priv struct ClientLocalSchemaProofInventory {
 }
 
 ///|
+// Constructor-local observations of simultaneously retained work arrays. The
+// optional observer records extents even when a schema proof returns None;
+// visits/comparisons are not storage and never become array-slot allowances.
+priv struct ClientLocalSchemaProofWorkspace {
+  mut owners : Int
+  mut rows : Int
+  mut input_rows : Int
+  mut row_bounds : Int
+}
+
+///|
 fn client_local_schema_proof_work() -> Int {
   // This proof phase has its own counter, like the existing graph preparation
   // phase. It is not represented as aggregate compiler/Run work consumption.
@@ -28,6 +39,7 @@ fn client_local_schema_proof_inventory(
   graph? : @strategy.CheckedDAG? = None,
   scalar_only? : Bool = true,
   leaf_only? : Bool = false,
+  workspace? : ClientLocalSchemaProofWorkspace? = None,
 ) -> ClientLocalSchemaProofInventory? {
   if sequences.is_empty() || max_work < 1 || sequences.length() > max_work { return None }
   if graph is Some(original) && sequences.length()!=@strategy.graph_task_count(original) { return None }
@@ -53,9 +65,11 @@ fn client_local_schema_proof_inventory(
     }
     if found {continue}
     seen.push(owner)
+    if workspace is Some(actual) { actual.owners = Int::max(actual.owners, seen.length()) }
     let prepared=@lower.bound_preparation(owner)
     let inputs=@lower.preparation_input_count(prepared)
     let rows : Array[Int?]=[]
+    let mut row_bounds = 0
     if inputs!=0 {closed_rows=None}
     ports=Int::max(ports,inputs)
     bindings=Int::max(bindings,inputs)
@@ -88,9 +102,15 @@ fn client_local_schema_proof_inventory(
           Some(@pipeline.Step(index)) => match rows.get(index) {Some(Some(count)) => input_rows.push(count); _ => known=false}
           _ => known=false
         }
+        if workspace is Some(actual) { actual.input_rows = Int::max(actual.input_rows, input_rows.length()) }
       }
       let bound=if known {@lower.node_row_count_bound(node,input_rows)} else {None}
       rows.push(bound)
+      if bound is Some(_) { row_bounds += 1 }
+      if workspace is Some(actual) {
+        actual.rows = Int::max(actual.rows, rows.length())
+        actual.row_bounds = Int::max(actual.row_bounds, row_bounds)
+      }
       closed_rows=match (closed_rows,bound) {(Some(previous),Some(count))=>Some(Int::max(previous,count)); _=>None}
       let width=@schema.field_count(schema)
       if remaining<1 || width>remaining-1 {return None}

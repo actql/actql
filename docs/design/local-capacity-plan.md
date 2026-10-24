@@ -214,3 +214,34 @@ stored ownership synchronously; the intermediate accounting order is not a
 second concurrent grant. Unknown outcomes retain the original reservation and
 recovery duty until that transaction is confirmed. None of these logical byte
 quantities is an operating-system heap or resident-memory measurement.
+
+## Installed Effect operation demand
+
+`ClientInstalledEffectManagedPlan` retains the checked Effect/request originals,
+installed contracts, ordered implementation extents, original Source
+declarations/acquisitions/capture capacities and generated sequences. Its quote
+contains Compute/Source demand plus the selected member and row operation
+occurrences. A physical occurrence contributes one possible Start and its
+transfer extent; a pure capture holder contributes live capacity without a
+physical attempt. Repeated references at distinct occurrences remain separate.
+Static catalogue/profile selection is DATA and does not admit this checked Run.
+
+The fixed managed supplier admits the exact plan token. An equal numeric quote,
+a copied plan or another plan for the same prepared Program cannot replace it.
+The managed parent retains that original through failure and cleanup.
+PrepareLedger validates the same selected inputs and actual admitted envelope
+before using the retained plan; it does not repeat sequence/capacity derivation.
+Legacy Compute-only Effect parents do not thereby acquire operation funding.
+
+Uniform extent selection uses the checked member index, member/row extent class,
+fixed implementation declaration slot and exact operation name. Current Run,
+nominal authorization/dispatch binding, original request, Site, claim and actual
+before-use debit remain separate. A row position or a copied grant/use CID is
+not new authority. The same child retains its response and retirement duties.
+Retirement returns live occupation; it never refunds consumed work or attempts.
+
+The operation envelope conservatively includes every still-retained declared
+child. A smaller overlap needs actual retirement of its original references.
+Scratch quoting observes peak owner/row/input-row arrays in the existing schema
+traversal, including failed proofs; work visits are not memory slots. These are
+logical representation allowances, not physical allocation or RSS evidence.
