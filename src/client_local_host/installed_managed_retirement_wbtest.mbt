@@ -18,9 +18,12 @@ test "installed managed retirement tombstone rejects new borrows" {
   // Successful cleanup transition itself is exercised in physical_resources.
   let value : ClientInstalledManagedRun = {
     original: None, preparation: None, request, ledger: None,
-    reads: [], keyed: None, keyed_reads: [], source_free_preparation: None, preparation_retirement: None,
+    reads: [], keyed: None, keyed_reads: [], source_free_preparation: None, preparation_retirement: None, source_free_captured: None, source_free_opening: false,
   }
   value.original = Some(value)
+  value.source_free_opening = true
+  assert_true(retire_installed_managed_run(value) is Err(CleanupPending))
+  value.source_free_opening = false
   assert_true(retire_installed_managed_run(value) is Ok(_))
   assert_true(retire_installed_managed_run(value) is Ok(_))
   assert_true(require_installed_managed_run(value) is Err(Retired))
@@ -28,5 +31,6 @@ test "installed managed retirement tombstone rejects new borrows" {
   assert_true(check_installed_managed_run(value, prepared, request) is Err(Retired))
   assert_true(begin_installed_managed_run_source_read(value, 0) is Err(Retired))
   assert_true(borrow_installed_managed_dispatch_preparation(value, prepared, request) is Err(Retired))
+  assert_true(installed_managed_publication_dag(value, prepared) is Err(Retired))
   assert_false(installed_preparation_payload_severed(value, request))
 }

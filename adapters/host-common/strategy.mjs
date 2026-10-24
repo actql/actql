@@ -1151,7 +1151,7 @@ export async function runInstalledStrategy({
     resultInventory: checkedResultInventory,
     publicationInventory,
     ...(preflight === undefined ? {} : {publicationPreflight: preflight}),
-    async publishEffectFreeRun(store, publication, signal) {
+    async publishEffectFreeRun(store, publication, signal, publicationResource) {
       if (closed) throw new StrategyHostError('ReleasedStrategy');
       if (programHasEffects) {
         throw new StrategyHostError('EffectfulProgramRequiresEffectRun');
@@ -1177,9 +1177,9 @@ export async function runInstalledStrategy({
         store,
         control: core.publicationControl,
         signal,
-      });
+      }, publicationResource);
     },
-    async storePublicationResult(result, store, publication, signal) {
+    async storePublicationResult(result, store, publication, signal, publicationResource) {
       if (closed) throw new StrategyHostError('ReleasedStrategy');
       if (!Number.isSafeInteger(result) || result < 0 ||
           result >= resultInventory.length ||
@@ -1252,6 +1252,8 @@ export async function runInstalledStrategy({
         },
         signal,
         beginResult,
+        undefined,
+        publicationResource,
       );
       return Object.freeze({
         occurrence: Object.freeze({

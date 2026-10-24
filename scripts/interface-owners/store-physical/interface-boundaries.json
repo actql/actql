@@ -4412,7 +4412,7 @@
     {
       "module": "adapters/store-local/publication-commit-owner.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2710bff73517e90a2c3dde4ff738d193a063feb5b7bd1ee11cdede72188be89c",
+      "sha256": "c9cdba89f7b99dd85900405862e4af27ae2af61670a09fa09be92d2a4b4d8b4f",
       "exports": [
         "createPublicationCommitOwner"
       ],
@@ -4524,7 +4524,7 @@
             "ownership": [
               {
                 "path": "adapters/store-local/publication-commit-owner.mjs",
-                "anchor": "custody = operations.beginCustody()"
+                "anchor": "custody = await operations.beginCustody()"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -4580,7 +4580,8 @@
       ],
       "imports": [],
       "compilerFields": [],
-      "unresolvedSyntax": []
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
     },
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
@@ -6832,7 +6833,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0b0d5c71e3ec1db8e474cef0946075f09c0ca3625de1a1b0488445209a06b597",
+      "sha256": "32f87c1d7b650825a71a529736a7e28cee9042ec669047e54d06d7a9c469ba3d",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -14477,7 +14478,8 @@
         "node:path"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": []
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
     },
     {
       "module": "adapters/store-local/representations.mjs",

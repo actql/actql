@@ -6,6 +6,7 @@ pub fn[I] prepare_closed_values_body(
   environment : @checked.CheckEnvironment,
   publication_environment : @source_publication.PreparedPublishedQueryEnvironment,
   contracts : ClientInstalledSequenceContracts,
+  manifests : @publication_host.ClientCompilationManifests,
 ) -> Result[Unit,ClientClosedValuesPreparationIssue] {
   guard owner.original is Some(original) && physical_equal(original,owner) && owner.input is Some(input) else {return Err(ForeignOriginal)}
   if owner.retiring || owner.prepared is Some(_) || owner.work is Some(_) {return Err(WrongPhase)}
@@ -22,10 +23,16 @@ pub fn[I] prepare_closed_values_body(
     closed_values_compiler_phase_layout(shape.fields,shape.rows,facts.node_upper,facts.longest_quoted_utf16,facts.depth_upper) is Some(compiler) &&
     closed_values_execution_plan_controls_layout() is Some(plan) &&
     closed_values_plan_proof_layout(shape.fields,facts.longest_quoted_utf16) is Some(proof) &&
-    closed_values_sum_layouts([context.retained,compiler.retained,plan.retained,proof.retained]) is Some(retained_units) &&
+    closed_values_compilation_layout(facts,shape.fields,shape.rows) is Some(compilation) &&
+    closed_values_sum_layouts([context.retained,compiler.retained,plan.retained,proof.retained,compilation.retained]) is Some(retained_units) &&
     closed_values_sum_layouts([context.temporary,compiler.temporary,compiler.failure,plan.temporary,proof.temporary]) is Some(temporary_units) &&
     preparation_representation_cost(retained_units) is Some(retained_add) &&
-    preparation_representation_cost(temporary_units) is Some(execution_add) else {return Err(Policy)}
+    preparation_representation_cost(temporary_units) is Some(semantic_execution) &&
+    preparation_representation_cost(compilation.temporary) is Some(compilation_execution) else {return Err(Policy)}
+  // Semantic and installed-plan constructors return before compilation starts.
+  // Their returned original payloads remain in R. Only their private scratch
+  // lifetimes are disjoint; this is a phase peak, not a second allowance.
+  let execution_add=if semantic_execution>compilation_execution {semantic_execution} else {compilation_execution}
   // parse_closed_values_document has returned. Program/Cursor/shared source
   // dependencies remain in cumulative R; parser/shape/private containers do
   // not escape that call. Preserve the previous E debit, not cumulative work.
@@ -54,6 +61,14 @@ pub fn[I] prepare_closed_values_body(
     Ok(value)=>value
   }
   owner.source_free=Some(source_free)
+  let artifact=match @publication_host.issue_prepared_client_values_compilation(
+    prepared,manifests,@publication_host.prepared_client_values_sequence_limits(prepared),
+    compilation.max_facts,compilation.max_witnesses,compilation.max_wire_bytes,
+    compilation.max_nodes,compilation.max_depth) {
+    Err(issue)=>return Err(Compilation(issue))
+    Ok(value)=>value
+  }
+  owner.compilation=Some(artifact)
   // No shrink here: constructor locals and previous phase owners can remain
   // live until this exact call unwinds. The next fixed call performs the cut.
   Ok(())

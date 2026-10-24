@@ -133,7 +133,9 @@ pub fn cancel_managed_output_values(value : ManagedOutputValues) -> Bool {
 }
 
 ///|
-fn request_managed_output_values_disposal(value : ManagedOutputValues) -> Unit {
+/// Revoke the original admission buffer without performing cleanup work.
+/// The existing reclamation cursor owns all subsequent bounded retirement.
+pub fn request_managed_output_values_disposal(value : ManagedOutputValues) -> Unit {
   if !value.disposal_requested {
     value.buffer.reclaiming = true
   }

@@ -153,7 +153,14 @@ fn client_node_values_publication_limits_with_plan(
     max_result_mapping_work: envelope
     .map(value => value.mapping_work)
     .unwrap_or(1000),
-    max_result_order_work: 10000,
+    // With no authored order, the Result view still initializes one row index
+    // per row before its early completion. This is the same original row bound
+    // that funds execution.rows.max_rows and the envelope workspace, not a
+    // Result LIMIT/projection count or a sampled successful output count.
+    // Ordered comparison work remains a separate, unresolved legacy profile.
+    max_result_order_work: if envelope is Some(value) && value.order_terms == 0 {
+      rows
+    } else { 10000 },
     max_result_workspace_entries: envelope
     .map(value => value.publication_workspace_entries)
     .unwrap_or(if tasks { 100 } else { Int::max(100, rows) }),

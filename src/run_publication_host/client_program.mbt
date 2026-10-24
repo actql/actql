@@ -985,6 +985,39 @@ fn emit_client_values_pipeline_graph(
   max_depth : Int,
   preparation? : PreparedClientProgram? = None,
 ) -> Result[String, ClientValuesPipelineIssue] {
+  // The enclosing original funds this measuring pass before construction.
+  // Materialization is bounded by the exact usage of this same serializer;
+  // measurement neither creates a new grant nor retains another wire.
+  let (bytes,nodes,depth) = match measure_client_values_pipeline_graph(
+    graph,task,limits,max_wire_bytes,max_nodes,max_depth,preparation~) {
+    Err(issue) => return Err(issue)
+    Ok(usage) => usage
+  }
+  let writer = @encode.writer(bytes,nodes,depth) catch {
+    _ => return Err(Encoding)
+  }
+  match emit_client_values_pipeline_into(graph, task, limits, max_wire_bytes,
+    max_nodes, max_depth, writer, preparation~) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
+  Ok(body)
+}
+
+///|
+/// One serializer serves measurement and materialization. The caller retains
+/// the same checked preparation and supplies its funded encoding envelope.
+fn emit_client_values_pipeline_into(
+  graph : @strategy.CheckedDAG,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  writer : @encode.Writer,
+  preparation? : PreparedClientProgram? = None,
+) -> Result[Unit, ClientValuesPipelineIssue] {
   guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
     return Err(MissingTask)
   }
@@ -1003,9 +1036,6 @@ fn emit_client_values_pipeline_graph(
         Ok(result) => result
         Err(issue) => return Err(Sequence(issue))
       }
-  }
-  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(Encoding)
   }
   guard @lower.sequence_step(sequence, 0) is Some(@lower.ValuesStep(_)) &&
     @lower.node_at(
@@ -1040,8 +1070,45 @@ fn emit_client_values_pipeline_graph(
   } catch {
     _ => return Err(Encoding)
   }
-  let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
-  Ok(body)
+  Ok(())
+}
+
+///|
+/// Measure the original pipeline without retaining a second wire. This is
+/// not authority to enlarge the envelope or to compile a different owner.
+pub fn measure_prepared_client_values_pipeline(
+  value : PreparedClientProgram,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(Int, Int, Int), ClientValuesPipelineIssue] {
+  measure_client_values_pipeline_graph(value.graph,task,limits,
+    max_wire_bytes,max_nodes,max_depth,preparation=Some(value))
+}
+
+///|
+fn measure_client_values_pipeline_graph(
+  graph : @strategy.CheckedDAG,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  preparation? : PreparedClientProgram? = None,
+) -> Result[(Int, Int, Int), ClientValuesPipelineIssue] {
+  let writer = @encode.measuring_writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  match emit_client_values_pipeline_into(graph, task, limits,
+    max_wire_bytes, max_nodes, max_depth, writer, preparation~) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  try { Ok(@encode.finish_measurement_usage(writer)) } catch {
+    _ => Err(Encoding)
+  }
 }
 
 ///|

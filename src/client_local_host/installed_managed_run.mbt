@@ -29,6 +29,8 @@ struct ClientInstalledManagedRun {
   keyed_reads : Array[ClientInstalledKeyedSourceRead]
   mut source_free_preparation : ClientInstalledManagedSourceFreePreparation?
   mut preparation_retirement : ClientManagedPreparationRetirement?
+  mut source_free_captured : @strategy.CapturedDAG?
+  mut source_free_opening : Bool
 }
 
 ///|
@@ -536,6 +538,8 @@ fn new_installed_managed_run_owned(
     keyed_reads: [],
     source_free_preparation: None,
     preparation_retirement: None,
+    source_free_captured: None,
+    source_free_opening: false,
   }
   value.original = Some(value)
   value
@@ -832,6 +836,36 @@ pub fn open_installed_managed_source_free_host(
   @builtin.ConfiguredComputeHost[@strategy.RunIssue]?,
   ClientInstalledManagedRunIssue,
 ] {
+  if value.source_free_opening || value.source_free_captured is Some(_) {
+    return Err(AlreadyBound)
+  }
+  value.source_free_opening = true
+  let opened = open_installed_managed_source_free_host_original(
+    value, prepared, request, installed_contracts, values_body, fragment_body,
+    ordered_body, retained_output, provider_factory~,
+  )
+  value.source_free_opening = false
+  opened
+}
+
+///|
+fn open_installed_managed_source_free_host_original(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  installed_contracts : ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  retained_output : Bool,
+  provider_factory? : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ] = _ => [],
+) -> Result[
+  @builtin.ConfiguredComputeHost[@strategy.RunIssue]?,
+  ClientInstalledManagedRunIssue,
+] {
+  if value.source_free_captured is Some(_) {return Err(AlreadyBound)}
   if !value.reads.is_empty() {
     return Err(Unsupported)
   }
@@ -871,8 +905,7 @@ pub fn open_installed_managed_source_free_host(
     Err(issue) => return Err(issue)
     Ok(ledger) => ledger
   }
-  Ok(
-    open_checked_local_host(
+  let opened = open_checked_local_host(
       prepared,
       None,
       installed_contracts,
@@ -887,8 +920,15 @@ pub fn open_installed_managed_source_free_host(
       provider_factory~,
       acquisition_ledger=Some(ledger),
       source_free_preparation=value.source_free_preparation,
-    ),
-  )
+    )
+  // Capture provenance at the actual issuer, never from a caller-provided
+  // graph, CID or merely equal Ledger. A second open cannot replace it.
+  if opened is Some(host) {
+    value.source_free_captured = Some(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+    )
+  }
+  Ok(opened)
 }
 
 ///|
@@ -901,6 +941,7 @@ pub fn retire_installed_managed_run(
   guard value.original is Some(original) && physical_equal(value, original) else {
     return Err(ForeignOriginal)
   }
+  if value.source_free_opening {return Err(CleanupPending)}
   if value.ledger is None {
     return Ok(())
   }
@@ -941,6 +982,7 @@ pub fn retire_installed_managed_run(
   value.keyed_reads.clear()
   value.keyed = None
   value.source_free_preparation = None
+  value.source_free_captured = None
   Ok(())
 }
 
@@ -979,4 +1021,22 @@ pub fn installed_managed_publication_limits(
   prepared_installed_managed_publication_limits(
     original, prepared, max_payload_bytes,
   )
+}
+
+///|
+/// The exact DAG issued once by this original managed Run. No public adapter
+/// can bind an arbitrary DAG using equal graph bytes or Ledger amounts.
+pub fn installed_managed_publication_dag(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[@strategy.CapturedDAG, ClientInstalledManagedRunIssue] {
+  match check_installed_managed_run(value, prepared, value.request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard !value.source_free_opening && value.source_free_captured is Some(captured) && value.ledger is Some(ledger) &&
+    physical_equal(ledger, @strategy.captured_dag_ledger(captured)) else {
+    return Err(Unsupported)
+  }
+  Ok(captured)
 }

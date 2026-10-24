@@ -794,7 +794,7 @@ pub fn[T] start_local_managed_dispatch(
     (if finalization_completed.val is Some(_) { 1 } else { 0 }) +
     finalization_established.val +
     finalization_deadline.val).to_int64() +
-    finalization_receipt_steps.val
+    finalization_receipt_steps.val + finalization_reclamation_steps.val
   }
   let cancel_finalization = fn() {
     finalization_cancelled.val = true
@@ -1918,6 +1918,32 @@ pub fn[T] start_local_managed_dispatch(
         work += 1
       }
       if finalization_deadline.val < deadlines.length() {
+        return Ok({
+          complete: false,
+          waiting: false,
+          settlement: None,
+          progress: finalization_progress(),
+          work: work.to_int64(),
+        })
+      }
+      // The receipt/material now own their immutable copies and transferred
+      // index. Retire only the admission buffer before reporting ready; the
+      // driver/provider/input roots still wait for the existing settled hook.
+      // This shares the original bounded finalization continuation and never
+      // releases reservation capacity before the ordinary scratch witness.
+      // Cleanup is mandatory original-owner retirement, not semantic work:
+      // it remains legal after semantic max_work exhaustion. Actual finite
+      // owned entries bound total retirement; this poll reports its steps
+      // within quantum without debiting finalization_work_remaining.
+      @execution.request_managed_output_values_disposal(values)
+      let before = @execution.managed_output_values_reclamation_steps(values)
+      let reclaimed = @execution.advance_managed_output_values_reclamation(
+        values, quantum - work,
+      )
+      let after = @execution.managed_output_values_reclamation_steps(values)
+      finalization_reclamation_steps.val = after
+      work += (after - before).to_int()
+      if !reclaimed || !@execution.managed_output_values_scratch_released(values) {
         return Ok({
           complete: false,
           waiting: false,

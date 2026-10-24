@@ -5715,8 +5715,13 @@ async function openOriginalLocalPublicationStore(
       fail('PublicationAttemptMismatch');
     }
     let chainValid = false;
+    // Same semantic-read custody as native inspection: close cannot release
+    // this Store while its owned checker is suspended between quanta.
+    const validationReader = {cleanup: undefined};
+    activeSemanticReaders.add(validationReader);
     try {
-      chainValid = await contractControl.effectFreeCommitValid(
+      active();
+      chainValid = await contractControl.effectFreeStoredCommitValid(
         suppliedEvidence.runDefinition,
         suppliedEvidence.invocation,
         suppliedEvidence.definitions,
@@ -5731,10 +5736,13 @@ async function openOriginalLocalPublicationStore(
         requestStored.contract,
         attemptStored.contract,
         admitted,
-        contractLimits,
+        active,
       );
     } catch (error) {
       fail('InvalidPublicationCommitChain', error);
+    } finally {
+      // The fixed control cancels its exact checker before this promise unwinds.
+      activeSemanticReaders.delete(validationReader);
     }
     if (chainValid !== true) fail('InvalidPublicationCommitChain');
     return Object.freeze(verifiedBindings);

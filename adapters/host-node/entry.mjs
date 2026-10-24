@@ -27,7 +27,7 @@ async function runCapturedStrategyTarget({
   composition: {loadRuntime, install},
   control: {signal, observer, taskObservation} = {},
   results: {publishCheckedResults, publication} = {},
-  cleanup: {retainPreflightCleanup} = {},
+  cleanup: {retainPreflightCleanup, preparationHolder} = {},
 }) {
   signal?.throwIfAborted();
   const observeCompletion = completionObserver(observer);
@@ -78,7 +78,7 @@ async function runCapturedStrategyTarget({
           plan: publication.plan,
         }),
     },
-    cleanup: {retainPreflightCleanup},
+    cleanup: {retainPreflightCleanup, preparationHolder},
   });
 }
 
@@ -114,8 +114,8 @@ async function runPublishedCapturedStrategyTarget({
   publication,
   options,
   composition,
-  control: {signal, observer, taskObservation},
-  cleanup: {retainExecution},
+  control: {signal, observer, taskObservation, beforePublication},
+  cleanup: {retainExecution, preparationHolder},
 }) {
   if (retainExecution !== undefined && typeof retainExecution !== 'function') {
     throw new TypeError('InvalidExecutionOwnerReceiver');
@@ -133,7 +133,7 @@ async function runPublishedCapturedStrategyTarget({
     results: {publishCheckedResults: true, publication},
     // Reuse the installed custody receiver for a setup cleanup owner only.
     // Preflight failure never constructs a Compute or publication result.
-    cleanup: {retainPreflightCleanup: retainExecution},
+    cleanup: {retainPreflightCleanup: retainExecution, preparationHolder},
   });
   try {
     // Transfer cleanup responsibility before publication can fail. The
@@ -142,10 +142,20 @@ async function runPublishedCapturedStrategyTarget({
     if (execution.status === 'host-tasks-failed') {
       throw new CapturedRunExecutionError(execution);
     }
+    // Fixed installed manager grows the same original preparation token before
+    // any publication material constructor. A failure retains normal cleanup.
+    if (preparationHolder !== undefined && typeof beforePublication !== 'function') {
+      throw new TypeError('PreparationPublicationUnavailable');
+    }
+    const publicationResource = beforePublication?.();
+    if (preparationHolder !== undefined && publicationResource === undefined) {
+      throw new TypeError('PreparationPublicationUnavailable');
+    }
     const result = await execution.publishEffectFreeRun(
       publication.store,
       execution.publicationPreflight.plan,
       signal,
+      publicationResource,
     );
     return Object.freeze({
       status: 'published',
@@ -202,9 +212,10 @@ export function createNodeHostEntry(loadRuntime, install) {
       control: {signal, observer}}),
     runPublishedCapturedStrategy: (
      setup, publication, options = {}, signal, observer, retainExecution, taskObservation,
+     preparationHolder, beforePublication,
     ) => runPublishedCapturedStrategyTarget({setup, publication, options,
-      composition, control: {signal, observer, taskObservation},
-      cleanup: {retainExecution}}),
+      composition, control: {signal, observer, taskObservation, beforePublication},
+      cleanup: {retainExecution, preparationHolder}}),
     completeCapturedEffectRun: async options => {
       const moon = await load();
       if (options?.apply?.moon !== moon) {

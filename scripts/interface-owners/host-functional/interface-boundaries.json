@@ -1487,7 +1487,7 @@
     {
       "module": "adapters/host-common/completed-run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1e6172277936098f04cf48824a9a9a5c6fd6412591a62d29a107cae652f2a3c5",
+      "sha256": "253fe48f3f8f5f9b812d98d5c2d8de2ab2decafe282b794942504dac3355c2ea",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -1562,7 +1562,8 @@
             "outputLimits",
             "contractLimits",
             "signal",
-            "exported"
+            "exported",
+            "publicationResource"
           ],
           "async": true
         },
@@ -1878,7 +1879,8 @@
         {
           "name": "publishCompletedEffectFreeRun",
           "parameters": [
-            "options"
+            "options",
+            "publicationResource"
           ],
           "async": true
         },
@@ -2829,7 +2831,7 @@
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
       "imports": [
         "./private-publication-holding.mjs",
         "./run-publication.mjs"
@@ -3033,7 +3035,7 @@
     {
       "module": "adapters/host-common/durable-result-payload.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d1dfdf7002d126cf2a5f00a5551b6db329c7a0c8538fce406092f5f5a79c7077",
+      "sha256": "6f00d3ebb1ad902a8ba7feab116070be869f0efa7f6687b914db6cddbe8166ca",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -3228,7 +3230,8 @@
             "publication",
             "signal",
             "beginResult",
-            "readBatch"
+            "readBatch",
+            "publicationResource"
           ],
           "async": true
         },
@@ -3499,7 +3502,7 @@
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
       "imports": [],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -11215,7 +11218,7 @@
     {
       "module": "adapters/host-common/strategy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "69e16df58f0465195b53bf0df701ae56d1e96787b735c81a6347c10eaded10c1",
+      "sha256": "b85eedf2f4d5aba23051ca11c3d2d7b41662927654323dfb253d07b04e01967b",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
@@ -11550,7 +11553,8 @@
           "parameters": [
             "store",
             "publication",
-            "signal"
+            "signal",
+            "publicationResource"
           ],
           "async": true
         },
@@ -11567,7 +11571,8 @@
             "result",
             "store",
             "publication",
-            "signal"
+            "signal",
+            "publicationResource"
           ],
           "async": true
         },
@@ -11978,7 +11983,7 @@
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
       "imports": [
         "./authorization-gate.mjs",
         "./completed-run-publication.mjs",
@@ -30866,7 +30871,7 @@
     {
       "module": "adapters/host-node/entry.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7cfef09c2bcbd1265d2595bf6cc40aef28faf737caf98f4eeaee8d6f391aab3a",
+      "sha256": "78dc2438ff88c83d05a439ab1e0ed939327bc1cdbb4f828ab38c39b7e4154732",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -30953,7 +30958,9 @@
             "signal",
             "observer",
             "retainExecution",
-            "taskObservation"
+            "taskObservation",
+            "preparationHolder",
+            "beforePublication"
           ],
           "async": false
         },
@@ -31013,7 +31020,8 @@
             "taskObservation",
             "publishCheckedResults",
             "publication",
-            "retainPreflightCleanup"
+            "retainPreflightCleanup",
+            "preparationHolder"
           ],
           "async": true
         },
@@ -31034,7 +31042,9 @@
             "signal",
             "observer",
             "taskObservation",
-            "retainExecution"
+            "beforePublication",
+            "retainExecution",
+            "preparationHolder"
           ],
           "async": true
         },
@@ -31145,7 +31155,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/entry.mjs",
-                "anchor": "cleanup: {retainPreflightCleanup} = {},"
+                "anchor": "cleanup: {retainPreflightCleanup, preparationHolder} = {},"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -31255,7 +31265,7 @@
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
       "imports": [
         "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../connectors-builtin/strategy.generated.mjs",
@@ -75899,7 +75909,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "67fcfba1d100dee6c48c161a4b5f12cabb644e688ddd9dedd6378f6bed1c2c32",
+      "sha256": "1520865f99fcb5cad58e4bc611601a627885ee13d8117d2ac95cb6434a61d3b2",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -76149,6 +76159,13 @@
           "async": true
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:compilationOriginal/init:compilationOriginal",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
           "parameters": [
             "receipt",
@@ -76298,11 +76315,25 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:publicationPreparation/init:publicationPreparation",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:publishSourceSnapshot/init:publishSourceSnapshot",
           "parameters": [
             "receipt",
             "body",
             "publication"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:reservePublication/init:reservePublication",
+          "parameters": [
+            "prepared"
           ],
           "async": false
         },
@@ -77021,8 +77052,83 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:compilationOriginal/init:compilationOriginal",
+            "prepareOrdinaryManagedInstallation/view/init:publicationPreparation/init:publicationPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:reservePublication/init:reservePublication"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Scope and responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Original identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Ownership and handoff"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Synchronization and currentness"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Failure and uncertainty"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Cancellation and retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Resources and scratch cut"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Extension and pending work"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('typed retained chain and commit consume original contracts without numeric limit relay'"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

@@ -24,11 +24,18 @@ struct ClientClosedValuesPreparation[I] {
   mut envelope : ClientClosedValuesInputEnvelope?
   mut retained_quote : Int64
   mut execution_quote : Int64
+  mut compilation : @publication_host.ClientValuesCompilation?
   mut source_free : ClientInstalledManagedSourceFreePreparation?
   mut body_ready : Bool
   mut manager_issued : Bool
+  mut adopted_run : ClientInstalledManagedRun?
   mut adopted : Bool
   mut submitted_intent : @publication_host.ClientSubmittedIntent?
+  mut publication_invocation_started : Bool
+  mut publication_definition : @publication.PublicationContract?
+  mut publication_invocation : @publication.PublicationContract?
+  mut publication_started : Bool
+  mut publication : ClientProgramPublication[I]?
   mut manager_original : @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram]?
 }
 
@@ -40,11 +47,15 @@ pub(all) enum ClientClosedValuesPreparationIssue {
   Syntax(@syntax.SyntaxError)
   Preparation(@publication_host.ClientProgramPreparationIssue)
   Installed(ClientInstalledManagedRunIssue)
+  Compilation(@publication_host.ClientValuesCompilationIssue)
   Initial(@resources.ImportedChildLedgerIssue)
   Capacity(@resources.PreparationCapacityIssue)
   Work(@resources.PreparationWorkIssue)
   CapacityExceeded(ClientPreparationCapacityRefusal)
   Intent(@publication_host.ClientSubmittedIntentIssue)
+  PublicationInvocation(@publication.RunEvidenceValueIssue)
+  PublicationCapture(@publication.CapturedRunIssuanceIssue)
+  PublicationSnapshot(@publication_host.PublicationOutputExportIssue)
 }
 
 ///|
@@ -80,7 +91,8 @@ fn closed_values_initial_control_units() -> PreparationRepresentationUnits {
   // receipt alias from the prior callback. Each has two
   // Ref cells, two closures, one record, active Some and returned Ok carrier.
   let driver_headers=1L+1L+12L+3L*7L+1L
-  let driver_refs=5L+15L+12L+3L*10L+2L
+  // The staged compilation slot exists before artifact construction.
+  let driver_refs=5L+15L+12L+3L*10L+2L+1L
   let driver_words=5L+10L+12L+3L*5L+1L
   // Six actual fixed live roles, not a historical issuance limit: manager,
   // registry handler/dispatch, Node admission, Run, configured Host. The Host
@@ -97,9 +109,14 @@ fn closed_values_initial_control_units() -> PreparationRepresentationUnits {
   // thirteen headers, twenty ref/word slots and80UTF16 bound these families.
   // This is charged before the attempt, including a failed constructor.
   // Registry undispatched membership/ref and handlerFinished word are above.
-  let diagnostic_headers=4L+13L
-  let diagnostic_refs=2L+20L
-  let diagnostic_words=15L+20L
+  // Publication-owned fixed controls: four owner reference slots/two flags;
+  // four live Some bindings; publication record6refs/7words; run Some;
+  // Node thunk+seven propagated refs; installed Run DAG Some/slot/open latch;
+  // pre-reservation original checks/resize16H32R24W. Total24H56R40W=1152.
+  // Completed-snapshot inventory and per-result wrappers are plan-derived later.
+  let diagnostic_headers=4L+13L+24L
+  let diagnostic_refs=2L+20L+56L
+  let diagnostic_words=15L+20L+40L
   // Fixed ordinary/embedded Run records +empty child Array, weak/live
   // memberships and retirement closure. Check/Reflect argument arrays and
   // predicate closure are held conservatively in this same R majorant.
@@ -161,7 +178,7 @@ pub fn[I] begin_closed_values_preparation(
   // The separate fixed header-open call runs only after the caller stores it.
   let value : ClientClosedValuesPreparation[I]={original:None,input:Some(input),initial,policy,capacity,
     work:None,header_fields:0,header_rows:0,retiring:false,text_checked:false,scan_complete:false,
-    document:None,parsed:None,program:None,prepared:None,shape:None,lexical:None,envelope:None,retained_quote:retained,execution_quote:execution,source_free:None,body_ready:false,manager_issued:false,adopted:false,submitted_intent:None,manager_original:None}
+    document:None,parsed:None,program:None,prepared:None,shape:None,lexical:None,envelope:None,retained_quote:retained,execution_quote:execution,source_free:None,compilation:None,body_ready:false,manager_issued:false,adopted:false,adopted_run:None,submitted_intent:None,manager_original:None,publication:None,publication_started:false,publication_invocation_started:false,publication_definition:None,publication_invocation:None}
   value.original=Some(value)
   Ok(value)
 }
@@ -227,9 +244,15 @@ pub fn[I] abort_closed_values_preparation_after_cleanup(
   owner.document=None
   owner.parsed=None
   owner.program=None
+  clear_program_publication(owner)
+  owner.publication=None
+  owner.adopted_run=None
+  owner.publication_definition=None
+  owner.publication_invocation=None
   owner.prepared=None
   owner.submitted_intent=None
   owner.source_free=None
+  owner.compilation=None
   owner.shape=None
   owner.lexical=None
   owner.envelope=None

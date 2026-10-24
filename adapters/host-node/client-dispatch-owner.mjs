@@ -160,7 +160,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
   ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
   faultInjection, runInfer, runContent, computeConfigurations = {},
-  observation, preparationCustody,
+  observation, preparationCustody, beforePublication,
   managedComputeRequired = false,
   retainedRelationOutput = false,
   runPublished = runPublishedCapturedStrategy}) {
@@ -1072,7 +1072,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           entry.cleanupOwner = owner;
           entry.pendingSetup = undefined;
         }, observation === undefined ? undefined : installTaskObservation(({event, task, durationMs}) =>
-          observation.emit('compute', event, {ref: accepted.ref, task}, {durationMs})), entry.preparationHostBorrow);
+          observation.emit('compute', event, {ref: accepted.ref, task}, {durationMs})), entry.preparationHostBorrow,
+        entry.preparationHostBorrow === undefined ? undefined : () => {
+          if (typeof beforePublication !== 'function') throw new Error('PreparationPublicationUnavailable');
+          return beforePublication(preparedProgram);
+        });
       entry.cleanupOwner = published;
       entry.publicationCommitted = true;
       await step('computed', {ref: accepted.ref,

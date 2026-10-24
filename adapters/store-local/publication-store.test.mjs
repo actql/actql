@@ -10687,3 +10687,32 @@ for (const mode of ['retired','unknown-marker']) test(`final pin checks original
    assert.equal((await store.verifyObject(digest('fixture durable Result payload'))).bytes,30);
  }
 });
+
+test('Store typed validation retains semantic close custody while yielded and releases after cancellation',async t=>{
+  let intercept=false, entered, resume;
+  const atBarrier=new Promise(resolve=>{entered=resolve;});
+  const barrier=new Promise(resolve=>{resume=resolve;});
+  const events=[];
+  const control={...contractControl,async effectFreeStoredCommitValid(...args){
+    if(!intercept)return contractControl.effectFreeStoredCommitValid(...args);
+    const requireCurrent=args.pop();
+    try{requireCurrent();entered();await barrier;requireCurrent();throw new Error('InjectedValidationCancellation');}
+    finally{events.push('checker-cancelled');}
+  }};
+  const {store}=await fixture(t,{},control),invoked=invocation();
+  const request=publicationRequest(resultDefinition(),invoked.invocation_cid);
+  const attempt=publicationAttempt(request),p=await prepareCommit(store,request,attempt,invoked);
+  const entry=indexEntry(request,attempt,invoked,{durable_result_binding_cids:[p.binding.identity]});
+  await commitFixtureIndex(store,wire(entry),p.required,p.evidence);
+  await p.prepared.release();
+  intercept=true;
+  const validating=store.validateCommittedEvidence(contractControl.admit('public_index_entry',wire(entry),limits),p.evidence);
+  const refused=assert.rejects(validating,error=>error.code==='InvalidPublicationCommitChain'&&error.cause?.message==='InjectedValidationCancellation');
+  await atBarrier;
+  try {
+    await assert.rejects(store.close(),{code:'PublicationStoreCleanupPending'});
+    assert.equal(store.status().closed,false);assert.deepEqual(events,[]);
+  } finally {resume();await refused;}
+  assert.deepEqual(events,['checker-cancelled']);
+  assert.equal(await store.close(),true);assert.equal(store.status().closed,true);
+});

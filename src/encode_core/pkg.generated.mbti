@@ -70,6 +70,8 @@ pub fn finish_text_usage(Writer) -> (String, Int, Int, Int) raise EncodeFailure
 
 pub fn hash_writer_construction_inventory(Int, Int) -> HashWriterConstructionInventory?
 
+pub fn hash_writer_live_key_inventory(Int, Int) -> HashWriterConstructionInventory?
+
 pub fn hashing_writer(Int, Int, Int) -> Writer raise EncodeFailure
 
 pub fn key(Writer, String) -> Unit raise EncodeFailure

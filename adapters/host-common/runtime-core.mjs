@@ -1,4 +1,4 @@
-import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';
+import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
 import {createLocalSigningMetadata} from './local-signing-metadata.mjs';
 import {createInstallationPreparationMetadata} from './installation-preparation-metadata.mjs';
@@ -2071,10 +2071,29 @@ function publicationControl(moon) {
     maxNodes: limits?.maxNodes,
     maxDepth: limits?.maxDepth,
   }), label);
-  const finishCapturedPreparation = async (preparation, signal, limits,
+  const capturedPreparationLimits = preparation => {
+      // The same preparation owns the complete context envelope. Metadata
+      // contract bounds cannot price embedded Result rows or their wrapper.
+      const originalOption = moon.strategyCapturedRunPreparationLimits(preparation);
+      const originalLimits = runtimeIsBoxedSome(originalOption)
+        ? runtimeField(originalOption, 0) : undefined;
+      if (!Array.isArray(originalLimits) || originalLimits.length !== 3 ||
+          !Number.isSafeInteger(originalLimits[0]) ||
+          !Number.isSafeInteger(originalLimits[1]) ||
+          !Number.isSafeInteger(originalLimits[2]) ||
+          originalLimits[0] < 0 || originalLimits[0] > 2147483647 ||
+          originalLimits[1] < 0 || originalLimits[1] > 2147483647 ||
+          originalLimits[2] < 0 || originalLimits[2] > 2147483647) {
+        throw new TypeError('Invalid original Captured Run preparation limits');
+      }
+      return Object.freeze({maxWireBytes: originalLimits[0],
+        maxNodes: originalLimits[1], maxDepth: originalLimits[2]});
+  };
+  const finishCapturedPreparation = async (preparation, signal,
     retainComputation = false) => {
     let finished = false;
     try {
+      const limits = capturedPreparationLimits(preparation);
       while (true) {
         signal?.throwIfAborted();
         if (checked(moon.strategyCapturedRunAdvance(preparation, 256))) break;
@@ -2092,6 +2111,127 @@ function publicationControl(moon) {
       return captured;
     } finally {
       if (!finished) moon.strategyCapturedRunCancel(preparation);
+    }
+  };
+  const finishProgramSnapshot = async (publication, output, signal) => {
+    signal?.throwIfAborted();
+    const snapshot = checked(moon.clientProgramBeginSnapshot(publication, output));
+    let finished = false;
+    try {
+      while (true) {
+        signal?.throwIfAborted();
+        const progress = tuplePair(checked(
+          moon.clientProgramAdvanceSnapshot(snapshot, 256)));
+        if (!Array.isArray(progress) || progress.length !== 2 ||
+            typeof progress[0] !== 'boolean' ||
+            !Number.isSafeInteger(progress[1]) || progress[1] < 0) {
+          throw new TypeError('Invalid original snapshot progress');
+        }
+        if (progress[0]) break;
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+      signal?.throwIfAborted();
+      const captured = inspectSnapshot(checked(moon.clientProgramFinishSnapshot(snapshot)));
+      finished = true;
+      return captured;
+    } finally {
+      if (!finished) moon.clientProgramCancelSnapshot(snapshot);
+    }
+  };
+  const programCaptureLimits = capture => {
+    const extent = checked(moon.clientProgramCaptureLimits(capture));
+    const maxWireBytes = runtimeField(extent, 0);
+    const maxNodes = runtimeField(extent, 1);
+    const maxDepth = runtimeField(extent, 2);
+    if (!Number.isSafeInteger(maxWireBytes) || maxWireBytes < 0 ||
+        maxWireBytes > 2147483647 ||
+        !Number.isSafeInteger(maxNodes) || maxNodes < 0 || maxNodes > 2147483647 ||
+        !Number.isSafeInteger(maxDepth) || maxDepth < 0 || maxDepth > 2147483647 ||
+        runtimeField(extent, 3) !== undefined) {
+      throw new TypeError('Invalid original capture extent');
+    }
+    return Object.freeze({maxWireBytes, maxNodes, maxDepth});
+  };
+  // Typed ordinary capture never exposes its inner issuer. The same Host
+  // continuation owns cancellation throughout every await and publication.
+  const finishProgramCapture = async (capture, signal) => {
+    let finished = false;
+    try {
+      checked(moon.clientProgramStartCapture(capture));
+      const limits = programCaptureLimits(capture);
+      while (true) {
+        signal?.throwIfAborted();
+        const progress = tuplePair(checked(
+          moon.clientProgramAdvanceCapture(capture, 256)));
+        if (!Array.isArray(progress) || progress.length !== 2 ||
+            typeof progress[0] !== 'boolean' ||
+            !Number.isSafeInteger(progress[1]) || progress[1] < 0) {
+          throw new TypeError('Invalid original capture progress');
+        }
+        if (progress[0]) break;
+        await new Promise(resolve => typeof setImmediate === 'function'
+          ? setImmediate(resolve) : setTimeout(resolve, 0));
+      }
+      signal?.throwIfAborted();
+      const captured = inspect(checked(
+        moon.clientProgramFinishCapture(capture)), limits);
+      // The existing publication owner keeps this one typed continuation.
+      // Its private issuer remains on the same preparation resource owner.
+      capturedComputationPreparations.set(captured, {program: capture});
+      finished = true;
+      return captured;
+    } finally {
+      if (!finished) moon.clientProgramCancelCapture(capture);
+    }
+  };
+  const finishProgramValidation = async (validation, signal, requireCurrent) => {
+    try {
+      requireCurrent?.();
+      checked(moon.clientProgramStartValidation(validation));
+      while (true) {
+        signal?.throwIfAborted();
+        requireCurrent?.();
+        const progress = tuplePair(checked(
+          moon.clientProgramAdvanceValidation(validation, 256)));
+        if (!Array.isArray(progress) || progress.length !== 2 ||
+            typeof progress[0] !== 'boolean' ||
+            !Number.isSafeInteger(progress[1]) || progress[1] < 0) {
+          throw new TypeError('Invalid original publication validation progress');
+        }
+        if (progress[0]) {
+          signal?.throwIfAborted();
+          requireCurrent?.();
+          checked(moon.clientProgramFinishValidation(validation));
+          return true;
+        }
+        await new Promise(resolve => typeof setImmediate === 'function'
+          ? setImmediate(resolve) : setTimeout(resolve, 0));
+      }
+    } finally {
+      moon.clientProgramCancelValidation(validation);
+    }
+  };
+  const finishStoreValidation = async (validation, requireCurrent) => {
+    try {
+      while (true) {
+        requireCurrent();
+        const progress = tuplePair(checked(
+          moon.clientStoreAdvanceOriginalValidation(validation, 256)));
+        if (!Array.isArray(progress) || progress.length !== 2 ||
+            typeof progress[0] !== 'boolean' ||
+            !Number.isSafeInteger(progress[1]) || progress[1] < 0) {
+          throw new TypeError('Invalid original Store validation progress');
+        }
+        if (progress[0]) {
+          requireCurrent();
+          checked(moon.clientStoreFinishOriginalValidation(validation));
+          return true;
+        }
+        await new Promise(resolve => typeof setImmediate === 'function'
+          ? setImmediate(resolve) : setTimeout(resolve, 0));
+      }
+    } finally {
+      moon.clientStoreCancelOriginalValidation(validation);
     }
   };
   const finishPublicationValidation = async (
@@ -2509,7 +2649,7 @@ function publicationControl(moon) {
       if (original === undefined) throw new TypeError('Foreign Client original Infer preparation');
       return Object.freeze({graph: runtimeField(original, 0), execution: runtimeField(original, 1)});
     },
-    prepareCheckedClientCompiledRun(checkedProgram, kind, policy, inferGraph) {
+    prepareCheckedClientCompiledRun(checkedProgram, kind, policy, inferGraph, valuesCompilation) {
       if (!['values', 'tasks', 'infer', 'serialization'].includes(kind)) {
         throw new TypeError('Invalid Client compilation profile');
       }
@@ -2518,12 +2658,15 @@ function publicationControl(moon) {
           ? 'Content compilation requires its checked graph'
           : 'Infer compilation requires its checked graph');
       }
+      if (valuesCompilation !== undefined && kind !== 'values') {
+        throw new TypeError('Values compilation supplied to another profile');
+      }
       const serializationGraph = kind === 'serialization'
         ? serializationPlanTokens.get(inferGraph) : undefined;
       if (kind === 'serialization' && serializationGraph === undefined) {
         throw new TypeError('Foreign Content compilation graph');
       }
-      const compilation = compiledRunResult(kind === 'values'
+      const compilation = valuesCompilation !== undefined ? valuesCompilation : compiledRunResult(kind === 'values'
         ? moon.clientProgramCompileLocalValues(checkedProgram)
         : kind === 'serialization'
           ? moon.clientProgramCompileLocalSerialization(checkedProgram, serializationGraph)
@@ -2938,13 +3081,20 @@ function publicationControl(moon) {
           : 'RunHostSourceFreeAdmissionRejected'));
     },
     issueCheckedClientCompiledInvocation(compiled, definition,
-      {dataPolicyCid, source}, limits) {
+      {dataPolicyCid, source}, limits, publicationPreparation, preparedProgram) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined) {
         throw new TypeError('Foreign Client compiled Run');
       }
       limits = captureContractLimits(limits, 'Client Run Invocation');
-      const issued = compiledRunResult(source === undefined
+      if (publicationPreparation !== undefined && (compiled.kind !== 'values' || source !== undefined)) {
+        throw new TypeError('Invalid original publication invocation profile');
+      }
+      const issued = compiledRunResult(publicationPreparation !== undefined
+        ? moon.clientProgramIssuePublicationInvocation(publicationPreparation,
+          preparedProgram, value, token(definition), dataPolicyCid,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
+        : source === undefined
         ? (compiled.kind !== 'values'
           ? moon.clientProgramIssueCompiledSourceFreeTaskInvocation(value,
             token(definition), dataPolicyCid,
@@ -4298,11 +4448,26 @@ function publicationControl(moon) {
       return moon.strategyCapturedEffectSourceStoreAuthorityCid(
         effectSourceToken(source));
     },
-    async admitCompletedResultSnapshot(exportHandle, limits, signal) {
-      issuanceLimits(limits, 'completed Result snapshot');
+    async admitCompletedResultSnapshot(exportHandle, outputLimits, signal, publicationResource) {
+      if (publicationResource !== undefined) {
+        return finishProgramSnapshot(publicationResource, exportHandle, signal);
+      }
+      // Bare row emission and captured admission share this bound; the latter
+      // includes the canonical relation wrapper. Borrow the existing checked
+      // output policy without constructing a second quota or projection cache.
+      if (outputLimits === null || typeof outputLimits !== 'object' ||
+          !Number.isSafeInteger(outputLimits.maxLogicalWireBytes) ||
+          !Number.isSafeInteger(outputLimits.maxLogicalWireNodes) ||
+          !Number.isSafeInteger(outputLimits.maxLogicalWireDepth) ||
+          outputLimits.maxLogicalWireBytes < 0 || outputLimits.maxLogicalWireBytes > 2147483647 ||
+          outputLimits.maxLogicalWireNodes < 0 || outputLimits.maxLogicalWireNodes > 2147483647 ||
+          outputLimits.maxLogicalWireDepth < 0 || outputLimits.maxLogicalWireDepth > 2147483647) {
+        throw new TypeError('Invalid completed Result snapshot output limits');
+      }
       signal?.throwIfAborted();
       const preparation = checked(moon.strategyHostOutputSnapshotBegin(
-        exportHandle, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+        exportHandle, outputLimits.maxLogicalWireBytes,
+        outputLimits.maxLogicalWireNodes, outputLimits.maxLogicalWireDepth));
       let finished = false;
       try {
         while (true) {
@@ -4335,7 +4500,7 @@ function publicationControl(moon) {
         ),
       ));
     },
-    async issueEffectFreeCapturedRun(chain, evidence, limits, signal) {
+    async issueEffectFreeCapturedRun(chain, evidence, limits, signal, publicationResource) {
       limits = captureContractLimits(limits, 'Captured Run');
       if (chain === null || typeof chain !== 'object' ||
           evidence === null || typeof evidence !== 'object' ||
@@ -4347,7 +4512,25 @@ function publicationControl(moon) {
         throw new TypeError('Invalid Captured Run request');
       }
       signal?.throwIfAborted();
-      const preparation = moon.strategyBeginEffectFreeCapturedRun(
+      if (publicationResource !== undefined) {
+        if (evidence.pendingSourceStateAdvances.length !== 0 ||
+            evidence.modelEvidence.length !== 0 ||
+            (evidence.contentGenerations !== undefined &&
+              (!Array.isArray(evidence.contentGenerations) ||
+                evidence.contentGenerations.length !== 0))) {
+          throw new TypeError('Invalid original program capture profile');
+        }
+        const capture = checked(moon.clientProgramPrepareCapture(
+          publicationResource, token(chain.runDefinition), token(chain.invocation),
+          chain.definitions.map(token), chain.artifacts.map(token),
+          token(chain.manifest), token(chain.receipt),
+          evidence.snapshots.map(snapshotToken),
+          evidenceToken(evidence.authoringContext),
+          evidence.modelEvidence.map(evidenceToken),
+        ));
+        return finishProgramCapture(capture, signal);
+      }
+      const preparation = moon.strategyBeginOriginalEffectFreeCapturedRun(
         token(chain.runDefinition),
         token(chain.invocation),
         chain.definitions.map(token),
@@ -4364,7 +4547,7 @@ function publicationControl(moon) {
         moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
         contentCaptures(evidence.contentGenerations),
       );
-      return finishCapturedPreparation(preparation, signal, limits, true);
+      return finishCapturedPreparation(preparation, signal, true);
     },
     retireCapturedComputation(capturedRun) {
       token(capturedRun);
@@ -4372,7 +4555,8 @@ function publicationControl(moon) {
       if (original === undefined) return;
       // The publication operation owns this alias through reconciliation.
       // Cancel releases managed facts, not physical children or an ACK.
-      moon.strategyCapturedRunCancel(original);
+      if (original.program !== undefined) moon.clientProgramCancelCapture(original.program);
+      else moon.strategyCapturedRunCancel(original);
       capturedComputationPreparations.delete(capturedRun);
     },
     admitEffectComputationPreview(wire, runDefinition, authoring, limits) {
@@ -4657,7 +4841,7 @@ function publicationControl(moon) {
         moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
         contentCaptures(evidence.contentGenerations),
       ));
-      return finishCapturedPreparation(preparation, signal, limits);
+      return finishCapturedPreparation(preparation, signal);
     },
     prepareLocalEffectDependencyInventory(artifacts, bodies, limits) {
       issuanceLimits(limits, 'Effect dependency inventory');
@@ -5172,6 +5356,15 @@ function publicationControl(moon) {
       issuanceLimits(limits, 'Effect-free chain validation');
       signal?.throwIfAborted();
       const original = capturedComputationPreparations.get(capturedRun);
+      if (original?.program !== undefined) {
+        const validation = checked(moon.clientProgramPrepareChainValidation(
+          original.program, token(runDefinition), token(invocation),
+          definitions.map(token), artifacts.map(token), token(manifest),
+          token(receipt), token(capturedRun),
+        ));
+        return finishProgramValidation(validation, signal);
+      }
+      if (original !== undefined) limits = capturedPreparationLimits(original);
       const args = [
         token(runDefinition),
         token(invocation),
@@ -5193,11 +5386,53 @@ function publicationControl(moon) {
         moon.strategyEffectFreeChainCheckFinish,
         moon.strategyEffectFreeChainCheckCancel, signal);
     },
+    // The selected Store read owns this full-original validation operation.
+    // No preparation owner is reconstructed after reopen and no metadata
+    // ceiling is reused for a larger independently admitted contract.
+    async effectFreeStoredCommitValid(runDefinition, invocation, definitions, artifacts,
+      derivations, orderings, retentions, durableBindings, manifest, receipt,
+      capturedRun, request, attempt, indexEntry, requireCurrent) {
+      if (typeof requireCurrent !== 'function') {
+        throw new TypeError('Store publication validation owner unavailable');
+      }
+      requireCurrent();
+      const retained = capturedComputationPreparations.get(capturedRun);
+      if (retained?.program !== undefined) {
+        const validation = checked(moon.clientProgramPrepareCommitValidation(
+          retained.program, token(runDefinition), token(invocation),
+          definitions.map(token), artifacts.map(token), derivations.map(token),
+          orderings.map(token), retentions.map(token), durableBindings.map(token),
+          token(manifest), token(receipt), token(capturedRun), token(request),
+          token(attempt), token(indexEntry),
+        ));
+        return finishProgramValidation(validation, undefined, requireCurrent);
+      }
+      const validation = checked(moon.clientStoreBeginOriginalCommitValidation(
+        token(runDefinition), token(invocation), definitions.map(token),
+        artifacts.map(token), derivations.map(token), orderings.map(token),
+        retentions.map(token), durableBindings.map(token), token(manifest),
+        token(receipt), token(capturedRun), token(request), token(attempt),
+        token(indexEntry),
+      ));
+      return finishStoreValidation(validation, requireCurrent);
+    },
     async effectFreeCommitValid(runDefinition, invocation, definitions, artifacts,
       derivations, orderings, retentions, durableBindings, manifest, receipt,
       capturedRun, request, attempt, indexEntry, limits) {
       issuanceLimits(limits, 'Effect-free commit validation');
       const original = capturedComputationPreparations.get(capturedRun);
+      if (original?.program !== undefined) {
+        const validation = checked(moon.clientProgramPrepareCommitValidation(
+          original.program, token(runDefinition), token(invocation),
+          definitions.map(token), artifacts.map(token), derivations.map(token),
+          orderings.map(token), retentions.map(token), durableBindings.map(token),
+          token(manifest), token(receipt), token(capturedRun), token(request),
+          token(attempt), token(indexEntry),
+        ));
+        // Commit reconciliation remains authoritative after cancellation.
+        return finishProgramValidation(validation);
+      }
+      if (original !== undefined) limits = capturedPreparationLimits(original);
       const args = [
         token(runDefinition),
         token(invocation),

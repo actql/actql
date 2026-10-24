@@ -171,7 +171,12 @@ pub fn client_program_prepare_closed_values_body(
   publication_environment : @source_publication.PreparedPublishedQueryEnvironment,
   contracts : @client_local_host.ClientInstalledSequenceContracts,
 ) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue] {
-  @client_local_host.prepare_closed_values_body(owner, environment, publication_environment, contracts)
+  // Cold compiler admission belongs to installed initialization, never to a
+  // query borrowing an original under a per-request compilation quotation.
+  guard client_generated_manifest_admission.val is Some(Ok(manifests)) else {
+    return Err(Policy)
+  }
+  @client_local_host.prepare_closed_values_body(owner, environment, publication_environment, contracts, manifests)
 }
 
 ///|
@@ -247,3 +252,59 @@ pub fn client_program_closed_values_submitted_intent_original(
 ) -> @publication_host.ClientSubmittedIntent? {
   @client_local_host.closed_values_submitted_intent_original(owner)
 }
+
+///|
+#export_name("clientProgramClosedValuesCompilationOriginal")
+pub fn client_program_closed_values_compilation_original(
+  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+  prepared : @publication_host.PreparedClientProgram,
+) -> @publication_host.ClientValuesCompilation? {
+  @client_local_host.closed_values_compilation_original(owner,prepared)
+}
+
+///|
+#export_name("strategyCapturedRunPreparationLimits")
+pub fn strategy_captured_run_preparation_limits(
+  original : @publication.CapturedRunIssuancePreparation,
+) -> Array[Int]? {
+  @publication.captured_run_preparation_limits(original).map(values => [values.0, values.1, values.2])
+}
+
+///|
+#export_name("strategyBeginOriginalEffectFreeCapturedRun")
+pub fn strategy_begin_original_effect_free_captured_run(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  snapshots : Array[@publication.CapturedResultSnapshot],
+  advances : Array[@publication.PendingSourceStateAdvance],
+  authoring : @publication.RunEvidenceValue,
+  models : Array[@publication.RunEvidenceValue],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+  content_generations : Array[@publication.BoundContentGeneration],
+) -> @publication.CapturedRunIssuancePreparation {
+  @publication.start_original_effect_free_captured_run(
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    manifest,
+    receipt,
+    snapshots,
+    advances,
+    authoring,
+    models,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    max_workspace,
+    content_generations~,
+  )
+}
+

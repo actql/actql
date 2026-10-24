@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "abf842e5f878e298e10b474f2755848e42f2cfafb463352ca0899e1dcfb00821",
+      "sha256": "11dac27a4ebd4af2f0a1bbf7095bc957d1c472c30f25213338efbabb92cfc16d",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -1300,6 +1300,13 @@
           "async": false
         },
         {
+          "name": "publicationControl/capturedPreparationLimits/capturedPreparationLimits",
+          "parameters": [
+            "preparation"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/compiledContent/compiledContent",
           "parameters": [
             "compiled"
@@ -1354,13 +1361,59 @@
           "parameters": [
             "preparation",
             "signal",
-            "limits",
             "retainComputation"
           ],
           "async": true
         },
         {
           "name": "publicationControl/finishCapturedPreparation/finishCapturedPreparation/finishCapturedPreparation",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/finishProgramCapture/finishProgramCapture",
+          "parameters": [
+            "capture",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "publicationControl/finishProgramCapture/finishProgramCapture/finishProgramCapture",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/finishProgramSnapshot/finishProgramSnapshot",
+          "parameters": [
+            "publication",
+            "output",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "publicationControl/finishProgramSnapshot/finishProgramSnapshot/finishProgramSnapshot",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/finishProgramValidation/finishProgramValidation",
+          "parameters": [
+            "validation",
+            "signal",
+            "requireCurrent"
+          ],
+          "async": true
+        },
+        {
+          "name": "publicationControl/finishProgramValidation/finishProgramValidation/finishProgramValidation",
           "parameters": [
             "resolve"
           ],
@@ -1379,6 +1432,21 @@
         },
         {
           "name": "publicationControl/finishPublicationValidation/finishPublicationValidation/finishPublicationValidation",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/finishStoreValidation/finishStoreValidation",
+          "parameters": [
+            "validation",
+            "requireCurrent"
+          ],
+          "async": true
+        },
+        {
+          "name": "publicationControl/finishStoreValidation/finishStoreValidation/finishStoreValidation",
           "parameters": [
             "resolve"
           ],
@@ -1487,8 +1555,9 @@
           "name": "publicationControl/init:admitCompletedResultSnapshot/init:admitCompletedResultSnapshot",
           "parameters": [
             "exportHandle",
-            "limits",
-            "signal"
+            "outputLimits",
+            "signal",
+            "publicationResource"
           ],
           "async": true
         },
@@ -2724,6 +2793,27 @@
           "async": true
         },
         {
+          "name": "publicationControl/init:effectFreeStoredCommitValid/init:effectFreeStoredCommitValid",
+          "parameters": [
+            "runDefinition",
+            "invocation",
+            "definitions",
+            "artifacts",
+            "derivations",
+            "orderings",
+            "retentions",
+            "durableBindings",
+            "manifest",
+            "receipt",
+            "capturedRun",
+            "request",
+            "attempt",
+            "indexEntry",
+            "requireCurrent"
+          ],
+          "async": true
+        },
+        {
           "name": "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid",
           "parameters": [
             "chain",
@@ -3001,7 +3091,9 @@
             "definition",
             "dataPolicyCid",
             "source",
-            "limits"
+            "limits",
+            "publicationPreparation",
+            "preparedProgram"
           ],
           "async": false
         },
@@ -3232,7 +3324,8 @@
             "chain",
             "evidence",
             "limits",
-            "signal"
+            "signal",
+            "publicationResource"
           ],
           "async": true
         },
@@ -3816,7 +3909,8 @@
             "checkedProgram",
             "kind",
             "policy",
-            "inferGraph"
+            "inferGraph",
+            "valuesCompilation"
           ],
           "async": false
         },
@@ -4968,6 +5062,13 @@
           "name": "publicationControl/prepareSerializationGraph/prepareSerializationGraph/prepareSerializationGraph",
           "parameters": [
             "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/programCaptureLimits/programCaptureLimits",
+          "parameters": [
+            "capture"
           ],
           "async": false
         },
@@ -7964,7 +8065,7 @@
             "identity": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -8086,7 +8187,7 @@
             "failure": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -9633,6 +9734,88 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/capturedPreparationLimits/capturedPreparationLimits",
+            "publicationControl/finishProgramCapture/finishProgramCapture",
+            "publicationControl/finishProgramCapture/finishProgramCapture/finishProgramCapture",
+            "publicationControl/finishProgramSnapshot/finishProgramSnapshot",
+            "publicationControl/finishProgramSnapshot/finishProgramSnapshot/finishProgramSnapshot",
+            "publicationControl/finishProgramValidation/finishProgramValidation",
+            "publicationControl/finishProgramValidation/finishProgramValidation/finishProgramValidation",
+            "publicationControl/finishStoreValidation/finishStoreValidation",
+            "publicationControl/finishStoreValidation/finishStoreValidation/finishStoreValidation",
+            "publicationControl/init:effectFreeStoredCommitValid/init:effectFreeStoredCommitValid",
+            "publicationControl/programCaptureLimits/programCaptureLimits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Scope and responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Original identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Ownership and handoff"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Synchronization and currentness"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Failure and uncertainty"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Cancellation and retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Resources and scratch cut"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Extension and pending work"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('typed retained chain and commit consume original contracts without numeric limit relay'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -9645,7 +9828,8 @@
         "./runtime-result.mjs"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": []
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -23495,7 +23679,7 @@
     {
       "module": "src/physical_resources/imported_child_ledger.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c047cf42144cc712e368dec3341ba0a44eb88e7e9afbcab9672f25117c4d5173",
+      "sha256": "4fd3cd661ec666fa70dd50916d79db42ce77cf66a145ed03abddd702eccf6a63",
       "exports": [],
       "operations": [
         {
@@ -23509,6 +23693,10 @@
         {
           "name": "check_imported_original_child_ledger",
           "declaration": "check_imported_original_child_ledger ( value : ImportedChildLedger , ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "cleanup_quantity_copy",
+          "declaration": "cleanup_quantity_copy ( value : QuantityAmounts ) - > QuantityAmounts"
         },
         {
           "name": "imported_child_fixed_capacity",
@@ -23533,6 +23721,10 @@
         {
           "name": "prepare_imported_child_port",
           "declaration": "prepare_imported_child_port ( nonce : Int64 , admit : ( Int64 ) - > Int , current : ( Int64 ) - > Int , limit : ( Int64 , Int ) - > Int64 , capacity : ( Int64 , Int ) - > Int64 , report : ( Int64 , LedgerUsage ) - > Int , stop : ( Int64 ) - > Int , fixed_capacities ? : Bool"
+        },
+        {
+          "name": "relocate_imported_child_cleanup_usage",
+          "declaration": "relocate_imported_child_cleanup_usage ( value : ImportedChildLedger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
         },
         {
           "name": "report_imported_child_ledger",
@@ -23660,8 +23852,82 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "cleanup_quantity_copy",
+            "relocate_imported_child_cleanup_usage"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Scope and responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Original identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Ownership and handoff"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Synchronization and currentness"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Failure and uncertainty"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Cancellation and retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Resources and scratch cut"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Extension and pending work"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "src/execution_relation/managed_output_success_retirement_wbtest.mbt",
+                "anchor": "test \"successful receipt scratch retirement begins without hidden work and preserves output\""
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
     },
     {
       "module": "src/run_publication_host/client_acquisition.mbt",

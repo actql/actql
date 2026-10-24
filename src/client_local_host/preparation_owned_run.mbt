@@ -96,6 +96,7 @@ fn retire_preparation_owned_installed_run(
   // durable holder. An existing operation must use its own registered borrow.
   value.preparation = None
   value.source_free_preparation = None
+  value.source_free_captured = None
   value.keyed = None
   value.reads.clear()
   value.keyed_reads.clear()
@@ -140,6 +141,7 @@ pub fn installed_preparation_payload_severed(
     physical_equal(value.request,request) && value.ledger is Some(ledger) &&
     value.preparation_retirement is Some(retirement) &&
     value.preparation is None && value.source_free_preparation is None &&
+    value.source_free_captured is None &&
     retirement.holder is None else { return false }
   @resources.check_node_preparation_cleanup_original(retirement.admission,ledger) is Ok(_)
 }

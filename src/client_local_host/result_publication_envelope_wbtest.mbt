@@ -193,3 +193,19 @@ test "publication projection borrows the original plan before admission and reje
     100000,
   )
 }
+
+///|
+test "unordered Result publication row work follows original 10001 and 100000 row authority" {
+  for rows in [10001, 100000] {
+    let prepared = sequence_demand_fixture(rows, false)
+    let assets = @publication_host.client_local_product_assets()
+    let original = prepare_installed_managed_source_free_with_contracts(
+      prepared,
+      prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap(),
+      assets.values, Some(assets.fragment), assets.ordered,
+    ).unwrap()
+    let projected = prepared_installed_managed_publication_limits(original, prepared, 10000000).unwrap()
+    assert_eq(projected.max_result_order_work, rows)
+    assert_true(projected.max_result_workspace_entries >= 2 * rows)
+  }
+}

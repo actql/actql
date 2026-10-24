@@ -22,8 +22,19 @@ pub fn hash_writer_construction_inventory(
   max_nodes : Int,
   max_depth : Int,
 ) -> HashWriterConstructionInventory? {
-  guard max_nodes >= 0 && max_depth >= 0 else { return None }
-  let n = max_nodes.to_int64()
+  hash_writer_live_key_inventory(max_nodes,max_depth)
+}
+
+///|
+/// Same owned writer constructor, given an independently proved upper bound
+/// on simultaneously live object-Map keys. This is NOT a writer node limit.
+/// General callers use max_nodes above; ancestry-aware synchronous emitters
+/// may prove a smaller live-key bound while retaining their full node budget.
+pub fn hash_writer_live_key_inventory(
+  max_live_keys:Int,max_depth:Int,
+) -> HashWriterConstructionInventory? {
+  guard max_live_keys >= 0 && max_depth >= 0 else { return None }
+  let n = max_live_keys.to_int64()
   let d = max_depth.to_int64()
   // Writer + HashOutput + Hasher; four dynamic arrays (frames/state/words/
   // block), allowing one old backing each. Frame records and ordered-key Some

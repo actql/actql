@@ -24,9 +24,9 @@ function bindQueryInvocation(control, original, prepared, compiled, definition) 
     queryTime:control.bindClientQueryTime(original.preparation,prepared,compiled,definition,original.request)});
 }
 
-// Contract and evidence issuance bounds. A captured Run's Named Result
-// snapshot is admitted under them too, so they hold what one captured Run can
-// output: the Local import wire (1 MB, 100k nodes).
+// Contract and evidence issuance bounds only. Captured Named Result snapshots
+// consume the same original logical output policy as durable publication,
+// including its relation wrapper; these metadata bounds do not cap row data.
 const limits = Object.freeze({maxWireBytes: 1000000, maxNodes: 100000,
   maxDepth: 64});
 export const localOutputLimits = Object.freeze({
@@ -511,7 +511,7 @@ export function acquiredInferEffectPublicationPlan({acquired, sources,
 
 export function sourceFreeValuesPlan({moon, control, preparedProgram,
   authorityScopeCid, namespaceId, storeAuthorityCid, now,
-  retainedDefinitionWire, requestIdentity, publicationOriginal}) {
+  retainedDefinitionWire, requestIdentity, publicationOriginal, compilationOriginal, publicationPreparation}) {
   const at = Date.parse(now());
   if (!Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
   const retained = retainedDefinitionWire === undefined ? undefined :
@@ -526,7 +526,7 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
   const contextCid = valuesExecutionContextCid(authorityScopeCid);
   const compiled = control.prepareCheckedClientCompiledRun(preparedProgram,
     'values', {executionContextCid: contextCid,
-      hostPolicyCid, expiresAt: validUntil});
+      hostPolicyCid, expiresAt: validUntil}, undefined, compilationOriginal);
   const {admission, compiledPlan} = compiled;
   const runDefinition = control.defineCheckedClientCompiledRun(compiled, {
     namespaceId, runId: randomUUID(), createdAt, validUntil,
@@ -535,7 +535,7 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
   const queryTime=bindQueryInvocation(control,queryInvocation,preparedProgram,compiled,runDefinition);
   const dataPolicyCid = policyCid('local-result-data');
   const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
-    compiled, runDefinition, {dataPolicyCid}, limits);
+    compiled, runDefinition, {dataPolicyCid}, limits, publicationPreparation, preparedProgram);
   const plan = localPublicationPlan({control, admission, runDefinition, invocation,
     observation, compiledPlanCid: compiledPlan.identity,
     programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),

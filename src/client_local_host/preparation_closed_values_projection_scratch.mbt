@@ -68,10 +68,33 @@
 /// Authored sequence demand adds two unit records (2,0,10), two list slots
 /// (0,2,0), and ten checked-add Some carriers (10,0,20) to the compiler
 /// projector. Additional fixed quote scratch (12,2,30),448 logical bytes.
+/// Funded compilation quote construction adds a finite call-expanded packet.
+/// This prices the SMALL descriptors/Arrays/Some values created by projection,
+/// not the represented source/canonical/writer payload and not VM call frames.
+/// Families (calls * headers/references/words):
+/// -112 sum+literal-array scopes, each <=13 items:112*(74,15,148).
+///   These cover54 parse sums,46 metadata repetition sums,2 final metadata,
+///   3 outer sums,2 Program emitter,2 contract emitter,1 witness,2 ancestry
+///   wrapper scopes; one ancestry scope is conservative sequential slack.
+/// -18 parse projections (13 metadata +5 large):18*(36,18,116).
+/// -16 shared writer envelopes:16*(14,2,32), plus two ancestry wrapper
+///   descriptors:2*(16,2,42). The second wrapper is conservative slack.
+/// -3 other repeat-unit projections:3*(12,1,26).
+/// -30 metadata facts (including7-scalar tuple):30*(3,1,18).
+/// -2 metadata shape sums/literal Arrays:2*(4,15,26).
+/// -metadata direct records/arrays/carriers:(25,11,126).
+/// -outer shape/parts/wire/cell/return descriptors:(33,21,165).
+/// -Program emitter descriptor:(11,3,43);2 Number contract descriptors:
+///   2*(3,1,11);2 canonical emitter descriptors:2*(7,1,16).
+/// -artifact descriptor:(7,1,16); witness descriptor including the append
+///   capacity Some:(20,3,55); added body tariff/list/error carriers:(12,2,21).
+/// Sum=(9454,2148,20410),331728 logical bytes. All loops have fixed13-family,
+///23-repetition or<=13-element bounds; no F/R-sized quote collection exists.
+/// The source guard pins helper bodies and this table's cardinalities.
 let closed_values_projection_scratch_original : PreparationRepresentationUnits = {
-  record_headers: 4186L + 313L + 10L + 90L + 139L + 12L,
-  reference_slots: 1584L + 363L + 55L + 112L + 2L,
-  scalar_words: 9361L + 315L + 20L + 204L + 326L + 30L,
+  record_headers: 4186L + 313L + 10L + 90L + 139L + 12L + 9454L,
+  reference_slots: 1584L + 363L + 55L + 112L + 2L + 2148L,
+  scalar_words: 9361L + 315L + 20L + 204L + 326L + 30L + 20410L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }

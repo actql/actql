@@ -347,9 +347,13 @@ export function prepareInstalledSequenceContractOriginal(originals) {
     }
     return old;
   }
-  if (typeof moon?.clientPrepareInstalledSequenceContracts !== 'function') {
+  if (typeof moon?.clientPrepareInstalledSequenceContracts !== 'function' ||
+      typeof moon?.clientPrepareInstalledCompilationManifests !== 'function') {
     throw clientOperationError('NodeManagedRunRuntimeUnavailable');
   }
+  // Shared compiler manifests are admitted during fixed installation, not
+  // lazily constructed under a later request's preparation reservation.
+  checked(moon.clientPrepareInstalledCompilationManifests());
   const registry = readInitialControlInstallationAsset(installation.initialControl,
     originals, 'spec/dependencies/aoa-pipeline-registry.json');
   const contracts = installedManagedRunContracts(originals);
@@ -2821,6 +2825,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     const common = {moon, control, preparedProgram,
       publicationOriginal: preparation?.managedComputePublicationOriginal?.(moon, preparedProgram),
+      compilationOriginal: preparation?.managedComputeCompilationOriginal?.(moon, preparedProgram),
+      publicationPreparation: preparation?.managedComputePublicationPreparation?.(moon, preparedProgram),
       authorityScopeCid, namespaceId, requestId, storeAuthorityCid, now,
       ...(requestIdentity === undefined ? {} : {requestIdentity}),
       ...(retainedDefinitionWire === undefined ? {} :
@@ -2986,6 +2992,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     fragment, ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
     runInfer, runContent, retainedRelationOutput, observation,
     preparationCustody: localPreparationCustody,
+    beforePublication: prepared => preparation.managedComputeReservePublication(moon, prepared),
     managedComputeRequired: originalRequestPreparation !== undefined,
     computeConfigurations: {local:localSnapshotConfiguration}});
   const startDispatch = dispatchOwner.start;
@@ -5493,6 +5500,34 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       else if (sourceManaged !== undefined) assertSourceManagedInstallationCurrent(sourceManaged, originals);
       else return false;
       return true;
+    },
+    managedComputePublicationPreparation(runtime, prepared) {
+      const run = record.computeRuns?.get(prepared);
+      if (run === undefined || !run.preparationFunded) return undefined;
+      if (run.runtime !== runtime || run.prepared !== prepared || run.closed || run.failure !== undefined) {
+        throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+      }
+      return run.manager.publicationPreparation(prepared);
+    },
+    managedComputeReservePublication(runtime, prepared) {
+      const run = record.computeRuns?.get(prepared);
+      if (run === undefined || !run.preparationFunded || run.runtime !== runtime ||
+          run.prepared !== prepared || run.closed || run.failure !== undefined) {
+        throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+      }
+      return run.manager.reservePublication(prepared);
+    },
+    managedComputeCompilationOriginal(runtime, prepared) {
+      const run = record.computeRuns?.get(prepared);
+      if (run === undefined || !run.preparationFunded) return undefined;
+      if (run.runtime !== runtime || run.prepared !== prepared || run.closed || run.failure !== undefined) {
+        throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+      }
+      // The driver owns the staged compilation under this Run's existing
+      // preparation borrow. No cache, recompile or copied wire creates it.
+      const original = run.manager.compilationOriginal(prepared);
+      if (original === undefined) throw clientOperationError('NodeManagedRunCompilationUnavailable');
+      return original;
     },
     managedComputePublicationOriginal(runtime, prepared) {
       const run = record.computeRuns?.get(prepared);
