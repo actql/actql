@@ -309,3 +309,48 @@ retire the managed parent. Source-close status, current permission, consumed
 attempts, durable publication and physical FD acknowledgement remain separate.
 Installation close cuts the same private inventory references after its actual
 cleanup. Weak associations are not persistent grants or new cleanup owners.
+
+## Cumulative continuation after child retirement
+
+The existing Ledger separates cumulative work, attempted physical operations,
+known/uncertain transfer and quantity consumption from live reservations,
+holdings and delegations. A private continuation snapshots all thirteen usage
+fields, the exact six limits, all three non-reused serial cursors and the full
+quantity configuration/usage. It reuses the original-ledger snapshot and field
+codec rather than constructing another resource calculator.
+
+A continuation is available only when every live count, held/reserved byte and
+delegated quota is zero. A zero-byte token is still live. Unknown cumulative
+transfer and quantity debt remains unchanged and reduces later admissions;
+actual quantity overruns are preserved rather than clamped. This accounting
+predicate does not prove physical cleanup, resolve an Effect or authorize a
+new request. Nonquiescent original children retain their existing owner and
+cleanup/reconciliation path.
+
+The private codec accepts only exact arrays and canonical integer strings. Its
+output is DATA, without Journal authentication, a Run binding or capacity. The
+existing authenticated Journal/service must bind those bytes to the actual
+restored preparation, Allowed/Definition and request, and the same selected
+operation plan before any provider call. A live export is historical DATA, not
+a park fence: its existing holder prevents new work and checks the original
+state again at the actual persistence boundary. This does not add a publication
+wire evidence kind or reuse a Model evidence name for resource accounting.
+
+Restore initializes one pristine, separately admitted original Ledger with
+exactly matching limits. It preserves sunk consumption, peak retention,
+uncertain debt and exhausted/non-reused identities. An all-zero saved state
+still consumes the one-use initialization slot. Neither a new reservation nor
+a settled zero-byte token is a pristine target. The Node admission retains its
+same failed initializer and cleanup owner if imported limits or currentness
+refuse; it never starts a second child or recreates tokens from a saved census.
+The resident initialization flag is included in the existing initial-control
+representation inventory. Normal authenticated cold restoration remains a
+separate caller integration from these portable accounting operations.
+
+Domain-specific installed implementations supply owned representation, value
+node and raw-byte inventories to one shared preparation-to-execution fold.
+Retained state and simultaneously live workspace use the existing shared
+representation and value-node tariffs; the execution peak includes both. A
+domain must not repeat that arithmetic, introduce another tariff or turn its
+static declaration into an admission. The original checked plan and Ledger
+still determine whether the quoted inventory can actually be funded.

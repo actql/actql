@@ -12,6 +12,8 @@ pub fn[I, P] abort_preparation_capacity_after_cleanup(PreparationCapacity[I, P],
 
 pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]
 
+pub fn admit_quiescent_ledger_state(@decode_core.Cursor) -> Result[LedgerContinuationState, LedgerContinuationIssue]
+
 pub fn admit_unresolved_backed_execution_data(BackedExecutionOriginalData) -> Result[UnresolvedBackedExecutionOriginal, BackedExecutionDataIssue]
 
 pub fn[I, P] adopt_node_preparation_admission(NodePreparationAdmission[I], I, PreparationCapacity[I, P], P) -> Result[(NodeManagedRunAdmission[P], Ledger, PreparationRetirement), ImportedChildLedgerIssue]
@@ -80,6 +82,8 @@ pub fn capacity_reservation_matches(Ledger, CapacityReservation, Int64, Int64) -
 
 pub fn capacity_reservation_open(CapacityReservation) -> Bool
 
+pub fn capture_quiescent_ledger_state(Ledger) -> Result[LedgerContinuationState, LedgerContinuationIssue]
+
 pub fn charge_planning(Ledger, Int) -> Result[Unit, LedgerIssue]
 
 pub fn charge_transfer(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
@@ -87,6 +91,8 @@ pub fn charge_transfer(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
 pub fn[P, C] check_backed_execution_delegation_current(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C]) -> Result[Unit, BackedExecutionIssue]
 
 pub fn check_imported_original_child_ledger(ImportedChildLedger, Ledger) -> Result[Unit, ImportedChildLedgerIssue]
+
+pub fn check_ledger_continuation_current(Ledger, LedgerContinuationState) -> Result[Unit, LedgerContinuationIssue]
 
 pub fn[P] check_node_local_content_run_preparation(NodeManagedRunAdmission[P], P) -> Result[Unit, ImportedChildLedgerIssue]
 
@@ -348,6 +354,10 @@ pub fn reserve_shared_workspace_capacity(Ledger, Int64, Int64) -> Result[SharedC
 
 pub fn[I, P] reserve_working_preparation_phase(PreparationCapacity[I, P], I, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
 
+pub fn[P] restore_node_managed_run_admission(NodeManagedRunAdmission[P], P, LedgerContinuationState) -> Result[Ledger, LedgerContinuationIssue]
+
+pub fn restore_quiescent_ledger_state(Ledger, LedgerContinuationState) -> Result[Unit, LedgerContinuationIssue]
+
 pub fn retain_allocation(Ledger, Reservation, Int64) -> Result[Holding, LedgerIssue]
 
 pub fn[P, C, R] retire_backed_execution_live_child_after_owner_ack(BackedExecutionLiveAccess[P, C, R], R) -> Result[Unit, BackedExecutionIssue]
@@ -457,6 +467,8 @@ pub fn[I, P] transfer_preparation_capacity_to_run(PreparationCapacity[I, P], I, 
 pub fn[I, P] transfer_preparation_retirement_to_run(PreparationCapacity[I, P], I, P, Ledger) -> Result[PreparationRetirement, PreparationCapacityIssue]
 
 pub fn unresolved_backed_execution_data(UnresolvedBackedExecutionOriginal) -> BackedExecutionOriginalData
+
+pub fn write_ledger_continuation_state(LedgerContinuationState, @encode_core.Writer) -> Result[Unit, LedgerContinuationIssue]
 
 // Errors
 
@@ -603,6 +615,19 @@ pub(all) enum ImportedChildLedgerIssue {
 } derive(Eq, @debug.Debug)
 
 type Ledger
+
+pub(all) enum LedgerContinuationIssue {
+  InvalidRecord
+  PendingOriginal
+  ChangedOriginal
+  ChangedLimits
+  AlreadyRestored
+  NotPristine
+  Encoding
+  Resource(LedgerIssue)
+} derive(Eq, @debug.Debug)
+
+type LedgerContinuationState
 
 pub(all) enum LedgerIssue {
   InvalidLimits

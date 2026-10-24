@@ -47,6 +47,9 @@ struct Ledger {
   // Also resident on ordinary Ledgers. The existing installed envelope must
   // cover this reference and any live imported-child controls before use.
   mut imported_child : ImportedChildLedgerOrigin?
+  // One restoration of cumulative DATA into this pristine admitted Ledger.
+  // Even an all-zero continuation consumes this private initialization slot.
+  mut continuation_restored : Bool
 }
 
 ///|
@@ -118,6 +121,7 @@ pub fn create_ledger(limits : LedgerLimits) -> Result[Ledger, LedgerIssue] {
     next_capacity_serial: Some(-1),
     original_inventory: None,
     imported_child: None,
+    continuation_restored: false,
     quantity_usage: {
       reserved: zero_quantities(),
       uncertain: zero_quantities(),

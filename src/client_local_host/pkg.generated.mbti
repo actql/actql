@@ -946,6 +946,8 @@ pub(all) enum LocalValuesResultExportIssue {
   Export(@run_publication_host.PublicationOutputExportIssue)
 }
 
+type PreparationExecutionInventory
+
 type PreparationRepresentationUnits derive(Eq)
 
 type ProgramRetainedValidationLayout
