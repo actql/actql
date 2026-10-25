@@ -1,7 +1,7 @@
 import path from 'node:path';
 import {sourceAccess} from './local-resource-accounting-sources.mjs';
 import {localResourceApiIssues} from './local-resource-api-guard.mjs';
-import {registeredResourceEnvironmentCase} from './local-resource-environment-fixtures.mjs';
+import {registeredResourceEnvironmentCase, registeredDirectTraversalHostCase} from './local-resource-environment-fixtures.mjs';
 
 // No filesystem, environment, output, or process state is consulted here.
 // Every invocation owns its errors and derived sets. Sources are an immutable
@@ -2538,6 +2538,17 @@ export function validateResourceAccounting({
         !boundaryRoles.has('components_kernel_cancel_cleanup') ||
         !boundaryRoles.has('components_long_text_typed_order'))) {
       fail(`${label}: components boundary evidence is missing`);
+    }
+    if (route.family === 'SGA' && ['reach', 'shortest_path'].includes(route.operation) &&
+      route.path_assurance?.entrypoint !== undefined) {
+      const role = `${route.operation}_unselected_host_cancel_cleanup`;
+      if (route.path_assurance.entrypoint.in_flight_cancel !== role ||
+          !environmentRoles.has(role) ||
+          !registeredDirectTraversalHostCase(route.operation,
+            reclamationSource('adapters/connectors/duckdb/node/test/standard-host.test.mjs'),
+            reclamationSource('src/connectors/duckdb/conformance/subgraph_cancel_fixture.mbt'))) {
+        fail(`${label}: direct Host-driver traversal cancellation evidence is missing or detached`);
+      }
     }
     if (route.family === 'SGA' && ['reach', 'shortest_path'].includes(route.operation) &&
       productionTexts.has(dispatch.path)) {

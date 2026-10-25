@@ -121,9 +121,10 @@ test('constructor pins a distinct complete execution contract and exact shared d
   assert.deepEqual(body, current.graphExecution.body);
   assert.equal(canonical(body), current.graphExecution.canonicalPreimage);
   assert.equal(cid(body), current.graphExecution.cid);
-  assert.deepEqual(registry, current.selectedRegistry.body);
-  assert.equal(canonical(registry), current.selectedRegistry.canonicalPreimage);
-  assert.equal(cid(registry), current.selectedRegistry.cid);
+  // The signed64 registry is a retained transition, not the later live registry.
+  assert.equal(canonical(current.selectedRegistry.body), current.selectedRegistry.canonicalPreimage);
+  assert.equal(cid(current.selectedRegistry.body), current.selectedRegistry.cid);
+  assert.deepEqual(registry[operation], current.selectedRegistry.body[operation]);
   assert.equal(body.dependencies.graph_law.cid,
     'sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34');
   assert.equal(cid(prior['spec/contracts/actql-protocol-schemas.json'].schemas.canonical_value_contract),

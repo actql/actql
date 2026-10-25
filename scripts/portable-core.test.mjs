@@ -45,6 +45,24 @@ test('direct and transitive external I/O are rejected despite aliases', t => {
   assert.throws(f.check, /UnreviewedExternal: helper/);
 });
 
+test('raw multiline data is not an attribute or executable host access', t => {
+  const f = fixture(t);
+  f.put('root', 'main.mbt', `pub fn data() -> String {
+    #|{"text":"extern fetch Date.now #cfg require crypto"}
+    #|unescaped "quotes" and /* literal comments */
+  }`);
+  assert.deepEqual(f.check().packages, ['root']);
+  for (const suffix of ['fn host() { println("output") }',
+    '#cfg(target="native")\nfn host() {}',
+    'extern "js" fn host() -> Int = "Date.now"']) {
+    f.put('root', 'main.mbt', `pub fn data() -> String {\n  #|safe literal\n}\n${suffix}`);
+    assert.throws(f.check, /CoreEnvironmentAccess|CoreForeignOrUnknownAttribute/);
+  }
+  // An inline marker is not the reviewed line-literal syntax.
+  f.put('root', 'main.mbt', 'fn host() { #| println("output") }');
+  assert.throws(f.check, /CoreEnvironmentAccess|CoreForeignOrUnknownAttribute/);
+});
+
 test('portable numeric primitive imports are reviewed only for their actual Owner', t => {
   const f = fixture(t);
   const paths = ['builtin', 'double', 'float', 'int'].map(name => `moonbitlang/core/${name}`);
@@ -128,7 +146,8 @@ test('reviewed ESM module literal preserves legacy metadata and isolated bytes',
   const legacy = 'name = "actql/actql"\nsource = "src"\n';
   const reviewed = 'options("link-flags": [ "-js-format", "esm" ])\n';
   assert.deepEqual(f.check().packages, ['root']);
-  for (const source of [legacy + reviewed, reviewed + legacy]) {
+  for (const source of [legacy + reviewed, reviewed + legacy,
+    legacy + 'options(\n  "link-flags": [ "-js-format", "esm" ],\n)\n']) {
     writeFileSync(join(f.root, 'moon.mod'), source);
     assert.deepEqual(f.check().packages, ['root']);
   }
@@ -143,6 +162,8 @@ test('reviewed ESM module literal preserves legacy metadata and isolated bytes',
 test('reviewed module option refuses unknown keys, hooks and surplus fields', t => {
   const f = fixture(t);
   for (const option of [
+    'options("link-flags": ["-js-format", "esm",,],)',
+    'options("link-flags": ["-js-format", "esm"],,)',
     'options("other": ["-js-format", "esm"])',
     'options("pre-build": ["-js-format", "esm"])',
     'options(link_flags: ["-js-format", "esm"])',
@@ -228,3 +249,19 @@ test('isolated build retains production aliases and excludes test-only packages 
   assert.equal(existsSync(join(isolated, 'src', 'internal_structural_fixture')), false);
   assert.deepEqual(inspectCore(isolated, ['root']).packages, audit.packages);
 });
+
+
+test('live custody packages are refused directly and transitively even without FFI', t => {
+  for (const name of ['physical_resources', 'physical_strategy_host', 'physical_host_dispatch']) {
+    const f = fixture(t);
+    f.put(name, 'moon.pkg', manifest);
+    f.put(name, 'main.mbt', 'pub fn identity(x : Int) -> Int { x }');
+    f.put('root', 'moon.pkg', manifest + `import { "actql/actql/${name}" @ordinary, }`);
+    assert.throws(f.check, /HostCustodyCoreDependency/);
+    f.put('root', 'moon.pkg', manifest + 'import { "actql/actql/helper" @ordinary, }');
+    f.put('helper', 'moon.pkg', manifest + `import { "actql/actql/${name}" @ordinary, }`);
+    assert.throws(f.check, /HostCustodyCoreDependency/);
+  }
+});
+
+import './core-host-boundary.test.mjs';

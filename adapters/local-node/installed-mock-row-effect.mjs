@@ -6,10 +6,10 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {authorizationDispatchFacts, assertAuthorizationAccountCurrent}
   from '../host-common/authorization-gate.mjs';
-import {createInstalledRowEffect, retainInstalledRowEffectAdapter} from './installed-row-effect.mjs';
-import {installedUpdateTargets} from './installed-effect-inventory.mjs';
-import {rowSourceCheckEnvironment} from './installed-row-source.mjs';
-import {createMockFileTarget} from './mock-file-target.mjs';
+import {createInstalledRowEffect, retainInstalledRowEffectAdapter} from '../host-node/installed-row-effect.mjs';
+import {installedUpdateTargets} from '../host-node/installed-effect-inventory.mjs';
+import {rowSourceCheckEnvironment} from '../host-node/installed-row-source.mjs';
+import {createMockFileTarget} from '../host-node/mock-file-target.mjs';
 
 const fail = (code, cause) => {throw Object.assign(new Error(code, {cause}), {code});};
 const wire = value => canonicalJson(value, {dataKeys: true});

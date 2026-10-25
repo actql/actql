@@ -182,7 +182,7 @@ test('window count semantics and independent membership bounds are pinned', () =
 test('join count body is pinned and selected by the compiler', () => {
   const path = 'spec/contracts/actql-bound-join-laws.json';
   const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
-  const cid = 'sha256:75f9c5ce5188d28a2e3b42213e0fb3a479475c06e280eb02ef7b001a355d1600';
+  const cid = 'sha256:3812b044720bb6b0234a35547eb05a0fa3b720fe5b70fff0e75ef9760276a560';
   assert.equal(machineCid(body), cid);
   for (const law of body.law_ids) assert.ok(loadRegistry().body.law_ids.includes(law));
   const family = JSON.parse(readFileSync(new URL('../spec/spec-family.json', import.meta.url), 'utf8'));

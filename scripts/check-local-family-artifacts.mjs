@@ -9,6 +9,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import {productionPackageImports} from './source-dependency-closure.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const moduleName = 'actql/actql';
@@ -34,9 +35,7 @@ function importsOf(name) {
   const directory = packages.get(name);
   if (directory === undefined) throw new Error(`unknown package: ${name}`);
   const manifest = readFileSync(path.join(directory, 'moon.pkg'), 'utf8');
-  return [...manifest.matchAll(/^\s*"([^"]+)"(?:\s+@[A-Za-z0-9_]+)?[,]?$/gmu)]
-    .map(match => match[1])
-    .filter(imported => imported.startsWith(`${moduleName}/`));
+  return productionPackageImports(manifest).map(imported => `${moduleName}/${imported}`);
 }
 
 function importClosure(entry) {

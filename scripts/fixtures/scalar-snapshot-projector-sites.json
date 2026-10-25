@@ -14,8 +14,8 @@
       "record_sites": 32,
       "some_sites": 13,
       "array_sites": 5,
-      "source_sha256": "7316a95614b1669af0eba0aa17f19b439bd8a93cde20a42f08899b92fb725c52",
-      "body_sha256": "a5fbfcbd7fd51b7f202d36c7f77c7ce141e6dc815fe30fc97444b89d6bed993a"
+      "source_sha256": "40be734abc11b3c81be2f16a3a1fb8b6ccf4ed07017559fae352224b1479245b",
+      "body_sha256": "bdb5851943c4eeb673c46b42f9d8cb9567526d22eab16fa410629a7480c3434f"
     },
     {
       "path": "src/client_local_host/preparation_scalar_snapshot_layout.mbt",
@@ -24,8 +24,8 @@
       "record_sites": 5,
       "some_sites": 0,
       "array_sites": 1,
-      "source_sha256": "7316a95614b1669af0eba0aa17f19b439bd8a93cde20a42f08899b92fb725c52",
-      "body_sha256": "183b78776a855096cb79efec419fcbe35187723879cb356cc90d0b260f76e348"
+      "source_sha256": "40be734abc11b3c81be2f16a3a1fb8b6ccf4ed07017559fae352224b1479245b",
+      "body_sha256": "0a9dea5c0489fb3be7d9d1b237e80aa580229fbb0bc250e6e88f4d51b1e32b64"
     },
     {
       "path": "src/client_local_host/preparation_closed_values_source.mbt",
@@ -34,8 +34,8 @@
       "record_sites": 13,
       "some_sites": 0,
       "array_sites": 0,
-      "source_sha256": "8b2321307a7623b4b6d38c66756d1689ff294b4331eb81bed76cdedba033724e",
-      "body_sha256": "96dfa32ac9cfba2b12d672fc9719cedae318b1c51ef597ed8096b9b9750c0094"
+      "source_sha256": "c70c9c2bf76d38e1ef8f53568d2a3ebfbc7617df69e84c0d0010c9df0706b9ed",
+      "body_sha256": "1f6dba775b904f36877f307b7cf4dbeb25461316f292b33f642af913284c95f7"
     },
     {
       "path": "src/client_local_host/preparation_compilation_canonical_layout.mbt",
@@ -44,8 +44,8 @@
       "record_sites": 8,
       "some_sites": 4,
       "array_sites": 1,
-      "source_sha256": "1ded831894b844a93e472d4d5f8eb13526adf9c7baf0ea82a3d59e644c651015",
-      "body_sha256": "4d982811819291f5f6b68d9bb93465d24c5b55c83806c46a8cd447b9eac7d9b1"
+      "source_sha256": "125bb2bd8ae26a07bf6ec96a3d700b59226f01e3c925faeb80710787285a01cb",
+      "body_sha256": "eabff1878e38081f58c4924a58f30e240ae95fae8ab28c128d28a4152e780ec9"
     },
     {
       "path": "src/client_local_host/preparation_closed_values_compiler_layout.mbt",
@@ -54,8 +54,8 @@
       "record_sites": 4,
       "some_sites": 1,
       "array_sites": 0,
-      "source_sha256": "8b874fa5bdaba400889db344667b58ecf7c106c9623b0898fa9edd608e87fabc",
-      "body_sha256": "1a563fb0e772c69fdce19e68c539574d616faa87b1af6cf586aafa32171845c4"
+      "source_sha256": "a91bfd4ed4e24765348ab7e271b3221fe770d8eb4b3d96d38282338a6f23f4f3",
+      "body_sha256": "478f26284d1ff7f82691e0fd8cb3d92c7c0ef1c11fb452c22df53f0d53176b88"
     },
     {
       "path": "src/client_local_host/preparation_closed_values_compiler_layout.mbt",
@@ -64,8 +64,8 @@
       "record_sites": 9,
       "some_sites": 7,
       "array_sites": 0,
-      "source_sha256": "8b874fa5bdaba400889db344667b58ecf7c106c9623b0898fa9edd608e87fabc",
-      "body_sha256": "6b0fbcd0262fb71a77a757391709ceb9b35bf8f43a4f20639a0ef7cf89ae5246"
+      "source_sha256": "a91bfd4ed4e24765348ab7e271b3221fe770d8eb4b3d96d38282338a6f23f4f3",
+      "body_sha256": "7194fe9d76ea6acc58b978dfb6f4d6d69352c7e0561d33dfd20f55d46fe71712"
     },
     {
       "path": "src/client_local_host/preparation_closed_values_source_phase.mbt",
@@ -74,8 +74,8 @@
       "record_sites": 3,
       "some_sites": 1,
       "array_sites": 0,
-      "source_sha256": "adf6d9827fe0524b66856720fdcf2b0e7e60fef5b20a1a56705e15f1ca57c592",
-      "body_sha256": "7364db6870c21802c7d03b802c84a66ec4f16f8e2a3b77c4344c671fef3bd170"
+      "source_sha256": "6e77092e64b79ba72a40d373f52f31246d3eb67736adce72e7462d0974c638d1",
+      "body_sha256": "89889d1f4443dd7d861d0010a445aaeb0401f38a91d9cb9dfc30ef109e2b483d"
     },
     {
       "path": "src/client_local_host/preparation_closed_values_program.mbt",
@@ -84,8 +84,8 @@
       "record_sites": 6,
       "some_sites": 0,
       "array_sites": 0,
-      "source_sha256": "555d6b58d0805e4efe5b40318779f309964d70a795291ff707a71381c0ea2dc5",
-      "body_sha256": "4ee16a26fe1456fc3f3fbcf1e648992f23589fb262ecd355ab7308a93015cabb"
+      "source_sha256": "14b1657fb15e05c6c46e3580948168e6539b03c5ba072889668b103530a7ab86",
+      "body_sha256": "1b9b45e2fdf91208ec473641fdd1eb7c81a8a0930f6a0a0d82218bd65f2623dc"
     },
     {
       "path": "src/client_local_host/preparation_closed_values_program.mbt",
@@ -94,8 +94,8 @@
       "record_sites": 6,
       "some_sites": 0,
       "array_sites": 0,
-      "source_sha256": "555d6b58d0805e4efe5b40318779f309964d70a795291ff707a71381c0ea2dc5",
-      "body_sha256": "73298a8509132f8d4ba6677d8c20bcbb91b1de370e2e6404dda09af08edb5fac"
+      "source_sha256": "14b1657fb15e05c6c46e3580948168e6539b03c5ba072889668b103530a7ab86",
+      "body_sha256": "28323a6840b3b29f6b56ce441b2184ece56bc6ddf9d7879d2195b2569d0d6013"
     },
     {
       "path": "src/client_local_host/preparation_compilation_artifact_layout.mbt",
@@ -104,8 +104,8 @@
       "record_sites": 7,
       "some_sites": 2,
       "array_sites": 1,
-      "source_sha256": "2aba5c51851be61cd4935b76f1566ea03b01c3093d7537fde701414eead41328",
-      "body_sha256": "6390a33c817181742daef199baecb4877241213fb0a30345cfb907f6c25f26ac"
+      "source_sha256": "5d8db07cf65e77861b3e6877c17c8213f2a5246720ccb64616aa7ec6690f43fa",
+      "body_sha256": "28d7acc0f7b73923f7925742e49b377474d748bb512de7037a5b7b92e21ae590"
     },
     {
       "path": "src/encode_core/hash_writer_construction_inventory.mbt",
@@ -114,8 +114,8 @@
       "record_sites": 3,
       "some_sites": 1,
       "array_sites": 0,
-      "source_sha256": "f41563d90c783c55c50d0daff5e788439ad5d69b135628aae2c822b71278c8a7",
-      "body_sha256": "c9aa7d7c19310834ea9a371d141f61c73c60e7a83e9a1ffc562bda5fe1400fc7"
+      "source_sha256": "d46ee5ffa331a22ec9c47e3afa9aeb1723ebb6b19f02d9d28864d0ba77171340",
+      "body_sha256": "6facb36a76745535aeb73874ba7cc9406436ff4af483900cba28a464db8fb52a"
     },
     {
       "path": "src/client_local_host/preparation_compilation_metadata_layout.mbt",
@@ -124,8 +124,8 @@
       "record_sites": 5,
       "some_sites": 7,
       "array_sites": 0,
-      "source_sha256": "665ee09941eb8398fe040df7dd26c176326fc96f280894c7c8db0c02705d1fee",
-      "body_sha256": "e328c171350a20e6afa934624363bce25bf976f4b5afbcfacae791067022d82c"
+      "source_sha256": "3bbc47879f37ba2277ed2dd5efa2f053ae8666af7f7a4047669cc4f4ae0d82a8",
+      "body_sha256": "e7c844aadae5dfa355242a8e3497e84a6b486f2ea352ef6118f65053f6ac4f18"
     },
     {
       "path": "src/client_local_host/scalar_wire_capacity.mbt",
@@ -134,8 +134,8 @@
       "record_sites": 3,
       "some_sites": 1,
       "array_sites": 0,
-      "source_sha256": "e762c7b2f73bc5ccda229f704792ba0ee1c8c40a6425f03905e5f1e518580d54",
-      "body_sha256": "b7ea8bc2e75b88a34248e16b0e3df29cc825b1d89ab62afae8ecfd2ca610957d"
+      "source_sha256": "235a4ddcbecbad4e59822cb24aea1e09971bf7072ad489ede3fd4db2488b465f",
+      "body_sha256": "b88785dfa719bb1cb95c4f854fb3ff0ea16846f7f6db57f08424c5c5461134fb"
     },
     {
       "path": "src/client_local_host/preparation_representation_cost.mbt",
@@ -144,8 +144,8 @@
       "record_sites": 5,
       "some_sites": 4,
       "array_sites": 0,
-      "source_sha256": "bc095120a6edf54ea9b795f06243e509027d9112a8c780209a4693064f4ee4ce",
-      "body_sha256": "00560ad99b770f46a0dffca3cf2748f873f166fc368e95ecf946948a0c2d0e88"
+      "source_sha256": "bc08e3b8a74344d9ea2d6a7f6805eac6950921a8b3cd6083ab62a38526c737ab",
+      "body_sha256": "4d349d9616e7e67a38c1d36b459ffbf0c4dcf96dd439588a7050fabcc4a984cb"
     },
     {
       "path": "src/client_local_host/preparation_representation_cost.mbt",
@@ -154,8 +154,8 @@
       "record_sites": 3,
       "some_sites": 1,
       "array_sites": 0,
-      "source_sha256": "bc095120a6edf54ea9b795f06243e509027d9112a8c780209a4693064f4ee4ce",
-      "body_sha256": "bb9685b368fe9926b6308a685f22357d9d9f0fcd996f791a2f32154696e75d11"
+      "source_sha256": "bc08e3b8a74344d9ea2d6a7f6805eac6950921a8b3cd6083ab62a38526c737ab",
+      "body_sha256": "c57ba3d46a65a949508054ce9bb3945ee7c4da2e3849a5638d2f005288a2ca89"
     }
   ],
   "weighted_sites": {

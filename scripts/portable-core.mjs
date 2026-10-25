@@ -19,6 +19,11 @@ export const pureExternal = Object.freeze({
 // The portable scalar kernel uses their constants and numeric representations,
 // not the target-selected stdlib math implementation. Keep this explicit review
 // local to that Owner; it grants no environment or generated-runtime authority.
+// These packages own live custody, not portable checked-graph proposals. Reject
+// them even if a future implementation happens to contain no syntactic FFI.
+const hostCustodyPackages = new Set([
+  'physical_resources', 'physical_strategy_host', 'physical_host_dispatch',
+]);
 const numericKernelExternal = Object.freeze({
   'moonbitlang/core/builtin': 'Pinned scalar primitive representations; implicit-runtime and explicit-seed audits remain required.',
   'moonbitlang/core/double': 'Pinned Double constants and representations for the portable scalar kernel.',
@@ -38,6 +43,17 @@ export function tokens(source, sourceCode = false) {
   let i = 0;
   while (i < source.length) {
     if (/\s/.test(source[i])) { i++; continue; }
+    // MoonBit's #| lines are raw string data. Only recognize the literal at
+    // the start of an indented source line; attributes and executable code
+    // on subsequent lines must still pass the ordinary source audit.
+    if (sourceCode && source.startsWith('#|', i) &&
+        /^[ \t]*$/.test(source.slice(source.lastIndexOf('\n', i - 1) + 1, i))) {
+      const end = source.indexOf('\n', i);
+      const stop = end < 0 ? source.length : end;
+      result.push({kind: 'string', value: source.slice(i + 2, stop)});
+      i = stop;
+      continue;
+    }
     if (source.startsWith('//', i)) {
       i = source.indexOf('\n', i);
       if (i < 0) break;
@@ -117,8 +133,8 @@ export function packageImports(source) {
 }
 
 function inspectSource(source, path) {
-  // Reject embedded multi-line strings: in Moon they can contain executable
-  // target code. Literal data strings and comments do not trigger name checks.
+  // Foreign declarations and embedded target code remain forbidden. Raw
+  // literal data strings and comments do not trigger executable name checks.
   const ts = tokens(source, true);
   const words = ts.filter(t => t.kind !== 'string').map(t => t.value);
   const forbidden = new Set(['extern', 'fetch', 'performance', 'println', 'print',
@@ -151,14 +167,21 @@ export function inspectCore(root, roots = coreRoots) {
       const literal = [
         ['word', 'options'], ['symbol', '('], ['string', 'link-flags'],
         ['symbol', ':'], ['symbol', '['], ['string', '-js-format'],
-        ['symbol', ','], ['string', 'esm'], ['symbol', ']'], ['symbol', ')'],
+        ['symbol', ','], ['string', 'esm'],
       ];
       if (reviewedEsm || !literal.every(([kind, value], offset) =>
         module[i + offset]?.kind === kind && module[i + offset].value === value)) {
         throw new Error('UnauditedCoreModuleDirective');
       }
-      reviewedEsm = true;
       i += literal.length;
+      if (module[i]?.kind !== 'symbol' || module[i++].value !== ']') {
+        throw new Error('UnauditedCoreModuleDirective');
+      }
+      if (module[i]?.kind === 'symbol' && module[i].value === ',') i++;
+      if (module[i]?.kind !== 'symbol' || module[i++].value !== ')') {
+        throw new Error('UnauditedCoreModuleDirective');
+      }
+      reviewedEsm = true;
       continue;
     }
     const [key,equals,value] = module.slice(i,i+3);
@@ -173,6 +196,7 @@ export function inspectCore(root, roots = coreRoots) {
   while (pending.length) {
     const name = pending.pop();
     if (packages.has(name)) continue;
+    if (hostCustodyPackages.has(name)) throw new Error(`HostCustodyCoreDependency: ${name}`);
     if (!/^[a-z][a-z_0-9]*$/.test(name) || /^(duckdb_|connectors_|.*_node$|.*_workers$)/.test(name)) {
       throw new Error(`ConcreteCoreDependency: ${name}`);
     }

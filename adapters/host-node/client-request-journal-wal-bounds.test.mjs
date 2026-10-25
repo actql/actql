@@ -7,9 +7,9 @@ import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody}
   from './client-request-journal.mjs';
 
-const primarySqlLimits = {maxCalls: 10000, maxPreparedStatements: 10000,
+const primarySqlLimits = {maxPreparedStatements: 10000,
   maxSqlBytes: 65536, maxTotalSqlBytes: 16 * 1024 * 1024};
-const primaryExecutionLimits = {maxStatementCalls: 10000, maxParameters: 32,
+const primaryExecutionLimits = {maxParameters: 32,
   maxParameterBytes: 262144, maxResultRows: 128};
 const options = maxWalFrames => ({maxDatabaseBytes: 1024 * 1024,
   primarySqlLimits, primaryExecutionLimits, maxWalFrames});

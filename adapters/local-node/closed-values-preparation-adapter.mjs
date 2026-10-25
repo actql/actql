@@ -1,9 +1,9 @@
-import resources from './ordinary-node-resource-runtime.cjs';
+import resources from '../host-node/ordinary-node-resource-runtime.cjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeIsError,runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {probeClosedValuesOwnDataHeader,closedValuesOwnDataHeaderFields,
   closedValuesOwnDataHeaderRows,scanClosedValuesOwnData,scanClosedValuesOwnDataAscii}
-  from './closed-values-own-data-scan.mjs';
+  from '../host-node/closed-values-own-data-scan.mjs';
 
 // Only fixed ClientClosedValuesPreparationIssue results reach this projection.
 // The Common owner supplies immutable failure facts from its attempted phase;

@@ -28,3 +28,18 @@ test('accounting rejects ambiguous encodings extra authority fields and numeric 
   assert.throws(() => decodeProcessUsage({...encodeProcessUsage(emptyProcessUsage()), owner: 'another-run'}), /InvalidProcessAccounting/);
   assert.throws(() => encodeProcessUsage({...emptyProcessUsage(), held_bytes: -1n}), /InvalidProcessAccounting/);
 });
+
+
+test('usage preserves reserved and live custody counts without admitting them as limit fields', () => {
+  const usage = {...emptyProcessUsage(), reserved_attempts: 2,
+    live_reservations: 3, live_delegations: 1};
+  assert.deepEqual(decodeProcessUsage(encodeProcessUsage(usage)), usage);
+  for (const field of ['reserved_attempts', 'live_reservations', 'live_delegations']) {
+    const missing = {...usage}; delete missing[field];
+    assert.throws(() => encodeProcessUsage(missing), /InvalidProcessAccounting/);
+    for (const value of [-1, 0.5, 2147483648, '1']) {
+      assert.throws(() => encodeProcessUsage({...usage, [field]: value}), /InvalidProcessAccounting/);
+    }
+    assert.throws(() => snapshotProcessLimits({...limits(), [field]: 0}), /InvalidProcessAccounting/);
+  }
+});

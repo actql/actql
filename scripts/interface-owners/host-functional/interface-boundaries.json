@@ -5962,7 +5962,7 @@
                 "anchor": "# Serial physical strategy execution"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -5972,7 +5972,7 @@
                 "anchor": "export function beginManagedFailureProgress("
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               },
               {
@@ -5990,7 +5990,7 @@
                 "anchor": "### Managed retained execution profile"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -6018,7 +6018,7 @@
                 "anchor": "# Serial physical strategy execution"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -6032,7 +6032,7 @@
                 "anchor": "### Managed retained execution profile"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -6056,7 +6056,7 @@
                 "anchor": "if (initiallyFinished && cleanupErrors.length === 0) {"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               },
               {
@@ -6084,7 +6084,7 @@
                 "anchor": "test('standard file-to-Local cancellation closes the real read before settlement', async t => {"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ]
@@ -10261,7 +10261,7 @@
                 "anchor": "# Serial physical strategy execution"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -10271,7 +10271,7 @@
                 "anchor": "export async function withScopedStrategy(setup, core, contributions, consume, signal,"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               },
               {
@@ -10289,7 +10289,7 @@
                 "anchor": "### Managed retained execution profile"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -10317,7 +10317,7 @@
                 "anchor": "# Serial physical strategy execution"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -10331,7 +10331,7 @@
                 "anchor": "### Managed retained execution profile"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -10355,7 +10355,7 @@
                 "anchor": "throw new Error('Workers strategy failed', {cause:report.failure});"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               },
               {
@@ -10383,7 +10383,7 @@
                 "anchor": "test('real planning fetch bypassing phase spies fails the common runtime audit even if caught', async () => {"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ]
@@ -11854,7 +11854,7 @@
                 "anchor": "# Serial physical strategy execution"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -11864,7 +11864,7 @@
                 "anchor": "export class StrategyHostError extends Error {"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               },
               {
@@ -11882,7 +11882,7 @@
                 "anchor": "### Managed retained execution profile"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -11910,7 +11910,7 @@
                 "anchor": "# Serial physical strategy execution"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -11924,7 +11924,7 @@
                 "anchor": "### Managed retained execution profile"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -11948,7 +11948,7 @@
                 "anchor": "function retainSiteResult(operation, result, retainedBytes) {"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               },
               {
@@ -11976,7 +11976,7 @@
                 "anchor": "test('scoped Host observes asynchronous close failures even after recovery succeeds', async () => {"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ]
@@ -19529,7 +19529,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -19648,7 +19648,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -47052,8 +47052,8 @@
       "unresolvedSyntax": []
     },
     {
-      "module": "adapters/host-node/installed-project-mock-answers.mjs",
-      "sha256": "aecaa41f6fa7985e394abc8a8401b80bedd1260c7226c938dccaa43571f5863f",
+      "module": "adapters/local-node/installed-project-mock-answers.mjs",
+      "sha256": "6b6a9a5737594c2fd4cd72acc7914c4c5aec5a7ea645031548a4c4228c7f009a",
       "exports": [
         "loadInstalledProjectMockAnswers"
       ],
@@ -47327,13 +47327,13 @@
                 "anchor": "#### Original mock answer materials"
               },
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "export async function loadInstalledProjectMockAnswers(moon,project,profile,"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "const bounds=snapshotLimits(limits);"
               },
               {
@@ -47343,7 +47343,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "let original=installedProjectOriginalsForRuntime(project,moon);"
               },
               {
@@ -47353,7 +47353,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "original=selection=project=profile=profilePorts=ports=assertCurrent=openFile=undefined;"
               },
               {
@@ -47367,11 +47367,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
               },
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "const answerWire=await readBoundedConfigurationUtf8(answerPath,{maxBytes:bounds.maxBytes,openFile});"
               }
             ],
@@ -47401,7 +47401,7 @@
                 "anchor": "#### Original mock answer materials"
               },
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "let retained=[],selectionWork=bounds.maxWork;"
               },
               {
@@ -47453,7 +47453,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "bindModelsForRuntime(runtime,originalProfile,now)"
               },
               {
@@ -47463,57 +47463,57 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "clientProgramNormalizeMockTask"
               },
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "modelInstallationForRuntime(runtime,wire,evidenceCid)"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "if(runtime!==moon||receiver!==state.value)"
               },
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "modelBinding.profile!==originalProfile||modelBinding.now!==now"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "state.entries.push(bound);"
               },
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "modelBinding=state;"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "check();"
               },
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "currentModels(runtime,this);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "catch(error){state.failed=true;state.failure=error;throw error;}"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "if(checked(Reflect.apply(modelBinding.callbacks.retire,moon,"
               },
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "[entry.installation]))!==true)fail('InstalledMockModelsCleanupPending');"
               }
             ],
@@ -47529,11 +47529,11 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "fail('ForeignInstalledMockModelOriginal');"
               },
               {
-                "path": "adapters/host-node/installed-project-mock-answers.mjs",
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "if(previous.bodyWire!==bodyWire)fail('InstalledMockModelBodyMismatch');"
               }
             ],
@@ -47577,7 +47577,7 @@
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               }
             ],
@@ -47589,23 +47589,23 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -47615,7 +47615,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
@@ -47650,8 +47650,8 @@
       ]
     },
     {
-      "module": "adapters/host-node/installed-project-mock.mjs",
-      "sha256": "5ad1994e0048b12be343e7cf47d942b2b632859e5f499b5515dcd838ae3156b2",
+      "module": "adapters/local-node/installed-project-mock.mjs",
+      "sha256": "db0219260704d87a8c2953348efe66483e34a1dd52261cb62e9cc34bbc508762",
       "exports": [
         "installPreparedProjectMockSources",
         "installedMockRequestRealization",
@@ -48002,55 +48002,55 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "// phase, before any fixture acquisition. The bundled declarations are not"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "export async function prepareInstalledProjectMock(moon, project, profile,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (installedProjectOriginalsForRuntime(project, moon) !== projectOriginal ||"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "originals = sources = mappingWire = connections = connectionOriginal = undefined;"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "let connections = await loadInstalledProjectConnections(moon, project,"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "fail('ForeignInstalledMockPreparation');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "// cannot settle its FD, backing bytes, RowRuns or external cleanup ACKs."
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (!Number.isSafeInteger(count) || count < 0 || count > 128) {"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (call('connector', connectionOriginal.connections, index) !== entry.connectorId) {"
               }
             ],
@@ -48090,61 +48090,61 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "// Physical installation of the same already retained Mock declarations. The"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "export async function installPreparedProjectMockSources({moon, mockPreparation,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (record === undefined || record.value === undefined) fail('NodeManagedRunAdmissionUnavailable');"
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (run !== held.run || read.source !== index ||"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "run.reads[slot] = read;"
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "? (effectful ? sourceManaged.prepareEffectRun(prepared) : sourceManaged.prepareRun(prepared))"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "sourceManaged.assertCurrent();"
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "read.close = Object.getOwnPropertyDescriptor(raw, 'close')?.value;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "} catch (error) { record.failure = error; throw error; }"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "limits: {maxPages: 1, maxPageBytes: 1048576, maxPageRows: 100, maxCaptureRows: 100},"
               },
               {
@@ -48154,7 +48154,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "else if (record.admission !== undefined) checked((record.effectful ? moon.clientProgramNodeEffectManagedRunCleanup"
               }
             ],
@@ -48197,7 +48197,7 @@
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               }
             ],
@@ -48209,23 +48209,23 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -48235,7 +48235,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
@@ -48354,7 +48354,7 @@
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               }
             ],
@@ -48366,23 +48366,23 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -48392,7 +48392,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
@@ -48442,7 +48442,7 @@
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               }
             ],
@@ -48454,23 +48454,23 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -48480,7 +48480,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
@@ -48530,7 +48530,7 @@
                 "anchor": "prepareOriginalMockRun(prepared, plan) {"
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "openSourceFreeHost(registry, values, fragment, ordered, providers) {"
               },
               {
@@ -48560,7 +48560,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "model.hostAttempted = true;"
               }
             ],
@@ -48596,11 +48596,11 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "openSourceFreeHost(registry, values, fragment, ordered, providers) {"
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (run.effectful || run.retired || model.closed || !model.taken || model.hostAttempted ||"
               }
             ],
@@ -53535,7 +53535,7 @@
                 "anchor": "# Serial physical strategy execution"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -53545,7 +53545,7 @@
                 "anchor": "export function prepareManagedIdentityPolicy(options = {}) {"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               },
               {
@@ -53563,7 +53563,7 @@
                 "anchor": "### Managed retained execution profile"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -53591,7 +53591,7 @@
                 "anchor": "# Serial physical strategy execution"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -53605,7 +53605,7 @@
                 "anchor": "### Managed retained execution profile"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -53629,7 +53629,7 @@
                 "anchor": "export function prepareManagedIdentityPolicy(options = {}) {"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               },
               {
@@ -53657,7 +53657,7 @@
                 "anchor": "test('managed identity policy is opaque immutable caller strengthening', () => {"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ]
@@ -53670,7 +53670,7 @@
       "unresolvedSyntax": []
     },
     {
-      "module": "adapters/host-node/mock-churn-risk-catalogue.mjs",
+      "module": "adapters/local-node/mock-churn-risk-catalogue.mjs",
       "sha256": "8c2ef14a08e20ab8ddd87f55fdafa58484ab5c72018c3b48ae3e9f48425d5ea0",
       "exports": [
         "mockChurnRiskCatalogue"
@@ -59684,7 +59684,7 @@
                 "anchor": "const result = invoke(7, [state.installation, state.originals, receipt, originalFrozenBody], state.callbacks);"
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "sourceManaged.assertCurrent();"
               },
               {
@@ -60133,7 +60133,7 @@
     {
       "module": "adapters/host-node/process-accounting.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a73899a9fb9b1c3684843b2190e09f824758350efec44aa3f270ae948d11a6f4",
+      "sha256": "833f2fd341026dfa17f872a77f907a54a663a05e46fc2258777621bc6b388662",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
       "exports": [
@@ -60150,7 +60150,8 @@
           "parameters": [
             "value",
             "bytes",
-            "wire"
+            "wire",
+            "fields"
           ],
           "async": false
         },
@@ -60383,6 +60384,10 @@
               {
                 "path": "src/physical_resources/pkg.generated.mbti",
                 "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+              },
+              {
+                "path": "adapters/host-node/process-accounting.test.mjs",
+                "anchor": "test('usage preserves reserved and live custody counts without admitting them as limit fields', () => {"
               }
             ]
           }
@@ -60396,7 +60401,7 @@
     {
       "module": "adapters/host-node/process-channel.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "128f763ccc0b1779cf9b6f89a552f8c0f9da78d284d8de4c3705d1e79f72b4be",
+      "sha256": "eb7562a91c1a8ec6310715d74d5942156f948ea74a9b63cdc15d3880959b8d5f",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
       "exports": [
@@ -60433,7 +60438,8 @@
           "name": "startManagedExecution",
           "parameters": [
             "configuration",
-            "signal"
+            "signal",
+            "beforeSpawn"
           ],
           "async": true
         },
@@ -60581,21 +60587,24 @@
         },
         {
           "name": "startManagedExecution/startManagedExecution",
-          "parameters": [
-            "chunk"
-          ],
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "startManagedExecution/startManagedExecution#10",
+          "parameters": [],
           "async": false
         },
         {
           "name": "startManagedExecution/startManagedExecution#2",
-          "parameters": [
-            "error"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "startManagedExecution/startManagedExecution#3",
-          "parameters": [],
+          "parameters": [
+            "chunk"
+          ],
           "async": false
         },
         {
@@ -60624,6 +60633,13 @@
         },
         {
           "name": "startManagedExecution/startManagedExecution#8",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "startManagedExecution/startManagedExecution#9",
           "parameters": [],
           "async": false
         },
@@ -60681,6 +60697,7 @@
             "startManagedExecution/send/send/send/send",
             "startManagedExecution/servicePending/servicePending",
             "startManagedExecution/startManagedExecution",
+            "startManagedExecution/startManagedExecution#10",
             "startManagedExecution/startManagedExecution#2",
             "startManagedExecution/startManagedExecution#3",
             "startManagedExecution/startManagedExecution#4",
@@ -60688,6 +60705,7 @@
             "startManagedExecution/startManagedExecution#6",
             "startManagedExecution/startManagedExecution#7",
             "startManagedExecution/startManagedExecution#8",
+            "startManagedExecution/startManagedExecution#9",
             "startManagedExecution/stop/stop",
             "startManagedExecution/stop/stop/stop",
             "startManagedExecution/stop/stop/stop#2",
@@ -60832,6 +60850,10 @@
               {
                 "path": "src/physical_resources/pkg.generated.mbti",
                 "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+              },
+              {
+                "path": "adapters/host-node/process-channel.test.mjs",
+                "anchor": "test('rejected handoff consumes its prepared token without launching or replaying', async t => {"
               }
             ]
           }
@@ -60843,7 +60865,8 @@
         "./process-frames.mjs",
         "node:child_process",
         "node:crypto",
-        "node:url"
+        "node:url",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -76026,7 +76049,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "1520865f99fcb5cad58e4bc611601a627885ee13d8117d2ac95cb6434a61d3b2",
+      "sha256": "ad5891d7141b1816ef3707ca064197249d04bb0cc7c6a58aed0ea3362c3b53ac",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -76648,7 +76671,7 @@
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               }
             ],
@@ -76660,23 +76683,23 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -76686,7 +76709,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
@@ -78742,9 +78765,9 @@
       ]
     },
     {
-      "module": "adapters/host-node/installed-mock-row-effect.mjs",
+      "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4d2d115e42397640ca482db47e25a00722db34345aa7332620d7054ee672bd86",
+      "sha256": "414db7f825d20cc47f71c08f30e726c0b62964515909f5a3b79de9d03c28f953",
       "exports": [
         "installPreparedProjectMockEffects",
         "observeInstalledMockEffectResources"
@@ -79350,13 +79373,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mjs",
                 "anchor": "// The explicit Project Mock's real file UPDATE, through the existing Row"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mjs",
                 "anchor": "export async function installPreparedProjectMockEffects({moon, mockPreparation,"
               },
               {
@@ -79366,11 +79389,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mjs",
                 "anchor": "const original = installations.get(effect);"
               },
               {
-                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mjs",
                 "anchor": "descriptions.set(value, Object.freeze({runInvocationCid, dispatchRequestCid, runOriginal}));"
               },
               {
@@ -79380,11 +79403,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mjs",
                 "anchor": "installations.set(installed, resourceObservation);"
               },
               {
-                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mjs",
                 "anchor": "const resources = Object.freeze(Object.fromEntries(Object.entries(resourceMethods)"
               }
             ],
@@ -79394,7 +79417,7 @@
                 "anchor": "const bindRunResources = (facts, members) => {"
               },
               {
-                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mjs",
                 "anchor": "synchronous(resources.assertCurrent(runOriginal));"
               },
               {
@@ -79404,11 +79427,11 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mjs",
                 "anchor": "if (observed.versionCid !== record.version || wire(observed.before) !== wire(record.before)) {"
               },
               {
-                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mjs",
                 "anchor": "cleanupHandle: Object.freeze({status: child.status, retry: child.retry})});"
               },
               {
@@ -79418,21 +79441,21 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mjs",
                 "anchor": "const child = file.updateChild({signal, runOriginal,"
               },
               {
-                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mjs",
                 "anchor": "function retainRun(runOriginal) {"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mjs",
                 "anchor": "const targetLimits = Object.freeze({maxFileBytes: 1048576, maxRows: 100,"
               },
               {
-                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mjs",
                 "anchor": "statusFor(runOriginal) {return file.statusFor(retainRun(runOriginal));},"
               },
               {
@@ -79442,7 +79465,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mjs",
                 "anchor": "// approval, replacement Run or permission derived from a profile is supplied."
               },
               {
@@ -80998,8 +81021,8 @@
       ]
     },
     {
-      "module": "adapters/host-node/closed-values-preparation-adapter.mjs",
-      "sha256": "f9f72be26cb688f7bc5dadda9d8f05284150f99f6841babeeacccf9e7eb2b74f",
+      "module": "adapters/local-node/closed-values-preparation-adapter.mjs",
+      "sha256": "00ba7043961c6cee3e1ed7defa263f57744dd7de40a5259e068923f1c9825368",
       "exports": [
         "beginClosedValuesInput",
         "bindClosedValuesSnapshot",
@@ -81121,7 +81144,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/closed-values-preparation-adapter.mjs",
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
                 "anchor": "export function cleanupClosedValuesInput("
               },
               {
@@ -81131,7 +81154,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/closed-values-preparation-adapter.mjs",
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
                 "anchor": "export function cleanupClosedValuesInput("
               },
               {
@@ -81141,7 +81164,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/closed-values-preparation-adapter.mjs",
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
                 "anchor": "export function cleanupClosedValuesInput("
               },
               {
@@ -81151,7 +81174,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/closed-values-preparation-adapter.mjs",
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
                 "anchor": "export function cleanupClosedValuesInput("
               },
               {
@@ -81161,7 +81184,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/closed-values-preparation-adapter.mjs",
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
                 "anchor": "export function cleanupClosedValuesInput("
               },
               {
@@ -81171,7 +81194,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/closed-values-preparation-adapter.mjs",
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
                 "anchor": "export function cleanupClosedValuesInput("
               },
               {
@@ -81181,7 +81204,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/closed-values-preparation-adapter.mjs",
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
                 "anchor": "export function cleanupClosedValuesInput("
               },
               {
@@ -81191,7 +81214,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/closed-values-preparation-adapter.mjs",
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
                 "anchor": "export function cleanupClosedValuesInput("
               },
               {
@@ -81201,7 +81224,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/closed-values-preparation-adapter.mjs",
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
                 "anchor": "export function cleanupClosedValuesInput("
               },
               {
@@ -82267,10 +82290,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 163,
-    "operations": 4140,
-    "exports": 1019,
-    "explicitContractGroups": 235
+    "modules": 174,
+    "operations": 4443,
+    "exports": 1061,
+    "explicitContractGroups": 274
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }

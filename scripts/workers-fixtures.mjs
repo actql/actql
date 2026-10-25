@@ -64,7 +64,7 @@ for (const entry of imports) {
 if (imports.length !== aliases.size) throw new Error('Unresolved fixture import');
 const extra = [
   ['actql/actql/connectors_workers','builtin'],
-  ['actql/actql/physical_host','host_driver'],
+  ['actql/actql/physical_host_dispatch','host_driver'],
   ['actql/actql/connector_sdk','connector'],
   ['actql/actql/run_publication','publication'],
   ['actql/actql/run_publication_host','publication_host'],

@@ -1,14 +1,14 @@
 import {resolve} from 'node:path';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
-import {installedProjectOriginalsForRuntime} from './installed-project-configuration.mjs';
-import {loadInstalledProjectConnections} from './installed-project-connections.mjs';
+import {installedProjectOriginalsForRuntime} from '../host-node/installed-project-configuration.mjs';
+import {loadInstalledProjectConnections} from '../host-node/installed-project-connections.mjs';
 import {mockChurnRiskCatalogue} from './mock-churn-risk-catalogue.mjs';
-import {createInstalledRowSource, rowSourceCheckEnvironment} from './installed-row-source.mjs';
-import {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';
-import {contentCid} from './local-account-config.mjs';
-import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
-import {inferOriginalReadCleanupComplete} from './infer-operation.mjs';
+import {createInstalledRowSource, rowSourceCheckEnvironment} from '../host-node/installed-row-source.mjs';
+import {composeInstalledCheckEnvironment} from '../host-node/installed-check-environment.mjs';
+import {contentCid} from '../host-node/local-account-config.mjs';
+import {retainInstalledHostInitializationFailure} from '../host-node/installed-host-cleanup.mjs';
+import {inferOriginalReadCleanupComplete} from '../host-node/infer-operation.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const mockRealization = 'installed-multi-acquired';

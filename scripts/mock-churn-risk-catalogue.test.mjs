@@ -3,7 +3,7 @@ import {createHash} from 'node:crypto';
 import {mkdtempSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import test from 'node:test';
-import {mockChurnRiskCatalogue} from '../adapters/host-node/mock-churn-risk-catalogue.mjs';
+import {mockChurnRiskCatalogue} from '../adapters/local-node/mock-churn-risk-catalogue.mjs';
 import {checkMockChurnRiskCatalogue, renderMockChurnRiskCatalogue} from './mock-churn-risk-catalogue.mjs';
 
 const originals = JSON.parse(readFileSync(new URL(
@@ -15,7 +15,7 @@ test('portable catalogue retains the complete previously authored Node DATA vect
     'bb73955bfa1c7e7eec5cc96fd2f7be0a7aeae2fc5e127a9dd7eaf69003690e13');
   assert.deepEqual(mockChurnRiskCatalogue, originals);
   assert.deepEqual(checkMockChurnRiskCatalogue(process.cwd()), [
-    'adapters/host-node/mock-churn-risk-catalogue.mjs',
+    'adapters/local-node/mock-churn-risk-catalogue.mjs',
     'src/client_row_source_host/mock_churn_risk_catalogue.generated.mbt',
   ]);
 });
@@ -38,7 +38,7 @@ test('ordinary catalogue freshness checks both outputs without repairing a stale
   const directory = mkdtempSync(join(process.cwd(), '_build/mock-catalogue-generation-'));
   const input = join(directory, 'src/client_row_source_host/mock_churn_risk_catalogue.json');
   mkdirSync(join(directory, 'src/client_row_source_host'), {recursive: true});
-  mkdirSync(join(directory, 'adapters/host-node'), {recursive: true});
+  mkdirSync(join(directory, 'adapters/local-node'), {recursive: true});
   writeFileSync(input, JSON.stringify(originals));
   checkMockChurnRiskCatalogue(directory, true);
   for (const [path, expected] of renderMockChurnRiskCatalogue(originals)) {

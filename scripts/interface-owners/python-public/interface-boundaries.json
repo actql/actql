@@ -5434,7 +5434,7 @@
           ]
         }
       ],
-      "sha256": "669b540391b2619f4927413a72fbcc31eb715a801d6d5c04b3b34af7284604d2",
+      "sha256": "f86e15112e416e5c2b524bd036bb56357a80bd992ed7a19be01e7be8418db0f6",
       "role": "observation-presentation",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",

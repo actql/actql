@@ -2,8 +2,8 @@ import {open} from 'node:fs/promises';
 import {dirname, extname, resolve} from 'node:path';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
-import {installedProjectOriginalsForRuntime} from './installed-project-configuration.mjs';
-import {readBoundedConfigurationUtf8} from './source-profile-json.mjs';
+import {installedProjectOriginalsForRuntime} from '../host-node/installed-project-configuration.mjs';
+import {readBoundedConfigurationUtf8} from '../host-node/source-profile-json.mjs';
 
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const fields=Object.freeze(['contractDepth','contractNodes','contractTextBytes','maxBytes',

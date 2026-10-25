@@ -1,0 +1,302 @@
+{
+  "environment": {
+    "version": "actql-check-environment/0.1",
+    "connector_manifest": {
+      "version": "actql-connectors/0.1",
+      "connectors": [
+        {
+          "connector": "salesforce",
+          "connector_id": "salesforce",
+          "connector_version": "fixture"
+        },
+        {
+          "connector": "drive",
+          "connector_id": "drive",
+          "connector_version": "fixture"
+        }
+      ]
+    },
+    "connector_capabilities": [],
+    "connector_catalogs": [
+      {
+        "schema": "actql.connector_catalog/0.1",
+        "connector_id": "salesforce",
+        "connector_version": "fixture",
+        "contracts": [],
+        "source_views": [],
+        "commands": [],
+        "catalog_cid": "sha256:189e570b7553c768f55852ec2f1a36e1386c4c4118ca62efc8578d028e40c648"
+      },
+      {
+        "schema": "actql.connector_catalog/0.1",
+        "connector_id": "drive",
+        "connector_version": "fixture",
+        "contracts": [],
+        "source_views": [],
+        "commands": [],
+        "catalog_cid": "sha256:a0c3b72a8e54182fb9f852d4c01f9516455c074ca6569e66cd90f33696b19a30"
+      }
+    ],
+    "contract_registry": [],
+    "source_views": [],
+    "schema_snapshots": [],
+    "command_contracts": [],
+    "mapping_contracts": [
+      {
+        "schema": "actql.mapping_contract/0.1",
+        "mapping_ref": "mapping:salesforce.deal-review.v1",
+        "version": "fixture",
+        "connector_manifest_cid": "sha256:9a6a8e56c272ccc2e238e67707085a0ba0eedadee6cbe701670c830ab704459a",
+        "target_ref": "connector://salesforce/Opportunity",
+        "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "target_schema_identity": "sha256:1aa681b79a32d9073f1330c36478daabc6a7221c7e504bb397ab15fabc2b9523",
+        "target_schema": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "Id": {
+              "type": "string",
+              "nullable": false
+            },
+            "StageName": {
+              "type": "string",
+              "nullable": false
+            },
+            "NextStep": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        },
+        "primary_identity": "Id",
+        "required_fields": [],
+        "writable_fields": [
+          "StageName",
+          "NextStep"
+        ],
+        "row_mapping": {
+          "StageName": {
+            "field": "StageName",
+            "null_behavior": "reject"
+          },
+          "NextStep": {
+            "field": "NextStep",
+            "null_behavior": "reject"
+          }
+        },
+        "conversions": [],
+        "minimum_approval": "required",
+        "required_permissions": [],
+        "permission_rules": [
+          {
+            "effect_kind": "update",
+            "selector_class": "id",
+            "write_fields": [
+              "StageName",
+              "NextStep"
+            ],
+            "permissions": [
+              "scope:update"
+            ]
+          }
+        ],
+        "mapping_contract_cid": "sha256:b952a5acf065b108c8fa9ec939c5298bf13c73da0cfe827b4b41445c5bbc47c7"
+      }
+    ],
+    "model_task_contracts": [
+      {
+        "schema": "actql.model_task/0.1",
+        "task_id": "model-task:deal-review.v1",
+        "version": "fixture",
+        "connector_id": "models/fixture",
+        "task_kind": "structured_generate",
+        "input_schema_cid": "sha256:38a67b5f1a41c1e63eacf1f38f426dde5725cd03cb8085900febaa857c9a5936",
+        "input_contract": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "StageName": {
+              "type": "string",
+              "nullable": false
+            },
+            "NextStep": {
+              "type": "string",
+              "nullable": true
+            },
+            "notes": {
+              "type": "content_ref",
+              "nullable": false
+            }
+          }
+        },
+        "output_schema_cid": "sha256:0d05df32d7be6d60f252d58ec6990fc1522ea2f9b7097fe6f5bd4f0746177dd6",
+        "output_contract": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "changed": {
+              "type": "boolean",
+              "nullable": false
+            },
+            "stage": {
+              "type": "string",
+              "nullable": false
+            },
+            "next_step": {
+              "type": "string",
+              "nullable": false
+            }
+          }
+        },
+        "authored_model_selector": "fixture-deal-review-model",
+        "generation_config": {
+          "max_output_tokens": 32,
+          "seed_requested": -7,
+          "temperature": 0,
+          "top_p": 1
+        },
+        "data_handling": {
+          "accepted_classifications": [
+            "public",
+            "internal"
+          ],
+          "allowed_regions": [
+            "fixture-region"
+          ],
+          "contract_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "retention": "none",
+          "training_use": "forbidden"
+        },
+        "prompt_template_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "retrieval_policy": "none",
+        "tool_policy": "none",
+        "streaming": false,
+        "max_items": 2,
+        "contract_cid": "sha256:c8cb0faf2961b98b3fb9ef9291fe8d6a33ce50d8f3531db81f1c059fe3a32ee9"
+      }
+    ],
+    "host_policy_profile": {
+      "capacity": {
+        "max_aggregate_array_items": 1000,
+        "max_analytic_frame_memberships": 1000,
+        "max_analytic_input_wire_bytes": 1000,
+        "max_analytic_output_wire_bytes": 1000,
+        "max_analytic_partition_wire_bytes": 1000,
+        "max_artifact_bytes": 1000,
+        "max_artifact_rows": 1000,
+        "max_effect_items": 1000,
+        "max_graph_input_edges": 1000,
+        "max_graph_input_nodes": 1000,
+        "max_graph_output_rows": 1000,
+        "max_graph_paths": 1000,
+        "max_infer_items": 1000,
+        "max_model_input_tokens_per_item": 1000,
+        "max_model_request_bytes_per_item": 1000,
+        "max_model_total_duration_ms": 1000,
+        "max_nested_value_bytes": 1000,
+        "max_nested_value_depth": 1000,
+        "max_relation_output_rows": 1000,
+        "max_temporal_matches_per_key": 1000,
+        "max_temporal_output_rows": 1000,
+        "version": "actql-capacity-host-policy/0.1"
+      }
+    },
+    "evidence_bundle_cid": "sha256:3497da6024e88702936ae75a95f05fb197c22bd6a0d5f9dcddf7d5f80fab0844"
+  },
+  "declarations": {
+    "salesforce.opportunities": {
+      "carrier": "relation",
+      "schema": {
+        "id": {
+          "type": "string",
+          "nullable": false
+        },
+        "name": {
+          "type": "string",
+          "nullable": false
+        },
+        "StageName": {
+          "type": "string",
+          "nullable": false
+        },
+        "NextStep": {
+          "type": "string",
+          "nullable": true
+        }
+      },
+      "primary_key": [
+        "id"
+      ]
+    },
+    "drive.files": {
+      "carrier": "relation",
+      "schema": {
+        "id": {
+          "type": "string",
+          "nullable": false
+        },
+        "name": {
+          "type": "string",
+          "nullable": false
+        },
+        "resource": {
+          "type": "resource_ref",
+          "resource_kind": "file",
+          "nullable": false
+        },
+        "version": {
+          "type": "string",
+          "nullable": false
+        }
+      },
+      "primary_key": [
+        "id"
+      ]
+    },
+    "drive.contents": {
+      "carrier": "relation",
+      "schema": {
+        "resource": {
+          "type": "resource_ref",
+          "resource_kind": "file",
+          "nullable": false
+        },
+        "version": {
+          "type": "string",
+          "nullable": false
+        },
+        "content": {
+          "type": "content_ref",
+          "nullable": false
+        }
+      },
+      "primary_key": [
+        "resource",
+        "version"
+      ]
+    }
+  },
+  "sql": "SELECT o.id AS id, o.StageName, o.NextStep,\n       c.content AS notes\nFROM salesforce.opportunities AS o\nJOIN drive.files AS f ON f.name = o.name\nJOIN drive.contents AS c USING (resource, version)\n|> ASSERT UNIQUE BY (id)\n|> INFER `model-task:deal-review.v1`\n     INPUT (StageName, NextStep, notes) AS review\n|> WHERE review.outcome = 'ok' AND review.value.changed\n|> RESULT updates\n|> EFFECT UPDATE salesforce.Opportunity\n     ID id SET (\n       StageName = review.value.stage,\n       NextStep = review.value.next_step\n     );",
+  "qualification": "Independent complete typed compiler inputs for the current README deal-review example. Source declarations are static contracts, not observed rows, issued ResourceRef/ContentRef values, installed connector authority or model execution. File names are not keys; the authored ASSERT UNIQUE BY enforces deal correlation.",
+  "expected_environment_cid": "sha256:3497da6024e88702936ae75a95f05fb197c22bd6a0d5f9dcddf7d5f80fab0844",
+  "expected_input_fields": [
+    "StageName",
+    "NextStep",
+    "notes"
+  ],
+  "expected_visible_keep": [
+    "id",
+    "StageName",
+    "NextStep",
+    "notes"
+  ],
+  "expected_input_key": [
+    "id"
+  ],
+  "expected_public_results": [
+    "updates"
+  ]
+}

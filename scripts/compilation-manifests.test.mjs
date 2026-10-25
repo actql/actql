@@ -262,6 +262,7 @@ test('original UPDATE selection custody preserves prior combined identity', () =
   // The later division extension retains this entire accepted predecessor;
   // its own full-body/pin proof closes the new identity separately.
   const divisionPredecessor = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/decimal-division-exact/predecessor.json.gz')));
+  assert.equal(divisionPredecessor.source, '2d59f72f7ef3d288415e93db445146b1a2d48847');
   const currentManifest = divisionPredecessor.bodies['spec/manifests/actql-grammar-0.1.json'];
   const expression = JSON.parse(gunzipSync(readFileSync(
     'scripts/fixtures/composite-vector-bridge/signed64-identities.json.gz'))).expressionContract;
@@ -299,7 +300,10 @@ test('original UPDATE selection custody preserves prior combined identity', () =
   assert.equal(machineCid(expression.body), expression.cid);
   assert.equal(currentManifest.expression_contract_cid, machineCid(currentExpression));
   assert.equal(currentManifest.expression_text_grammar_sha256, currentExpression.grammar_sha256);
-  assert.equal(sha(readFileSync(currentExpression.grammar)).slice(7), currentExpression.grammar_sha256);
+  // This retained transition binds its own grammar bytes, not later live extensions.
+  const historicalGrammar = readFileSync(
+    'scripts/fixtures/decimal-division-exact/expression-predecessor.ebnf');
+  assert.equal(sha(historicalGrammar).slice(7), currentExpression.grammar_sha256);
   const currentAligned = {...currentManifest};
   for (const key of ['grammar_manifest_cid', 'query_text_grammar_sha256',
     'query_text_rules_sha256', 'expression_text_rules_sha256',
