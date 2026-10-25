@@ -13,9 +13,11 @@ fn client_sequence_preparation_demand(
   let mut rows = 0L
   let mut cells = 0L
   for owner in owners {
-    let demand = match @lower.prepared_sequence_preparation_demand(
-      @lower.bound_preparation(owner),remaining,
-    ) {
+    let demand = match
+      @lower.prepared_sequence_preparation_demand(
+        @lower.bound_preparation(owner),
+        remaining,
+      ) {
       Ok(value) => value
       Err(@lower.WorkLimit) => return Err(@strategy.WorkLimit)
       Err(_) => return Err(@strategy.InvalidLimits)
@@ -28,5 +30,9 @@ fn client_sequence_preparation_demand(
     rows += demand.authored_literal_rows.to_int64()
     cells += demand.authored_literal_cells.to_int64()
   }
-  Ok({authored_literal_rows:rows.to_int(),authored_literal_cells:cells.to_int(),work_used:max_work-remaining})
+  Ok({
+    authored_literal_rows: rows.to_int(),
+    authored_literal_cells: cells.to_int(),
+    work_used: max_work - remaining,
+  })
 }

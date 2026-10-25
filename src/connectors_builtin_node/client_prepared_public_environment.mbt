@@ -68,7 +68,12 @@ pub fn client_program_prepare_source_computation_in_public_environment(
   }
   let (lowered, catalog) = match
     @source_publication.lower_prepared_published_query(
-      prepared, environment, document, selected, declarations, public_primary=true,
+      prepared,
+      environment,
+      document,
+      selected,
+      declarations,
+      public_primary=true,
     ) {
     Ok(value) => value
     Err(issue) =>

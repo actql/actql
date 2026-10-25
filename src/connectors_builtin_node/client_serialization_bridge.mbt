@@ -388,11 +388,13 @@ pub fn client_program_serialization_prefix_capacity(
   )
   let capacity = if acquired {
     @client_local_host.client_acquired_serialization_prefix_capacity(
-      program, task, step, sequence_contracts, values, fragment, ordered, execution, measurement,
+      program, task, step, sequence_contracts, values, fragment, ordered, execution,
+      measurement,
     )
   } else {
     @client_local_host.client_serialization_prefix_capacity(
-      program, task, step, sequence_contracts, values, fragment, ordered, execution, measurement,
+      program, task, step, sequence_contracts, values, fragment, ordered, execution,
+      measurement,
     )
   }
   capacity.map(capacity => {

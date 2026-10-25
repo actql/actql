@@ -148,7 +148,10 @@ fn source_free_installed_managed_preparation_owned(
   fragment_body : String?,
   ordered_body : String?,
   mock_model : Bool,
-  query_time? : (@publication_host.ClientQueryTimePreparation, @publication_host.ClientRequestIdentity)? = None,
+  query_time? : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )? = None,
 ) -> ClientInstalledManagedSourceFreePreparation? {
   let graph = installed_managed_owner_graph(owner)
   if !installed_managed_owner_shape_supported(owner, mock_model) ||
@@ -161,7 +164,11 @@ fn source_free_installed_managed_preparation_owned(
     return None
   }
   guard prepare_client_local_sequences_owned(
-      owner, installed_contracts, values_body, fragment_body, ordered_body,
+      owner,
+      installed_contracts,
+      values_body,
+      fragment_body,
+      ordered_body,
       query_time~,
     )
     is Some(sequences) &&
@@ -442,13 +449,19 @@ fn installed_managed_run_requirements_owned(
       limits.execution_bytes,
     ])
   }
-  let acquisitions = match prepare_installed_managed_acquisitions_owned(
-    owner, declarations, query_contract_body, evidence_contract_body,
-    installed_contracts, values_body, fragment_body, ordered_body,
-  ) { Err(issue) => return Err(issue); Ok(value) => value }
+  let acquisitions = match
+    prepare_installed_managed_acquisitions_owned(
+      owner, declarations, query_contract_body, evidence_contract_body, installed_contracts,
+      values_body, fragment_body, ordered_body,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
   let capacities = []
   for acquisition in acquisitions {
-    guard installed_row_capture_capacity(acquisition) is Some(capacity) else { return Err(Unsupported) }
+    guard installed_row_capture_capacity(acquisition) is Some(capacity) else {
+      return Err(Unsupported)
+    }
     capacities.push(capacity)
   }
   guard multi_captured_installed_limits_owned(
@@ -479,8 +492,14 @@ fn prepare_installed_managed_acquisitions_owned(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
-  query_time? : (@publication_host.ClientQueryTimePreparation, @publication_host.ClientRequestIdentity)? = None,
-) -> Result[Array[@row_source_host.RowAcquisition], ClientInstalledManagedRunIssue] {
+  query_time? : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )? = None,
+) -> Result[
+  Array[@row_source_host.RowAcquisition],
+  ClientInstalledManagedRunIssue,
+] {
   let captured = @strategy.graph_captured_prefix(
     installed_managed_owner_graph(owner),
   )
@@ -490,7 +509,13 @@ fn prepare_installed_managed_acquisitions_owned(
   let acquisitions = []
   for index in 0..<captured {
     guard prepare_local_query_requirement_owned(
-        owner, index, 0, installed_contracts, values_body, fragment_body, ordered_body,
+        owner,
+        index,
+        0,
+        installed_contracts,
+        values_body,
+        fragment_body,
+        ordered_body,
         query_time~,
       )
       is Ok(requirement) &&

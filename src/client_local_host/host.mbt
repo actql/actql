@@ -686,9 +686,12 @@ fn configure_client_local_run(
   }
   match
     @builtin.open_configured_compute_host(
-      modules, registry, capacity,
-      capacity_plan.map(plan=>plan.dispatch_entries).unwrap_or(100),
-      capacity_plan.map(plan=>plan.dispatch_name_bytes).unwrap_or(10000), 1,
+      modules,
+      registry,
+      capacity,
+      capacity_plan.map(plan => plan.dispatch_entries).unwrap_or(100),
+      capacity_plan.map(plan => plan.dispatch_name_bytes).unwrap_or(10000),
+      1,
     ) {
     Ok(value) => {
       if first_compute == 1 {

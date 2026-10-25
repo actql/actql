@@ -29,15 +29,21 @@ pub fn client_store_begin_original_chain_validation(
   manifest : @publication.PublicationContract,
   receipt : @publication.PublicationContract,
   captured_run : @publication.PublicationContract,
-) -> Result[ClientStorePublicationValidation, ClientStorePublicationValidationIssue] {
+) -> Result[
+  ClientStorePublicationValidation,
+  ClientStorePublicationValidationIssue,
+] {
   guard @publication.prepare_original_effect_free_chain_validation(
-    definition, invocation, definitions, artifacts, manifest, receipt, captured_run,
-  ) is Some(plan) else {return Err(InvalidOriginal)}
+      definition, invocation, definitions, artifacts, manifest, receipt, captured_run,
+    )
+    is Some(plan) else {
+    return Err(InvalidOriginal)
+  }
   guard @publication.start_planned_chain_validation(plan) is Some(checker) else {
     @publication.cancel_publication_validation_plan(plan)
     return Err(InvalidOriginal)
   }
-  Ok({state:Some(Chain(checker))})
+  Ok({ state: Some(Chain(checker)), })
 }
 
 ///|
@@ -57,15 +63,22 @@ pub fn client_store_begin_original_commit_validation(
   request : @publication.PublicationContract,
   attempt : @publication.PublicationContract,
   index : @publication.PublicationContract,
-) -> Result[ClientStorePublicationValidation, ClientStorePublicationValidationIssue] {
+) -> Result[
+  ClientStorePublicationValidation,
+  ClientStorePublicationValidationIssue,
+] {
   guard @publication.prepare_original_effect_free_commit_validation(
-    definition, invocation, definitions, artifacts, derivations, orderings, retentions, bindings, manifest, receipt, captured_run, request, attempt, index,
-  ) is Some(plan) else {return Err(InvalidOriginal)}
+      definition, invocation, definitions, artifacts, derivations, orderings, retentions,
+      bindings, manifest, receipt, captured_run, request, attempt, index,
+    )
+    is Some(plan) else {
+    return Err(InvalidOriginal)
+  }
   guard @publication.start_planned_commit_validation(plan) is Some(checker) else {
     @publication.cancel_publication_validation_plan(plan)
     return Err(InvalidOriginal)
   }
-  Ok({state:Some(Commit(checker))})
+  Ok({ state: Some(Commit(checker)), })
 }
 
 ///|
@@ -76,8 +89,10 @@ pub fn client_store_advance_original_validation(
 ) -> Result[(Bool, Int), ClientStorePublicationValidationIssue] {
   match value.state {
     None => Err(Closed)
-    Some(Chain(checker)) => checker.advance(quantum).map_err(issue => Chain(issue))
-    Some(Commit(checker)) => checker.advance(quantum).map_err(issue => Commit(issue))
+    Some(Chain(checker)) =>
+      checker.advance(quantum).map_err(issue => Chain(issue))
+    Some(Commit(checker)) =>
+      checker.advance(quantum).map_err(issue => Commit(issue))
   }
 }
 
@@ -95,11 +110,13 @@ pub fn client_store_finish_original_validation(
 
 ///|
 #export_name("clientStoreCancelOriginalValidation")
-pub fn client_store_cancel_original_validation(value : ClientStorePublicationValidation) -> Unit {
+pub fn client_store_cancel_original_validation(
+  value : ClientStorePublicationValidation,
+) -> Unit {
   match value.state {
     None => ()
     Some(Chain(checker)) => checker.cancel()
     Some(Commit(checker)) => checker.cancel()
   }
-  value.state=None
+  value.state = None
 }

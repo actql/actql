@@ -15,9 +15,7 @@ fn client_local_result_envelope(
   max_rows : Int,
 ) -> ClientLocalResultEnvelope? {
   let count = @strategy.graph_result_count(graph)
-  if max_rows < 1 ||
-    count < 1 ||
-    count > client_local_schema_proof_work() {
+  if max_rows < 1 || count < 1 || count > client_local_schema_proof_work() {
     return None
   }
   let mut remaining = client_local_schema_proof_work() - count
@@ -66,9 +64,11 @@ fn client_local_result_envelope(
     fields = Int::max(fields, Int::max(width, columns))
     order_terms += terms
   }
-  let row_slots=2L*max_rows.to_int64()+order_terms.to_int64()
-  let field_slots=8L+5L*fields.to_int64()
-  if row_slots>2147483647L || field_slots>2147483647L {return None}
+  let row_slots = 2L * max_rows.to_int64() + order_terms.to_int64()
+  let field_slots = 8L + 5L * fields.to_int64()
+  if row_slots > 2147483647L || field_slots > 2147483647L {
+    return None
+  }
   Some({
     fields,
     mapping_work,
@@ -78,7 +78,7 @@ fn client_local_result_envelope(
     // indices. Its counter is separate from Result view construction.
     publication_workspace_entries: Int::max(
       100,
-      Int::max(row_slots.to_int(),field_slots.to_int()),
+      Int::max(row_slots.to_int(), field_slots.to_int()),
     ),
   })
 }

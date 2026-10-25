@@ -36,7 +36,12 @@ fn source_free_requirements_prepared(
 test "source-free preparation refuses two competing retained originals" {
   let prepared = source_free_requirements_prepared()
   let assets = @publication_host.client_local_product_assets()
-  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let asset_contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   let requirements = prepare_source_free_local_requirements(
     prepared,
     asset_contracts,
@@ -84,7 +89,12 @@ test "source-free preparation refuses two competing retained originals" {
 test "source-free requirements keep maximum allowances separate and execute the same prepared rows" {
   let prepared = source_free_requirements_prepared()
   let assets = @publication_host.client_local_product_assets()
-  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let asset_contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   let quote = prepare_source_free_local_requirements(
     prepared,
     asset_contracts,
@@ -140,7 +150,12 @@ test "source-free requirements keep maximum allowances separate and execute the 
 test "source-free requirements cannot select a different preparation or installed input" {
   let prepared = source_free_requirements_prepared()
   let assets = @publication_host.client_local_product_assets()
-  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let asset_contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   let quote = prepare_source_free_local_requirements(
     prepared,
     asset_contracts,
@@ -200,7 +215,12 @@ test "source-free requirements cannot select a different preparation or installe
 test "original eight-task UNION preserves its finite facility with prepared requirements" {
   let prepared = source_free_tasks_original_union()
   let assets = @publication_host.client_local_product_assets()
-  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let asset_contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   let quote = prepare_source_free_local_requirements(
     prepared,
     asset_contracts,
@@ -249,7 +269,12 @@ test "original eight-task UNION preserves its finite facility with prepared requ
 test "source-free SQL chain quotes its installed provider and rejects one byte short" {
   let prepared = source_free_requirements_prepared(sql=Some("SELECT 1 AS x"))
   let assets = @publication_host.client_local_product_assets()
-  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let asset_contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   let quote = prepare_source_free_local_requirements(
     prepared,
     asset_contracts,

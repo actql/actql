@@ -1988,7 +1988,8 @@ pub fn client_program_prepare_local_query_requirement(
   @client_local_host.ClientLocalQueryIssue,
 ] {
   @client_local_host.prepare_local_query_requirement(
-    prepared, stage, source_index, installed_contracts, values_body, fragment_body, ordered_body,
+    prepared, stage, source_index, installed_contracts, values_body, fragment_body,
+    ordered_body,
   )
 }
 
@@ -2007,7 +2008,8 @@ pub fn client_program_effect_prepare_local_query_requirement(
   @client_local_host.ClientLocalQueryIssue,
 ] {
   @client_local_host.prepare_effect_local_query_requirement(
-    prepared, stage, source_index, installed_contracts, values_body, fragment_body, ordered_body,
+    prepared, stage, source_index, installed_contracts, values_body, fragment_body,
+    ordered_body,
   )
 }
 
@@ -4916,7 +4918,9 @@ fn client_program_configure_local_host(
     Ok(value) => value
     Err(_) => return reject_client_local_run(run)
   }
-  let sequence_contracts = @connector.installed_bundle_registry(installed_bundles)
+  let sequence_contracts = @connector.installed_bundle_registry(
+    installed_bundles,
+  )
   guard @connector.capability_registration_at(sequence_contracts, 0)
     is Some(local_registration) else {
     return reject_client_local_run(run)

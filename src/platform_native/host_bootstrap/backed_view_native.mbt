@@ -45,8 +45,11 @@ extern "C" fn map_region_ffi(
 ///|
 #borrow(backing, extent, loan)
 extern "C" fn view_region_in_process_ffi(
-  backing : Backing, extent : Extent, loan : PhysicalRegionLoan,
-  payload_offset : Int64, payload_length : Int64,
+  backing : Backing,
+  extent : Extent,
+  loan : PhysicalRegionLoan,
+  payload_offset : Int64,
+  payload_length : Int64,
 ) -> PhysicalRegionView = "actql_bootstrap_view_region_in_process"
 
 ///|
@@ -204,26 +207,36 @@ pub fn[T, C] NativeHostBootstrap::project_backed_extent(
 /// original FD; mapping/header checks use the exact existing provider loan.
 /// A post-map failure returns this same partial view. No automatic second map.
 pub fn[T, C] NativeHostBootstrap::map_backed_view(
-  self : NativeHostBootstrap[T], original : T,
-  loan : NativeBackedExecutionLoan[T, C], child : C, fd : Int,
+  self : NativeHostBootstrap[T],
+  original : T,
+  loan : NativeBackedExecutionLoan[T, C],
+  child : C,
+  fd : Int,
 ) -> Result[NativeBackedViewAcquisition[T, C], NativeBackedExecutionIssue] {
-  if fd < 0 { return Err(Bootstrap(Unavailable)) }
+  if fd < 0 {
+    return Err(Bootstrap(Unavailable))
+  }
   self.bind_original_view(original, loan, child, Some(fd))
 }
 
 ///|
 /// Bind the same original local loan without mapping or projecting transport.
 pub fn[T, C] NativeHostBootstrap::view_backed_region_in_process(
-  self : NativeHostBootstrap[T], original : T,
-  loan : NativeBackedExecutionLoan[T, C], child : C,
+  self : NativeHostBootstrap[T],
+  original : T,
+  loan : NativeBackedExecutionLoan[T, C],
+  child : C,
 ) -> Result[NativeBackedViewAcquisition[T, C], NativeBackedExecutionIssue] {
   self.bind_original_view(original, loan, child, None)
 }
 
 ///|
 fn[T, C] NativeHostBootstrap::bind_original_view(
-  self : NativeHostBootstrap[T], original : T,
-  loan : NativeBackedExecutionLoan[T, C], child : C, fd : Int?,
+  self : NativeHostBootstrap[T],
+  original : T,
+  loan : NativeBackedExecutionLoan[T, C],
+  child : C,
+  fd : Int?,
 ) -> Result[NativeBackedViewAcquisition[T, C], NativeBackedExecutionIssue] {
   match self.require_region_child(original, loan, child) {
     Err(issue) => return Err(issue)
@@ -244,10 +257,23 @@ fn[T, C] NativeHostBootstrap::bind_original_view(
   }
   loan.map_attempted = true
   let physical = match fd {
-    Some(fd) => map_region_ffi(self.backing, loan.region.allocation.extent,
-      loan.physical, fd, extent.payload_offset, extent.payload_length)
-    None => view_region_in_process_ffi(self.backing, loan.region.allocation.extent,
-      loan.physical, extent.payload_offset, extent.payload_length)
+    Some(fd) =>
+      map_region_ffi(
+        self.backing,
+        loan.region.allocation.extent,
+        loan.physical,
+        fd,
+        extent.payload_offset,
+        extent.payload_length,
+      )
+    None =>
+      view_region_in_process_ffi(
+        self.backing,
+        loan.region.allocation.extent,
+        loan.physical,
+        extent.payload_offset,
+        extent.payload_length,
+      )
   }
   let view : NativeBackedExecutionView[T, C] = {
     loan,

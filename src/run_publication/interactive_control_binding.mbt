@@ -134,7 +134,12 @@ pub fn check_interactive_logical_map_binding(
         outputs[port_id] = (id, carrier, contract)
       }
     }
-    if input_only && (input_count != 1 || output_count != 1 || input_contract != output_contract) {
+    if input_only &&
+      (
+        input_count != 1 ||
+        output_count != 1 ||
+        input_contract != output_contract
+      ) {
       return Err(RunEvidenceReferenceMismatch("logical_map.input_output"))
     }
   }
@@ -188,8 +193,11 @@ pub fn check_interactive_admission_binding(
     Some(resolved.identity) {
     return Err(RunEvidenceReferenceMismatch("control_admission.profile_intent"))
   }
-  if evidence_string(resolved.value, "effective_profile_cid") != Some(effective.identity) {
-    return Err(RunEvidenceReferenceMismatch("control_admission.effective_profile"))
+  if evidence_string(resolved.value, "effective_profile_cid") !=
+    Some(effective.identity) {
+    return Err(
+      RunEvidenceReferenceMismatch("control_admission.effective_profile"),
+    )
   }
   match check_interactive_profile_bounds(requested) {
     Ok(_) => ()
@@ -219,7 +227,8 @@ pub fn check_interactive_admission_binding(
       }
     }
   }
-  if @json.object_field(resolved.value, "breakpoints") is Some(@json.Array(points)) {
+  if @json.object_field(resolved.value, "breakpoints")
+    is Some(@json.Array(points)) {
     for i in 0..<@json.array_count(points) {
       let point = @json.array_at(points, i).unwrap()
       if evidence_string(point, "kind") == Some("logical_step") &&
@@ -228,10 +237,14 @@ pub fn check_interactive_admission_binding(
       }
     }
   }
-  if @json.object_field(resolved.value, "sample_output_port_ids") is Some(@json.Array(ports)) {
+  if @json.object_field(resolved.value, "sample_output_port_ids")
+    is Some(@json.Array(ports)) {
     for i in 0..<@json.array_count(ports) {
-      if @json.array_at(ports, i) is Some(@json.String(id)) && !output_ids.contains(id) {
-        return Err(RunEvidenceReferenceMismatch("control_admission.sample_output"))
+      if @json.array_at(ports, i) is Some(@json.String(id)) &&
+        !output_ids.contains(id) {
+        return Err(
+          RunEvidenceReferenceMismatch("control_admission.sample_output"),
+        )
       }
     }
   }
@@ -270,13 +283,16 @@ pub fn check_interactive_profile_bounds(
     let nodes = interactive_integer(graph, "max_nodes").unwrap()
     let edges = interactive_integer(graph, "max_edges").unwrap()
     let items = interactive_integer(samples, "max_items").unwrap()
-    if nodes + edges > items || evidence_string(samples, "max_bytes") == Some("0") {
+    if nodes + edges > items ||
+      evidence_string(samples, "max_bytes") == Some("0") {
       return Err(RunEvidenceReferenceMismatch("control_profile.sample_limits"))
     }
   }
   if @json.object_field(retain, "intermediate") is Some(intermediate) &&
     evidence_string(intermediate, "max_bytes") == Some("0") {
-    return Err(RunEvidenceReferenceMismatch("control_profile.intermediate_limits"))
+    return Err(
+      RunEvidenceReferenceMismatch("control_profile.intermediate_limits"),
+    )
   }
   Ok(())
 }

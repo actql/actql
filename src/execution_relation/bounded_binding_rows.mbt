@@ -2387,7 +2387,13 @@ fn bounded_binding_rows_step(
                   [],
                   state.control,
                   state.workspace,
-                  Some(expression_roots(logical, state.control.max_frames, query_time=state.scope.bind(s => s.query_time))),
+                  Some(
+                    expression_roots(
+                      logical,
+                      state.control.max_frames,
+                      query_time=state.scope.bind(s => s.query_time),
+                    ),
+                  ),
                 ) {
                 Ok(value) => Some(value)
                 Err(issue) =>
@@ -4227,8 +4233,13 @@ fn start_bounded_binding_rows_with_input(
     // only expression frames.
     scope: logical.map(logical => {
       (
-        { query_time: generated.query_time, budget: logical, slots: [], free: [], limit: max_entries, } :
-        ExpressionRoots)
+        {
+          query_time: generated.query_time,
+          budget: logical,
+          slots: [],
+          free: [],
+          limit: max_entries,
+        } : ExpressionRoots)
     }),
     control,
     workspace,

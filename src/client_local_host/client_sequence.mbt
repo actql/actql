@@ -610,7 +610,9 @@ fn prepare_client_local_sequences_owned(
 ) -> Array[@execution.GeneratedSequence]? {
   guard client_local_sequence_selection_matches(
     installed_contracts, values_body, fragment_body, ordered_body,
-  ) else { return None }
+  ) else {
+    return None
+  }
   let admitted = installed_contracts.original.value
   let contracts = admitted.contracts
   let fragment_contract = match fragment_body {

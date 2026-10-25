@@ -797,7 +797,14 @@ fn start_bounded_group_with_input(
   let control : ControlBudget = { remaining: max_work, max_frames, }
   let workspace = row_workspace(max_entries)
   let scope = bounded_group_logical(generated, kernel).map(budget => {
-    ({ query_time: generated.query_time, budget, slots: [], free: [], limit: max_entries, } : ExpressionRoots)
+    (
+      {
+        query_time: generated.query_time,
+        budget,
+        slots: [],
+        free: [],
+        limit: max_entries,
+      } : ExpressionRoots)
   })
   let rows_view : BoundedGroupInputRows = { input, owner, names, }
   let pending : Array[(Array[Value], Int)] = []

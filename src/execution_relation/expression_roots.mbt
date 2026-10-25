@@ -20,7 +20,13 @@ fn expression_roots(
   frames : Int,
   query_time? : @publication.QueryEvaluationTime? = None,
 ) -> ExpressionRoots {
-  { query_time, budget, slots: [], free: [], limit: Int::min(frames, 2147483645) + 2, }
+  {
+    query_time,
+    budget,
+    slots: [],
+    free: [],
+    limit: Int::min(frames, 2147483645) + 2,
+  }
 }
 
 ///|

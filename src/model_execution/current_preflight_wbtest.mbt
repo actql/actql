@@ -81,9 +81,15 @@ test "factory current loss reaches original Model custody before refusal and ret
     Ok(guard_model_request_preflight_current(acquired, () => current.val))
   }
   let active = start_model_owned(
-    rows, Provider(provider), "sha256:" + "a".repeat(64), limits, None,
-    durable_calls=true, send_mask=Some([true, false]),
-    quantity_capacity=Some(quantity), physical_preflight=Some(preflight),
+    rows,
+    Provider(provider),
+    "sha256:" + "a".repeat(64),
+    limits,
+    None,
+    durable_calls=true,
+    send_mask=Some([true, false]),
+    quantity_capacity=Some(quantity),
+    physical_preflight=Some(preflight),
     original_startup=Some(grant),
   ).unwrap()
   for _ in 0..<1000 {

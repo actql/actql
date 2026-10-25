@@ -62,9 +62,17 @@ fn emit_result_manifest_body(
   placeholders? : Bool = false,
 ) -> Unit raise @encode.EncodeFailure {
   emit_result_manifest_fields(
-    run_definition_cid, invocation_cid, entries.length(),
+    run_definition_cid,
+    invocation_cid,
+    entries.length(),
     index => entries[index].name,
-    index => if placeholders { None } else { Some(entries[index].artifact.value) },
+    index => {
+      if placeholders {
+        None
+      } else {
+        Some(entries[index].artifact.value)
+      }
+    },
     writer,
   )
 }
@@ -211,8 +219,10 @@ pub fn issue_result_manifest(
 
 ///|
 fn emit_result_artifact_inventory(
-  count : Int, name_at : (Int) -> String,
-  artifact_at : (Int) -> @json.CanonicalValue?, writer : @encode.Writer,
+  count : Int,
+  name_at : (Int) -> String,
+  artifact_at : (Int) -> @json.CanonicalValue?,
+  writer : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
   for index in 0..<count {

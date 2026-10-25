@@ -565,7 +565,11 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
   let imported = count * per_input
   // Host metadata is a separately funded holding. It survives scratch release
   // and follows the existing completed-output/borrower cleanup acknowledgement.
-  guard local_retained_with_metadata(base.retained_bytes,metadata.retained_bytes) is Some(retained_with_metadata) else {
+  guard local_retained_with_metadata(
+      base.retained_bytes,
+      metadata.retained_bytes,
+    )
+    is Some(retained_with_metadata) else {
     return Err(Configuration(InvalidLimits))
   }
   if base.retained_bytes > 9223372036854775807L - base.execution_bytes ||
@@ -794,7 +798,8 @@ pub fn[T] start_local_managed_dispatch(
     (if finalization_completed.val is Some(_) { 1 } else { 0 }) +
     finalization_established.val +
     finalization_deadline.val).to_int64() +
-    finalization_receipt_steps.val + finalization_reclamation_steps.val
+    finalization_receipt_steps.val +
+    finalization_reclamation_steps.val
   }
   let cancel_finalization = fn() {
     finalization_cancelled.val = true
@@ -1947,12 +1952,14 @@ pub fn[T] start_local_managed_dispatch(
       @execution.request_managed_output_values_disposal(values)
       let before = @execution.managed_output_values_reclamation_steps(values)
       let reclaimed = @execution.advance_managed_output_values_reclamation(
-        values, quantum - work,
+        values,
+        quantum - work,
       )
       let after = @execution.managed_output_values_reclamation_steps(values)
       finalization_reclamation_steps.val = after
       work += (after - before).to_int()
-      if !reclaimed || !@execution.managed_output_values_scratch_released(values) {
+      if !reclaimed ||
+        !@execution.managed_output_values_scratch_released(values) {
         return Ok({
           complete: false,
           waiting: false,
@@ -2680,11 +2687,15 @@ pub fn[T] start_local_managed_dispatch(
     // -1 means no authorized local continuation, not a stop/release witness.
     // Provider, borrowed input, snapshot and active-reader waits retain custody.
     cleanup_local_continuation: fn() {
-      if !disposed.val || live.val || scratch_uses.val != 0 ||
+      if !disposed.val ||
+        live.val ||
+        scratch_uses.val != 0 ||
         provider_execution.val is Some(_) ||
         relation_snapshot_cancel.val is Some(_) ||
-        input_stop.phase != Stopped || carrier.val is Some(_) ||
-        !retired_carriers.is_empty() || retained.val is Some(_) ||
+        input_stop.phase != Stopped ||
+        carrier.val is Some(_) ||
+        !retired_carriers.is_empty() ||
+        retained.val is Some(_) ||
         snapshot_storage_released.val is Some(_) {
         return -1L
       }
@@ -2696,7 +2707,9 @@ pub fn[T] start_local_managed_dispatch(
       if scratch_retirement.phase != Retired ||
         finalization_values.val is Some(_) {
         scratch_retirement.steps + finalization_reclamation_steps.val
-      } else { -1L }
+      } else {
+        -1L
+      }
     },
   }
   Ok({

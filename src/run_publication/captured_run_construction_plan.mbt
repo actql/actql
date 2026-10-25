@@ -33,7 +33,7 @@ pub fn prepare_original_effect_free_capture_plan(
   snapshots : Array[CapturedResultSnapshot],
   authoring : RunEvidenceValue,
   models : Array[RunEvidenceValue],
- ) -> CapturedRunConstructionPlan? {
+) -> CapturedRunConstructionPlan? {
   // These private reference inventories sever every caller-owned Array alias.
   // Nominal children (contracts, snapshots and canonical values) are immutable.
   // The Host funds this count-derived copy packet before entering this function.
@@ -41,14 +41,34 @@ pub fn prepare_original_effect_free_capture_plan(
   let artifacts = artifacts.copy()
   let snapshots = snapshots.copy()
   let models = models.copy()
-  guard captured_plain_run_construction_extent(receipt, snapshots, authoring, models)
-    is Some(extent) else { return None }
+  guard captured_plain_run_construction_extent(
+      receipt, snapshots, authoring, models,
+    )
+    is Some(extent) else {
+    return None
+  }
   Some({
-    inputs: Some({run_definition, invocation, definitions, artifacts, manifest,
-      receipt, snapshots, sources: [], local_sources: [], advances: [],
-      authoring, models, content_generations: [], preview: None, plan_values: [],
-      max_wire_bytes: extent.max_wire_bytes, max_nodes: extent.max_nodes,
-      max_depth: extent.max_depth, dependency_inventory: None}),
+    inputs: Some({
+      run_definition,
+      invocation,
+      definitions,
+      artifacts,
+      manifest,
+      receipt,
+      snapshots,
+      sources: [],
+      local_sources: [],
+      advances: [],
+      authoring,
+      models,
+      content_generations: [],
+      preview: None,
+      plan_values: [],
+      max_wire_bytes: extent.max_wire_bytes,
+      max_nodes: extent.max_nodes,
+      max_depth: extent.max_depth,
+      dependency_inventory: None,
+    }),
     extent,
     max_workspace: publication_evidence_workspace(extent.max_nodes),
   })
@@ -62,8 +82,18 @@ pub fn capture_construction_layout_facts(
 ) -> (Int, Int, Int, Int, Int, Int, Int, Int)? {
   guard original.inputs is Some(_) else { return None }
   let e = original.extent
-  Some((e.max_wire_bytes, e.max_nodes, e.max_depth, e.metadata_nodes,
-    e.results, e.total_fields, e.max_fields, e.models))
+  Some(
+    (
+      e.max_wire_bytes,
+      e.max_nodes,
+      e.max_depth,
+      e.metadata_nodes,
+      e.results,
+      e.total_fields,
+      e.max_fields,
+      e.models,
+    ),
+  )
 }
 
 ///|
@@ -76,7 +106,9 @@ pub fn start_planned_captured_run(
 }
 
 ///|
-pub fn cancel_capture_construction_plan(original : CapturedRunConstructionPlan) -> Unit {
+pub fn cancel_capture_construction_plan(
+  original : CapturedRunConstructionPlan,
+) -> Unit {
   original.inputs = None
 }
 

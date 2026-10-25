@@ -153,7 +153,8 @@ fn advance_relation_chain_inputs(
           Ok(bound) => bound
           Err(_) => return Err(@connector.Execution(@execution.InputSet))
         }
-        guard @execution.bound_producer_read_demand(cursor.owner,bound) is Some(demand) else {
+        guard @execution.bound_producer_read_demand(cursor.owner, bound)
+          is Some(demand) else {
           return Err(@connector.Execution(@execution.InputLimit))
         }
         let read = match
@@ -225,7 +226,10 @@ fn relation_chain_inputs_are_small(
               Ok(bound) => bound
               Err(_) => return true
             }
-            guard @execution.bound_producer_read_demand(cursor.owner,bound) is Some(demand) else {return true}
+            guard @execution.bound_producer_read_demand(cursor.owner, bound)
+              is Some(demand) else {
+              return true
+            }
             let read = match
               @execution.start_prepare_producer_read(
                 cursor.owner,

@@ -41,12 +41,26 @@ fn client_local_capacity_plan(
     Some(value) => Some(value)
     None =>
       if scalar_values {
-        client_local_schema_proof_inventory(sequences, graph~, graph_offset~, scalar_only=false, leaf_only=true)
-      } else { None }
+        client_local_schema_proof_inventory(
+          sequences,
+          graph~,
+          graph_offset~,
+          scalar_only=false,
+          leaf_only=true,
+        )
+      } else {
+        None
+      }
   }
   let dispatch_inventory = match node_inventory {
     Some(value) => Some(value)
-    None => client_local_schema_proof_inventory(sequences, graph~, graph_offset~, scalar_only=false)
+    None =>
+      client_local_schema_proof_inventory(
+        sequences,
+        graph~,
+        graph_offset~,
+        scalar_only=false,
+      )
   }
   let dispatch_bounds = client_local_dispatch_bounds(dispatch_inventory, graph)
   let admitted_rows = max_rows
@@ -55,7 +69,10 @@ fn client_local_capacity_plan(
       Int::min(max_rows, Int::max(1, bound))
     _ => max_rows
   }
-  let scalar_demand=match inventory {Some(proof)=>client_local_scalar_demand(proof,max_rows);None=>None}
+  let scalar_demand = match inventory {
+    Some(proof) => client_local_scalar_demand(proof, max_rows)
+    None => None
+  }
   let value_node_demand = match node_inventory {
     Some(proof) => client_local_value_node_demand(proof, max_rows)
     None => None
@@ -69,7 +86,7 @@ fn client_local_capacity_plan(
   // IO observes scalar cells plus row field names, not evaluator intermediates.
   // Keep expression text independent unless every original typed child and
   // generated step has a separate text-free proof.
-  let io_text=scalar_demand.map(demand=>demand.name_bytes)
+  let io_text = scalar_demand.map(demand => demand.name_bytes)
   let values = match io_text {
     Some(bytes) => { ..values, max_text_bytes: bytes, }
     None => values
@@ -98,7 +115,10 @@ fn client_local_capacity_plan(
     wire: {
       ..original_imports.wire,
       max_columns: fields.unwrap_or(original_imports.wire.max_columns),
-      max_nodes: match value_node_demand { Some(demand) => demand.nodes + 3; None => original_imports.wire.max_nodes },
+      max_nodes: match value_node_demand {
+        Some(demand) => demand.nodes + 3
+        None => original_imports.wire.max_nodes
+      },
     },
   }
   let exports = {
@@ -106,7 +126,10 @@ fn client_local_capacity_plan(
     wire: {
       ..original_exports.wire,
       max_columns: fields.unwrap_or(original_exports.wire.max_columns),
-      max_nodes: match value_node_demand { Some(demand) => demand.nodes + 3; None => original_exports.wire.max_nodes },
+      max_nodes: match value_node_demand {
+        Some(demand) => demand.nodes + 3
+        None => original_exports.wire.max_nodes
+      },
     },
   }
   // Snapshot metadata before any independently proved wire specialization.
@@ -151,10 +174,12 @@ fn client_local_capacity_plan(
       max_rows,
       client_node_publication_schema_bytes(),
     ).unwrap_or(0L)
-  } else {
     // Managed Effect/general outputs still own the same fixed cleanup state.
     // Graph-less low-level calculators do not construct the Node registry.
-    if graph is Some(_) {client_local_cleanup_retained_bytes()} else {0L}
+  } else if graph is Some(_) {
+    client_local_cleanup_retained_bytes()
+  } else {
+    0L
   }
   match scalar_metadata {
     None =>
@@ -181,7 +206,9 @@ fn client_local_capacity_plan(
           ..metadata,
           retained_bytes: result_metadata,
           result_workspace_entries: if result_metadata > 0L {
-            result_envelope.map(value=>value.workspace_entries).unwrap_or(metadata.result_workspace_entries)
+            result_envelope
+            .map(value => value.workspace_entries)
+            .unwrap_or(metadata.result_workspace_entries)
           } else {
             metadata.result_workspace_entries
           },
@@ -251,20 +278,34 @@ fn client_local_capacity_plan_matches(
   sequences : Array[@execution.GeneratedSequence],
   max_rows : Int,
 ) -> Bool {
-  if plan.graph_offset < 0 { return false }
+  if plan.graph_offset < 0 {
+    return false
+  }
   match plan.graph {
     Some(graph) => {
       let count = @strategy.graph_task_count(graph)
-      if plan.graph_offset > count || sequences.length() != count - plan.graph_offset { return false }
+      if plan.graph_offset > count ||
+        sequences.length() != count - plan.graph_offset {
+        return false
+      }
       for index, sequence in sequences {
-        guard @strategy.graph_task_owner(graph, index + plan.graph_offset) is Some(original) &&
-          physical_equal(original, @execution.generated_sequence_owner(sequence)) else { return false }
+        guard @strategy.graph_task_owner(graph, index + plan.graph_offset)
+          is Some(original) &&
+          physical_equal(
+            original,
+            @execution.generated_sequence_owner(sequence),
+          ) else {
+          return false
+        }
       }
     }
     None => if plan.graph_offset != 0 { return false }
   }
-  if plan.metadata.retained_bytes!=plan.metadata_retained_bytes ||
-    (plan.graph is Some(_) && plan.metadata_retained_bytes<client_local_cleanup_retained_bytes()) ||
+  if plan.metadata.retained_bytes != plan.metadata_retained_bytes ||
+    (
+      plan.graph is Some(_) &&
+      plan.metadata_retained_bytes < client_local_cleanup_retained_bytes()
+    ) ||
     (plan.schema_inventory is Some(_) && plan.scalar_demand is None) ||
     !physical_equal(plan.resource_policy, client_local_resource_policy()) ||
     plan.admitted_rows != max_rows ||
@@ -272,15 +313,29 @@ fn client_local_capacity_plan_matches(
     return false
   }
   if plan.scalar_demand is Some(demand) &&
-    !(plan.schema_inventory is Some(original) && physical_equal(original,demand.original) && demand.rows==plan.execution.rows.max_rows && demand.value_nodes==plan.values.max_nodes) {return false}
+    !(plan.schema_inventory is Some(original) &&
+    physical_equal(original, demand.original) &&
+    demand.rows == plan.execution.rows.max_rows &&
+    demand.value_nodes == plan.values.max_nodes) {
+    return false
+  }
   if plan.value_node_demand is Some(demand) &&
-    !(plan.demand_inventory is Some(original) && physical_equal(original, demand.original) &&
-      demand.rows == plan.execution.rows.max_rows && demand.nodes == plan.values.max_nodes &&
-      client_local_inventory_nodes(original, demand.rows) == Some(demand.nodes)) { return false }
-  if plan.value_node_demand is None && plan.scalar_demand is None &&
-    plan.values.max_nodes != client_local_general_value_nodes() { return false }
-  if plan.demand_inventory is Some({closed_rows:Some(bound), ..}) &&
-    plan.execution.rows.max_rows != Int::min(max_rows, Int::max(1, bound)) { return false }
+    !(plan.demand_inventory is Some(original) &&
+    physical_equal(original, demand.original) &&
+    demand.rows == plan.execution.rows.max_rows &&
+    demand.nodes == plan.values.max_nodes &&
+    client_local_inventory_nodes(original, demand.rows) == Some(demand.nodes)) {
+    return false
+  }
+  if plan.value_node_demand is None &&
+    plan.scalar_demand is None &&
+    plan.values.max_nodes != client_local_general_value_nodes() {
+    return false
+  }
+  if plan.demand_inventory is Some({ closed_rows: Some(bound), .. }) &&
+    plan.execution.rows.max_rows != Int::min(max_rows, Int::max(1, bound)) {
+    return false
+  }
   for index, sequence in sequences {
     if !physical_equal(plan.sequences[index], sequence) {
       return false

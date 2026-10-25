@@ -90,7 +90,9 @@ pub fn client_program_preparation_borrow_sibling(
 /// quiescence or a release acknowledgement.
 #export_name("clientProgramPreparationBorrowRetirementStarted")
 pub fn client_program_preparation_borrow_retirement_started(
-  value : @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+  value : @resources.PreparationBodyBorrow[
+    @publication_host.PreparedClientProgram,
+  ],
 ) -> Bool {
   @resources.preparation_body_retirement_started(value)
 }

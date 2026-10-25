@@ -79,8 +79,8 @@ pub fn client_original_keyed_left_prefix_capacity(
   measurement : @execution.FixedInputGuardMeasureLimits,
 ) -> @execution.ExecutionCapacity? {
   original_keyed_left_prefix_provider(
-    prepared, keyed, installed_contracts, values_body, fragment_body, ordered_body, execution,
-    measurement,
+    prepared, keyed, installed_contracts, values_body, fragment_body, ordered_body,
+    execution, measurement,
   ).map(value => value.2)
 }
 
@@ -109,9 +109,9 @@ pub fn start_client_original_keyed_left_prefix(
   workspace? : @execution.ExecutionCapacity? = None,
 ) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue] {
   start_client_original_keyed_left_prefix_owned(
-    scope, compiled, definition, plan, prepared, keyed, capture, installed_contracts, values_body,
-    fragment_body, ordered_body, execution, measurement, max_entries, max_name_bytes,
-    workspace,
+    scope, compiled, definition, plan, prepared, keyed, capture, installed_contracts,
+    values_body, fragment_body, ordered_body, execution, measurement, max_entries,
+    max_name_bytes, workspace,
   ).map(value => value.0)
 }
 
@@ -163,8 +163,8 @@ fn start_client_original_keyed_left_prefix_owned(
     )
   }
   guard original_keyed_left_prefix_provider(
-      prepared, keyed, installed_contracts, values_body, fragment_body, ordered_body, execution,
-      measurement,
+      prepared, keyed, installed_contracts, values_body, fragment_body, ordered_body,
+      execution, measurement,
     )
     is Some((sequence, provider, capacity, captured_step)) else {
     return Err(Unavailable)

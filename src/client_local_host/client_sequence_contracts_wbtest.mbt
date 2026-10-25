@@ -2,13 +2,30 @@
 test "installed contract original retains the admitted closure across repeated selections" {
   let assets = @publication_host.client_local_product_assets()
   let installed = prepare_installed_sequence_contracts(
-    assets.registry, assets.values, Some(assets.fragment), assets.ordered,
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
   ).unwrap()
   let original = installed.original
   let registry = original.value.contracts
   for _ in 0..<10 {
-    assert_true(client_local_sequence_selection_matches(installed, assets.values, Some(assets.fragment), assets.ordered))
-    assert_true(client_local_sequence_selection_matches(installed, assets.values, None, None))
+    assert_true(
+      client_local_sequence_selection_matches(
+        installed,
+        assets.values,
+        Some(assets.fragment),
+        assets.ordered,
+      ),
+    )
+    assert_true(
+      client_local_sequence_selection_matches(
+        installed,
+        assets.values,
+        None,
+        None,
+      ),
+    )
     assert_true(physical_equal(installed.original, original))
     assert_true(physical_equal(installed.original.value.contracts, registry))
   }
@@ -21,45 +38,121 @@ test "installed contract original retains the admitted closure across repeated s
 ///|
 test "invalid installed bodies refuse without changing an admitted original or its selected capabilities" {
   let assets = @publication_host.client_local_product_assets()
-  let installed = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
-  for (registry, values, fragment, ordered) in [
-    ("{}", assets.values, Some(assets.fragment), assets.ordered),
-    (assets.registry, "{}", Some(assets.fragment), assets.ordered),
-    (assets.registry, assets.values, Some("{"), assets.ordered),
-    (assets.registry, assets.values, Some(assets.fragment), Some("{}")),
-  ] {
-    assert_true(prepare_installed_sequence_contracts(registry, values, fragment, ordered) is Err(Unsupported))
-    assert_true(client_local_sequence_selection_matches(installed, assets.values, Some(assets.fragment), assets.ordered))
+  let installed = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  for
+    (registry, values, fragment, ordered) in [
+      ("{}", assets.values, Some(assets.fragment), assets.ordered),
+      (assets.registry, "{}", Some(assets.fragment), assets.ordered),
+      (assets.registry, assets.values, Some("{"), assets.ordered),
+      (assets.registry, assets.values, Some(assets.fragment), Some("{}")),
+    ] {
+    assert_true(
+      prepare_installed_sequence_contracts(registry, values, fragment, ordered)
+      is Err(Unsupported),
+    )
+    assert_true(
+      client_local_sequence_selection_matches(
+        installed,
+        assets.values,
+        Some(assets.fragment),
+        assets.ordered,
+      ),
+    )
   }
-  assert_false(client_local_sequence_selection_matches(installed, "{}", Some(assets.fragment), assets.ordered))
-  assert_false(client_local_sequence_selection_matches(installed, assets.values, Some("{"), assets.ordered))
-  assert_false(client_local_sequence_selection_matches(installed, assets.values, Some(assets.fragment), Some("{}")))
-  let absent = prepare_installed_sequence_contracts(assets.registry, assets.values, None, None).unwrap()
+  assert_false(
+    client_local_sequence_selection_matches(
+      installed,
+      "{}",
+      Some(assets.fragment),
+      assets.ordered,
+    ),
+  )
+  assert_false(
+    client_local_sequence_selection_matches(
+      installed,
+      assets.values,
+      Some("{"),
+      assets.ordered,
+    ),
+  )
+  assert_false(
+    client_local_sequence_selection_matches(
+      installed,
+      assets.values,
+      Some(assets.fragment),
+      Some("{}"),
+    ),
+  )
+  let absent = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    None,
+    None,
+  ).unwrap()
   assert_true(absent.original.value.fragment_contract is None)
   assert_true(absent.original.value.ordered_contract is None)
-  assert_false(client_local_sequence_selection_matches(absent, assets.values, Some(assets.fragment), None))
+  assert_false(
+    client_local_sequence_selection_matches(
+      absent,
+      assets.values,
+      Some(assets.fragment),
+      None,
+    ),
+  )
   assert_true(installed.original.value.fragment_contract is Some(_))
 }
 
 ///|
 test "independently admitted installed originals never become one mutable cache cell" {
   let assets = @publication_host.client_local_product_assets()
-  let first = prepare_installed_sequence_contracts(assets.registry, assets.values, None, None).unwrap()
-  let second = prepare_installed_sequence_contracts(assets.registry, assets.values, None, None).unwrap()
+  let first = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    None,
+    None,
+  ).unwrap()
+  let second = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    None,
+    None,
+  ).unwrap()
   assert_false(physical_equal(first, second))
   assert_false(physical_equal(first.original, second.original))
-  assert_false(physical_equal(first.original.value.contracts, second.original.value.contracts))
+  assert_false(
+    physical_equal(
+      first.original.value.contracts,
+      second.original.value.contracts,
+    ),
+  )
   for _ in 0..<2 {
-    assert_true(prepare_installed_sequence_contracts("{}", assets.values, None, None) is Err(Unsupported))
-    assert_true(client_local_sequence_selection_matches(first, assets.values, None, None))
-    assert_true(client_local_sequence_selection_matches(second, assets.values, None, None))
+    assert_true(
+      prepare_installed_sequence_contracts("{}", assets.values, None, None)
+      is Err(Unsupported),
+    )
+    assert_true(
+      client_local_sequence_selection_matches(first, assets.values, None, None),
+    )
+    assert_true(
+      client_local_sequence_selection_matches(second, assets.values, None, None),
+    )
   }
 }
 
 ///|
 test "shared contracts retain distinct original query sequence preparation" {
   let assets = @publication_host.client_local_product_assets()
-  let installed = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let installed = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   guard @json.parse(assets.environment) is Object(fields) &&
     fields.get("evidence_bundle_cid") is Some(String(evidence)) else {
     fail("original bundled Environment evidence missing")
@@ -112,11 +205,25 @@ test "shared contracts retain distinct original query sequence preparation" {
 ///|
 test "equal canonical contract identity does not replace an exact installed original" {
   let assets = @publication_host.client_local_product_assets()
-  let original = prepare_installed_sequence_contracts(assets.registry, assets.values, None, None).unwrap()
-  let changed = prepare_installed_sequence_contracts(" " + assets.registry, assets.values, None, None).unwrap()
+  let original = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    None,
+    None,
+  ).unwrap()
+  let changed = prepare_installed_sequence_contracts(
+    " " + assets.registry,
+    assets.values,
+    None,
+    None,
+  ).unwrap()
   assert_false(physical_equal(original, changed))
   assert_eq(original.original.registry_body, assets.registry)
   assert_eq(changed.original.registry_body, " " + assets.registry)
-  assert_true(client_local_sequence_selection_matches(original, assets.values, None, None))
-  assert_true(client_local_sequence_selection_matches(changed, assets.values, None, None))
+  assert_true(
+    client_local_sequence_selection_matches(original, assets.values, None, None),
+  )
+  assert_true(
+    client_local_sequence_selection_matches(changed, assets.values, None, None),
+  )
 }

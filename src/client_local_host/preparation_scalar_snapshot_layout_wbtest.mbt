@@ -1,50 +1,88 @@
 ///|
 test "scalar snapshot retains decoded keys and canonical rows across source retirement" {
-  let a=scalar_snapshot_layout(1,2,100000).unwrap()
-  let b=scalar_snapshot_layout(2,4,100000).unwrap()
-  assert_true(a.retained.owned_utf16_units==200000L)
-  assert_true(b.retained.owned_utf16_units==400000L)
-  assert_true(preparation_representation_cost(b.retained).unwrap()>preparation_representation_cost(a.retained).unwrap())
-  assert_true(preparation_representation_cost(a.temporary).unwrap()>0L)
-  println("snapshot100k R=\{preparation_representation_cost(a.retained).unwrap()} E=\{preparation_representation_cost(a.temporary).unwrap()}")
+  let a = scalar_snapshot_layout(1, 2, 100000).unwrap()
+  let b = scalar_snapshot_layout(2, 4, 100000).unwrap()
+  assert_true(a.retained.owned_utf16_units == 200000L)
+  assert_true(b.retained.owned_utf16_units == 400000L)
+  assert_true(
+    preparation_representation_cost(b.retained).unwrap() >
+    preparation_representation_cost(a.retained).unwrap(),
+  )
+  assert_true(preparation_representation_cost(a.temporary).unwrap() > 0L)
+  println(
+    "snapshot100k R=\{preparation_representation_cost(a.retained).unwrap()} E=\{preparation_representation_cost(a.temporary).unwrap()}",
+  )
 }
 
 ///|
 test "scalar snapshot empty rows Unicode-name scratch and overflow are bounded" {
-  let empty=scalar_snapshot_layout(1,9,0).unwrap()
-  assert_eq(empty.retained.owned_utf16_units,0L)
-  let a=scalar_snapshot_name_normalization_layout(3).unwrap()
-  let b=scalar_snapshot_name_normalization_layout(9).unwrap()
-  assert_true(preparation_representation_cost(b).unwrap()>preparation_representation_cost(a).unwrap())
-  assert_true(scalar_snapshot_layout(-1,0,0) is None)
-  assert_true(scalar_snapshot_layout(1,2147483647,1) is None)
-  assert_true(scalar_snapshot_layout(1,2,2147483647) is None)
+  let empty = scalar_snapshot_layout(1, 9, 0).unwrap()
+  assert_eq(empty.retained.owned_utf16_units, 0L)
+  let a = scalar_snapshot_name_normalization_layout(3).unwrap()
+  let b = scalar_snapshot_name_normalization_layout(9).unwrap()
+  assert_true(
+    preparation_representation_cost(b).unwrap() >
+    preparation_representation_cost(a).unwrap(),
+  )
+  assert_true(scalar_snapshot_layout(-1, 0, 0) is None)
+  assert_true(scalar_snapshot_layout(1, 2147483647, 1) is None)
+  assert_true(scalar_snapshot_layout(1, 2, 2147483647) is None)
 }
 
 ///|
 test "scalar snapshot actual indexed cursor admission fits canonical retained bound" {
-  let wire="[{\"é\":null,\"𝄞\":true},{\"é\":1,\"𝄞\":false}]"
-  let parsed=@source.parse_json(wire,{max_input_bytes:1000,max_nodes:7,max_depth:2}).unwrap()
-  let cursor=@decode.admit(parsed,{max_nodes:7,max_depth:2,max_string_bytes:1000,max_total_string_bytes:1000}).unwrap()
-  let admission=@identity.start_cursor_admission(cursor,7,2,1000,1000,data_keys=true).unwrap()
-  let mut value: @identity.CanonicalValue? = None
+  let wire = "[{\"é\":null,\"𝄞\":true},{\"é\":1,\"𝄞\":false}]"
+  let parsed = @source.parse_json(wire, {
+    max_input_bytes: 1000,
+    max_nodes: 7,
+    max_depth: 2,
+  }).unwrap()
+  let cursor = @decode.admit(parsed, {
+    max_nodes: 7,
+    max_depth: 2,
+    max_string_bytes: 1000,
+    max_total_string_bytes: 1000,
+  }).unwrap()
+  let admission = @identity.start_cursor_admission(
+    cursor,
+    7,
+    2,
+    1000,
+    1000,
+    data_keys=true,
+  ).unwrap()
+  let mut value : @identity.CanonicalValue? = None
   for _ in 0..<1000 {
     match @identity.advance_cursor_admission(admission) {
       @identity.CursorAdmissionContinue => ()
-      @identity.CursorAdmissionComplete(v,_,_) => {value=Some(v);break}
+      @identity.CursorAdmissionComplete(v, _, _) => {
+        value = Some(v)
+        break
+      }
       _ => fail("unexpected cursor admission refusal")
     }
   }
-  let v=value.unwrap()
-  let actual=@identity.representation_extent(v,7,2,1000).unwrap()
-  assert_eq(actual.nodes,7L)
-  let containers=actual.arrays+actual.objects
-  let measured:PreparationRepresentationUnits={record_headers:actual.nodes+3L*containers+4L,
-    reference_slots:actual.nodes+2L*containers+actual.array_backing_slots+actual.object_backing_slots+8L,
-    scalar_words:actual.nodes+2L*containers,owned_utf16_units:0L,owned_wire_bytes:0L}
-  let quote=scalar_snapshot_layout(2,6,2).unwrap()
-  assert_true(preparation_representation_cost(quote.retained).unwrap()>=preparation_representation_cost(measured).unwrap())
-  let writer=@encode.writer(1000,7,2)
-  @identity.emit_value(v,writer)
-  assert_eq(@encode.finish(writer),wire)
+  let v = value.unwrap()
+  let actual = @identity.representation_extent(v, 7, 2, 1000).unwrap()
+  assert_eq(actual.nodes, 7L)
+  let containers = actual.arrays + actual.objects
+  let measured : PreparationRepresentationUnits = {
+    record_headers: actual.nodes + 3L * containers + 4L,
+    reference_slots: actual.nodes +
+    2L * containers +
+    actual.array_backing_slots +
+    actual.object_backing_slots +
+    8L,
+    scalar_words: actual.nodes + 2L * containers,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  let quote = scalar_snapshot_layout(2, 6, 2).unwrap()
+  assert_true(
+    preparation_representation_cost(quote.retained).unwrap() >=
+    preparation_representation_cost(measured).unwrap(),
+  )
+  let writer = @encode.writer(1000, 7, 2)
+  @identity.emit_value(v, writer)
+  assert_eq(@encode.finish(writer), wire)
 }

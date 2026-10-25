@@ -238,7 +238,11 @@ pub fn source_catalog_closed_values_dependencies(
 ) -> @environment.ClosedValuesCatalogDependencies? {
   if !@environment.closed_values_policy_shape(prepared.environment.wire) ||
     @environment.source_request_usage(prepared.catalog).2 != 0 ||
-    @environment.member_count(prepared.environment.wire, @environment.SchemaSnapshots) != 0 {
+    @environment.member_count(
+      prepared.environment.wire,
+      @environment.SchemaSnapshots,
+    ) !=
+    0 {
     return None
   }
   @environment.closed_values_catalog_dependencies(prepared.references, max_work)

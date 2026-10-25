@@ -7,4 +7,6 @@ import {
   "actql/actql/physical_resources" @resources,
 }
 
-options("native-stub": [ "domain_probe_stub.c" ])
+options(
+  "native-stub": [ "domain_probe_stub.c" ],
+)

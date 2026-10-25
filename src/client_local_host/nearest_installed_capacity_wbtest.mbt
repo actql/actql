@@ -7,7 +7,12 @@ let nearest_failed_document : String = "{\"id\":\"adhoc.query\",\"results\":{\"a
 
 ///|
 test "original installed nearest Host capacity is derived from its checked tasks" {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let prepared = nearest_failed_prepared()
   let sequences = prepare_client_local_sequences(
     prepared,
@@ -82,7 +87,12 @@ test "original nearest task-only transfer allowance remains a typed refusal" {
 fn nearest_failed_capture_fixture(
   historical_budget? : Bool = false,
 ) -> Unit raise {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let prepared = nearest_failed_prepared()
   let declaration = @row_source_host.restore_relation_row_declaration(
     "nearest_fixture",
@@ -194,7 +204,12 @@ fn nearest_failed_offer_boundary(
   prepared : @publication_host.PreparedClientProgram,
   historical_budget : Bool,
 ) -> Unit raise {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let all = prepare_client_local_sequences(
     prepared,
     source_contracts,

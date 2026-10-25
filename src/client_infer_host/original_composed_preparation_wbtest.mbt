@@ -210,7 +210,11 @@ test "original composed input failure retains the entered consumer and forbids r
       5L,
     )
     is Err(
-      OriginalCapacity(@publication_host.Read(@publication_host.Resource(@resources.SpentClaim))),
+      OriginalCapacity(
+        @publication_host.Read(
+          @publication_host.Resource(@resources.SpentClaim)
+        )
+      )
     ),
   )
   assert_eq(@resources.ledger_usage(ledger), before)

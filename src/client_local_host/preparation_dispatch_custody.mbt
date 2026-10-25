@@ -17,9 +17,7 @@ pub fn borrow_installed_managed_dispatch_preparation(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  guard value.preparation_retirement is Some(original) else {
-    return Ok(None)
-  }
+  guard value.preparation_retirement is Some(original) else { return Ok(None) }
   guard original.holder is Some(holder) &&
     @resources.preparation_body_borrow_value(holder) is Some(body) &&
     physical_equal(body, prepared) &&
@@ -30,7 +28,8 @@ pub fn borrow_installed_managed_dispatch_preparation(
   // claims its live borrower slot before callbacks; no adapter-owned count.
   match @resources.borrow_preparation_body_sibling(holder) {
     Ok(borrowed) => Ok(Some(borrowed))
-    Err(@resources.PreparationCapacityIssue::Resource(issue)) => Err(Ledger(issue))
+    Err(@resources.PreparationCapacityIssue::Resource(issue)) =>
+      Err(Ledger(issue))
     Err(_) => Err(CleanupPending)
   }
 }
@@ -44,9 +43,13 @@ pub fn installed_managed_preparation_usage_isolated(
   request : @publication_host.ClientRequestIdentity,
   captured : @strategy.CapturedDAG,
 ) -> Bool {
-  guard value.original is Some(original) && physical_equal(original,value) &&
-    physical_equal(value.request,request) && value.ledger is Some(ledger) &&
-    physical_equal(ledger,@strategy.captured_dag_ledger(captured)) &&
-    value.preparation_retirement is Some(retirement) else { return false }
-  @resources.node_preparation_usage_isolated(retirement.admission,ledger)
+  guard value.original is Some(original) &&
+    physical_equal(original, value) &&
+    physical_equal(value.request, request) &&
+    value.ledger is Some(ledger) &&
+    physical_equal(ledger, @strategy.captured_dag_ledger(captured)) &&
+    value.preparation_retirement is Some(retirement) else {
+    return false
+  }
+  @resources.node_preparation_usage_isolated(retirement.admission, ledger)
 }

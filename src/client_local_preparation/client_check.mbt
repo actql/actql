@@ -2047,8 +2047,8 @@ fn write_check_report(
       documents.program_pointer is Some(pointer) &&
       [
         "program_structure_invalid", "program_invalid", "expression_type_mismatch",
-        "expression_domain_mismatch", "carrier_mismatch",
-        "graph_operation_invalid", "query_frame_invalid", "query_expression_invalid",
+        "expression_domain_mismatch", "carrier_mismatch", "graph_operation_invalid",
+        "query_frame_invalid", "query_expression_invalid",
       ].contains(code) {
       write_check_structured_location(
         writer,

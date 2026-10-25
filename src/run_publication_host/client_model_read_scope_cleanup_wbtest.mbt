@@ -24,8 +24,12 @@ test "checked original read scope cleanup retains failed issuance custody" {
   ).unwrap()
   assert_true(client_model_read_scope_live(scope, compiled, definition, plan))
   assert_false(client_model_read_scope_live(scope, foreign, definition, plan))
-  assert_false(client_model_read_scope_live(scope, compiled, foreign_definition, plan))
-  assert_false(client_model_read_scope_live(scope, compiled, definition, foreign_plan))
+  assert_false(
+    client_model_read_scope_live(scope, compiled, foreign_definition, plan),
+  )
+  assert_false(
+    client_model_read_scope_live(scope, compiled, definition, foreign_plan),
+  )
   let before = @resources.ledger_usage(ledger)
   let before_quantities = @resources.quantity_usage(ledger)
   assert_true(
