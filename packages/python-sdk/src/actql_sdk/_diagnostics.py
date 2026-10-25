@@ -134,13 +134,17 @@ def explain_check_reason(reason):
     if entry is None:
         return freeze({'kind': 'unknown', 'summary': 'No supported explanation is available for this reason.'})
     presentation = entry['presentation']
-    selected = presentation['default']
+    selected = None
     facts = reason.get('facts', {})
     for variant in presentation['variants']:
         if all(facts.get(key) in expected if type(expected) is list else facts.get(key) == expected
                for key, expected in variant['when'].items()):
             selected = variant
             break
+    if selected is None:
+        selected = presentation.get('default')
+    if selected is None:
+        return freeze({'kind': 'unknown', 'summary': 'No supported explanation is available for this reason.'})
     summary, hint = selected['english']
     return freeze({'kind': 'known', 'summary': summary, 'hint': hint})
 
