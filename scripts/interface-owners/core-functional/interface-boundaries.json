@@ -17438,7 +17438,7 @@
     },
     {
       "module": "packages/run-host-core/index.mjs",
-      "sha256": "c994d59153a4edf41fbbf182888dc8cf5b5e7c87af3bab07aa324a45f795003f",
+      "sha256": "b9365510c3e60a79136911bd78a4c08dad863d64ff4f0f29cf6e16595539fb09",
       "role": "physical-io",
       "exports": [
         "admitCapturedResultSnapshot",

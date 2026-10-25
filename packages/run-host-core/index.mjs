@@ -596,11 +596,15 @@ export function effectReviewCheckpointReconciliationState(binding, allowed, defi
     throw new TypeError('InvalidRunHostCheckpointReconciliationInput');
   }
   const snapshot = value => {
-    if (!Array.isArray(value) || value.length > 65536) {
+    if (!Array.isArray(value)) {
+      throw new TypeError('InvalidRunHostCheckpointReconciliationInput');
+    }
+    const length = value.length;
+    if (!Number.isSafeInteger(length) || length < 0 || length > 65536) {
       throw new TypeError('InvalidRunHostCheckpointReconciliationInput');
     }
     const result = [];
-    for (let index = 0; index < value.length; index++) {
+    for (let index = 0; index < length; index++) {
       const field = Object.getOwnPropertyDescriptor(value, String(index));
       if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'string') {
         throw new TypeError('InvalidRunHostCheckpointReconciliationInput');
@@ -630,11 +634,15 @@ export function effectReviewCheckpointCancelledState(binding, allowed, definitio
   effectReviewCheckpointBindingFacts(binding, allowed, definition);
   const {original} = effectCheckpointBindings.get(binding);
   if (typeof storedWire !== 'string' || typeof updatedAt !== 'string' ||
-      !Array.isArray(declaredResults) || declaredResults.length > 65536) {
+      !Array.isArray(declaredResults)) {
+    throw new TypeError('InvalidRunHostCheckpointCancelledInput');
+  }
+  const length = declaredResults.length;
+  if (!Number.isSafeInteger(length) || length < 0 || length > 65536) {
     throw new TypeError('InvalidRunHostCheckpointCancelledInput');
   }
   const names = []; let textUnits = 0;
-  for (let index = 0; index < declaredResults.length; index++) {
+  for (let index = 0; index < length; index++) {
     const field = Object.getOwnPropertyDescriptor(declaredResults, String(index));
     if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'string') {
       throw new TypeError('InvalidRunHostCheckpointCancelledInput');

@@ -281,3 +281,54 @@ test('receipt facades retain one bounded array extent across reentry', () => {
   assert.deepEqual(f.cancelledCalls[0].data[2], ['published']);
   assert.deepEqual(names.counts(), {lengthReads: 1, descriptors: 1});
 });
+
+test('receipt facades reject invalid captured lengths before reading elements', () => {
+  const f = fixture(), binding = f.api.effectReviewCheckpointBinding(f.allowed, f.definition, f.fields[1]);
+  const projections = [
+    input => f.api.effectReviewCheckpointReconciliationState(binding, f.allowed, f.definition,
+      f.fields[1], 'preview', 'invocation', 'set', input, 'time', []),
+    input => f.api.effectReviewCheckpointReconciliationState(binding, f.allowed, f.definition,
+      f.fields[1], 'preview', 'invocation', 'set', [], 'time', input),
+    input => f.api.effectReviewCheckpointCancelledState(binding, f.allowed, f.definition,
+      f.fields[1], 'time', input),
+  ];
+  for (const project of projections) {
+    for (const length of [undefined, NaN, Infinity, -1, 0.5, '1', 65537]) {
+      let lengthReads = 0, descriptors = 0;
+      const input = new Proxy([], {
+        get(target, key, receiver) {
+          if (key === 'length') { lengthReads++; return length; }
+          return Reflect.get(target, key, receiver);
+        },
+        getOwnPropertyDescriptor(target, key) {
+          descriptors++;
+          return Reflect.getOwnPropertyDescriptor(target, key);
+        },
+      });
+      assert.throws(() => project(input), /InvalidRunHostCheckpoint(?:Reconciliation|Cancelled)Input/u);
+      assert.deepEqual({lengthReads, descriptors}, {lengthReads: 1, descriptors: 0});
+    }
+  }
+  assert.equal(f.reconciliationCalls.length, 0);
+  assert.equal(f.cancelledCalls.length, 0);
+});
+
+test('receipt reconciliation snapshots declared results despite a shrinking length observation', () => {
+  const f = fixture(), binding = f.api.effectReviewCheckpointBinding(f.allowed, f.definition, f.fields[1]);
+  let lengthReads = 0, descriptors = 0;
+  const names = new Proxy(['first', 'second'], {
+    get(target, key, receiver) {
+      if (key === 'length') return ++lengthReads === 1 ? 2 : 0;
+      return Reflect.get(target, key, receiver);
+    },
+    getOwnPropertyDescriptor(target, key) {
+      if (/^(?:0|[1-9][0-9]*)$/u.test(key)) descriptors++;
+      return Reflect.getOwnPropertyDescriptor(target, key);
+    },
+  });
+  assert.equal(f.api.effectReviewCheckpointReconciliationState(binding, f.allowed, f.definition,
+    f.fields[1], 'preview', 'invocation', 'set', [], 'time', names), 'original-reconciliation-wire');
+  assert.deepEqual(f.reconciliationCalls[0].data[6], ['first', 'second']);
+  assert.notStrictEqual(f.reconciliationCalls[0].data[6], names);
+  assert.deepEqual({lengthReads, descriptors}, {lengthReads: 1, descriptors: 2});
+});
