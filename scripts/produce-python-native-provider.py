@@ -276,6 +276,33 @@ def prepare_allocator_source(moon_home: Path, destination: Path,
         'outputs': record['outputs'], 'toolchain_unchanged': True,
         'installed_supplier': False, 'normal_profile': None}
 
+def provider_c_sources(emitted: Path, moon_home: Path, allocator: Path | None,
+                       *, python_initial_control: bool) -> list[tuple[Path, str]]:
+    """Select one provider and its image adapter in the same final library."""
+    c_sources = [(emitted, 'original')]
+    # Same ordinary Native foreign closure. Only host_bootstrap supplies the
+    # selected scoped allocator; other stubs do not create another provider.
+    c_sources += [(ROOT / 'src' / path, name) for path, name in FOREIGN_SOURCES]
+    # Image consumers import this symbol from the same provider library. Keep
+    # its platform-specific capture separate from ordinary bootstrap; it uses
+    # the existing opaque capacity API, never another allocator or TLS owner.
+    c_sources.append((ROOT / 'packages/python-local-runtime/native/pre-root/owned_image.c',
+                      'owned-image'))
+    c_sources += [(ROOT / ENTRY / (name + '.c'), name)
+                  for name in ('control_shim', 'backing_shim', 'domain_shim', 'domain_read_shim',
+                               'worker_selection_shim', 'live_channel_shim', 'process_shim', 'sqlite_shim',
+                               'sqlite_database_shim', 'original_read_shim', 'packaged_runtime_shim',
+                               'packaged_product_shim', 'runtime_initialization_shim',
+                               'local_host_resources_shim', 'local_adoption_shim', 'read_crypto_shim')]
+    if python_initial_control:
+        c_sources.append((ROOT / 'src/platform_native/host_bootstrap/python_initial_platform.c',
+                          'python_initial_platform'))
+    runtime_source = allocator if allocator is not None else moon_home / 'lib/runtime'
+    c_sources += [(runtime_source / (name + '.c'), 'runtime-' + name)
+                  for name in ('backtrace', 'env', 'runtime', 'sync_io', 'utf')]
+    return c_sources
+
+
 def build(source: str, moon_home: Path, clang: Path, sdk: Path,
           destination: Path, seconds: int, *, scoped_read: bool = False,
           python_initial_control: bool = False) -> dict[str, object]:
@@ -370,22 +397,8 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
         output.parent.mkdir(parents=True, exist_ok=True)
         run(command)
     emitted = generated / 'native/debug/build/platform_native/installed_arena_entry/installed_arena_entry.c'
-    c_sources = [(emitted, 'original')]
-    # Same ordinary Native foreign closure. Only host_bootstrap supplies the
-    # selected scoped allocator; other stubs do not create another provider.
-    c_sources += [(ROOT / 'src' / path, name) for path, name in FOREIGN_SOURCES]
-    c_sources += [(ROOT / ENTRY / (name + '.c'), name)
-                  for name in ('control_shim', 'backing_shim', 'domain_shim', 'domain_read_shim',
-                               'worker_selection_shim', 'live_channel_shim', 'process_shim', 'sqlite_shim',
-                               'sqlite_database_shim', 'original_read_shim', 'packaged_runtime_shim',
-                               'packaged_product_shim', 'runtime_initialization_shim',
-                               'local_host_resources_shim', 'local_adoption_shim', 'read_crypto_shim')]
-    if initial is not None:
-        c_sources.append((ROOT / 'src/platform_native/host_bootstrap/python_initial_platform.c',
-                          'python_initial_platform'))
-    runtime_source = allocator if allocator is not None else moon_home / 'lib/runtime'
-    c_sources += [(runtime_source / (name + '.c'), 'runtime-' + name)
-                  for name in ('backtrace', 'env', 'runtime', 'sync_io', 'utf')]
+    c_sources = provider_c_sources(emitted, moon_home, allocator,
+                                   python_initial_control=initial is not None)
     objects = []
     compiler_inputs = []
     for path, name in c_sources:
@@ -425,7 +438,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
             common += ['-Wno-unused-value', '-DMOONBIT_ALLOW_STACKTRACE']
         else:
             common += ['-std=c11', '-Wall', '-Wextra', '-Werror']
-            if name == 'bootstrap':
+            if name == 'owned-image':
                 common += ['-Wno-error=deprecated-declarations']
         command = common + ['-MD', '-MF', str(deps), '-c', str(path), '-o', str(obj)]
         run(command)
