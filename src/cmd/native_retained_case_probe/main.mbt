@@ -430,7 +430,6 @@ fn rejection_name(issue : @resources.LedgerIssue?) -> String {
     Some(@resources.RetentionLimit) => "retention"
     Some(@resources.ExecutionLimit) => "execution"
     Some(@resources.InvalidLimits) => "invalid-limits"
-    Some(@resources.IdentityOverflow) => "identity-overflow"
     Some(@resources.ForeignOwner) => "foreign-owner"
     Some(@resources.ClosedReservation) => "closed-reservation"
     Some(@resources.ClosedHolding) => "closed-holding"
