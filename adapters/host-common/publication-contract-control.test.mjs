@@ -50,6 +50,9 @@ import {
 import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';
 import {createClientHttpHandler} from '../host-node/client-http.mjs';
+import {openClientRequestJournal} from '../host-node/client-request-journal.mjs';
+import {installNodeClientRunStateObservation, observeClientRunState} from
+  '../host-node/client-run-state.mjs';
 import {connect as connectClient} from '../../packages/sdk/index.mjs';
 
 const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
@@ -167,16 +170,21 @@ for (const afterCommit of [false, true]) {
       version:'actql-run-invocation/0.1',invocation_template_cid:cid('1'),observation_set_cid:cid('2'),
     }), limits);
     const directory = await mkdtemp(join(tmpdir(),'actql-publication-native-unknown-'));
-    let store, armed = false, lost = false, commits = 0;
+    let store, armed = false, lost = false, commits = 0, confirmations = 0, originalDatabase;
     const exec = DatabaseSync.prototype.exec;
     t.mock.method(DatabaseSync.prototype,'exec',function(sql) {
       if (armed && sql === 'COMMIT') {
         commits++;
         if (!lost) {
           lost = true;
+          originalDatabase = this;
           if (afterCommit) Reflect.apply(exec,this,[sql]);
-          throw Object.assign(new Error('lost original publication COMMIT reply'),{code:'EIO'});
         }
+        throw Object.assign(new Error('lost original publication COMMIT reply'),{code:'EIO'});
+      }
+      if (lost && sql === 'COMMIT') {
+        assert.equal(this, originalDatabase);
+        confirmations++;
       }
       return Reflect.apply(exec,this,[sql]);
     });
@@ -197,15 +205,17 @@ for (const afterCommit of [false, true]) {
     await assert.rejects(store.readPublicationContract(contract.identity,contract.name),
       {code:'DeliveryAttemptIndexCommitOutcomeUnknown'});
     assert.equal(originalFailure.cleanupHandle.status().pending,true);
+    armed = false;
     assert.equal((await originalFailure.cleanupHandle.retry()).pending,false);
-    assert.equal(commits,2,'only the same metadata duty makes a real confirmation write');
+    assert.equal(commits,2,'initial write and close retry both retain the injected unavailable ACK');
+    assert.equal(confirmations,1,'only the same metadata duty makes a real confirmation write');
     assert.equal(store.status().reservedObjects,0);
     assert.equal(store.status().objectCount,1);
     assert.equal(store.status().storedBytes,Buffer.byteLength(contract.wire,'utf8'));
     assert.equal((await store.readPublicationContract(contract.identity,contract.name)).wire,contract.wire);
     await store.putOriginalPublicationContracts([contract]);
     await store.putPublicationContract(contract.name,contract.wire);
-    assert.equal(commits,2,'known immutable metadata is not committed or duplicated again');
+    assert.equal(confirmations,1,'known immutable metadata is not committed or duplicated again');
     assert.deepEqual(await readdir(join(directory,'contracts')),[]);
     assert.deepEqual(await readdir(join(directory,'objects')),[]);
     assert.equal(store.status().objectCount,1);
@@ -297,6 +307,8 @@ test('native publication metadata is not duplicated by a mixed legacy group', as
   store = await openLocalPublicationStore({directory,storeAuthorityCid:cid('5'),capacityBytes:1048576,
     maxObjectBytes:65536,maxObjects:3,maxContractNodes:4096,maxContractDepth:64},control);
   await store.putOriginalPublicationContracts([invocation]);
+  // Construct a real legacy file original; an all-native group stays native.
+  await store.putSemantic(record.wire, record.identity);
   await store.putPublicationContracts([invocation,record].map(({name,wire}) => ({name,wire})));
   assert.equal(store.status().objectCount,2,'a mixed file/native group retains each original representation once');
   const stored = await store.putOriginalPublicationContracts([invocation,record]);
@@ -863,11 +875,10 @@ test('Local delivery retains a visible selection after final sync failure withou
     await assert.rejects(store.createDeliveryAttempt(original.wire, request.grant.wire),
       {code: 'EIO'});
     assert.equal(await store.latestDeliveryRecordContract(original.identity), undefined);
-    // Confirmation failure must not return successful admission either.
-    failSync = true;
+    // This lifetime retains failed original admission instead of issuing another ACK.
     await assert.rejects(store.createDeliveryAttempt(request.attempt(1).wire,
-      request.grant.wire), {code: 'EIO'});
-    assert.equal(failures, 2);
+      request.grant.wire), {code: 'ResultDeliveryAttemptUnresolved'});
+    assert.equal(failures, 1);
     await store.close();
     const resumed = await reopen();
     const selected = await resumed.createDeliveryAttempt(request.attempt(2).wire,
@@ -961,7 +972,7 @@ test('Local delivery refuses preexisting ambiguous logical attempts without rewr
   async t => {
     const control = runtimeCore(moon).publicationControl;
     const request = logicalDeliveryRequest(control, 2);
-    const {store, directory} = await logicalDeliveryStore(t, control);
+    const {store, directory, reopen} = await logicalDeliveryStore(t, control);
     // Reproduce the previous writer's two valid CID-keyed entries. Do not invent
     // a migration rule that guesses which record/exposure owns this request.
     await store.putPublicationContract('result_read_grant', request.grant.wire);
@@ -975,8 +986,11 @@ test('Local delivery refuses preexisting ambiguous logical attempts without rewr
       await link(join(directory, 'contracts', `${attempt.identity.slice(7)}.json`), path);
       paths.push([path, await readFile(path)]);
     }
-    await assert.rejects(store.createDeliveryAttempt(request.attempt(2).wire,
-      request.grant.wire), {code: 'AmbiguousDeliveryAttemptLookup'});
+    await store.close();
+    // Dedicated pre-index layout, not mutation behind a live complete index.
+    await rm(join(directory, 'delivery-attempts.sqlite3'));
+    await rm(join(directory, 'delivery-attempts-index.json'));
+    await assert.rejects(reopen(), {code: 'AmbiguousDeliveryAttemptLookup'});
     assert.equal((await readdir(join(directory, 'deliveries'))).length, 2);
     for (const [path, bytes] of paths) assert.deepEqual(await readFile(path), bytes);
   });
@@ -1514,8 +1528,10 @@ test('portable control validates the exact Run Result publication chain', () => 
 test('portable control validates Receipt and Captured Run references',
   async t => {
   const retainedStores = [];
+  const retainedJournals = [];
   const retainedDirectories = [];
   t.after(async () => {
+    for (const journal of retainedJournals) journal.close();
     for (const store of retainedStores.toReversed()) {
       assert.equal(await store.close(), true);
     }
@@ -2653,20 +2669,28 @@ test('portable control validates Receipt and Captured Run references',
     tmpdir(), 'actql-completed-publication-unknown-',
   ));
   retainedDirectories.push(completedUnknownDirectory);
-  let completedUnknownIndexSyncFailures = 3;
-  const completedUnknownDurability = Object.freeze({
-    async syncDirectory(path) {
-      if (path === join(completedUnknownDirectory, 'indexes') &&
-          completedUnknownIndexSyncFailures > 0) {
-        completedUnknownIndexSyncFailures--;
-        const error = new Error('injected index directory sync failure');
-        error.code = 'EIO';
-        throw error;
-      }
-      const handle = await open(path, 'r');
-      try { await handle.sync(); }
-      finally { await handle.close(); }
-    },
+  let completedUnknownIndexSelected = false, completedUnknownIndexUnavailable = true;
+  let completedUnknownIndexFailures = 0;
+  const originalPrepare = DatabaseSync.prototype.prepare;
+  const originalExec = DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+    const statement = Reflect.apply(originalPrepare, this, [sql]);
+    if (sql === 'INSERT INTO native_publication_indexes VALUES(?,?,?,?,?,1)') {
+      const run = statement.run;
+      t.mock.method(statement, 'run', function(...args) {
+        const result = Reflect.apply(run, this, args);
+        completedUnknownIndexSelected = true;
+        return result;
+      });
+    }
+    return statement;
+  });
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (completedUnknownIndexSelected && completedUnknownIndexUnavailable && sql === 'COMMIT') {
+      completedUnknownIndexFailures++;
+      throw Object.assign(new Error('injected native Index COMMIT reply loss'), {code: 'EIO'});
+    }
+    return Reflect.apply(originalExec, this, [sql]);
   });
   const completedUnknownStore = await openLocalPublicationStore({
     directory: completedUnknownDirectory,
@@ -2676,7 +2700,7 @@ test('portable control validates Receipt and Captured Run references',
     maxObjects: 100,
     maxContractNodes: limits.maxNodes,
     maxContractDepth: limits.maxDepth,
-  }, control, completedUnknownDurability);
+  }, control);
   retainedStores.push(completedUnknownStore);
   await completedUnknownStore.putSemantic(resultSchemaWire, resultSchemaCid);
   const completedUnknownWriter =
@@ -2725,9 +2749,11 @@ test('portable control validates Receipt and Captured Run references',
       error.cleanupHandle?.status().pending === true;
   });
   assert.equal(completedUnknownExports, 1);
+  assert(completedUnknownIndexFailures > 0, 'the actual native Index commit boundary was injected');
   assert.equal(completedUnknownPayload.prepared.status().pending, true);
   assert.equal((await completedUnknownStore.verifyObject(physicalCid)).bytes,
     payloadBytes);
+  completedUnknownIndexUnavailable = false;
   const reconciledCompletedUnknown =
     await completedUnknownFailure.cleanupHandle.retry();
   assert.equal(reconciledCompletedUnknown.pending, false);
@@ -2909,6 +2935,30 @@ test('portable control validates Receipt and Captured Run references',
     inspectAuthorizedRunState(contradictoryStateService, stateRequest),
     {code: 'InvalidCommittedPublicationState'},
   );
+  // Public observation revisions belong to the original physical request Journal,
+  // not to a successful publication snapshot or a callback-generated counter.
+  const requestDirectory = await mkdtemp(join(tmpdir(), 'actql-publication-request-'));
+  retainedDirectories.push(requestDirectory);
+  const requestJournal = openClientRequestJournal(requestDirectory);
+  retainedJournals.push(requestJournal);
+  const requestIdentity = moon.clientRequestAdmitRecord(cid('d'), 'publication-request',
+    'sha256:f3514c8f22c6d72818a167ca3341b3c945397042351c51a5982d7abc881a298c',
+    'sha256:c183484727a250f184812053fce437f9b9c90ca889a7a7505a9f9791d84a7b52',
+    cid('b'), 'sha256:127ed76fb9b6ab693e306632d7d89290dec524313965cce13f433d1e26bdfcd5',
+    'sha256:d526e372e357f6bbd1d804e385fc8d88fad9e538ec5a70058f1205af9a0a7d9d');
+  assert.ok(requestIdentity);
+  const acceptedRequest = requestJournal.acceptDefinition(requestIdentity, {
+    namespaceId: 'namespace-a', runDefinition: run,
+    lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+  }, moon, control);
+  assert.deepEqual(acceptedRequest.ref, stateRequest.indexKey);
+  const runStateObservation = installNodeClientRunStateObservation({
+    journal: requestJournal, requestControl: moon, publicationControl: control,
+  });
+  const availableClientState = await observeClientRunState(runStateObservation,
+    stateService, stateRequest);
+  assert.equal(availableClientState.status, 'succeeded');
+  assert.deepEqual(availableClientState.result_availability, availableState.result_availability);
   const clientHost = createServer(createClientHttpHandler({
     authenticate: authorization => authorization === 'Bearer scoped-token'
       ? 'principal-a' : undefined,
@@ -2930,7 +2980,7 @@ test('portable control validates Receipt and Captured Run references',
       });
       return {ref, durability: 'durable', revision: 0};
     },
-    stateService,
+    stateService, runStateObservation,
     resultService: accessService,
   }));
   await new Promise(resolve => clientHost.listen(0, '127.0.0.1', resolve));
@@ -2944,8 +2994,8 @@ test('portable control validates Receipt and Captured Run references',
       method: 'POST', headers,
       body: JSON.stringify({connection, ref: stateRequest.indexKey}),
     });
-    assert.equal(statusReply.status, 200);
-    assert.deepEqual(await statusReply.json(), availableState);
+    assert.equal(statusReply.status, 200, await statusReply.clone().text());
+    assert.deepEqual(await statusReply.json(), availableClientState);
     const readReply = await fetch(`${base}/actql/client/0.1/read`, {
       method: 'POST', headers,
       body: JSON.stringify({connection, ref: stateRequest.indexKey,
@@ -2964,7 +3014,7 @@ test('portable control validates Receipt and Captured Run references',
     const client = await connectClient({mode: 'local', owner: 'local',
       endpoint: `${base}/`, token: 'scoped-token'});
     const attached = await client.attach(stateRequest.indexKey);
-    assert.deepEqual(await attached.status(), availableState);
+    assert.deepEqual(await attached.status(), availableClientState);
     const reader = attached.result('answer').rows();
     assert.deepEqual(await Array.fromAsync(reader), [{value: 7}]);
     assert.equal(reader.state(), 'complete');
@@ -3358,13 +3408,14 @@ test('portable control validates Receipt and Captured Run references',
   const recordGate = new Promise(resolve => { releaseRecord = resolve; });
   const jsonStore = {
     ...deliveryStore,
-    async appendDeliveryRecord(wire) {
+    async beginDeliveryAttempt(...args) {
+      const admitted = await deliveryStore.beginDeliveryAttempt(...args);
       if (!gateEntered) {
         gateEntered = true;
         enteredRecord();
         await recordGate;
       }
-      return deliveryStore.appendDeliveryRecord(wire);
+      return admitted;
     },
     withCommittedResultRows(...args) {
       jsonReaders++;
@@ -3393,8 +3444,8 @@ test('portable control validates Receipt and Captured Run references',
     };
     const first = deliverPublishedResult(options);
     if (format === 'json') {
-      // Real Store selection is committed; no first record or payload reader
-      // exists yet. A later-time concurrent request must not acquire that slot.
+      // The current atomic attempt/initial-record pair is committed, but no
+      // payload reader exists yet. A concurrent request cannot acquire its slot.
       await Promise.race([recordEntered, first.then(() => {
         assert.fail('delivery bypassed the first-record boundary');
       })]);
@@ -3739,45 +3790,33 @@ test('portable control validates Receipt and Captured Run references',
         maxBytes: 1024, maxUses: 1, expiresAt: '2026-09-19T00:00:00.000Z',
         authorizationContextCid: cid('2'), egressAdmissionCid: cid('3'),
       }, limits);
-      const original = new Error('streaming append reply lost');
+      const original = new Error('payload reader refused before exposure');
       const terminalFailure = new Error('terminal append unavailable');
       const terminalReplyLost = new Error('terminal append reply lost');
-      let entered, releaseFirst, releaseSecond, streamingRetries = 0;
+      let entered, release, retries = 0, payloadCalls = 0, sinkCalls = 0;
       const arrived = new Promise(resolve => { entered = resolve; });
-      const firstGate = new Promise(resolve => { releaseFirst = resolve; });
-      const secondGate = new Promise(resolve => { releaseSecond = resolve; });
+      const retryGate = new Promise(resolve => { release = resolve; });
       const attempted = [];
-      let terminalAvailable = false, loseTerminalReply = true, payloadCalls = 0;
+      let terminalAvailable = false, loseTerminalReply = true;
       const retryStore = Object.freeze({...deliveryStore,
         async appendDeliveryRecord(wire) {
           attempted.push(wire);
-          if (attempted.length === 1) {
-            await deliveryStore.appendDeliveryRecord(wire);
-            throw original;
+          assert.equal(JSON.parse(wire).state, 'failed');
+          if (!terminalAvailable) {
+            if (attempted.length > 1) { retries++; entered(); await retryGate; }
+            throw terminalFailure;
           }
-          if (JSON.parse(wire).state === 'streaming') {
-            if (++streamingRetries === 1) { entered(); await firstGate; }
-            else await secondGate;
-          } else if (!terminalAvailable) throw terminalFailure;
-          // Exercise the product Store's exact-record idempotency, including a
-          // durable terminal write whose reply is lost before confirmation.
           await deliveryStore.appendDeliveryRecord(wire);
-          if (JSON.parse(wire).state === 'failed' && loseTerminalReply) {
-            loseTerminalReply = false;
-            throw terminalReplyLost;
-          }
+          if (loseTerminalReply) { loseTerminalReply = false; throw terminalReplyLost; }
         },
-        withCommittedResultRows() {
-          payloadCalls++;
-          assert.fail('record recovery must never open a payload reader');
-        },
+        withCommittedResultRows() { payloadCalls++; throw original; },
       });
       let failure;
       await assert.rejects(deliverPublishedResult({...deliveryBase,
         store: retryStore, grant, format: 'json', attemptId: 'concurrent-cleanup',
         sink: {
-          write() { payloadCalls++; assert.fail('cleanup must never resend bytes'); },
-          finish() { payloadCalls++; assert.fail('cleanup must never finish the sink'); },
+          write() { sinkCalls++; assert.fail('cleanup must never resend bytes'); },
+          finish() { sinkCalls++; assert.fail('cleanup must never finish the sink'); },
         },
       }), error => { failure = error; return error.code === 'ResultDeliveryFailed'; });
       const attemptCid = JSON.parse(attempted[0]).delivery_attempt_cid;
@@ -3787,37 +3826,31 @@ test('portable control validates Receipt and Captured Run references',
       await arrived;
       const second = failure.cleanupHandle.retry();
       assert.equal(failure.cleanupHandle.status().pending, true);
-      releaseFirst();
-      const firstStatus = await first;
-      releaseSecond();
-      const secondStatus = await second;
-      assert.equal(firstStatus.pending, true);
-      assert.equal(secondStatus.pending, true);
+      release();
+      const [firstStatus, secondStatus] = await Promise.all([first, second]);
       assert.equal(first, second);
       assert.equal(firstStatus, secondStatus);
-      assert.equal(streamingRetries, 1);
+      assert.equal(firstStatus.pending, true);
+      assert.equal(retries, 1);
       assert.equal((await latest()).state, 'streaming');
-      assert.deepEqual(failure.cleanupErrors, [original, terminalFailure]);
       terminalAvailable = true;
       assert.equal((await failure.cleanupHandle.retry()).pending, true);
       assert.equal((await latest()).state, 'failed');
       assert.equal(failure.cleanupPending, true, 'a lost persistence reply remains unresolved');
-      assert.deepEqual(failure.cleanupErrors,
-        [original, terminalFailure, terminalReplyLost]);
       assert.equal((await failure.cleanupHandle.retry()).pending, false);
       assert.equal(failure.cleanupPending, false);
       assert.equal(failure.cause, original);
       assert.equal(failure.primaryFailure, original);
-      assert.deepEqual(failure.cleanupErrors,
-        [original, terminalFailure, terminalReplyLost]);
-      assert.equal(attempted[0], attempted[1]);
-      assert.equal(attempted[2], attempted[3]);
-      assert.equal(attempted[3], attempted[4]);
+      assert.deepEqual(failure.cleanupErrors, [terminalFailure, terminalFailure, terminalReplyLost]);
+      assert.equal(attempted.length, 4);
+      for (const wire of attempted) assert.equal(wire, attempted[0]);
       assert.equal((await latest()).delivery_record_cid,
-        JSON.parse(attempted[4]).delivery_record_cid);
+        JSON.parse(attempted[0]).delivery_record_cid);
       await failure.cleanupHandle.retry();
-      assert.equal(attempted.length, 5);
-      assert.equal(payloadCalls, 0);
+      assert.equal(attempted.length, 4);
+      assert.equal(payloadCalls, 1, 'cleanup never reacquires the original reader');
+      assert.equal(sinkCalls, 0);
+
     });
 
   const durabilityGrant = control.issueResultReadGrant(
@@ -3840,10 +3873,10 @@ test('portable control validates Receipt and Captured Run references',
   let failSucceededDurability = true;
   const durabilityStore = Object.freeze({
     ...deliveryStore,
-    async appendDeliveryRecord(recordWire) {
-      const result = await deliveryStore.appendDeliveryRecord(recordWire);
+    async appendDeliveryCompletion(attempt, receipt, record) {
+      const result = await deliveryStore.appendDeliveryCompletion(attempt, receipt, record);
       if (failSucceededDurability &&
-          JSON.parse(recordWire).state === 'succeeded') {
+          JSON.parse(record.wire).state === 'succeeded') {
         failSucceededDurability = false;
         const error = new Error('injected delivery record sync failure');
         error.code = 'EIO';
@@ -4254,9 +4287,13 @@ test('portable control validates Receipt and Captured Run references',
     raceStates.map(value => value.state).sort(),
     ['cancelled', 'succeeded'],
   );
-  assert.equal((await readdir(
-    join(raceDirectory, 'metadata-inventories'),
-  )).length, 1);
+  // The winning original is native metadata; no legacy inventory file is made.
+  assert.equal((await readdir(join(raceDirectory, 'metadata-inventories'))).length, 0);
+  const raceMetadata = new DatabaseSync(join(raceDirectory, 'delivery-attempts.sqlite3'), {readOnly: true});
+  try {
+    assert.equal(raceMetadata.prepare('SELECT count(*) AS n FROM native_publication_inventories').get().n, 1);
+    assert.equal(raceMetadata.prepare('SELECT count(*) AS n FROM native_publication_indexes').get().n, 1);
+  } finally { raceMetadata.close(); }
   const raceIndexes = raceContracts.map(raceAttempt =>
     control.issuePublicIndexEntry({
       runDefinition: run,
@@ -4446,9 +4483,13 @@ test('local durable Store accepts only MoonBit-admitted contract wire',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-runtime-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    let store;
+    t.after(async () => {
+      try { await store?.close(); }
+      finally { await rm(directory, {recursive: true, force: true}); }
+    });
     const control = runtimeCore(moon).publicationControl;
-    const store = await openLocalPublicationStore({
+    store = await openLocalPublicationStore({
       directory,
       storeAuthorityCid: cid('a'),
       capacityBytes: 1024 * 1024,
@@ -4457,7 +4498,6 @@ test('local durable Store accepts only MoonBit-admitted contract wire',
       maxContractNodes: limits.maxNodes,
       maxContractDepth: limits.maxDepth,
     }, control);
-    t.after(async () => { await store.close(); });
     const sealed = invocation(control);
     const stored = await store.putPublicationContract(
       sealed.name, sealed.wire,
