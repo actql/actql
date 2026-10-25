@@ -5,7 +5,10 @@
 fn native_values_work_test_installed_contracts() -> @local.ClientInstalledSequenceContracts {
   let assets = @host.client_local_product_assets()
   @local.prepare_installed_sequence_contracts(
-    assets.registry, assets.values, Some(assets.fragment), assets.ordered,
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
   ).unwrap()
 }
 
@@ -208,7 +211,10 @@ test "Native Local Values retains the supplied Ledger and never replaces an exha
   // funding or an installed command profile. The Journal is the real fixture.
   let assets = @host.client_local_product_assets()
   let installed = @local.prepare_installed_sequence_contracts(
-    assets.registry, assets.values, Some(assets.fragment), assets.ordered,
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
   ).unwrap()
   for supplied in [false, true] {
     let suffix = supplied.to_string()
