@@ -1114,8 +1114,9 @@ signed integer. Check these bounds before integer conversion, including the
 exclusive upper endpoint. Operand order MUST NOT affect this rule. Membership
 uses the original typed item domain, including each immediate list occurrence;
 an untyped empty list does not supply a domain. Conflicting typed peers remain
-incompatible, and existing literal-NULL refusal, null-safe comparison and
-nullable-value behavior remain unchanged.
+incompatible. Immediate literal NULL follows the independently typed peer
+context rules below; unresolved literal-NULL operands still require context.
+Null-safe comparison and nullable-value behavior remain unchanged.
 
 <!-- requirement-block: signed64-values.comparison-literal-normalization signed64-values.comparison-literal-no-raw-reinterpretation signed64-values.comparison-literal-no-nonliteral-conversion -->
 Comparison context MUST preserve the original Number literal body and its
@@ -11481,7 +11482,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:10f675260988c6e2c085ad762c37e64d1d47ea15a359b21d43acf5db5c733c7d
+../../spec/contracts/actql-aoa.json# sha256:2be306309d78de9d954cbf6c25430cfa9468cac4c1bacd641d952c6e8f3f6731
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d

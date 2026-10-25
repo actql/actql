@@ -22,6 +22,13 @@ const reviewed = [
   if u.holdings >= ledger.limits.holdings - ledger.delegated_holdings {
     return Err(HoldingLimit)
   }
+  match check_original_holding_slot(ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard ledger.next_holding_serial is Some(serial) else {
+    return Err(IdentityOverflow)
+  }
   reservation.retention -= bytes
   ledger.usage = {
     ..u,
@@ -29,13 +36,20 @@ const reviewed = [
     reserved_retention_bytes: u.reserved_retention_bytes - bytes,
     held_bytes: u.held_bytes + bytes,
   }
-  Ok({
+  ledger.next_holding_serial = if serial == 2147483647 {
+    None
+  } else {
+    Some(serial + 1)
+  }
+  let holding : Holding = {
     owner: ledger,
-    serial: u.holdings,
+    serial,
     reservation_serial: reservation.serial,
     bytes,
     live: true,
-  })
+  }
+  record_original_holding(ledger, holding)
+  Ok(holding)
 }`},
   {path:"src/physical_resources/ledger.mbt", anchor:"pub fn release_allocation(", body:`{
   if !physical_equal(ledger, holding.owner) {
@@ -44,14 +58,23 @@ const reviewed = [
   if !holding.live {
     return Err(ClosedHolding)
   }
+  match check_original_resources_mutable(ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !holding.live {
+    return Err(ClosedHolding)
+  }
   ledger.usage = {
     ..ledger.usage,
     held_bytes: ledger.usage.held_bytes - holding.bytes,
+    holdings: ledger.usage.holdings - 1,
   }
   holding.live = false
+  retire_original_holding(ledger, holding)
   Ok(())
 }`},
-  {path:"src/physical_strategy/retention.mbt", anchor:"fn collect_captured_retention(", body:`{
+  {path:"src/physical_strategy_host/retention.mbt", anchor:"fn collect_captured_retention(", body:`{
   // Backward edges ensure one descending pass releases newly unreferenced
   // ancestors. This traversal is bounded by the checked graph's task limit.
   for task = run.resources.length() - 1; task >= 0; task = task - 1 {
@@ -71,9 +94,7 @@ const reviewed = [
       }
     }
     if run.running is Some((active, _)) &&
-      run.graph.data.any(edge => {
-        edge.consumer == active && edge.producer == task
-      }) {
+      run.graph.data_iter().any(edge => edge.consumer == active && edge.producer == task) {
       needed = true
     }
     if !needed && (resource.release_confirmed)() {
@@ -84,7 +105,7 @@ const reviewed = [
     }
   }
 }`},
-  {path:"src/physical_strategy/task_completion.mbt", anchor:"fn commit_task_output(", body:`{
+  {path:"src/physical_strategy_host/task_completion.mbt", anchor:"fn commit_task_output(", body:`{
   if run.stopped {
     return Err(Stopped)
   }
@@ -120,7 +141,7 @@ const reviewed = [
   run.generation += 1
   Ok(())
 }`},
-  {path:"src/physical_strategy/task_completion.mbt", anchor:"pub fn[T] complete_managed_task_execution_with_inputs(", body:`{
+  {path:"src/physical_strategy_host/task_completion.mbt", anchor:"pub fn[T] complete_managed_task_execution_with_inputs(", body:`{
   if run.stopped {
     return Err(Stopped)
   }
@@ -145,7 +166,7 @@ const reviewed = [
   guard captured_task_target(run, task) is Some(target) &&
     @execution.managed_completed_output_matches_port(
       output,
-      run.graph.owners[task],
+      run.graph.owners_at(task).unwrap(),
       target,
     ) &&
     @execution.managed_completed_output_matches_attempt(

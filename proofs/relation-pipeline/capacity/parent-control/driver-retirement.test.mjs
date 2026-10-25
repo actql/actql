@@ -9,13 +9,16 @@ import {snapshot,hash} from '../../inventory.mjs';
 import {omitUnselectedTests,helperCompilation,helperImports} from './driver-retirement-compilation.mjs';
 const root = fileURLToPath(new URL('../../../../',import.meta.url));
 const read = p => readFileSync(root+p);
-const changed = (path, from, to) => {
+const changed = (path, from, to, anchor) => {
   const original = read(path).toString();
+  const body = anchor === undefined ? original : blockAfter(original, anchor);
   const pattern = new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')
     .replace(/\s+/g,'\\s+'),'g');
-  assert.equal([...original.matchAll(pattern)].length,1,
+  assert.equal([...body.matchAll(pattern)].length,1,
     'Mutation must reach unique actual boundary');
-  return p => p === path ? original.replace(pattern,to) : read(p);
+  const replacement = body.replace(pattern,to);
+  assert.equal(original.split(body).length, 2, "Mutation owner closure must be unique");
+  return p => p === path ? original.replace(body,replacement) : read(p);
 };
 test('executed Native artifact excludes same-basename Darwin debug data and missing executable',()=>{
   const debug=retirementExecutable+'.dSYM/Contents/Resources/DWARF/query_integration.whitebox_test.exe';
@@ -76,12 +79,24 @@ test('projection keeps complete immutable raw String constants and omits unrefer
     if(i<omitted.begin || i>=omitted.end || /[\r\n]/.test(source[i])) assert.equal(result.overlay.a[i],source[i]);
   }
 });
+test('projection preserves complete quoted String constants without evaluating initializers',()=>{
+  const owned='let message : String = '+JSON.stringify('{"value":"leaf🙂"}')+'\n';
+  const source=owned+'fn leaf() {}\nfn run_current_host_graph_relation_path() { ignore(message) }\n';
+  const result=helperCompilation({a:source},'test { run_current_host_graph_relation_path() }');
+  const constant=result.inputs.a.keptDeclarations.find(d=>d.name==='message');
+  assert(constant);assert.equal(result.overlay.a.slice(constant.begin,constant.end),owned);
+  assert(result.inputs.a.keptDeclarations.some(d=>d.name==='leaf'));
+});
 for(const declaration of [
   'let x : String = open_store()\n',
   'let x =\n  #|raw\n',
   'let mut x : String =\n  #|raw\n',
   'let x : Int =\n  #|raw\n',
-  'let x : String = "quoted"\n',
+  'let x : String = "quoted" + effect()\n',
+  'let x : String = "\\q"\n',
+  'let x : String = "quoted" effect()\n',
+  'let x : String = "quoted"\n + effect()\n',
+  'let x : String = "\\{effect()}"\n',
   'let x : String =\n  $|\\{effect()}\n',
   'let x : String =\n  #|raw\n  + effect()\n',
   'pub let x : String =\n  #|raw\n',
@@ -109,7 +124,9 @@ for (const source of ['test "bad" {', 'test fn x() {}', 'fn x() { "unterminated 
     assert.throws(()=>omitUnselectedTests(source));
   });
 }
-for (const [name,path,from,to] of [
+for (const [name,path,from,to,anchor] of [
+  ['retirement progress stops advancing',scratchRetirementPath,'cursor.steps += 1L','cursor.steps += 0L'],
+  ['retirement loses actual value reclamation work',driverPath,'finalization_reclamation_steps.val = @execution.managed_output_values_reclamation_steps(\n        values,\n      )','finalization_reclamation_steps.val = 0L','let release_owned_scratch = fn()'],
   ['ignore cleanup error',driverPath,'!@local.cleanup_managed_provider(active).unwrap_or(false)','false'],
   ['ignore physical stop',driverPath,'!@local.managed_provider_stopped(active) ||','false ||'],
   ['retain provider forever',driverPath,'        provider_execution.val = None','        provider_execution.val = Some(active)'],
@@ -117,8 +134,8 @@ for (const [name,path,from,to] of [
   ['scratch witness accepts live root',driverPath,'scratch_uses.val == 0 && provider_execution.val is None','scratch_uses.val == 0'],
   ['scratch witness skips partial retirement',driverPath,'scratch_retirement.phase == Retired &&','true &&'],
   ['driver starts with retired cursor',driverPath,'let scratch_retirement = local_managed_scratch_retirement()','let scratch_retirement = {phase: Retired, index: 0}'],
-  ['retirement skips active callback check',driverPath,'      scratch_uses.val != 0 ||','      false ||'],
-  ['retirement skips physical provider custody',driverPath,'      provider_execution.val is Some(_) ||','      false ||'],
+  ['retirement skips active callback check',driverPath,'      scratch_uses.val != 0 ||','      false ||','let release_owned_scratch = fn()'],
+  ['retirement skips physical provider custody',driverPath,'      provider_execution.val is Some(_) ||','      false ||','let release_owned_scratch = fn()'],
   ['retirement skips pending input revocation',driverPath,'(!live.val && input_stop.phase != Stopped)','false'],
   ['retirement drops pending admission owner',driverPath,'if !@execution.managed_output_values_scratch_released(values) {','if false {'],
   ['scratch witness skips pending input revocation',driverPath,'(live.val || input_stop.phase == Stopped) &&','true &&'],
@@ -134,7 +151,7 @@ for (const [name,path,from,to] of [
   ['bridge skips active reader',bridgeReclamationPath,'quantum <= 0 || bridge.admitted.buffer.reading','quantum <= 0'],
   ['import mutates completed rows',importReclamationPath,'if value.completed {','if false {'],
   ['import skips partial buffer',importReclamationPath,'if !advance_admitted_buffer_reclamation(value.admitted.buffer, quantum) {','if false {'],
-  ['retirement starts complete',scratchRetirementPath,'{ phase: Bridges, index: 0, }','{ phase: Retired, index: 0, }'],
+  ['retirement starts complete',scratchRetirementPath,'{ phase: Bridges, index: 0, steps: 0L, }','{ phase: Retired, index: 0, steps: 0L, }'],
   ['retirement clears too many roots',scratchRetirementPath,'while steps < 64','while steps < 64000'],
   ['retirement skips read roots',scratchRetirementPath,'reads[cursor.index] = None','ignore(reads[cursor.index])'],
   ['retirement bulk-clears issuers',scratchRetirementPath,'issuers.pop() |> ignore','issuers.clear()'],
@@ -143,7 +160,7 @@ for (const [name,path,from,to] of [
   ['ignore retention release',strategyPath,'if !scratch_released || !task_execution_retention_released(execution) {','if !scratch_released {'],
 ]) test('source rejects '+name,()=>{
   // A missing mutation target is a failed fixture, not a rejected mutation.
-  const mutated = changed(path,from,to);
+  const mutated = changed(path,from,to,anchor);
   assert.throws(()=>checkDriverRetirementSource(mutated));
 });
 

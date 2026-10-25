@@ -1,5 +1,8 @@
 # Serial physical strategy execution
 
+The [Core/Host custody boundary](core-host-custody-boundary.md) separates portable
+checked-graph proposals from live execution and resource ownership.
+
 ## Scope and semantic ownership
 
 A physical strategy realizes existing checked units; it is not a canonical Plan,

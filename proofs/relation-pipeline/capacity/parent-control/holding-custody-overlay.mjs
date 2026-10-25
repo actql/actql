@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {checkHoldingCustodySource} from './holding-custody-source.mjs';
-export const holdingTemporary = ['src/physical_resources/holding_custody_native.mbt', 'src/physical_strategy/holding_custody_native.mbt'];
-export const holdingPaths = ['src/physical_resources/moon.pkg', 'src/physical_strategy/moon.pkg'];
+export const holdingTemporary = ['src/physical_resources/holding_custody_native.mbt', 'src/physical_strategy_host/holding_custody_native.mbt'];
+export const holdingPaths = ['src/physical_resources/moon.pkg', 'src/physical_strategy_host/moon.pkg'];
 const once = (s, from, to) => {
   assert.equal(s.split(from).length, 2, 'Changed holding observation attachment');
   return s.replace(from, to);
