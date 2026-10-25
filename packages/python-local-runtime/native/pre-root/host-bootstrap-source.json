@@ -44,8 +44,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_stub.c",
-      "bytes": 38308,
-      "sha256": "0df85dc23c40082c9137826f12142eca1cc45ba83676a5d4bf36290e89bfa8de"
+      "bytes": 38228,
+      "sha256": "d609670b6f953f10ad9374ccb1607c2dc94efa50d49495a08ef710fbb7ac4a55"
     },
     {
       "path": "src/platform_native/host_bootstrap/process_region.h",
