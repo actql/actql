@@ -75,8 +75,11 @@ pub fn prepared_client_values_sequence_limits(
 ) -> @lower.SequenceLimits {
   {
     ..client_standard_values_sequence_limits(),
-    max_rows: Int::max(client_standard_values_sequence_limits().max_rows,value.sequence_preparation_demand.authored_literal_rows),
-    max_cells: Int::max(client_standard_values_sequence_limits().max_cells,value.sequence_preparation_demand.authored_literal_cells),
+    max_rows: value.local_values_max_rows,
+    max_cells: Int::max(
+      client_standard_values_sequence_limits().max_cells,
+      value.sequence_preparation_demand.authored_literal_cells,
+    ),
   }
 }
 
@@ -988,16 +991,33 @@ fn emit_client_values_pipeline_graph(
   // The enclosing original funds this measuring pass before construction.
   // Materialization is bounded by the exact usage of this same serializer;
   // measurement neither creates a new grant nor retains another wire.
-  let (bytes,nodes,depth) = match measure_client_values_pipeline_graph(
-    graph,task,limits,max_wire_bytes,max_nodes,max_depth,preparation~) {
+  let (bytes, nodes, depth) = match
+    measure_client_values_pipeline_graph(
+      graph,
+      task,
+      limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      preparation~,
+    ) {
     Err(issue) => return Err(issue)
     Ok(usage) => usage
   }
-  let writer = @encode.writer(bytes,nodes,depth) catch {
+  let writer = @encode.writer(bytes, nodes, depth) catch {
     _ => return Err(Encoding)
   }
-  match emit_client_values_pipeline_into(graph, task, limits, max_wire_bytes,
-    max_nodes, max_depth, writer, preparation~) {
+  match
+    emit_client_values_pipeline_into(
+      graph,
+      task,
+      limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      writer,
+      preparation~,
+    ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -1084,8 +1104,15 @@ pub fn measure_prepared_client_values_pipeline(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[(Int, Int, Int), ClientValuesPipelineIssue] {
-  measure_client_values_pipeline_graph(value.graph,task,limits,
-    max_wire_bytes,max_nodes,max_depth,preparation=Some(value))
+  measure_client_values_pipeline_graph(
+    value.graph,
+    task,
+    limits,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    preparation=Some(value),
+  )
 }
 
 ///|
@@ -1101,12 +1128,21 @@ fn measure_client_values_pipeline_graph(
   let writer = @encode.measuring_writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
-  match emit_client_values_pipeline_into(graph, task, limits,
-    max_wire_bytes, max_nodes, max_depth, writer, preparation~) {
+  match
+    emit_client_values_pipeline_into(
+      graph,
+      task,
+      limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      writer,
+      preparation~,
+    ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  try { Ok(@encode.finish_measurement_usage(writer)) } catch {
+  Ok(@encode.finish_measurement_usage(writer)) catch {
     _ => Err(Encoding)
   }
 }
@@ -1673,7 +1709,8 @@ pub fn prepare_parsed_effect_free_client_program(
         },
       )
   }
-  let sequence_preparation_demand = match client_sequence_preparation_demand(owners,limits.max_graph_work) {
+  let sequence_preparation_demand = match
+    client_sequence_preparation_demand(owners, limits.max_graph_work) {
     Ok(value) => value
     Err(issue) => return Err(Graph(issue))
   }
@@ -1697,10 +1734,16 @@ pub fn prepare_parsed_effect_free_client_program(
         source: parsed,
         local_normalization: None,
         full_sequences: [],
-        // Preserve the historical admission/profile identity for already accepted
-        // small programs. This is a compatibility floor, not an execution cap:
-        // the owned capacity plan independently tightens the actual row envelope.
-        local_values_max_rows: Int::max(client_standard_values_sequence_limits().max_rows,client_closed_owner_rows(owners,limits.max_graph_work).unwrap_or(0)),
+        // The default covers authored inlet demand and checked closed outputs.
+        // An explicit row-limit view replaces this envelope. The owned capacity
+        // plan still independently admits the actual execution resources.
+        local_values_max_rows: Int::max(
+          client_standard_values_sequence_limits().max_rows,
+          Int::max(
+            sequence_preparation_demand.authored_literal_rows,
+            client_closed_owner_rows(owners, limits.max_graph_work).unwrap_or(0),
+          ),
+        ),
       })
     Err(issue) => Err(Graph(issue))
   }
