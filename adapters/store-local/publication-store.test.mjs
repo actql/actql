@@ -7021,51 +7021,6 @@ test('Result cleanup seal shares physical quota COMMIT and keeps the original na
   } finally {refuse = false; armed = false; await store.close();}
 });
 
-test('Result cleanup legacy coverage is audited once and a selected corrupt marker still refuses', async t => {
-  const {store, configuration, directory} = await fixture(t);
-  const invoked = invocation(), request = publicationRequest(resultDefinition(), invoked.invocation_cid);
-  const attempt = publicationAttempt(request), prepared = await prepareCommit(store, request, attempt, invoked);
-  const entry = indexEntry(request, attempt, invoked, {durable_result_binding_cids: [prepared.binding.identity]});
-  await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence);
-  assert.equal((await store.retireCommittedResult(indexKeyFor(request), request.inventory[0].result_definition_cid)).deleted, true);
-  await store.close();
-  const database = new DatabaseSync(join(directory, 'delivery-attempts.sqlite3'));
-  try {database.exec(`DROP TABLE native_publication_materials; DROP TABLE native_publication_indexes;
-DROP TRIGGER native_publication_references_insert; DROP TRIGGER native_publication_references_update;
-DROP TABLE native_publication_references; DROP TABLE result_deletion_recovery;
-DROP TABLE physical_object_preparations;
-CREATE TABLE physical_object_preparations (
-  cid TEXT NOT NULL, byte_count INTEGER NOT NULL CHECK(byte_count>=0),
-  device TEXT NOT NULL, inode TEXT NOT NULL,
-  PRIMARY KEY(cid,device,inode)
-) WITHOUT ROWID;
-UPDATE coverage SET version=10 WHERE id=1;`);}
-  finally {database.close();}
-  const parent = join(directory, 'deletions', (await readdir(join(directory, 'deletions')))[0]);
-  const marker = join(parent, (await readdir(parent))[0]);
-  const originalOpen = fsPromises.open;
-  let markerReads = 0;
-  t.mock.method(fsPromises, 'open', async function(path, ...args) {
-    if (String(path) === marker && typeof args[0] === 'number') markerReads++;
-    return Reflect.apply(originalOpen, this, [path, ...args]);
-  });
-  syncBuiltinESMExports();
-  try {
-    const migrated = await openLocalPublicationStore(configuration, contractControl);
-    assert(markerReads > 0, 'old producers require an actual first recovery audit');
-    await migrated.close();
-    await writeFile(marker, '{invalid');
-    markerReads = 0;
-    const reopened = await openLocalPublicationStore(configuration, contractControl);
-    try {
-      assert.equal(markerReads, 0, 'clean open does not prove unrelated committed history');
-      await assert.rejects(reopened.consumeCommittedResult(indexKeyFor(request),
-        request.inventory[0].result_definition_cid, () => true, () => assert.fail('corrupt marker exposed Result')),
-      code('InvalidPublicationDeletionStore'));
-    } finally {await reopened.close();}
-  } finally {t.mock.restoreAll(); syncBuiltinESMExports();}
-});
-
 test('a new process recovers only after an actual interrupted Result cleanup lifecycle', async t => {
   const {store, configuration, directory} = await fixture(t);
   const invoked = invocation(), request = publicationRequest(resultDefinition(), invoked.invocation_cid);
@@ -8920,39 +8875,6 @@ test('native publication inventory survives reopen and retires only its original
   await reopened.close();
 });
 
-test('metadata deletion history is indexed once and unrelated Run operations read no marker bodies',async t=>{
-  const {store,directory,configuration}=await fixture(t);await store.close();
-  // Model the actual prior private version and its compact retired files.
-  const db=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'));
-  try{db.exec('DROP TABLE native_publication_materials; DROP TABLE native_publication_indexes; DROP TRIGGER native_publication_references_insert; DROP TRIGGER native_publication_references_update; DROP TABLE native_publication_references; DROP TABLE result_deletion_recovery; DROP TABLE publication_records; DROP TABLE publication_attempts; DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; UPDATE coverage SET version=7 WHERE id=1');}
-  finally{db.close();}
-  const history=Array.from({length:12},(_,i)=>({key:digest(`retired key ${i}`).slice(7),run:digest(`retired Run ${i}`)}));
-  for(const row of history)await writeFile(join(directory,'metadata-deletions',row.key+'.json'),wire({
-    version:'actql-local-publication-metadata-retired/0.1',run_definition_cid:row.run}));
-  const migrated=await openLocalPublicationStore(configuration,contractControl);
-  assert.deepEqual(await readdir(join(directory,'metadata-deletions')),[]);await migrated.close();
-  let reads=0,historyEnumerations=0;
-  const actualOpen=fsPromises.open,actualReaddir=fsPromises.readdir;
-  t.mock.method(fsPromises,'open',function(path,...args){
-    if(String(path).startsWith(join(directory,'metadata-deletions')+sep))reads++;
-    return Reflect.apply(actualOpen,this,[path,...args]);
-  });
-  t.mock.method(fsPromises,'readdir',function(path,...args){
-    if(String(path)===join(directory,'metadata-deletions'))historyEnumerations++;
-    return Reflect.apply(actualReaddir,this,[path,...args]);
-  });
-  syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
-  const reopened=await openLocalPublicationStore(configuration,contractControl);
-  assert.equal(reads,0,'ordinary reopen does not read retired metadata history');
-  historyEnumerations=0;
-  const request=publicationRequest(resultDefinition(),digest('unrelated current Run'));
-  await reopened.createAttempt(wire(publicationAttempt(request,'target-only')));
-  assert.equal(historyEnumerations,0);assert.equal(reads,0);
-  const denied={...request,run_definition_cid:history[7].run};
-  await assert.rejects(reopened.createAttempt(wire(publicationAttempt(denied,'same retired Run'))),code('PublicationMetadataDeleted'));
-  assert.equal(reads,0);await reopened.close();
-});
-
 test('metadata deletion keeps the same cleanup after native retirement and lost marker directory ACK',async t=>{
   const {store,directory,configuration}=await fixture(t);
   const invocationValue=invocation(),request=publicationRequest(resultDefinition(),invocationValue.invocation_cid);
@@ -9232,31 +9154,6 @@ test(`publication recovery defers an unrelated damaged committed ${damaged} to s
   await reopened.close();
 });
 }
-
-test('publication recovery migrates the legacy inventory once and preserves adopted-table loss refusal',async t=>{
-  const setup=await fixture(t);
-  const selected=await committedHoldingFixture(setup,'legacy recovery');
-  await setup.store.close();
-  // Reconstruct only this new disposable fixture's exact prior private format.
-  const path=join(setup.directory,'delivery-attempts.sqlite3');
-  const old=new DatabaseSync(path);
-  try{old.exec('DROP TABLE native_publication_materials; DROP TABLE native_publication_indexes; DROP TRIGGER native_publication_references_insert; DROP TRIGGER native_publication_references_update; DROP TABLE native_publication_references; DROP TABLE result_deletion_recovery; DROP TABLE publication_records; DROP TABLE publication_attempts; DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; UPDATE coverage SET version=5 WHERE id=1');}
-  finally{old.close();}
-  const originalOpen=fsPromises.open,reads=[];
-  t.mock.method(fsPromises,'open',function(path,...args){reads.push(String(path));return Reflect.apply(originalOpen,this,[path,...args]);});
-  syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
-  const migrated=await openLocalPublicationStore(setup.configuration,contractControl);
-  assert.equal(reads.filter(path=>path===selected.inventoryPath).length,1);
-  await migrated.close();reads.length=0;
-  const reopened=await openLocalPublicationStore(setup.configuration,contractControl);
-  assert.equal(reads.includes(selected.inventoryPath),false);
-  await reopened.close();
-  const damaged=new DatabaseSync(path);
-  try{damaged.exec('DROP TABLE pending_publications');}finally{damaged.close();}
-  await assert.rejects(openLocalPublicationStore(setup.configuration,contractControl),
-    code('DeliveryAttemptIndexUnavailable'));
-  await assert.rejects(stat(join(setup.directory,'owner')),code('ENOENT'));
-});
 
 test('publication recovery completes only its retained inventory after a lost pre-file stage reply',async t=>{
   let armed=false,lost=false,staged=false;
@@ -10876,3 +10773,23 @@ test('Store typed validation retains semantic close custody while yielded and re
   assert.deepEqual(events,['checker-cancelled']);
   assert.equal(await store.close(),true);assert.equal(store.status().closed,true);
 });
+
+for (const oldVersion of [5, 7, 10, 14]) {
+  test(`Store refuses private format ${oldVersion} without deleting retained originals`, async t => {
+    const setup = await fixture(t);
+    // Use the current fixture's exact prepared handles and attempt-owned commit;
+    // only this disposable database's private format marker is made unsupported.
+    const selected = await committedHoldingFixture(setup, 'unsupported private format');
+    await setup.store.close();
+    const path = join(setup.directory, 'delivery-attempts.sqlite3');
+    const database = new DatabaseSync(path);
+    try { database.prepare('UPDATE coverage SET version=?').run(oldVersion); }
+    finally { database.close(); }
+    const before = await readFile(path), inventory = await readFile(selected.inventoryPath);
+    await assert.rejects(openLocalPublicationStore(setup.configuration, contractControl),
+      code('DeliveryAttemptIndexUnavailable'));
+    assert.deepEqual(await readFile(path), before);
+    assert.deepEqual(await readFile(selected.inventoryPath), inventory);
+    await assert.rejects(stat(join(setup.directory, 'owner')), code('ENOENT'));
+  });
+}

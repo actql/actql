@@ -1166,7 +1166,7 @@ preserves these separate pending duties.
 This is an intentional breaking private-format change: formats one through
 fourteen are refused untouched, without automatic upgrade, copying, or deletion.
 A genuinely empty first-created database can still initialize the current format.
-No normative contract version changes: `result_delivery_receipt/0.1` identifies
+No normative contract version changes: `actql-result-delivery-receipt/0.1` identifies
 immutable delivered content and does not include an attempt identity. Distinct
 attempts can therefore own completions referencing the same receipt CID. The
 receipt lookup is nonunique; completion and acknowledgement ownership remain
