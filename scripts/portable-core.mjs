@@ -53,6 +53,20 @@ export function tokens(source, sourceCode = false) {
       if (depth) throw new Error('UnclosedComment');
       continue;
     }
+    if (sourceCode && source.startsWith('$|', i)) {
+      // Interpolation contains executable expressions. Do not hide them as DATA.
+      throw new Error('UnsupportedInterpolatedMultilineString');
+    }
+    if (sourceCode && source.startsWith('#|', i) &&
+        /^[\t ]*$/.test(source.slice(source.lastIndexOf('\n', i - 1) + 1, i))) {
+      // A leading #| line is raw DATA, including quotes, comments and \{...}.
+      // Only that physical line is opaque; following source is still inspected.
+      const start = i + 2;
+      const newline = source.indexOf('\n', start);
+      i = newline < 0 ? source.length : newline;
+      result.push({kind:'string', value:source.slice(start, i)});
+      continue;
+    }
     if (source[i] === '"' || (sourceCode && source[i] === "'")) {
       const quote = source[i];
       const start = i++;
@@ -117,8 +131,8 @@ export function packageImports(source) {
 }
 
 function inspectSource(source, path) {
-  // Reject embedded multi-line strings: in Moon they can contain executable
-  // target code. Literal data strings and comments do not trigger name checks.
+  // Literal DATA and comments do not trigger name checks. Foreign declarations,
+  // embedded target code and unsupported interpolated lines still fail closed.
   const ts = tokens(source, true);
   const words = ts.filter(t => t.kind !== 'string').map(t => t.value);
   const forbidden = new Set(['extern', 'fetch', 'performance', 'println', 'print',
@@ -151,14 +165,21 @@ export function inspectCore(root, roots = coreRoots) {
       const literal = [
         ['word', 'options'], ['symbol', '('], ['string', 'link-flags'],
         ['symbol', ':'], ['symbol', '['], ['string', '-js-format'],
-        ['symbol', ','], ['string', 'esm'], ['symbol', ']'], ['symbol', ')'],
+        ['symbol', ','], ['string', 'esm'], ['symbol', ']'],
       ];
       if (reviewedEsm || !literal.every(([kind, value], offset) =>
         module[i + offset]?.kind === kind && module[i + offset].value === value)) {
         throw new Error('UnauditedCoreModuleDirective');
       }
-      reviewedEsm = true;
       i += literal.length;
+      // The pinned formatter emits an optional final argument comma. This
+      // admits no additional option, flag, value or array-element spelling.
+      if (module[i]?.kind === 'symbol' && module[i].value === ',') i++;
+      if (module[i]?.kind !== 'symbol' || module[i].value !== ')') {
+        throw new Error('UnauditedCoreModuleDirective');
+      }
+      reviewedEsm = true;
+      i++;
       continue;
     }
     const [key,equals,value] = module.slice(i,i+3);
