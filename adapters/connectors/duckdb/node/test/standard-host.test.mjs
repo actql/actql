@@ -457,17 +457,21 @@ async function deltaHostCancellation(phase, diff = false, union = false, subtrac
   assert.ok(checked(moon.clientProgramIssueTaskPlanGraph(prepared)));
   const registry = await readFile(join(root, 'spec/dependencies/aoa-pipeline-registry.json'), 'utf8');
   const aoa = JSON.parse(await readFile(join(root, 'spec/contracts/actql-aoa.json'), 'utf8'));
-  const setup = moon.clientProgramOpenSourceFreeLocalHost(prepared, registry,
-    JSON.stringify(aoa.execution_contracts['REL.values']), 1n, 0n, 0n, 0n,
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
+  const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+  const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+  const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const installedContracts = checked(moon.clientPrepareInstalledSequenceContracts(
+    registry, values, fragment, ordered));
+  const setup = moon.clientProgramOpenSourceFreeLocalHost(prepared, installedContracts,
+    values, 1n, 0n, 0n, 0n, fragment, ordered);
   assert.ok(setup);
   const abort = new AbortController();
   const starts = [], deltaPolls = [], lifecycle = [];
-  let scheduled = false, delivered = false, workAtDelivery;
+  let scheduled = false, delivered = false, workAtDelivery, usageAtDelivery;
   abort.signal.addEventListener('abort', () => {
     delivered = true;
     workAtDelivery = deltaPolls.reduce((sum, poll) => sum + poll.work, 0n);
+    usageAtDelivery = runtimeCore(moon).usage(setup);
   }, {once:true});
   const observed = new Proxy(moon, {get(target, property, receiver) {
     if (property !== 'strategyModule_local_ManagedStart') return Reflect.get(target, property, receiver);
@@ -517,6 +521,10 @@ async function deltaHostCancellation(phase, diff = false, union = false, subtrac
     });
     assert.equal(scheduled, true);
     assert.equal(delivered, true);
+    // Each completed predecessor retains one original output until Host close.
+    // Cancellation must not silently release those live output owners.
+    assert.equal(usageAtDelivery.holdings, BigInt(targetTask));
+    assert(usageAtDelivery.heldBytes > 0n);
     assert(workAtDelivery > 0n, 'cancel is delivered only after actual Delta work');
     if (union || subtraction) assert(workAtDelivery >= 64n, 'composition advanced before delivered cancellation');
     if (!union && !subtraction && phase !== 'conversion') assert(deltaPolls.some(poll=>poll.progress > 0n),
@@ -531,12 +539,16 @@ async function deltaHostCancellation(phase, diff = false, union = false, subtrac
     assert(lifecycle.some(event=>event.name === 'execution_stopped' && event.result === true && event.delivered));
   } finally {
     if (execution) {
+      const usageBeforeClose = execution.usage();
       await execution.close();
       assert.equal(await execution.cleanup(), true);
+      assert.equal(usageBeforeClose.holdings, BigInt(targetTask),
+        'completed predecessor outputs remain live before close');
+      assert(usageBeforeClose.heldBytes > 0n);
       assert.equal(execution.cleanupPending(), false);
-      // Holdings is the monotonic allocation count, not live capacity. Keep
-      // that accounting history while returning all held/reserved bytes.
-      assert.equal(execution.usage().holdings, BigInt(targetTask));
+      // Holdings counts live original allocations, not historical tasks.
+      // Exact starts/completed above retain the independent execution history.
+      assert.equal(execution.usage().holdings, 0n);
       assert.equal(execution.usage().heldBytes, 0n);
       assert.equal(execution.usage().reservedRetentionBytes, 0n);
       assert.equal(execution.usage().reservedTransferBytes, 0n);

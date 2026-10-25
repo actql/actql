@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 // custody and interruption refusals beside the existing recipe observations.
 import '../bounded-session/mutation-command.test.mjs';
 import '../bounded-session/mutation-detection.test.mjs';
-import {retirementCases, selectCases, retirementWitness, requireRetirementDetection} from './mutation-retirement.mjs';
+import {retirementCases, selectCases, retirementWitness, requireRetirementDetection, normalLifetimeCases, requireNormalLifetime} from './mutation-retirement.mjs';
 const root = new URL('../../', import.meta.url);
 const read = path => readFileSync(new URL(path, root), 'utf8');
 const old = ['reset-consumed-budget','omit-handoff-accounting','fresh-budget-for-next-child','cleanup-reenters-advance','handoff-failure-drops-children','pending-cleanup-reported-complete','cancel-not-forwarded-to-session','row-adapter-cumulative-as-delta','premature-chain-terminal'].map(id => [id]);
@@ -39,3 +39,29 @@ for(const [label,result,text] of [
   ['unwrap failure',{status:1},output.replace('FAILED:','panicked:')],
   ['successful process',{status:0},output],
 ]) test(`controlled retirement observation refuses ${label}`,()=>assert.throws(()=>requireRetirementDetection(result,text,witness)));
+
+const normalFixture = read(retirementCases[0][4]);
+const normalOutput = 'Total tests: 11, passed: 11, failed: 0.\n';
+test('normal lifetime census admits exactly the independently reviewed eleven cases', () => {
+  assert.equal(normalLifetimeCases.length, 11);
+  assert.equal(requireNormalLifetime({status: 0}, normalOutput, normalFixture), 11);
+});
+for (const [label, fixture] of [
+  ['missing', normalFixture.replace(`test "${normalLifetimeCases[0]}" {`, 'fn missing_case() {')],
+  ['renamed', normalFixture.replace(normalLifetimeCases[0], 'renamed case')],
+  ['added', `${normalFixture}\ntest "unreviewed case" {}\n`],
+  ['changed assertion', normalFixture.replace('assert_eq(count, 3)', 'assert_eq(count, 2)')],
+]) test(`normal census refuses ${label} authored case`, () => {
+  assert.throws(() => requireNormalLifetime({status: 0}, normalOutput, fixture));
+});
+for (const [label, result, output] of [
+  ['zero', {status: 0}, 'Total tests: 0, passed: 0, failed: 0.'],
+  ['missing summary', {status: 0}, ''],
+  ['duplicate summary', {status: 0}, normalOutput.repeat(2)],
+  ['missing case', {status: 0}, 'Total tests: 10, passed: 10, failed: 0.'],
+  ['failed case', {status: 1}, 'Total tests: 11, passed: 10, failed: 1.'],
+  ['process error', {status: 0, error: new Error('failed')}, normalOutput],
+  ['signal', {status: 0, signal: 'SIGTERM'}, normalOutput],
+]) test(`normal census refuses ${label}`, () => {
+  assert.throws(() => requireNormalLifetime(result, output, normalFixture));
+});
