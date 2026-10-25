@@ -31,7 +31,6 @@
 #include "../../../packages/python-local-runtime/native/pre-root/owned_capacity.c"
 typedef struct actql_read_context actql_read_context;
 #endif
-#include "../../../packages/python-local-runtime/native/pre-root/owned_image.c"
 #endif
 
 typedef struct {

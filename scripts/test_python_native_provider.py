@@ -1,5 +1,8 @@
-"""Selected producer command closure checks; no compiler or library loading."""
+"""Recipe and consumer-object checks; no provider execution or library loading."""
 import importlib.util
+import hashlib
+import subprocess
+import sys
 import json
 from pathlib import Path
 import tempfile
@@ -65,6 +68,42 @@ class NativeProviderRecipeTests(unittest.TestCase):
     def test_same_process_owner_foreign_c_input_is_selected_once(self):
         selected = ('platform_native/executor_slot/executor_slot_stub.c', 'executor-slot')
         self.assertEqual(PRODUCER.FOREIGN_SOURCES.count(selected), 1)
+
+    def test_image_adapter_is_separate_in_the_same_single_provider_recipe(self):
+        image = PRODUCER.ROOT / 'packages/python-local-runtime/native/pre-root/owned_image.c'
+        bootstrap = PRODUCER.ROOT / 'src/platform_native/host_bootstrap/bootstrap_stub.c'
+        moon = Path('/selected/moon')
+        for allocator in (None, Path('/selected/scoped')):
+            for initial in (False, True):
+                with self.subTest(allocator=allocator, initial=initial):
+                    sources = PRODUCER.provider_c_sources(Path('/emitted.c'), moon,
+                        allocator, python_initial_control=initial)
+                    self.assertEqual(sources.count((image, 'owned-image')), 1)
+                    self.assertEqual(sources.count((bootstrap, 'bootstrap')), 1)
+                    self.assertEqual(len({name for _, name in sources}), len(sources))
+                    self.assertFalse(any(path.name == 'owned_capacity.c' for path, _ in sources))
+                    runtime = allocator if allocator is not None else moon / 'lib/runtime'
+                    self.assertEqual([path for path, name in sources if name.startswith('runtime-')],
+                        [runtime / (name + '.c') for name in
+                         ('backtrace', 'env', 'runtime', 'sync_io', 'utf')])
+        self.assertNotIn('owned_image.c', bootstrap.read_text())
+        self.assertNotIn('actql_native_owned_capture_image_fd', bootstrap.read_text())
+        self.assertNotIn('#include "owned_capacity.c"', image.read_text())
+        self.assertNotIn('_Thread_local', image.read_text())
+
+    def test_bootstrap_source_pins_match_separated_adapter(self):
+        root = PRODUCER.ROOT
+        path = 'src/platform_native/host_bootstrap/bootstrap_stub.c'
+        raw = (root / path).read_bytes()
+        expected = {'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()}
+        manifest = json.loads((root / 'packages/python-local-runtime/native/pre-root/host-bootstrap-source.json').read_bytes())
+        entry = next(item for item in manifest['inputs'] if item['path'] == path)
+        self.assertEqual(entry, {'path': path, **expected})
+        # The Python provider still needs image capture; do not drop its input.
+        self.assertEqual(sum(item['path'].endswith('/owned_image.c')
+                             for item in manifest['inputs']), 1)
+        sqlite = json.loads((root / 'packages/python-local-runtime/native/sqlite-component/source.json').read_bytes())
+        self.assertEqual(sqlite['provider_inputs'][path], expected)
 
     def test_foreign_target_and_unresolved_placeholder_are_refused(self):
         for line in (self.lines[0].replace('-target native', '-target js'),
@@ -227,6 +266,62 @@ class NativeProviderRegistryCallerTests(unittest.TestCase):
 
     def test_selected_builder_requires_initial_abi_without_changing_default_entrance(self):
         self.exercise('relative', python_initial=True)
+
+
+@unittest.skipUnless(sys.platform.startswith('linux') and os.environ.get('MOON_HOME'),
+                     'Requires Linux tools and an explicit pinned MOON_HOME')
+class BootstrapConsumerObjectTests(unittest.TestCase):
+    """Actual import object, not selected-provider or installed-runtime acceptance."""
+
+    def test_import_object_has_no_provider_state_and_requires_real_provider(self):
+        root = PRODUCER.ROOT
+        pre = root / 'packages/python-local-runtime/native/pre-root'
+        manifest = json.loads((pre / 'scoped-read-source.json').read_bytes())
+        patch_bytes = (pre / manifest['patch']['path']).read_bytes()
+        self.assertEqual(hashlib.sha256(patch_bytes).hexdigest(), manifest['patch']['sha256'])
+        moon = Path(os.environ['MOON_HOME'])
+        selected = next(item for item in manifest['inputs']
+                        if item['root'] == 'moonbit' and item['path'] == 'include/moonbit.h')
+        self.assertEqual(hashlib.sha256((moon / selected['path']).read_bytes()).hexdigest(),
+                         selected['sha256'])
+        with tempfile.TemporaryDirectory() as directory:
+            stage = Path(directory)
+            # Only declarations are extracted; no target binary/allocator closure
+            # is staged, and this does not qualify Linux x86_64 as a provider.
+            result = subprocess.run(['git', 'apply', '--no-index', '--include=scoped_read.h', '-'],
+                input=patch_bytes, cwd=stage, capture_output=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr.decode())
+            header = (stage / 'scoped_read.h').read_bytes()
+            self.assertEqual({'bytes': len(header), 'sha256': hashlib.sha256(header).hexdigest()},
+                             manifest['outputs']['scoped_read.h'])
+            obj = stage / 'bootstrap.o'
+            result = subprocess.run([os.environ.get('CC', 'cc'), '-std=c11', '-D_GNU_SOURCE',
+                '-DACTQL_BOOTSTRAP_IMPORT_PROVIDER', '-DACTQL_SCOPED_READ_ALLOCATOR',
+                '-I' + str(moon / 'include'), '-I' + str(stage), '-I' + str(pre), '-fPIC', '-c',
+                str(root / 'src/platform_native/host_bootstrap/bootstrap_stub.c'), '-o', str(obj)],
+                capture_output=True, text=True, timeout=30)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            symbols = subprocess.run(['nm', str(obj)], capture_output=True, text=True,
+                                     check=True, timeout=10).stdout
+            self.assertIn(' T actql_bootstrap_acquire', symbols)
+            self.assertIn(' U actql_native_owned_current', symbols)
+            self.assertIn(' U actql_read_context_current', symbols)
+            self.assertNotIn('actql_native_owned_capture_image_fd', symbols)
+            self.assertNotIn('ordinary_scope', symbols)
+            self.assertNotIn('read_current', {line.split()[-1] for line in symbols.splitlines()})
+            for line in symbols.splitlines():
+                if 'actql_native_owned_' in line or 'actql_read_context_' in line:
+                    self.assertEqual(line.split()[0], 'U', line)
+            sections = subprocess.run(['readelf', '-SW', str(obj)], capture_output=True,
+                                      text=True, check=True, timeout=10).stdout
+            self.assertNotIn('.tbss', sections)
+            self.assertNotIn('.tdata', sections)
+            # No success stub or alternate allocator may satisfy the imports.
+            result = subprocess.run([os.environ.get('CC', 'cc'), '-shared',
+                '-Wl,--no-undefined', str(obj), '-o', str(stage / 'missing-provider.so')],
+                capture_output=True, text=True, timeout=30)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('actql_native_owned_current', result.stderr)
 
 
 if __name__ == '__main__':
