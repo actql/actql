@@ -83,7 +83,8 @@ fn closed_values_initial_control_units() -> PreparationRepresentationUnits {
   // and QuantityUsage; Reservation, its observed tuple and byte-only wrapper.
   let ledger_headers=1L+1L+2L+4L+1L+1L+1L
   let ledger_refs=7L+3L+5L+1L
-  let ledger_words=3L+6L+20L+9L+6L+3L
+  // Ledger also retains its one-use continuation-restored scalar.
+  let ledger_words=4L+6L+20L+9L+6L+3L
   // PreparationCapacity; driver; live Some identity/ledger/input/serial links.
   // Maximum live work receipts is max(3,1,1), not lifetime issuance count:
   // header/scan/text coexist until the synchronous input callback returns;

@@ -134,3 +134,45 @@ fn preparation_node_own_data_header_cost() -> Int64? {
   preparation_representation_cost({record_headers:1L,reference_slots:3L,
     scalar_words:3L,owned_utf16_units:0L,owned_wire_bytes:0L})
 }
+
+///|
+/// Domain callers supply storage/slot inventories, never another tariff or
+/// an already guessed budget. Workspace is simultaneous with retained state;
+/// ExecutionCapacity therefore includes both components in its execution peak.
+struct PreparationExecutionInventory {
+  retained : PreparationRepresentationUnits
+  workspace : PreparationRepresentationUnits
+  retained_nodes : Int64
+  workspace_nodes : Int64
+  retained_bytes : Int64
+  workspace_bytes : Int64
+}
+
+///|
+fn preparation_execution_capacity(
+  inventory : PreparationExecutionInventory,
+) -> @execution.ExecutionCapacity? {
+  let node = @execution.execution_capacity_node_bytes()
+  guard preparation_representation_cost(inventory.retained) is Some(retained) else {
+    return None
+  }
+  guard preparation_cost_add(retained, inventory.retained_nodes, node) is Some(retained) else {
+    return None
+  }
+  guard preparation_cost_add(retained, inventory.retained_bytes, 1L) is Some(retained) else {
+    return None
+  }
+  guard preparation_representation_cost(inventory.workspace) is Some(workspace) else {
+    return None
+  }
+  guard preparation_cost_add(workspace, inventory.workspace_nodes, node) is Some(workspace) else {
+    return None
+  }
+  guard preparation_cost_add(workspace, inventory.workspace_bytes, 1L) is Some(workspace) else {
+    return None
+  }
+  guard preparation_cost_add(retained, workspace, 1L) is Some(execution) else {
+    return None
+  }
+  @execution.execution_capacity(retained, execution)
+}

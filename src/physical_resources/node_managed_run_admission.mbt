@@ -273,6 +273,31 @@ pub fn[P] start_node_managed_run_admission(
 }
 
 ///|
+/// The existing fixed Host has already authenticated the saved accounting
+/// original and bound it to this new preparation/request/definition. Import
+/// ONE actual original child, seed it before publishing its Ledger, and retain
+/// that same admission for failed initialization cleanup. DATA admission does
+/// not supply the Host authentication or authorize this physical supplier.
+pub fn[P] restore_node_managed_run_admission(
+  value : NodeManagedRunAdmission[P],
+  prepared : P,
+  saved : LedgerContinuationState,
+) -> Result[Ledger, LedgerContinuationIssue] {
+  match check_node_managed_run_preparation(value, prepared) {
+    Err(_) => return Err(ChangedOriginal)
+    Ok(_) => ()
+  }
+  let ledger = match start_node_managed_run_admission(value) {
+    Err(_) => return Err(ChangedOriginal)
+    Ok(ledger) => ledger
+  }
+  match restore_quiescent_ledger_state(ledger, saved) {
+    Err(issue) => Err(issue)
+    Ok(_) => Ok(ledger)
+  }
+}
+
+///|
 /// A caller cannot substitute an equal-limit, sibling or reconstructed Ledger.
 /// The original installed port also rechecks currentness and purpose.
 pub fn[P] check_node_managed_run_admission(
