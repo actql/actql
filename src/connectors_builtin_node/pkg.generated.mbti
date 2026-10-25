@@ -675,6 +675,8 @@ pub fn client_program_composed_infer_local_provider(@run_publication_host.Client
 
 pub fn client_program_composed_infer_occurrences(@run_publication_host.PreparedClientProgram) -> Result[Array[@run_publication_host.ClientInferOccurrence], @client_infer_host.Issue]
 
+pub fn client_program_confirmed_cancelled_unpublished_run_state(String, String, Array[String], Int, Int, Int) -> Result[String, @run_publication.RunStateIssue]
+
 pub fn client_program_content_step_acknowledge_piece(@client_local_host.ClientLocalContentStep, Int) -> Bool
 
 pub fn client_program_content_step_byte_completion(@client_local_host.ClientLocalContentStep) -> @run_publication.ContentByteCompletion?

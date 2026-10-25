@@ -242,3 +242,22 @@ wire-size ceilings; it does not immediately run the independent stored-input
 reader over its own output. An authorized durable plan read still admits the
 selected stored Plan and map and checks their identities before disclosure.
 Capture is neither a permission cache nor a replacement for that read boundary.
+
+## Confirmed cancellation DATA
+
+`issue_confirmed_cancelled_unpublished_run_state_wire` encodes an already
+established cancelled outcome with `NoAction` and an unavailable,
+`not_published` observation for each declared Result. It uses the same bounded
+canonical encoder and closed `actql-run-state/0.1` shape as the existing
+unpublished computation projections. Result names are checked and ordered;
+the supplied inventory is not mutated. No active Checkpoint is emitted.
+
+The original Host owner must independently establish complete cancellation,
+absence of publication, current original Run/Checkpoint and approval lineage,
+and its guarded durable transition. This DATA writer inspects none of those
+origins and provides no evidence for them. In particular, a task stop, absent
+response or request acceptance cannot select this entry as a terminal decision.
+An approved or uncertain Effect remains subject to its existing pending and
+reconciliation duties. The writer neither removes historical Checkpoint
+artifacts nor acknowledges physical cleanup. Existing pre-Checkpoint and
+Effect-free writers retain their original physical-fact validation.
