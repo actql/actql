@@ -99686,7 +99686,7 @@
     {
       "module": "packages/run-host-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "4496ef333fdb6b9776932de08907a441dfb4676512ed62e88e07f48916649bb1",
+      "sha256": "c994d59153a4edf41fbbf182888dc8cf5b5e7c87af3bab07aa324a45f795003f",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -99725,7 +99725,9 @@
         "effectResultSchema",
         "effectReviewCheckpointBinding",
         "effectReviewCheckpointBindingFacts",
+        "effectReviewCheckpointCancelledState",
         "effectReviewCheckpointMembers",
+        "effectReviewCheckpointReconciliationState",
         "effectReviewCheckpointWaitingState",
         "effectRunStartCurrent",
         "effectSourceEvidenceFacts",
@@ -100429,6 +100431,18 @@
           "async": false
         },
         {
+          "name": "effectReviewCheckpointCancelledState",
+          "parameters": [
+            "binding",
+            "allowed",
+            "definition",
+            "storedWire",
+            "updatedAt",
+            "declaredResults"
+          ],
+          "async": false
+        },
+        {
           "name": "effectReviewCheckpointMembers",
           "parameters": [
             "allowed",
@@ -100439,6 +100453,36 @@
         },
         {
           "name": "effectReviewCheckpointMembers/effectReviewCheckpointMembers",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectReviewCheckpointReconciliationState",
+          "parameters": [
+            "binding",
+            "allowed",
+            "definition",
+            "storedWire",
+            "previewWire",
+            "invocationWire",
+            "setReceiptWire",
+            "memberReceiptWires",
+            "updatedAt",
+            "declaredResults"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectReviewCheckpointReconciliationState/effectReviewCheckpointReconciliationState",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectReviewCheckpointReconciliationState/snapshot/snapshot",
           "parameters": [
             "value"
           ],
@@ -107741,12 +107785,18 @@
             "effectReviewCheckpointBinding/effectReviewCheckpointBinding",
             "effectReviewCheckpointBinding/effectReviewCheckpointBinding#2",
             "effectReviewCheckpointBindingFacts",
-            "effectReviewCheckpointWaitingState"
+            "effectReviewCheckpointWaitingState",
+            "effectReviewCheckpointReconciliationState",
+            "effectReviewCheckpointReconciliationState/effectReviewCheckpointReconciliationState",
+            "effectReviewCheckpointReconciliationState/snapshot/snapshot",
+            "effectReviewCheckpointCancelledState"
           ],
           "exports": [
             "effectReviewCheckpointBinding",
             "effectReviewCheckpointBindingFacts",
-            "effectReviewCheckpointWaitingState"
+            "effectReviewCheckpointWaitingState",
+            "effectReviewCheckpointReconciliationState",
+            "effectReviewCheckpointCancelledState"
           ],
           "attributes": {
             "responsibility": [
@@ -107931,6 +107981,14 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "packages/run-host-core/effect-checkpoint-retention.test.mjs",
+                "anchor": "original Checkpoint reconciliation forwards same nominal roots and snapshots receipt DATA"
+              },
+              {
+                "path": "packages/run-host-core/effect-checkpoint-retention.test.mjs",
+                "anchor": "original Checkpoint cancelled DATA forwards same originals without a scalar authority input"
               }
             ]
           }

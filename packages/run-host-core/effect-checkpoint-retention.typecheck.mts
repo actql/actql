@@ -1,4 +1,4 @@
-import {effectReviewCheckpointBinding, effectReviewCheckpointBindingFacts, effectReviewCheckpointWaitingState,
+import {effectReviewCheckpointBinding, effectReviewCheckpointBindingFacts, effectReviewCheckpointWaitingState, effectReviewCheckpointReconciliationState, effectReviewCheckpointCancelledState,
   type AllowedEffectRun, type RunDefinition, type EffectReviewCheckpointBinding} from '@actql/run-host-core';
 declare const allowed: AllowedEffectRun;
 declare const definition: RunDefinition;
@@ -15,3 +15,14 @@ effectReviewCheckpointWaitingState(binding, allowed, definition, '{}', 'time', [
 effectReviewCheckpointWaitingState(binding, allowed, definition, true, 'time', []);
 // @ts-expect-error Declared Results remain typed Strings.
 effectReviewCheckpointWaitingState(binding, allowed, definition, '{}', 'time', [1]);
+
+effectReviewCheckpointReconciliationState(binding, allowed, definition, '{}', '{}', '{}', '{}',
+  ['member'] as const, 'time', ['published'] as const);
+// @ts-expect-error Physical stop Booleans cannot replace admitted member receipt DATA.
+effectReviewCheckpointReconciliationState(binding, allowed, definition, '{}', '{}', '{}', '{}', [true], 'time', []);
+
+effectReviewCheckpointCancelledState(binding, allowed, definition, '{}', 'time', ['published'] as const);
+// @ts-expect-error A stopping Bool is not the original stored Checkpoint wire.
+effectReviewCheckpointCancelledState(binding, allowed, definition, true, 'time', []);
+// @ts-expect-error Cancellation DATA keeps declared Results typed as Strings.
+effectReviewCheckpointCancelledState(binding, allowed, definition, '{}', 'time', [1]);

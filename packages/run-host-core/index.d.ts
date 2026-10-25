@@ -156,6 +156,16 @@ export function effectReviewCheckpointBindingFacts(binding: EffectReviewCheckpoi
 export function effectReviewCheckpointWaitingState(binding: EffectReviewCheckpointBinding,
   allowed: AllowedEffectRun, definition: RunDefinition, storedWire: string,
   updatedAt: string, declaredResults: readonly string[]): string;
+/** Pure complete-Unknown receipt projection; no current/physical authority. */
+export function effectReviewCheckpointReconciliationState(binding: EffectReviewCheckpointBinding,
+  allowed: AllowedEffectRun, definition: RunDefinition, storedWire: string,
+  previewWire: string, invocationWire: string, setReceiptWire: string,
+  memberReceiptWires: readonly string[], updatedAt: string,
+  declaredResults: readonly string[]): string;
+/** Pure confirmed-cancellation DATA; whole-Run premises stay with the Host. */
+export function effectReviewCheckpointCancelledState(binding: EffectReviewCheckpointBinding,
+  allowed: AllowedEffectRun, definition: RunDefinition, storedWire: string,
+  updatedAt: string, declaredResults: readonly string[]): string;
 /** Project only the members of the original checked unit/Checkpoint. */
 export function effectReviewCheckpointMembers(allowed: AllowedEffectRun,
   definition: RunDefinition, checkpointWire: string): readonly string[];

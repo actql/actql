@@ -9,7 +9,7 @@ import {parse} from 'acorn';
 const source = readFileSync(new URL('./index.mjs', import.meta.url), 'utf8');
 const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 const names = ['checked', 'requireHandle', 'effectReviewCheckpointBinding',
-  'effectReviewCheckpointBindingFacts', 'effectReviewCheckpointWaitingState', 'effectProjectionArray'];
+  'effectReviewCheckpointBindingFacts', 'effectReviewCheckpointWaitingState', 'effectReviewCheckpointReconciliationState', 'effectReviewCheckpointCancelledState', 'effectProjectionArray'];
 const bodies = names.map(name => {
   const declaration = ast.body.map(node => node.declaration ?? node)
     .find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
@@ -21,11 +21,27 @@ const fixed = value => 'sha256:' + value.repeat(64);
 function fixture() {
   const counts = {admit: 0, fields: 0}, artifacts = [], retained = new WeakMap();
   const allowedRuns = new WeakMap(), definitions = new WeakMap(), waitingCalls = [];
-  let waitingFailure;
+  let waitingFailure, reconciliationFailure, cancelledFailure;
+  const cancelledCalls = [];
+  const reconciliationCalls = [];
   const fields = [fixed('a'), '{"original":"checkpoint"}', 'run', 'unit',
     fixed('b'), fixed('c'), fixed('d'), fixed('e')];
   let refusal = false, malformed = false;
   const owner = {
+    clientValuesHostEffectCheckpointCancelledState(original, allowed, definition, ...data) {
+      assert(artifacts.includes(original));
+      assert.strictEqual(allowed, allowedValue); assert.strictEqual(definition, definitionValue);
+      cancelledCalls.push({original, data});
+      return cancelledFailure === undefined ? {$tag: 1, _0: 'original-cancelled-wire'}
+        : {$tag: 0, _0: cancelledFailure};
+    },
+    clientValuesHostEffectCheckpointReconciliationState(original, allowed, definition, ...data) {
+      assert(artifacts.includes(original));
+      assert.strictEqual(allowed, allowedValue); assert.strictEqual(definition, definitionValue);
+      reconciliationCalls.push({original, data});
+      return reconciliationFailure === undefined ? {$tag: 1, _0: 'original-reconciliation-wire'}
+        : {$tag: 0, _0: reconciliationFailure};
+    },
     clientValuesHostEffectCheckpointWaitingState(original, storedWire, updatedAt, results) {
       assert(artifacts.includes(original));
       waitingCalls.push({original, storedWire, updatedAt, results});
@@ -51,10 +67,12 @@ function fixture() {
   allowedRuns.set(allowed, {value: allowedValue}); definitions.set(definition, definitionValue);
   const api = new Function('owner', 'effectAllowedRuns', 'definitions',
     'effectCheckpointBindings', 'runtimeIsOk', 'runtimeIsError', 'runtimeField',
-    bodies + '\nreturn {effectReviewCheckpointBinding, effectReviewCheckpointBindingFacts, effectReviewCheckpointWaitingState};')(
+    bodies + '\nreturn {effectReviewCheckpointBinding, effectReviewCheckpointBindingFacts, effectReviewCheckpointWaitingState, effectReviewCheckpointReconciliationState, effectReviewCheckpointCancelledState};')(
     owner, allowedRuns, definitions, retained, value => value?.$tag === 1,
     value => value?.$tag === 0, (value, index) => value[`_${index}`]);
-  return {api, counts, artifacts, retained, allowed, definition, fields, waitingCalls,
+  return {api, counts, artifacts, retained, allowed, definition, fields, waitingCalls, reconciliationCalls, cancelledCalls,
+    rejectCancelled(issue) {cancelledFailure = issue;},
+    rejectReconciliation(issue) {reconciliationFailure = issue;},
     rejectWaiting(issue) {waitingFailure = issue;},
     refuse() {refusal = true;}, malformed() {malformed = true;}};
 }
@@ -157,4 +175,75 @@ test('waiting projection bounds caller snapshots before Common emission', () => 
   }
   assert.equal(f.waitingCalls.length, 0);
   assert.deepEqual(f.counts, {admit: 1, fields: 1});
+});
+
+
+test('original Checkpoint reconciliation forwards same nominal roots and snapshots receipt DATA', () => {
+  const f = fixture(), binding = f.api.effectReviewCheckpointBinding(f.allowed, f.definition, f.fields[1]);
+  const members = ['member'], names = ['published'];
+  assert.equal(f.api.effectReviewCheckpointReconciliationState(binding, f.allowed, f.definition,
+    f.fields[1], 'preview', 'invocation', 'set', members, 'time', names), 'original-reconciliation-wire');
+  const call = f.reconciliationCalls[0];
+  assert.strictEqual(call.original, f.artifacts[0]);
+  assert.deepEqual(call.data, [f.fields[1], 'preview', 'invocation', 'set', members, 'time', names]);
+  assert.notStrictEqual(call.data[4], members); assert.notStrictEqual(call.data[6], names);
+  members[0] = 'changed'; names[0] = 'other';
+  assert.deepEqual(call.data[4], ['member']); assert.deepEqual(call.data[6], ['published']);
+  assert.deepEqual(f.counts, {admit: 1, fields: 1});
+});
+
+test('original Checkpoint reconciliation rejects foreign roots invalid DATA and original Core refusal', () => {
+  const f = fixture(), other = fixture();
+  const binding = f.api.effectReviewCheckpointBinding(f.allowed, f.definition, f.fields[1]);
+  const project = (candidate = binding, allowed = f.allowed, definition = f.definition,
+    members = ['member'], names = []) => f.api.effectReviewCheckpointReconciliationState(
+    candidate, allowed, definition, f.fields[1], 'preview', 'invocation', 'set', members, 'time', names);
+  assert.throws(() => project({...binding}), /ForeignRunHostCheckpointBinding/u);
+  assert.throws(() => project(binding, other.allowed), /ForeignRunHostCheckpointBinding/u);
+  assert.throws(() => project(binding, f.allowed, other.definition), /ForeignRunHostCheckpointBinding/u);
+  let getters = 0;
+  const accessor = []; Object.defineProperty(accessor, '0', {get() {getters++; return 'member';}});
+  for (const input of [accessor, new Array(1), [1], new Array(65537)]) {
+    assert.throws(() => project(binding, f.allowed, f.definition, input), /InvalidRunHostCheckpointReconciliationInput/u);
+  }
+  assert.equal(getters, 0); assert.equal(f.reconciliationCalls.length, 0);
+  assert.throws(() => project(binding, f.allowed, f.definition, ['x'.repeat(1048576)]),
+    /InvalidRunHostCheckpointReconciliationInput/u);
+  f.rejectReconciliation('original receipt refusal');
+  assert.throws(() => project(), {code: 'RunHostEffectCheckpointReconciliationRejected'});
+  assert.equal(f.reconciliationCalls.length, 1);
+});
+
+
+test('original Checkpoint cancelled DATA forwards same originals without a scalar authority input', () => {
+  const f = fixture(), binding = f.api.effectReviewCheckpointBinding(f.allowed, f.definition, f.fields[1]);
+  const names = ['published'];
+  assert.equal(f.api.effectReviewCheckpointCancelledState(binding, f.allowed, f.definition,
+    f.fields[1], 'time', names), 'original-cancelled-wire');
+  assert.strictEqual(f.cancelledCalls[0].original, f.artifacts[0]);
+  assert.deepEqual(f.cancelledCalls[0].data, [f.fields[1], 'time', names]);
+  assert.notStrictEqual(f.cancelledCalls[0].data[2], names);
+  names[0] = 'other'; assert.deepEqual(f.cancelledCalls[0].data[2], ['published']);
+  assert.deepEqual(f.counts, {admit: 1, fields: 1});
+});
+
+test('original Checkpoint cancelled DATA refuses copied foreign and invalid inputs before Core', () => {
+  const f = fixture(), other = fixture();
+  const binding = f.api.effectReviewCheckpointBinding(f.allowed, f.definition, f.fields[1]);
+  const project = (candidate = binding, allowed = f.allowed, definition = f.definition,
+    stored = f.fields[1], names = []) => f.api.effectReviewCheckpointCancelledState(
+    candidate, allowed, definition, stored, 'time', names);
+  assert.throws(() => project({...binding}), /ForeignRunHostCheckpointBinding/u);
+  assert.throws(() => project(binding, other.allowed), /ForeignRunHostCheckpointBinding/u);
+  assert.throws(() => project(binding, f.allowed, other.definition), /ForeignRunHostCheckpointBinding/u);
+  assert.throws(() => project(binding, f.allowed, f.definition, true), /InvalidRunHostCheckpointCancelledInput/u);
+  let reads = 0;
+  const accessor = []; Object.defineProperty(accessor, '0', {get() {reads++; return 'published';}});
+  for (const input of [accessor, new Array(1), [false], new Array(65537), ['x'.repeat(1048577)]]) {
+    assert.throws(() => project(binding, f.allowed, f.definition, f.fields[1], input), /InvalidRunHostCheckpointCancelledInput/u);
+  }
+  assert.equal(reads, 0); assert.equal(f.cancelledCalls.length, 0);
+  f.rejectCancelled('original typed refusal');
+  assert.throws(() => project(), {code: 'RunHostEffectCheckpointCancelledRejected'});
+  assert.equal(f.cancelledCalls.length, 1);
 });
