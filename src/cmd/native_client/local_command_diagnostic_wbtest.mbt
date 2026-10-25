@@ -266,3 +266,43 @@ test "Query parser resource refusals are not classified as invalid syntax" {
   )
   local_command_diagnostic_reset()
 }
+
+///|
+test "Primary file diagnostics disclose closed causes without replacing custody or cleanup families" {
+  let prefix = "LocalCommandPreparationUnavailable:configuration-read:filesystem"
+  let cases : Array[(@files.NativeBoundedTextIssue, String?)] = [
+    (Missing, Some("input file is missing")),
+    (CapacityExceeded, Some("configured read limit")),
+    (InvalidUtf8, Some("not valid UTF-8")),
+    (InvalidLimit, None),
+    (Filesystem(Read("SYNTHETIC_OS_SECRET")), None),
+    (
+      Cleanup(Read("SYNTHETIC_OS_SECRET"), Cleanup("SYNTHETIC_CLEANUP_SECRET")),
+      None,
+    ),
+  ]
+  for (issue, hint) in cases {
+    local_command_diagnostic_reset()
+    let failure : Result[Unit, LocalCommandPreparationIssue] = Err(
+      CommandFilesystem(issue),
+    )
+    let message = try {
+      command_preparation_result(failure, stage=Some("configuration-read"))
+      "unexpected success"
+    } catch {
+      ClientStop(message) => message
+    }
+    assert_true(message.has_prefix(prefix))
+    match hint {
+      Some(hint) => assert_true(message.contains(hint))
+      None => assert_eq(message, prefix)
+    }
+    assert_false(message.contains("SYNTHETIC_OS_SECRET"))
+    assert_false(message.contains("SYNTHETIC_CLEANUP_SECRET"))
+    assert_eq(
+      command_preparation_cleanup_kind(CommandFilesystem(issue)),
+      "filesystem",
+    )
+  }
+  local_command_diagnostic_reset()
+}

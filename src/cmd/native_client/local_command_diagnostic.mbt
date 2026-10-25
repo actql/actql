@@ -247,3 +247,26 @@ fn local_command_diagnostic_text(
     "actql-native-client: " + code + ": " + quoted
   }
 }
+
+///|
+// Add only closed primary read advice. The original failure and all Reader/Root
+// custody stay with their owner; OS strings and protected paths are not facts.
+fn local_bounded_file_diagnostic_message(
+  original : String,
+  issue : @files.NativeBoundedTextIssue,
+) -> String {
+  let hint = match issue {
+    Missing =>
+      Some(
+        "The input file is missing. Check the selected file and configuration.",
+      )
+    CapacityExceeded =>
+      Some("The input file does not fit the configured read limit.")
+    InvalidUtf8 => Some("The input file is not valid UTF-8. Use UTF-8 text.")
+    _ => None
+  }
+  match hint {
+    Some(hint) => original + ": " + hint
+    None => original
+  }
+}
