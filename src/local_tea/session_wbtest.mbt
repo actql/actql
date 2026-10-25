@@ -225,7 +225,7 @@ test "session scratch initialization advances within the resume quantum" {
       event_window_sequence(owner),
       0,
       input,
-      { ..event_window_limits(), max_workspace_slots: 52, },
+      { ..event_window_limits(), max_workspace_slots: 68, },
       4096L,
       fn() { live.val },
     )
@@ -237,7 +237,7 @@ test "session scratch initialization advances within the resume quantum" {
     event_window_sequence(owner),
     0,
     input,
-    { ..event_window_limits(), max_workspace_slots: 53, },
+    { ..event_window_limits(), max_workspace_slots: 69, },
     4096L,
     fn() { live.val },
   ).unwrap()
@@ -272,7 +272,7 @@ test "session scratch initialization advances within the resume quantum" {
     event_window_sequence(owner),
     0,
     stopped_input,
-    { ..event_window_limits(), max_workspace_slots: 53, },
+    { ..event_window_limits(), max_workspace_slots: 69, },
     4096L,
     fn() { live.val },
   ).unwrap()
@@ -297,10 +297,10 @@ test "session output workspace includes scratch and temporary fields" {
     3,
   )
   let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
-  // One record and one key retain 3 cells, 3 indices, and 4 metadata
+  // One record and one key retain 3 cells, 3 indices, 2 labels, and 4 metadata
   // slots. Borrowed output fields plus append handle add seven slots.
-  // Cursor 65, row eight, scratch ten, fields/handle seven, position one.
-  for (budget, accepted) in [(91, true), (90, false)] {
+  // Cursor 65, row eight, scratch twelve, fields/handle seven, position one.
+  for (budget, accepted) in [(93, true), (92, false)] {
     let execution = start_session(
       @bounded.control(),
       event_window_sequence(owner),
@@ -349,8 +349,8 @@ test "session admits exact and one-short cumulative control work" {
   // One row and one key take six scratch initialization steps, eighteen
   // field-loading steps, five ordering steps, one group step, five identity
   // steps, and nine outer output/finalization steps. Common append adds
-  // 6*6+2*1+8=46 polls, for 44+46=90 charged control units.
-  for (budget, accepted) in [(90, true), (89, false)] {
+  // 6*6+2*1+8=46 polls, plus two label/emission phase units: 44+46+2=92 charged units.
+  for (budget, accepted) in [(92, true), (91, false)] {
     let execution = start_session(
       @bounded.control(),
       event_window_sequence(owner),
@@ -370,13 +370,13 @@ test "session admits exact and one-short cumulative control work" {
         SessionContinue(work~, ..) => assert_true(work <= budget.to_int64())
         SessionComplete(output, progress~, work~) => {
           assert_true(accepted)
-          assert_eq((progress, work), (1L, 90L))
+          assert_eq((progress, work), (1L, 92L))
           assert_true(@records.discard_completed(output))
           terminal = true
         }
         SessionFailed(SessionControlWorkLimit, progress~, work~) => {
           assert_false(accepted)
-          assert_eq((progress, work), (1L, 89L))
+          assert_eq((progress, work), (1L, 91L))
           assert_true(session_cleanup_pending(execution))
           terminal = true
         }
