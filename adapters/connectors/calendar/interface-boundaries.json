@@ -1172,7 +1172,7 @@
     },
     {
       "module": "src/connectors/calendar/catalog/free_busy.mbt",
-      "sha256": "5e4a87bbfa7c0b14edb88c8aac1192b37f16e7c9648a6ee2889be990be0c9423",
+      "sha256": "48bd86b0ba3042e4eb00fde7c54110fd96a6a7cdcd8776de00e75068eabbbe39",
       "exports": [],
       "operations": [
         {
@@ -1208,10 +1208,6 @@
           "declaration": "calendar_rfc3339 ( text : String ) - > String ?"
         },
         {
-          "name": "free_busy_digits",
-          "declaration": "free_busy_digits ( text : String , start : Int , end : Int ) - > Int ?"
-        },
-        {
           "name": "free_busy_limits_valid",
           "declaration": "free_busy_limits_valid ( limits : CalendarFreeBusyLimits ) - > Bool"
         },
@@ -1243,7 +1239,6 @@
             "calendar_free_busy_rows_wire",
             "calendar_free_busy_schema_wire",
             "calendar_rfc3339",
-            "free_busy_digits",
             "free_busy_limits_valid",
             "free_busy_no_errors",
             "prepare_calendar_free_busy_query",
