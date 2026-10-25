@@ -248,82 +248,73 @@ test "native filesystem creates an allocation area exclusively and removes only 
 }
 
 ///|
-test "native filesystem streaming SHA256 preserves original Reader before finish" {
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(path) else {
-    return
-  }
+test "native Reader bounded stream retains offset EOF and finish ownership" {
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
   let root = open_root(path).unwrap()
   let token = @env.now().to_string()
-  let vectors = [
-    (
-      Bytes::new(0),
-      b"\xe3\xb0\xc4\x42\x98\xfc\x1c\x14\x9a\xfb\xf4\xc8\x99\x6f\xb9\x24\x27\xae\x41\xe4\x64\x9b\x93\x4c\xa4\x95\x99\x1b\x78\x52\xb8\x55",
-    ),
-    (
-      b"abc", b"\xba\x78\x16\xbf\x8f\x01\xcf\xea\x41\x41\x40\xde\x5d\xae\x22\x23\xb0\x03\x61\xa3\x96\x17\x7a\x9c\xb4\x10\xff\x61\xf2\x00\x15\xad",
-    ),
-    (
-      Bytes::make(32769, 97),
-      b"\x94\xc9\x39\x4b\xd6\xee\x8f\xca\xd7\xb3\x73\x32\x52\x91\x86\xfd\x12\x35\x4d\xc3\x9b\x01\x09\xdb\x7e\x1b\xce\x51\x0e\x25\x04\x8d",
-    ),
-  ]
-  for index, vector in vectors {
-    let (body, expected) = vector
-    let suffix = token + "-" + index.to_string()
-    let writer = root
-      .create_writer("digest-stage-" + suffix, body.length().to_int64())
-      .unwrap()
-    writer.append(body).unwrap()
-    let name = "digest-object-" + suffix
-    let generation = writer.seal(name).unwrap()
-    let reader = root.open_reader(name, generation).unwrap()
-    match reader.sha256() {
-      Ok(actual) => {
-        assert_eq(actual, expected)
-        assert_true(reader_ready_ffi(reader))
-        assert_true(reader.sha256() is Err(Read(_)))
-        reader.finish().unwrap()
-        assert_false(reader_ready_ffi(reader))
-      }
-      Err(UnsupportedTarget) => {
-        // An unselected platform has not consumed even the first byte.
-        assert_true(reader_ready_ffi(reader))
-        let first = reader.next(1048576).unwrap()
-        assert_eq(first.bytes, body)
-        reader.finish().unwrap()
-      }
-      Err(_) => fail("streaming digest refused")
-    }
-    reader.close().unwrap()
-    writer.cancel().unwrap()
+  let name = "reader-stream-object-" + token
+  let writer = root
+    .create_writer("reader-stream-stage-" + token, 131073L)
+    .unwrap()
+  writer.append(Bytes::make(131073, 97)).unwrap()
+  writer.seal(name).unwrap() |> ignore
+  let original = root.observe_file(name).unwrap()
+  let reader = original.open_reader_with_custody().unwrap()
+  assert_eq(reader.next(1).unwrap().bytes, b"a")
+  for index = 0; index < 2; index = index + 1 {
+    let chunk = reader.next(65536).unwrap()
+    assert_eq(chunk.bytes.length(), 65536)
+    assert_eq(chunk.bytes, Bytes::make(65536, 97))
   }
+  let eof = reader.next(65536).unwrap()
+  assert_true(eof.eof)
+  assert_true(eof.bytes.is_empty())
+  assert_true(reader_ready_ffi(reader))
+  let again = reader.next(65536).unwrap()
+  assert_true(again.eof)
+  assert_true(again.bytes.is_empty())
+  original.check_reader(reader).unwrap()
+  reader.finish().unwrap()
+  reader.finish().unwrap()
+  assert_false(reader_ready_ffi(reader))
+  assert_true(reader.next(1) is Err(ReaderClosed))
+  reader.close().unwrap()
+  original.check_current().unwrap()
+  writer.cancel().unwrap()
   root.close().unwrap()
 }
 
 ///|
-test "native filesystem streaming SHA256 refuses a partially consumed original" {
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(path) else {
-    return
-  }
+#borrow(root, name)
+extern "C" fn stream_test_mutate(
+  root : Root,
+  name : Bytes,
+  length : Int,
+  kind : Int,
+) -> Bool = "actql_native_filesystem_test_observation_mutation"
+
+///|
+test "native Reader stream refuses overwrite after partial read without closing original" {
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
   let root = open_root(path).unwrap()
-  let suffix = @env.now().to_string()
-  let writer = root.create_writer("digest-partial-stage-" + suffix, 3L).unwrap()
+  let token = @env.now().to_string()
+  let name = "reader-mutation-object-" + token
+  let writer = root.create_writer("reader-mutation-stage-" + token, 3L).unwrap()
   writer.append(b"abc").unwrap()
-  let name = "digest-partial-object-" + suffix
-  let generation = writer.seal(name).unwrap()
-  let reader = root.open_reader(name, generation).unwrap()
+  writer.seal(name).unwrap() |> ignore
+  let original = root.observe_file(name).unwrap()
+  let reader = original.open_reader_with_custody().unwrap()
   assert_eq(reader.next(1).unwrap().bytes, b"a")
-  match reader.sha256() {
-    Err(Read(_)) | Err(UnsupportedTarget) => ()
-    _ => fail("partially consumed digest was accepted")
-  }
+  let encoded = @utf8.encode(name)
+  assert_true(stream_test_mutate(root, encoded, encoded.length(), 2))
+  // Chunk reads check the original length; the observation owns full freshness.
+  assert_eq(reader.next(2).unwrap().bytes.length(), 2)
   assert_true(reader_ready_ffi(reader))
-  assert_eq(reader.next(2).unwrap().bytes, b"bc")
-  reader.finish().unwrap()
-  assert_true(
-    reader.sha256() is Err(ReaderClosed) ||
-    reader.sha256() is Err(UnsupportedTarget),
-  )
+  assert_true(original.check_reader(reader) is Err(GenerationMismatch))
+  // As in the caller, a failed full observation must not acknowledge finish.
+  reader.close().unwrap()
+  reader.close().unwrap()
+  assert_true(reader.next(1) is Err(ReaderClosed))
   writer.cancel().unwrap()
   root.close().unwrap()
 }

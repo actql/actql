@@ -446,16 +446,19 @@ credential authority and numerical resource admission are unchanged.
 
 ### Streaming digest of an original file Reader
 
-The selected Darwin filesystem adapter can hash a fresh original Reader with
-its system SHA256 implementation before the private Crypto component loads.
-The typed entrance returns 32 digest bytes after bounded 16 KiB reads of that
-same descriptor. It leaves the original Reader open at EOF: opened-file
-identity inspection and the existing `finish` acknowledgement remain separate
-caller duties. It neither reopens a path nor issues permission, storage identity
-or cleanup credit. Errors preserve the same Reader for original cleanup.
+Packaged runtime members use the shared incremental SHA256 implementation
+rather than a digest selected by the operating system. The caller feeds at
+most 64 KiB per `Reader.next` call;
+the Hasher retains only its fixed digest state, block and word schedule, not
+the input. Digest-only members are never collected into a whole-file buffer.
+Metadata collection retains its separate admitted 64 KiB bound.
 
-Other platforms refuse this optional primitive as `UnsupportedTarget` before
-any read or Reader mutation. A caller may explicitly retain its existing
-portable digest path only for that disposition, using the same fresh Reader;
-physical read, currentness and digest errors never select a fallback. A Reader
-that was already consumed cannot start this digest operation.
+Hashing does not reopen a path or select an OS-specific digest implementation.
+The same original Reader remains open through EOF and opened-file identity
+inspection, followed by the existing `finish` acknowledgement. Physical read
+or currentness errors retain that Reader for original cleanup; digest failures
+do not choose another implementation. Final digest comparison and the original
+observation's currentness check still precede witness issuance. This does not
+change permission, storage identity, resource admission or cleanup credit.
+
+This consolidation does not broaden native Host or bootstrap platform support.
