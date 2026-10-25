@@ -582,9 +582,25 @@ export function validateResourceAccounting({
         'retained_source_free_chain_admission',
         'retained_source_free_chain_rejection',
         'retained_source_free_product_configuration',
-        'retained_source_free_product_rejection',
+        'retained_source_free_product_branch_admission',
+        'retained_source_free_branch_execution_and_cancellation',
         'retained_source_free_chain_budgets',
       ];
+      // Admission of a selected earlier producer is distinct from executing the
+      // checked branch. Never let a constructor-only fixture stand in for the
+      // real ordered-output/cancellation test or the retained negative controls.
+      const valuesAnchors = new Map([
+        ['retained_source_free_chain_rejection', 'Values publication rejects wrong children and shadowing providers'],
+        ['retained_source_free_product_branch_admission', 'product retained factory admits the exact earlier Values producer of a checked branch'],
+        ['retained_source_free_branch_execution_and_cancellation', 'source-free Values chains preserve ordered results and cancellation custody'],
+      ]);
+      for (const [role, fixture] of valuesAnchors) {
+        const entry = route.boundary_tests?.find(item => item.role === role);
+        if (entry && (entry.fixture !== fixture || entry.suite !== 'moon:query_integration' ||
+            entry.path !== 'src/query_integration/local_retained_values_chain_wbtest.mbt')) {
+          fail(`${label}: ${role} must bind its distinct checked Values boundary`);
+        }
+      }
       if (route.zero_input_entrypoint?.symbol !== 'values_provider' ||
         requiredValuesRoles.some(role => !boundaryRoles.has(role))) {
         fail(`${label}: bounded zero-input Values route lacks its production evidence`);

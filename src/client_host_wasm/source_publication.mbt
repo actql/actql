@@ -21,7 +21,6 @@ priv struct StoredRunInvocation {
 }
 
 ///|
-#export_name("actql_source_publication_reserve")
 pub fn reserve_source_publication(
   nonce : Int64,
   compute : Int,
@@ -108,7 +107,6 @@ fn reserve_run_invocation_output(
 }
 
 ///|
-#export_name("actql_source_publication_prepare")
 pub fn prepare_source_publication(
   nonce : Int64,
   handle : Int,
@@ -188,7 +186,6 @@ pub fn prepare_source_publication(
 }
 
 ///|
-#export_name("actql_source_publication_advance")
 pub fn advance_source_publication(
   nonce : Int64,
   handle : Int,
@@ -219,7 +216,6 @@ pub fn advance_source_publication(
 }
 
 ///|
-#export_name("actql_source_publication_progress")
 pub fn source_publication_progress(
   nonce : Int64,
   handle : Int,
@@ -243,7 +239,6 @@ pub fn source_publication_progress(
 }
 
 ///|
-#export_name("actql_source_publication_finish")
 pub fn finish_source_publication(
   nonce : Int64,
   handle : Int,
@@ -332,7 +327,6 @@ pub fn finish_source_publication(
 }
 
 ///|
-#export_name("actql_source_publication_length")
 pub fn source_publication_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.run_invocations.get(handle) is Some(record) &&
@@ -354,7 +348,6 @@ fn run_invocation_length(value : Instance, record : StoredRunInvocation) -> Int 
 }
 
 ///|
-#export_name("actql_source_publication_close")
 pub fn close_source_publication(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.run_invocations.get(handle) is Some(record) &&

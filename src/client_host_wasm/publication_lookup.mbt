@@ -2,7 +2,6 @@
 /// Retain the original physically read index and its Store reference. Scope
 /// and lookup references come from the existing completed CommitPreparation;
 /// no Python comparison or publisher permission is accepted as a commit fact.
-#export_name("actql_publication_prepare_lookup")
 pub fn prepare_publication_lookup(
   nonce : Int64,
   handle : Int,
@@ -104,7 +103,6 @@ pub fn prepare_publication_lookup(
 /// Return only this same original index borrow after observation and projected
 /// reference loans finish cleanup. A stop failure keeps the handle/loan live.
 /// The caller separately closes its original physical input; no Run is closed.
-#export_name("actql_publication_retire_lookup")
 pub fn retire_publication_lookup(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.publications.get(handle) is Some(record) else {

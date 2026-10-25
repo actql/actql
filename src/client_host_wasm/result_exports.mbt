@@ -80,7 +80,6 @@ fn result_export_limits() -> @host.PublicationOutputExportLimits {
 }
 
 ///|
-#export_name("actql_result_reserve")
 pub fn reserve_result_export(nonce : Int64, task : Int, result : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.tasks.get(task) is Some(record) &&
@@ -140,7 +139,6 @@ priv struct StoredResultChunk {
 }
 
 ///|
-#export_name("actql_result_reserve_chunk")
 pub fn reserve_result_chunk(
   nonce : Int64,
   result : Int,
@@ -199,7 +197,6 @@ pub fn reserve_result_chunk(
 }
 
 ///|
-#export_name("actql_result_produce_chunk")
 pub fn produce_result_chunk(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.result_chunks.get(handle) is Some(chunk) &&
@@ -254,7 +251,6 @@ pub fn produce_result_chunk(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_result_chunk_length")
 pub fn result_chunk_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.result_chunks.get(handle) is Some(chunk) &&
@@ -268,7 +264,6 @@ pub fn result_chunk_length(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Only the export Owner's successful finish produces the final marker. EOF
 /// is not a publication receipt, Run success or permission to execute again.
-#export_name("actql_result_chunk_final")
 pub fn result_chunk_final(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.result_chunks.get(handle) is Some(chunk) &&
@@ -283,7 +278,6 @@ pub fn result_chunk_final(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_result_close_chunk")
 pub fn close_result_chunk(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.result_chunks.get(handle) is Some(chunk) else {
@@ -310,7 +304,6 @@ pub fn close_result_chunk(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_result_start")
 pub fn start_result_export(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.result_exports.get(handle) is Some(record) &&
@@ -360,7 +353,6 @@ pub fn start_result_export(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Rows come from the exact retained producer; the existing bridge re-admits
 /// them. The scalar position is a transfer cursor, not execution progress.
-#export_name("actql_result_feed")
 pub fn feed_result_export(nonce : Int64, handle : Int, quantum : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.result_exports.get(handle) is Some(record) &&
@@ -435,7 +427,6 @@ pub fn feed_result_export(nonce : Int64, handle : Int, quantum : Int) -> Int {
 }
 
 ///|
-#export_name("actql_result_inputs_ready")
 pub fn result_export_inputs_ready(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.result_exports.get(handle) is Some(record) else {
@@ -455,7 +446,6 @@ pub fn result_export_inputs_ready(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_result_advance")
 pub fn advance_result_export(nonce : Int64, handle : Int, quantum : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.result_exports.get(handle) is Some(record) &&
@@ -488,7 +478,6 @@ pub fn advance_result_export(nonce : Int64, handle : Int, quantum : Int) -> Int 
 }
 
 ///|
-#export_name("actql_result_progress")
 pub fn result_export_progress(nonce : Int64, handle : Int, field : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.result_exports.get(handle) is Some(record) &&
@@ -505,7 +494,6 @@ pub fn result_export_progress(nonce : Int64, handle : Int, field : Int) -> Int {
 }
 
 ///|
-#export_name("actql_result_finish_preparation")
 pub fn finish_result_export_preparation(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.result_exports.get(handle) is Some(record) &&
@@ -539,7 +527,6 @@ pub fn finish_result_export_preparation(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_result_close")
 pub fn close_result_export(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.result_exports.get(handle) is Some(record) else {
@@ -575,7 +562,6 @@ pub fn close_result_export(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Select the original Named Result's completed producer in Core. Python never
 /// supplies a task number, copied completion flag or substitute Result mapping.
-#export_name("actql_result_reserve_from_compute")
 pub fn reserve_result_from_compute(
   nonce : Int64,
   compute : Int,

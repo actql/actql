@@ -8083,579 +8083,1155 @@
               },
               {
                 "path": "src/client_host_wasm/host_current.mbt",
-                "anchor": "#export_name(\"actql_current_reserve\")"
+                "anchor": "pub fn reserve_host_current("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_host_current:actql_current_reserve\""
               },
               {
                 "path": "src/client_host_wasm/journal_observation.mbt",
-                "anchor": "#export_name(\"actql_journal_reserve\")"
+                "anchor": "pub fn reserve_journal_observation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_journal_observation:actql_journal_reserve\""
               },
               {
                 "path": "src/client_host_wasm/publisher.mbt",
-                "anchor": "#export_name(\"actql_publisher_reserve\")"
+                "anchor": "pub fn reserve_publisher("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_publisher:actql_publisher_reserve\""
               },
               {
                 "path": "src/client_host_wasm/publisher.mbt",
-                "anchor": "#export_name(\"actql_publisher_close\")"
+                "anchor": "pub fn close_publisher("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"close_publisher:actql_publisher_close\""
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
-                "anchor": "#export_name(\"actql_buffer_reserve\")"
+                "anchor": "pub fn reserve("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve:actql_buffer_reserve\""
               },
               {
                 "path": "src/client_host_wasm/physical_start.mbt",
-                "anchor": "#export_name(\"actql_run_dispatch_action\")"
+                "anchor": "pub fn dispatch_action("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"dispatch_action:actql_run_dispatch_action\""
               },
               {
                 "path": "src/client_host_wasm/workspaces.mbt",
-                "anchor": "#export_name(\"actql_workspace_reserve\")"
+                "anchor": "pub fn reserve_workspace("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_workspace:actql_workspace_reserve\""
               },
               {
                 "path": "src/client_host_wasm/workspaces.mbt",
-                "anchor": "#export_name(\"actql_workspace_close\")"
+                "anchor": "pub fn close_workspace("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"close_workspace:actql_workspace_close\""
               },
               {
                 "path": "src/client_host_wasm/submission.mbt",
-                "anchor": "#export_name(\"actql_submission_reserve\")"
+                "anchor": "pub fn reserve_submission_projection("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_submission_projection:actql_submission_reserve\""
               },
               {
                 "path": "src/client_host_wasm/bootstrap.mbt",
-                "anchor": "#export_name(\"actql_bootstrap_reserve\")"
+                "anchor": "pub fn reserve_bootstrap("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_bootstrap:actql_bootstrap_reserve\""
               },
               {
                 "path": "src/client_host_wasm/original_metadata.mbt",
-                "anchor": "#export_name(\"actql_original_reserve\")"
+                "anchor": "pub fn reserve_original_metadata("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_original_metadata:actql_original_reserve\""
               },
               {
                 "path": "src/client_host_wasm/submission.mbt",
-                "anchor": "#export_name(\"actql_submission_produce\")"
+                "anchor": "pub fn produce_submission_projection("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_submission_projection:actql_submission_produce\""
               },
               {
                 "path": "src/client_host_wasm/submission_append.mbt",
-                "anchor": "#export_name(\"actql_submission_validate_append\")"
+                "anchor": "pub fn validate_submission_append("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_submission_append:actql_submission_validate_append\""
               },
               {
                 "path": "src/client_host_wasm/submission.mbt",
-                "anchor": "#export_name(\"actql_submission_retire_output\")"
+                "anchor": "pub fn retire_submission_output("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"retire_submission_output:actql_submission_retire_output\""
               },
               {
                 "path": "src/client_host_wasm/source_publication.mbt",
-                "anchor": "#export_name(\"actql_source_publication_progress\")"
+                "anchor": "pub fn source_publication_progress("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"source_publication_progress:actql_source_publication_progress\""
               },
               {
                 "path": "src/client_host_wasm/publication_preflight.mbt",
-                "anchor": "#export_name(\"actql_publication_preflight_reserve\")"
+                "anchor": "pub fn reserve_publication_preflight("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_publication_preflight:actql_publication_preflight_reserve\""
               },
               {
                 "path": "src/client_host_wasm/publication_preflight.mbt",
-                "anchor": "#export_name(\"actql_publication_preflight_result_count\")"
+                "anchor": "pub fn publication_preflight_result_count("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"publication_preflight_result_count:actql_publication_preflight_result_count\""
               },
               {
                 "path": "src/client_host_wasm/publication_preflight.mbt",
-                "anchor": "#export_name(\"actql_publication_preflight_retire_output\")"
+                "anchor": "pub fn retire_publication_preflight_output("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"retire_publication_preflight_output:actql_publication_preflight_retire_output\""
               },
               {
                 "path": "src/client_host_wasm/publication.mbt",
-                "anchor": "#export_name(\"actql_publication_reserve\")"
+                "anchor": "pub fn reserve_publication("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_publication:actql_publication_reserve\""
               },
               {
                 "path": "src/client_host_wasm/publication.mbt",
-                "anchor": "#export_name(\"actql_publication_progress\")"
+                "anchor": "pub fn publication_progress("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"publication_progress:actql_publication_progress\""
               },
               {
                 "path": "src/client_host_wasm/publication.mbt",
-                "anchor": "#export_name(\"actql_publication_retire_output\")"
+                "anchor": "pub fn retire_publication_output("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"retire_publication_output:actql_publication_retire_output\""
               },
               {
                 "path": "src/client_host_wasm/result_binding.mbt",
-                "anchor": "#export_name(\"actql_result_binding_reserve\")"
+                "anchor": "pub fn reserve_result_binding("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_result_binding:actql_result_binding_reserve\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_progress\")"
+                "anchor": "pub fn publication_commit_progress("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"publication_commit_progress:actql_publication_commit_progress\""
               },
               {
                 "path": "src/client_host_wasm/publication_lookup.mbt",
-                "anchor": "#export_name(\"actql_publication_retire_lookup\")"
+                "anchor": "pub fn retire_publication_lookup("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"retire_publication_lookup:actql_publication_retire_lookup\""
               },
               {
                 "path": "src/client_host_wasm/publication_observation.mbt",
-                "anchor": "#export_name(\"actql_publication_observation_progress\")"
+                "anchor": "pub fn publication_observation_progress("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"publication_observation_progress:actql_publication_observation_progress\""
               },
               {
                 "path": "src/client_host_wasm/publication_observation.mbt",
-                "anchor": "#export_name(\"actql_publication_finish_observation\")"
+                "anchor": "pub fn finish_publication_observation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"finish_publication_observation:actql_publication_finish_observation\""
               },
               {
                 "path": "src/client_host_wasm/publication_observation.mbt",
-                "anchor": "#export_name(\"actql_publication_retire_observation\")"
+                "anchor": "pub fn retire_publication_observation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"retire_publication_observation:actql_publication_retire_observation\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_reserve\")"
+                "anchor": "pub fn reserve_publication_commit_export("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_publication_commit_export:actql_publication_commit_export_reserve\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_count\")"
+                "anchor": "pub fn publication_commit_export_count("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"publication_commit_export_count:actql_publication_commit_export_count\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_result_count\")"
+                "anchor": "pub fn publication_commit_export_result_count("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"publication_commit_export_result_count:actql_publication_commit_export_result_count\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_retire_sdk_delivery_output\")"
+                "anchor": "pub fn retire_publication_sdk_delivery_output("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"retire_publication_sdk_delivery_output:actql_publication_commit_export_retire_sdk_delivery_output\""
               },
               {
                 "path": "src/client_host_wasm/sdk_payload_codecs.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_prepare_sdk_payload_codecs\")"
+                "anchor": "pub fn prepare_publication_sdk_payload_codecs("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"prepare_publication_sdk_payload_codecs:actql_publication_commit_export_prepare_sdk_payload_codecs\""
               },
               {
                 "path": "src/client_host_wasm/sdk_payload_record.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_sdk_payload_ordinal\")"
+                "anchor": "pub fn publication_sdk_payload_ordinal("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"publication_sdk_payload_ordinal:actql_publication_commit_export_sdk_payload_ordinal\""
               },
               {
                 "path": "src/client_host_wasm/sdk_payload_record.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_bind_sdk_payload_record\")"
+                "anchor": "pub fn bind_publication_sdk_payload_record("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"bind_publication_sdk_payload_record:actql_publication_commit_export_bind_sdk_payload_record\""
               },
               {
                 "path": "src/client_host_wasm/sdk_payload_bytes.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_prepare_sdk_payload_input\")"
+                "anchor": "pub fn prepare_publication_sdk_payload_input("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"prepare_publication_sdk_payload_input:actql_publication_commit_export_prepare_sdk_payload_input\""
               },
               {
                 "path": "src/client_host_wasm/sdk_payload_bytes.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_sdk_payload_chunk\")"
+                "anchor": "pub fn produce_publication_sdk_payload_chunk("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_sdk_payload_chunk:actql_publication_commit_export_produce_sdk_payload_chunk\""
               },
               {
                 "path": "src/client_host_wasm/sdk_payload_bytes.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_confirm_sdk_payload_chunk\")"
+                "anchor": "pub fn confirm_publication_sdk_payload_chunk("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"confirm_publication_sdk_payload_chunk:actql_publication_commit_export_confirm_sdk_payload_chunk\""
               },
               {
                 "path": "src/client_host_wasm/sdk_payload_bytes.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_sdk_payload_receipt\")"
+                "anchor": "pub fn produce_publication_sdk_payload_receipt("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_sdk_payload_receipt:actql_publication_commit_export_produce_sdk_payload_receipt\""
               },
               {
                 "path": "src/client_host_wasm/sdk_delivery_terminal.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_sdk_terminal_storage\")"
+                "anchor": "pub fn produce_publication_sdk_terminal_storage("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_sdk_terminal_storage:actql_publication_commit_export_produce_sdk_terminal_storage\""
               },
               {
                 "path": "src/client_host_wasm/sdk_delivery_terminal.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_observe_sdk_terminal\")"
+                "anchor": "pub fn observe_publication_sdk_terminal("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"observe_publication_sdk_terminal:actql_publication_commit_export_observe_sdk_terminal\""
               },
               {
                 "path": "src/client_host_wasm/payload_request.mbt",
-                "anchor": "#export_name(\"actql_payload_request_reserve\")"
+                "anchor": "pub fn reserve_payload_request("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_payload_request:actql_payload_request_reserve\""
               },
               {
                 "path": "src/client_host_wasm/payload_chunks.mbt",
-                "anchor": "#export_name(\"actql_payload_chunk_reserve\")"
+                "anchor": "pub fn reserve_payload_chunk("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_payload_chunk:actql_payload_chunk_reserve\""
               },
               {
                 "path": "src/client_host_wasm/payload_chunks.mbt",
-                "anchor": "#export_name(\"actql_payload_chunk_final\")"
+                "anchor": "pub fn payload_chunk_final("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"payload_chunk_final:actql_payload_chunk_final\""
               },
               {
                 "path": "src/client_host_wasm/payload_record.mbt",
-                "anchor": "#export_name(\"actql_payload_record_reserve\")"
+                "anchor": "pub fn reserve_payload_record("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_payload_record:actql_payload_record_reserve\""
               },
               {
                 "path": "src/client_host_wasm/payload_reservation.mbt",
-                "anchor": "#export_name(\"actql_payload_reservation_reserve\")"
+                "anchor": "pub fn reserve_payload_reservation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_payload_reservation:actql_payload_reservation_reserve\""
               },
               {
                 "path": "src/client_host_wasm/payload_writing.mbt",
-                "anchor": "#export_name(\"actql_payload_writing_reserve\")"
+                "anchor": "pub fn reserve_payload_writing("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_payload_writing:actql_payload_writing_reserve\""
               },
               {
                 "path": "src/client_host_wasm/payload_names.mbt",
-                "anchor": "#export_name(\"actql_payload_names_reserve\")"
+                "anchor": "pub fn reserve_payload_names("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_payload_names:actql_payload_names_reserve\""
               },
               {
                 "path": "src/client_host_wasm/payload_binding.mbt",
-                "anchor": "#export_name(\"actql_payload_binding_reserve\")"
+                "anchor": "pub fn reserve_payload_binding("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_payload_binding:actql_payload_binding_reserve\""
               },
               {
                 "path": "src/client_host_wasm/payload_allocation.mbt",
-                "anchor": "#export_name(\"actql_payload_allocation_reserve\")"
+                "anchor": "pub fn reserve_payload_allocation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_payload_allocation:actql_payload_allocation_reserve\""
               },
               {
                 "path": "src/client_host_wasm/materials.mbt",
-                "anchor": "#export_name(\"actql_material_reserve\")"
+                "anchor": "pub fn reserve_material("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_material:actql_material_reserve\""
               },
               {
                 "path": "src/client_host_wasm/materials.mbt",
-                "anchor": "#export_name(\"actql_material_reserve_submitted_rows\")"
+                "anchor": "pub fn reserve_submitted_rows_material("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_submitted_rows_material:actql_material_reserve_submitted_rows\""
               },
               {
                 "path": "src/client_host_wasm/native_attempt.mbt",
-                "anchor": "#export_name(\"actql_source_reserve_attempt\")"
+                "anchor": "pub fn reserve_native_attempt("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_native_attempt:actql_source_reserve_attempt\""
               },
               {
                 "path": "src/client_host_wasm/native_receipts.mbt",
-                "anchor": "#export_name(\"actql_source_close_event\")"
+                "anchor": "pub fn close_native_event("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"close_native_event:actql_source_close_event\""
               },
               {
                 "path": "src/client_host_wasm/native_receipts.mbt",
-                "anchor": "#export_name(\"actql_source_completed\")"
+                "anchor": "pub fn native_source_completed("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"native_source_completed:actql_source_completed\""
               },
               {
                 "path": "src/client_host_wasm/native_attempt.mbt",
-                "anchor": "#export_name(\"actql_source_close_attempt\")"
+                "anchor": "pub fn close_native_attempt("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"close_native_attempt:actql_source_close_attempt\""
               },
               {
                 "path": "src/client_host_wasm/native_compute.mbt",
-                "anchor": "#export_name(\"actql_compute_reserve\")"
+                "anchor": "pub fn reserve_native_compute("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_native_compute:actql_compute_reserve\""
               },
               {
                 "path": "src/client_host_wasm/native_compute.mbt",
-                "anchor": "#export_name(\"actql_compute_close\")"
+                "anchor": "pub fn close_native_compute("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"close_native_compute:actql_compute_close\""
               },
               {
                 "path": "src/client_host_wasm/managed_tasks.mbt",
-                "anchor": "#export_name(\"actql_task_reserve\")"
+                "anchor": "pub fn reserve_managed_task("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_managed_task:actql_task_reserve\""
               },
               {
                 "path": "src/client_host_wasm/managed_tasks.mbt",
-                "anchor": "#export_name(\"actql_task_reserve_next_sdk\")"
+                "anchor": "pub fn reserve_next_sdk_task("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_next_sdk_task:actql_task_reserve_next_sdk\""
               },
               {
                 "path": "src/client_host_wasm/managed_tasks.mbt",
-                "anchor": "#export_name(\"actql_task_inputs_ready\")"
+                "anchor": "pub fn managed_task_inputs_ready("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"managed_task_inputs_ready:actql_task_inputs_ready\""
               },
               {
                 "path": "src/client_host_wasm/managed_tasks.mbt",
-                "anchor": "#export_name(\"actql_task_close\")"
+                "anchor": "pub fn close_managed_task("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"close_managed_task:actql_task_close\""
               },
               {
                 "path": "src/client_host_wasm/native_commands.mbt",
-                "anchor": "#export_name(\"actql_source_reserve_command\")"
+                "anchor": "pub fn reserve_native_command("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_native_command:actql_source_reserve_command\""
               },
               {
                 "path": "src/client_host_wasm/result_exports.mbt",
-                "anchor": "#export_name(\"actql_result_reserve\")"
+                "anchor": "pub fn reserve_result_export("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_result_export:actql_result_reserve\""
               },
               {
                 "path": "src/client_host_wasm/result_exports.mbt",
-                "anchor": "#export_name(\"actql_result_reserve_from_compute\")"
+                "anchor": "pub fn reserve_result_from_compute("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_result_from_compute:actql_result_reserve_from_compute\""
               },
               {
                 "path": "src/client_host_wasm/result_exports.mbt",
-                "anchor": "#export_name(\"actql_result_inputs_ready\")"
+                "anchor": "pub fn result_export_inputs_ready("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"result_export_inputs_ready:actql_result_inputs_ready\""
               },
               {
                 "path": "src/client_host_wasm/result_exports.mbt",
-                "anchor": "#export_name(\"actql_result_progress\")"
+                "anchor": "pub fn result_export_progress("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"result_export_progress:actql_result_progress\""
               },
               {
                 "path": "src/client_host_wasm/result_exports.mbt",
-                "anchor": "#export_name(\"actql_result_reserve_chunk\")"
+                "anchor": "pub fn reserve_result_chunk("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_result_chunk:actql_result_reserve_chunk\""
               },
               {
                 "path": "src/client_host_wasm/result_exports.mbt",
-                "anchor": "#export_name(\"actql_result_chunk_final\")"
+                "anchor": "pub fn result_chunk_final("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"result_chunk_final:actql_result_chunk_final\""
               },
               {
                 "path": "src/client_host_wasm/result_exports.mbt",
-                "anchor": "#export_name(\"actql_result_close\")"
+                "anchor": "pub fn close_result_export("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"close_result_export:actql_result_close\""
               },
               {
                 "path": "src/client_host_wasm/materials.mbt",
-                "anchor": "#export_name(\"actql_material_validate_submitted_rows\")"
+                "anchor": "pub fn validate_submitted_rows_material("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_submitted_rows_material:actql_material_validate_submitted_rows\""
               },
               {
                 "path": "src/client_host_wasm/materials.mbt",
-                "anchor": "#export_name(\"actql_material_retire_output\")"
+                "anchor": "pub fn retire_material_output("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"retire_material_output:actql_material_retire_output\""
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
-                "anchor": "#export_name(\"actql_buffer_close\")"
+                "anchor": "pub fn close("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"close:actql_buffer_close\""
               },
               {
                 "path": "src/client_host_wasm/journal_observation.mbt",
-                "anchor": "#export_name(\"actql_journal_inspect\")"
+                "anchor": "pub fn inspect_journal_observation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"inspect_journal_observation:actql_journal_inspect\""
               },
               {
                 "path": "src/client_host_wasm/journal_observation.mbt",
-                "anchor": "#export_name(\"actql_journal_admission_length\")"
+                "anchor": "pub fn journal_admission_length("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"journal_admission_length:actql_journal_admission_length\""
               },
               {
                 "path": "src/client_host_wasm/publisher.mbt",
-                "anchor": "#export_name(\"actql_publisher_install\")"
+                "anchor": "pub fn install_publisher("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"install_publisher:actql_publisher_install\""
               },
               {
                 "path": "src/client_host_wasm/publisher.mbt",
-                "anchor": "#export_name(\"actql_publisher_authorize\")"
+                "anchor": "pub fn authorize_publisher("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"authorize_publisher:actql_publisher_authorize\""
               },
               {
                 "path": "src/client_host_wasm/bootstrap.mbt",
-                "anchor": "#export_name(\"actql_bootstrap_produce_sdk\")"
+                "anchor": "pub fn produce_sdk_bootstrap("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_sdk_bootstrap:actql_bootstrap_produce_sdk\""
               },
               {
                 "path": "src/client_host_wasm/source_publication.mbt",
-                "anchor": "#export_name(\"actql_source_publication_prepare\")"
+                "anchor": "pub fn prepare_source_publication("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"prepare_source_publication:actql_source_publication_prepare\""
               },
               {
                 "path": "src/client_host_wasm/source_publication.mbt",
-                "anchor": "#export_name(\"actql_source_publication_advance\")"
+                "anchor": "pub fn advance_source_publication("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"advance_source_publication:actql_source_publication_advance\""
               },
               {
                 "path": "src/client_host_wasm/source_publication.mbt",
-                "anchor": "#export_name(\"actql_source_publication_finish\")"
+                "anchor": "pub fn finish_source_publication("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"finish_source_publication:actql_source_publication_finish\""
               },
               {
                 "path": "src/client_host_wasm/source_free_invocation.mbt",
-                "anchor": "#export_name(\"actql_run_invocation_prepare_source_free\")"
+                "anchor": "pub fn prepare_source_free_invocation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"prepare_source_free_invocation:actql_run_invocation_prepare_source_free\""
               },
               {
                 "path": "src/client_host_wasm/publication_preflight.mbt",
-                "anchor": "#export_name(\"actql_publication_preflight_prepare\")"
+                "anchor": "pub fn prepare_publication_preflight("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"prepare_publication_preflight:actql_publication_preflight_prepare\""
               },
               {
                 "path": "src/client_host_wasm/publication_run_binding.mbt",
-                "anchor": "#export_name(\"actql_publication_validate_run\")"
+                "anchor": "pub fn validate_publication_run("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_publication_run:actql_publication_validate_run\""
               },
               {
                 "path": "src/client_host_wasm/publication.mbt",
-                "anchor": "#export_name(\"actql_publication_prepare\")"
+                "anchor": "pub fn prepare_publication("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"prepare_publication:actql_publication_prepare\""
               },
               {
                 "path": "src/client_host_wasm/publication.mbt",
-                "anchor": "#export_name(\"actql_publication_advance\")"
+                "anchor": "pub fn advance_publication("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"advance_publication:actql_publication_advance\""
               },
               {
                 "path": "src/client_host_wasm/publication.mbt",
-                "anchor": "#export_name(\"actql_publication_finish\")"
+                "anchor": "pub fn finish_publication("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"finish_publication:actql_publication_finish\""
               },
               {
                 "path": "src/client_host_wasm/result_binding.mbt",
-                "anchor": "#export_name(\"actql_result_binding_produce\")"
+                "anchor": "pub fn produce_result_binding("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_result_binding:actql_result_binding_produce\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit.mbt",
-                "anchor": "#export_name(\"actql_publication_prepare_commit\")"
+                "anchor": "pub fn prepare_publication_commit("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"prepare_publication_commit:actql_publication_prepare_commit\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit.mbt",
-                "anchor": "#export_name(\"actql_publication_advance_commit\")"
+                "anchor": "pub fn advance_publication_commit("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"advance_publication_commit:actql_publication_advance_commit\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit.mbt",
-                "anchor": "#export_name(\"actql_publication_finish_commit\")"
+                "anchor": "pub fn finish_publication_commit("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"finish_publication_commit:actql_publication_finish_commit\""
               },
               {
                 "path": "src/client_host_wasm/publication_lookup.mbt",
-                "anchor": "#export_name(\"actql_publication_prepare_lookup\")"
+                "anchor": "pub fn prepare_publication_lookup("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"prepare_publication_lookup:actql_publication_prepare_lookup\""
               },
               {
                 "path": "src/client_host_wasm/publication_observation.mbt",
-                "anchor": "#export_name(\"actql_publication_prepare_observation\")"
+                "anchor": "pub fn prepare_publication_observation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"prepare_publication_observation:actql_publication_prepare_observation\""
               },
               {
                 "path": "src/client_host_wasm/publication_observation.mbt",
-                "anchor": "#export_name(\"actql_publication_advance_observation\")"
+                "anchor": "pub fn advance_publication_observation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"advance_publication_observation:actql_publication_advance_observation\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce\")"
+                "anchor": "pub fn produce_publication_commit_export("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_commit_export:actql_publication_commit_export_produce\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_material\")"
+                "anchor": "pub fn produce_publication_commit_material("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_commit_material:actql_publication_commit_export_produce_material\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_lookup_reference\")"
+                "anchor": "pub fn produce_publication_lookup_reference("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_lookup_reference:actql_publication_commit_export_produce_lookup_reference\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_index_key\")"
+                "anchor": "pub fn produce_publication_commit_index_key("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_commit_index_key:actql_publication_commit_export_produce_index_key\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_observed_index\")"
+                "anchor": "pub fn produce_publication_observed_index("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_observed_index:actql_publication_commit_export_produce_observed_index\""
               },
               {
                 "path": "src/client_host_wasm/publication_run_state.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_run_state\")"
+                "anchor": "pub fn produce_publication_observed_run_state("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_observed_run_state:actql_publication_commit_export_produce_run_state\""
               },
               {
                 "path": "src/client_host_wasm/publication_sdk_read.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_sdk_read_original\")"
+                "anchor": "pub fn produce_publication_sdk_read_original("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_sdk_read_original:actql_publication_commit_export_produce_sdk_read_original\""
               },
               {
                 "path": "src/client_host_wasm/publication_sdk_read.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_sdk_read_evidence_decision\")"
+                "anchor": "pub fn produce_publication_sdk_read_evidence_decision("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_sdk_read_evidence_decision:actql_publication_commit_export_produce_sdk_read_evidence_decision\""
               },
               {
                 "path": "src/client_host_wasm/publication_sdk_read.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_sdk_delivery_lookup\")"
+                "anchor": "pub fn produce_publication_sdk_delivery_lookup("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_sdk_delivery_lookup:actql_publication_commit_export_produce_sdk_delivery_lookup\""
               },
               {
                 "path": "src/client_host_wasm/publication_sdk_read.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_sdk_read_delivery_storage\")"
+                "anchor": "pub fn produce_publication_sdk_read_delivery_storage("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_sdk_read_delivery_storage:actql_publication_commit_export_produce_sdk_read_delivery_storage\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_schema\")"
+                "anchor": "pub fn produce_publication_commit_schema("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_commit_schema:actql_publication_commit_export_produce_schema\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_payload.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_validate_payload_binding\")"
+                "anchor": "pub fn validate_publication_commit_payload_binding("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_publication_commit_payload_binding:actql_publication_commit_export_validate_payload_binding\""
               },
               {
                 "path": "src/client_host_wasm/payload_request.mbt",
-                "anchor": "#export_name(\"actql_payload_request_produce\")"
+                "anchor": "pub fn produce_payload_request("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_payload_request:actql_payload_request_produce\""
               },
               {
                 "path": "src/client_host_wasm/payload_chunks.mbt",
-                "anchor": "#export_name(\"actql_payload_request_start_replay\")"
+                "anchor": "pub fn start_payload_replay("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"start_payload_replay:actql_payload_request_start_replay\""
               },
               {
                 "path": "src/client_host_wasm/payload_chunks.mbt",
-                "anchor": "#export_name(\"actql_payload_chunk_produce\")"
+                "anchor": "pub fn produce_payload_chunk("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_payload_chunk:actql_payload_chunk_produce\""
               },
               {
                 "path": "src/client_host_wasm/payload_chunks.mbt",
-                "anchor": "#export_name(\"actql_payload_chunk_validate\")"
+                "anchor": "pub fn validate_payload_chunk("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_payload_chunk:actql_payload_chunk_validate\""
               },
               {
                 "path": "src/client_host_wasm/payload_record.mbt",
-                "anchor": "#export_name(\"actql_payload_record_produce\")"
+                "anchor": "pub fn produce_payload_record("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_payload_record:actql_payload_record_produce\""
               },
               {
                 "path": "src/client_host_wasm/payload_record.mbt",
-                "anchor": "#export_name(\"actql_payload_record_validate\")"
+                "anchor": "pub fn validate_payload_record("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_payload_record:actql_payload_record_validate\""
               },
               {
                 "path": "src/client_host_wasm/payload_record.mbt",
-                "anchor": "#export_name(\"actql_payload_record_begin\")"
+                "anchor": "pub fn begin_payload_record("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"begin_payload_record:actql_payload_record_begin\""
               },
               {
                 "path": "src/client_host_wasm/payload_record.mbt",
-                "anchor": "#export_name(\"actql_payload_record_confirm\")"
+                "anchor": "pub fn confirm_payload_record("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"confirm_payload_record:actql_payload_record_confirm\""
               },
               {
                 "path": "src/client_host_wasm/payload_snapshot.mbt",
-                "anchor": "#export_name(\"actql_payload_record_validate_snapshot\")"
+                "anchor": "pub fn validate_payload_record_snapshot("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_payload_record_snapshot:actql_payload_record_validate_snapshot\""
               },
               {
                 "path": "src/client_host_wasm/payload_reservation.mbt",
-                "anchor": "#export_name(\"actql_payload_reservation_produce\")"
+                "anchor": "pub fn produce_payload_reservation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_payload_reservation:actql_payload_reservation_produce\""
               },
               {
                 "path": "src/client_host_wasm/payload_reservation.mbt",
-                "anchor": "#export_name(\"actql_payload_reservation_validate\")"
+                "anchor": "pub fn validate_payload_reservation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_payload_reservation:actql_payload_reservation_validate\""
               },
               {
                 "path": "src/client_host_wasm/payload_reservation.mbt",
-                "anchor": "#export_name(\"actql_payload_reservation_begin\")"
+                "anchor": "pub fn begin_payload_reservation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"begin_payload_reservation:actql_payload_reservation_begin\""
               },
               {
                 "path": "src/client_host_wasm/payload_reservation.mbt",
-                "anchor": "#export_name(\"actql_payload_reservation_confirm\")"
+                "anchor": "pub fn confirm_payload_reservation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"confirm_payload_reservation:actql_payload_reservation_confirm\""
               },
               {
                 "path": "src/client_host_wasm/payload_writing.mbt",
-                "anchor": "#export_name(\"actql_payload_writing_produce\")"
+                "anchor": "pub fn produce_payload_writing("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_payload_writing:actql_payload_writing_produce\""
               },
               {
                 "path": "src/client_host_wasm/payload_writing.mbt",
-                "anchor": "#export_name(\"actql_payload_writing_validate\")"
+                "anchor": "pub fn validate_payload_writing("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_payload_writing:actql_payload_writing_validate\""
               },
               {
                 "path": "src/client_host_wasm/payload_writing.mbt",
-                "anchor": "#export_name(\"actql_payload_writing_begin\")"
+                "anchor": "pub fn begin_payload_writing("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"begin_payload_writing:actql_payload_writing_begin\""
               },
               {
                 "path": "src/client_host_wasm/payload_writing.mbt",
-                "anchor": "#export_name(\"actql_payload_writing_confirm\")"
+                "anchor": "pub fn confirm_payload_writing("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"confirm_payload_writing:actql_payload_writing_confirm\""
               },
               {
                 "path": "src/client_host_wasm/payload_names.mbt",
-                "anchor": "#export_name(\"actql_payload_names_produce\")"
+                "anchor": "pub fn produce_payload_names("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_payload_names:actql_payload_names_produce\""
               },
               {
                 "path": "src/client_host_wasm/payload_names.mbt",
-                "anchor": "#export_name(\"actql_payload_names_validate\")"
+                "anchor": "pub fn validate_payload_names("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_payload_names:actql_payload_names_validate\""
               },
               {
                 "path": "src/client_host_wasm/payload_binding.mbt",
-                "anchor": "#export_name(\"actql_payload_binding_produce\")"
+                "anchor": "pub fn produce_payload_binding("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_payload_binding:actql_payload_binding_produce\""
               },
               {
                 "path": "src/client_host_wasm/payload_binding.mbt",
-                "anchor": "#export_name(\"actql_payload_binding_validate\")"
+                "anchor": "pub fn validate_payload_binding("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_payload_binding:actql_payload_binding_validate\""
               },
               {
                 "path": "src/client_host_wasm/payload_allocation.mbt",
-                "anchor": "#export_name(\"actql_payload_allocation_produce\")"
+                "anchor": "pub fn produce_payload_allocation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_payload_allocation:actql_payload_allocation_produce\""
               },
               {
                 "path": "src/client_host_wasm/payload_allocation.mbt",
-                "anchor": "#export_name(\"actql_payload_allocation_validate\")"
+                "anchor": "pub fn validate_payload_allocation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_payload_allocation:actql_payload_allocation_validate\""
               },
               {
                 "path": "src/client_host_wasm/payload_allocation.mbt",
-                "anchor": "#export_name(\"actql_payload_allocation_begin\")"
+                "anchor": "pub fn begin_payload_allocation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"begin_payload_allocation:actql_payload_allocation_begin\""
               },
               {
                 "path": "src/client_host_wasm/payload_allocation.mbt",
-                "anchor": "#export_name(\"actql_payload_allocation_confirm\")"
+                "anchor": "pub fn confirm_payload_allocation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"confirm_payload_allocation:actql_payload_allocation_confirm\""
               },
               {
                 "path": "src/client_host_wasm/native_source.mbt",
-                "anchor": "#export_name(\"actql_source_capacity\")"
+                "anchor": "pub fn native_source_capacity("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"native_source_capacity:actql_source_capacity\""
               },
               {
                 "path": "src/client_host_wasm/native_attempt.mbt",
-                "anchor": "#export_name(\"actql_source_start\")"
+                "anchor": "pub fn start_native_attempt("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"start_native_attempt:actql_source_start\""
               },
               {
                 "path": "src/client_host_wasm/native_attempt.mbt",
-                "anchor": "#export_name(\"actql_source_started\")"
+                "anchor": "pub fn native_attempt_started("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"native_attempt_started:actql_source_started\""
               },
               {
                 "path": "src/client_host_wasm/native_receipts.mbt",
-                "anchor": "#export_name(\"actql_source_accept\")"
+                "anchor": "pub fn accept_native_event("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"accept_native_event:actql_source_accept\""
               },
               {
                 "path": "src/client_host_wasm/native_compute.mbt",
-                "anchor": "#export_name(\"actql_compute_configure\")"
+                "anchor": "pub fn configure_native_compute("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"configure_native_compute:actql_compute_configure\""
               },
               {
                 "path": "src/client_host_wasm/native_compute.mbt",
-                "anchor": "#export_name(\"actql_compute_configured\")"
+                "anchor": "pub fn native_compute_configured("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"native_compute_configured:actql_compute_configured\""
               },
               {
                 "path": "src/client_host_wasm/managed_tasks.mbt",
-                "anchor": "#export_name(\"actql_task_progress\")"
+                "anchor": "pub fn managed_task_progress("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"managed_task_progress:actql_task_progress\""
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
-                "anchor": "#export_name(\"actql_buffer_fill\")"
+                "anchor": "pub fn fill("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"fill:actql_buffer_fill\""
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
-                "anchor": "#export_name(\"actql_buffer_seal\")"
+                "anchor": "pub fn seal("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"seal:actql_buffer_seal\""
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
-                "anchor": "#export_name(\"actql_buffer_close_pool\")"
+                "anchor": "pub fn close_pool("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"close_pool:actql_buffer_close_pool\""
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
-                "anchor": "#export_name(\"actql_buffer_byte\")"
+                "anchor": "pub fn byte("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"byte:actql_buffer_byte\""
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
-                "anchor": "#export_name(\"actql_buffer_open_live\")"
+                "anchor": "pub fn open_live("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"open_live:actql_buffer_open_live\""
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
-                "anchor": "#export_name(\"actql_buffer_open\")"
+                "anchor": "pub fn open("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"open:actql_buffer_open\""
               },
               {
                 "path": "src/client_host_wasm/journal_observation.mbt",
-                "anchor": "#export_name(\"actql_journal_revision\")"
+                "anchor": "pub fn journal_observation_revision("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"journal_observation_revision:actql_journal_revision\""
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -8681,579 +9257,1155 @@
               },
               {
                 "path": "src/client_host_wasm/host_current.mbt",
-                "anchor": "#export_name(\"actql_current_reserve\")"
+                "anchor": "pub fn reserve_host_current("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_host_current:actql_current_reserve\""
               },
               {
                 "path": "src/client_host_wasm/journal_observation.mbt",
-                "anchor": "#export_name(\"actql_journal_reserve\")"
+                "anchor": "pub fn reserve_journal_observation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_journal_observation:actql_journal_reserve\""
               },
               {
                 "path": "src/client_host_wasm/publisher.mbt",
-                "anchor": "#export_name(\"actql_publisher_reserve\")"
+                "anchor": "pub fn reserve_publisher("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_publisher:actql_publisher_reserve\""
               },
               {
                 "path": "src/client_host_wasm/publisher.mbt",
-                "anchor": "#export_name(\"actql_publisher_close\")"
+                "anchor": "pub fn close_publisher("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"close_publisher:actql_publisher_close\""
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
-                "anchor": "#export_name(\"actql_buffer_reserve\")"
+                "anchor": "pub fn reserve("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve:actql_buffer_reserve\""
               },
               {
                 "path": "src/client_host_wasm/physical_start.mbt",
-                "anchor": "#export_name(\"actql_run_dispatch_action\")"
+                "anchor": "pub fn dispatch_action("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"dispatch_action:actql_run_dispatch_action\""
               },
               {
                 "path": "src/client_host_wasm/workspaces.mbt",
-                "anchor": "#export_name(\"actql_workspace_reserve\")"
+                "anchor": "pub fn reserve_workspace("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_workspace:actql_workspace_reserve\""
               },
               {
                 "path": "src/client_host_wasm/workspaces.mbt",
-                "anchor": "#export_name(\"actql_workspace_close\")"
+                "anchor": "pub fn close_workspace("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"close_workspace:actql_workspace_close\""
               },
               {
                 "path": "src/client_host_wasm/submission.mbt",
-                "anchor": "#export_name(\"actql_submission_reserve\")"
+                "anchor": "pub fn reserve_submission_projection("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_submission_projection:actql_submission_reserve\""
               },
               {
                 "path": "src/client_host_wasm/bootstrap.mbt",
-                "anchor": "#export_name(\"actql_bootstrap_reserve\")"
+                "anchor": "pub fn reserve_bootstrap("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_bootstrap:actql_bootstrap_reserve\""
               },
               {
                 "path": "src/client_host_wasm/original_metadata.mbt",
-                "anchor": "#export_name(\"actql_original_reserve\")"
+                "anchor": "pub fn reserve_original_metadata("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_original_metadata:actql_original_reserve\""
               },
               {
                 "path": "src/client_host_wasm/submission.mbt",
-                "anchor": "#export_name(\"actql_submission_produce\")"
+                "anchor": "pub fn produce_submission_projection("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_submission_projection:actql_submission_produce\""
               },
               {
                 "path": "src/client_host_wasm/submission_append.mbt",
-                "anchor": "#export_name(\"actql_submission_validate_append\")"
+                "anchor": "pub fn validate_submission_append("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_submission_append:actql_submission_validate_append\""
               },
               {
                 "path": "src/client_host_wasm/submission.mbt",
-                "anchor": "#export_name(\"actql_submission_retire_output\")"
+                "anchor": "pub fn retire_submission_output("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"retire_submission_output:actql_submission_retire_output\""
               },
               {
                 "path": "src/client_host_wasm/source_publication.mbt",
-                "anchor": "#export_name(\"actql_source_publication_progress\")"
+                "anchor": "pub fn source_publication_progress("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"source_publication_progress:actql_source_publication_progress\""
               },
               {
                 "path": "src/client_host_wasm/publication_preflight.mbt",
-                "anchor": "#export_name(\"actql_publication_preflight_reserve\")"
+                "anchor": "pub fn reserve_publication_preflight("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_publication_preflight:actql_publication_preflight_reserve\""
               },
               {
                 "path": "src/client_host_wasm/publication_preflight.mbt",
-                "anchor": "#export_name(\"actql_publication_preflight_result_count\")"
+                "anchor": "pub fn publication_preflight_result_count("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"publication_preflight_result_count:actql_publication_preflight_result_count\""
               },
               {
                 "path": "src/client_host_wasm/publication_preflight.mbt",
-                "anchor": "#export_name(\"actql_publication_preflight_retire_output\")"
+                "anchor": "pub fn retire_publication_preflight_output("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"retire_publication_preflight_output:actql_publication_preflight_retire_output\""
               },
               {
                 "path": "src/client_host_wasm/publication.mbt",
-                "anchor": "#export_name(\"actql_publication_reserve\")"
+                "anchor": "pub fn reserve_publication("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_publication:actql_publication_reserve\""
               },
               {
                 "path": "src/client_host_wasm/publication.mbt",
-                "anchor": "#export_name(\"actql_publication_progress\")"
+                "anchor": "pub fn publication_progress("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"publication_progress:actql_publication_progress\""
               },
               {
                 "path": "src/client_host_wasm/publication.mbt",
-                "anchor": "#export_name(\"actql_publication_retire_output\")"
+                "anchor": "pub fn retire_publication_output("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"retire_publication_output:actql_publication_retire_output\""
               },
               {
                 "path": "src/client_host_wasm/result_binding.mbt",
-                "anchor": "#export_name(\"actql_result_binding_reserve\")"
+                "anchor": "pub fn reserve_result_binding("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_result_binding:actql_result_binding_reserve\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_progress\")"
+                "anchor": "pub fn publication_commit_progress("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"publication_commit_progress:actql_publication_commit_progress\""
               },
               {
                 "path": "src/client_host_wasm/publication_lookup.mbt",
-                "anchor": "#export_name(\"actql_publication_retire_lookup\")"
+                "anchor": "pub fn retire_publication_lookup("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"retire_publication_lookup:actql_publication_retire_lookup\""
               },
               {
                 "path": "src/client_host_wasm/publication_observation.mbt",
-                "anchor": "#export_name(\"actql_publication_observation_progress\")"
+                "anchor": "pub fn publication_observation_progress("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"publication_observation_progress:actql_publication_observation_progress\""
               },
               {
                 "path": "src/client_host_wasm/publication_observation.mbt",
-                "anchor": "#export_name(\"actql_publication_finish_observation\")"
+                "anchor": "pub fn finish_publication_observation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"finish_publication_observation:actql_publication_finish_observation\""
               },
               {
                 "path": "src/client_host_wasm/publication_observation.mbt",
-                "anchor": "#export_name(\"actql_publication_retire_observation\")"
+                "anchor": "pub fn retire_publication_observation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"retire_publication_observation:actql_publication_retire_observation\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_reserve\")"
+                "anchor": "pub fn reserve_publication_commit_export("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_publication_commit_export:actql_publication_commit_export_reserve\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_count\")"
+                "anchor": "pub fn publication_commit_export_count("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"publication_commit_export_count:actql_publication_commit_export_count\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_result_count\")"
+                "anchor": "pub fn publication_commit_export_result_count("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"publication_commit_export_result_count:actql_publication_commit_export_result_count\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_retire_sdk_delivery_output\")"
+                "anchor": "pub fn retire_publication_sdk_delivery_output("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"retire_publication_sdk_delivery_output:actql_publication_commit_export_retire_sdk_delivery_output\""
               },
               {
                 "path": "src/client_host_wasm/sdk_payload_codecs.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_prepare_sdk_payload_codecs\")"
+                "anchor": "pub fn prepare_publication_sdk_payload_codecs("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"prepare_publication_sdk_payload_codecs:actql_publication_commit_export_prepare_sdk_payload_codecs\""
               },
               {
                 "path": "src/client_host_wasm/sdk_payload_record.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_sdk_payload_ordinal\")"
+                "anchor": "pub fn publication_sdk_payload_ordinal("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"publication_sdk_payload_ordinal:actql_publication_commit_export_sdk_payload_ordinal\""
               },
               {
                 "path": "src/client_host_wasm/sdk_payload_record.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_bind_sdk_payload_record\")"
+                "anchor": "pub fn bind_publication_sdk_payload_record("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"bind_publication_sdk_payload_record:actql_publication_commit_export_bind_sdk_payload_record\""
               },
               {
                 "path": "src/client_host_wasm/sdk_payload_bytes.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_prepare_sdk_payload_input\")"
+                "anchor": "pub fn prepare_publication_sdk_payload_input("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"prepare_publication_sdk_payload_input:actql_publication_commit_export_prepare_sdk_payload_input\""
               },
               {
                 "path": "src/client_host_wasm/sdk_payload_bytes.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_sdk_payload_chunk\")"
+                "anchor": "pub fn produce_publication_sdk_payload_chunk("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_sdk_payload_chunk:actql_publication_commit_export_produce_sdk_payload_chunk\""
               },
               {
                 "path": "src/client_host_wasm/sdk_payload_bytes.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_confirm_sdk_payload_chunk\")"
+                "anchor": "pub fn confirm_publication_sdk_payload_chunk("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"confirm_publication_sdk_payload_chunk:actql_publication_commit_export_confirm_sdk_payload_chunk\""
               },
               {
                 "path": "src/client_host_wasm/sdk_payload_bytes.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_sdk_payload_receipt\")"
+                "anchor": "pub fn produce_publication_sdk_payload_receipt("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_sdk_payload_receipt:actql_publication_commit_export_produce_sdk_payload_receipt\""
               },
               {
                 "path": "src/client_host_wasm/sdk_delivery_terminal.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_sdk_terminal_storage\")"
+                "anchor": "pub fn produce_publication_sdk_terminal_storage("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_sdk_terminal_storage:actql_publication_commit_export_produce_sdk_terminal_storage\""
               },
               {
                 "path": "src/client_host_wasm/sdk_delivery_terminal.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_observe_sdk_terminal\")"
+                "anchor": "pub fn observe_publication_sdk_terminal("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"observe_publication_sdk_terminal:actql_publication_commit_export_observe_sdk_terminal\""
               },
               {
                 "path": "src/client_host_wasm/payload_request.mbt",
-                "anchor": "#export_name(\"actql_payload_request_reserve\")"
+                "anchor": "pub fn reserve_payload_request("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_payload_request:actql_payload_request_reserve\""
               },
               {
                 "path": "src/client_host_wasm/payload_chunks.mbt",
-                "anchor": "#export_name(\"actql_payload_chunk_reserve\")"
+                "anchor": "pub fn reserve_payload_chunk("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_payload_chunk:actql_payload_chunk_reserve\""
               },
               {
                 "path": "src/client_host_wasm/payload_chunks.mbt",
-                "anchor": "#export_name(\"actql_payload_chunk_final\")"
+                "anchor": "pub fn payload_chunk_final("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"payload_chunk_final:actql_payload_chunk_final\""
               },
               {
                 "path": "src/client_host_wasm/payload_record.mbt",
-                "anchor": "#export_name(\"actql_payload_record_reserve\")"
+                "anchor": "pub fn reserve_payload_record("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_payload_record:actql_payload_record_reserve\""
               },
               {
                 "path": "src/client_host_wasm/payload_reservation.mbt",
-                "anchor": "#export_name(\"actql_payload_reservation_reserve\")"
+                "anchor": "pub fn reserve_payload_reservation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_payload_reservation:actql_payload_reservation_reserve\""
               },
               {
                 "path": "src/client_host_wasm/payload_writing.mbt",
-                "anchor": "#export_name(\"actql_payload_writing_reserve\")"
+                "anchor": "pub fn reserve_payload_writing("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_payload_writing:actql_payload_writing_reserve\""
               },
               {
                 "path": "src/client_host_wasm/payload_names.mbt",
-                "anchor": "#export_name(\"actql_payload_names_reserve\")"
+                "anchor": "pub fn reserve_payload_names("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_payload_names:actql_payload_names_reserve\""
               },
               {
                 "path": "src/client_host_wasm/payload_binding.mbt",
-                "anchor": "#export_name(\"actql_payload_binding_reserve\")"
+                "anchor": "pub fn reserve_payload_binding("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_payload_binding:actql_payload_binding_reserve\""
               },
               {
                 "path": "src/client_host_wasm/payload_allocation.mbt",
-                "anchor": "#export_name(\"actql_payload_allocation_reserve\")"
+                "anchor": "pub fn reserve_payload_allocation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_payload_allocation:actql_payload_allocation_reserve\""
               },
               {
                 "path": "src/client_host_wasm/materials.mbt",
-                "anchor": "#export_name(\"actql_material_reserve\")"
+                "anchor": "pub fn reserve_material("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_material:actql_material_reserve\""
               },
               {
                 "path": "src/client_host_wasm/materials.mbt",
-                "anchor": "#export_name(\"actql_material_reserve_submitted_rows\")"
+                "anchor": "pub fn reserve_submitted_rows_material("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_submitted_rows_material:actql_material_reserve_submitted_rows\""
               },
               {
                 "path": "src/client_host_wasm/native_attempt.mbt",
-                "anchor": "#export_name(\"actql_source_reserve_attempt\")"
+                "anchor": "pub fn reserve_native_attempt("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_native_attempt:actql_source_reserve_attempt\""
               },
               {
                 "path": "src/client_host_wasm/native_receipts.mbt",
-                "anchor": "#export_name(\"actql_source_close_event\")"
+                "anchor": "pub fn close_native_event("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"close_native_event:actql_source_close_event\""
               },
               {
                 "path": "src/client_host_wasm/native_receipts.mbt",
-                "anchor": "#export_name(\"actql_source_completed\")"
+                "anchor": "pub fn native_source_completed("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"native_source_completed:actql_source_completed\""
               },
               {
                 "path": "src/client_host_wasm/native_attempt.mbt",
-                "anchor": "#export_name(\"actql_source_close_attempt\")"
+                "anchor": "pub fn close_native_attempt("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"close_native_attempt:actql_source_close_attempt\""
               },
               {
                 "path": "src/client_host_wasm/native_compute.mbt",
-                "anchor": "#export_name(\"actql_compute_reserve\")"
+                "anchor": "pub fn reserve_native_compute("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_native_compute:actql_compute_reserve\""
               },
               {
                 "path": "src/client_host_wasm/native_compute.mbt",
-                "anchor": "#export_name(\"actql_compute_close\")"
+                "anchor": "pub fn close_native_compute("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"close_native_compute:actql_compute_close\""
               },
               {
                 "path": "src/client_host_wasm/managed_tasks.mbt",
-                "anchor": "#export_name(\"actql_task_reserve\")"
+                "anchor": "pub fn reserve_managed_task("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_managed_task:actql_task_reserve\""
               },
               {
                 "path": "src/client_host_wasm/managed_tasks.mbt",
-                "anchor": "#export_name(\"actql_task_reserve_next_sdk\")"
+                "anchor": "pub fn reserve_next_sdk_task("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_next_sdk_task:actql_task_reserve_next_sdk\""
               },
               {
                 "path": "src/client_host_wasm/managed_tasks.mbt",
-                "anchor": "#export_name(\"actql_task_inputs_ready\")"
+                "anchor": "pub fn managed_task_inputs_ready("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"managed_task_inputs_ready:actql_task_inputs_ready\""
               },
               {
                 "path": "src/client_host_wasm/managed_tasks.mbt",
-                "anchor": "#export_name(\"actql_task_close\")"
+                "anchor": "pub fn close_managed_task("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"close_managed_task:actql_task_close\""
               },
               {
                 "path": "src/client_host_wasm/native_commands.mbt",
-                "anchor": "#export_name(\"actql_source_reserve_command\")"
+                "anchor": "pub fn reserve_native_command("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_native_command:actql_source_reserve_command\""
               },
               {
                 "path": "src/client_host_wasm/result_exports.mbt",
-                "anchor": "#export_name(\"actql_result_reserve\")"
+                "anchor": "pub fn reserve_result_export("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_result_export:actql_result_reserve\""
               },
               {
                 "path": "src/client_host_wasm/result_exports.mbt",
-                "anchor": "#export_name(\"actql_result_reserve_from_compute\")"
+                "anchor": "pub fn reserve_result_from_compute("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_result_from_compute:actql_result_reserve_from_compute\""
               },
               {
                 "path": "src/client_host_wasm/result_exports.mbt",
-                "anchor": "#export_name(\"actql_result_inputs_ready\")"
+                "anchor": "pub fn result_export_inputs_ready("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"result_export_inputs_ready:actql_result_inputs_ready\""
               },
               {
                 "path": "src/client_host_wasm/result_exports.mbt",
-                "anchor": "#export_name(\"actql_result_progress\")"
+                "anchor": "pub fn result_export_progress("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"result_export_progress:actql_result_progress\""
               },
               {
                 "path": "src/client_host_wasm/result_exports.mbt",
-                "anchor": "#export_name(\"actql_result_reserve_chunk\")"
+                "anchor": "pub fn reserve_result_chunk("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"reserve_result_chunk:actql_result_reserve_chunk\""
               },
               {
                 "path": "src/client_host_wasm/result_exports.mbt",
-                "anchor": "#export_name(\"actql_result_chunk_final\")"
+                "anchor": "pub fn result_chunk_final("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"result_chunk_final:actql_result_chunk_final\""
               },
               {
                 "path": "src/client_host_wasm/result_exports.mbt",
-                "anchor": "#export_name(\"actql_result_close\")"
+                "anchor": "pub fn close_result_export("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"close_result_export:actql_result_close\""
               },
               {
                 "path": "src/client_host_wasm/materials.mbt",
-                "anchor": "#export_name(\"actql_material_validate_submitted_rows\")"
+                "anchor": "pub fn validate_submitted_rows_material("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_submitted_rows_material:actql_material_validate_submitted_rows\""
               },
               {
                 "path": "src/client_host_wasm/materials.mbt",
-                "anchor": "#export_name(\"actql_material_retire_output\")"
+                "anchor": "pub fn retire_material_output("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"retire_material_output:actql_material_retire_output\""
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
-                "anchor": "#export_name(\"actql_buffer_close\")"
+                "anchor": "pub fn close("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"close:actql_buffer_close\""
               },
               {
                 "path": "src/client_host_wasm/journal_observation.mbt",
-                "anchor": "#export_name(\"actql_journal_inspect\")"
+                "anchor": "pub fn inspect_journal_observation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"inspect_journal_observation:actql_journal_inspect\""
               },
               {
                 "path": "src/client_host_wasm/journal_observation.mbt",
-                "anchor": "#export_name(\"actql_journal_admission_length\")"
+                "anchor": "pub fn journal_admission_length("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"journal_admission_length:actql_journal_admission_length\""
               },
               {
                 "path": "src/client_host_wasm/publisher.mbt",
-                "anchor": "#export_name(\"actql_publisher_install\")"
+                "anchor": "pub fn install_publisher("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"install_publisher:actql_publisher_install\""
               },
               {
                 "path": "src/client_host_wasm/publisher.mbt",
-                "anchor": "#export_name(\"actql_publisher_authorize\")"
+                "anchor": "pub fn authorize_publisher("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"authorize_publisher:actql_publisher_authorize\""
               },
               {
                 "path": "src/client_host_wasm/bootstrap.mbt",
-                "anchor": "#export_name(\"actql_bootstrap_produce_sdk\")"
+                "anchor": "pub fn produce_sdk_bootstrap("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_sdk_bootstrap:actql_bootstrap_produce_sdk\""
               },
               {
                 "path": "src/client_host_wasm/source_publication.mbt",
-                "anchor": "#export_name(\"actql_source_publication_prepare\")"
+                "anchor": "pub fn prepare_source_publication("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"prepare_source_publication:actql_source_publication_prepare\""
               },
               {
                 "path": "src/client_host_wasm/source_publication.mbt",
-                "anchor": "#export_name(\"actql_source_publication_advance\")"
+                "anchor": "pub fn advance_source_publication("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"advance_source_publication:actql_source_publication_advance\""
               },
               {
                 "path": "src/client_host_wasm/source_publication.mbt",
-                "anchor": "#export_name(\"actql_source_publication_finish\")"
+                "anchor": "pub fn finish_source_publication("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"finish_source_publication:actql_source_publication_finish\""
               },
               {
                 "path": "src/client_host_wasm/source_free_invocation.mbt",
-                "anchor": "#export_name(\"actql_run_invocation_prepare_source_free\")"
+                "anchor": "pub fn prepare_source_free_invocation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"prepare_source_free_invocation:actql_run_invocation_prepare_source_free\""
               },
               {
                 "path": "src/client_host_wasm/publication_preflight.mbt",
-                "anchor": "#export_name(\"actql_publication_preflight_prepare\")"
+                "anchor": "pub fn prepare_publication_preflight("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"prepare_publication_preflight:actql_publication_preflight_prepare\""
               },
               {
                 "path": "src/client_host_wasm/publication_run_binding.mbt",
-                "anchor": "#export_name(\"actql_publication_validate_run\")"
+                "anchor": "pub fn validate_publication_run("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_publication_run:actql_publication_validate_run\""
               },
               {
                 "path": "src/client_host_wasm/publication.mbt",
-                "anchor": "#export_name(\"actql_publication_prepare\")"
+                "anchor": "pub fn prepare_publication("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"prepare_publication:actql_publication_prepare\""
               },
               {
                 "path": "src/client_host_wasm/publication.mbt",
-                "anchor": "#export_name(\"actql_publication_advance\")"
+                "anchor": "pub fn advance_publication("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"advance_publication:actql_publication_advance\""
               },
               {
                 "path": "src/client_host_wasm/publication.mbt",
-                "anchor": "#export_name(\"actql_publication_finish\")"
+                "anchor": "pub fn finish_publication("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"finish_publication:actql_publication_finish\""
               },
               {
                 "path": "src/client_host_wasm/result_binding.mbt",
-                "anchor": "#export_name(\"actql_result_binding_produce\")"
+                "anchor": "pub fn produce_result_binding("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_result_binding:actql_result_binding_produce\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit.mbt",
-                "anchor": "#export_name(\"actql_publication_prepare_commit\")"
+                "anchor": "pub fn prepare_publication_commit("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"prepare_publication_commit:actql_publication_prepare_commit\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit.mbt",
-                "anchor": "#export_name(\"actql_publication_advance_commit\")"
+                "anchor": "pub fn advance_publication_commit("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"advance_publication_commit:actql_publication_advance_commit\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit.mbt",
-                "anchor": "#export_name(\"actql_publication_finish_commit\")"
+                "anchor": "pub fn finish_publication_commit("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"finish_publication_commit:actql_publication_finish_commit\""
               },
               {
                 "path": "src/client_host_wasm/publication_lookup.mbt",
-                "anchor": "#export_name(\"actql_publication_prepare_lookup\")"
+                "anchor": "pub fn prepare_publication_lookup("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"prepare_publication_lookup:actql_publication_prepare_lookup\""
               },
               {
                 "path": "src/client_host_wasm/publication_observation.mbt",
-                "anchor": "#export_name(\"actql_publication_prepare_observation\")"
+                "anchor": "pub fn prepare_publication_observation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"prepare_publication_observation:actql_publication_prepare_observation\""
               },
               {
                 "path": "src/client_host_wasm/publication_observation.mbt",
-                "anchor": "#export_name(\"actql_publication_advance_observation\")"
+                "anchor": "pub fn advance_publication_observation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"advance_publication_observation:actql_publication_advance_observation\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce\")"
+                "anchor": "pub fn produce_publication_commit_export("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_commit_export:actql_publication_commit_export_produce\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_material\")"
+                "anchor": "pub fn produce_publication_commit_material("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_commit_material:actql_publication_commit_export_produce_material\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_lookup_reference\")"
+                "anchor": "pub fn produce_publication_lookup_reference("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_lookup_reference:actql_publication_commit_export_produce_lookup_reference\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_index_key\")"
+                "anchor": "pub fn produce_publication_commit_index_key("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_commit_index_key:actql_publication_commit_export_produce_index_key\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_observed_index\")"
+                "anchor": "pub fn produce_publication_observed_index("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_observed_index:actql_publication_commit_export_produce_observed_index\""
               },
               {
                 "path": "src/client_host_wasm/publication_run_state.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_run_state\")"
+                "anchor": "pub fn produce_publication_observed_run_state("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_observed_run_state:actql_publication_commit_export_produce_run_state\""
               },
               {
                 "path": "src/client_host_wasm/publication_sdk_read.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_sdk_read_original\")"
+                "anchor": "pub fn produce_publication_sdk_read_original("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_sdk_read_original:actql_publication_commit_export_produce_sdk_read_original\""
               },
               {
                 "path": "src/client_host_wasm/publication_sdk_read.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_sdk_read_evidence_decision\")"
+                "anchor": "pub fn produce_publication_sdk_read_evidence_decision("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_sdk_read_evidence_decision:actql_publication_commit_export_produce_sdk_read_evidence_decision\""
               },
               {
                 "path": "src/client_host_wasm/publication_sdk_read.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_sdk_delivery_lookup\")"
+                "anchor": "pub fn produce_publication_sdk_delivery_lookup("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_sdk_delivery_lookup:actql_publication_commit_export_produce_sdk_delivery_lookup\""
               },
               {
                 "path": "src/client_host_wasm/publication_sdk_read.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_sdk_read_delivery_storage\")"
+                "anchor": "pub fn produce_publication_sdk_read_delivery_storage("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_sdk_read_delivery_storage:actql_publication_commit_export_produce_sdk_read_delivery_storage\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_export.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_produce_schema\")"
+                "anchor": "pub fn produce_publication_commit_schema("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_publication_commit_schema:actql_publication_commit_export_produce_schema\""
               },
               {
                 "path": "src/client_host_wasm/publication_commit_payload.mbt",
-                "anchor": "#export_name(\"actql_publication_commit_export_validate_payload_binding\")"
+                "anchor": "pub fn validate_publication_commit_payload_binding("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_publication_commit_payload_binding:actql_publication_commit_export_validate_payload_binding\""
               },
               {
                 "path": "src/client_host_wasm/payload_request.mbt",
-                "anchor": "#export_name(\"actql_payload_request_produce\")"
+                "anchor": "pub fn produce_payload_request("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_payload_request:actql_payload_request_produce\""
               },
               {
                 "path": "src/client_host_wasm/payload_chunks.mbt",
-                "anchor": "#export_name(\"actql_payload_request_start_replay\")"
+                "anchor": "pub fn start_payload_replay("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"start_payload_replay:actql_payload_request_start_replay\""
               },
               {
                 "path": "src/client_host_wasm/payload_chunks.mbt",
-                "anchor": "#export_name(\"actql_payload_chunk_produce\")"
+                "anchor": "pub fn produce_payload_chunk("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_payload_chunk:actql_payload_chunk_produce\""
               },
               {
                 "path": "src/client_host_wasm/payload_chunks.mbt",
-                "anchor": "#export_name(\"actql_payload_chunk_validate\")"
+                "anchor": "pub fn validate_payload_chunk("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_payload_chunk:actql_payload_chunk_validate\""
               },
               {
                 "path": "src/client_host_wasm/payload_record.mbt",
-                "anchor": "#export_name(\"actql_payload_record_produce\")"
+                "anchor": "pub fn produce_payload_record("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_payload_record:actql_payload_record_produce\""
               },
               {
                 "path": "src/client_host_wasm/payload_record.mbt",
-                "anchor": "#export_name(\"actql_payload_record_validate\")"
+                "anchor": "pub fn validate_payload_record("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_payload_record:actql_payload_record_validate\""
               },
               {
                 "path": "src/client_host_wasm/payload_record.mbt",
-                "anchor": "#export_name(\"actql_payload_record_begin\")"
+                "anchor": "pub fn begin_payload_record("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"begin_payload_record:actql_payload_record_begin\""
               },
               {
                 "path": "src/client_host_wasm/payload_record.mbt",
-                "anchor": "#export_name(\"actql_payload_record_confirm\")"
+                "anchor": "pub fn confirm_payload_record("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"confirm_payload_record:actql_payload_record_confirm\""
               },
               {
                 "path": "src/client_host_wasm/payload_snapshot.mbt",
-                "anchor": "#export_name(\"actql_payload_record_validate_snapshot\")"
+                "anchor": "pub fn validate_payload_record_snapshot("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_payload_record_snapshot:actql_payload_record_validate_snapshot\""
               },
               {
                 "path": "src/client_host_wasm/payload_reservation.mbt",
-                "anchor": "#export_name(\"actql_payload_reservation_produce\")"
+                "anchor": "pub fn produce_payload_reservation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_payload_reservation:actql_payload_reservation_produce\""
               },
               {
                 "path": "src/client_host_wasm/payload_reservation.mbt",
-                "anchor": "#export_name(\"actql_payload_reservation_validate\")"
+                "anchor": "pub fn validate_payload_reservation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_payload_reservation:actql_payload_reservation_validate\""
               },
               {
                 "path": "src/client_host_wasm/payload_reservation.mbt",
-                "anchor": "#export_name(\"actql_payload_reservation_begin\")"
+                "anchor": "pub fn begin_payload_reservation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"begin_payload_reservation:actql_payload_reservation_begin\""
               },
               {
                 "path": "src/client_host_wasm/payload_reservation.mbt",
-                "anchor": "#export_name(\"actql_payload_reservation_confirm\")"
+                "anchor": "pub fn confirm_payload_reservation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"confirm_payload_reservation:actql_payload_reservation_confirm\""
               },
               {
                 "path": "src/client_host_wasm/payload_writing.mbt",
-                "anchor": "#export_name(\"actql_payload_writing_produce\")"
+                "anchor": "pub fn produce_payload_writing("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_payload_writing:actql_payload_writing_produce\""
               },
               {
                 "path": "src/client_host_wasm/payload_writing.mbt",
-                "anchor": "#export_name(\"actql_payload_writing_validate\")"
+                "anchor": "pub fn validate_payload_writing("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_payload_writing:actql_payload_writing_validate\""
               },
               {
                 "path": "src/client_host_wasm/payload_writing.mbt",
-                "anchor": "#export_name(\"actql_payload_writing_begin\")"
+                "anchor": "pub fn begin_payload_writing("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"begin_payload_writing:actql_payload_writing_begin\""
               },
               {
                 "path": "src/client_host_wasm/payload_writing.mbt",
-                "anchor": "#export_name(\"actql_payload_writing_confirm\")"
+                "anchor": "pub fn confirm_payload_writing("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"confirm_payload_writing:actql_payload_writing_confirm\""
               },
               {
                 "path": "src/client_host_wasm/payload_names.mbt",
-                "anchor": "#export_name(\"actql_payload_names_produce\")"
+                "anchor": "pub fn produce_payload_names("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_payload_names:actql_payload_names_produce\""
               },
               {
                 "path": "src/client_host_wasm/payload_names.mbt",
-                "anchor": "#export_name(\"actql_payload_names_validate\")"
+                "anchor": "pub fn validate_payload_names("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_payload_names:actql_payload_names_validate\""
               },
               {
                 "path": "src/client_host_wasm/payload_binding.mbt",
-                "anchor": "#export_name(\"actql_payload_binding_produce\")"
+                "anchor": "pub fn produce_payload_binding("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_payload_binding:actql_payload_binding_produce\""
               },
               {
                 "path": "src/client_host_wasm/payload_binding.mbt",
-                "anchor": "#export_name(\"actql_payload_binding_validate\")"
+                "anchor": "pub fn validate_payload_binding("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_payload_binding:actql_payload_binding_validate\""
               },
               {
                 "path": "src/client_host_wasm/payload_allocation.mbt",
-                "anchor": "#export_name(\"actql_payload_allocation_produce\")"
+                "anchor": "pub fn produce_payload_allocation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"produce_payload_allocation:actql_payload_allocation_produce\""
               },
               {
                 "path": "src/client_host_wasm/payload_allocation.mbt",
-                "anchor": "#export_name(\"actql_payload_allocation_validate\")"
+                "anchor": "pub fn validate_payload_allocation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"validate_payload_allocation:actql_payload_allocation_validate\""
               },
               {
                 "path": "src/client_host_wasm/payload_allocation.mbt",
-                "anchor": "#export_name(\"actql_payload_allocation_begin\")"
+                "anchor": "pub fn begin_payload_allocation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"begin_payload_allocation:actql_payload_allocation_begin\""
               },
               {
                 "path": "src/client_host_wasm/payload_allocation.mbt",
-                "anchor": "#export_name(\"actql_payload_allocation_confirm\")"
+                "anchor": "pub fn confirm_payload_allocation("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"confirm_payload_allocation:actql_payload_allocation_confirm\""
               },
               {
                 "path": "src/client_host_wasm/native_source.mbt",
-                "anchor": "#export_name(\"actql_source_capacity\")"
+                "anchor": "pub fn native_source_capacity("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"native_source_capacity:actql_source_capacity\""
               },
               {
                 "path": "src/client_host_wasm/native_attempt.mbt",
-                "anchor": "#export_name(\"actql_source_start\")"
+                "anchor": "pub fn start_native_attempt("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"start_native_attempt:actql_source_start\""
               },
               {
                 "path": "src/client_host_wasm/native_attempt.mbt",
-                "anchor": "#export_name(\"actql_source_started\")"
+                "anchor": "pub fn native_attempt_started("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"native_attempt_started:actql_source_started\""
               },
               {
                 "path": "src/client_host_wasm/native_receipts.mbt",
-                "anchor": "#export_name(\"actql_source_accept\")"
+                "anchor": "pub fn accept_native_event("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"accept_native_event:actql_source_accept\""
               },
               {
                 "path": "src/client_host_wasm/native_compute.mbt",
-                "anchor": "#export_name(\"actql_compute_configure\")"
+                "anchor": "pub fn configure_native_compute("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"configure_native_compute:actql_compute_configure\""
               },
               {
                 "path": "src/client_host_wasm/native_compute.mbt",
-                "anchor": "#export_name(\"actql_compute_configured\")"
+                "anchor": "pub fn native_compute_configured("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"native_compute_configured:actql_compute_configured\""
               },
               {
                 "path": "src/client_host_wasm/managed_tasks.mbt",
-                "anchor": "#export_name(\"actql_task_progress\")"
+                "anchor": "pub fn managed_task_progress("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"managed_task_progress:actql_task_progress\""
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
-                "anchor": "#export_name(\"actql_buffer_fill\")"
+                "anchor": "pub fn fill("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"fill:actql_buffer_fill\""
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
-                "anchor": "#export_name(\"actql_buffer_seal\")"
+                "anchor": "pub fn seal("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"seal:actql_buffer_seal\""
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
-                "anchor": "#export_name(\"actql_buffer_close_pool\")"
+                "anchor": "pub fn close_pool("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"close_pool:actql_buffer_close_pool\""
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
-                "anchor": "#export_name(\"actql_buffer_byte\")"
+                "anchor": "pub fn byte("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"byte:actql_buffer_byte\""
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
-                "anchor": "#export_name(\"actql_buffer_open_live\")"
+                "anchor": "pub fn open_live("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"open_live:actql_buffer_open_live\""
               },
               {
                 "path": "src/client_host_wasm/buffers.mbt",
-                "anchor": "#export_name(\"actql_buffer_open\")"
+                "anchor": "pub fn open("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"open:actql_buffer_open\""
               },
               {
                 "path": "src/client_host_wasm/journal_observation.mbt",
-                "anchor": "#export_name(\"actql_journal_revision\")"
+                "anchor": "pub fn journal_observation_revision("
+              },
+              {
+                "path": "src/client_host_wasm/moon.pkg",
+                "anchor": "\"journal_observation_revision:actql_journal_revision\""
               },
               {
                 "path": "docs/design/python-local-abi.md",

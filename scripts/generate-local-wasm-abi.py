@@ -17,8 +17,8 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / 'packages/python-sdk/src/actql_sdk/_local_wasm_abi.py'
 COMPILER_OUTPUT = ROOT / 'packages/python-local-runtime/native/pre-root/compiler_core_abi.generated.h'
 SCALAR = {'Int': 'i32', 'Int64': 'i64'}
-EXPORT = re.compile(r'#export_name\("([^"]+)"\)\s*pub fn (\w+)\((.*?)\)\s*->\s*(\w+)\s*\{', re.S)
-IMPORT = re.compile(r'\bfn (\w+)\(([^()]*)\)\s*->\s*(\w+)\s*=\s*"actql_host"\s*"([^"]+)"', re.S)
+PUBLIC = re.compile(r'^pub fn (\w+)\((.*?)\)\s*->\s*(\w+)\s*\{', re.S | re.M)
+IMPORT = re.compile(r'^fn (\w+)\(([^()]*)\)\s*->\s*(\w+)\s*=\s*"actql_host"\s*"([^"]+)"', re.S | re.M)
 FAMILIES = (
     'buffer', 'program', 'check', 'run', 'submission', 'bootstrap', 'source_publication',
     'run_invocation', 'material', 'publication', 'publication_preflight',
@@ -76,24 +76,203 @@ def parameters(raw: str) -> tuple[tuple[str, str], ...]:
     return tuple(result)
 
 
+def declaration_source(text: str, *, mask_literals: bool = True) -> str:
+    """Mask non-code bytes while preserving declaration offsets and newlines."""
+    output = list(text)
+    index = 0
+
+    def hide(begin, end):
+        for cursor in range(begin, end):
+            if text[cursor] not in '\r\n':
+                output[cursor] = ' '
+
+    while index < len(text):
+        begin = index
+        if text.startswith('//', index):
+            end = text.find('\n', index)
+            index = len(text) if end < 0 else end
+            hide(begin, index)
+        elif text.startswith('/*', index):
+            depth = 1
+            index += 2
+            while index < len(text) and depth:
+                if text.startswith('/*', index):
+                    depth += 1
+                    index += 2
+                elif text.startswith('*/', index):
+                    depth -= 1
+                    index += 2
+                else:
+                    index += 1
+            if depth:
+                raise ValueError('Unterminated ABI source comment')
+            hide(begin, index)
+        elif text.startswith(('#|', '$|'), index):
+            prefix = text[text.rfind('\n', 0, index) + 1:index]
+            if prefix.strip():
+                raise ValueError('Ambiguous ABI source raw literal')
+            end = text.find('\n', index)
+            index = len(text) if end < 0 else end
+            hide(begin, index)
+        elif text[index] in ('"', "'"):
+            quote = text[index]
+            index += 1
+            while index < len(text) and text[index] != quote:
+                if text[index] in '\r\n':
+                    raise ValueError('Unterminated ABI source literal')
+                if text[index] == '\\':
+                    index += 1
+                index += 1
+            if index >= len(text):
+                raise ValueError('Unterminated ABI source literal')
+            index += 1
+            if mask_literals:
+                hide(begin, index)
+        else:
+            index += 1
+    return ''.join(output)
+
+
+def package_wasm_exports(path: Path) -> dict[str, str]:
+    """Read the literal link.wasm.exports map without evaluating Moon code."""
+    text = path.read_text()
+    tokens = []
+    index = 0
+    while index < len(text):
+        if text[index].isspace():
+            index += 1
+        elif text.startswith('//', index):
+            end = text.find('\n', index)
+            index = len(text) if end < 0 else end + 1
+        elif text.startswith('/*', index):
+            depth = 1
+            index += 2
+            while index < len(text) and depth:
+                if text.startswith('/*', index):
+                    depth += 1
+                    index += 2
+                elif text.startswith('*/', index):
+                    depth -= 1
+                    index += 2
+                else:
+                    index += 1
+            if depth:
+                raise ValueError('Unterminated ABI package comment')
+        elif text[index] == '"':
+            value, length = json.JSONDecoder().raw_decode(text[index:])
+            tokens.append(('string', value))
+            index += length
+        else:
+            match = re.match(r'[A-Za-z_][A-Za-z_0-9]*|[0-9]+', text[index:])
+            value = match[0] if match else text[index]
+            tokens.append(('word' if match else 'punctuation', value))
+            index += len(value)
+    options, nesting = [], []
+    for cursor, token in enumerate(tokens):
+        if token == ('word', 'options') and not nesting:
+            options.append(cursor)
+        if token[0] == 'punctuation':
+            if token[1] in ('(', '{', '['):
+                nesting.append(token[1])
+            elif token[1] in (')', '}', ']'):
+                expected = {')': '(', '}': '{', ']': '['}[token[1]]
+                if not nesting or nesting.pop() != expected:
+                    raise ValueError('Unbalanced ABI package map')
+    if nesting:
+        raise ValueError('Unbalanced ABI package map')
+    if len(options) != 1:
+        raise ValueError('Expected one literal ABI package options map')
+    index = options[0] + 1
+
+    def take(value):
+        nonlocal index
+        if index >= len(tokens) or tokens[index] != ('punctuation', value):
+            raise ValueError('Unsupported ABI package map syntax: expected ' + value)
+        index += 1
+
+    def fields(end):
+        nonlocal index
+        result = {}
+        while index < len(tokens) and tokens[index][1] != end:
+            kind, key = tokens[index]
+            if kind not in ('word', 'string') or key in result:
+                raise ValueError('Duplicate or invalid ABI package map key')
+            index += 1
+            take(':')
+            result[key] = value()
+            if index < len(tokens) and tokens[index][1] != end:
+                take(',')
+        take(end)
+        return result
+
+    def value():
+        nonlocal index
+        if index >= len(tokens):
+            raise ValueError('Missing ABI package map value')
+        kind, item = tokens[index]
+        index += 1
+        if kind == 'string':
+            return item
+        if kind == 'word' and item.isdecimal():
+            return int(item)
+        if kind == 'word' and item in ('true', 'false'):
+            return item == 'true'
+        if item == '{':
+            return fields('}')
+        if item == '[':
+            result = []
+            while index < len(tokens) and tokens[index][1] != ']':
+                result.append(value())
+                if index < len(tokens) and tokens[index][1] != ']':
+                    take(',')
+            take(']')
+            return result
+        raise ValueError('Non-literal ABI package map value')
+
+    take('(')
+    config = fields(')')
+    try:
+        exports = config['link']['wasm']['exports']
+    except (KeyError, TypeError):
+        raise ValueError('Missing literal Wasm ABI export map') from None
+    if not isinstance(exports, list) or not exports:
+        raise ValueError('Invalid Wasm ABI export list')
+    result, symbols = {}, set()
+    for entry in exports:
+        match = re.fullmatch(r'([A-Za-z_][A-Za-z_0-9]*):([A-Za-z_][A-Za-z_0-9]*)', entry) if isinstance(entry, str) else None
+        if match is None or match[1] in result or match[2] in symbols:
+            raise ValueError('Duplicate or invalid Wasm ABI export mapping')
+        result[match[1]] = match[2]
+        symbols.add(match[2])
+    return result
+
+
 def render(root: Path = ROOT) -> str:
+    export_map = package_wasm_exports(root / "src/client_host_wasm/moon.pkg")
+    remaining = set(export_map)
     exports, imports, origins, names = {}, {}, {}, {}
     sources = sorted((root / 'src/client_host_wasm').glob('*.mbt'))
     sources += [root / 'src/physical_resources/imported_child_ledger_wasm.mbt']
     for path in sources:
         text = path.read_text()
-        matches = list(EXPORT.finditer(text))
-        if len(matches) != text.count('#export_name('):
-            raise ValueError('Unrecognized exported ABI declaration: ' + str(path))
+        if '#export_name(' in text:
+            raise ValueError('ABI export annotations must not root test artifacts')
+        code = declaration_source(text)
+        matches = list(PUBLIC.finditer(code)) if path.parent.name == 'client_host_wasm' else []
         for match in matches:
-            export, _, raw, result = match.groups()
-            if export in exports or result not in SCALAR:
-                raise ValueError('Duplicate or unsupported ABI export')
+            prefix = code[:match.start()]
+            if prefix.count('{') != prefix.count('}'):
+                raise ValueError('Nested ABI export declaration')
+            local, raw, result = match.groups()
+            if local not in remaining or result not in SCALAR:
+                raise ValueError('Duplicate, unmapped or unsupported ABI export declaration')
+            remaining.remove(local)
+            export = export_map[local]
             args = parameters(raw)
             exports[export] = (' '.join(kind for _, kind in args), SCALAR[result])
             names[export] = args
-            origins[export] = (str(path.relative_to(root)), match[2])
-        for match in IMPORT.finditer(text):
+            origins[export] = (str(path.relative_to(root)), local)
+        for match in IMPORT.finditer(declaration_source(text, mask_literals=False)):
             local, raw, result, name = match.groups()
             if name in imports or result not in SCALAR:
                 raise ValueError('Duplicate or unsupported ABI import')
@@ -101,8 +280,10 @@ def render(root: Path = ROOT) -> str:
             imports[name] = (' '.join(kind for _, kind in args), SCALAR[result])
             names['actql_host.' + name] = args
             origins['actql_host.' + name] = (str(path.relative_to(root)), local)
+    if remaining:
+        raise ValueError('Missing ABI export declarations: ' + ', '.join(sorted(remaining)))
     version_source = (root / 'src/client_host_wasm/version.mbt').read_text()
-    version = re.search(r'pub fn host_abi_version\(\) -> Int\s*\{\s*(\d+)\s*\}', version_source)
+    version = re.search(r'^pub fn host_abi_version\(\) -> Int\s*\{\s*(\d+)\s*\}', declaration_source(version_source), re.M)
     if version is None:
         raise ValueError('Unsupported ABI version declaration')
     groups = {family: {} for family in FAMILIES}

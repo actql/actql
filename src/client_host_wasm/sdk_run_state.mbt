@@ -240,7 +240,6 @@ fn sdk_run_state_candidate(
 ///|
 /// Prepare the existing same-row metadata CAS. This output is not public state
 /// until the physical Host confirms the exact committed original row.
-#export_name("actql_publication_commit_export_produce_sdk_run_state")
 pub fn produce_publication_sdk_run_state(
   nonce : Int64,
   handle : Int,
@@ -366,7 +365,6 @@ fn sdk_run_state_validate(
 }
 
 ///|
-#export_name("actql_publication_commit_export_validate_sdk_run_state")
 pub fn validate_publication_sdk_run_state(
   nonce : Int64,
   handle : Int,
@@ -376,7 +374,6 @@ pub fn validate_publication_sdk_run_state(
 }
 
 ///|
-#export_name("actql_publication_commit_export_confirm_sdk_run_state")
 pub fn confirm_publication_sdk_run_state(
   nonce : Int64,
   handle : Int,

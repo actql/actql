@@ -59,7 +59,6 @@ fn prepare_publication_commit_owner(
 /// Validate the physical Host's proposed commit chain against the original
 /// retained Receipt/Captured Run. This does not authorize or install a Store
 /// commit. The Store must separately verify payload facts and current access.
-#export_name("actql_publication_prepare_commit")
 pub fn prepare_publication_commit(
   nonce : Int64,
   handle : Int,
@@ -127,7 +126,6 @@ pub fn prepare_publication_commit(
 }
 
 ///|
-#export_name("actql_publication_advance_commit")
 pub fn advance_publication_commit(
   nonce : Int64,
   handle : Int,
@@ -191,7 +189,6 @@ pub fn advance_publication_commit(
 }
 
 ///|
-#export_name("actql_publication_commit_progress")
 pub fn publication_commit_progress(
   nonce : Int64,
   handle : Int,
@@ -215,7 +212,6 @@ pub fn publication_commit_progress(
 ///|
 /// Completion proves only that the existing commit validator accepted this
 /// chain. It is neither a durable commit acknowledgement nor Run admission.
-#export_name("actql_publication_finish_commit")
 pub fn finish_publication_commit(
   nonce : Int64,
   handle : Int,

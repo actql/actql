@@ -3,7 +3,6 @@
 /// The Host holds the same current File/Store frame; Core independently checks
 /// the original current supplier, publisher and Account run/read permission.
 /// The timestamp input loan is retained until this output finishes cleanup.
-#export_name("actql_publication_commit_export_produce_run_state")
 pub fn produce_publication_observed_run_state(
   nonce : Int64,
   handle : Int,

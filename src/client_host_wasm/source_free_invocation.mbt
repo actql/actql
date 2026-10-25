@@ -1,7 +1,6 @@
 ///|
 /// Borrow the original source-free Compute/input. No Source evidence, task
 /// activation, current publisher permission or durable outcome is synthesized.
-#export_name("actql_run_invocation_reserve_source_free")
 pub fn reserve_source_free_invocation(
   nonce : Int64,
   compute : Int,
@@ -30,7 +29,6 @@ pub fn reserve_source_free_invocation(
 }
 
 ///|
-#export_name("actql_run_invocation_prepare_source_free")
 pub fn prepare_source_free_invocation(
   nonce : Int64,
   handle : Int,
@@ -116,7 +114,6 @@ pub fn prepare_source_free_invocation(
 }
 
 ///|
-#export_name("actql_run_invocation_length_source_free")
 pub fn source_free_invocation_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.run_invocations.get(handle) is Some(record) &&
@@ -127,7 +124,6 @@ pub fn source_free_invocation_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_run_invocation_close_source_free")
 pub fn close_source_free_invocation(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.run_invocations.get(handle) is Some(record) &&

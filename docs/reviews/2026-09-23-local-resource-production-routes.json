@@ -8157,7 +8157,7 @@
             "native"
           ],
           "path": "src/query_integration/local_retained_values_chain_wbtest.mbt",
-          "fixture": "Values publication rejects wrong children nonlinear chains and shadowing providers"
+          "fixture": "Values publication rejects wrong children and shadowing providers"
         },
         {
           "role": "retained_source_free_product_configuration",
@@ -8171,7 +8171,7 @@
           "fixture": "product source-free retained factory installs exact bounded chain offers"
         },
         {
-          "role": "retained_source_free_product_rejection",
+          "role": "retained_source_free_product_branch_admission",
           "suite": "moon:query_integration",
           "targets": [
             "js",
@@ -8179,7 +8179,18 @@
             "native"
           ],
           "path": "src/query_integration/local_retained_values_chain_wbtest.mbt",
-          "fixture": "product retained factory refuses a nonlinear Values suffix before Compute"
+          "fixture": "product retained factory admits the exact earlier Values producer of a checked branch"
+        },
+        {
+          "role": "retained_source_free_branch_execution_and_cancellation",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_retained_values_chain_wbtest.mbt",
+          "fixture": "source-free Values chains preserve ordered results and cancellation custody"
         },
         {
           "role": "retained_source_free_chain_budgets",

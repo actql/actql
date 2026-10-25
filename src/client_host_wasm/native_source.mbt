@@ -38,7 +38,6 @@ fn required_int32(object : @decode.ObjectView, name : String) -> Int? {
 }
 
 ///|
-#export_name("actql_source_reserve_configuration")
 pub fn reserve_native_source_configuration(
   nonce : Int64,
   run : Int,
@@ -81,7 +80,6 @@ pub fn reserve_native_source_configuration(
 /// Core derives the exact checked requirement and admits the Native receipt
 /// contracts. Installed Source metadata, a Run permit and a read account are
 /// not physical invocation, settlement or a verified Source capture.
-#export_name("actql_source_configure")
 pub fn configure_native_source(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.native_sources.get(handle) is Some(record) &&
@@ -158,7 +156,6 @@ pub fn configure_native_source(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Read the existing checked inventory without physical Source acquisition.
 /// It is a capacity request, not admission or evidence of successful execution.
-#export_name("actql_source_capacity")
 pub fn native_source_capacity(
   nonce : Int64,
   handle : Int,
@@ -178,7 +175,6 @@ pub fn native_source_capacity(
 }
 
 ///|
-#export_name("actql_source_configured")
 pub fn native_source_configured(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.native_sources.get(handle) is Some(record) else {
@@ -194,7 +190,6 @@ pub fn native_source_configured(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Private typed construction evidence, not a public Source-disclosure reason
 /// or permission to dispatch. The original failed outcome remains unchanged.
-#export_name("actql_source_configuration_issue")
 pub fn native_source_configuration_issue(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.native_sources.get(handle) is Some(record) else {
@@ -225,7 +220,6 @@ pub fn native_source_configuration_issue(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_source_close_configuration")
 pub fn close_native_source_configuration(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.native_sources.get(handle) is Some(record) else {

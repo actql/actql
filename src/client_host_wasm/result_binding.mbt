@@ -13,7 +13,6 @@ priv struct StoredResultBinding {
 }
 
 ///|
-#export_name("actql_result_binding_reserve")
 pub fn reserve_result_binding(
   nonce : Int64,
   publication : Int,
@@ -74,7 +73,6 @@ pub fn reserve_result_binding(
 ///|
 /// Admit only physical observations against the original nominal Result and
 /// current Run/Source authority. Success is encoding, never a Store commit.
-#export_name("actql_result_binding_produce")
 pub fn produce_result_binding(
   nonce : Int64,
   handle : Int,
@@ -143,7 +141,6 @@ pub fn produce_result_binding(
 }
 
 ///|
-#export_name("actql_result_binding_length")
 pub fn result_binding_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.result_bindings.get(handle) is Some(record) else {
@@ -156,7 +153,6 @@ pub fn result_binding_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_result_binding_close")
 pub fn close_result_binding(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.result_bindings.get(handle) is Some(record) else {

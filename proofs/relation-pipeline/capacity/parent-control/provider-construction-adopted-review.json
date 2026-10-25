@@ -1,0 +1,85 @@
+{
+  "qualification": "Exact reviewed source delta; not Native layout observation or complete physical lifetime bound",
+  "previousRevision": "e50d0dd6e8d7b82033189a5e8772488172a198b6",
+  "sourceRevision": "b9584211e6f205150c48dfe9dcbe78b6bbe5d96d",
+  "sources": [
+    {
+      "path": "src/connectors/local/selected_relation_provider.mbt",
+      "previousSha256": "b917b4a66a1a27b6513d12d9d842ab97df90dc0621b4cfcd8a303c2c46271274",
+      "currentSha256": "cfbd44acaee5639d6b0caac0692c671a490e5881afbd6c2b66b06f5c4c6a1d53",
+      "hunks": [
+        {
+          "before": "  sequence : @execution.GeneratedSequence,\n  position : Int,\n  inputs : Array[ManagedProviderInput],\n  completed : Array[@execution.CompletedOutput?],\n  max_entries : Int,\n  max_value_bytes : Int,\n) -> Result[Array[ManagedProviderInput], @connector.FixedComputeIssue] {\n  let cursor = match\n    start_relation_chain_inputs(\n      sequence, position, inputs, completed, max_entries, max_value_bytes,\n    ) {\n    Ok(cursor) => cursor\n    Err(issue) => return Err(issue)\n  }\n  drain_relation_chain_inputs(cursor)\n",
+          "after": "  sequence : @execution.GeneratedSequence,\n  position : Int,\n  inputs : Array[ManagedProviderInput],\n  completed : Array[@execution.CompletedOutput?],\n) -> Result[Array[ManagedProviderInput], @connector.FixedComputeIssue] {\n  let cursor = match\n    start_relation_chain_inputs(sequence, position, inputs, completed) {\n    Ok(cursor) => cursor\n    Err(issue) => return Err(issue)\n  }\n  drain_relation_chain_inputs(cursor)\n"
+        },
+        {
+          "before": "    reclaiming: false,\n    input_preparation: None,\n  }\n  let first_inputs = match\n    relation_chain_step_inputs(\n      sequence,\n      0,\n      inputs,\n      state.completed,\n      execution.rows.operation_entries,\n      max_value_bytes,\n    ) {\n    Ok(value) => value\n    Err(issue) => return Err(issue)\n  }\n  let initial = match\n",
+          "after": "    reclaiming: false,\n    input_preparation: None,\n  }\n  let first_inputs = match\n    relation_chain_step_inputs(sequence, 0, inputs, state.completed) {\n    Ok(value) => value\n    Err(issue) => return Err(issue)\n  }\n  let initial = match\n"
+        },
+        {
+          "before": "                sequence,\n                state.position,\n                inputs,\n                state.completed,\n                execution.rows.operation_entries,\n                max_value_bytes,\n              ) {\n              Err(issue) => Err(issue)\n              Ok(cursor) =>\n                if relation_chain_inputs_are_small(cursor) {\n",
+          "after": "                sequence,\n                state.position,\n                inputs,\n                state.completed,\n              ) {\n              Err(issue) => Err(issue)\n              Ok(cursor) =>\n                if relation_chain_inputs_are_small(cursor) {\n"
+        },
+        {
+          "before": "                  sequence,\n                  state.position,\n                  inputs,\n                  state.completed,\n                  execution.rows.operation_entries,\n                  max_value_bytes,\n                ) {\n                Ok(cursor) => cursor\n                Err(issue) => {\n                  terminal.val = true\n",
+          "after": "                  sequence,\n                  state.position,\n                  inputs,\n                  state.completed,\n                ) {\n                Ok(cursor) => cursor\n                Err(issue) => {\n                  terminal.val = true\n"
+        },
+        {
+          "before": "          @lower.preparation_carrier_at(prepared, @pipeline.Input(0))\n          .map(carrier => @carrier.kind(carrier) == @carrier.RelationKind)\n          .unwrap_or(false)\n      }\n      let used_by_later = Array::make(count, false)\n      for index in 0..<count {\n        guard @execution.generated_sequence_step_index_at(sequence, index)\n          is Some(step) &&\n          @execution.generated_sequence_step_at(sequence, index)\n",
+          "after": "          @lower.preparation_carrier_at(prepared, @pipeline.Input(0))\n          .map(carrier => @carrier.kind(carrier) == @carrier.RelationKind)\n          .unwrap_or(false)\n      }\n      for index in 0..<count {\n        guard @execution.generated_sequence_step_index_at(sequence, index)\n          is Some(step) &&\n          @execution.generated_sequence_step_at(sequence, index)\n"
+        },
+        {
+          "before": "                }\n                if producer_position < 0 {\n                  return false\n                }\n                used_by_later[producer_position] = true\n              }\n              None => return false\n            }\n          }\n        }\n      }\n      // An external-only child may form a second branch. Every private\n      // output before the final step must still be consumed within the task.\n      for index in 0..<(count - 1) {\n        if !used_by_later[index] {\n          return false\n        }\n      }\n      match\n        @execution.completion_preparation_selected_step(\n          @execution.generated_completion_preparation(sequence),\n        ) {\n",
+          "after": "                }\n                if producer_position < 0 {\n                  return false\n                }\n              }\n              None => return false\n            }\n          }\n        }\n      }\n      // Checked lowering may retain an unconsumed branch before the terminal\n      // operation (for example the public projection beside STORE inputs).\n      // This chain still executes every selected step: its capacity includes\n      // every child, failures stop the task, and all child cleanup is retained.\n      // Only producer edges must resolve to an earlier exact checked occurrence.\n      match\n        @execution.completion_preparation_selected_step(\n          @execution.generated_completion_preparation(sequence),\n        ) {\n"
+        }
+      ],
+      "semanticScope": "The constructor still installs the same callbacks. Input metadata preparation no longer receives operation-entry/value-byte caps, removing one advance scalar capture and two cursor scalar fields; original metadata/read ownership remains. Eligibility no longer allocates/consults used_by_later: unconsumed checked branches remain executed, capacity-accounted and cleaned. This changes callback execution, not the eleven candidate record multiplicity. No current Native callback layout is inferred from the old observations."
+    },
+    {
+      "path": "src/connectors/local/managed_provider.mbt",
+      "previousSha256": "8fb17b1b340baeb343b1f9d9037f8db0e132fd5055fea5ce64d0cc271535aec4",
+      "currentSha256": "b772695204d0e16c9d0b61c44a2fce1d0040c27b49f80a84b75f67355d468480",
+      "hunks": [
+        {
+          "before": "    Int,\n    @execution.SequenceExecutionLimits,\n    @execution.NumericAggregateExecution?,\n  ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue])?\n}\n\n///|\n/// One exact ordered input to a family provider. Carrier values remain\n",
+          "after": "    Int,\n    @execution.SequenceExecutionLimits,\n    @execution.NumericAggregateExecution?,\n  ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue])?\n  // A trusted Model family can delegate its exact pre-boundary Relation\n  // segment to the same bounded Local owner. This is not an acceptance Bool.\n  infer_relation_prefix : (\n    @execution.GeneratedSequence,\n    Int,\n    @execution.SequenceExecutionLimits,\n    @execution.FixedInputGuardMeasureLimits,\n  )?\n}\n\n///|\n/// One exact ordered input to a family provider. Carrier values remain\n"
+        },
+        {
+          "before": "    Int,\n    @execution.SequenceExecutionLimits,\n  ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue],\n) -> ManagedProvider {\n  { accepts, capacity, start, start_numeric: None, }\n}\n\n///|\n/// A provider whose kernel runs selected common numeric reductions. The\n",
+          "after": "    Int,\n    @execution.SequenceExecutionLimits,\n  ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue],\n) -> ManagedProvider {\n  {\n    accepts,\n    capacity,\n    start,\n    start_numeric: None,\n    infer_relation_prefix: None,\n  }\n}\n\n///|\n/// A provider whose kernel runs selected common numeric reductions. The\n"
+        },
+        {
+          "before": "    start: (sequence, inputs, rows, bytes, execution) => {\n      start(sequence, inputs, rows, bytes, execution, None)\n    },\n    start_numeric: Some(start),\n  }\n}\n\n///|\n",
+          "after": "    start: (sequence, inputs, rows, bytes, execution) => {\n      start(sequence, inputs, rows, bytes, execution, None)\n    },\n    start_numeric: Some(start),\n    infer_relation_prefix: None,\n  }\n}\n\n///|\n/// Retain the bounded Local input recipe actually used by a trusted Model\n/// family. Eligibility still checks the accepted whole sequence, its exact\n/// Infer boundary and the original generated prefix under this recipe.\n/// This supplies neither Model authority nor a resource/cleanup admission.\npub fn managed_provider_with_infer_relation_prefix(\n  provider : ManagedProvider,\n  prefix : @execution.GeneratedSequence,\n  boundary_step : Int,\n  execution : @execution.SequenceExecutionLimits,\n  measurement : @execution.FixedInputGuardMeasureLimits,\n) -> ManagedProvider {\n  {\n    ..provider,\n    infer_relation_prefix: Some((prefix, boundary_step, execution, measurement)),\n  }\n}\n\n///|\n"
+        }
+      ],
+      "semanticScope": "ManagedProvider gains one optional Infer recipe reference slot. Both ordinary constructors initialize None, including the compatibility adapter. The new Model-family wrapper copies a provider and retains Some(prefix,boundary,execution,measurement); it is not called by the eleven candidate constructors. The conditional candidate component includes the extra pointer slot, but excludes and does not prove the separate Model wrapper record/tuple or borrowed recipe lifetimes."
+    },
+    {
+      "path": "src/execution_relation/generated_sequence.mbt",
+      "previousSha256": "c6ee6afc5adcda37f708444eac28645cd19269b76e3377602da874f17c3ee673",
+      "currentSha256": "ceb104eac7eac87b81828fb9f2279814768ae5a8935796504c0a21157bd821ec",
+      "hunks": [
+        {
+          "before": "  analytic_envelopes : Array[SelectedAnalyticEnvelope]\n  nest_item_ceilings : Array[(Int, Int64)]\n  nest_grouped_byte_ceilings : Array[(Int, Int64)]\n  nest_attached_byte_ceilings : Array[(Int, Int64)]\n  numeric : NumericAggregateExecution?\n}\n\n///|\n",
+          "after": "  analytic_envelopes : Array[SelectedAnalyticEnvelope]\n  nest_item_ceilings : Array[(Int, Int64)]\n  nest_grouped_byte_ceilings : Array[(Int, Int64)]\n  nest_attached_byte_ceilings : Array[(Int, Int64)]\n  query_time : @publication.QueryEvaluationTime?\n  numeric : NumericAggregateExecution?\n}\n\n///|\n"
+        },
+        {
+          "before": "        analytic_envelopes: [],\n        nest_item_ceilings: [],\n        nest_grouped_byte_ceilings: [],\n        nest_attached_byte_ceilings: [],\n        numeric: None,\n      })\n    Err(issue) => Err(issue)\n  }\n",
+          "after": "        analytic_envelopes: [],\n        nest_item_ceilings: [],\n        nest_grouped_byte_ceilings: [],\n        nest_attached_byte_ceilings: [],\n        query_time: None,\n        numeric: None,\n      })\n    Err(issue) => Err(issue)\n  }\n"
+        },
+        {
+          "before": "  } else {\n    Some(generated.retained_ids[index])\n  }\n}\n",
+          "after": "  } else {\n    Some(generated.retained_ids[index])\n  }\n}\n\n///|\n/// Bind computation data to one invocation without mutating reusable compiled\n/// fragments. The caller must already have matched the original Prepared,\n/// admitted Run and query request; this grants no execution authority.\npub fn bind_generated_sequence_query_time(\n  generated : GeneratedSequence,\n  query_time : @publication.QueryEvaluationTime,\n  max_work : Int,\n  max_entries : Int,\n) -> Result[GeneratedSequence, SequenceRunIssue] {\n  if max_work < 0 || max_entries < 0 {\n    return Err(InvalidLimits)\n  }\n  if generated.query_time is Some(prior) {\n    return if physical_equal(prior, query_time) {\n      Ok(generated)\n    } else {\n      Err(InputSet)\n    }\n  }\n  let count = generated.contexts.length()\n  // One returned record, its context array, and one copied context per entry.\n  // This is a bounded workspace inventory, not physical capacity admission.\n  if count > (max_entries - 2) / 2 || max_entries < 2 || count > max_work {\n    return Err(InputLimit)\n  }\n  let contexts = []\n  for context in generated.contexts {\n    if context.query_time is Some(prior) && !physical_equal(prior, query_time) {\n      return Err(InputSet)\n    }\n    contexts.push({ ..context, query_time: Some(query_time), })\n  }\n  Ok({ ..generated, contexts, query_time: Some(query_time), })\n}\n\n///|\n/// Inspect only the retained invocation original for the request owner's\n/// nominal match. Presence does not discharge that owner's admission checks.\npub fn generated_sequence_query_time(\n  generated : GeneratedSequence,\n) -> @publication.QueryEvaluationTime? {\n  generated.query_time\n}\n"
+        }
+      ],
+      "semanticScope": "The immutable sequence gains one original QueryEvaluationTime reference. Binding validates exact original identity and copies contexts with the same original; this is separate checked configuration ownership, not an allocation performed by any of the eleven candidate constructors. The component does not establish borrowed configuration referent bounds."
+    }
+  ],
+  "notEstablished": [
+    "Current Native compiled callback or record observations",
+    "Model-bound Infer tuple lifetime union",
+    "Borrowed generated configuration physical capacity",
+    "Whole constructor or pipeline physical upper bound"
+  ]
+}

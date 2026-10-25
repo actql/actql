@@ -1445,11 +1445,20 @@ test('retained source-free Values requires exact admission and Host evidence', (
   for (const role of ['retained_source_free_chain_admission',
     'retained_source_free_chain_rejection',
     'retained_source_free_product_configuration',
-    'retained_source_free_product_rejection', 'retained_source_free_chain_budgets']) {
+    'retained_source_free_product_branch_admission',
+    'retained_source_free_branch_execution_and_cancellation', 'retained_source_free_chain_budgets']) {
     assert.match(run(undefined, routes => {
       const route = values(routes);
       route.boundary_tests = route.boundary_tests.filter(test => test.role !== role);
     }), /bounded zero-input Values route lacks its production evidence/u);
+  }
+  for (const role of ['retained_source_free_chain_rejection',
+    'retained_source_free_product_branch_admission',
+    'retained_source_free_branch_execution_and_cancellation']) {
+    assert.match(run(undefined, routes => {
+      values(routes).boundary_tests.find(test => test.role === role).fixture =
+        'product source-free retained factory installs exact bounded chain offers';
+    }), /must bind its distinct checked Values boundary/u);
   }
   for (const role of ['retained_source_free_named_results',
     'retained_source_free_empty_input', 'retained_source_free_empty_output',
