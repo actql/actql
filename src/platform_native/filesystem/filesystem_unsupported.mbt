@@ -238,11 +238,6 @@ pub fn Reader::next(
 }
 
 ///|
-pub fn Reader::sha256(_self : Reader) -> Result[Bytes, NativeFilesystemIssue] {
-  Err(UnsupportedTarget)
-}
-
-///|
 pub fn Reader::finish(_self : Reader) -> Result[Unit, NativeFilesystemIssue] {
   Err(UnsupportedTarget)
 }
