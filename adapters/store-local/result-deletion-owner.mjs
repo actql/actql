@@ -39,7 +39,7 @@ export function createResultDeletionOwner(operations) {
           }
           await operations.syncObjects();
           if (!accounted) {
-            operations.releaseCapacity();
+            await operations.releaseCapacity();
             accounted = true;
           }
           settle(true);
