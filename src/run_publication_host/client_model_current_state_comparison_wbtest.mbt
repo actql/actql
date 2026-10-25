@@ -3,7 +3,7 @@
 // bytes obtained from its Writer. This demonstrates no physical byte grant,
 // actual installed Model park, Store authentication or journal COMMIT.
 fn client_current_comparison_test_document(
-  wire? : String = "[\"actql-original-ledger-state/0.1\",[\"17\",\"2\",\"3\",\"11\",\"20\",\"12\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],\"-3\",[\"2\",\"0\",\"0\",true,true,false,\"parked\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]],[],[]]",
+  wire? : String = "[\"actql-original-ledger-state/0.1\",[\"17\",\"2\",\"3\",\"11\",\"20\",\"12\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\",\"0\",\"2\",\"0\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],[\"-3\",\"0\",\"0\"],[\"2\",\"0\",\"0\",true,true,false,\"parked\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false]],[],[]]",
 ) -> @resources.OriginalCurrentStateDocument {
   let node = @source.parse_json(wire, {
     max_input_bytes: 4000,

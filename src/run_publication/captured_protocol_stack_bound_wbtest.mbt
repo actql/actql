@@ -5,10 +5,13 @@ fn captured_protocol_rule_height(
   memo : Array[Int],
 ) -> Int raise {
   assert_true(index >= 0 && index < nodes.length())
-  if memo[index] > 0 { return memo[index] }
+  if memo[index] > 0 {
+    return memo[index]
+  }
   let children : Array[Int] = match nodes[index] {
     ArrayRule(item, _, _, _) => [item]
-    TupleRule(items) | OneOfRule(items) | AnyOfRule(items) | AllOfRule(items) => items
+    TupleRule(items) | OneOfRule(items) | AnyOfRule(items) | AllOfRule(items) =>
+      items
     ObjectRule(properties, _, additional, _, _, _) => {
       let children = properties.map(pair => pair.1)
       children.push(additional)
@@ -20,10 +23,15 @@ fn captured_protocol_rule_height(
   }
   let mut height = 1
   for child in children {
-    if child < 0 { continue }
+    if child < 0 {
+      continue
+    }
     // Pinned generated schema is a backward-reference DAG, not recursive data.
     assert_true(child < index)
-    height = Int::max(height, 1 + captured_protocol_rule_height(nodes, child, memo))
+    height = Int::max(
+      height,
+      1 + captured_protocol_rule_height(nodes, child, memo),
+    )
   }
   memo[index] = height
   height
@@ -32,11 +40,15 @@ fn captured_protocol_rule_height(
 ///|
 test "captured protocol validation stack is schema-bounded not row-count bounded" {
   let nodes = protocol_schema_nodes()
-  assert_eq(nodes.length(), 7286)
+  assert_eq(nodes.length(), 7300)
   for complete in [false, true] {
     let root = generated_protocol_schema_root("captured_run", complete).unwrap()
     assert_eq(root, if complete { 2303 } else { 1882 })
-    let height = captured_protocol_rule_height(nodes, root, Array::make(nodes.length(), 0))
+    let height = captured_protocol_rule_height(
+      nodes,
+      root,
+      Array::make(nodes.length(), 0),
+    )
     assert_eq(height, 10)
     // One continuation per recursive rule visit. The priced24 also includes
     // current/pop/growth carriers, without charging one frame for every row.

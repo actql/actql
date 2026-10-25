@@ -1233,7 +1233,14 @@ and directory acquisition, bounded codec and all simultaneous retained/workspace
 before acquisition or allocation, refusing unavailable or unjustified supply
 rather than substituting object-byte limits, guessed coefficients or spare limits.
 
-<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_original_resource_state sha256:6be8dc0eec799400cb68173ac39ee88c49d9af80cabc762a62a8bdceddf778df -->
+The current state record separates consumed attempts from reserved attempts,
+live reservations, live holdings and live delegations. Its serial-cursor tuple
+retains the capacity, attempt and holding identity boundaries independently;
+each reservation also records whether an attempt is reserved or already started.
+These data fields do not replace the original Core checks of token identity,
+quantity debt, currentness, complete census or physical cleanup.
+
+<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_original_resource_state sha256:33b975b742274ca24e3997ec9c57762d4131de8659dd1111ad2d7e74671b3842 -->
 
 <a id="effectful-static-plan-view"></a>
 

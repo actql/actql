@@ -17279,7 +17279,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:bf57a34056edcb9455d1a3a98f49aebca22a7596b18c6d78f8d6b8d25a6f8ab0",
+  "artifact_registry_cid": "sha256:e0f6390643f9e296112180f4ac29e886d1ddce79a85e8950fabeb6ca3efe6f0b",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77",
@@ -17350,7 +17350,7 @@
     "model_invocation_evidence_compatible": "sha256:395b29533430f97fda7a13019417abb991e7fe1d2b0e92d579a58887f53a6756",
     "model_capture_bundle_compatible": "sha256:750be57601bea98a9446d2ec3222e6f1cde2e2c40069cbef917fc475a15e9ddb",
     "model_response_profile": "sha256:f44d7f923a662f2487ab1e87f8c5cf5872aa38c64e944e57470bb63dd819c7d7",
-    "model_original_resource_state": "sha256:6be8dc0eec799400cb68173ac39ee88c49d9af80cabc762a62a8bdceddf778df",
+    "model_original_resource_state": "sha256:33b975b742274ca24e3997ec9c57762d4131de8659dd1111ad2d7e74671b3842",
     "model_journal_entry": "sha256:2be8611d08d277590783ff06299130c78170eb4de49b4d76d67a940d0e3fccb7",
     "model_journal_settlement": "sha256:e5739efb68a1d6059c5d9c58cd74eabbc8ca28c071e81c2b1984d26e5125161b",
     "openai_chat_prompt": "sha256:c785e9b1efaefbf6a0c74c52bc103dd2e67eb774a9c2f860642007bce1e81a9a",
@@ -102326,11 +102326,23 @@
                 {
                   "type": "string",
                   "pattern": "^(0|[1-9][0-9]*)$(?![\\s\\S])"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$(?![\\s\\S])"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$(?![\\s\\S])"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$(?![\\s\\S])"
                 }
               ],
               "items": false,
-              "minItems": 10,
-              "maxItems": 10
+              "minItems": 13,
+              "maxItems": 13
             },
             {
               "type": "array",
@@ -102448,15 +102460,45 @@
               "maxItems": 3
             },
             {
-              "oneOf": [
+              "type": "array",
+              "prefixItems": [
                 {
-                  "type": "null"
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^(0|-?[1-9][0-9]*)$(?![\\s\\S])"
+                    }
+                  ]
                 },
                 {
-                  "type": "string",
-                  "pattern": "^(0|-?[1-9][0-9]*)$(?![\\s\\S])"
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$(?![\\s\\S])"
+                    }
+                  ]
+                },
+                {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$(?![\\s\\S])"
+                    }
+                  ]
                 }
-              ]
+              ],
+              "items": false,
+              "minItems": 3,
+              "maxItems": 3
             },
             {
               "type": "array",
@@ -102626,11 +102668,17 @@
                       "maxItems": 3
                     }
                   ]
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "boolean"
                 }
               ],
               "items": false,
-              "minItems": 10,
-              "maxItems": 10
+              "minItems": 12,
+              "maxItems": 12
             },
             {
               "type": "array",
@@ -102764,11 +102812,17 @@
                         "maxItems": 3
                       }
                     ]
+                  },
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "boolean"
                   }
                 ],
                 "items": false,
-                "minItems": 10,
-                "maxItems": 10
+                "minItems": 12,
+                "maxItems": 12
               }
             },
             {
