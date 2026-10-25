@@ -221,7 +221,6 @@ test "Query syntax diagnostics keep the code and omit private parser text" {
     issue in [
       @frontend.QuerySyntax({ issue: InvalidLimits, span: None, }),
       @frontend.QuerySyntax({ issue: Source(InvalidRange), span: None, }),
-      @frontend.QuerySyntax({ issue: Limit(Tokens), span: None, }),
       @frontend.InvalidFormat,
       @frontend.WrongQueryForm,
     ] {
@@ -231,5 +230,39 @@ test "Query syntax diagnostics keep the code and omit private parser text" {
       local_command_primary_diagnostic("ignored").1.contains("query syntax"),
     )
   }
+  local_command_diagnostic_reset()
+}
+
+///|
+test "Query parser resource refusals are not classified as invalid syntax" {
+  for
+    text in [
+      "SELECT " + Array::make(4200, "1").join(","),
+      "SELECT " + " ".repeat(65536) + "1 AS value",
+    ] {
+    guard @frontend.parse_query(text, @frontend.Text) is Err(issue) else {
+      fail("the query must exceed the fixed parser resource budget")
+    }
+    guard issue is QuerySyntax({ issue: Limit(_) | Source(InputLimit), .. }) else {
+      fail("the original parser must retain its typed resource cause")
+    }
+    local_command_diagnostic_reset()
+    let original : @local_host.NativeClientPreparationIssue = Frontend(issue)
+    local_stop_native_preparation(original) catch {
+      ClientStop(_) => ()
+    }
+    let (code, message) = local_command_primary_diagnostic("private source")
+    assert_eq(code, "ACTQL_E_PREPARATION_LIMIT")
+    assert_true(message.contains("limit"))
+    assert_false(message.contains("invalid"))
+    for json in [false, true] {
+      let rendered = local_command_failure_text("private source", json)
+      assert_true(rendered.contains(code))
+      assert_false(rendered.contains("private source"))
+    }
+  }
+  assert_true(
+    @frontend.parse_query("SELECT 1 AS value", @frontend.Text) is Ok(_),
+  )
   local_command_diagnostic_reset()
 }

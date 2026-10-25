@@ -87,6 +87,8 @@ fn local_frontend_diagnostic_kind(
 ) -> LocalCommandDiagnosticKind {
   match issue {
     QuerySyntax({ issue: Syntax(_) | Lexical(_), .. }) => QuerySyntaxInvalid
+    QuerySyntax({ issue: Limit(_) | Source(InputLimit), .. }) =>
+      PreparationLimit
     InvalidFormat | WrongQueryForm | QuerySyntax(_) => ProgramInvalid
     _ => PreparationFailed
   }
