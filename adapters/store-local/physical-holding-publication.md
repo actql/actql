@@ -324,9 +324,10 @@ COMMIT retires exactly those originals. Lost replies retain them for the same
 mutation or close retry, and actual native close releases their managed aliases
 without claiming an unrelated uncertain mutation succeeded.
 
-An older private database format permits one bounded inventory migration. The
+Only current-format recovery may complete pending inventory coverage. The
 Store confirms each selected Index's actual durability, retains only
 unfinished originals, and commits coverage with the pending rows atomically.
+Older private database versions are refused before mutation, not migrated.
 Subsequent opens read pending rows rather than enumerating committed inventories
 or Indexes. Missing adopted tables, coverage or malformed selected originals
 refuse; they never rebuild coverage from absence or recreate authority.
@@ -363,7 +364,7 @@ storing the body with its pending lookup removes the redundant inventory-file
 write/sync/close and directory sync, not those logical transitions or payload ACKs.
 
 Private native-inventory count and wire bounds are enforced before insertion.
-Additive format adoption creates their tables and count atomically; adopted
+Initial current-format creation installs their tables and count atomically; adopted
 missing tables or invalid count refuse without resetting originals. Prior
 file inventories remain files and use the same selected-use checks. They are
 not copied into a second representation during ordinary open. Retirement binds
@@ -488,9 +489,9 @@ row is already retired. Retry does not manufacture success from either fact.
 Completed fences retain only metadata key, Run and retirement state, not the
 deleted metadata bodies. They do not permit re-creation of that Run.
 
-An additive format transition reads prior full and compact marker files once,
+Current-format building coverage reads its full and compact marker files
 in bounded native batches. Durable coverage is completed before redundant compact
-files are removed. Interrupted migration resumes the same tuples idempotently;
+files are removed. Interrupted coverage resumes the same tuples idempotently;
 missing adopted tables or incomplete coverage never mean not-found. Subsequent
 opens recover pending physical markers only. Other quota and legacy shared-reference
 history work remains separate; this is not fully history-independent startup.
@@ -800,9 +801,9 @@ transaction creates complete empty delivery, physical-quota, publication-recover
 and metadata-retirement coverage together. It retains WAL/FULL/fullfsync and
 the separate building/ready marker acknowledgements. A prepared owner supplies
 its same held exclusion; it does not turn a cold owner-only directory into a
-fresh format. Existing or interrupted Store formats keep their bounded migration
-protocol, and an empty-initialization request cannot replace an existing native
-schema. A failed initial COMMIT remains Unknown whether its complete transition
+fresh format. Interrupted current-format stores keep their bounded recovery
+protocol; older private versions refuse untouched. An empty-initialization request
+cannot replace an existing native schema. A failed initial COMMIT remains Unknown whether its complete transition
 was committed or rolled back; later format completion does not rewrite that
 original failure or replay any Run.
 
@@ -1205,3 +1206,36 @@ whose directory reply was lost, an unknown borrower, independent adoption and
 both committed and rolled-back native settlement uncertainty. Raw quota census
 fixtures interrupt only an unlinked write or an already acknowledged raw writer;
 an unacknowledged semantic body is not an adopted physical Result.
+
+### Physical allocation ownership through retirement
+
+A content CID and an observed device/inode pair do not identify a fresh allocation
+forever: the filesystem may reuse an unlinked inode. Before an owned physical
+unlink, the Store retains an actual read-only FD to that exact original and marks
+its existing native physical lifetime dirty. The FD prevents inode reuse while
+unlink or its containing-directory acknowledgement remains pending. A replacement
+can share the same content CID, but is a distinct allocation and has its own charge.
+Pending cleanup carries the immutable retirement holder, never a fresh CID lookup.
+
+The original unlink is single-flight even when cleanup reaches it through different
+Store serializers. A retry checks the same retained FD and cannot unlink a pathname
+now naming a replacement. After the real directory acknowledgement, one holder-owned
+flight closes that original and settles only its Store quota. Same-CID admission is
+fenced through close and quota uncertainty; unrelated content and other Stores do
+not borrow that fence. Duplicate and late callbacks reuse the same owner flight.
+
+An unknown native close is not proof that the FD remains open. In Node, the original
+FileHandle can invalidate its descriptor before the close promise settles, and a
+later close can resolve without repeating or confirming the original operation.
+The Store therefore retains the exact original close promise. Rejection or explicit
+false quarantines its holder, quota and admission fence; it never retries a numeric
+FD or treats a later vacuous close as acknowledgement. This fail-closed lifetime
+requires exclusive process recovery, not automatic deletion or guessed success.
+
+After process death, the operating system releases the dead process's FDs. Before
+admitting any new writer, the existing exclusive Store opening protocol observes
+its durably dirty lifetime, acknowledges the actual object directory, and reconciles
+the bounded physical census and retained custody originals. A replacement admitted
+before that death could not reuse the still-held old inode. Clean current-format
+reopen remains unchanged. This introduces no new public identity, normative version,
+capacity grant, private-format migration, or second physical accounting authority.

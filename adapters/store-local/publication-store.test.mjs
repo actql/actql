@@ -10793,3 +10793,259 @@ for (const oldVersion of [5, 7, 10, 14]) {
     await assert.rejects(stat(join(setup.directory, 'owner')), code('ENOENT'));
   });
 }
+
+test('retiring allocation stays physically owned while two earlier writers seal replacements', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-retirement-concurrent-'));
+  t.after(() => removeFixtureDirectory(directory));
+  const object = join(directory, 'objects', digest('payload').slice(7));
+  let failAck = false, capture = false;
+  const handles = [], originalOpen = fsPromises.open;
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    const handle = await Reflect.apply(originalOpen, this, [path, ...args]);
+    if (capture && String(path) === object) handles.push(handle);
+    return handle;
+  });
+  syncBuiltinESMExports();
+  t.after(() => { t.mock.restoreAll(); syncBuiltinESMExports(); });
+  const store = await openLocalPublicationStore({directory, storeAuthorityCid: cids.authority,
+    capacityBytes: 1024, maxObjectBytes: 1024, maxObjects: 10,
+    maxContractNodes: limits.maxNodes, maxContractDepth: limits.maxDepth}, contractControl, {
+    async syncDirectory(path) {
+      if (failAck && path === join(directory, 'objects')) {
+        failAck = false; throw Object.assign(new Error('original unlink ACK'), {code: 'EIO'});
+      }
+      const handle = await open(path, 'r'); try { await handle.sync(); } finally { await handle.close(); }
+    },
+  });
+  t.after(() => store.close());
+  const first = store.createPreparedObjectWriter(7); await first.append('payload');
+  const old = await first.seal(digest('payload'));
+  const original = await stat(object);
+  // These writes are admitted before retirement, not only after its fence.
+  const a = store.createPreparedObjectWriter(7), b = store.createPreparedObjectWriter(7);
+  await Promise.all([a.append('payload'), b.append('payload')]);
+  capture = true; failAck = true;
+  await assert.rejects(old.prepared.release(), {code: 'EIO'});
+  capture = false;
+  const keeper = handles.find(handle => handle.fd >= 0);
+  assert(keeper, 'an actual original FD, not an in-memory generation flag, remains owned');
+  assert.equal((await keeper.stat()).nlink, 0);
+  const replacements = await Promise.all([a.seal(digest('payload')), b.seal(digest('payload'))]);
+  assert.equal(replacements.filter(value => value.created).length, 1);
+  const current = await stat(object);
+  assert.notDeepEqual([current.dev, current.ino], [original.dev, original.ino]);
+  assert.equal(store.status().storedBytes, 14);
+  const reader = await open(object, 'r');
+  try {
+    await Promise.all([old.prepared.retry(), old.prepared.retry()]);
+    assert.equal(await reader.readFile('utf8'), 'payload');
+    assert.equal(store.status().storedBytes, 7);
+    assert.equal(keeper.fd, -1);
+  } finally { await reader.close(); }
+  await replacements[0].prepared.release();
+  assert.equal(store.status().storedBytes, 7);
+  await replacements[1].prepared.release();
+  assert.equal(store.status().storedBytes, 0);
+});
+
+for (const boundary of ['before-lifetime-dirty-marker', 'after-lifetime-dirty-marker-commit', 'after-unlink',
+  'after-directory-ack', 'before-original-close', 'after-original-close', 'after-retirement-quota-delta', 'after-close-time-native-quota-commit']) {
+  test(`physical allocation lifetime recovers after process death at ${boundary}`, async t => {
+    const directory = await mkdtemp(join(tmpdir(), 'actql-retirement-crash-'));
+    t.after(() => removeFixtureDirectory(directory));
+    const configuration = {directory, storeAuthorityCid: cids.authority, capacityBytes: 1024,
+      maxObjectBytes: 1024, maxObjects: 10, maxContractNodes: limits.maxNodes, maxContractDepth: limits.maxDepth};
+    const child = await runStoreChild(`
+      import assert from 'node:assert/strict';
+      import fs from 'node:fs/promises';
+      import {syncBuiltinESMExports} from 'node:module';
+      import {DatabaseSync} from 'node:sqlite';
+      import {join} from 'node:path';
+      import {openLocalPublicationStore} from ${JSON.stringify(new URL('./publication-store.mjs', import.meta.url).href)};
+      import {createPublicationContractControlFixture} from ${JSON.stringify(new URL('../host-common/publication-contract-control.fixture.mjs', import.meta.url).href)};
+      const configuration = ${JSON.stringify(configuration)}, boundary = ${JSON.stringify(boundary)};
+      const object = join(configuration.directory, 'objects', ${JSON.stringify(digest('payload').slice(7))});
+      let armed = false, dirty = false, sealing = false, retirementArmed = false, quotaSealUpdated = false;
+      const exec = DatabaseSync.prototype.exec;
+      DatabaseSync.prototype.exec = function(sql) {
+        if (armed && sql === 'PRAGMA user_version=1') {
+          if (boundary === 'before-lifetime-dirty-marker') process.exit(71);
+          dirty = true;
+        }
+        const result = Reflect.apply(exec, this, [sql]);
+        if (armed && dirty && sql === 'COMMIT' && boundary === 'after-lifetime-dirty-marker-commit') process.exit(71);
+        if (sealing && sql === 'PRAGMA user_version=0') quotaSealUpdated = true;
+        if (sealing && quotaSealUpdated && sql === 'COMMIT' && boundary === 'after-close-time-native-quota-commit') {
+          const usage = this.prepare('SELECT objects,bytes FROM physical_object_usage WHERE id=1').get();
+          assert.equal(usage.objects, 0); assert.equal(usage.bytes, 0); process.exit(71);
+        }
+        return result;
+      };
+      const originalOpen = fs.open, originalUnlink = fs.unlink;
+      fs.unlink = async function(path, ...args) {
+        if (retirementArmed && String(path) === object) {
+          assert.equal((await fs.lstat(object)).size, 7);
+          const check = new DatabaseSync(join(configuration.directory, 'delivery-attempts.sqlite3'), {readOnly:true});
+          try { assert.equal(check.prepare('PRAGMA user_version').get().user_version, 1); } finally { check.close(); }
+        }
+        const result = await Reflect.apply(originalUnlink, this, [path, ...args]);
+        if (retirementArmed && String(path) === object && boundary === 'after-unlink') process.exit(71);
+        return result;
+      };
+      fs.open = async function(path, ...args) {
+        const handle = await Reflect.apply(originalOpen, this, [path, ...args]);
+        if (String(path) === object) {
+          const close = handle.close.bind(handle);
+          handle.close = async () => {
+            const retained = retirementArmed && (await handle.stat()).nlink === 0;
+            if (retained && boundary === 'before-original-close') process.exit(71);
+            const result = await close();
+            if (retained && boundary === 'after-original-close') process.exit(71);
+            return result;
+          };
+        }
+        return handle;
+      };
+      syncBuiltinESMExports();
+      const store = await openLocalPublicationStore(configuration, createPublicationContractControlFixture(), {
+        async syncDirectory(path) {
+          const handle = await fs.open(path, 'r'); try { await handle.sync(); } finally { await handle.close(); }
+          if (retirementArmed && path === join(configuration.directory, 'objects') && boundary === 'after-directory-ack' &&
+              await fs.lstat(object).then(() => false, e => { if (e.code !== 'ENOENT') throw e; return true; })) process.exit(71);
+        },
+      });
+      armed = true;
+      const writer = store.createPreparedObjectWriter(7); await writer.append('payload');
+      const stored = await writer.seal(${JSON.stringify(digest('payload'))});
+      assert.equal((await fs.lstat(object)).size, 7);
+      assert.equal(store.status().storedBytes, 7); retirementArmed = true;
+      await stored.prepared.release();
+      assert.equal(store.status().storedBytes, 0);
+      if (boundary === 'after-retirement-quota-delta') process.exit(71);
+      sealing = true; await store.close();
+      throw new Error('selected crash boundary was not reached');
+    `);
+    assert.equal(child.exitCode, 71, child.stderr);
+    let openingAck = 0;
+    const reopened = await openLocalPublicationStore(configuration, contractControl, {
+      async syncDirectory(path) {
+        if (path === join(directory, 'objects')) openingAck++;
+        const handle = await open(path, 'r'); try { await handle.sync(); } finally { await handle.close(); }
+      },
+    });
+    assert.equal(reopened.status().storedBytes, 0);
+    if (!['before-lifetime-dirty-marker', 'after-close-time-native-quota-commit'].includes(boundary)) {
+      assert(openingAck > 0, 'dirty recovery actually acknowledges the object directory before admission');
+    }
+    const next = reopened.createObjectWriter(7); await next.append('payload');
+    assert.equal((await next.seal(digest('payload'))).created, true);
+    assert.equal(reopened.status().storedBytes, 7);
+    await reopened.close();
+    const again = await openLocalPublicationStore(configuration, contractControl);
+    assert.equal(again.status().storedBytes, 7);
+    assert.equal((await again.verifyObject(digest('payload'))).bytes, 7);
+    await again.close();
+  });
+}
+
+test('process recovery preserves replacement while retiring FD ownership dies', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-retirement-replacement-crash-'));
+  t.after(() => removeFixtureDirectory(directory));
+  const configuration = {directory, storeAuthorityCid: cids.authority, capacityBytes: 1024,
+    maxObjectBytes: 1024, maxObjects: 10, maxContractNodes: limits.maxNodes, maxContractDepth: limits.maxDepth};
+  const child = await runStoreChild(`
+    import assert from 'node:assert/strict'; import {open} from 'node:fs/promises'; import {join} from 'node:path';
+    import {openLocalPublicationStore} from ${JSON.stringify(new URL('./publication-store.mjs', import.meta.url).href)};
+    import {createPublicationContractControlFixture} from ${JSON.stringify(new URL('../host-common/publication-contract-control.fixture.mjs', import.meta.url).href)};
+    const configuration = ${JSON.stringify(configuration)}; let failAck = false;
+    const store = await openLocalPublicationStore(configuration, createPublicationContractControlFixture(), {
+      async syncDirectory(path) {
+        if (failAck && path === join(configuration.directory, 'objects')) { failAck = false; throw Object.assign(new Error('lost ACK'), {code:'EIO'}); }
+        const h = await open(path, 'r'); try { await h.sync(); } finally { await h.close(); }
+      },
+    });
+    const a = store.createPreparedObjectWriter(7); await a.append('payload'); const old = await a.seal(${JSON.stringify(digest('payload'))});
+    failAck = true; await assert.rejects(old.prepared.release(), {code:'EIO'});
+    const b = store.createObjectWriter(7); await b.append('payload'); assert.equal((await b.seal(${JSON.stringify(digest('payload'))})).created, true);
+    assert.equal(store.status().storedBytes, 14); process.exit(71);
+  `);
+  assert.equal(child.exitCode, 71, child.stderr);
+  const store = await openLocalPublicationStore(configuration, contractControl);
+  assert.equal(store.status().storedBytes, 7);
+  assert.equal((await store.verifyObject(digest('payload'))).bytes, 7);
+  await store.close();
+});
+
+test('unknown original close fences only its Store allocation until process recovery', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-retirement-close-unknown-'));
+  const otherDirectory = await mkdtemp(join(tmpdir(), 'actql-retirement-close-other-'));
+  t.after(() => removeFixtureDirectory(directory));
+  t.after(() => removeFixtureDirectory(otherDirectory));
+  const configuration = {directory, storeAuthorityCid: cids.authority, capacityBytes: 1024 * 1024,
+    maxObjectBytes: 64 * 1024, maxObjects: 100, maxContractNodes: limits.maxNodes, maxContractDepth: limits.maxDepth};
+  const child = await runStoreChild(`
+    import assert from 'node:assert/strict'; import fs from 'node:fs/promises';
+    import {syncBuiltinESMExports} from 'node:module'; import {join} from 'node:path'; import {tmpdir} from 'node:os';
+    import {openLocalPublicationStore} from ${JSON.stringify(new URL('./publication-store.mjs', import.meta.url).href)};
+    import {createPublicationContractControlFixture} from ${JSON.stringify(new URL('../host-common/publication-contract-control.fixture.mjs', import.meta.url).href)};
+    const configuration = ${JSON.stringify(configuration)}, wire = ${JSON.stringify(resultSchemaWire)};
+    const physicalCid = ${JSON.stringify(digest(resultSchemaWire))};
+    const object = join(configuration.directory, 'objects', physicalCid.slice(7));
+    const originalOpen = fs.open, replacements = []; let closeCalls = 0, reused, expectedFd;
+    const extra = await fs.mkdtemp(join(tmpdir(), 'actql-retirement-reused-fd-'));
+    const lost = Object.assign(new Error('original close reply unavailable'), {code: 'EIO'});
+    fs.open = async function(path, ...args) {
+      const handle = await Reflect.apply(originalOpen, this, [path, ...args]);
+      if (String(path) === object) {
+        const close = handle.close.bind(handle);
+        handle.close = async () => {
+          if ((await handle.stat()).nlink !== 0) return close();
+          closeCalls++; expectedFd = handle.fd; await close();
+          for (let i = 0; i < 64 && reused === undefined; i++) {
+            const next = await originalOpen(join(extra, String(i)), 'wx+'); replacements.push(next);
+            if (next.fd === expectedFd) reused = next;
+          }
+          assert(reused, 'the original numeric descriptor must actually be reused');
+          throw lost;
+        };
+      }
+      return handle;
+    };
+    syncBuiltinESMExports();
+    const control = createPublicationContractControlFixture();
+    const store = await openLocalPublicationStore(configuration, control);
+    const writer = store.createPreparedObjectWriter(Buffer.byteLength(wire)); await writer.append(wire);
+    const stored = await writer.seal(physicalCid);
+    await assert.rejects(stored.prepared.release(), error => error === lost);
+    await assert.rejects(stored.prepared.retry(), error => error === lost);
+    assert.equal(closeCalls, 1);
+    assert.equal(store.status().storedBytes, Buffer.byteLength(wire));
+    await reused.writeFile('replacement descriptor remains open');
+    assert.equal(reused.fd, expectedFd);
+    const blocked = store.createObjectWriter(Buffer.byteLength(wire)); await blocked.append(wire);
+    await assert.rejects(blocked.seal(physicalCid), {code: 'PublicationObjectReclamationPending'});
+    await blocked.cancel();
+    await assert.rejects(store.putSemantic(wire, ${JSON.stringify(cids.schema)}), {code: 'PublicationObjectReclamationPending'});
+    await store.putBytes(Buffer.from('other'));
+    assert.equal(store.status().storedBytes, Buffer.byteLength(wire) + 5);
+    await assert.rejects(store.close(), {code: 'PublicationStoreCleanupPending'});
+    const other = await openLocalPublicationStore({...configuration, directory: ${JSON.stringify(otherDirectory)}}, control);
+    await other.putBytes(Buffer.from(wire)); await other.close();
+    assert.equal(closeCalls, 1);
+    for (const handle of replacements) await handle.close(); await fs.rm(extra, {recursive: true});
+    process.exit(71);
+  `);
+  assert.equal(child.exitCode, 71, child.stderr);
+  let openingAck = 0;
+  const reopened = await openLocalPublicationStore(configuration, contractControl, {
+    async syncDirectory(path) {
+      if (path === join(directory, 'objects')) openingAck++;
+      const handle = await open(path, 'r'); try { await handle.sync(); } finally { await handle.close(); }
+    },
+  });
+  assert(openingAck > 0, 'process recovery performs a real directory ACK before lifting quarantine');
+  assert.equal(reopened.status().storedBytes, 5);
+  await reopened.putBytes(Buffer.from(resultSchemaWire));
+  assert.equal(reopened.status().storedBytes, 5 + Buffer.byteLength(resultSchemaWire));
+  await reopened.close();
+});

@@ -659,6 +659,7 @@ function admittedRun(control, programDefinitionCid) {
   return Object.freeze({
     admission,
     run,
+    observation,
     invoked: control.issueRunInvocation(template, observation, limits),
   });
 }
@@ -1300,7 +1301,13 @@ test('portable admission issues Run Definition from exact authority', () => {
 test('publication preflight rejects immutable or physical incompatibility',
   () => {
     const control = runtimeCore(moon).publicationControl;
-    const {admission, run, invoked} = admittedRun(control, cid('6'));
+    const {admission, run, invoked, observation} = admittedRun(control, cid('6'));
+    const normalizationJournal = control.sealRunEvidence('normalization_journal',
+      JSON.stringify({version: 'actql-normalization-journal/0.1',
+        rule_catalog_cid: cid('c'), entries: []}), limits);
+    const authoringContext = control.sealRunEvidence('authoring_context',
+      JSON.stringify({version: 'actql-authoring-context/0.1',
+        program_definition_cid: cid('6'), annotations: []}), limits);
     const definition = control.seal('result_definition', JSON.stringify({
       version: 'actql-result-definition/0.1',
       program_definition_cid: cid('6'),
@@ -1325,9 +1332,9 @@ test('publication preflight rejects immutable or physical incompatibility',
       admission,
       runDefinition: run,
       invocation: invoked,
-      observation: Object.freeze({}),
-      normalizationJournal: Object.freeze({}),
-      authoringContext: Object.freeze({}),
+      observation,
+      normalizationJournal,
+      authoringContext,
       results: Object.freeze([
         Object.freeze({
           retention,
@@ -1387,11 +1394,47 @@ test('publication preflight rejects immutable or physical incompatibility',
     });
     assert.equal(admitted.request.name, 'publication_request');
     assert.equal(admitted.attempt.name, 'publication_attempt');
+    // Common owns the per-kind schema bounds. Independently sum the Host's
+    // six known originals, six Result objects and nine global obligations;
+    // this attempt reserves the foreign terminal because no retained winner
+    // preflight token funds it.
+    const resultBounds = control.resultPublicationContractByteBounds(
+      [], publicationOutputLimits.maxSchemaBytes, limits);
+    const frontier = control.ordinaryPublicationFrontierByteBounds(
+      admitted.request, 1, limits);
+    const volumes = [run, invoked, definition, retention,
+      admitted.request, admitted.attempt].map(contract =>
+        Buffer.byteLength(contract.wire, 'utf8'));
+    volumes.push(publicationOutputLimits.maxWireBytes,
+      publicationOutputLimits.maxSchemaBytes, ...resultBounds,
+      frontier.manifest,
+      control.ordinaryPublicationReceiptByteBound(plan, admitted.request, limits),
+      limits.maxWireBytes, frontier.index, frontier.current.preparing,
+      frontier.current.committing, frontier.current.publicationUnknown,
+      frontier.current.terminal, frontier.possibleForeignWinnerTerminal);
+    assert.equal(volumes.length, 21);
+    const expectedBytes = volumes.reduce((sum, size) => sum + size, 0);
     assert.deepEqual(requirement, {
-      requiredBytes: 19 * limits.maxWireBytes,
-      objectCount: 19,
-      maxObjectBytes: limits.maxWireBytes,
+      requiredBytes: expectedBytes,
+      objectCount: 21,
+      maxObjectBytes: Math.max(...volumes),
     });
+    for (const available of [expectedBytes, expectedBytes - 1]) {
+      const prepare = () => prepareCompletedEffectFreeRunPublication({
+        store: {publicationCapacitySupports: value => value.requiredBytes <= available},
+        control, publicationInventory, plan,
+      });
+      if (available === expectedBytes) assert.doesNotThrow(prepare);
+      else assert.throws(prepare, {code: 'RunPublicationCapacityUnsupported'});
+    }
+    for (const name of ['observation', 'normalizationJournal']) {
+      assert.throws(() => prepareCompletedEffectFreeRunPublication({
+        store: {publicationCapacitySupports: () => true},
+        control, publicationInventory,
+        plan: Object.freeze({...plan, [name]: Object.freeze({...plan[name]})}),
+      }), error => error.code === 'InvalidRunPublicationPreflight' &&
+        error.cause?.message === 'Foreign Run evidence');
+    }
     assert(Object.isFrozen(admitted.plan));
     assert.throws(() => prepareCompletedEffectFreeRunPublication({
       store: {publicationCapacitySupports: () => false},
@@ -2730,6 +2773,9 @@ test('portable control validates Receipt and Captured Run references',
           snapshot,
           durableBinding: binding,
         }),
+        // Match durable-result-payload: publication adopts the exact physical
+        // holder, while the cleanup view retains the same release duty.
+        physicalPrepared: completedUnknownPayload.prepared,
         prepared: completedUnknownPayload.prepared,
       });
     },
@@ -2756,7 +2802,10 @@ test('portable control validates Receipt and Captured Run references',
   completedUnknownIndexUnavailable = false;
   const reconciledCompletedUnknown =
     await completedUnknownFailure.cleanupHandle.retry();
-  assert.equal(reconciledCompletedUnknown.pending, false);
+  assert.equal(reconciledCompletedUnknown.pending, false,
+    JSON.stringify(reconciledCompletedUnknown, (_name, value) => value instanceof Error
+      ? {name: value.name, code: value.code, message: value.message, stack: value.stack}
+      : value));
   assert.equal(reconciledCompletedUnknown.outcome, 'committed');
   assert.equal(completedUnknownPayload.prepared.status().pending, false);
   assert.equal(completedUnknownExports, 1);

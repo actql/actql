@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import test, {mock} from 'node:test';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {mkdir, copyFile} from 'node:fs/promises';
+import {mkdir, copyFile, readFile, writeFile, lstat, readlink, realpath} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
@@ -267,9 +267,13 @@ test('an ignored rejected query produces one ordinary unhandled rejection', () =
   assert.equal(child.status, 0, child.stderr);
 });
 
-test('short-query public types preserve Result and low-level Execution roles', async () => {
+test('short-query public types preserve Result and low-level Execution roles', async t => {
   const repository = fileURLToPath(new URL('../../', import.meta.url));
-  const scratch = await createOwnedScratch({parent: tmpdir(),
+  // Exercise the same nested scratch layout as CI: without a consumer manifest,
+  // npm walks up to this repository and replaces its workspace dependencies.
+  const parent = join(repository, '_build');
+  await mkdir(parent, {recursive: true});
+  const scratch = await createOwnedScratch({parent,
     prefix: 'actql-short-query-types-', label: 'packed short-query public types'});
   const artifacts = join(scratch.path, 'artifacts');
   const application = join(scratch.path, 'application');
@@ -277,13 +281,37 @@ test('short-query public types preserve Result and low-level Execution roles', a
   await mkdir(application);
   const environment = {...process.env, npm_config_cache: packedNpmCache(scratch.path)};
   delete environment.NODE_PATH;
+  const rootIdentity = async () => ({
+    manifest: await readFile(join(repository, 'package.json'), 'utf8'),
+    lock: await readFile(join(repository, 'package-lock.json'), 'utf8'),
+    packages: await Promise.all(CLIENT_PACKAGES.map(async name => {
+      const path = join(repository, 'node_modules', '@actql', name);
+      try {
+        const state = await lstat(path);
+        return {name, device: state.dev, inode: state.ino, mode: state.mode,
+          target: state.isSymbolicLink() ? await readlink(path) : null};
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+        return {name, absent: true};
+      }
+    })),
+  });
+  const originalRoot = await rootIdentity();
+  t.after(async () => assert.deepEqual(await rootIdentity(), originalRoot,
+    'the private consumer must not mutate repository manifests or workspace installations'));
   const run = (command, args, cwd, timeout = 30000) => {
     const result = spawnSync(command, args, {cwd, env: environment,
       encoding: 'utf8', timeout, maxBuffer: 16 * 1024 * 1024});
     assert.equal(result.error, undefined, result.error?.message);
     assert.equal(result.signal, null);
     assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+    return result.stdout;
   };
+  assert.equal(await realpath(run('npm', ['prefix'], application).trim()),
+    await realpath(repository), 'the absent manifest reproduces ancestor selection without installing');
+  await writeFile(join(application, 'package.json'), '{"private":true,"type":"module"}\n');
+  assert.equal(await realpath(run('npm', ['prefix'], application).trim()),
+    await realpath(application), 'the explicit consumer owns npm installation');
   for (const name of CLIENT_PACKAGES) {
     await packedClientPackage({repository, name, destination: artifacts,
       pack: () => run('npm', ['pack', '--json', '--pack-destination', artifacts],
