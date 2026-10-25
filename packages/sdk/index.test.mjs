@@ -4,6 +4,7 @@ import './request-recovery.test.mjs';
 import './source-query.test.mjs';
 import './delivery-lookup-failure.test.mjs';
 import './check-reason-catalog.test.mjs';
+import './domain-carrier-presentation.test.mjs';
 import './connection-string.test.mjs';
 import './connection-string-client.test.mjs';
 import './client-close.test.mjs';
