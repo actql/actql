@@ -201,6 +201,7 @@ pub fn operation_profile_requirement(
         | WatermarkClassification
         | ConvertTimestampClock
         | FailOnTopTie
+        | BindWatermark(_)
         | BindGap(_, ..)
         | SessionArithmetic
         | SessionIdentity => None

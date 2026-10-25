@@ -115,3 +115,13 @@ test "parsed guards and sequence widths reach the grouped operation inventory" {
     assert_true(other > 0)
   }
 }
+
+///|
+test "event watermark binding requires finite numbers rather than integer milliseconds" {
+  assert_eq(
+    @pipeline_typing.operation_scalar_demand(
+      @pipeline_typing.EventRequirement(BindWatermark("threshold")),
+    ),
+    Some(@pipeline_typing.Finite("threshold")),
+  )
+}

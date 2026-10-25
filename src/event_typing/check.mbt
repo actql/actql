@@ -5,9 +5,15 @@ pub(all) enum Policy {
 } derive(Eq, Debug)
 
 ///|
+pub enum WatermarkThreshold {
+  FixedThreshold(Double)
+  ThresholdParameter(String)
+}
+
+///|
 pub(all) enum Options {
   ToEvents
-  Watermark(Double, Policy)
+  Watermark(WatermarkThreshold, Policy)
   Dedupe(DedupeSpec)
   Session(SessionSpec)
 }
@@ -21,6 +27,7 @@ pub(all) enum Obligation {
   WatermarkClassification
   ConvertTimestampClock
   FailOnTopTie
+  BindWatermark(String)
   BindGap(String)
   SessionArithmetic
   SessionIdentity
@@ -41,6 +48,8 @@ pub(all) enum IssueKind {
   NotKeyComparable(String)
   NotAuthorOrderable(String)
   InvalidOrder
+  UnknownParameter(String)
+  IncompatibleParameter(String)
   Temporal(@temporal.IssueKind)
 } derive(Eq, Debug)
 
@@ -80,6 +89,7 @@ pub fn check_watermark(
   source : @decode.Cursor,
   input : @carrier.Carrier,
   limits : Limits,
+  parameters? : @parameter.Declarations? = None,
 ) -> Result[CheckedEvent, Issue] {
   try {
     if limits.max_work < 0 ||
@@ -101,9 +111,35 @@ pub fn check_watermark(
     let object = decoded(
       @decode.closed_object(source, ["watermark_ms", "policy"]),
     )
-    let watermark = decoded(
-      @decode.finite_number(decoded(@decode.required(object, "watermark_ms"))),
-    )
+    let threshold = decoded(@decode.required(object, "watermark_ms"))
+    let watermark = match @decode.view(threshold) {
+      @decode.ObjectValue(_) => {
+        let parameter = decoded(@decode.closed_object(threshold, ["$param"]))
+        let name_source = decoded(@decode.required(parameter, "$param"))
+        let name = decoded(@decode.text(name_source))
+        let mut found = false
+        if parameters is Some(declarations) {
+          let count = @parameter.declaration_count(declarations)
+          spend(b, threshold, count)
+          for i in 0..<count {
+            let declaration = @parameter.declaration_at(declarations, i).unwrap()
+            charge(b, threshold, declaration.name)
+            if declaration.name == name {
+              let contract = declaration.parameter_type.contract
+              if contract.nullable || !(contract.shape is @contract.Number) {
+                fail(name_source, IncompatibleParameter(name))
+              }
+              found = true
+            }
+          }
+        }
+        if !found {
+          fail(name_source, UnknownParameter(name))
+        }
+        ThresholdParameter(name)
+      }
+      _ => FixedThreshold(decoded(@decode.finite_number(threshold)))
+    }
     let policy_source = decoded(@decode.required(object, "policy"))
     let policy = match decoded(@decode.text(policy_source)) {
       "drop" => Drop
@@ -189,7 +225,8 @@ pub fn output(v : CheckedEvent) -> @carrier.Carrier {
 ///|
 pub fn watermark(v : CheckedEvent) -> Double? {
   match v.options {
-    Watermark(n, _) => Some(n)
+    Watermark(FixedThreshold(n), _) => Some(n)
+    Watermark(ThresholdParameter(_), _) => None
     ToEvents | Dedupe(_) | Session(_) => None
   }
 }
@@ -231,6 +268,9 @@ fn pending_validations_each(
   emit(ResolveEventResources)
   if v.options is Watermark(_, _) {
     emit(WatermarkClassification)
+    if v.options is Watermark(ThresholdParameter(name), _) {
+      emit(BindWatermark(name))
+    }
   }
   if v.options is Dedupe(_) {
     emit(FailOnTopTie)

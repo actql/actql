@@ -126,3 +126,64 @@ test "watermark source is closed and generated columns must be fresh" {
   ).unwrap_err()
   assert_eq(issue.path, [@source.Key("policy")])
 }
+
+///|
+test "watermark parameters retain finite binding obligations and bounded declaration work" {
+  let parameters = @parameter.read_declarations(
+    Some(cursor("{\"threshold\":{\"type\":\"number\",\"nullable\":false}}")),
+    { max_parameters: 1, max_nodes: 100, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+  let body = cursor(
+    "{\"watermark_ms\":{\"$param\":\"threshold\"},\"policy\":\"mark\"}",
+  )
+  let checked = @event_typing.check_watermark(
+    body,
+    events(),
+    limits(),
+    parameters=Some(parameters),
+  ).unwrap()
+  assert_true(
+    @event_typing.options(checked)
+    is Watermark(ThresholdParameter("threshold"), Mark),
+  )
+  assert_eq(@event_typing.watermark(checked), None)
+  let obligations = indexed_obligation_copy(
+    @event_typing.pending_validations(checked),
+    @event_typing.pending_validation_count(checked),
+    i => @event_typing.pending_validation_at(checked, i),
+    (a, b) => a == b,
+  )
+  assert_true(obligations.contains(BindWatermark("threshold")))
+  let used = @event_typing.usage(checked)
+  let exact = {
+    ..limits(),
+    max_work: used.work,
+    max_nodes: used.nodes,
+    max_text_bytes: used.text_bytes,
+  }
+  assert_true(
+    @event_typing.check_watermark(
+      body,
+      events(),
+      exact,
+      parameters=Some(parameters),
+    )
+    is Ok(_),
+  )
+  for
+    caps in [
+      { ..exact, max_work: used.work - 1, },
+      { ..exact, max_nodes: used.nodes - 1, },
+      { ..exact, max_text_bytes: used.text_bytes - 1, },
+    ] {
+    assert_true(
+      @event_typing.check_watermark(
+        body,
+        events(),
+        caps,
+        parameters=Some(parameters),
+      )
+      is Err(_),
+    )
+  }
+}

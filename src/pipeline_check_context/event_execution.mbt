@@ -33,6 +33,7 @@ fn event_execution_check(
     FailOnTopTie => SelectEventRepresentative
     ResolveTeaProfile
     | ResolveEventResources
+    | BindWatermark(_)
     | BindGap(_)
     | SessionArithmetic
     | SessionIdentity => return Ok(None)
