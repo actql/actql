@@ -114,7 +114,12 @@ fn[T] command_preparation_result(
           ":" +
           command_preparation_cleanup_kind(issue)
       }
-      stop(message)
+      let disclosed = match issue {
+        CommandFilesystem(original) =>
+          local_bounded_file_diagnostic_message(message, original)
+        _ => message
+      }
+      stop(disclosed)
     }
   }
 }
