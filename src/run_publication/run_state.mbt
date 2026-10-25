@@ -550,11 +550,9 @@ fn issue_unpublished_computation_run_state_wire(
   observed_terminal_outcome? : RunOutcomeStatus? = None,
   execution_unknown? : Bool = false,
 ) -> Result[String, RunStateIssue] {
-  if run_id.is_empty() {
-    return Err(InvalidRunId)
-  }
-  if !valid_timestamp(updated_at) {
-    return Err(InvalidObservationTime("run"))
+  match validate_unpublished_run_identity(run_id, updated_at) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   if pre_dispatch_failure_confirmed && !dispatch_reserved {
     return Err(ActionStatusMismatch)
@@ -590,25 +588,83 @@ fn issue_unpublished_computation_run_state_wire(
   } else {
     RunOutcomeStatus::Running
   }
+  issue_determined_unpublished_run_state_wire(
+    run_id,
+    updated_at,
+    declared_results,
+    status,
+    if execution_unknown {
+      ReconcileRun
+    } else {
+      NoAction
+    },
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn validate_unpublished_run_identity(
+  run_id : String,
+  updated_at : String,
+) -> Result[Unit, RunStateIssue] {
+  if run_id.is_empty() {
+    return Err(InvalidRunId)
+  }
+  if !valid_timestamp(updated_at) {
+    return Err(InvalidObservationTime("run"))
+  }
+  Ok(())
+}
+
+///|
+/// Canonical DATA for a Run whose complete cancellation and lack of Result
+/// publication have already been established by its original Host owner.
+/// This function validates and encodes DATA only: it neither establishes those
+/// premises nor changes Checkpoint, approval, dispatch, custody or cleanup.
+pub fn issue_confirmed_cancelled_unpublished_run_state_wire(
+  run_id : String,
+  updated_at : String,
+  declared_results : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, RunStateIssue] {
+  match validate_unpublished_run_identity(run_id, updated_at) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  issue_determined_unpublished_run_state_wire(
+    run_id,
+    updated_at,
+    declared_results,
+    Cancelled,
+    NoAction,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn issue_determined_unpublished_run_state_wire(
+  run_id : String,
+  updated_at : String,
+  declared_results : Array[String],
+  status : RunOutcomeStatus,
+  action : RunNextAction,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, RunStateIssue] {
   let names = declared_results.copy()
   names.sort_by(@canonical.compare_utf16)
   let observations : Array[ResultAvailability] = []
   for name in names {
     observations.push({ name, state: Unavailable, reason: NotPublished, })
   }
-  match
-    validate_run_state(
-      status,
-      names,
-      observations,
-      false,
-      if execution_unknown {
-        ReconcileRun
-      } else {
-        NoAction
-      },
-      false,
-    ) {
+  match validate_run_state(status, names, observations, false, action, false) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -622,13 +678,13 @@ fn issue_unpublished_computation_run_state_wire(
     @encode.key(writer, "kind")
     @encode.string_value(
       writer,
-      if execution_unknown {
+      if action is ReconcileRun {
         "reconcile_run"
       } else {
         "none"
       },
     )
-    if execution_unknown {
+    if action is ReconcileRun {
       @encode.key(writer, "reason")
       @encode.string_value(writer, "execution_unknown")
     }
