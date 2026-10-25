@@ -38,7 +38,7 @@ export function generateQueryEvidenceVectors(kind, vectors) {
   for (const [i, vector] of selected.entries()) {
     verifyIdentity(vector.body, vector.cid);
     moon.push('///|', `test "${profile.label} preimage ${i}" {`);
-    if (kind === 'process') moon.push(
+    if (kind === 'process' || kind === 'query_time_acquisition') moon.push(
       '  let input = @json.parse(', `    ${JSON.stringify(canonicalText(vector.body))},`, '  )',
       '  let value = @canonical_json.from_json(input, 10000, 100, 100000)',
       '  assert_eq(', '    @canonical_json.cid_value(value, 100000, 10000, 100),',

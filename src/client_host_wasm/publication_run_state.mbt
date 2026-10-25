@@ -17,7 +17,9 @@ pub fn produce_publication_observed_run_state(
     value.copies.get(input) is Some((slot, physical)) else {
     return -2
   }
-  if record.closing || record.output_closed || parent.observation_closing ||
+  if record.closing ||
+    record.output_closed ||
+    parent.observation_closing ||
     parent.lookup_closing {
     return -5
   }
@@ -32,17 +34,25 @@ pub fn produce_publication_observed_run_state(
   }
   guard value.publication_preflights.get(parent.preflight)
     is Some({ closing: false, preflight: Some(preflight), .. }) &&
-    parent.observation_checked && !parent.observation_failed &&
+    parent.observation_checked &&
+    !parent.observation_failed &&
     parent.observation_index is Some(index) &&
     parent.observation_publisher is Some(publisher) else {
     return -32
   }
-  if @local_run.validate_local_preflight_run_read_current(preflight, current.account)
+  if @local_run.validate_local_preflight_run_read_current(
+      preflight,
+      current.account,
+    )
     is Err(_) {
     return -35
   }
   let auth = publication_observation_publisher(
-    value, parent, publisher, current_configuration, Some(index),
+    value,
+    parent,
+    publisher,
+    current_configuration,
+    Some(index),
   )
   if auth != 0 {
     return auth
@@ -53,7 +63,10 @@ pub fn produce_publication_observed_run_state(
     Err(code) => return code
     Ok(_) => ()
   }
-  if @local_run.validate_local_preflight_run_read_current(preflight, current.account)
+  if @local_run.validate_local_preflight_run_read_current(
+      preflight,
+      current.account,
+    )
     is Err(_) {
     return -35
   }
@@ -69,9 +82,10 @@ pub fn produce_publication_observed_run_state(
   }
   record.projection = Some(projection)
   record.invoked = true
-  let borrow = match @buffers.borrow_buffer(value.pool, slot, () => {
-    physical_reader_stop(physical, handle) == 0
-  }) {
+  let borrow = match
+    @buffers.borrow_buffer(value.pool, slot, () => {
+      physical_reader_stop(physical, handle) == 0
+    }) {
     Ok(borrow) => borrow
     Err(issue) => return issue_code(issue)
   }
@@ -81,7 +95,8 @@ pub fn produce_publication_observed_run_state(
     required_text(object, "observed_at") is Some(observed_at) else {
     return -30
   }
-  let wire = match commit.observed_run_state_wire(view, observed_at, 65536, 4096, 32) {
+  let wire = match
+    commit.observed_run_state_wire(view, observed_at, 65536, 4096, 32) {
     Ok(wire) => wire
     Err(_) => return -32
   }

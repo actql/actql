@@ -29,12 +29,11 @@ test "physical diagnostic callback cannot reuse a pre-callback send permission" 
                   region: "changed-region",
                 })
               "expiry" => now.val = "2100-01-01T00:00:00.000Z"
-              "original-current" => {
+              "original-current" =>
                 // Installed original current predicate after diagnostics
                 // requests this SAME Owner's existing stop. Host graceful
                 // closing itself is not this current-loss observation.
                 original_current.val = false
-              }
               _ => abort("fixed mutation")
             }
           }

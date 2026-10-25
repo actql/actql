@@ -8,9 +8,7 @@ fn client_local_text_free_scalar_sequences(
   max_work? : Int = 100000,
   max_slots? : Int = 10000,
 ) -> Bool {
-  if sequences.is_empty() ||
-    max_work < 1 ||
-    max_slots < 0 {
+  if sequences.is_empty() || max_work < 1 || max_slots < 0 {
     return false
   }
   let mut remaining = max_work
