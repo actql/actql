@@ -596,7 +596,9 @@ export function effectReviewCheckpointReconciliationState(binding, allowed, defi
     throw new TypeError('InvalidRunHostCheckpointReconciliationInput');
   }
   const snapshot = value => {
-    if (!Array.isArray(value)) throw new TypeError('InvalidRunHostCheckpointReconciliationInput');
+    if (!Array.isArray(value)) {
+      throw new TypeError('InvalidRunHostCheckpointReconciliationInput');
+    }
     const length = value.length;
     if (!Number.isSafeInteger(length) || length < 0 || length > 65536) {
       throw new TypeError('InvalidRunHostCheckpointReconciliationInput');
