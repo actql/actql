@@ -25,6 +25,7 @@
   "actql/actql/client_host_buffers",
   "actql/actql/client_local_host",
   "actql/actql/client_row_source_host",
+  "actql/actql/client_source_publication",
   "actql/actql/connector_sdk",
   "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/duckdb/adapter",

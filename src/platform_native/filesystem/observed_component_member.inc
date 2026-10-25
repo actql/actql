@@ -17,6 +17,7 @@ static void actql_observed_component_member_finalize(void *raw) {
   if (member->root) moonbit_decref(member->root);
   if (member->stat) moonbit_decref(member->stat);
 }
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
 static bool actql_component_hex(moonbit_bytes_t bytes, int length) {
   if (Moonbit_array_length(bytes) != length) return false;
   for (int i = 0; i < length; i++)
@@ -24,6 +25,7 @@ static bool actql_component_hex(moonbit_bytes_t bytes, int length) {
           (bytes[i] >= 'a' && bytes[i] <= 'f'))) return false;
   return true;
 }
+#endif
 int actql_native_observed_component_member_current(
     actql_native_observed_component_member *member) {
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR

@@ -34,7 +34,7 @@ class NativeProviderRecipeTests(unittest.TestCase):
 
     def test_original_closure_and_one_placeholder_only(self):
         commands = self.parse()
-        self.assertEqual(len(commands), 164)
+        self.assertEqual(len(commands), 165)
         self.assertTrue(all(command[0] == '/selected/moon/bin/moonc' for command in commands))
         self.assertEqual(commands[0][commands[0].index('-std-path') + 1], '/selected/moon/lib/core')
         self.assertTrue(all(command[command.index('-all-pkgs') + 1]
@@ -42,7 +42,7 @@ class NativeProviderRecipeTests(unittest.TestCase):
 
     def test_other_build_commands_are_not_executed(self):
         self.lines += ['/usr/bin/cc -c original.c', '/usr/bin/cc -o entry.exe original.c']
-        self.assertEqual(len(self.parse()), 164)
+        self.assertEqual(len(self.parse()), 165)
 
     def test_missing_duplicate_and_foreign_package_are_refused(self):
         for lines in (self.lines[:-2] + self.lines[-1:],
@@ -52,10 +52,26 @@ class NativeProviderRecipeTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'inventory|closure'):
                     self.parse(lines)
 
+    def test_shared_source_publication_owner_is_a_required_selected_dependency(self):
+        package = 'actql/actql/client_source_publication'
+        self.assertIn(package, PRODUCER.PACKAGES)
+        caller = PRODUCER.ROOT / 'src/client_local_host/moon.pkg'
+        self.assertIn('"actql/actql/client_source_publication" @source_publication',
+                      caller.read_text())
+        without_publication = [line for line in self.lines
+                               if '-pkg ' + package + ' ' not in line]
+        with self.assertRaisesRegex(ValueError, 'inventory'):
+            self.parse(without_publication)
+        foreign = [line.replace('-pkg ' + package + ' ',
+                               '-pkg actql/actql/foreign_source_publication ')
+                   for line in self.lines]
+        with self.assertRaisesRegex(ValueError, 'closure'):
+            self.parse(foreign)
+
     def test_original_process_owner_is_a_required_selected_dependency(self):
         package = 'actql/actql/platform_native/executor_slot'
         self.assertIn(package, PRODUCER.PACKAGES)
-        self.assertEqual(len(PRODUCER.PACKAGES), 163)
+        self.assertEqual(len(PRODUCER.PACKAGES), 164)
         without_process = [line for line in self.lines if '-pkg ' + package + ' ' not in line]
         with self.assertRaisesRegex(ValueError, 'inventory'):
             self.parse(without_process)
@@ -125,7 +141,7 @@ class NativeProviderRecipeTests(unittest.TestCase):
         lines = self.lines[:-1] + [self.lines[-1].replace(
             ' -all-pkgs absent-debug-registry.json', '')]
         commands = self.parse(lines)
-        self.assertEqual(len(commands), 164)
+        self.assertEqual(len(commands), 165)
         self.assertEqual(commands[-1][1], 'link-core')
         self.assertNotIn('-all-pkgs', commands[-1])
         self.assertTrue(all('-all-pkgs' in c for c in commands[:-1]))
