@@ -1886,3 +1886,97 @@ test('a current layout missing its settlement table is refused without repairing
   assert.throws(() => open(), /no such table: resume_effect_settlements/);
   assert.deepEqual(readFileSync(journal.path), before);
 });
+
+test('independent Runs retain their own state while checkpoint answers interleave',
+  {timeout: 10000}, async t => {
+    const {root, clock, open} = await workspace(t);
+    const deferred = () => {
+      let release;
+      const promise = new Promise(resolve => { release = resolve; });
+      return {promise, release};
+    };
+    const gates = new Map(['A', 'C'].map(run => [
+      `interleaved-${run}`, {entered: deferred(), proceed: deferred()},
+    ]));
+    let authenticationEntries = 0;
+    let attestationEntries = 0;
+    const journal = openSqliteCheckpointJournal(root, {
+      runtime, expectedAuthorityScopeCid: cid('5'), now: () => clock.ms,
+      async authorizeResolution(request) {
+        authenticationEntries += 1;
+        const checkpointId = JSON.parse(request.resolutionWire).checkpoint_id;
+        const gate = gates.get(checkpointId);
+        if (gate !== undefined) {
+          gate.entered.release();
+          await gate.proceed.promise;
+        }
+        return authorizeResolution(request);
+      },
+      attestResolution(preimage) {
+        attestationEntries += 1;
+        return attestResolution(preimage);
+      },
+    });
+    t.after(() => journal.close());
+    const competitor = open();
+    const runs = ['A', 'B', 'C', 'D'];
+    const packets = {};
+    for (const run of runs) {
+      // All Runs declare the same Result name and artifact CIDs. Only the
+      // Run/checkpoint identities differ; this is not physical custody.
+      const body = effectBody({runId: run, checkpointId: `interleaved-${run}`});
+      const waiting = persist(journal, body);
+      packets[run] = {
+        checkpointCid: waiting.checkpointCid,
+        ...resolve({...body, checkpoint_cid: waiting.checkpointCid},
+          'approved', {resolutionId: `interleaved-answer-${run}`}),
+      };
+    }
+    const states = () => runs.map(run => journal.getRunState(run).status);
+    assert.deepEqual(states(), Array(4).fill('waiting_checkpoint'));
+    const answerA = journal.submitResolution(packets.A);
+    answerA.catch(() => {});
+    const answerC = journal.submitResolution(packets.C);
+    const cancelledC = assert.rejects(answerC, {code: 'CheckpointCancelled'});
+    cancelledC.catch(() => {});
+    try {
+      await Promise.all([...gates.values()].map(gate => gate.entered.promise));
+      assert.equal(authenticationEntries, 2);
+      assert.equal(attestationEntries, 0);
+      assert.equal((await journal.submitResolution(packets.B)).outcome, 'committed');
+      const claimB = competitor.claimResume('B', {
+        claimant: 'worker-B', leaseMs: 1000, binding,
+      }).claim;
+      assert.equal(competitor.cancelCheckpoint(packets.C.checkpointCid).outcome,
+        'cancelled');
+      gates.get('interleaved-C').proceed.release();
+      await cancelledC;
+      assert.deepEqual(states(),
+        ['waiting_checkpoint', 'resuming', 'cancelled', 'waiting_checkpoint']);
+      assert.equal((await journal.submitResolution(packets.D)).outcome, 'committed');
+      const claimD = competitor.claimResume('D', {
+        claimant: 'worker-D', leaseMs: 1000, binding,
+      }).claim;
+      assert.notEqual(claimB.intentId, claimD.intentId);
+      gates.get('interleaved-A').proceed.release();
+      assert.equal((await answerA).outcome, 'committed');
+      assert.equal(competitor.cancelUnsentResume(packets.A.checkpointCid).outcome,
+        'cancelled');
+      assert.deepEqual(states(), ['cancelled', 'resuming', 'cancelled', 'resuming']);
+      competitor.completeResume(claimB, {status: 'failed'});
+      competitor.close();
+      assert.deepEqual(states(), ['cancelled', 'failed', 'cancelled', 'resuming']);
+      journal.completeResume(claimD, {status: 'cancelled'});
+      const expected = ['cancelled', 'failed', 'cancelled', 'cancelled'];
+      assert.deepEqual(states(), expected);
+      assert.equal(journal.listPending().length, 0);
+      assert.deepEqual(counts(journal.path),
+        {runs: 4, checkpoints: 4, resolutions: 3, intents: 3});
+      journal.close();
+      const reopened = open();
+      assert.deepEqual(runs.map(run => reopened.getRunState(run).status), expected);
+    } finally {
+      for (const gate of gates.values()) gate.proceed.release();
+      await Promise.allSettled([answerA, answerC, cancelledC]);
+    }
+  });
