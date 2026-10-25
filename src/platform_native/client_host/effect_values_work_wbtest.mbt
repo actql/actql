@@ -40,12 +40,21 @@ fn effect_values_work_test_opened(
 ///|
 // Public pinned contract bodies supplied by the bounded matching-target guard.
 // These are test inputs, not an installation, authority or funding supplier.
-fn effect_values_work_test_bodies() -> (String, String, String?) {
-  (
-    @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_REGISTRY").unwrap(),
-    @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_VALUES").unwrap(),
-    @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_FRAGMENT"),
-  )
+fn effect_values_work_test_bodies() -> (
+  @local.ClientInstalledSequenceContracts,
+  String,
+  String?,
+) {
+  let registry = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_REGISTRY").unwrap()
+  let values = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_VALUES").unwrap()
+  let fragment = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_FRAGMENT")
+  let installed = @local.prepare_installed_sequence_contracts(
+    registry,
+    values,
+    fragment,
+    None,
+  ).unwrap()
+  (installed, values, fragment)
 }
 
 ///|
@@ -85,11 +94,11 @@ fn effect_values_work_test_original(
     @host.bind_client_effect_compiled_run(prepared, allowed, definition),
     "compiled.bind",
   )
-  let (registry, values, fragment) = effect_values_work_test_bodies()
+  let (installed, values, fragment) = effect_values_work_test_bodies()
   // An explicit Core test Ledger for this fresh Run, not normal Host funding.
   guard @local.client_effect_local_ledger_limits(
       prepared,
-      registry,
+      installed,
       values,
       fragment,
       None,
@@ -121,14 +130,14 @@ test "Native original source-free Effect Work claims and computes once on the sa
   let (materials, bound, captured) = effect_values_work_test_original(
     request, allowed, definition,
   )
-  let (registry, values, fragment) = effect_values_work_test_bodies()
+  let (installed, values, fragment) = effect_values_work_test_bodies()
   let work = open_native_client_effect_values_work(
       journal,
       request,
       materials,
       bound,
       captured,
-      registry,
+      installed,
       values,
       fragment,
       None,
@@ -161,7 +170,7 @@ test "Native original source-free Effect Work claims and computes once on the sa
     materials,
     bound,
     captured,
-    registry,
+    installed,
     values,
     fragment,
     None,
@@ -202,14 +211,14 @@ test "Native Effect Values refuses missing normalization and expired original be
     } else {
       original
     }
-    let (registry, values, fragment) = effect_values_work_test_bodies()
+    let (installed, values, fragment) = effect_values_work_test_bodies()
     let failure = open_native_client_effect_values_work(
       journal,
       request,
       materials,
       bound,
       captured,
-      registry,
+      installed,
       values,
       fragment,
       None,
@@ -258,7 +267,7 @@ test "Native Effect Values refuses foreign opaque Run without stopping or claimi
   let (_, _, foreign) = effect_values_work_test_original(
     other_request, other_allowed, other_definition,
   )
-  let (registry, values, fragment) = effect_values_work_test_bodies()
+  let (installed, values, fragment) = effect_values_work_test_bodies()
   // Equal public Run bytes cannot replace the first nominal binding.
   let rebound = effect_values_work_test_ok(
     @host.bind_client_effect_compiled_run(
@@ -279,7 +288,7 @@ test "Native Effect Values refuses foreign opaque Run without stopping or claimi
       materials,
       selected_bound,
       selected_captured,
-      registry,
+      installed,
       values,
       fragment,
       None,
@@ -318,14 +327,14 @@ test "Native Effect Values rechecks cancellation admitted by its clock callback 
   let (materials, bound, captured) = effect_values_work_test_original(
     request, allowed, definition,
   )
-  let (registry, values, fragment) = effect_values_work_test_bodies()
+  let (installed, values, fragment) = effect_values_work_test_bodies()
   let failure = open_native_client_effect_values_work(
     journal,
     request,
     materials,
     bound,
     captured,
-    registry,
+    installed,
     values,
     fragment,
     None,
@@ -370,7 +379,7 @@ test "Native Effect Values uses adopted current Submit independently of Source r
     let (materials, bound, captured) = effect_values_work_test_original(
       request, allowed, definition,
     )
-    let (registry, values, fragment) = effect_values_work_test_bodies()
+    let (installed, values, fragment) = effect_values_work_test_bodies()
     let opened = host.open_effect_values_work(
       epoch_test_crypto(),
       "operator",
@@ -379,7 +388,7 @@ test "Native Effect Values uses adopted current Submit independently of Source r
       materials,
       bound,
       captured,
-      registry,
+      installed,
       values,
       fragment,
       None,
@@ -414,7 +423,7 @@ test "Native Effect Values terminal capture fence observes cleanup performed ins
   let (materials, bound, captured) = effect_values_work_test_original(
     request, allowed, definition,
   )
-  let (registry, values, fragment) = effect_values_work_test_bodies()
+  let (installed, values, fragment) = effect_values_work_test_bodies()
   let retained : Ref[NativeClientEffectValuesWork?] = { val: None, }
   let work = open_native_client_effect_values_work(
       journal,
@@ -422,7 +431,7 @@ test "Native Effect Values terminal capture fence observes cleanup performed ins
       materials,
       bound,
       captured,
-      registry,
+      installed,
       values,
       fragment,
       None,

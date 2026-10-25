@@ -34,10 +34,10 @@ fn submitted_effect_values_fixture_capture(
     ),
     "submitted.original.bound",
   )
-  let (registry, values, fragment) = effect_values_work_test_bodies()
+  let (installed, values, fragment) = effect_values_work_test_bodies()
   guard @local.client_effect_local_ledger_limits(
       materials.prepared,
-      registry,
+      installed,
       values,
       fragment,
       None,
@@ -65,7 +65,7 @@ fn submitted_effect_values_fixture_open(
   NativeClientSubmittedEffectValuesWork,
   NativeClientSubmittedEffectValuesWorkFailure,
 ] {
-  let (registry, values, fragment) = effect_values_work_test_bodies()
+  let (installed, values, fragment) = effect_values_work_test_bodies()
   host.open_submitted_effect_values_work(
     epoch_test_crypto(),
     "operator",
@@ -75,7 +75,7 @@ fn submitted_effect_values_fixture_open(
     materials,
     bound,
     captured,
-    registry,
+    installed,
     values,
     fragment,
     None,

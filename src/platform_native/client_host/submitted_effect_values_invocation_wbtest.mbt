@@ -35,7 +35,7 @@ fn submitted_values_invocation_fixture(
     "invocation.original.materials",
   )
   let (bound, captured) = submitted_effect_values_fixture_capture(materials)
-  let (registry, values, fragment) = effect_values_work_test_bodies()
+  let (installed, values, fragment) = effect_values_work_test_bodies()
   let work = host.open_submitted_effect_values_work(
       epoch_test_crypto(),
       "operator",
@@ -45,7 +45,7 @@ fn submitted_values_invocation_fixture(
       materials,
       bound,
       captured,
-      registry,
+      installed,
       values,
       fragment,
       None,

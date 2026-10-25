@@ -1,4 +1,18 @@
 ///|
+// The typed input must come from the real bundled contract admission. Early
+// refusal cases retain invalid values below so reaching configuration still
+// cannot turn their denial/foreign/unresolved/claimed-start oracles into a pass.
+fn native_values_work_test_installed_contracts() -> @local.ClientInstalledSequenceContracts {
+  let assets = @host.client_local_product_assets()
+  @local.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+}
+
+///|
 // Matching Native definitions are separate from public CLI process acceptance.
 test "Native Local Values profile accepts source-free original preparation" {
   let (_, prepared, _, _) = journal_test_run(
@@ -22,7 +36,7 @@ test "Native Local Values work rejects current denial before binding any Run" {
     prepared,
     compiled,
     definition,
-    "{}",
+    native_values_work_test_installed_contracts(),
     "{}",
     None,
     None,
@@ -56,7 +70,7 @@ test "Native Local Values work rejects foreign original Run before configuration
     prepared,
     compiled,
     foreign,
-    "{}",
+    native_values_work_test_installed_contracts(),
     "{}",
     None,
     None,
@@ -93,7 +107,7 @@ test "Native Local Values work never fills unresolved original Run history" {
     prepared,
     compiled,
     definition,
-    "{}",
+    native_values_work_test_installed_contracts(),
     "{}",
     None,
     None,
@@ -128,7 +142,7 @@ test "Native Local Values work never repeats a previously claimed physical start
     prepared,
     compiled,
     definition,
-    "{}",
+    native_values_work_test_installed_contracts(),
     "{}",
     None,
     None,
@@ -196,6 +210,12 @@ test "Native Local Values retains the supplied Ledger and never replaces an exha
   // Ledger limits below are nominal Resource test fixtures, not physical Native
   // funding or an installed command profile. The Journal is the real fixture.
   let assets = @host.client_local_product_assets()
+  let installed = @local.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   for supplied in [false, true] {
     let suffix = supplied.to_string()
     let database = epoch_test_database("values-supplied-ledger-" + suffix)
@@ -209,7 +229,7 @@ test "Native Local Values retains the supplied Ledger and never replaces an exha
     |> ignore
     let quoted = @local.single_source_free_local_ledger_limits(
       prepared,
-      assets.registry,
+      installed,
       assets.values,
       Some(assets.fragment),
       assets.ordered,
@@ -234,7 +254,7 @@ test "Native Local Values retains the supplied Ledger and never replaces an exha
       prepared,
       compiled,
       definition,
-      assets.registry,
+      installed,
       assets.values,
       Some(assets.fragment),
       assets.ordered,
