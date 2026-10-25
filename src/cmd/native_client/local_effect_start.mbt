@@ -229,7 +229,7 @@ fn local_effect_prepare_start_with_clocks(
     Some(values) =>
       @local_values.client_effect_local_ledger_limits(
         original.materials.prepared,
-        values.registry_body,
+        values.installed_contracts,
         values.values_body,
         values.fragment_body,
         values.ordered_body,

@@ -128,6 +128,7 @@ fn local_run_installation(
 // originals selected by the adoption Owner. They confer no I/O or read grant.
 priv struct LocalValuesInstallation {
   registry_body : String
+  installed_contracts : @local_values.ClientInstalledSequenceContracts
   values_body : String
   fragment_body : String?
   ordered_body : String?
@@ -149,17 +150,25 @@ fn local_values_installation(
     },
   )
   |> ignore
+  let registry_body = run_text(settings, "registry", maximum=65536)
+  let values_body = run_text(settings, "values", maximum=65536)
+  let fragment_body = match @decode.lookup(settings, "fragment") {
+    None => None
+    Some(_) => Some(run_text(settings, "fragment", maximum=65536))
+  }
+  let ordered_body = match @decode.lookup(settings, "ordered") {
+    None => None
+    Some(_) => Some(run_text(settings, "ordered", maximum=65536))
+  }
+  let installed_contracts = @local_values.prepare_installed_sequence_contracts(
+    registry_body, values_body, fragment_body, ordered_body,
+  ).unwrap_or_else(() => stop("InvalidLocalValuesInstalledContracts"))
   {
-    registry_body: run_text(settings, "registry", maximum=65536),
-    values_body: run_text(settings, "values", maximum=65536),
-    fragment_body: match @decode.lookup(settings, "fragment") {
-      None => None
-      Some(_) => Some(run_text(settings, "fragment", maximum=65536))
-    },
-    ordered_body: match @decode.lookup(settings, "ordered") {
-      None => None
-      Some(_) => Some(run_text(settings, "ordered", maximum=65536))
-    },
+    registry_body,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
     result_policy_cid: cid,
     result_policy_wire: wire,
   }
@@ -172,12 +181,14 @@ fn local_values_installation(
 fn local_current_values_installation(
   original : LocalValuesInstallation,
   assets : @run_host.ClientLocalProductAssets,
+  installed_contracts : @local_values.ClientInstalledSequenceContracts,
 ) -> LocalValuesInstallation raise ClientStop {
   if assets.result_policy != original.result_policy_wire {
     stop("LocalValuesResultPolicyOriginalChanged")
   }
   {
     ..original,
+    installed_contracts,
     registry_body: assets.registry,
     values_body: assets.values,
     fragment_body: Some(assets.fragment),

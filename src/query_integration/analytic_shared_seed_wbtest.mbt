@@ -181,7 +181,7 @@ fn run_analytic_shared_seed(
   let prepared = analytic_shared_seed_prepared(join)
   let setup = @client_local_host.open_source_free_local_retained_host(
     prepared,
-    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    registered_installed_sequence_contracts(),
     @identity.stringify_value(registered_values(), 100000, 10000, 100),
     1L,
     0L,

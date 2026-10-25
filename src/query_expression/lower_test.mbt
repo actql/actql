@@ -97,8 +97,7 @@ test "lowering never infers a qualified reference or passes through an unknown f
 ///|
 test "integer literals are checked before rounding and generated trees retain admission bounds" {
   assert_eq(emit("9007199254740991"), "{\"literal\":9007199254740991}")
-  for
-    text in ["9007199254740992", "99999999999999999999999999", "1e99999", "-0"] {
+  for text in ["9007199254740992", "99999999999999999999999999", "1e99999"] {
     assert_true(lower(fixture(text), _ => None, limits()) is Err(_), msg=text)
   }
   assert_eq(emit(".5"), "{\"literal\":0.5}")
@@ -114,13 +113,14 @@ test "integer literals are checked before rounding and generated trees retain ad
 }
 
 ///|
-test "signed literal normalization keeps negative IN values and rejects NULL comparison" {
+test "signed literal normalization keeps negative IN values and admits NULL comparison" {
   assert_eq(emit("-1"), "{\"literal\":-1}")
   assert_eq(
     emit("x IN (-1, @p)"),
     "{\"in\":[{\"field\":\"x\"},{\"literal\":[-1,{\"$param\":\"p\"}]}]}",
   )
-  assert_true(lower(fixture("NULL = x"), _ => Some("x"), limits()) is Err(_))
+  assert_eq(emit("NULL = x"), "{\"eq\":[{\"literal\":null},{\"field\":\"x\"}]}")
+  assert_eq(emit("-0.0"), "{\"literal\":0}")
   assert_true(lower(fixture("+'string'"), _ => None, limits()) is Err(_))
 }
 
@@ -314,7 +314,7 @@ test "Named numeric arguments share query literal admission" {
     ] {
     assert_eq(numeric_literal(token).unwrap(), expected)
   }
-  for token in ["-0", "9007199254740993", "1e999"] {
+  for token in ["9007199254740993", "1e999"] {
     assert_true(numeric_literal(token) is Err(InvalidNumber), msg=token)
   }
 }
@@ -328,4 +328,15 @@ test "searched CASE preserves omitted ELSE for Common completion and keeps expli
   let explicit = "{\"case\":{\"else\":{\"literal\":null},\"when\":[{\"then\":{\"literal\":3},\"when\":{\"literal\":true}}]}}"
   assert_eq(emit("CASE WHEN TRUE THEN 3 ELSE NULL END"), explicit)
   assert_eq(emit("CASE WHEN TRUE THEN 3 ELSE (NULL) END"), explicit)
+}
+
+///|
+test "zero exponent literals retain their mantissa under leading-zero normalization" {
+  for token in ["0e10", "0e-10", "-0e10", "0E0", "00e10", "0e99999", "0e-99999"] {
+    let value = numeric_literal(token).unwrap()
+    assert_eq(value.reinterpret_as_uint64(), 0UL, msg=token)
+  }
+  for token in ["0e", "0e+", "0e-", "0e--1", "1e999", "00e1x"] {
+    assert_true(numeric_literal(token) is Err(InvalidNumber), msg=token)
+  }
 }

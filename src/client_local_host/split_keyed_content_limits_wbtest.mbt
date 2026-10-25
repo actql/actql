@@ -12,6 +12,7 @@ priv struct SplitKeyedContentLimitsFixture {
 
 ///|
 fn split_keyed_content_limits_fixture() -> SplitKeyedContentLimitsFixture raise {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let (declaration, wire) = original_keyed_declaration_environment()
   guard @json.parse(wire) is Object(body) &&
     body.get("evidence_bundle_cid") is Some(String(environment_cid)) else {
@@ -79,7 +80,7 @@ fn split_keyed_content_limits_fixture() -> SplitKeyedContentLimitsFixture raise 
     prepared,
     stage,
     input,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
@@ -157,6 +158,7 @@ test "split keyed Content keeps its original checked path instead of equal task 
 
 ///|
 test "split keyed Content quote sums retained Sources and prefix without another Ledger" {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let value = split_keyed_content_limits_fixture()
   // Independent DATA increments test demand addition, never a capacity issuer.
   let quote = (retained, executing) => {
@@ -169,7 +171,7 @@ test "split keyed Content quote sums retained Sources and prefix without another
       [4096L, 4096L],
       4096,
       1000000,
-      source_query_original_registry,
+      source_contracts,
       source_query_original_values,
       Some(source_query_original_fragment),
       None,
@@ -199,12 +201,13 @@ test "split keyed Content quote sums retained Sources and prefix without another
 
 ///|
 test "split keyed Content prefix retains JOIN through sort but never replays acquisition" {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let value = split_keyed_content_limits_fixture()
   let sequence = prepare_client_acquired_serialization_prefix(
     value.prepared,
     value.task,
     value.step,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
@@ -222,7 +225,7 @@ test "split keyed Content prefix retains JOIN through sort but never replays acq
     value.prepared,
     value.task,
     value.step,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,

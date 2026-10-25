@@ -443,6 +443,7 @@ fn closure_diagnostic_category(
         | Queries(InvalidQuery(_) | DimensionMismatch(_, _, _)) => InvalidInput
         _ => UnclassifiedFailure
       }
+    Values(RowsExceeded(_)) => InvalidInput
     InvalidLimits => InvalidConfiguration
     BudgetExceeded
     | Values(BudgetExceeded)

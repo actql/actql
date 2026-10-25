@@ -55,6 +55,7 @@ pub fn emit_join_kernel(
     match inner_join_kind(profile) {
       Inner => "inner"
       Left => "left"
+      Right => "right"
       Full => "full"
       Semi => "semi"
       Anti => "anti"

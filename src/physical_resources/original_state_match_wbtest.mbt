@@ -136,7 +136,7 @@ test "original state matching refuses retired document and changed saved usage" 
 ///|
 fn original_match_full_wire() -> String {
   // Independent record order and issuer serials from the saved contract.
-  "[\"actql-original-ledger-state/0.1\",[\"26\",\"5\",\"5\",\"11\",\"20\",\"10\"],[\"21\",\"2\",\"1\",\"0\",\"0\",\"2\",\"2\",\"12\",\"9\",\"14\"],[\"1\",\"1\",\"1\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],\"-3\",[\"3\",\"1\",\"1\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"0\",\"0\",\"0\",\"1\",true,true,null,null,[false,false,false],[\"0\",\"2\",\"1\"]],[\"1\",\"2\",\"2\",\"1\",true,false,null,null,[false,false,false],null],[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]],[[\"0\",\"0\",\"2\",true]],[[\"1\",[\"1\",\"1\",\"1\",\"2\",\"2\",\"1\"],[\"0\",\"0\",\"0\",\"0\",\"0\"]]]]"
+  "[\"actql-original-ledger-state/0.1\",[\"26\",\"5\",\"5\",\"11\",\"20\",\"10\"],[\"21\",\"0\",\"1\",\"0\",\"0\",\"2\",\"2\",\"12\",\"9\",\"14\",\"2\",\"4\",\"1\"],[\"1\",\"1\",\"1\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],[\"-3\",\"2\",\"1\"],[\"3\",\"1\",\"1\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"0\",\"0\",\"0\",\"1\",true,true,null,null,[false,false,false],[\"0\",\"2\",\"1\"],true,false],[\"1\",\"2\",\"2\",\"1\",true,false,null,null,[false,false,false],null,true,false],[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false]],[[\"0\",\"0\",\"2\",true]],[[\"1\",[\"1\",\"1\",\"1\",\"2\",\"2\",\"1\"],[\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\"]]]]"
 }
 
 ///|
@@ -243,11 +243,11 @@ test "original state matching checks original holdings delegations and completed
         5,
       ),
       (
-        "[\"0\",\"0\",\"0\",\"0\",\"0\"]]]]", "[\"1\",\"0\",\"0\",\"0\",\"0\"]]]]",
+        "[\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\"]]]]", "[\"1\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\"]]]]",
         5,
       ),
       (
-        "[false,false,false],[\"0\",\"2\",\"1\"]]", "[false,false,false],[\"1\",\"2\",\"1\"]]",
+        "[false,false,false],[\"0\",\"2\",\"1\"]", "[false,false,false],[\"1\",\"2\",\"1\"]",
         1,
       ),
     ] {
@@ -330,13 +330,13 @@ test "original state matching preserves unknown quantities spent serial and pend
   let (claim, cursor) = prepare_original_state_write(
     identity, origin, writer, 7L, 5L,
   ).unwrap()
-  assert_eq(finish_original_state_test_writer(cursor, 1), 19)
+  assert_eq(finish_original_state_test_writer(cursor, 1), 18)
   // Authored existing decimal record contract, not output-derived expected data.
-  let expected = "[\"actql-original-ledger-state/0.1\",[\"19\",\"2\",\"3\",\"11\",\"10\",\"7\"],[\"19\",\"1\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\"],[\"0\",\"0\",\"0\"],[\"9223372036854775807\",\"17\",\"19\"],[[\"0\",\"0\",\"0\"],[\"9223372036854775807\",\"0\",\"19\"],[\"0\",\"7\",\"0\"]],\"-4\",[\"3\",\"0\",\"0\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"0\",\"0\",\"0\",\"0\",true,true,null,[\"9223372036854775807\",\"0\",\"19\"],[false,true,false],null],[\"-2\",\"0\",\"0\",\"0\",false,false,null,null,[false,false,false],null],[\"-3\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]],[],[]]"
+  let expected = "[\"actql-original-ledger-state/0.1\",[\"19\",\"2\",\"3\",\"11\",\"10\",\"7\"],[\"18\",\"1\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\",\"0\",\"3\",\"0\"],[\"0\",\"0\",\"0\"],[\"9223372036854775807\",\"17\",\"19\"],[[\"0\",\"0\",\"0\"],[\"9223372036854775807\",\"0\",\"19\"],[\"0\",\"7\",\"0\"]],[\"-4\",\"1\",\"0\"],[\"3\",\"0\",\"0\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"0\",\"0\",\"0\",\"0\",true,true,null,[\"9223372036854775807\",\"0\",\"19\"],[false,true,false],null,false,true],[\"-3\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false]],[],[]]"
   assert_eq(@encode.finish(writer), expected)
   let before = quantity_usage(ledger)
   let document = original_match_document(expected, 3, 0, 0)
-  for block in 0..<4 {
+  for block in 0..<3 {
     assert_eq(
       original_state_document_block_matches(claim, origin, document, block),
       Ok(true),
@@ -349,7 +349,7 @@ test "original state matching preserves unknown quantities spent serial and pend
         1,
       ),
       (
-        "[\"-2\",\"0\",\"0\",\"0\",false,false", "[\"-5\",\"0\",\"0\",\"0\",false,false",
+        "[\"-3\",\"0\",\"7\",\"5\",true,false", "[\"-5\",\"0\",\"7\",\"5\",true,false",
         2,
       ),
     ] {

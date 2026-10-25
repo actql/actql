@@ -39,7 +39,7 @@ fn evaluation_position(
     }
   }
   guard @identity.object_field(node, "op") is Some(@identity.String(operation)) &&
-    (operation == "try_number" || operation == "utf8_truncate") &&
+    ["try_number", "utf8_truncate", "nfkc", "case_fold"].contains(operation) &&
     @identity.object_field(source, operation) is Some(arguments) else {
     return None
   }
@@ -142,6 +142,8 @@ fn emit_text_evaluation_envelope(
     out,
     match @text_bounds.output_operation(bound) {
       TryNumber => "try_number"
+      Nfkc => "nfkc"
+      CaseFold => "case_fold"
       Utf8Truncate(_) => "utf8_truncate"
       _ => raise @encode.InvalidStructure
     },
@@ -192,7 +194,7 @@ fn prepare_fragment_evaluations(
       }
       let output = @expression_context.text_bound_output(original)
       if !(@text_bounds.output_operation(output)
-        is (TryNumber | Utf8Truncate(_))) {
+        is (TryNumber | Utf8Truncate(_) | Nfkc | CaseFold)) {
         return Err(GeneratedDecodeFailure)
       }
       let pointer = match

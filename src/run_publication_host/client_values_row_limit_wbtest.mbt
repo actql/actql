@@ -20,10 +20,24 @@ test "selected Values row limit preserves checker identity and other budgets" {
     client_standard_program_preparation_limits(),
   ).unwrap()
   let standard = prepared_client_values_sequence_limits(prepared)
-  assert_eq(standard.max_rows, 100)
+  // The default covers the actual 121 authored rows. An explicit smaller
+  // envelope still refuses the same unchanged input.
+  assert_eq(standard.max_rows, 121)
   assert_true(
     emit_prepared_client_values_pipeline(
       prepared, 0, standard, 100000, 10000, 100,
+    )
+    is Ok(_),
+  )
+  let short = with_prepared_client_values_row_limit(prepared, 120).unwrap()
+  assert_true(
+    emit_prepared_client_values_pipeline(
+      short,
+      0,
+      prepared_client_values_sequence_limits(short),
+      100000,
+      10000,
+      100,
     )
     is Err(_),
   )
@@ -49,5 +63,5 @@ test "selected Values row limit preserves checker identity and other budgets" {
   )
   assert_true(with_prepared_client_values_row_limit(prepared, 0) is None)
   assert_true(with_prepared_client_values_row_limit(prepared, 10001) is None)
-  assert_eq(prepared_client_values_sequence_limits(prepared).max_rows, 100)
+  assert_eq(prepared_client_values_sequence_limits(prepared).max_rows, 121)
 }

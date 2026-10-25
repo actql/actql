@@ -173,7 +173,7 @@ pub fn read_installed_sqlite_lookup_reply(InstalledArenaHost, InstalledArenaSqli
 
 pub fn release_installed_sqlite_capacity_reply(InstalledArenaHost, InstalledArenaSqliteDatabase, String, String, Int64, Int64) -> InstalledArenaSqliteDatabaseReply
 
-pub fn report_installed_arena_live_channel_reply(InstalledArenaHost, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[InstalledArenaHost, InstalledArenaDomain], Int, Int, Int, Int64, Int64, Int64, Int64, Int64, Int64, Int64) -> InstalledArenaLiveChannelReply
+pub fn report_installed_arena_live_channel_reply(InstalledArenaHost, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[InstalledArenaHost, InstalledArenaDomain], Int, Int, Int, Int64, Int64, Int64, Int64, Int64, Int64, Int64, Int, Int, Int) -> InstalledArenaLiveChannelReply
 
 pub fn reserve_installed_sqlite_bounded_capacity_reply(InstalledArenaHost, InstalledArenaSqliteDatabase, String, String, Int64, Int64, Int64, Int64, Int64) -> InstalledArenaSqliteDatabaseReply
 

@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "188171ecd5e5e8415541898915db18ba79ff0855a3ec5f64b493c7b6264ca62e",
+      "sha256": "11dac27a4ebd4af2f0a1bbf7095bc957d1c472c30f25213338efbabb92cfc16d",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -1300,6 +1300,13 @@
           "async": false
         },
         {
+          "name": "publicationControl/capturedPreparationLimits/capturedPreparationLimits",
+          "parameters": [
+            "preparation"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/compiledContent/compiledContent",
           "parameters": [
             "compiled"
@@ -1354,13 +1361,59 @@
           "parameters": [
             "preparation",
             "signal",
-            "limits",
             "retainComputation"
           ],
           "async": true
         },
         {
           "name": "publicationControl/finishCapturedPreparation/finishCapturedPreparation/finishCapturedPreparation",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/finishProgramCapture/finishProgramCapture",
+          "parameters": [
+            "capture",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "publicationControl/finishProgramCapture/finishProgramCapture/finishProgramCapture",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/finishProgramSnapshot/finishProgramSnapshot",
+          "parameters": [
+            "publication",
+            "output",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "publicationControl/finishProgramSnapshot/finishProgramSnapshot/finishProgramSnapshot",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/finishProgramValidation/finishProgramValidation",
+          "parameters": [
+            "validation",
+            "signal",
+            "requireCurrent"
+          ],
+          "async": true
+        },
+        {
+          "name": "publicationControl/finishProgramValidation/finishProgramValidation/finishProgramValidation",
           "parameters": [
             "resolve"
           ],
@@ -1379,6 +1432,21 @@
         },
         {
           "name": "publicationControl/finishPublicationValidation/finishPublicationValidation/finishPublicationValidation",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/finishStoreValidation/finishStoreValidation",
+          "parameters": [
+            "validation",
+            "requireCurrent"
+          ],
+          "async": true
+        },
+        {
+          "name": "publicationControl/finishStoreValidation/finishStoreValidation/finishStoreValidation",
           "parameters": [
             "resolve"
           ],
@@ -1487,8 +1555,9 @@
           "name": "publicationControl/init:admitCompletedResultSnapshot/init:admitCompletedResultSnapshot",
           "parameters": [
             "exportHandle",
-            "limits",
-            "signal"
+            "outputLimits",
+            "signal",
+            "publicationResource"
           ],
           "async": true
         },
@@ -2724,6 +2793,27 @@
           "async": true
         },
         {
+          "name": "publicationControl/init:effectFreeStoredCommitValid/init:effectFreeStoredCommitValid",
+          "parameters": [
+            "runDefinition",
+            "invocation",
+            "definitions",
+            "artifacts",
+            "derivations",
+            "orderings",
+            "retentions",
+            "durableBindings",
+            "manifest",
+            "receipt",
+            "capturedRun",
+            "request",
+            "attempt",
+            "indexEntry",
+            "requireCurrent"
+          ],
+          "async": true
+        },
+        {
           "name": "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid",
           "parameters": [
             "chain",
@@ -3001,7 +3091,9 @@
             "definition",
             "dataPolicyCid",
             "source",
-            "limits"
+            "limits",
+            "publicationPreparation",
+            "preparedProgram"
           ],
           "async": false
         },
@@ -3232,7 +3324,8 @@
             "chain",
             "evidence",
             "limits",
-            "signal"
+            "signal",
+            "publicationResource"
           ],
           "async": true
         },
@@ -3729,6 +3822,45 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds",
+          "parameters": [
+            "request",
+            "resultCount",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound",
+          "parameters": [
+            "plan",
+            "request",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound/value/value",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound/value/value#2",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:originalClientInferNodeReadStateRead/init:originalClientInferNodeReadStateRead",
           "parameters": [
             "writer"
@@ -3777,7 +3909,8 @@
             "checkedProgram",
             "kind",
             "policy",
-            "inferGraph"
+            "inferGraph",
+            "valuesCompilation"
           ],
           "async": false
         },
@@ -4394,6 +4527,29 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds",
+          "parameters": [
+            "inputRelationCids",
+            "maxSchemaBytes",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:resultReadAvailability/init:resultReadAvailability",
           "parameters": [
             "manifest",
@@ -4906,6 +5062,13 @@
           "name": "publicationControl/prepareSerializationGraph/prepareSerializationGraph/prepareSerializationGraph",
           "parameters": [
             "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/programCaptureLimits/programCaptureLimits",
+          "parameters": [
+            "capture"
           ],
           "async": false
         },
@@ -6930,6 +7093,14 @@
         {
           "name": "runtimeCore/runtimeCore#25",
           "parameters": [
+            "value",
+            "holder"
+          ],
+          "async": false
+        },
+        {
+          "name": "runtimeCore/runtimeCore#26",
+          "parameters": [
             "value"
           ],
           "async": false
@@ -7894,7 +8065,7 @@
             "identity": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
@@ -8016,7 +8187,7 @@
             "failure": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -8204,7 +8375,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -8995,7 +9166,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -9348,6 +9519,303 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds",
+            "publicationControl/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds",
+            "publicationControl/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound",
+            "publicationControl/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound/value/value",
+            "publicationControl/init:ordinaryPublicationReceiptByteBound/init:ordinaryPublicationReceiptByteBound/value/value#2",
+            "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds",
+            "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds",
+            "publicationControl/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds/init:resultPublicationContractByteBounds#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "resultPublicationContractByteBounds(inputRelationCids, maxSchemaBytes, limits)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-publication-capacity.test.mjs",
+                "anchor": "test('public Local publishes every one of 100 aliases including distinct projections and empty rows',async()=>{"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "runtimeCore/runtimeCore#26"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "preparationUsageIsolated: (value, holder)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "preparationUsageIsolated: (value, holder)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "preparationUsageIsolated: (value, holder)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "preparationUsageIsolated: (value, holder)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "preparationUsageIsolated: (value, holder)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "preparationUsageIsolated: (value, holder)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "preparationUsageIsolated: (value, holder)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "preparationUsageIsolated: (value, holder)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "preparationUsageIsolated: (value, holder)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/preparation-host-custody.test.mjs",
+                "anchor": "Preflight retained debit requires nominal isolation="
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/capturedPreparationLimits/capturedPreparationLimits",
+            "publicationControl/finishProgramCapture/finishProgramCapture",
+            "publicationControl/finishProgramCapture/finishProgramCapture/finishProgramCapture",
+            "publicationControl/finishProgramSnapshot/finishProgramSnapshot",
+            "publicationControl/finishProgramSnapshot/finishProgramSnapshot/finishProgramSnapshot",
+            "publicationControl/finishProgramValidation/finishProgramValidation",
+            "publicationControl/finishProgramValidation/finishProgramValidation/finishProgramValidation",
+            "publicationControl/finishStoreValidation/finishStoreValidation",
+            "publicationControl/finishStoreValidation/finishStoreValidation/finishStoreValidation",
+            "publicationControl/init:effectFreeStoredCommitValid/init:effectFreeStoredCommitValid",
+            "publicationControl/programCaptureLimits/programCaptureLimits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Scope and responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Original identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Ownership and handoff"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Synchronization and currentness"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Failure and uncertainty"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Cancellation and retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Resources and scratch cut"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Extension and pending work"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('typed retained chain and commit consume original contracts without numeric limit relay'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -9360,7 +9828,8 @@
         "./runtime-result.mjs"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": []
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -14290,7 +14759,7 @@
     },
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
-      "sha256": "70557f66d87c7fc2d55b52741387491e860dd8db16215458b7da45f1434be292",
+      "sha256": "345163893ae19eb2d038eb9702c676a962eb257e857a12c11337a11593afe548",
       "role": "physical-io",
       "exports": [
         "localStrategyContribution"
@@ -14823,7 +15292,7 @@
             "cancellation": [
               {
                 "path": "adapters/local-node/strategy-bundle.mjs",
-                "anchor": "import {closeCompletedLocalManagedOutput} from './managed-output-custody.mjs';"
+                "anchor": "from './managed-output-custody.mjs';"
               },
               {
                 "path": "docs/design/physical-strategy-execution.md",
@@ -23210,7 +23679,7 @@
     {
       "module": "src/physical_resources/imported_child_ledger.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c047cf42144cc712e368dec3341ba0a44eb88e7e9afbcab9672f25117c4d5173",
+      "sha256": "4fd3cd661ec666fa70dd50916d79db42ce77cf66a145ed03abddd702eccf6a63",
       "exports": [],
       "operations": [
         {
@@ -23224,6 +23693,10 @@
         {
           "name": "check_imported_original_child_ledger",
           "declaration": "check_imported_original_child_ledger ( value : ImportedChildLedger , ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "cleanup_quantity_copy",
+          "declaration": "cleanup_quantity_copy ( value : QuantityAmounts ) - > QuantityAmounts"
         },
         {
           "name": "imported_child_fixed_capacity",
@@ -23248,6 +23721,10 @@
         {
           "name": "prepare_imported_child_port",
           "declaration": "prepare_imported_child_port ( nonce : Int64 , admit : ( Int64 ) - > Int , current : ( Int64 ) - > Int , limit : ( Int64 , Int ) - > Int64 , capacity : ( Int64 , Int ) - > Int64 , report : ( Int64 , LedgerUsage ) - > Int , stop : ( Int64 ) - > Int , fixed_capacities ? : Bool"
+        },
+        {
+          "name": "relocate_imported_child_cleanup_usage",
+          "declaration": "relocate_imported_child_cleanup_usage ( value : ImportedChildLedger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
         },
         {
           "name": "report_imported_child_ledger",
@@ -23375,8 +23852,82 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "cleanup_quantity_copy",
+            "relocate_imported_child_cleanup_usage"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Scope and responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Original identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Ownership and handoff"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Synchronization and currentness"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Failure and uncertainty"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Cancellation and retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Resources and scratch cut"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Extension and pending work"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "src/execution_relation/managed_output_success_retirement_wbtest.mbt",
+                "anchor": "test \"successful receipt scratch retirement begins without hidden work and preserves output\""
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
     },
     {
       "module": "src/run_publication_host/client_acquisition.mbt",

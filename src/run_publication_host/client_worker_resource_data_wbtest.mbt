@@ -21,9 +21,14 @@ fn worker_resource_test_data() -> @resources.BackedExecutionOriginalData {
     cumulative: {
       planning_work: 2,
       attempts: 1,
-      holdings: 1,
       transferred_bytes: 7L,
       uncertain_transfer_bytes: 3L,
+    },
+    occupation: {
+      holdings: 1,
+      reserved_attempts: 0,
+      live_reservations: 0,
+      live_delegations: 0,
     },
     peak_retention_bytes: 10L,
     provision: {
@@ -45,7 +50,7 @@ test "worker resource DATA preserves independent debt Unknown and unavailable fi
   let body = client_worker_resource_original_body(data).unwrap()
   // Independently written field/value oracle, not re-encoded product output.
   let expected =
-    #|{"access":"exclusive_write","allocation_bytes":"128","extent_offset":"16","extent_length":"80","payload_offset":"8","payload_length":"64","limit_planning_work":"8","limit_attempts":"2","limit_holdings":"4","limit_transfer_bytes":"100","limit_retained_bytes":"20","limit_execution_bytes":"30","cumulative_planning_work":"2","cumulative_attempts":"1","cumulative_holdings":"1","cumulative_transferred_bytes":"7","cumulative_uncertain_transfer_bytes":"3","peak_retention_bytes":"10","provision_transfer_bytes":"90","provision_retained_bytes":"5","provision_execution_bytes":"7","provision_open":"true","provision_cleanup_pending":"true","region_closing":"false","read_use":"pending","final_observed":"false","final_planning_work":"","final_attempts":"","final_holdings":"","final_transferred_bytes":"","final_uncertain_transfer_bytes":"","final_reserved_transfer_bytes":"","final_held_bytes":"","final_reserved_retention_bytes":"","final_reserved_execution_bytes":"","final_peak_retention_bytes":""}
+    #|{"access":"exclusive_write","allocation_bytes":"128","extent_offset":"16","extent_length":"80","payload_offset":"8","payload_length":"64","limit_planning_work":"8","limit_attempts":"2","limit_holdings":"4","limit_transfer_bytes":"100","limit_retained_bytes":"20","limit_execution_bytes":"30","cumulative_planning_work":"2","cumulative_attempts":"1","occupied_holdings":"1","cumulative_transferred_bytes":"7","cumulative_uncertain_transfer_bytes":"3","peak_retention_bytes":"10","provision_transfer_bytes":"90","provision_retained_bytes":"5","provision_execution_bytes":"7","provision_open":"true","provision_cleanup_pending":"true","region_closing":"false","read_use":"pending","final_observed":"false","final_planning_work":"","final_attempts":"","final_holdings":"","final_transferred_bytes":"","final_uncertain_transfer_bytes":"","final_reserved_transfer_bytes":"","final_held_bytes":"","final_reserved_retention_bytes":"","final_reserved_execution_bytes":"","final_peak_retention_bytes":"","occupied_reserved_attempts":"0","occupied_live_reservations":"0","occupied_live_delegations":"0","final_reserved_attempts":"","final_live_reservations":"","final_live_delegations":""}
   assert_eq(body, @utf8.encode(expected))
   let observation = read_client_worker_resource_original(body).unwrap()
   let saved = @resources.unresolved_backed_execution_data(observation)
@@ -156,7 +161,6 @@ test "worker resource DATA preserves conservative closed Unknown and distinct ob
     cumulative: {
       planning_work: 8,
       attempts: 2,
-      holdings: 4,
       transferred_bytes: 7L,
       uncertain_transfer_bytes: 93L,
     },
@@ -168,6 +172,12 @@ test "worker resource DATA preserves conservative closed Unknown and distinct ob
       cleanup_pending: false,
     },
     read_use: @resources.Retired,
+    occupation: {
+      holdings: 0,
+      reserved_attempts: 0,
+      live_reservations: 0,
+      live_delegations: 0,
+    },
   }
   let restored = @resources.unresolved_backed_execution_data(
     read_client_worker_resource_original(
@@ -180,6 +190,9 @@ test "worker resource DATA preserves conservative closed Unknown and distinct ob
     planning_work: 2,
     attempts: 1,
     holdings: 1,
+    reserved_attempts: 0,
+    live_reservations: 0,
+    live_delegations: 0,
     transferred_bytes: 7L,
     uncertain_transfer_bytes: 3L,
     reserved_transfer_bytes: 90L,

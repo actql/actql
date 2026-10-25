@@ -280,7 +280,7 @@ test "product source-free retained factory installs exact bounded chain offers" 
   let prepared = retained_values_client_preparation(false)
   let setup = @client_local_host.open_source_free_local_retained_host(
     prepared,
-    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    registered_installed_sequence_contracts(),
     @identity.stringify_value(registered_values(), 100000, 10000, 100),
     1L,
     0L,
@@ -318,7 +318,7 @@ test "product retained factory refuses a nonlinear Values suffix before Compute"
   assert_true(
     @client_local_host.open_source_free_local_retained_host(
       prepared,
-      @identity.stringify_value(registered_body(), 100000, 10000, 100),
+      registered_installed_sequence_contracts(),
       @identity.stringify_value(registered_values(), 100000, 10000, 100),
       1L,
       0L,

@@ -22,7 +22,7 @@ from ._local_worker_slot import _OriginalDescriptor
 _HEADER = Struct('!4sBqq')
 _RESPONSE = Struct('!4sBqqq')
 _ORDINAL = Struct('!i')
-_USAGE = Struct('!iiiqqqqqqq')
+_USAGE = Struct('!iiiqqqqqqqiii')
 _SPAN = Struct('!40s32s' + 'q' * 17)
 _MAGIC = b'ALC1'
 _BIND, _ADMIT, _CURRENT, _LIMIT, _CAPACITY, _REPORT, _STOP = range(7)

@@ -18,7 +18,7 @@ pub fn original_keyed_serialization_preparation_available(
     inventory.holdings.length() == children + 2 &&
     inventory.delegations.is_empty() &&
     ledger.next_capacity_serial == Some(-2) &&
-    ledger.usage.attempts == children + 3 &&
+    ledger.next_attempt_serial == Some(children + 3) &&
     !inventory.reservations[0].open &&
     inventory.holdings[0].reservation_serial == inventory.reservations[0].serial &&
     physical_equal(inventory.reservations[1], prefix) &&
@@ -31,7 +31,8 @@ pub fn original_keyed_serialization_preparation_available(
     inventory.holdings[children + 1].reservation_serial == assembly.serial else {
     return false
   }
-  for token in inventory.holdings {
+  for index in 0..<inventory.holdings.length() {
+    let token = inventory.holdings[index]
     if !holding_available(ledger, token) {
       return false
     }

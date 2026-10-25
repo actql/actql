@@ -174,7 +174,7 @@ pub fn accept_resident_effect_source_dispatch(
   effect_limits : @host.ClientEffectComputationLimits,
   dispatch : @remote.RemotePollDispatch,
   now : String,
-  registry_body : String,
+  installed_contracts : @local.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String,
 ) -> Result[ResidentAcceptance, ResidentEffectProducerExecutionIssue] {
@@ -186,7 +186,7 @@ pub fn accept_resident_effect_source_dispatch(
   match
     admit_resident_effect_source_dispatch_owned(
       admission, effect_limits, delegation, site_generation, request, materials,
-      binding, now, registry_body, values_body, fragment_body,
+      binding, now, installed_contracts, values_body, fragment_body,
     ) {
     Ok(_) => ()
     Err(Refused(issue)) => return Ok(Refused(issue))
@@ -335,7 +335,7 @@ pub(all) struct ResidentExecution {
   issuer_capability_cid : String
   bundles : @bundle.NativeRuntimeBundleStore
   budgets : Array[@remote.RemoteDispatchBudget]
-  registry_body : String
+  installed_contracts : @local.ClientInstalledSequenceContracts
   values_body : String
   fixed_ms : Int64
   per_row_ms : Int64
@@ -444,7 +444,7 @@ fn open_resident_attempt_runtime(
             rebuilt.admission,
             rebuilt.run_definition,
             binding,
-            execution.registry_body,
+            execution.installed_contracts,
             execution.values_body,
             execution.fixed_ms,
             execution.per_row_ms,

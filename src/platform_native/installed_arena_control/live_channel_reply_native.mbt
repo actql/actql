@@ -260,6 +260,9 @@ pub fn report_installed_arena_live_channel_reply(
   reserved_retention : Int64,
   reserved_execution : Int64,
   peak_retention : Int64,
+  reserved_attempts : Int,
+  live_reservations : Int,
+  live_delegations : Int,
 ) -> InstalledArenaLiveChannelReply {
   live_channel_unit_reply(
     ReportLive,
@@ -276,6 +279,9 @@ pub fn report_installed_arena_live_channel_reply(
       reserved_retention_bytes: reserved_retention,
       reserved_execution_bytes: reserved_execution,
       peak_retention_bytes: peak_retention,
+      reserved_attempts,
+      live_reservations,
+      live_delegations,
     }),
   )
 }

@@ -117,6 +117,7 @@ fn configure_source_free_compute(
     @decode.closed_object(cursor, ["registry", "values", "fragment", "ordered"])
     is Ok(object) &&
     required_text(object, "registry") is Some(registry) &&
+    registry == value.installed_sequences.registry &&
     required_text(object, "values") is Some(values) &&
     optional_text(object, "fragment") is Ok(fragment) &&
     optional_text(object, "ordered") is Ok(ordered) else {
@@ -158,7 +159,7 @@ fn configure_source_free_compute(
     @local_run.configure_source_free_local_compute_on_ledger(
       plan,
       value.root,
-      registry,
+      value.installed_sequences.contracts,
       values,
       fragment,
       ordered,

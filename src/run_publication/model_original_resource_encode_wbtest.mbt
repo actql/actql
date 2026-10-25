@@ -34,26 +34,26 @@ fn original_resource_encode_parts() -> (String, String, String) {
 test "original resource encoder retains independent complete bytes and exact limit" {
   let (origin, state, cut) = original_resource_encode_parts()
   let wire = encode_model_original_resource_document(
-    origin, state, cut, "preparation_base", 1667, 200, 16,
+    origin, state, cut, "preparation_base", 1713, 200, 16,
   ).unwrap()
   assert_eq(wire, original_resource_document_vector())
   assert_eq(
     @sha.hex(@utf8.encode(wire)),
-    "d42f2ebf9c90fd7ef323e2d9ad33261dadf6801e44976559f00e12852f0a251b",
+    "0c15b2030233db5aafb6ee124784d0e4e414ff8500ac9dc8ad5ee74b3b25a7cd",
   )
   assert_true(
     encode_model_original_resource_document(
-      origin, state, cut, "preparation_base", 1666, 200, 16,
+      origin, state, cut, "preparation_base", 1712, 200, 16,
     )
     is Err(_),
   )
   for
     (bytes, nodes, depth) in [
       (0, 200, 16),
-      (1667, 0, 16),
-      (1667, 200, 0),
-      (1667, 1, 16),
-      (1667, 200, 1),
+      (1713, 0, 16),
+      (1713, 200, 0),
+      (1713, 1, 16),
+      (1713, 200, 1),
     ] {
     assert_true(
       encode_model_original_resource_document(

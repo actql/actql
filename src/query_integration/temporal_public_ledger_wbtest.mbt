@@ -26,7 +26,7 @@ test "original temporal JSON and SQL retain the installed Host reservation" {
     ).unwrap()
     let generated = @client_local_host.prepare_client_local_sequences(
       prepared,
-      @identity.stringify_value(registered_body(), 100000, 10000, 100),
+      registered_installed_sequence_contracts(),
       @identity.stringify_value(registered_values(), 100000, 10000, 100),
       Some(@identity.stringify_value(registered_fragment(), 100000, 10000, 100)),
       Some(@identity.stringify_value(registered_ordered(), 100000, 10000, 100)),
@@ -38,7 +38,7 @@ test "original temporal JSON and SQL retain the installed Host reservation" {
     println("TEMPORAL_HOST tasks=" + generated.unwrap().length().to_string())
     let setup = @client_local_host.open_source_free_local_host(
       prepared,
-      @identity.stringify_value(registered_body(), 100000, 10000, 100),
+      registered_installed_sequence_contracts(),
       @identity.stringify_value(registered_values(), 100000, 10000, 100),
       1L,
       0L,

@@ -4,7 +4,7 @@
 pub fn configure_source_free_local_compute_on_ledger(
   plan : LocalRunPlan,
   ledger : @resources.Ledger,
-  registry_body : String,
+  installed_contracts : @local.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -15,7 +15,7 @@ pub fn configure_source_free_local_compute_on_ledger(
   guard @local.open_source_free_local_retained_host_on_ledger(
       plan.prepared,
       ledger,
-      registry_body,
+      installed_contracts,
       values_body,
       fragment_body,
       ordered_body,

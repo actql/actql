@@ -2,6 +2,7 @@
 package "actql/actql/platform_native/remote_values_host"
 
 import {
+  "actql/actql/client_local_host",
   "actql/actql/execution_relation",
   "actql/actql/execution_site",
   "actql/actql/platform_native/http_client",
@@ -17,7 +18,7 @@ import {
 }
 
 // Values
-pub fn install_native_remote_values_task_executor(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @remote_site_protocol.RemoteInputBinding, String, String, Int64, Int64, Int64, Int64, NativeRemoteValuesTaskLimits) -> Result[NativeRemoteValuesTaskExecutor, NativeRemoteValuesHostIssue]
+pub fn install_native_remote_values_task_executor(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @remote_site_protocol.RemoteInputBinding, @client_local_host.ClientInstalledSequenceContracts, String, Int64, Int64, Int64, Int64, NativeRemoteValuesTaskLimits) -> Result[NativeRemoteValuesTaskExecutor, NativeRemoteValuesHostIssue]
 
 pub fn open_native_remote_values_site_endpoint(@remote_runtime.NativeRemoteRuntime, @remote_journal.Journal, NativeRemoteValuesTaskExecutor, String, String, Int) -> Result[NativeRemoteValuesSiteEndpoint, NativeRemoteValuesSiteEndpointIssue]
 

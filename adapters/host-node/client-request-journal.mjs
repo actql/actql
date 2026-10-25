@@ -48,9 +48,7 @@ const fail = (code, cause) => {
 const applyOriginal = Reflect.apply;
 const operationDescriptors = Object.getOwnPropertyDescriptors;
 const operationDefineProperties = Object.defineProperties;
-const operationDefineProperty = Object.defineProperty;
 const operationKeys = Reflect.ownKeys, operationFreeze = Object.freeze;
-const OperationError = Error;
 const originalJournalCustodies = new WeakMap();
 const originalJournalCustodyGet = WeakMap.prototype.get;
 const originalJournalCustodySet = WeakMap.prototype.set;
@@ -146,7 +144,7 @@ export function observeOriginalClientRequestJournalCustody(journal) {
 
 function snapshotPrimarySqlLimits(value) {
   if (value === undefined) return undefined;
-  const names = ['maxCalls', 'maxPreparedStatements', 'maxSqlBytes', 'maxTotalSqlBytes'];
+  const names = ['maxPreparedStatements', 'maxSqlBytes', 'maxTotalSqlBytes'];
   if (value === null || typeof value !== 'object' || utilTypes.isProxy(value)) {
     fail('InvalidClientRequestJournalConfiguration');
   }
@@ -168,7 +166,7 @@ function snapshotPrimarySqlLimits(value) {
 
 function snapshotPrimaryExecutionLimits(value) {
   if (value === undefined) return undefined;
-  const names = ['maxStatementCalls', 'maxParameters', 'maxParameterBytes', 'maxResultRows'];
+  const names = ['maxParameters', 'maxParameterBytes', 'maxResultRows'];
   if (value === null || typeof value !== 'object' || utilTypes.isProxy(value)) {
     fail('InvalidClientRequestJournalConfiguration');
   }
@@ -185,27 +183,15 @@ function snapshotPrimaryExecutionLimits(value) {
     }
     limits[name] = field.value;
   }
-  if (!Number.isSafeInteger(limits.maxStatementCalls * limits.maxParameterBytes)) {
-    fail('InvalidClientRequestJournalConfiguration');
-  }
   return Object.freeze(limits);
 }
 
-function boundJournalOperations(journal, maximum, assertCurrent) {
-  if (maximum === undefined) return journal;
-  let attempts = 0;
-  // Keep one refusal original, rather than allocate another error/stack for
-  // every call after exhaustion. A failed argument/current check still used
-  // this operation attempt; SQL counters alone cannot bound that prefix work.
-  const failure = new OperationError('ClientRequestJournalOperationUnavailable');
-  operationDefineProperty(failure, 'code', {value: 'ClientRequestJournalOperationUnavailable',
-    enumerable: true});
-  operationFreeze(failure);
-  const enter = () => {
-    if (attempts >= maximum) throw failure;
-    attempts++;
-    assertCurrent?.();
-  };
+function guardJournalCurrentness(journal, assertCurrent) {
+  if (assertCurrent === undefined) return journal;
+  // Every new operation checks its same installed original. Completed calls
+  // retain no lifetime issuance debt; their own finite input/SQL work remains
+  // bounded at each actual consumer. Cleanup is always reachable below.
+  const enter = () => {assertCurrent();};
   const descriptors = operationDescriptors(journal);
   for (const name of operationKeys(descriptors)) {
     const field = descriptors[name], original = field.value;
@@ -278,24 +264,23 @@ function boundedJournalWalFrames(maxFrames, sourceBytes, maxDatabaseBytes) {
   });
 }
 
-// Bound native compilation attempts and account each prepared original as retained
-// until this primary connection's real lifetime ends. Native failure and GC do
-// not refund an attempt. This is not a bound on bind values, result rows, native
-// heap/cache/WAL, or the separate observation connection, and issues no capacity.
-// A selected execution boundary additionally limits scalar bind extent and
-// calls, and replaces metadata All() with a bounded original native cursor.
+// Each operation has finite SQL/operand/result bounds. Only returned native
+// statement originals and their SQL are retained against the live connection
+// envelope; transient exec text and failed calls create no lifetime quota.
+// Native heap/cache/WAL remain the separately selected opaque Host service,
+// not a numerical claim made by these logical control counts.
 function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, walFrames) {
   const prepare = connection.prepare, exec = connection.exec;
   const buffer = Buffer, byteLength = buffer.byteLength;
   const isTransaction = Object.getOwnPropertyDescriptor(connection, 'isTransaction')?.get;
   if (typeof prepare !== 'function' || typeof exec !== 'function' || typeof byteLength !== 'function' ||
       typeof isTransaction !== 'function') fail('ClientRequestJournalSqlUnavailable');
-  let calls = 0, prepared = 0, bytes = 0;
-  let statementCalls = 0;
+  let prepared = 0, retainedSqlBytes = 0;
   const statements = [], cursors = [];
   const statementsBySql = executionLimits === undefined ? undefined : new Map();
-  let operationActive = false;
+  let operationActive = false, retired = false;
   const beginOperation = () => {
+    if (retired) fail('ClientRequestJournalSqlUnavailable');
     if (executionLimits === undefined) return;
     // The selected one-connection recipe must not start another preparation
     // or execution from a current/native callback while this call is live.
@@ -309,25 +294,20 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
     assertCurrent?.();
     if (cursors.length !== 0) fail('ClientRequestJournalSqlCleanupPending');
     if (typeof sql !== 'string' || sql.length > limits.maxSqlBytes ||
-        calls >= limits.maxCalls || isPrepare && prepared >= limits.maxPreparedStatements) {
+        isPrepare && prepared >= limits.maxPreparedStatements) {
       fail('ClientRequestJournalSqlUnavailable');
     }
     const size = applyOriginal(byteLength, buffer, [sql, 'utf8']);
     if (!Number.isSafeInteger(size) || size < sql.length ||
-        size > limits.maxSqlBytes || size > limits.maxTotalSqlBytes - bytes) {
+        size > limits.maxSqlBytes ||
+        isPrepare && size > limits.maxTotalSqlBytes - retainedSqlBytes) {
       fail('ClientRequestJournalSqlUnavailable');
     }
-    calls++; bytes += size;
-    if (isPrepare) prepared++;
+    return size;
   };
   const operands = values => {
     assertCurrent?.();
     if (cursors.length !== 0) fail('ClientRequestJournalSqlCleanupPending');
-    if (statementCalls >= executionLimits.maxStatementCalls) {
-      fail('ClientRequestJournalSqlUnavailable');
-    }
-    // Attempts, including refused operands and native failures, never refill.
-    statementCalls++;
     if (values.length > executionLimits.maxParameters) fail('ClientRequestJournalSqlUnavailable');
     let total = 0;
     for (const value of values) {
@@ -437,14 +417,19 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
           // occurs; every execution still checks its own operands and limits.
           return retained;
         }
-        consume(sql, true);
+        const sourceBytes = consume(sql, true);
         // Only authored metadata SQL reaches this private connection. It
         // installs no application SQL functions/extensions or writable virtual
         // tables. A leading SELECT reads metadata, not WAL-write history;
         // arbitrary SQL/PRAGMA and every write keep the conservative debit.
         const statementWal = /^\s*SELECT\b/iu.test(sql) ? undefined : walFrames;
         statementWal?.beforePrepare();
-        const original = wrap(applyOriginal(prepare, connection, [sql]), statementWal);
+        const native = applyOriginal(prepare, connection, [sql]);
+        // Commit the logical live entry only when this same native call returns
+        // an original. wrap retains it even if its subsequent validation fails;
+        // that failure still requires actual connection cleanup.
+        prepared++; retainedSqlBytes += sourceBytes;
+        const original = wrap(native, statementWal);
         statementsBySql?.set(sql, original);
         return original;
       } finally { endOperation(); }
@@ -466,6 +451,7 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
     },
     get isTransaction() { return applyOriginal(isTransaction, connection, []); },
   }), retireClosedNativeAliases() {
+    retired = true;
     statements.length = cursors.length = 0;
     statementsBySql?.clear();
   }});
@@ -1000,12 +986,18 @@ function freezeAdmissionEvidence(value) {
   return Object.freeze(value);
 }
 
-function retainedResultNames(row) {
+function retainedResultNames(row, maxWireBytes) {
   if (row.result_names_json === null) return undefined;
+  // Reuse the installed per-metadata-object wire allowance before JSON
+  // expansion. This is not an aggregate database or whole-record grant;
+  // Result cardinality comes from the retained original inventory.
+  if (Buffer.byteLength(row.result_names_json, 'utf8') > maxWireBytes) {
+    fail('ClientRequestJournalCorrupt');
+  }
   let names;
   try { names = JSON.parse(row.result_names_json); }
   catch (cause) { fail('ClientRequestJournalCorrupt', cause); }
-  if (!Array.isArray(names) || names.length > 100 ||
+  if (!Array.isArray(names) ||
       names.some(name => typeof name !== 'string' || !name) ||
       new Set(names).size !== names.length) {
     fail('ClientRequestJournalCorrupt');
@@ -1048,7 +1040,7 @@ function retainedRunFacts(row, publicationControl, maxWireBytes, updateOriginalC
   return Object.freeze({
     runDefinition,
     programDefinitionCid: row.program_definition_cid,
-    resultNames: retainedResultNames(row),
+    resultNames: retainedResultNames(row, maxWireBytes),
     runAdmissionEvidence,
     cancellationRequested: row.cancellation_requested === 1,
     physicalCloseConfirmed: row.physical_close_confirmed === 1,
@@ -1619,7 +1611,6 @@ export function openClientRequestJournal(directory, {
   maxInspectionBytes = 64 * 1024 * 1024,
   maxDatabaseBytes,
   maxWalFrames,
-  maxJournalOperations,
   primarySqlLimits,
   primaryExecutionLimits,
   primarySchemaLimits,
@@ -1647,8 +1638,6 @@ export function openClientRequestJournal(directory, {
         (!Number.isSafeInteger(maxDatabaseBytes) || maxDatabaseBytes < 1) ||
       maxWalFrames !== undefined &&
         (!Number.isSafeInteger(maxWalFrames) || maxWalFrames < 1) ||
-      maxJournalOperations !== undefined &&
-        (!Number.isSafeInteger(maxJournalOperations) || maxJournalOperations < 1) ||
       maxRecords < 1 || !Number.isSafeInteger(maxRunDefinitionWireBytes) ||
       maxRunDefinitionWireBytes < 1024 ||
       !Number.isSafeInteger(submissionEpochTtlMs) || submissionEpochTtlMs < 1 ||
@@ -1682,10 +1671,6 @@ export function openClientRequestJournal(directory, {
     fail('InvalidClientRequestJournalConfiguration');
   }
   if (maxWalFrames !== undefined && (maxDatabaseBytes === undefined ||
-      primarySqlLimits === undefined || primaryExecutionLimits === undefined)) {
-    fail('InvalidClientRequestJournalConfiguration');
-  }
-  if (maxJournalOperations !== undefined && (maxDatabaseBytes === undefined ||
       primarySqlLimits === undefined || primaryExecutionLimits === undefined)) {
     fail('InvalidClientRequestJournalConfiguration');
   }
@@ -2349,21 +2334,39 @@ export function openClientRequestJournal(directory, {
     }
     return {...retained, issued, retired};
   };
+  // Current-version durable input is read under this Journal's selected
+  // opaque Host service, never a retired preparation token or Store grant.
+  // Native SQL still sums ALL operands against the same statement envelope.
+  const intentWireBytes = wire => {
+    if (typeof wire !== 'string') fail('InvalidClientSubmittedIntent');
+    const bytes = Buffer.byteLength(wire, 'utf8');
+    const selected = Math.min(maxInspectionBytes,
+      maxDatabaseBytes ?? maxInspectionBytes,
+      primaryExecutionLimits?.maxParameterBytes ?? maxInspectionBytes);
+    // The shared Core constructor needs +128 bytes/+4 nodes/+1 depth headroom.
+    // This is its actual signed-Int representation boundary, not a profile cap.
+    if (bytes < 1 || bytes > selected || bytes > 2147483519) {
+      fail('ClientSubmittedIntentCapacity');
+    }
+    return bytes;
+  };
   const admitIntentOriginal = (wire, control, epoch, code, canonical = true) => {
+    const bytes = intentWireBytes(wire);
     const operation = submissionOperations.get(epoch);
-    const previous = operation?.control === control ? operation.intentOriginal : undefined;
+    const previous = operation?.control === control ? operation.borrowedIntentOriginal : undefined;
     if (previous !== undefined && previous.wire === wire) return previous;
-    const intent = control.clientSubmittedIntent(wire, 1048576, 65536, 64);
+    // Every JSON node and nesting level occupies at least one original byte.
+    // No independent historical node/depth ceiling narrows this admitted wire.
+    const intent = control.clientSubmittedIntent(wire, bytes, bytes, bytes);
     if (intent === undefined) fail(code);
     const original = {intent, wire: control.clientSubmittedIntentWire(intent),
       identity: control.clientSubmittedIntentCid(intent)};
     if (canonical && original.wire !== wire) fail(code);
-    if (operation?.control === control) operation.intentOriginal = original;
     return original;
   };
   const originalIntent = (intent, control, epoch) => {
     const operation = submissionOperations.get(epoch);
-    const previous = operation?.control === control ? operation.intentOriginal : undefined;
+    const previous = operation?.control === control ? operation.borrowedIntentOriginal : undefined;
     if (previous !== undefined && previous.intent === intent) return previous;
     const wire = control.clientSubmittedIntentWire(intent);
     const identity = control.clientSubmittedIntentCid(intent);
@@ -2683,10 +2686,9 @@ export function openClientRequestJournal(directory, {
               maxRunDefinitionWireBytes) ||
         !Number.isSafeInteger(revision) || revision < 0 ||
         resultNames !== undefined && (!Array.isArray(resultNames) ||
-          resultNames.length > 100 ||
           resultNames.some(name => typeof name !== 'string' || !name) ||
           new Set(resultNames).size !== resultNames.length ||
-          Buffer.byteLength(JSON.stringify(resultNames)) > 8192) ||
+          Buffer.byteLength(JSON.stringify(resultNames), 'utf8') > maxRunDefinitionWireBytes) ||
         !instant(lookupExpiresAt) ||
         Date.parse(lookupExpiresAt) <= Date.now()) {
       fail('InvalidClientRequestAdmission');
@@ -2763,7 +2765,7 @@ export function openClientRequestJournal(directory, {
           runAdmissionEvidence: existingEvidence,
           ...(runDefinitionWire === undefined ? {} :
             {runDefinitionWire: existing.run_definition_wire}),
-          resultNames: retainedResultNames(existing)});
+          resultNames: retainedResultNames(existing, maxRunDefinitionWireBytes)});
       }
       const epochValidity = checkSubmissionBinding(fields, submission, control, true);
       if (epochValidity !== 'admissible') {
@@ -2904,24 +2906,34 @@ export function openClientRequestJournal(directory, {
     // Only that exact epoch may reuse pure authentication and its durable
     // time floor. Current permission and the retained authority row are still
     // checked at use; releasing this scope retains no cross-operation fact.
-    retainSubmissionOperation(epoch, control, parentEpoch) {
+    retainSubmissionOperation(epoch, control, borrowedIntent) {
       ensureOpen();
       if (epoch === undefined) return undefined;
       if (epoch === null || typeof epoch !== 'object' || !Object.isFrozen(epoch) ||
           submissionOperations.has(epoch)) fail('InvalidClientSubmissionOperation');
       const operation = {epoch, control, wire: canonicalValueJson(epoch, {dataKeys: true})};
-      const parent = submissionOperations.get(parentEpoch);
-      // A named resolution can select a different saved epoch in the same
-      // operation. Only its immutable input crosses; authentication and time
-      // remain this epoch's independent observations.
-      if (parent?.control === control) operation.intentOriginal = parent.intentOriginal;
+      // An explicit fixed preparation consumer lends this exact nominal intent
+      // only until this operation's existing release, before its handler holder
+      // returns. No inferred cache, cross-epoch inheritance or durable alias.
+      if (borrowedIntent !== undefined) {
+        const wire = control.clientSubmittedIntentWire(borrowedIntent);
+        const identity = control.clientSubmittedIntentCid(borrowedIntent);
+        if (typeof wire !== 'string' || typeof identity !== 'string') fail('InvalidClientSubmittedIntent');
+        intentWireBytes(wire);
+        operation.borrowedIntentOriginal = {intent: borrowedIntent, wire, identity};
+      }
       submissionOperations.set(epoch, operation);
-      return () => {submissionOperations.delete(epoch);};
+      return () => {
+        // A retained old release cannot revoke a later same-epoch operation.
+        // Cut the borrowed alias even if this light release closure escapes.
+        operation.borrowedIntentOriginal = undefined;
+        if (submissionOperations.get(epoch) === operation) submissionOperations.delete(epoch);
+      };
     },
     prepareSubmittedIntent(epoch, wire, control) {
       ensureOpen();
-      // Only this public operation retains the bounded immutable input. This
-      // does not retain its authorization, receipt revision or Run outcome.
+      // This admission is not cached. An explicit original preparation borrow
+      // is registered separately and released by the active operation.
       return admitIntentOriginal(wire, control, epoch, 'InvalidClientSubmittedIntent', false).intent;
     },
     closeObservationStorage,
@@ -4020,7 +4032,7 @@ export function openClientRequestJournal(directory, {
       catch { /* The observation projection owns this separate connection. */ }
     },
   });
-  const deliveredJournal = boundJournalOperations(journal, maxJournalOperations, primaryCurrent);
+  const deliveredJournal = guardJournalCurrentness(journal, primaryCurrent);
   applyOriginal(originalJournalCustodySet, originalJournalCustodies, [deliveredJournal, () =>
     Object.freeze({journalClosed: closed, databaseClosed,
       observationAttempted: observationStorageAttempted, observationDatabaseClosed})]);

@@ -53,13 +53,6 @@ fn Parser::binary(
   level : Int,
   token : Token,
 ) -> Parsed raise ExpressionError {
-  if level == 5 &&
-    (
-      literal_value(left.node) is Some({ value: @map.Null, .. }) ||
-      literal_value(right) is Some({ value: @map.Null, .. })
-    ) {
-    raise InvalidArguments(token.start, token.end)
-  }
   let name = match op {
     Reserved(And) => "and"
     Reserved(Or) => "or"
@@ -249,9 +242,14 @@ fn Parser::expression(self : Parser) -> Node raise ExpressionError {
           result = parsed(self.form("not", result.node))
         } else if result.numeric_token {
           match literal_value(result.node) {
-            Some({ value: @map.Number(number), .. }) if number != 0.0 =>
+            Some({ value: @map.Number(number), .. }) =>
               result = parsed(
-                self.form("literal", self.node(@map.Number(-number))),
+                self.form(
+                  "literal",
+                  self.node(
+                    @map.Number(if number == 0.0 { 0.0 } else { -number }),
+                  ),
+                ),
               )
             _ => raise InvalidArguments(token.start, token.end)
           }

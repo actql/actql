@@ -427,3 +427,42 @@ test "join indices accept every KeyComparable value domain" {
   }
   live.val = false
 }
+
+///|
+test "right join indices mirror left order and release scratch on failure" {
+  let left = order_table([Number(1), Number(1), Null])
+  let right = order_table([Number(1), Null, Number(2)])
+  let workspace = { limit: 1000, live: 2, peak: 2, }
+  let pairs = non_inner_join_indices(
+    @join.Right,
+    left,
+    right,
+    [(0, 0)],
+    4,
+    { remaining: 10000, max_frames: 0, },
+    workspace,
+  ).unwrap()
+  assert_eq(pairs.map(pair => (pair.left, pair.right)), [
+    (Some(0), Some(0)),
+    (Some(1), Some(0)),
+    (None, Some(1)),
+    (None, Some(2)),
+  ])
+  assert_eq(workspace.live, 10)
+  for work in [0, 1, 5, 15, 30] {
+    let scratch = { limit: 1000, live: 2, peak: 2, }
+    assert_true(
+      non_inner_join_indices(
+        @join.Right,
+        left,
+        right,
+        [(0, 0)],
+        4,
+        { remaining: work, max_frames: 0, },
+        scratch,
+      )
+      is Err(Limit),
+    )
+    assert_eq(scratch.live, 2)
+  }
+}

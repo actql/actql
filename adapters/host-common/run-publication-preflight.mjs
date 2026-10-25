@@ -2,6 +2,7 @@
 // MoonBit owns contract meaning and inventory consistency. Environment Stores
 // report only their current bounded physical capacity without reserving it.
 
+import {completedPublicationCapacity} from './publication-capacity.mjs';
 import {validResultOutputLimits} from './result-output-limits.mjs';
 
 export class RunPublicationPreflightError extends Error {
@@ -23,7 +24,53 @@ const contract = value => value !== null && typeof value === 'object' &&
   typeof value.name === 'string' && typeof value.identity === 'string' &&
   typeof value.wire === 'string';
 
+// Capture scalar data bags once. Accessors are not stable publication inputs:
+// neither a measurement nor later issuance may invoke a different getter value.
+// Nominal Common handles are retained, never reconstructed from their fields.
+function ownedDataRecord(value) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    fail('InvalidRunPublicationPreflight');
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const entries = [];
+  for (const key of Reflect.ownKeys(descriptors)) {
+    const descriptor = descriptors[key];
+    if (!descriptor.enumerable) continue;
+    if (!Object.hasOwn(descriptor, 'value')) fail('InvalidRunPublicationPreflight');
+    entries.push([key, descriptor.value]);
+  }
+  return Object.freeze(Object.fromEntries(entries));
+}
+
+// Do not invoke caller-owned map, iterators, inherited indices, or accessors.
+// Own dense data elements are captured once and transformed by trusted code.
+function ownedDataArray(value, capture = item => item) {
+  if (!Array.isArray(value)) fail('InvalidRunPublicationPreflight');
+  let descriptors;
+  try { descriptors = Object.getOwnPropertyDescriptors(value); }
+  catch (cause) { fail('InvalidRunPublicationPreflight', cause); }
+  const length = descriptors.length?.value;
+  if (!Number.isSafeInteger(length) || length < 0) fail('InvalidRunPublicationPreflight');
+  const result = [];
+  for (let index = 0; index < length; index++) {
+    const descriptor = descriptors[index];
+    if (descriptor === undefined || !Object.hasOwn(descriptor, 'value')) {
+      fail('InvalidRunPublicationPreflight');
+    }
+    Object.defineProperty(result, index, {value: capture(descriptor.value),
+      enumerable: true, configurable: true, writable: true});
+  }
+  return Object.freeze(result);
+}
+
 function snapshotPlan(plan) {
+  plan = ownedDataRecord(plan);
+  const receiptEvidence = ownedDataRecord(plan.receiptEvidence);
+  const captureEvidence = ownedDataRecord(plan.captureEvidence);
+  const outputLimits = ownedDataRecord(plan.outputLimits);
+  const contractLimits = ownedDataRecord(plan.contractLimits);
+  const request = ownedDataRecord(plan.request);
+  const attempt = ownedDataRecord(plan.attempt);
   const keys = [
     'admission', 'runDefinition', 'invocation', 'observation',
     'normalizationJournal', 'authoringContext', 'results',
@@ -31,38 +78,50 @@ function snapshotPlan(plan) {
     'outputLimits', 'contractLimits', 'now',
   ];
   if (!exactKeys(plan, keys) || !Array.isArray(plan.results) ||
-      !exactKeys(plan.receiptEvidence, [
+      !exactKeys(receiptEvidence, [
         'bindings', 'sourceEvidence', 'modelEvidence',
         'barrierAttemptReceiptCids',
-      ]) || !exactKeys(plan.captureEvidence, [
+      ]) || !exactKeys(captureEvidence, [
         'pendingSourceStateAdvances', 'modelEvidence',
-      ]) || !Array.isArray(plan.receiptEvidence.bindings) ||
-      !Array.isArray(plan.receiptEvidence.sourceEvidence) ||
-      !Array.isArray(plan.receiptEvidence.modelEvidence) ||
-      !Array.isArray(plan.receiptEvidence.barrierAttemptReceiptCids) ||
-      !Array.isArray(plan.captureEvidence.pendingSourceStateAdvances) ||
-      !Array.isArray(plan.captureEvidence.modelEvidence) ||
-      !exactKeys(plan.contractLimits, [
+      ]) || !Array.isArray(receiptEvidence.bindings) ||
+      !Array.isArray(receiptEvidence.sourceEvidence) ||
+      !Array.isArray(receiptEvidence.modelEvidence) ||
+      !Array.isArray(receiptEvidence.barrierAttemptReceiptCids) ||
+      !Array.isArray(captureEvidence.pendingSourceStateAdvances) ||
+      !Array.isArray(captureEvidence.modelEvidence) ||
+      !exactKeys(contractLimits, [
         'maxWireBytes', 'maxNodes', 'maxDepth',
-      ]) || !Object.values(plan.contractLimits).every(positive) ||
-      !validResultOutputLimits(plan.outputLimits) ||
+      ]) || !Object.values(contractLimits).every(positive) ||
+      !validResultOutputLimits(outputLimits) ||
       typeof plan.now !== 'function' || !contract(plan.runDefinition) ||
       !contract(plan.invocation)) {
     fail('InvalidRunPublicationPreflight');
   }
-  const results = plan.results.map(result => {
+  const bindings = ownedDataArray(receiptEvidence.bindings, value => {
+    const binding = ownedDataRecord(value);
+    if (typeof binding.name !== 'string' || typeof binding.sha256 !== 'string') {
+      fail('InvalidRunPublicationPreflight');
+    }
+    return Object.freeze({name: binding.name, sha256: binding.sha256});
+  });
+  const results = ownedDataArray(plan.results, original => {
+    const result = ownedDataRecord(original);
+    const evidenceContext = ownedDataRecord(result.evidenceContext);
     if (!exactKeys(result, ['retention', 'evidenceContext',
           ...(result?.transformation === undefined ? [] : ['transformation'])]) ||
         !contract(result.retention) || result.evidenceContext === null ||
         typeof result.evidenceContext !== 'object' ||
-        Array.isArray(result.evidenceContext)) {
+        Array.isArray(result.evidenceContext) ||
+        !Array.isArray(evidenceContext.inputRelationCids)) {
       fail('InvalidRunPublicationPreflight');
     }
     return Object.freeze({
       retention: result.retention,
       ...(result.transformation === undefined ? {} :
         {transformation: result.transformation}),
-      evidenceContext: Object.freeze({...result.evidenceContext}),
+      evidenceContext: Object.freeze({...evidenceContext,
+        inputRelationCids: ownedDataArray(evidenceContext.inputRelationCids),
+      }),
     });
   });
   return Object.freeze({
@@ -74,54 +133,33 @@ function snapshotPlan(plan) {
     authoringContext: plan.authoringContext,
     results: Object.freeze(results),
     receiptEvidence: Object.freeze({
-      bindings: Object.freeze([...plan.receiptEvidence.bindings]),
-      sourceEvidence: Object.freeze([...plan.receiptEvidence.sourceEvidence]),
-      modelEvidence: Object.freeze([...plan.receiptEvidence.modelEvidence]),
-      barrierAttemptReceiptCids: Object.freeze([
-        ...plan.receiptEvidence.barrierAttemptReceiptCids,
-      ]),
+      bindings: Object.freeze(bindings),
+      sourceEvidence: ownedDataArray(receiptEvidence.sourceEvidence),
+      modelEvidence: ownedDataArray(receiptEvidence.modelEvidence),
+      barrierAttemptReceiptCids: ownedDataArray(receiptEvidence.barrierAttemptReceiptCids),
     }),
     captureEvidence: Object.freeze({
-      pendingSourceStateAdvances: Object.freeze([
-        ...plan.captureEvidence.pendingSourceStateAdvances,
-      ]),
-      modelEvidence: Object.freeze([...plan.captureEvidence.modelEvidence]),
+      pendingSourceStateAdvances: ownedDataArray(captureEvidence.pendingSourceStateAdvances),
+      modelEvidence: ownedDataArray(captureEvidence.modelEvidence),
     }),
-    request: Object.freeze({...plan.request}),
-    attempt: Object.freeze({...plan.attempt}),
-    outputLimits: Object.freeze({...plan.outputLimits}),
-    contractLimits: Object.freeze({...plan.contractLimits}),
+    request,
+    attempt,
+    outputLimits,
+    contractLimits,
     now: plan.now,
   });
 }
 
-function checkedCapacity(resultCount, outputLimits, contractLimits) {
-  // One payload and one schema object per Result. Contracts include the six
-  // Result-scoped objects, the Run roots, request, attempt, index and bounded
-  // state records.
-  const objectCount = resultCount * 8 + 11;
-  const maxObjectBytes = Math.max(
-    outputLimits.maxWireBytes,
-    outputLimits.maxLogicalWireBytes ?? 0,
-    outputLimits.maxSchemaBytes ?? 0,
-    contractLimits.maxWireBytes,
-  );
-  const requiredBytes = objectCount * maxObjectBytes;
-  if (!Number.isSafeInteger(objectCount) ||
-      !Number.isSafeInteger(maxObjectBytes) ||
-      !Number.isSafeInteger(requiredBytes)) {
-    fail('RunPublicationPreflightCapacityOverflow');
-  }
-  return Object.freeze({requiredBytes, objectCount, maxObjectBytes});
-}
-
 export function prepareCompletedEffectFreeRunPublication(options) {
+  options = ownedDataRecord(options);
   if (!exactKeys(options, [
     'store', 'control', 'publicationInventory', 'plan',
   ])) {
     fail('InvalidRunPublicationPreflight');
   }
-  const {store, control, publicationInventory} = options;
+  const {store, control} = options;
+  const publicationInventory = ownedDataRecord(options.publicationInventory);
+  const occurrences = ownedDataArray(publicationInventory.occurrences, ownedDataRecord);
   if (store === null || typeof store !== 'object' ||
       typeof store.publicationCapacitySupports !== 'function' ||
       control === null || typeof control !== 'object' ||
@@ -131,15 +169,15 @@ export function prepareCompletedEffectFreeRunPublication(options) {
       publicationInventory === null ||
       typeof publicationInventory !== 'object' ||
       !Array.isArray(publicationInventory.occurrences) ||
-      publicationInventory.occurrences.length === 0 ||
+      occurrences.length === 0 ||
       typeof publicationInventory.programDefinitionCid !== 'string') {
     fail('InvalidRunPublicationPreflight');
   }
   const plan = snapshotPlan(options.plan);
-  if (plan.results.length !== publicationInventory.occurrences.length) {
+  if (plan.results.length !== occurrences.length) {
     fail('IncompleteRunPublicationInventory');
   }
-  const definitions = publicationInventory.occurrences.map(occurrence => {
+  const definitions = ownedDataArray(occurrences, occurrence => {
     if (occurrence === null || typeof occurrence !== 'object' ||
         !contract(occurrence.definitionContract)) {
       fail('InvalidRunPublicationPreflight');
@@ -177,11 +215,26 @@ export function prepareCompletedEffectFreeRunPublication(options) {
   ) !== true) {
     fail('IncompatibleRunPublicationPreflight');
   }
-  const capacity = checkedCapacity(
-    definitions.length,
-    plan.outputLimits,
-    plan.contractLimits,
-  );
+  let capacity;
+  try {
+    const bounds = typeof control.resultPublicationContractByteBounds === 'function'
+      ? plan.results.map(result => control.resultPublicationContractByteBounds(
+        result.evidenceContext.inputRelationCids,
+        plan.outputLimits.maxSchemaBytes,
+        plan.contractLimits,
+      )) : undefined;
+    let frontier = typeof control.ordinaryPublicationFrontierByteBounds === 'function'
+      ? control.ordinaryPublicationFrontierByteBounds(request, plan.results.length, plan.contractLimits)
+      : undefined;
+    if (frontier !== undefined && typeof control.ordinaryPublicationReceiptByteBound === 'function') {
+      frontier = Object.freeze({...frontier,
+        receipt: control.ordinaryPublicationReceiptByteBound(plan, request, plan.contractLimits)});
+    }
+    capacity = completedPublicationCapacity(plan, definitions, request, attempt, bounds, frontier);
+  } catch (error) {
+    fail(error instanceof RangeError ? 'RunPublicationPreflightCapacityOverflow' :
+      'InvalidRunPublicationPreflight', error);
+  }
   if (store.publicationCapacitySupports(capacity) !== true) {
     fail('RunPublicationCapacityUnsupported');
   }

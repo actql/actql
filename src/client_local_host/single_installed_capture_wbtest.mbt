@@ -6,7 +6,7 @@ fn single_installed_prepared(
 ) -> @publication_host.PreparedClientProgram {
   let environment = @publication_host.admit_client_check_environment(
     source_query_original_environment,
-    "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
+    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
@@ -26,12 +26,13 @@ fn single_installed_ledger(
   transfer? : Int64 = 4096L,
   execution? : Int64 = 4096L,
 ) -> @resources.Ledger? {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   prepare_single_captured_local_installed_ledger(
     prepared,
     capacity,
     transfer,
     execution,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
@@ -40,6 +41,7 @@ fn single_installed_ledger(
 
 ///|
 test "single installed capture preserves its accounted holding on the original planned ledger" {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let prepared = single_installed_prepared()
   let acquisition = original_row_acquisition_fixture(
     original_row_requirement(prepared),
@@ -48,7 +50,7 @@ test "single installed capture preserves its accounted holding on the original p
   let ledger = single_installed_ledger(prepared, capacity).unwrap()
   let compute = single_captured_compute_limits(
     prepared,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
@@ -69,12 +71,17 @@ test "single installed capture preserves its accounted holding on the original p
     4096L,
     4096L,
   ).unwrap()
-  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  // This fixture has only registered the read; no physical request was made.
+  // Closing the unused original returns its pending slot, not spent work.
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+  assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 1)
   assert_eq(
     @resources.ledger_usage(ledger).reserved_retention_bytes,
     capacity.retained_bytes,
   )
   @row_source_host.close_accounted_row_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+  assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 0)
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
 }

@@ -17,8 +17,6 @@ priv struct RelationChainInputPreparation {
   node : @lower.PreparedNode
   first_step : Int
   step : Int
-  max_entries : Int
-  max_value_bytes : Int
   mut port : Int
   mut probe : Int
   mut matched : ManagedProviderInput?
@@ -32,8 +30,6 @@ fn start_relation_chain_inputs(
   position : Int,
   inputs : Array[ManagedProviderInput],
   completed : Array[@execution.CompletedOutput?],
-  max_entries : Int,
-  max_value_bytes : Int,
 ) -> Result[RelationChainInputPreparation, @connector.FixedComputeIssue] {
   let owner = @execution.generated_sequence_owner(sequence)
   guard @execution.generated_sequence_step_index_at(sequence, 0)
@@ -52,8 +48,6 @@ fn start_relation_chain_inputs(
     node,
     first_step,
     step,
-    max_entries,
-    max_value_bytes,
     selected: [],
     port: 0,
     probe: 0,
@@ -159,12 +153,15 @@ fn advance_relation_chain_inputs(
           Ok(bound) => bound
           Err(_) => return Err(@connector.Execution(@execution.InputSet))
         }
+        guard @execution.bound_producer_read_demand(cursor.owner,bound) is Some(demand) else {
+          return Err(@connector.Execution(@execution.InputLimit))
+        }
         let read = match
           @execution.start_prepare_producer_read(
             cursor.owner,
             bound,
-            cursor.max_entries,
-            cursor.max_value_bytes,
+            @execution.producer_read_demand_entries(demand),
+            @execution.producer_read_demand_name_bytes(demand),
           ) {
           Ok(read) => read
           Err(_) => return Err(@connector.Execution(@execution.InputSet))
@@ -228,12 +225,13 @@ fn relation_chain_inputs_are_small(
               Ok(bound) => bound
               Err(_) => return true
             }
+            guard @execution.bound_producer_read_demand(cursor.owner,bound) is Some(demand) else {return true}
             let read = match
               @execution.start_prepare_producer_read(
                 cursor.owner,
                 bound,
-                cursor.max_entries,
-                cursor.max_value_bytes,
+                @execution.producer_read_demand_entries(demand),
+                @execution.producer_read_demand_name_bytes(demand),
               ) {
               Ok(read) => read
               Err(_) => return true

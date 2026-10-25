@@ -2,9 +2,10 @@
 test "managed source-free preparation retains the quoted original sequences and scalar limits" {
   let prepared = source_free_tasks_original_union()
   let assets = @publication_host.client_local_product_assets()
-  let original = prepare_installed_managed_source_free(
+  let installed = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let original = prepare_installed_managed_source_free_with_contracts(
     prepared,
-    assets.registry,
+    installed,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
@@ -17,7 +18,7 @@ test "managed source-free preparation retains the quoted original sequences and 
     "{}",
     [],
     [],
-    assets.registry,
+    installed,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
@@ -33,7 +34,7 @@ test "managed source-free preparation retains the quoted original sequences and 
     installed_source_free_preparation_matches(
       original,
       Pure(prepared),
-      assets.registry,
+      installed,
       assets.values,
       Some(assets.fragment),
       assets.ordered,
@@ -49,9 +50,10 @@ test "managed source-free preparation retains the quoted original sequences and 
 test "managed source-free preparation executes the same generated originals on one diagnostic Ledger" {
   let prepared = source_free_tasks_original_union()
   let assets = @publication_host.client_local_product_assets()
-  let original = prepare_installed_managed_source_free(
+  let installed = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let original = prepare_installed_managed_source_free_with_contracts(
     prepared,
-    assets.registry,
+    installed,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
@@ -62,7 +64,7 @@ test "managed source-free preparation executes the same generated originals on o
   let setup = open_checked_local_host(
     prepared,
     None,
-    assets.registry,
+    installed,
     assets.values,
     1L,
     0L,
@@ -74,6 +76,7 @@ test "managed source-free preparation executes the same generated originals on o
     acquisition_ledger=Some(ledger),
     source_free_preparation=Some(original),
   ).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
   let execution = match
     execute_source_free_local_tasks_guarded(setup, 64, 100000, () => true) {
     Ok(value) => value
@@ -95,9 +98,10 @@ test "managed source-free preparation executes the same generated originals on o
 test "managed source-free preparation refuses a foreign owner or changed contract original" {
   let prepared = source_free_tasks_original_union()
   let assets = @publication_host.client_local_product_assets()
-  let original = prepare_installed_managed_source_free(
+  let installed = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let original = prepare_installed_managed_source_free_with_contracts(
     prepared,
-    assets.registry,
+    installed,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
@@ -107,40 +111,22 @@ test "managed source-free preparation refuses a foreign owner or changed contrac
     installed_source_free_preparation_matches(
       original,
       Pure(foreign),
-      assets.registry,
+      installed,
       assets.values,
       Some(assets.fragment),
       assets.ordered,
     ),
   )
-  for
-    (registry, values, fragment, ordered) in [
-      ("{}", assets.values, Some(assets.fragment), assets.ordered),
-      (assets.registry, "{}", Some(assets.fragment), assets.ordered),
-      (assets.registry, assets.values, None, assets.ordered),
-      (assets.registry, assets.values, Some(assets.fragment), Some("{}")),
-    ] {
-    assert_false(
-      installed_source_free_preparation_matches(
-        original,
-        Pure(prepared),
-        registry,
-        values,
-        fragment,
-        ordered,
-      ),
-    )
+  let independent = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  assert_false(installed_source_free_preparation_matches(original, Pure(prepared), independent, assets.values, Some(assets.fragment), assets.ordered))
+  for (values, fragment, ordered) in [
+    ("{}", Some(assets.fragment), assets.ordered),
+    (assets.values, None, assets.ordered),
+    (assets.values, Some(assets.fragment), Some("{}")),
+  ] {
+    assert_false(installed_source_free_preparation_matches(original, Pure(prepared), installed, values, fragment, ordered))
   }
-  assert_true(
-    prepare_installed_managed_source_free(
-      prepared,
-      "{}",
-      assets.values,
-      Some(assets.fragment),
-      assets.ordered,
-    )
-    is Err(Unsupported),
-  )
+  assert_true(prepare_installed_sequence_contracts("{}", assets.values, Some(assets.fragment), assets.ordered) is Err(Unsupported))
   // Use the independently authored Source Environment's declared identity;
   // do not retarget the historical helpers or their original failed vectors.
   guard @json.parse(source_query_original_environment) is Object(fields) &&
@@ -161,9 +147,9 @@ test "managed source-free preparation refuses a foreign owner or changed contrac
     @publication_host.client_standard_program_preparation_limits(),
   ).unwrap()
   assert_true(
-    prepare_installed_managed_source_free(
+    prepare_installed_managed_source_free_with_contracts(
       source,
-      assets.registry,
+      installed,
       assets.values,
       Some(assets.fragment),
       assets.ordered,

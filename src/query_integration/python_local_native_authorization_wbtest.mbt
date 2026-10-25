@@ -143,6 +143,16 @@ fn python_native_plan(
 }
 
 ///|
+fn python_native_installed_contracts() -> @client_local_host.ClientInstalledSequenceContracts raise {
+  @client_local_host.prepare_installed_sequence_contracts(
+    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    @identity.stringify_value(registered_values(), 100000, 10000, 100),
+    Some(@identity.stringify_value(registered_fragment(), 100000, 10000, 100)),
+    None,
+  ).unwrap()
+}
+
+///|
 fn python_native_configuration(
   plan : @local_run.LocalRunPlan,
   tuple : @authorization.AccessTuple,
@@ -155,7 +165,7 @@ fn python_native_configuration(
     plan,
     0,
     0,
-    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    python_native_installed_contracts(),
     @identity.stringify_value(registered_values(), 100000, 10000, 100),
     Some(@identity.stringify_value(registered_fragment(), 100000, 10000, 100)),
     None,
@@ -336,10 +346,16 @@ test "Local single Source plans its retained suffix before physical acquisition"
   let fragment = Some(
     @identity.stringify_value(registered_fragment(), 100000, 10000, 100),
   )
+  let installed = @client_local_host.prepare_installed_sequence_contracts(
+    registry,
+    values,
+    fragment,
+    None,
+  ).unwrap()
   let planned = @client_local_host.single_captured_local_ledger_limits(
     @local_run.local_run_prepared(plan),
     selected,
-    registry,
+    installed,
     values,
     fragment,
     None,
@@ -349,11 +365,20 @@ test "Local single Source plans its retained suffix before physical acquisition"
   assert_eq(planned.execution_bytes, 536870912L)
   // Invalid installed contracts do not produce a fabricated fitting plan.
   assert_true(
+    @client_local_host.prepare_installed_sequence_contracts(
+      "{}",
+      values,
+      fragment,
+      None,
+    )
+    is Err(_),
+  )
+  assert_true(
     @client_local_host.single_captured_local_ledger_limits(
       @local_run.local_run_prepared(plan),
       selected,
+      installed,
       "{}",
-      values,
       fragment,
       None,
     )
@@ -417,7 +442,7 @@ test "Native Source capability identifies the independently pinned current two-r
     @local_run.local_run_prepared(plan),
     0,
     0,
-    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    python_native_installed_contracts(),
     @identity.stringify_value(registered_values(), 100000, 10000, 100),
     Some(@identity.stringify_value(registered_fragment(), 100000, 10000, 100)),
     None,

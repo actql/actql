@@ -139,6 +139,20 @@ function nativeSourceAcquisitionContracts() {
   assert.equal(body.split(environment.originalCid).length, 2, `${path}: original Environment admission`);
   return body.replace(environment.originalCid, environment.generatedCid);
 }
+function installedConsumerContracts(alias, name) {
+  return consumerLines.join('\n') + `
+
+///|
+fn ${name}() -> @${alias}.ClientInstalledSequenceContracts raise {
+  @${alias}.prepare_installed_sequence_contracts(
+    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    @identity.stringify_value(registered_values(), 100000, 10000, 100),
+    Some(@identity.stringify_value(registered_fragment(), 100000, 10000, 100)),
+    Some(@identity.stringify_value(registered_ordered(), 100000, 10000, 100)),
+  ).unwrap()
+}
+`;
+}
 for (const [path, body] of [
   ['src/client_local_host/resident_source_query_regression_wbtest.mbt',
     nativeSourceContracts('src/client_local_host/resident_source_query_regression_wbtest.mbt', 'source_query_original')],
@@ -168,9 +182,9 @@ for (const [path, body] of [
   ['src/execution_relation/registry_vectors.generated_wbtest.mbt', lines.join('\n') + '\n'],
   ['src/execution_relation/registry_vectors.generated_test.mbt', consumerLines.join('\n') + '\n'],
   ['src/client_local_run/pinned_engine_contracts_wbtest.mbt',
-    consumerLines.join('\n') + '\n'],
+    installedConsumerContracts('local', 'registered_installed_contracts')],
   ['src/query_integration/pinned_engine_contracts_wbtest.mbt',
-    consumerLines.join('\n') + '\n'],
+    installedConsumerContracts('client_local_host', 'registered_installed_sequence_contracts')],
   ['src/sourceview_resolution/keyed_execution_contracts_test.mbt',
     nativeValuesLines.join('\n') + '\n'],
   ['src/native_values_integration/pinned_engine_contracts_wbtest.mbt',

@@ -61,7 +61,7 @@ pub fn configure_quantities(
     return Err(InvalidLimits)
   }
   if ledger.quantity_limits is Some(_) ||
-    ledger.usage.attempts != 0 ||
+    ledger.next_attempt_serial != Some(0) ||
     ledger.delegated_attempts != 0 ||
     ledger.next_capacity_serial != Some(-1) {
     return Err(InvalidCharge)
@@ -168,6 +168,10 @@ pub fn mark_quantities_uncertain(
   guard reservation.quantities is Some(amount) &&
     reservation.uncertain_quantities is None else {
     return Err(InvalidCharge)
+  }
+  match consume_reserved_attempt_current(ledger, reservation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   let usage = ledger.quantity_usage
   ledger.quantity_usage = {

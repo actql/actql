@@ -6,6 +6,7 @@ priv struct LocalPackagedRuntime {
   sqlite : String
   crypto : String
   assets : @run_host.ClientLocalProductAssets
+  installed_contracts : @local_values.ClientInstalledSequenceContracts
   physical : @local_host.NativeLocalPackagedRuntime
 }
 
@@ -159,13 +160,13 @@ fn local_packaged_runtime_from_physical(
   let manifest = physical
     .manifest()
     .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
-  let assets = physical
-    .assets()
+  let (assets, installed_contracts) = physical
+    .installed_assets()
     .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
   let (sqlite, crypto) = physical
     .library_paths()
     .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
-  { manifest, sqlite, crypto, assets, physical, }
+  { manifest, sqlite, crypto, assets, installed_contracts, physical, }
 }
 
 ///|

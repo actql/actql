@@ -121,3 +121,25 @@ export function selectInstalledHostEnvironment(moon, baseWire, selection, lookup
     false, false, true, false, false, false, false) === undefined) fail('PolicyAdmission');
   return wire;
 }
+
+// Only the selected in-process materializing Local installation consumes this
+// nominal policy. It is a necessary row ceiling, not a new resource grant:
+// the actual checked plan must still fund all cells, names and live workspaces.
+// Generic Hosts and independently installed Effect/streaming profiles retain
+// their original selector and policy identity.
+export function selectInstalledLocalMaterializationEnvironment(
+  moon, baseWire, selection, lookupSelection,
+) {
+  const explicit = snapshotHostCapacityPolicy(selection);
+  const original = moon.clientLocalResourcePolicyOriginal();
+  const rows = moon.clientLocalResourcePolicyRowCeiling(original);
+  if (!Number.isSafeInteger(rows) || rows < 1 || rows > 2147483647) {
+    fail('LocalResourcePolicyProjection');
+  }
+  const base = JSON.parse(baseWire).host_policy_profile.capacity;
+  const capacity = {...(explicit ?? base)};
+  for (const field of ['max_relation_output_rows', 'max_artifact_rows']) {
+    capacity[field] = explicit === undefined ? rows : Math.min(explicit[field], rows);
+  }
+  return selectInstalledHostEnvironment(moon, baseWire, capacity, lookupSelection);
+}

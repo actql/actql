@@ -105,6 +105,7 @@ pub fn configure_native_source(nonce : Int64, handle : Int) -> Int {
     required_int32(object, "stage") is Some(stage) &&
     required_int32(object, "source_index") is Some(source_index) &&
     required_text(object, "registry") is Some(registry) &&
+    registry == value.installed_sequences.registry &&
     required_text(object, "values") is Some(values) &&
     optional_text(object, "fragment") is Ok(fragment) &&
     optional_text(object, "ordered") is Ok(ordered) &&
@@ -127,7 +128,7 @@ pub fn configure_native_source(nonce : Int64, handle : Int) -> Int {
       plan,
       stage,
       source_index,
-      registry,
+      value.installed_sequences.contracts,
       values,
       fragment,
       ordered,
@@ -145,7 +146,7 @@ pub fn configure_native_source(nonce : Int64, handle : Int) -> Int {
     record.capacity = @local_host.single_captured_local_ledger_limits(
       @local_run.local_run_prepared(plan),
       @local_run.local_native_source_configuration(configuration),
-      registry,
+      value.installed_sequences.contracts,
       values,
       fragment,
       ordered,

@@ -6,19 +6,42 @@ import {
 }
 
 // Values
+pub fn advance_normalization(NormalizationCursor) -> Result[Bool, TextNormalizationError]
+
 pub fn compare_utf16(String, String) -> Int
 
 pub fn compare_utf16_fragment(String, String, Int, Int) -> (Int?, Int, Int)
 
+pub fn normalization_count(NormalizationCursor) -> Int
+
+pub fn normalization_scalar(NormalizationCursor, Int) -> Char?
+
 pub fn normalize_nfc(String) -> Result[String, TextNormalizationError]
 
 pub fn normalize_nfc_lf(String) -> Result[String, TextNormalizationError]
+
+pub fn start_normalization(String, Bool) -> NormalizationCursor
 
 pub fn validate_scalar_text(String) -> Result[Unit, TextNormalizationError]
 
 // Errors
 
 // Types and methods
+pub struct NormalizationCursor {
+  input : String
+  fold : Bool
+  mut offset : Int
+  values : Array[Int]
+  mut pending : Array[Int]
+  mut next : Int
+  mut ordering : Int
+  mut phase : Int
+  mut read : Int
+  mut written : Int
+  mut starter : Int
+  mut previous_class : Int
+}
+
 pub(all) enum TextNormalizationError {
   UnpairedSurrogate(Int)
 } derive(Eq, @debug.Debug)

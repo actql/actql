@@ -8,6 +8,10 @@ struct CapturedResultSnapshot {
   artifact : PublicationContract
   rows : @json.CanonicalValue
   fields : Array[String]
+  // Exact bare-row extent from the original successful logical hash.
+  row_wire_bytes : Int
+  row_nodes : Int
+  row_depth : Int
 }
 
 ///|

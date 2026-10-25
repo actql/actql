@@ -4,11 +4,17 @@
 fn original_row_requirement(
   prepared : @publication_host.PreparedClientProgram,
 ) -> @planning.QueryRequirement {
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   prepare_local_query_requirement(
     prepared,
     0,
     0,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
@@ -137,7 +143,7 @@ test "original row acquisition authenticates the nominal checked Source before r
   // The actual existing RowRun now owns the same Ledger reservation. No
   // provider read/admission has started, and transport is not acknowledged.
   assert_eq(confirmations.val, 0)
-  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
   assert_eq(
     @resources.ledger_usage(ledger).reserved_retention_bytes,
     retention + 3L,
@@ -166,7 +172,7 @@ test "original row acquisition authenticates the nominal checked Source before r
   @row_source_host.close_accounted_row_run(run).unwrap()
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 3L)
   assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 2L)
-  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
   assert_true(
     @publication_host.finish_client_model_read_scope(
       scope, compiled, definition, plan, true,
@@ -256,7 +262,7 @@ test "original row acquisition keeps the same child reservation on pending clean
     is Err(@publication_host.Resource(@resources.ChangedOriginalState)),
   )
   @resources.settle_reservation(borrowed, child).unwrap()
-  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
   assert_true(
     @publication_host.borrow_client_original_row_acquisition_ledger(
       scope, compiled, definition, plan, prepared, requirement,

@@ -155,6 +155,8 @@ fn expression_role(
     | "cast"
     | "property"
     | "subscript"
+    | "array_offset"
+    | "array_safe_offset"
     | "empty_array"
     | "case"
     | "try_decimal"
@@ -222,7 +224,7 @@ fn body_fields(tag : String) -> (Array[String], Array[String]) {
     "join_field" => ["side", "name"]
     "cast" => ["value", "target"]
     "property" => ["value", "name"]
-    "subscript" => ["value", "index"]
+    "subscript" | "array_offset" | "array_safe_offset" => ["value", "index"]
     "empty_array" => ["items"]
     "case" => ["when"]
     "split_part" => ["value", "delimiter", "index"]

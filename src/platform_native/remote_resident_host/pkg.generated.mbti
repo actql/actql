@@ -40,9 +40,9 @@ import {
 // Values
 pub fn accept_resident_dispatch(@remote_journal.Journal, @http_client.Client, String, @remote_resident_site.ResidentSiteDelegation, Int, @remote_resident_site.ResidentAcceptedQueue, ResidentRunAdmission, @remote_site_protocol.RemotePollDispatch, String) -> Result[ResidentAcceptance, ResidentHostIssue]
 
-pub fn accept_resident_effect_source_dispatch(@remote_journal.Journal, @http_client.Client, String, @remote_resident_site.ResidentSiteDelegation, Int, @remote_resident_site.ResidentAcceptedQueue, ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, @remote_site_protocol.RemotePollDispatch, String, String, String, String) -> Result[ResidentAcceptance, ResidentEffectProducerExecutionIssue]
+pub fn accept_resident_effect_source_dispatch(@remote_journal.Journal, @http_client.Client, String, @remote_resident_site.ResidentSiteDelegation, Int, @remote_resident_site.ResidentAcceptedQueue, ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, @remote_site_protocol.RemotePollDispatch, String, @client_local_host.ClientInstalledSequenceContracts, String, String) -> Result[ResidentAcceptance, ResidentEffectProducerExecutionIssue]
 
-pub fn admit_resident_effect_source_dispatch(ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, @remote_resident_site.ResidentSiteDelegation, Int, @remote_site_protocol.DispatchRequest, String, @remote_site_protocol.RemoteInputBinding, String, String, String, String) -> Result[@run_publication_host.PreparedClientEffectRun, ResidentEffectSourceDispatchIssue]
+pub fn admit_resident_effect_source_dispatch(ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, @remote_resident_site.ResidentSiteDelegation, Int, @remote_site_protocol.DispatchRequest, String, @remote_site_protocol.RemoteInputBinding, String, @client_local_host.ClientInstalledSequenceContracts, String, String) -> Result[@run_publication_host.PreparedClientEffectRun, ResidentEffectSourceDispatchIssue]
 
 pub fn begin_resident_output_release(@remote_journal.Journal, @remote_resident_site.ResidentSiteDelegation, Int, @remote_site_protocol.DispatchRequest) -> Result[Unit, ResidentOutputIssue]
 
@@ -82,9 +82,9 @@ pub fn prepare_resident_completed_attempt(@remote_journal.Journal, ResidentExecu
 
 pub fn prepare_resident_effect_retained_consumer(ResidentRetainedTransfer, @remote_journal.Journal, ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, ResidentSourceComputeConfiguration, @remote_site_protocol.RemotePollDispatch, String, @remote_standard_host.NativeRemoteStandardTransferBindingLimits) -> Result[ResidentRetainedConsumer, ResidentRetainedExecutionFailure]
 
-pub fn prepare_resident_effect_retained_producer_context(@remote_journal.Journal, ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, @remote_resident_site.ResidentSiteDelegation, Int, @remote_site_protocol.RemoteRetainedInputIntent, String, String, String, String) -> Result[ResidentRetainedProducerContext, ResidentEffectProducerExecutionIssue]
+pub fn prepare_resident_effect_retained_producer_context(@remote_journal.Journal, ResidentRunAdmission, @run_publication_host.ClientEffectComputationLimits, @remote_resident_site.ResidentSiteDelegation, Int, @remote_site_protocol.RemoteRetainedInputIntent, String, @client_local_host.ClientInstalledSequenceContracts, String, String) -> Result[ResidentRetainedProducerContext, ResidentEffectProducerExecutionIssue]
 
-pub fn prepare_resident_effect_source_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String, String) -> Result[@query_planning.QueryRequirement, ResidentSourceIssue]
+pub fn prepare_resident_effect_source_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, @client_local_host.ClientInstalledSequenceContracts, String, String?, String, String) -> Result[@query_planning.QueryRequirement, ResidentSourceIssue]
 
 pub fn prepare_resident_recorded_output(@remote_journal.Journal, @execution_site.ExecutionSite, @actql/actql/run_publication.RecordedRunPublication, @remote_resident_site.ResidentSiteDelegation, String, String, () -> String, () -> Bool) -> Result[ResidentSavedOutput, ResidentHostIssue]
 
@@ -553,7 +553,7 @@ pub(all) struct ResidentExecution {
   issuer_capability_cid : String
   bundles : @runtime_bundle.NativeRuntimeBundleStore
   budgets : Array[@remote_site_protocol.RemoteDispatchBudget]
-  registry_body : String
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts
   values_body : String
   fixed_ms : Int64
   per_row_ms : Int64
@@ -802,7 +802,7 @@ pub fn ResidentSourceCompute::verify_effect_preview_plan(Self, @physical_strateg
 
 pub(all) struct ResidentSourceComputeConfiguration {
   source : ResidentSourceConfiguration
-  registry_body : String
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts
   values_body : String
   dispatch : @standard_host.TaskDispatchLimits
   estimates : Array[@standard_host.DispatchEstimateProfile]

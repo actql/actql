@@ -36,16 +36,17 @@ fn source_free_requirements_prepared(
 test "source-free preparation refuses two competing retained originals" {
   let prepared = source_free_requirements_prepared()
   let assets = @publication_host.client_local_product_assets()
+  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
   let requirements = prepare_source_free_local_requirements(
     prepared,
-    assets.registry,
+    asset_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
-  let preparation = prepare_installed_managed_source_free(
+  let preparation = prepare_installed_managed_source_free_with_contracts(
     prepared,
-    assets.registry,
+    asset_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
@@ -55,7 +56,7 @@ test "source-free preparation refuses two competing retained originals" {
     open_checked_local_host(
       prepared,
       None,
-      assets.registry,
+      asset_contracts,
       assets.values,
       1L,
       0L,
@@ -83,9 +84,10 @@ test "source-free preparation refuses two competing retained originals" {
 test "source-free requirements keep maximum allowances separate and execute the same prepared rows" {
   let prepared = source_free_requirements_prepared()
   let assets = @publication_host.client_local_product_assets()
+  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
   let quote = prepare_source_free_local_requirements(
     prepared,
-    assets.registry,
+    asset_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
@@ -96,7 +98,7 @@ test "source-free requirements keep maximum allowances separate and execute the 
   assert_eq(
     source_free_local_ledger_limits(
       prepared,
-      assets.registry,
+      asset_contracts,
       assets.values,
       Some(assets.fragment),
       assets.ordered,
@@ -115,7 +117,7 @@ test "source-free requirements keep maximum allowances separate and execute the 
   let setup = open_source_free_local_retained_host_on_ledger(
     prepared,
     ledger,
-    assets.registry,
+    asset_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
@@ -138,9 +140,10 @@ test "source-free requirements keep maximum allowances separate and execute the 
 test "source-free requirements cannot select a different preparation or installed input" {
   let prepared = source_free_requirements_prepared()
   let assets = @publication_host.client_local_product_assets()
+  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
   let quote = prepare_source_free_local_requirements(
     prepared,
-    assets.registry,
+    asset_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
@@ -149,7 +152,7 @@ test "source-free requirements cannot select a different preparation or installe
   assert_true(
     quote.matches(
       prepared,
-      assets.registry,
+      asset_contracts,
       assets.values,
       Some(assets.fragment),
       assets.ordered,
@@ -158,7 +161,7 @@ test "source-free requirements cannot select a different preparation or installe
   assert_false(
     quote.matches(
       foreign,
-      assets.registry,
+      asset_contracts,
       assets.values,
       Some(assets.fragment),
       assets.ordered,
@@ -169,7 +172,7 @@ test "source-free requirements cannot select a different preparation or installe
     open_source_free_local_retained_host_on_ledger(
       foreign,
       ledger,
-      assets.registry,
+      asset_contracts,
       assets.values,
       Some(assets.fragment),
       assets.ordered,
@@ -181,7 +184,7 @@ test "source-free requirements cannot select a different preparation or installe
     open_source_free_local_retained_host_on_ledger(
       prepared,
       ledger,
-      assets.registry,
+      asset_contracts,
       "{}",
       Some(assets.fragment),
       assets.ordered,
@@ -197,9 +200,10 @@ test "source-free requirements cannot select a different preparation or installe
 test "original eight-task UNION preserves its finite facility with prepared requirements" {
   let prepared = source_free_tasks_original_union()
   let assets = @publication_host.client_local_product_assets()
+  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
   let quote = prepare_source_free_local_requirements(
     prepared,
-    assets.registry,
+    asset_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
@@ -218,7 +222,7 @@ test "original eight-task UNION preserves its finite facility with prepared requ
   let setup = open_source_free_local_retained_host_on_ledger(
     prepared,
     ledger,
-    assets.registry,
+    asset_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
@@ -245,9 +249,10 @@ test "original eight-task UNION preserves its finite facility with prepared requ
 test "source-free SQL chain quotes its installed provider and rejects one byte short" {
   let prepared = source_free_requirements_prepared(sql=Some("SELECT 1 AS x"))
   let assets = @publication_host.client_local_product_assets()
+  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
   let quote = prepare_source_free_local_requirements(
     prepared,
-    assets.registry,
+    asset_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
@@ -257,7 +262,7 @@ test "source-free SQL chain quotes its installed provider and rejects one byte s
   let setup = open_source_free_local_retained_host_on_ledger(
     prepared,
     ledger,
-    assets.registry,
+    asset_contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
@@ -282,7 +287,7 @@ test "source-free SQL chain quotes its installed provider and rejects one byte s
     open_source_free_local_retained_host_on_ledger(
       prepared,
       short,
-      assets.registry,
+      asset_contracts,
       assets.values,
       Some(assets.fragment),
       assets.ordered,

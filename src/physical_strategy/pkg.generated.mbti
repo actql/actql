@@ -56,6 +56,8 @@ pub fn begin_resident_environment(CapturedDAG, Int, Int64) -> Result[ResidentEnv
 
 pub fn begin_resident_transfer(CapturedDAG, ResidentTable, Int64, Int64) -> Result[ResidentTransfer, RunIssue]
 
+pub fn begin_task_execution_use(CapturedDAG, TaskExecution) -> Result[Unit, @physical_resources.LedgerIssue]
+
 pub fn bind_captured_effect_command_key_workspace(CapturedEffectCommandKeyValidation, @physical_resources.SharedBorrow) -> Bool
 
 pub fn bind_captured_effect_command_target(CapturedEffectInputs, Int, @check_environment.StoreCommandBinding, @value_admission.CheckedValue, Int) -> Result[CapturedEffectCommandTarget, CapturedEffectProposalIssue]

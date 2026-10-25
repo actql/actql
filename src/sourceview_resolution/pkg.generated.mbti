@@ -425,6 +425,7 @@ pub(all) enum KeyedJoinIssueKind {
   WorkLimit
   InconsistentConsumer
   FullJoin(Int)
+  RightJoin(Int)
   UnknownResponseField(Int, String)
   MissingResponseField(Int, String)
 } derive(Eq, @debug.Debug)

@@ -189,6 +189,7 @@ export async function storeCompletedResultPublicationPayload(
   signal,
   beginResult,
   readBatch,
+  publicationResource,
 ) {
   if (!validStore(store) ||
       typeof store.createPreparedObjectWriter !== 'function' ||
@@ -225,10 +226,13 @@ export async function storeCompletedResultPublicationPayload(
         publication.retention,
         publication.limits,
       );
+      // Snapshot encoding and its captured relation wrapper consume the same
+      // original Result output envelope, not small metadata-contract limits.
       const snapshot = await publication.control.admitCompletedResultSnapshot(
         handle,
-        publication.limits,
+        limits,
         signal,
+        publicationResource,
       );
       return Object.freeze({...evidence, artifact, snapshot});
     },

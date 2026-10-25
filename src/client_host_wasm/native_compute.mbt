@@ -122,6 +122,7 @@ pub fn configure_native_compute(nonce : Int64, handle : Int) -> Int {
     required_text(object, "read_account") is Some(account_wire) &&
     @authorization.admit_account_configuration_json(account_wire) is Ok(current) &&
     required_text(object, "registry") is Some(registry) &&
+    registry == value.installed_sequences.registry &&
     required_text(object, "values") is Some(values) &&
     optional_text(object, "fragment") is Ok(fragment) &&
     optional_text(object, "ordered") is Ok(ordered) else {
@@ -171,7 +172,7 @@ pub fn configure_native_compute(nonce : Int64, handle : Int) -> Int {
       plan,
       source,
       value.root,
-      registry,
+      value.installed_sequences.contracts,
       values,
       fragment,
       ordered,

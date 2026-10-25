@@ -162,7 +162,7 @@ test "original Content prefix refuses descriptor issuance and closed scope befor
 }
 
 ///|
-test "original Content prefix reentry cannot bypass failed pending child cleanup or spent attempt" {
+test "original Content prefix reentry cannot bypass failed pending child cleanup or issued identity" {
   let (owner, compiled, definition, plan) = original_serialization_test_run()
   let (scope, ledger) = original_serialization_test_scope(
     compiled, definition, plan,
@@ -184,8 +184,10 @@ test "original Content prefix reentry cannot bypass failed pending child cleanup
   assert_eq(@resources.ledger_usage(ledger), before)
   assert_true(@resources.reservation_open(child))
   @resources.settle_reservation(same, child).unwrap()
-  // Returning child capacity never refunds its consumed attempt or identity.
-  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  // No physical attempt was started. Returning the reserved attempt slot does
+  // not rewind its issued identity or make the original census pristine.
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+  assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 0)
   assert_true(
     borrow_client_original_serialization_ledger(
       scope, compiled, definition, plan, owner, 0, 1,

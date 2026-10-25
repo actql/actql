@@ -10,7 +10,9 @@ struct OriginalLedgerDescriptor[T] {
   state : OriginalLedgerSnapshot
   reservations : Array[(Reservation, OriginalReservationSnapshot)]
   holdings : Array[(Holding, Bool)]
-  delegations : Array[(ExecutionDelegation, (Int, Int, Int, Int64, Int64))]
+  delegations : Array[
+    (ExecutionDelegation, (Int, Int, Int, Int64, Int64, Int, Int, Int)),
+  ]
   mut claimed : Bool
 }
 
@@ -22,6 +24,8 @@ priv struct OriginalLedgerSnapshot {
   quantity_limits : QuantityAmounts?
   quantities : QuantityUsage
   next_capacity_serial : Int?
+  next_attempt_serial : Int?
+  next_holding_serial : Int?
 } derive(Eq)
 
 ///|
@@ -31,6 +35,8 @@ priv struct OriginalReservationSnapshot {
   retention : Int64
   execution : Int64
   open : Bool
+  attempt_reserved : Bool
+  attempt_started : Bool
   cleanup_pending : Bool
   quantities : QuantityAmounts?
   uncertain_quantities : QuantityAmounts?
@@ -94,6 +100,8 @@ fn original_ledger_snapshot(ledger : Ledger) -> OriginalLedgerSnapshot {
     quantity_limits: ledger.quantity_limits,
     quantities: ledger.quantity_usage,
     next_capacity_serial: ledger.next_capacity_serial,
+    next_attempt_serial: ledger.next_attempt_serial,
+    next_holding_serial: ledger.next_holding_serial,
   }
 }
 
@@ -107,6 +115,8 @@ fn original_reservation_snapshot(
     retention: reservation.retention,
     execution: reservation.execution,
     open: reservation.open,
+    attempt_reserved: reservation.attempt_reserved,
+    attempt_started: reservation.attempt_started,
     cleanup_pending: reservation.cleanup_pending,
     quantities: reservation.quantities,
     uncertain_quantities: reservation.uncertain_quantities,
@@ -118,13 +128,16 @@ fn original_reservation_snapshot(
 ///|
 fn original_delegation_snapshot(
   value : ExecutionDelegation,
-) -> (Int, Int, Int, Int64, Int64) {
+) -> (Int, Int, Int, Int64, Int64, Int, Int, Int) {
   (
     value.planning,
     value.attempts,
     value.holdings,
     value.transferred,
     value.uncertain,
+    value.reserved_attempts,
+    value.live_reservations,
+    value.live_delegations,
   )
 }
 
@@ -151,6 +164,43 @@ fn[T] issue_original_ledger_descriptor(
   reservations : Array[Reservation],
   holdings : Array[Holding],
   delegations : Array[ExecutionDelegation],
+  max_items : Int,
+) -> Result[OriginalLedgerDescriptor[T], OriginalReadIssue] {
+  if max_items < 0 ||
+    reservations.length() > max_items ||
+    holdings.length() > max_items - reservations.length() ||
+    delegations.length() > max_items - reservations.length() - holdings.length() {
+    return Err(IncompleteInventory)
+  }
+  // Private white-box fixture entry only: preserve its explicit input order.
+  // Production's recorded issuer borrows the existing slots directly and
+  // allocates none of these fixture-only temporary collections.
+  let selected_reservations = original_token_slots()
+  for token in reservations {
+    selected_reservations.push(token)
+  }
+  let selected_holdings = original_token_slots()
+  for token in holdings {
+    selected_holdings.push(token)
+  }
+  let selected_delegations = original_token_slots()
+  for token in delegations {
+    selected_delegations.push(token)
+  }
+  issue_original_ledger_descriptor_from_slots(
+    ledger, origin, bootstrap, selected_reservations, selected_holdings, selected_delegations,
+    max_items,
+  )
+}
+
+///|
+fn[T] issue_original_ledger_descriptor_from_slots(
+  ledger : Ledger,
+  origin : T,
+  bootstrap : CapacityReservation,
+  reservations : OriginalTokenSlots[Reservation],
+  holdings : OriginalTokenSlots[Holding],
+  delegations : OriginalTokenSlots[ExecutionDelegation],
   max_items : Int,
 ) -> Result[OriginalLedgerDescriptor[T], OriginalReadIssue] {
   if !physical_equal(ledger, bootstrap.reservation.owner) {
@@ -273,7 +323,7 @@ fn[T] issue_original_ledger_descriptor(
     }
     if value.reservation.open {
       let p = value.limits.planning_work - value.planning
-      let a = value.limits.attempts - value.attempts
+      let a = value.limits.attempts - value.attempts - value.reserved_attempts
       let h = value.limits.holdings - value.holdings
       if p < 0 ||
         p > planning ||

@@ -165,7 +165,7 @@ fn document_limits(
 fn document_usage(
   c : @decode.Cursor,
 ) -> LedgerUsage raise OriginalStateDocumentFailure {
-  document_array(c, 10)
+  document_array(c, 13)
   {
     planning_work: document_count(document_at(c, 0)),
     attempts: document_count(document_at(c, 1)),
@@ -177,6 +177,9 @@ fn document_usage(
     reserved_retention_bytes: document_nonnegative(document_at(c, 7)),
     reserved_execution_bytes: document_nonnegative(document_at(c, 8)),
     peak_retention_bytes: document_nonnegative(document_at(c, 9)),
+    reserved_attempts: document_count(document_at(c, 10)),
+    live_reservations: document_count(document_at(c, 11)),
+    live_delegations: document_count(document_at(c, 12)),
   }
 }
 
@@ -184,7 +187,16 @@ fn document_usage(
 fn document_reservation(
   c : @decode.Cursor,
 ) -> OriginalReservationSnapshot raise OriginalStateDocumentFailure {
-  document_array(c, 10)
+  document_array(c, 12)
+  let serial = document_int(document_at(c, 0))
+  let open = document_bool(document_at(c, 4))
+  let attempt_reserved = document_bool(document_at(c, 10))
+  let attempt_started = document_bool(document_at(c, 11))
+  if (serial < 0 && (attempt_reserved || attempt_started)) ||
+    (attempt_reserved && attempt_started) ||
+    (!open && attempt_reserved) {
+    raise BadDocument
+  }
   let observed = document_at(c, 8)
   document_array(observed, 3)
   let completed = document_at(c, 9)
@@ -205,11 +217,13 @@ fn document_reservation(
     )
   }
   {
-    serial: document_int(document_at(c, 0)),
+    serial,
     transfer: document_nonnegative(document_at(c, 1)),
     retention: document_nonnegative(document_at(c, 2)),
     execution: document_nonnegative(document_at(c, 3)),
-    open: document_bool(document_at(c, 4)),
+    open,
+    attempt_reserved,
+    attempt_started,
     cleanup_pending: document_bool(document_at(c, 5)),
     quantities: document_optional_quantities(document_at(c, 6)),
     uncertain_quantities: document_optional_quantities(document_at(c, 7)),
@@ -251,7 +265,15 @@ fn document_header(
     !document_bool(document_at(inventory, 7)) {
     raise BadDocument
   }
-  let next = document_optional_int(document_at(c, 6))
+  let issuance = document_at(c, 6)
+  document_array(issuance, 3)
+  let next = document_optional_int(document_at(issuance, 0))
+  let next_attempt = document_optional_int(document_at(issuance, 1))
+  let next_holding = document_optional_int(document_at(issuance, 2))
+  if (next_attempt is Some(value) && value < 0) ||
+    (next_holding is Some(value) && value < 0) {
+    raise BadDocument
+  }
   if next is Some(value) && value > -2 {
     raise BadDocument
   }
@@ -270,6 +292,8 @@ fn document_header(
       consumed: document_quantities(document_at(quantities, 2)),
     },
     next_capacity_serial: next,
+    next_attempt_serial: next_attempt,
+    next_holding_serial: next_holding,
   }
 }
 
@@ -287,10 +311,10 @@ pub fn start_original_state_document_read(
   if max_reservations < 1 || max_holdings < 0 || max_delegations < 0 {
     return Err(InvalidBounds)
   }
-  let nodes = 77L +
-    23L * max_reservations.to_int64() +
+  let nodes = 85L +
+    25L * max_reservations.to_int64() +
     5L * max_holdings.to_int64() +
-    15L * max_delegations.to_int64()
+    18L * max_delegations.to_int64()
   if nodes > 2147483647L {
     return Err(InvalidBounds)
   }
@@ -333,10 +357,10 @@ pub fn start_original_state_document_read_in_owned_tree(
     owned_tree_limits.max_total_string_bytes < 0 {
     return Err(InvalidBounds)
   }
-  let nodes = 77L +
-    23L * max_reservations.to_int64() +
+  let nodes = 85L +
+    25L * max_reservations.to_int64() +
     5L * max_holdings.to_int64() +
-    15L * max_delegations.to_int64()
+    18L * max_delegations.to_int64()
   if nodes > 2147483647L {
     return Err(InvalidBounds)
   }
@@ -451,8 +475,8 @@ pub fn advance_original_state_document_read(
         document_count(document_at(record, 0)) |> ignore
         document_limits(document_at(record, 1)) |> ignore
         let observed = document_at(record, 2)
-        document_array(observed, 5)
-        for index in 0..<3 {
+        document_array(observed, 8)
+        for index in [0, 1, 2, 5, 6, 7] {
           document_count(document_at(observed, index)) |> ignore
         }
         for index in 3..<5 {

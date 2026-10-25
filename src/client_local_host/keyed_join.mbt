@@ -20,7 +20,7 @@ pub fn open_client_keyed_local_host(
   prepared : @publication_host.PreparedClientProgram,
   lookup : @publication_host.ClientKeyedLookupInput,
   ledger : @resources.Ledger,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -36,7 +36,7 @@ pub fn open_client_keyed_local_host(
   let setup = open_checked_local_host(
     prepared,
     None,
-    registry_body,
+    installed_contracts,
     values_body,
     0L,
     0L,
@@ -58,7 +58,7 @@ pub fn open_client_keyed_local_host(
 pub fn prepare_client_keyed_local_join(
   prepared : @publication_host.PreparedClientProgram,
   lookup : @publication_host.ClientKeyedLookupInput,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -66,7 +66,7 @@ pub fn prepare_client_keyed_local_join(
   prepare_client_keyed_local_join_owned(
     Pure(prepared),
     lookup,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -77,7 +77,7 @@ pub fn prepare_client_keyed_local_join(
 pub fn prepare_client_effect_keyed_local_join(
   prepared : @publication_host.PreparedClientEffectComputation,
   lookup : @publication_host.ClientKeyedLookupInput,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -85,7 +85,7 @@ pub fn prepare_client_effect_keyed_local_join(
   prepare_client_keyed_local_join_owned(
     Effect(prepared),
     lookup,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -96,7 +96,7 @@ pub fn prepare_client_effect_keyed_local_join(
 fn prepare_client_keyed_local_join_owned(
   prepared : ClientLocalSequenceOwner,
   lookup : @publication_host.ClientKeyedLookupInput,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -117,7 +117,7 @@ fn prepare_client_keyed_local_join_owned(
     is Some((_, task, step)) &&
     prepare_client_local_sequences_owned(
       prepared,
-      registry_body,
+      installed_contracts,
       values_body,
       fragment_body,
       ordered_body,

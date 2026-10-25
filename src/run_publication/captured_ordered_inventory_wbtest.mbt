@@ -27,11 +27,28 @@ fn ordered_inventory_snapshot_fixture(
   // Isolated ordering/membership fixture, not a complete admitted Run.
   // Membership retains the previous existence rule; root admission is separate.
   let snapshots = names.map(name => {
-    name,
-    definition,
-    artifact,
-    rows: stream_fixture_value("[{\"value\":7}]"),
-    fields: ["value"],
+    let rows = stream_fixture_value("[{\"value\":7}]")
+    let writer = @encode.measuring_writer(64, 16, 8) catch {
+      _ => abort("Invalid ordering fixture extent")
+    }
+    @json.emit_value(rows, writer) catch {
+      _ => abort("Invalid ordering fixture rows")
+    }
+    let (row_wire_bytes, row_nodes, row_depth) = @encode.finish_measurement_usage(
+      writer,
+    ) catch {
+      _ => abort("Invalid ordering fixture measurement")
+    }
+    {
+      name,
+      definition,
+      artifact,
+      rows,
+      fields: ["value"],
+      row_wire_bytes,
+      row_nodes,
+      row_depth,
+    }
   })
   Snapshots(names.map(_ => definition), names.map(_ => artifact), snapshots)
 }

@@ -42,10 +42,10 @@ pub fn start_original_current_state_document_read(
     owned_tree_limits.max_total_string_bytes < 0 {
     return Err(InvalidBounds)
   }
-  let nodes = 77L +
-    23L * max_reservations.to_int64() +
+  let nodes = 85L +
+    25L * max_reservations.to_int64() +
     5L * max_holdings.to_int64() +
-    15L * max_delegations.to_int64()
+    18L * max_delegations.to_int64()
   if nodes > 2147483647L {
     return Err(InvalidBounds)
   }
@@ -151,8 +151,8 @@ pub fn advance_original_current_state_document_read(
         document_count(document_at(record, 0)) |> ignore
         document_limits(document_at(record, 1)) |> ignore
         let observed = document_at(record, 2)
-        document_array(observed, 5)
-        for index in 0..<3 {
+        document_array(observed, 8)
+        for index in [0, 1, 2, 5, 6, 7] {
           document_count(document_at(observed, index)) |> ignore
         }
         for index in 3..<5 {

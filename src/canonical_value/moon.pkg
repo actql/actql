@@ -3,6 +3,8 @@ supported_targets = "+js+wasm+native"
 formatter(
   ignore: [
     "unicode_tables.generated.mbt",
+    "normalization_expression_tables.generated.mbt",
     "normalization_conformance.generated_test.mbt",
+    "normalization_conformance_wbtest.mbt",
   ],
 )

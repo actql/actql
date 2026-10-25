@@ -399,6 +399,37 @@ fn[L : IndexedRows, R : IndexedRows] non_inner_join_indices(
   control : ControlBudget,
   workspace : RowWorkspace,
 ) -> Result[Array[JoinPair], JoinIndexIssue] {
+  if kind == @join.Right {
+    if !spend_control(control, keys.length()) ||
+      !reserve_slots(workspace, keys.length()) {
+      return Err(Limit)
+    }
+    let swapped = keys.map(pair => (pair.1, pair.0))
+    let result = non_inner_join_indices(
+      @join.Left,
+      right,
+      left,
+      swapped,
+      max_output_rows,
+      control,
+      workspace,
+    )
+    release_slots(workspace, keys.length())
+    match result {
+      Err(issue) => return Err(issue)
+      Ok(pairs) => {
+        for i in 0..<pairs.length() {
+          if !spend_control(control, 1) {
+            release_slots(workspace, pairs.length() * 2)
+            return Err(Limit)
+          }
+          let pair = pairs[i]
+          pairs[i] = { left: pair.right, right: pair.left, }
+        }
+        return Ok(pairs)
+      }
+    }
+  }
   if max_output_rows < 0 || kind == @join.Inner {
     return Err(InvalidInput)
   }
@@ -431,7 +462,7 @@ fn[L : IndexedRows, R : IndexedRows] non_inner_join_indices(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let right_matches = if kind == @join.Full {
+  let right_matches = if kind == @join.Full || kind == @join.Right {
     if !reserve_slots(workspace, right.row_count()) {
       release_slots(workspace, workspace.live - baseline)
       return Err(Limit)
@@ -464,7 +495,7 @@ fn[L : IndexedRows, R : IndexedRows] non_inner_join_indices(
       }
       cursor += 1
     }
-    if cursor == start && !append(Some(lrow), None) {
+    if kind != @join.Right && cursor == start && !append(Some(lrow), None) {
       release_slots(workspace, workspace.live - baseline)
       return Err(Limit)
     }

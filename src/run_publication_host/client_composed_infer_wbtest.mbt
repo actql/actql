@@ -101,8 +101,8 @@ test "two independent INFER Units retain distinct logical occurrences for the sa
 ///|
 test "historical independent INFER scopes resolve the same checked Source by its graph edge" {
   let base = admit_client_check_environment(
-    client_composed_acquired_effect_environment,
-    "sha256:cd4aeacdc39164df2cf7e7cb74faf349a157677a5927d9e84379d0d8df2d91e7",
+    local_normalization_environment_wire,
+    "sha256:9882e5f1412beaf650b0fdaf55035b198b7b87e8e9e3c3a0f07730953b0a72ed",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
@@ -728,8 +728,8 @@ test "two acquired roots JOIN INFER KEEP and downstream Effect compile together"
     program: client_standard_program_preparation_limits(),
   }
   let base = admit_client_check_environment(
-    client_composed_acquired_effect_environment,
-    "sha256:cd4aeacdc39164df2cf7e7cb74faf349a157677a5927d9e84379d0d8df2d91e7",
+    local_normalization_environment_wire,
+    "sha256:9882e5f1412beaf650b0fdaf55035b198b7b87e8e9e3c3a0f07730953b0a72ed",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()

@@ -16,7 +16,8 @@ typedef actql_live_channel_reply *(*actql_live_operate_fn)(actql_control_host *,
     actql_domain *, actql_live_channel *, int32_t);
 typedef actql_live_channel_reply *(*actql_live_report_fn)(actql_control_host *,
     actql_domain *, actql_live_channel *, int32_t, int32_t, int32_t,
-    int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t);
+    int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t,
+    int32_t, int32_t, int32_t);
 typedef actql_control_host *(*actql_live_host_fn)(actql_live_channel_reply *);
 typedef actql_domain *(*actql_live_domain_fn)(actql_live_channel_reply *);
 typedef actql_live_channel *(*actql_live_channel_fn)(actql_live_channel_reply *);
@@ -40,7 +41,7 @@ int actql_live_channel_operate_into(actql_control_host *, actql_domain *,
     actql_live_channel *, int32_t, actql_live_channel_reply **);
 int actql_live_channel_report_into(actql_control_host *, actql_domain *,
     actql_live_channel *, int32_t, int32_t, int32_t, int64_t, int64_t, int64_t,
-    int64_t, int64_t, int64_t, int64_t, actql_live_channel_reply **);
+    int64_t, int64_t, int64_t, int64_t, int32_t, int32_t, int32_t, actql_live_channel_reply **);
 int actql_live_channel_originals_into(actql_live_channel_reply *,
     actql_control_host **, actql_domain **, actql_live_channel **);
 int32_t actql_live_channel_operation(actql_live_channel_reply *);

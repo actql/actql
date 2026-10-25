@@ -68,7 +68,8 @@ test "original keyed child uses exact assembly custody and one physical child pe
   assert_false(
     original_keyed_child_preparation_available(identity, ledger, assembly, 1),
   )
-  assert_eq(ledger_usage(ledger).attempts, 3)
+  assert_eq(ledger_usage(ledger).attempts, 0)
+  assert_eq(ledger.next_attempt_serial, Some(3))
   release_allocation(ledger, direct_holding).unwrap()
   settle_reservation(ledger, assembly).unwrap()
   assert_true(finish_original_ledger_inventory(ledger, true).unwrap())

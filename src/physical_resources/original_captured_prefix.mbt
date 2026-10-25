@@ -34,7 +34,7 @@ pub fn original_captured_prefix_available(
   holding_available(ledger, holding) &&
   value.delegations.is_empty() &&
   ledger.next_capacity_serial == Some(-2) &&
-  ledger.usage.attempts == 1
+  ledger.next_attempt_serial == Some(1)
 }
 
 ///|
@@ -63,5 +63,5 @@ pub fn original_captured_prefix_reservation_available(
   !prefix.cleanup_pending &&
   value.delegations.is_empty() &&
   ledger.next_capacity_serial == Some(-2) &&
-  ledger.usage.attempts == 2
+  ledger.next_attempt_serial == Some(2)
 }

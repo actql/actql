@@ -692,7 +692,7 @@ pub fn PublicationOutputExport::issue_result_evidence(
       input_relation_cids,
       scope_cid,
       effective_data_policy_cid,
-      "actql-common-host",
+      @publication.result_export_issuer_id(),
       authority_scope_cid,
       max_wire_bytes,
       max_nodes,

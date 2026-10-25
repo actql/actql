@@ -1,7 +1,75 @@
 ///|
 fn original_document_test_wire() -> String {
   // Independent saved-state bytes, not produced by the candidate writer.
-  "[\"actql-original-ledger-state/0.1\",[\"17\",\"2\",\"3\",\"11\",\"10\",\"7\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],\"-3\",[\"1\",\"0\",\"0\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]],[],[]]"
+  "[\"actql-original-ledger-state/0.1\",[\"17\",\"2\",\"3\",\"11\",\"10\",\"7\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\",\"0\",\"2\",\"0\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],[\"-3\",\"0\",\"0\"],[\"1\",\"0\",\"0\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false]],[],[]]"
+}
+
+///|
+test "snapshot delegation pending and live fields reject noncounts on both existing readers" {
+  let original = original_match_full_wire()
+  let zeroes = [
+    "\"0\"", "\"0\"", "\"0\"", "\"0\"", "\"0\"", "\"0\"", "\"0\"", "\"0\"",
+  ]
+  let old = "[" + zeroes.join(",") + "]"
+  assert_true(original.contains(old))
+  for index in [5, 6, 7] {
+    for bad in ["\"-1\"", "\"2147483648\"", "true"] {
+      let fields = zeroes.copy()
+      fields[index] = bad
+      let changed = original.replace(old~, new="[" + fields.join(",") + "]")
+      let read = start_original_state_document_read(
+        original_document_test_cursor(changed),
+        3,
+        1,
+        1,
+        7,
+      ).unwrap()
+      assert_true(
+        advance_original_state_document_read(read, 100)
+        is DocumentFailed(InvalidRecord, ..),
+      )
+      let current = start_original_current_state_document_read(
+        original_document_test_cursor(
+          changed.replace(old="\"reading\"", new="\"parked\""),
+        ),
+        3,
+        1,
+        1,
+        7,
+        current_document_test_limits(),
+      ).unwrap()
+      assert_true(
+        advance_original_current_state_document_read(current, 100)
+        is CurrentDocumentFailed(InvalidRecord, ..),
+      )
+    }
+  }
+}
+
+///|
+test "snapshot byte-only bootstrap cannot claim reserved or consumed physical attempts" {
+  let original = original_document_test_wire()
+  let old = "[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false]"
+  assert_true(original.contains(old))
+  for flags in ["true,false", "false,true", "true,true"] {
+    let changed = original.replace(
+      old~,
+      new="[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null," +
+        flags +
+        "]",
+    )
+    let read = start_original_state_document_read(
+      original_document_test_cursor(changed),
+      1,
+      0,
+      0,
+      3,
+    ).unwrap()
+    assert_true(
+      advance_original_state_document_read(read, 100)
+      is DocumentFailed(InvalidRecord, ..),
+    )
+  }
 }
 
 ///|
@@ -35,7 +103,7 @@ fn finish_document_test_read(
 
 ///|
 test "original state document borrowed child retains full owned tree limits and retirement" {
-  // The saved state has 79 nodes. An enclosing array and a 65-byte sibling
+  // The saved state has 89 nodes. An enclosing array and a 65-byte sibling
   // add two nodes and one container level; child access retains all of them.
   // These independent shape counts are not physical-byte coefficients.
   let sibling = "x".repeat(65)
@@ -45,21 +113,21 @@ test "original state document borrowed child retains full owned tree limits and 
   let child = @decode.element_at(outer, 1).unwrap()
   assert_eq(@decode.admission_usage(child), @decode.admission_usage(outer))
   let usage = @decode.admission_usage(child)
-  assert_eq(usage.nodes, 81)
+  assert_eq(usage.nodes, 91)
   assert_eq(usage.depth, 5)
   assert_eq(usage.largest_string_bytes, 65)
   assert_true(
     start_original_state_document_read(child, 1, 0, 0, 3) is Err(InvalidBounds),
   )
   let full : @decode.Limits = {
-    max_nodes: 81,
+    max_nodes: 91,
     max_depth: 5,
     max_string_bytes: 65,
     max_total_string_bytes: 1000,
   }
   for
     too_small in [
-      { ..full, max_nodes: 80, },
+      { ..full, max_nodes: 90, },
       { ..full, max_depth: 4, },
       { ..full, max_string_bytes: 64, },
     ] {
@@ -93,7 +161,7 @@ test "original state document borrowed child retains full owned tree limits and 
   )
   retire_original_state_document(document)
   assert_eq(original_state_document_usage(document), None)
-  assert_eq(@decode.admission_usage(child).nodes, 81)
+  assert_eq(@decode.admission_usage(child).nodes, 91)
 }
 
 ///|
@@ -108,6 +176,9 @@ test "original state document fixed bytes preserve typed usage with constant wor
       planning_work: 17,
       attempts: 0,
       holdings: 0,
+      reserved_attempts: 0,
+      live_reservations: 2,
+      live_delegations: 0,
       transferred_bytes: 0L,
       uncertain_transfer_bytes: 0L,
       reserved_transfer_bytes: 0L,
@@ -233,8 +304,8 @@ test "original state document failed record and cancellation retire borrowed sou
 ///|
 test "original state document large unknown quantity and exhausted serial are data not authority" {
   let quantities = original_document_test_wire().replace(
-    old="null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],\"-3\"",
-    new="[\"9223372036854775807\",\"17\",\"19\"],[[\"0\",\"0\",\"0\"],[\"9223372036854775807\",\"0\",\"19\"],[\"0\",\"7\",\"0\"]],null",
+    old="null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],[\"-3\",\"0\",\"0\"]",
+    new="[\"9223372036854775807\",\"17\",\"19\"],[[\"0\",\"0\",\"0\"],[\"9223372036854775807\",\"0\",\"19\"],[\"0\",\"7\",\"0\"]],[null,\"0\",\"0\"]",
   )
   let ledger = create_ledger({
     planning_work: 1,
@@ -271,23 +342,23 @@ test "original state document large unknown quantity and exhausted serial are da
 }
 
 ///|
-test "original state document retains spent token and pending unknown original record" {
-  // Independent all-token census: ordinary unknown attempt, settled zero-byte
-  // capacity token, then the original funded read. No token is reconstructed.
-  let wire = "[\"actql-original-ledger-state/0.1\",[\"19\",\"2\",\"3\",\"11\",\"10\",\"7\"],[\"19\",\"1\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\"],[\"0\",\"0\",\"0\"],[\"9223372036854775807\",\"17\",\"19\"],[[\"0\",\"0\",\"0\"],[\"9223372036854775807\",\"0\",\"19\"],[\"0\",\"7\",\"0\"]],\"-4\",[\"3\",\"0\",\"0\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"0\",\"0\",\"0\",\"0\",true,true,null,[\"9223372036854775807\",\"0\",\"19\"],[false,true,false],null],[\"-2\",\"0\",\"0\",\"0\",false,false,null,null,[false,false,false],null],[\"-3\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]],[],[]]"
+test "original state document retains spent issuance cursor and pending unknown original record" {
+  // Independent live census: unknown attempt and funded read. The expired
+  // zero-byte capacity token is absent; its spent issuance cursor is preserved.
+  let wire = "[\"actql-original-ledger-state/0.1\",[\"19\",\"2\",\"3\",\"11\",\"10\",\"7\"],[\"18\",\"1\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\",\"0\",\"3\",\"0\"],[\"0\",\"0\",\"0\"],[\"9223372036854775807\",\"17\",\"19\"],[[\"0\",\"0\",\"0\"],[\"9223372036854775807\",\"0\",\"19\"],[\"0\",\"7\",\"0\"]],[\"-4\",\"1\",\"0\"],[\"3\",\"0\",\"0\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"0\",\"0\",\"0\",\"0\",true,true,null,[\"9223372036854775807\",\"0\",\"19\"],[false,true,false],null,false,true],[\"-3\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false]],[],[]]"
   let source = original_document_test_cursor(wire)
   for quantum in [1, 3, 50] {
     let read = start_original_state_document_read(source, 3, 0, 0, 5).unwrap()
     let (document, work) = finish_document_test_read(read, quantum)
-    assert_eq(work, 5) // header + three tokens + completion
+    assert_eq(work, 4) // header + two live tokens + completion
     let records = document_at(document.source.unwrap(), 9) catch {
       _ => abort("records missing")
     }
     let attempt = document_reservation(document_at(records, 0)) catch {
       _ => abort("attempt missing")
     }
-    let spent = document_reservation(document_at(records, 1)) catch {
-      _ => abort("spent token missing")
+    let original_read = document_reservation(document_at(records, 1)) catch {
+      _ => abort("original read missing")
     }
     assert_eq(attempt.serial, 0)
     assert_true(attempt.open && attempt.cleanup_pending)
@@ -296,9 +367,9 @@ test "original state document retains spent token and pending unknown original r
       Some({ tokens: 9223372036854775807L, cost_units: 0L, duration_ms: 19L, }),
     )
     assert_eq(attempt.observed_quantities, (false, true, false))
-    assert_eq(spent.serial, -2)
-    assert_true(!spent.open && !spent.cleanup_pending)
-    assert_eq(spent.retention, 0L)
+    assert_eq(original_read.serial, -3)
+    assert_true(original_read.open && !original_read.cleanup_pending)
+    assert_eq(original_read.retention, 7L)
     assert_eq(original_state_document_capacity_cursor(document), Some(Some(-4)))
     retire_original_state_document(document)
   }
@@ -306,7 +377,7 @@ test "original state document retains spent token and pending unknown original r
 
 ///|
 test "original state document validates holding delegation and completed output shapes" {
-  let wire = "[\"actql-original-ledger-state/0.1\",[\"22\",\"5\",\"5\",\"11\",\"20\",\"10\"],[\"21\",\"2\",\"1\",\"0\",\"0\",\"2\",\"2\",\"12\",\"9\",\"14\"],[\"1\",\"1\",\"1\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],\"-3\",[\"3\",\"1\",\"1\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"0\",\"0\",\"0\",\"1\",true,true,null,null,[false,false,false],[\"0\",\"2\",\"1\"]],[\"1\",\"2\",\"2\",\"1\",true,false,null,null,[false,false,false],null],[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]],[[\"0\",\"0\",\"2\",true]],[[\"1\",[\"1\",\"1\",\"1\",\"2\",\"2\",\"1\"],[\"0\",\"0\",\"0\",\"0\",\"0\"]]]]"
+  let wire = "[\"actql-original-ledger-state/0.1\",[\"22\",\"5\",\"5\",\"11\",\"20\",\"10\"],[\"21\",\"0\",\"1\",\"0\",\"0\",\"2\",\"2\",\"12\",\"9\",\"14\",\"2\",\"4\",\"1\"],[\"1\",\"1\",\"1\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],[\"-3\",\"2\",\"1\"],[\"3\",\"1\",\"1\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"0\",\"0\",\"0\",\"1\",true,true,null,null,[false,false,false],[\"0\",\"2\",\"1\"],true,false],[\"1\",\"2\",\"2\",\"1\",true,false,null,null,[false,false,false],null,true,false],[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false]],[[\"0\",\"0\",\"2\",true]],[[\"1\",[\"1\",\"1\",\"1\",\"2\",\"2\",\"1\"],[\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\"]]]]"
   let read = start_original_state_document_read(
     original_document_test_cursor(wire),
     3,

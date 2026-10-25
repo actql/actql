@@ -34,7 +34,7 @@ const resourceLimitNames = Object.freeze(['planningWork', 'attempts', 'holdings'
   'transferBytes', 'retainedBytes', 'executionBytes']);
 const resourceUsageNames = Object.freeze(['planning', 'attempts', 'holdings',
   'transferred', 'uncertain', 'reservedTransfer', 'heldBytes', 'reservedRetention',
-  'reservedExecution', 'peakRetention']);
+  'reservedExecution', 'peakRetention', 'reservedAttempts', 'liveReservations', 'liveDelegations']);
 const managedResourceSnapshots = new WeakSet();
 const selectedRowSnapshots = new WeakMap();
 const resourceAttribute = name => name.replace(/[A-Z]/gu, letter => `_${letter.toLowerCase()}`);
@@ -112,7 +112,7 @@ function accumulateSelectedRows(context, detail, pendingLimit = 0) {
   return true;
 }
 function managedRunResources(values) {
-  if (!Array.isArray(values) || values.length !== 16) return undefined;
+  if (!Array.isArray(values) || values.length !== 19) return undefined;
   const captured = values.slice();
   if (!captured.every(value => typeof value === 'bigint' && value >= 0n &&
       value <= 9223372036854775807n)) return undefined;

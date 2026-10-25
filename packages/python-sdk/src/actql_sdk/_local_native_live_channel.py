@@ -648,9 +648,9 @@ class _OriginalLiveChannelCustody:
         return value[0], value[1]
 
     def report(self, usage: tuple[int, ...]) -> None:
-        if (type(usage) is not tuple or len(usage) != 10
-                or any(type(v) is not int or not -(2**31) <= v <= 2**31 - 1 for v in usage[:3])
-                or any(type(v) is not int or not -(2**63) <= v <= 2**63 - 1 for v in usage[3:])):
+        if (type(usage) is not tuple or len(usage) != 13
+                or any(type(v) is not int or not -(2**31) <= v <= 2**31 - 1 for v in (*usage[:3], *usage[10:]))
+                or any(type(v) is not int or not -(2**63) <= v <= 2**63 - 1 for v in usage[3:10])):
             raise ValueError('Original cumulative usage is not representable')
         self._perform(6, self._functions.report, usage, cleanup=True)
 

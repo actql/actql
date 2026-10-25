@@ -286,7 +286,7 @@ test "product assembly refuses changed environment evidence and privileged asset
   for
     environment in [
       original.environment.replace(
-        old="aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904",
+        old="2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f",
         new="0000000000000000000000000000000000000000000000000000000000000000",
       ),
       original.environment.replace(
@@ -299,6 +299,7 @@ test "product assembly refuses changed environment evidence and privileged asset
       ),
       "{}",
     ] {
+    assert_true(environment != original.environment)
     assert_eq(
       client_local_product_originals(
         "/home/user/.actql-local",
