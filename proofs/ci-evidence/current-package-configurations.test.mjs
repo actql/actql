@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {gitTree, hash, packageSourceInputs, packageImports} from './inputs.mjs';
 import {currentConfigurationReviewRevision, currentPackageConfigurations,
@@ -15,6 +16,7 @@ const request = (path, digest) => ({path, digest, target: 'js', toolchainDigest}
 
 test('finite successor review binds exact authored configuration preimages and actual fixed Git inputs', () => {
   assert.equal(report.source, currentConfigurationReviewRevision);
+  execFileSync('git', ['merge-base', '--is-ancestor', currentConfigurationReviewRevision, 'HEAD'], {cwd: root});
   assert.equal(report.configurations.length, 16);
   assert.deepEqual(report.configurations.map(x => x.path).sort(), Object.keys(currentPackageConfigurations).sort());
   for (const entry of report.configurations) {

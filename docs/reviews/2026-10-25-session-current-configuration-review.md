@@ -1,7 +1,7 @@
 # Current Session configuration successor review
 
 The companion JSON retains complete authored manifest preimages from fixed
-`7237d7011b413cdd48e88b0420dac137c6388f53`, their SHA-256 identities, literal
+`38e95bfac2907700456de6c53ed0cad3620bb72d`, their SHA-256 identities, literal
 imports, and comparison against the frozen `ac53e3d` baseline. This is a new
 finite JS input-policy review, not a rewrite of historical introductions or
 proof of Native execution. Historical review tables, documents, and original

@@ -76,7 +76,7 @@ const foreignLibraryConfigurations = Object.freeze({
 // Current successor review is separate from every retained historical cohort.
 // See docs/reviews/2026-10-25-session-current-configuration-review.json.
 // Constants below are reviewed bytes, never hashes computed from current files.
-export const currentConfigurationReviewRevision = '7237d7011b413cdd48e88b0420dac137c6388f53';
+export const currentConfigurationReviewRevision = '38e95bfac2907700456de6c53ed0cad3620bb72d';
 export const currentPackageConfigurations = Object.freeze({
   'src/client_local_host/moon.pkg': Object.freeze({digest: 'e06586941f97b45ff7b67d531eca19b8b99843b5fb040f5e6fe994b9588c156a', rule: 'literal-target-selectors-with-bound-source-membership'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: '667d7148f76fef6ff03c76c2da4bf6bc915512d973661729761178a9b749f0c9', rule: 'literal-js-foreign-library-with-bound-source-membership'}),
