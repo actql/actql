@@ -165,14 +165,21 @@ export function inspectCore(root, roots = coreRoots) {
       const literal = [
         ['word', 'options'], ['symbol', '('], ['string', 'link-flags'],
         ['symbol', ':'], ['symbol', '['], ['string', '-js-format'],
-        ['symbol', ','], ['string', 'esm'], ['symbol', ']'], ['symbol', ')'],
+        ['symbol', ','], ['string', 'esm'], ['symbol', ']'],
       ];
       if (reviewedEsm || !literal.every(([kind, value], offset) =>
         module[i + offset]?.kind === kind && module[i + offset].value === value)) {
         throw new Error('UnauditedCoreModuleDirective');
       }
-      reviewedEsm = true;
       i += literal.length;
+      // The pinned formatter emits an optional final argument comma. This
+      // admits no additional option, flag, value or array-element spelling.
+      if (module[i]?.kind === 'symbol' && module[i].value === ',') i++;
+      if (module[i]?.kind !== 'symbol' || module[i].value !== ')') {
+        throw new Error('UnauditedCoreModuleDirective');
+      }
+      reviewedEsm = true;
+      i++;
       continue;
     }
     const [key,equals,value] = module.slice(i,i+3);

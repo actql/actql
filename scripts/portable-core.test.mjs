@@ -276,3 +276,54 @@ test('interpolated multiline source is never treated as opaque raw data', t => {
     assert.throws(f.check, /UnsupportedInterpolatedMultilineString/);
   }
 });
+
+test('reviewed ESM module accepts the formatter optional argument comma', t => {
+  const f = fixture(t);
+  const source = 'name = "actql/actql"\nsource = "src"\n' +
+    'options(\n  "link-flags": [ "-js-format", "esm" ],\n)\n';
+  writeFileSync(join(f.root, 'moon.mod'), source);
+  assert.deepEqual(f.check().packages, ['root']);
+  const isolated = join(f.root, 'isolated-comma');
+  copyProductionCore(f.root, isolated, ['root']);
+  assert.equal(readFileSync(join(isolated, 'moon.mod'), 'utf8'), source);
+  assert.deepEqual(inspectCore(isolated, ['root']).packages, ['root']);
+});
+
+test('formatted ESM argument comma preserves exact flag values and order', t => {
+  const f = fixture(t);
+  for (const flags of [
+    '["-js-format", "cjs"]', '["esm", "-js-format"]',
+    '["-js-format", "esm", "-unsafe"]', '["-js-format"]',
+    '["-js-format", "esm",]', '["-js-format", esm]',
+  ]) {
+    writeFileSync(join(f.root, 'moon.mod'), `source = "src"\noptions("link-flags": ${flags},)\n`);
+    assert.throws(f.check, /UnauditedCoreModuleDirective/, flags);
+  }
+});
+
+test('formatted ESM argument comma refuses surplus options and duplicate declarations', t => {
+  const f = fixture(t);
+  const valid = 'options("link-flags": ["-js-format", "esm"],)';
+  for (const option of [
+    'options("link-flags": ["-js-format", "esm"],,)',
+    'options("link-flags": ["-js-format", "esm"], "pre-build": "node host.mjs")',
+    'options("link-flags": ["-js-format", "esm"], "link-flags": [])',
+    'options("other": ["-js-format", "esm"],)',
+    valid + '\n' + valid, valid + '\npre_build("node host.mjs")',
+  ]) {
+    writeFileSync(join(f.root, 'moon.mod'), `source = "src"\n${option}\n`);
+    assert.throws(f.check, /UnauditedCoreModuleDirective/, option);
+  }
+});
+
+test('formatted ESM module keeps foreign and unknown source declarations rejected', t => {
+  const f = fixture(t);
+  writeFileSync(join(f.root, 'moon.mod'),
+    'source = "src"\noptions("link-flags": ["-js-format", "esm"],)\n');
+  f.put('root', 'main.mbt', 'extern "js" fn host() -> Int =\n  #|() => process.pid\n');
+  assert.throws(f.check, /CoreEnvironmentAccess: root\/main.mbt: extern/);
+  f.put('root', 'main.mbt', '#cfg(target="js")\nfn id(x : Int) -> Int { x }');
+  assert.throws(f.check, /CoreForeignOrUnknownAttribute/);
+  f.put('root', 'main.mbt', '@\n  #|() => 1\n');
+  assert.throws(f.check, /CoreEmbeddedCode/);
+});
