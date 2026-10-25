@@ -128,11 +128,21 @@ pub fn bound_model_slot_capture_outcome(BoundModelSlotCapture) -> String?
 
 pub fn bound_model_slot_capture_value(BoundModelSlotCapture) -> RunEvidenceValue
 
+pub fn cancel_capture_construction_plan(CapturedRunConstructionPlan) -> Unit
+
 pub fn cancel_content_byte_encoder(ContentByteEncoder) -> Unit
 
 pub fn cancel_durable_result_row_frames(DurableResultRowFrames) -> Unit
 
+pub fn cancel_publication_validation_plan(PublicationValidationPlan) -> Unit
+
 pub fn canonical_effect_preview_draft_wire(String, Int, Int, Int) -> Result[String, PublicationContractIssue]
+
+pub fn capture_construction_invocation(CapturedRunConstructionPlan) -> PublicationContract?
+
+pub fn capture_construction_layout_facts(CapturedRunConstructionPlan) -> (Int, Int, Int, Int, Int, Int, Int, Int)?
+
+pub fn capture_construction_run_definition(CapturedRunConstructionPlan) -> PublicationContract?
 
 pub fn captured_content_generation_count(PublicationContract) -> Int?
 
@@ -191,6 +201,8 @@ pub fn captured_local_effect_source_json(CapturedLocalEffectSourceEvidence, Int,
 pub fn captured_run_preparation_fixture_inventory(CapturedRunIssuancePreparation) -> (Int, Int, Bool, Bool)
 
 pub fn captured_run_preparation_fixture_phase(CapturedRunIssuancePreparation) -> String
+
+pub fn captured_run_preparation_limits(CapturedRunIssuancePreparation) -> (Int, Int, Int)?
 
 pub fn check_effect_preview_row_outcome(EffectPreviewIdentity, Int, Int, String, String, Int, Int, Int) -> Result[Unit, EffectRowOutcomeIssue]
 
@@ -680,6 +692,12 @@ pub fn prepare_generated_content_reference_from_binding(ContentByteEncoder, Stri
 
 pub fn prepare_installation_publication_storage_binding(String, String, String, Int, Int, Int) -> Result[InstallationPublicationStorageBinding, PublicationContractIssue]
 
+pub fn prepare_original_effect_free_capture_plan(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], RunEvidenceValue, Array[RunEvidenceValue]) -> CapturedRunConstructionPlan?
+
+pub fn prepare_original_effect_free_chain_validation(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, retained? : CapturedRunIssuancePreparation?) -> PublicationValidationPlan?
+
+pub fn prepare_original_effect_free_commit_validation(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, retained? : CapturedRunIssuancePreparation?) -> PublicationValidationPlan?
+
 pub fn prepare_publication_attempt_step(PublicationContract?, Bool, Bool) -> PublicationAttemptRuntimeAction
 
 pub fn prepare_publication_cancellation_step(PublicationContract?) -> PublicationCancellationAction
@@ -785,6 +803,12 @@ pub fn publication_snapshot_state(PublicationSnapshot) -> PublicationSnapshotSta
 pub fn publication_snapshot_state_text(PublicationSnapshot) -> String
 
 pub fn publication_unknown_retry_action_code(PublicationUnknownRetryAction) -> Int
+
+pub fn publication_validation_plan_inventory(PublicationValidationPlan) -> (Int, Int, Int, Int, Int, Int, Int)?
+
+pub fn publication_validation_plan_limits(PublicationValidationPlan) -> (Int, Int, Int, Int)?
+
+pub fn publication_validation_plan_reuses_capture(PublicationValidationPlan) -> Bool?
 
 pub fn query_evaluation_time_definition(QueryEvaluationTime) -> PublicationContract
 
@@ -968,6 +992,14 @@ pub fn start_effect_free_run_evidence_check_retained(CapturedRunIssuancePreparat
 
 pub fn start_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[CapturedEffectSourceArtifact], Array[CapturedLocalEffectSourceEvidence], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int, Int, dependency_inventory? : CapturedEffectDependencyInventory?, content_generations? : Array[BoundContentGeneration]) -> CapturedRunIssuancePreparation
 
+pub fn start_original_effect_free_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], Int, Int, Int, Int, content_generations? : Array[BoundContentGeneration]) -> CapturedRunIssuancePreparation
+
+pub fn start_planned_captured_run(CapturedRunConstructionPlan) -> CapturedRunIssuancePreparation?
+
+pub fn start_planned_chain_validation(PublicationValidationPlan) -> ComputationEvidenceCheck?
+
+pub fn start_planned_commit_validation(PublicationValidationPlan) -> PublicationCommitPreparation?
+
 pub fn stored_generated_content_reference_storage(StoredGeneratedContentReference) -> (String, String, String, String, Int)
 
 pub fn stored_generated_content_reference_wire(StoredGeneratedContentReference) -> String
@@ -1113,6 +1145,8 @@ type CapturedResultSnapshotPreparation
 pub fn CapturedResultSnapshotPreparation::advance(Self, Int) -> Result[(Bool, Int), CapturedRunIssuanceIssue]
 pub fn CapturedResultSnapshotPreparation::cancel(Self) -> Unit
 pub fn CapturedResultSnapshotPreparation::finish(Self) -> Result[CapturedResultSnapshot, CapturedRunIssuanceIssue]
+
+type CapturedRunConstructionPlan
 
 pub(all) enum CapturedRunIssuanceIssue {
   CaptureIssuanceWrongContract(String)
@@ -1945,6 +1979,8 @@ pub(all) enum PublicationUnknownRetryAction {
   PublicationUnknownRetryFinished
   PublicationUnknownRetryInvalid
 } derive(Eq, @debug.Debug)
+
+type PublicationValidationPlan
 
 type QueryEvaluationTime
 

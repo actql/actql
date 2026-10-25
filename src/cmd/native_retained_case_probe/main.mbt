@@ -422,6 +422,7 @@ fn rejection_name(issue : @resources.LedgerIssue?) -> String {
     Some(@resources.PlanningLimit) => "planning"
     Some(@resources.AttemptLimit) => "attempt"
     Some(@resources.TokenLimit) => "token"
+    Some(@resources.IdentityOverflow) => "identity-overflow"
     Some(@resources.CostLimit) => "cost"
     Some(@resources.DurationLimit) => "duration"
     Some(@resources.HoldingLimit) => "holding"

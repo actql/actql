@@ -183,7 +183,10 @@ fn main {
   let usage : @resources.LedgerUsage = {
     planning_work: 1,
     attempts: 1,
+    reserved_attempts: 0,
     holdings: 0,
+    live_reservations: 1,
+    live_delegations: 0,
     transferred_bytes: 1L,
     uncertain_transfer_bytes: 1L,
     reserved_transfer_bytes: 0L,
