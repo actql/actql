@@ -247,3 +247,35 @@ test('original Checkpoint cancelled DATA refuses copied foreign and invalid inpu
   assert.throws(() => project(), {code: 'RunHostEffectCheckpointCancelledRejected'});
   assert.equal(f.cancelledCalls.length, 1);
 });
+
+
+test('receipt facades retain one bounded array extent across reentry', () => {
+  const changing = value => {
+    let lengthReads = 0, descriptors = 0;
+    const input = new Proxy([value], {
+      get(target, key, receiver) {
+        if (key === 'length') return ++lengthReads === 1 ? 1 : 65537;
+        return Reflect.get(target, key, receiver);
+      },
+      getOwnPropertyDescriptor(target, key) {
+        if (/^(?:0|[1-9][0-9]*)$/u.test(key)) {
+          descriptors++;
+          return {value, writable: true, enumerable: true, configurable: true};
+        }
+        return Reflect.getOwnPropertyDescriptor(target, key);
+      },
+    });
+    return {input, counts: () => ({lengthReads, descriptors})};
+  };
+  const f = fixture(), binding = f.api.effectReviewCheckpointBinding(f.allowed, f.definition, f.fields[1]);
+  const members = changing('member');
+  assert.equal(f.api.effectReviewCheckpointReconciliationState(binding, f.allowed, f.definition,
+    f.fields[1], 'preview', 'invocation', 'set', members.input, 'time', []), 'original-reconciliation-wire');
+  assert.deepEqual(f.reconciliationCalls[0].data[4], ['member']);
+  assert.deepEqual(members.counts(), {lengthReads: 1, descriptors: 1});
+  const names = changing('published');
+  assert.equal(f.api.effectReviewCheckpointCancelledState(binding, f.allowed, f.definition,
+    f.fields[1], 'time', names.input), 'original-cancelled-wire');
+  assert.deepEqual(f.cancelledCalls[0].data[2], ['published']);
+  assert.deepEqual(names.counts(), {lengthReads: 1, descriptors: 1});
+});
