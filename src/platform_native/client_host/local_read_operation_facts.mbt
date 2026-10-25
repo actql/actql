@@ -25,6 +25,7 @@ fn NativeLocalJournalCapture::clear_read_operation_facts(
   self.read_committed_results.shrink_to_fit()
   self.read_preimages.clear()
   self.read_preimages.shrink_to_fit()
+  self.clear_read_evidence_observations()
 }
 
 ///|

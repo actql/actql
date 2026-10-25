@@ -87,7 +87,6 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
       "runtime.json",
     ),
   )
-  local_host_result(capture.require_packaged_runtime_upgrade_in_original_read())
   let intent = @run_host.prepare_client_submitted_intent(
     local_intent_wire(input_root, operation, child),
     65536,

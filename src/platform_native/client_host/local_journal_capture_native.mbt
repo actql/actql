@@ -49,6 +49,7 @@ struct NativeLocalJournalCapture {
   read_bindings : Array[(NativeLocalReadPolicyBinding, Int64)]
   read_committed_results : Array[NativeLocalCommittedResultObservation]
   read_preimages : Array[NativeLocalReadPreimageObservation]
+  read_evidence : Array[NativeLocalReadEvidenceObservation]
   mut read_operation_issue : NativeLocalAdoptionIssue?
   mut opening_database : @sqlite.Database?
   mut opening_physical_failure : @sqlite.NativeSqliteOpenFailure?
@@ -95,6 +96,7 @@ pub fn prepare_native_local_journal_capture(
     read_bindings: [],
     read_committed_results: [],
     read_preimages: [],
+    read_evidence: [],
     read_operation_issue: None,
     opening_database: None,
     opening_physical_failure: None,

@@ -118,15 +118,48 @@ fn NativeLocalReadPolicyBinding::retained_read_admission_with_operations(
 ] {
   let reads = operations.map(value => value.reads)
   let mut refusal : NativeLocalReadBindingIssue? = None
+  let observed_bodies : Ref[NativeLocalReadAdmissionOriginals?] = Ref(None)
+  if self.capture is Some(owner) &&
+    owner.read_callback_active &&
+    owner.read_facts_valid &&
+    self.host.journal.operation_active {
+    // Both permissions, time/target constraints and receiver lifetime consume
+    // this command's admitted originals. Only the immutable Journal packet
+    // and holding are reused; no new grant or reservation is issued here.
+    let bodies = match
+      self.read_admission_originals(original, facts, actual_policy_cid) {
+      Ok(value) => value
+      Err(issue) => {
+        self.forget_read_evidence()
+        return Err(issue)
+      }
+    }
+    observed_bodies.val = Some(bodies)
+    if self.observed_read_evidence(original, facts, bodies) is Some(value) {
+      return match self.host.journal.check_transaction_context(reads~) {
+        Ok(_) => Ok(value)
+        Err(issue) => {
+          self.forget_read_evidence()
+          Err(Journal(issue))
+        }
+      }
+    }
+  }
   let retained = self.host.journal.transaction_with_reads(
     () => {
-      let bodies = match
-        self.read_admission_originals(original, facts, actual_policy_cid) {
-        Ok(value) => value
-        Err(issue) => {
-          refusal = Some(issue)
-          return Err(AuthorizationDenied)
-        }
+      // Standalone callers retain the original transactional admission. The
+      // active command already selected the same immutable bodies above.
+      let bodies = match observed_bodies.val {
+        Some(value) => value
+        None =>
+          match
+            self.read_admission_originals(original, facts, actual_policy_cid) {
+            Ok(value) => value
+            Err(issue) => {
+              refusal = Some(issue)
+              return Err(AuthorizationDenied)
+            }
+          }
       }
       match
         self.host.require_retained_read_evidence_target(original, operations~) {
@@ -154,6 +187,7 @@ fn NativeLocalReadPolicyBinding::retained_read_admission_with_operations(
           Err(AuthorizationDenied)
         }
         Ok(_) => {
+          observed_bodies.val = Some(bodies)
           let admission : @result_access.NativeResultReadAdmission = {
             authorization_context_cid: bodies.authorization.cid,
             data_ceiling_cid: bodies.ceiling.cid,
@@ -169,9 +203,19 @@ fn NativeLocalReadPolicyBinding::retained_read_admission_with_operations(
     reads~,
   )
   match retained {
-    Ok(value) => Ok(value)
-    Err(TransactionUnknown) => Err(Journal(TransactionUnknown))
-    Err(issue) => Err(refusal.unwrap_or(Journal(issue)))
+    Ok(value) => {
+      if observed_bodies.val is Some(bodies) {
+        self.remember_read_evidence(original, facts, bodies, value)
+      }
+      Ok(value)
+    }
+    Err(issue) => {
+      self.forget_read_evidence()
+      match issue {
+        TransactionUnknown => Err(Journal(TransactionUnknown))
+        _ => Err(refusal.unwrap_or(Journal(issue)))
+      }
+    }
   }
 }
 

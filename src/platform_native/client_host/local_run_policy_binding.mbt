@@ -727,42 +727,61 @@ fn NativeLocalRunPolicyBinding::lookup_submitted_run_policy_with_operations(
     @host.SameRequest else {
     return Err(CustodyLost)
   }
-  self.host.journal.transaction_with_reads(
-    () => {
-      if !current() {
-        return Err(AuthorizationDenied)
+  let observe : () -> Result[
+    @host.ClientLocalRunPolicyOriginal,
+    NativeClientRunJournalIssue,
+  ] = () => {
+    if !current() {
+      return Err(AuthorizationDenied)
+    }
+    let record = match self.host.journal.retained(request, reads~) {
+      Ok(Some(value)) => value
+      Ok(None) => return Err(CustodyLost)
+      Err(issue) => return Err(issue)
+    }
+    guard record.local_run_policy_originals is Some(wire) &&
+      @publication.publication_contract_identity(record.definition) ==
+      admission.run_definition_cid else {
+      return Err(CustodyLost)
+    }
+    let ref_record = reference.original
+    let original = match
+      @host.admit_client_local_run_policy_original(
+        @utf8.encode(wire),
+        self.profile,
+        ref_record,
+        request,
+        record.definition,
+        self.host.adoption_cid(),
+        self.read_selection_cid,
+      ) {
+      Ok(value) => value
+      Err(_) => return Err(CustodyLost)
+    }
+    if !current() {
+      return Err(AuthorizationDenied)
+    }
+    Ok(original)
+  }
+  if self.host.journal.operation_active && operations is Some(_) {
+    // This closed command already owns the current Read and selected originals.
+    // Restoring immutable Policy metadata neither mutates SQL nor opens a new
+    // authorization frame. Standalone callers keep their original transaction.
+    match self.host.journal.check_transaction_context(reads~) {
+      Ok(_) => ()
+      Err(issue) => {
+        self.host.journal.invalidate_operation_record()
+        return Err(issue)
       }
-      let record = match self.host.journal.retained(request, reads~) {
-        Ok(Some(value)) => value
-        Ok(None) => return Err(CustodyLost)
-        Err(issue) => return Err(issue)
-      }
-      guard record.local_run_policy_originals is Some(wire) &&
-        @publication.publication_contract_identity(record.definition) ==
-        admission.run_definition_cid else {
-        return Err(CustodyLost)
-      }
-      let ref_record = reference.original
-      let original = match
-        @host.admit_client_local_run_policy_original(
-          @utf8.encode(wire),
-          self.profile,
-          ref_record,
-          request,
-          record.definition,
-          self.host.adoption_cid(),
-          self.read_selection_cid,
-        ) {
-        Ok(value) => value
-        Err(_) => return Err(CustodyLost)
-      }
-      if !current() {
-        return Err(AuthorizationDenied)
-      }
-      Ok(original)
-    },
-    reads~,
-  )
+    }
+    let result = observe()
+    if result is Err(_) {
+      self.host.journal.invalidate_operation_record()
+    }
+    result
+  } else {
+    self.host.journal.transaction_with_reads(observe, reads~)
+  }
 }
 
 ///|

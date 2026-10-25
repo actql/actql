@@ -528,9 +528,6 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
               "runtime.json",
             ),
           )
-          local_host_result(
-            capture.require_packaged_runtime_upgrade_in_original_read(),
-          )
           let account = local_host_result(
             capture.configuration_in_original_read(),
           )
