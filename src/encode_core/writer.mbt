@@ -508,6 +508,8 @@ fn quoted(w : Writer, text : String) -> Unit raise EncodeFailure {
 ///|
 // Only quoted() calls this with a checked printable-ASCII slice, at most 257
 // bytes. Measurement/hashing allocate no substring; text sinks append once.
+// The span is already validated ASCII. Use a bounds-only view so a malformed
+// following code unit reaches our typed Unicode check, not String::sub panic.
 fn ascii_span(
   w : Writer,
   text : String,
@@ -523,12 +525,14 @@ fn ascii_span(
   match w.output {
     MeasureOutput => ()
     CompareOutput(output) => compare_range(output, text, start, end)
-    TextOutput(output) => output.write_view(text[start:end])
-    BufferedTextOutput(buffer) => buffer.text.write_view(text[start:end])
+    TextOutput(output) =>
+      output.write_view(text.view(start_offset=start, end_offset=end))
+    BufferedTextOutput(buffer) =>
+      buffer.text.write_view(text.view(start_offset=start, end_offset=end))
     HashOutput(hash) => hash_ascii_range(w, hash, text, start, end)
     BufferedHashOutput(buffer) => {
       hash_ascii_range(w, buffer.hash, text, start, end)
-      buffer.text.write_view(text[start:end])
+      buffer.text.write_view(text.view(start_offset=start, end_offset=end))
     }
   }
 }

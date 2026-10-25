@@ -3432,7 +3432,7 @@
     {
       "module": "adapters/store-local/metadata-deletion-owner.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5e9cf4d7fcf47b5354649720153b26bf2a12c1c2171adedbac84adc3278cfc03",
+      "sha256": "12a18eb466797bde35f4a52d5f2d798211686fea256b5ce5be17bdc3c66bc655",
       "exports": [
         "createMetadataDeletionOwner"
       ],
@@ -3548,7 +3548,10 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/store-local/moonbit-row-frames.mjs",
@@ -4586,7 +4589,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e51c6758a86f0b371c368ab6d91b19394fbe4f7e427da8ab25a59204877fee66",
+      "sha256": "1407f63cc7cb011c29969dd5799bdd04647b696f2dcba780f6de47941d515316",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -5497,7 +5500,9 @@
         },
         {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex",
-          "parameters": [],
+          "parameters": [
+            "row"
+          ],
           "async": false
         },
         {
@@ -5506,70 +5511,15 @@
           "async": false
         },
         {
-          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#10",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#11",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#12",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#13",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#14",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#15",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#16",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#17",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#18",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#19",
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex#3",
           "parameters": [],
           "async": false
         },
         {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#20",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#21",
-          "parameters": [],
+          "parameters": [
+            "name"
+          ],
           "async": false
         },
         {
@@ -5579,9 +5529,7 @@
         },
         {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#4",
-          "parameters": [
-            "row"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -5591,23 +5539,11 @@
         },
         {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#6",
-          "parameters": [
-            "row"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#7",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#8",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#9",
           "parameters": [],
           "async": false
         },
@@ -6221,28 +6157,15 @@
             "openDeliveryAttemptIndex/nativeIndexKey/nativeIndexKey",
             "openDeliveryAttemptIndex/nativeMaterialCopy/nativeMaterialCopy",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#10",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#11",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#12",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#13",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#14",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#15",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#16",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#17",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#18",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#19",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex#3",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#20",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#21",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#3",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#4",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#5",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#6",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#7",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#8",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#9",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
             "openDeliveryAttemptIndex/physicalOriginal/physicalOriginal",
             "openDeliveryAttemptIndex/physicalState/physicalState",
             "openDeliveryAttemptIndex/preparationKey/preparationKey",
@@ -6263,12 +6186,12 @@
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/originals/originals",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation",
-            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#2",
-            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#3",
-            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#4",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/installed/installed",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/publicationMutation",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/publicationMutation#2",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#2",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#3",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#4",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/retry/retry",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/selected/selected",
             "openDeliveryAttemptIndex/readResultRecovery/readResultRecovery",
@@ -6297,8 +6220,8 @@
             "openDeliveryAttemptIndex/samePreparation/samePreparation",
             "openDeliveryAttemptIndex/sameProgress/sameProgress",
             "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress",
-            "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress#2",
             "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress/sameProgress",
+            "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress#2",
             "openDeliveryAttemptIndex/samePublication/samePublication",
             "openDeliveryAttemptIndex/samePublication/samePublication/samePublication",
             "openDeliveryAttemptIndex/sameRecoveryOriginal/sameRecoveryOriginal",
@@ -6715,19 +6638,19 @@
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "// Only the old version permits first adoption. Missing adopted metadata"
+                "anchor": "// Private format 15 is intentionally breaking. Refuse old stores before"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "An older private database format permits one bounded inventory migration."
+                "anchor": "Only current-format recovery may complete pending inventory coverage."
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Additive format adoption creates their tables and count atomically; adopted"
+                "anchor": "Initial current-format creation installs their tables and count atomically; adopted"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "An additive format transition reads prior full and compact marker files once,"
+                "anchor": "Current-format building coverage reads its full and compact marker files"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -6857,7 +6780,7 @@
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.test.mjs",
-                "anchor": "native reference coverage upgrades version eleven once and later opens read no inventory history"
+                "anchor": "current private format reopens without rewriting or scanning inventory history"
               },
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
@@ -6889,7 +6812,7 @@
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.test.mjs",
-                "anchor": "native Index format adoption leaves legacy inventory originals untouched and does not scan history"
+                "anchor": "private format ${oldVersion} is refused untouched without upgrade or cleanup"
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.test.mjs",
@@ -6897,7 +6820,7 @@
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.test.mjs",
-                "anchor": "native Index schema adoption retains its"
+                "anchor": "version 14 completion storage is rejected without migration or byte changes"
               },
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
@@ -6906,12 +6829,13 @@
             ]
           }
         }
-      ]
+      ],
+      "referenceQualification": "Format 15 receipt ownership repair reviewed against the existing Store contract: identical receipt bodies may belong to distinct attempts; exact attempt/record ACK ownership is unchanged. Removed private-version upgrade callbacks are not retained. Fresh initialization and same-version recovery retain the existing single contract assignment; public exports and normative 0.1 contracts are unchanged. Syntax/hash evidence is not runtime acceptance."
     },
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d9b6e2cea804f32eabfa5a01f28587def837f23b361115f13b3c15951da60872",
+      "sha256": "1f092c4b45728b17a9794f592dd251952b43a718ad66c53a6c08a60d402ec021",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -7955,6 +7879,13 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/confirmPhysicalRemovals/confirmPhysicalRemovals",
+          "parameters": [
+            "objects"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/confirmPreparedMaterials/confirmPreparedMaterials",
           "parameters": [
             "cids"
@@ -8168,7 +8099,9 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup",
-          "parameters": [],
+          "parameters": [
+            "objects"
+          ],
           "async": false
         },
         {
@@ -9280,6 +9213,21 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor",
+          "parameters": [
+            "cid",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor/matches/matches",
+          "parameters": [
+            "holder"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/preparedObjectOwners/preparedObjectOwners",
           "parameters": [],
           "async": false
@@ -10268,6 +10216,14 @@
           "parameters": [
             "objects"
           ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity/holders/holders",
+          "parameters": [
+            "cid",
+            "holder"
+          ],
           "async": false
         },
         {
@@ -10301,6 +10257,49 @@
             "cid",
             "bytes",
             "state"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/holder",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:fence/init:fence",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:forget/init:forget",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:pathState/init:pathState",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:releaseQuota/init:releaseQuota",
+          "parameters": [
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/removalKey/removalKey",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -10640,6 +10639,13 @@
           "name": "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/status/status",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/syncPhysicalRemovals/syncPhysicalRemovals",
+          "parameters": [
+            "objects"
+          ],
+          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock",
@@ -11989,7 +11995,19 @@
             "syncDirectoryPath/syncDirectoryPath",
             "validateConfiguration",
             "validateContractControl",
-            "writeExclusive"
+            "writeExclusive",
+            "openOriginalLocalPublicationStore/confirmPhysicalRemovals/confirmPhysicalRemovals",
+            "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor",
+            "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor/matches/matches",
+            "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity/holders/holders",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/holder",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:fence/init:fence",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:forget/init:forget",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:pathState/init:pathState",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:releaseQuota/init:releaseQuota",
+            "openOriginalLocalPublicationStore/removalKey/removalKey",
+            "openOriginalLocalPublicationStore/syncPhysicalRemovals/syncPhysicalRemovals"
           ],
           "exports": [
             "PublicationStoreError",
@@ -13011,7 +13029,7 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "An additive format transition reads prior full and compact marker files once,"
+                "anchor": "Current-format building coverage reads its full and compact marker files"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -13193,7 +13211,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "metadata deletion history is indexed once and unrelated Run operations read no marker bodies"
+                "anchor": "Store refuses private format ${oldVersion} without deleting retained originals"
               },
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
@@ -14640,6 +14658,7 @@
         "./delivery-attempt-index.mjs",
         "./metadata-deletion-owner.mjs",
         "./object-writer-owner.mjs",
+        "./physical-retirement-owner.mjs",
         "./prepared-custody-queue.mjs",
         "./prepared-holder-owner.mjs",
         "./publication-commit-owner.mjs",
@@ -14881,7 +14900,7 @@
     {
       "module": "adapters/store-local/result-deletion-owner.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7d80975917c81b0a53ac520751fd7a31e3d3a9847402c016a2bc7a3cdd3ecb69",
+      "sha256": "16ebf7de00f06e796ddad423a53e9605ad80797c88bf743db9757dd249287214",
       "exports": [
         "createResultDeletionOwner"
       ],
@@ -15042,6 +15061,228 @@
       "imports": [],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/store-local/physical-retirement-owner.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "1f7c013c3959cfd6a045dd0df761d35e6f685d73a21bbdfcaec72fe800be2aac",
+      "exports": [
+        "createPhysicalRetirementOwner"
+      ],
+      "operations": [
+        {
+          "name": "createPhysicalRetirementOwner",
+          "parameters": [
+            "original",
+            "handle",
+            "operations"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalRetirementOwner/closeOriginal/closeOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPhysicalRetirementOwner/closeOriginal/closeOriginal/closeOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPhysicalRetirementOwner/closeOriginal/closeOriginal/closeOriginal#2",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalRetirementOwner/fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPhysicalRetirementOwner/owner/init:abandon/init:abandon",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPhysicalRetirementOwner/owner/init:admit/init:admit",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPhysicalRetirementOwner/owner/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPhysicalRetirementOwner/owner/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPhysicalRetirementOwner/owner/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPhysicalRetirementOwner/owner/init:unlinkOriginal/init:unlinkOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPhysicalRetirementOwner/owner/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPhysicalRetirementOwner/owner/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPhysicalRetirementOwner/owner/owner",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing exclusively owned Store physical allocation retirement; this helper owns one original FD, not content identity, public authorization, capacity or native accounting authority",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPhysicalRetirementOwner",
+            "createPhysicalRetirementOwner/closeOriginal/closeOriginal",
+            "createPhysicalRetirementOwner/closeOriginal/closeOriginal/closeOriginal",
+            "createPhysicalRetirementOwner/closeOriginal/closeOriginal/closeOriginal#2",
+            "createPhysicalRetirementOwner/fail/fail",
+            "createPhysicalRetirementOwner/owner/init:abandon/init:abandon",
+            "createPhysicalRetirementOwner/owner/init:admit/init:admit",
+            "createPhysicalRetirementOwner/owner/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck",
+            "createPhysicalRetirementOwner/owner/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck",
+            "createPhysicalRetirementOwner/owner/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck#2",
+            "createPhysicalRetirementOwner/owner/init:unlinkOriginal/init:unlinkOriginal",
+            "createPhysicalRetirementOwner/owner/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal",
+            "createPhysicalRetirementOwner/owner/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal#2",
+            "createPhysicalRetirementOwner/owner/owner"
+          ],
+          "exports": [
+            "createPhysicalRetirementOwner"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "anchor": "// One exclusively held original allocation spans unlink, directory ACK, native"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Physical allocation ownership through retirement"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "anchor": "export function createPhysicalRetirementOwner(original, handle, operations)"
+              },
+              {
+                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "anchor": "original,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "anchor": "await operations.releaseQuota(original);"
+              },
+              {
+                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "anchor": "String(held.ino) !== original.inode"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "anchor": "const held = await handle.stat();"
+              },
+              {
+                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "anchor": "operations.fence(owner);"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Pending cleanup carries the immutable retirement holder, never a fresh CID lookup."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "anchor": "if (unlinkFlight !== undefined) return unlinkFlight;"
+              },
+              {
+                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "anchor": "if (retireFlight !== undefined) return retireFlight;"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "After the real directory acknowledgement, one holder-owned"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "anchor": "closePromise ??= Promise.resolve().then(() => handle.close())"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The Store therefore retains the exact original close promise."
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No Run cancellation or new reclamation authority. Only the already-authorized Store cleanup can invoke this retained original; failure retains its existing duty."
+            },
+            "resources": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "A replacement"
+              },
+              {
+                "path": "adapters/store-local/physical-retirement-owner.mjs",
+                "anchor": "await operations.releaseQuota(original);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (physicalRemovalAcquisitions.has(key)) return physicalRemovalAcquisitions.get(key);"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Private decomposition of the existing Store retirement protocol; no public wire, version, allocation identity or caller capability extension."
+            },
+            "verification": [
+              {
+                "path": "adapters/store-local/physical-retirement-owner.test.mjs",
+                "anchor": "concurrent cleanup and late ACK never unlink or refund a replacement"
+              },
+              {
+                "path": "adapters/store-local/physical-retirement-owner.test.mjs",
+                "anchor": "rejected real close never retries a descriptor reused by a replacement"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "unknown original close fences only its Store allocation until process recovery"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Explicit existing physical-owner review: original-FD preservation replaces unsafe timeless inode equality, single-flight unlink and close/quota settlement retain exact ownership. Syntax evidence is not a runtime acceptance claim."
     }
   ],
   "verificationQualification": "Existing actual test entry references only. F prior actual SQLite/Store/INFER source-qualified receipts remain independent; this index does not claim the listed tests all ran at a6cab. Core typed row/data invariants remain with their existing authority and C/E acceptance. No Native/service/Provider/public-product operation executed in this metadata pass."

@@ -10,8 +10,8 @@ export function createMetadataDeletionOwner(marker, operations) {
   });
   const confirmUnlinkedObjects = async () => {
     if (unconfirmedObjects.size === 0) return;
-    await operations.syncObjects();
-    operations.releaseUnconfirmed(unconfirmedObjects);
+    await operations.syncObjects(unconfirmedObjects);
+    await operations.releaseUnconfirmed(unconfirmedObjects);
     unconfirmedObjects.clear();
   };
 
