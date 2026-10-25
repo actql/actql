@@ -1610,13 +1610,26 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     let root = required(matches, "engine-root")
     let maximum = required_int64(matches, "max-file-bytes")
     match source_configuration(matches, root, maximum) {
-      Some(source) =>
-        retained_consumer_configuration(
-          source,
-          load_text(root, "registry.json", maximum),
-          load_text(root, "values.json", maximum),
-          required_int64(matches, "retained-consumer-engine-bytes"),
-        )
+      Some(source) => {
+        let registry_body = load_text(root, "registry.json", maximum)
+        let values_body = load_text(root, "values.json", maximum)
+        match
+          @local_values.prepare_installed_sequence_contracts(
+            registry_body,
+            values_body,
+            Some(source.fragment_contract_body),
+            None,
+          ) {
+          Ok(installed_contracts) =>
+            retained_consumer_configuration(
+              source,
+              installed_contracts,
+              values_body,
+              required_int64(matches, "retained-consumer-engine-bytes"),
+            )
+          Err(_) => None
+        }
+      }
       None => None
     }
   } else {
@@ -4254,15 +4267,30 @@ fn run_holder(
   let registry_body = load_text(values_root, "registry.json", max_file_bytes)
   let values_body = load_text(values_root, "values.json", max_file_bytes)
   let output_bytes = required_int64(matches, "max-output-bytes")
+  let source = source_configuration(matches, values_root, max_file_bytes)
+  let fragment_body = source.map(source => source.fragment_contract_body)
+  let installed_contracts = match
+    @local_values.prepare_installed_sequence_contracts(
+      registry_body,
+      values_body,
+      fragment_body,
+      None,
+    ) {
+    Ok(value) => value
+    Err(_) =>
+      return finish_unopened_holder_cleanup(
+        environment, slot, "installed sequence contracts unavailable",
+      )
+  }
   let execution : @resident_host.ResidentExecution = {
-    source: source_configuration(matches, values_root, max_file_bytes),
+    source,
     site: environment.site,
     active_runtime: environment.active_runtime,
     operation_capability_cid: required(matches, "operation-capability-cid"),
     issuer_capability_cid: required(matches, "issuer-capability-cid"),
     bundles: environment.bundles,
     budgets: [budget(matches)],
-    registry_body,
+    installed_contracts,
     values_body,
     fixed_ms: 1L,
     per_row_ms: 0L,
@@ -4325,7 +4353,7 @@ fn run_holder(
       let configured = match execution.source {
         Some(source) =>
           retained_consumer_configuration(
-            source, registry_body, values_body, retained_engine_bytes,
+            source, installed_contracts, values_body, retained_engine_bytes,
           )
         None => None
       }

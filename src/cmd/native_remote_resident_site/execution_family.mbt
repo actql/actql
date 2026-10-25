@@ -170,7 +170,7 @@ fn accept_site_dispatch(
         resident_effect_limits(admission),
         dispatch,
         now,
-        configuration.registry_body,
+        configuration.installed_contracts,
         configuration.values_body,
         configuration.source.fragment_contract_body,
       ).map_err(issue => Effect(issue))
@@ -219,7 +219,7 @@ fn prepare_holder_producer_context(
         generation,
         intent,
         at,
-        configuration.registry_body,
+        configuration.installed_contracts,
         configuration.values_body,
         configuration.source.fragment_contract_body,
       ).map_err(issue => Effect(issue))

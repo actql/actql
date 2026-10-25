@@ -173,6 +173,9 @@ fn exercise_pre_spawn_channel(
   require(
     count,
     @resources.ledger_usage(ledger).reserved_execution_bytes == page &&
+    @resources.ledger_usage(ledger).attempts == 0 &&
+    @resources.ledger_usage(ledger).reserved_attempts == 1 &&
+    @resources.ledger_usage(ledger).live_reservations == 1 &&
     host.usage() == before,
     "child reservation subaccounts original backing without parent double charge",
   )
@@ -180,8 +183,13 @@ fn exercise_pre_spawn_channel(
   let reported = host.usage()
   require(
     count,
-    reported == { ..before, attempts: before.attempts + 1, },
-    "actual child snapshot reports its one attempt into the same parent ticket",
+    reported ==
+    {
+      ..before,
+      reserved_attempts: before.reserved_attempts + 1,
+      live_reservations: before.live_reservations + 1,
+    },
+    "actual child snapshot reports live reservation without consuming an attempt",
   )
   @resources.report_imported_child_ledger(frame).unwrap()
   require(
@@ -237,29 +245,30 @@ fn exercise_pre_spawn_channel(
   @resources.close_shared_capacity(child_capacity).unwrap()
   @resources.settle_shared_capacity(child_capacity).unwrap()
   @resources.report_imported_child_ledger(frame).unwrap()
+  let cleaned = host.usage()
   require(
     count,
     @resources.ledger_usage(ledger).reserved_execution_bytes == 0L &&
-    host.usage() == reported,
-    "same original cleanup report releases no parent physical reservation",
+    cleaned == before,
+    "same original cleanup returns live counts without changing parent physical reservation",
   )
   require(
     count,
     host.stop_backed_live_channel_transport_use({ marker: 1, }, channel)
     is Err(Domain(Bootstrap(ForeignOriginal))) &&
-    host.usage() == reported,
+    host.usage() == cleaned,
     "foreign original cannot end another channel's transport use",
   )
   host.stop_backed_live_channel_transport_use(original, channel).unwrap()
   require(
     count,
-    host.usage() == reported,
+    host.usage() == cleaned,
     "transport closing issues no physical retirement or quota return",
   )
   host.stop_backed_live_channel_transport_use(original, channel).unwrap()
   require(
     count,
-    host.usage() == reported,
+    host.usage() == cleaned,
     "same original repeated transport stop preserves cumulative accounting",
   )
   require(
@@ -290,7 +299,7 @@ fn exercise_pre_spawn_channel(
   require(
     count,
     host.backed_live_channel_state(original, channel) is Err(Bootstrap(Closing)) &&
-    host.usage() == reported,
+    host.usage() == cleaned,
     "closed endpoints cannot be reobserved while same-original cleanup report remains available",
   )
   // No spawn occurred. The fixture has now confirmed its exact pipe closes;
@@ -300,7 +309,7 @@ fn exercise_pre_spawn_channel(
     count,
     host.bind_backed_live_channel_child(original, channel, 1)
     is Err(Bootstrap(ForeignOriginal)) &&
-    host.usage() == reported,
+    host.usage() == cleaned,
     "retired channel cannot regain identity or return the parent allowance",
   )
   require(
@@ -308,7 +317,7 @@ fn exercise_pre_spawn_channel(
     @resources.reserve_capacity(ledger, 0L, 1L) is Err(ForeignOwner) &&
     host.prepare_backed_original_channel_ledger(original, channel)
     is Err(Domain(Bootstrap(ForeignOriginal))) &&
-    host.usage() == reported,
+    host.usage() == cleaned,
     "owner ACK retirement invalidates escaped Ledger without another child or refund",
   )
   host.close_backed_domain(original, domain, child).unwrap()

@@ -164,7 +164,7 @@ fn main {
     host, domain, channel, 3,
   )
   let report = @control.report_installed_arena_live_channel_reply(
-    host, domain, channel, 0, 0, 0, 0L, 0L, 0L, 0L, 0L, 0L, 0L,
+    host, domain, channel, 0, 0, 0, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0, 0, 0,
   )
   let stop = @control.operate_installed_arena_live_channel_reply(
     host, domain, channel, 7,

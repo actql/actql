@@ -183,7 +183,10 @@ fn main {
   let usage : @resources.LedgerUsage = {
     planning_work: 1,
     attempts: 1,
+    reserved_attempts: 0,
     holdings: 0,
+    live_reservations: 1,
+    live_delegations: 0,
     transferred_bytes: 1L,
     uncertain_transfer_bytes: 1L,
     reserved_transfer_bytes: 0L,
@@ -194,14 +197,17 @@ fn main {
   }
   host.report_backed_live_child(original, live, runtime, usage).unwrap()
   let reported = host.usage()
+  // The first physical transfer consumes the original provisioning attempt;
+  // the cumulative child report independently accounts its own one attempt.
   require(
     count,
     reported.planning_work == before.planning_work + 1 &&
-    reported.attempts == before.attempts + 1 &&
+    reported.attempts == before.attempts + 2 &&
+    reported.reserved_attempts == before.reserved_attempts - 1 &&
     reported.transferred_bytes == 1L &&
     reported.uncertain_transfer_bytes == 1L &&
     reported.reserved_execution_bytes == before.reserved_execution_bytes,
-    "cumulative report charges the original parent exactly once",
+    "cumulative report charges original provisioning and child exactly once",
   )
   host.report_backed_live_child(original, live, runtime, usage).unwrap()
   require(

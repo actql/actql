@@ -4,7 +4,7 @@
 /// the Site operator; no dispatch can expand it or replace the Source mapping.
 fn retained_consumer_configuration(
   source : @resident_host.ResidentSourceConfiguration,
-  registry_body : String,
+  installed_contracts : @local_values.ClientInstalledSequenceContracts,
   values_body : String,
   engine_bytes : Int64,
 ) -> @resident_host.ResidentSourceComputeConfiguration? {
@@ -35,7 +35,7 @@ fn retained_consumer_configuration(
       // checked consumer. The operator's byte ceilings remain unchanged.
       ledger: { ..source.ledger, attempts: 2, holdings: 2, },
     },
-    registry_body,
+    installed_contracts,
     values_body,
     dispatch: {
       input_entries: 100,
