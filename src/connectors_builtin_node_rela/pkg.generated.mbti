@@ -424,6 +424,8 @@ pub fn client_program_compiled_run_result_transformation(@run_publication_host.C
 
 pub fn client_program_compiled_run_template(@run_publication_host.ClientCompiledRun) -> @run_publication.RunEvidenceValue
 
+pub fn client_program_confirmed_cancelled_unpublished_run_state(String, String, Array[String], Int, Int, Int) -> Result[String, @run_publication.RunStateIssue]
+
 pub fn client_program_current_run_view(@run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String, Int, Int, Int) -> Result[String, @run_publication.RunControlReadIssue]
 
 pub fn client_program_definition_cid(@run_publication_host.PreparedClientProgram) -> String
