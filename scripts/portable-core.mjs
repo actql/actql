@@ -91,7 +91,7 @@ export function tokens(source, sourceCode = false) {
   return result;
 }
 
-export function packageImports(source) {
+function packageImportDeclarations(source) {
   const ts = tokens(source);
   let i = 0;
   const result = [];
@@ -114,7 +114,7 @@ export function packageImports(source) {
       const imports = [];
       while (!peek('}')) {
         const path = take('string');
-        let alias = path.split('/').at(-1);
+        let alias;
         if (peek('@')) { symbol('@'); alias = take('word'); }
         imports.push({path, alias});
         if (!peek('}')) symbol(',');
@@ -133,6 +133,14 @@ export function packageImports(source) {
     } else throw new Error(`UnknownManifestDirective: ${directive}`);
   }
   return result;
+}
+
+// Dependency inspection keeps the established resolved-alias projection. The
+// materializer separately retains whether the author declared an alias: an
+// invented explicit builtin alias changes strict compiler admission.
+export function packageImports(source) {
+  return packageImportDeclarations(source).map(({path, alias, scope}) =>
+    ({path, alias: alias ?? path.split('/').at(-1), scope}));
 }
 
 function inspectSource(source, path) {
@@ -264,11 +272,11 @@ export function copyProductionCore(root, destination, roots = coreRoots) {
     const source = join(root, 'src', name);
     const target = join(destination, 'src', name);
     mkdirSync(target, {recursive: true});
-    const imports = packageImports(readFileSync(join(source, 'moon.pkg'), 'utf8'))
+    const imports = packageImportDeclarations(readFileSync(join(source, 'moon.pkg'), 'utf8'))
       .filter(entry => entry.scope === 'production');
     const manifest = 'supported_targets = "+js+wasm+native"\n' +
       (imports.length ? '\nimport {\n' + imports.map(entry =>
-        `  ${JSON.stringify(entry.path)} @${entry.alias},\n`).join('') + '}\n' : '');
+        `  ${JSON.stringify(entry.path)}${entry.alias === undefined ? '' : ` @${entry.alias}`},\n`).join('') + '}\n' : '');
     writeFileSync(join(target, 'moon.pkg'), manifest);
     for (const file of readdirSync(source)) {
       if (file.endsWith('.mbt') && !/_(?:wb)?test\.mbt$/.test(file)) {

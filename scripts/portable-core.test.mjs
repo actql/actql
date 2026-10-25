@@ -384,3 +384,22 @@ test('isolated production copy keeps implicit builtin imports compiler-valid', t
   copyProductionCore(f.root, isolated, ['root']);
   check(isolated);
 });
+
+
+test('isolated production copy distinguishes explicit default aliases from implicit imports', t => {
+  const f = fixture(t);
+  const implicit = 'import { "actql/actql/helper" }\n';
+  const explicit = 'import { "actql/actql/helper" @helper }\n';
+  assert.deepEqual(packageImports(manifest + implicit), packageImports(manifest + explicit));
+  f.put('helper', 'moon.pkg', manifest);
+  f.put('helper', 'main.mbt', 'pub fn value() -> Int { 1 }');
+  for (const [label, source] of [['implicit', implicit], ['explicit', explicit]]) {
+    f.put('root', 'moon.pkg', manifest + source);
+    f.put('root', 'main.mbt', 'pub fn identity() -> Int { @helper.value() }');
+    const isolated = join(f.root, label);
+    copyProductionCore(f.root, isolated, ['root']);
+    const copied = readFileSync(join(isolated, 'src/root/moon.pkg'), 'utf8');
+    assert.equal(copied.includes('@helper'), label === 'explicit');
+    assert.deepEqual(packageImports(copied), [{path: 'actql/actql/helper', alias: 'helper', scope: 'production'}]);
+  }
+});
