@@ -194,7 +194,7 @@ test "Run row identity reuse preserves exact original instances across metadata 
     publication_policy_originals: Some("new private metadata, not a grant"),
   }
   let body = client_run_journal_row_body(changed).unwrap()
-  let (decoded, local, observation) = decode_client_run_journal_row_with_retained_identity(
+  let (decoded, local_row, observation) = decode_client_run_journal_row_with_retained_identity(
     body,
     original.request,
     original.definition,
@@ -206,7 +206,7 @@ test "Run row identity reuse preserves exact original instances across metadata 
     decoded.publication_policy_originals,
     changed.publication_policy_originals,
   )
-  assert_eq(local, None)
+  assert_eq(local_row, None)
   assert_eq(observation, None)
   assert_eq(client_run_journal_row_body(decoded).unwrap(), body)
 }

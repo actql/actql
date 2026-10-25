@@ -181,6 +181,10 @@ fn main {
     "lost admission response does not permit another admission",
   )
   let usage : @resources.LedgerUsage = {
+    // This synthetic cumulative report owns no live child-side tokens.
+    reserved_attempts: 0,
+    live_reservations: 0,
+    live_delegations: 0,
     planning_work: 1,
     attempts: 1,
     holdings: 0,

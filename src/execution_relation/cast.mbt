@@ -306,7 +306,7 @@ fn preflight_try_number_string(
     @lower.expression_contract(expression).shape is @contract.Number else {
     return Err({ kind: Scalar(InvalidOperand), expression, })
   }
-  let output = @expression_context.text_bound_output(original)
+  let output = @lower.text_bound_output(original)
   if !(@text_bounds.output_operation(output) is @text_bounds.TryNumber) {
     return Err({ kind: Scalar(InvalidOperand), expression, })
   }

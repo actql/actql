@@ -127,7 +127,7 @@ fn local_execute_original_publish_values(
       stop("LocalPublicationAuthorityUnavailable")
     }
   }
-  business.publication_service = Some(service)
+  business._retained_publication_service = Some(service)
   let pending = match
     work.prepare_local_publication(
       service,
@@ -166,7 +166,7 @@ fn local_execute_original_publish_values(
         value
       }
       Err(issue) => {
-        business.publication_commit_failure = Some(issue)
+        business._retained_publication_commit_failure = Some(issue)
         stop("LocalPublicationNeedsReconciliation")
       }
     }

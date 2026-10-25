@@ -39,7 +39,7 @@ fn journal_test_read_access(
       calls.push("schema")
       submission_name_schema_ffi(database)
     },
-    census: () => {
+    _observed_census: () => {
       calls.push("census")
       submission_name_census_ffi(database)
     },
@@ -348,4 +348,20 @@ test "routed fence rejects foreign physical DB before either scalar callback" {
   assert_true(!foreign.transaction_fenced())
   database.close_checked().unwrap()
   foreign.close_checked().unwrap()
+}
+
+///|
+fn read_client_submission_name_census(
+  database : @sqlite.Database,
+  reads : NativeClientJournalReadAccess?,
+) -> Int64 {
+  match reads {
+    None => submission_name_census_ffi(database)
+    Some(original) =>
+      if physical_equal(database, original.database) {
+        (original._observed_census)()
+      } else {
+        -1L
+      }
+  }
 }

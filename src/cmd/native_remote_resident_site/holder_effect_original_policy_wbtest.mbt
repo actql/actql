@@ -45,3 +45,20 @@ test "original policy preserves the selected value and never retries an unavaila
   assert_true(unavailable is None)
   assert_eq(reads[0], 2)
 }
+
+///|
+/// A read may retain its own response/unknown responsibility even when current
+/// authority is lost. Deny policy adoption, not the read Owner's cleanup.
+fn[T] holder_effect_policy_read_current(
+  current : () -> Bool,
+  read : () -> T?,
+) -> T? {
+  if !current() {
+    return None
+  }
+  let selected = read()
+  if !current() {
+    return None
+  }
+  selected
+}

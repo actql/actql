@@ -302,19 +302,6 @@ priv enum LocalSortAuditIssue {
 }
 
 ///|
-// A resolved order is not permission to manufacture a completion-free journal.
-// Only original identity sorts, covered candidate keys, and retained total-order
-// witnesses require no appended source terms. Real key completion stays explicit.
-fn audit_local_completion_free_sort(
-  operation : @relation.CheckedOperation,
-  pipeline : @pipeline.CheckedPipeline,
-  step : Int,
-  available : Int,
-) -> Result[Int, LocalSortAuditIssue] {
-  audit_local_sort(operation, pipeline, step, available, None)
-}
-
-///|
 fn audit_local_sort(
   operation : @relation.CheckedOperation,
   pipeline : @pipeline.CheckedPipeline,

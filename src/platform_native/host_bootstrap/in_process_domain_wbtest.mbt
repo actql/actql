@@ -63,6 +63,8 @@ test "in-process domain retains the actual parent loan through separate child an
   host.enter_backed_domain(original, domain, child).unwrap()
   assert_true(host.close_backed_domain(original, domain, child) is Err(_))
   host.leave_backed_domain(original, domain, child).unwrap()
+  assert_true(host.try_close(original) is Err(ReadersPending))
+  assert_false(host.physical_closed)
   host.close_backed_domain(original, domain, child).unwrap()
   assert_false(loan.physical_returned)
   host.close_backed_view(original, view, child).unwrap()

@@ -2,7 +2,7 @@
 test "document preparation consumes the same original Catalog without changing query identity" {
   let environment = admit_client_check_environment(
     multi_source_environment,
-    "sha256:8dddb2a590629efb451ee5c579798da0ec64a674980601b49a97ff6a79140505",
+    "sha256:9b20c429c53c8eb9b5b057b26f86209d6964f1ca97d83e594b3a628aebe79c4a",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
@@ -14,13 +14,24 @@ test "document preparation consumes the same original Catalog without changing q
   }).unwrap()
   let limits = client_standard_program_preparation_limits()
   let original = prepare_effect_free_client_program(
-    multi_source_program, Json, environment, None, limits,
+    multi_source_program,
+    Json,
+    environment,
+    None,
+    limits,
   ).unwrap()
   let reused = prepare_effect_free_client_program(
-    multi_source_program, Json, environment, None, limits,
+    multi_source_program,
+    Json,
+    environment,
+    None,
+    limits,
     source_catalog=Some(catalog),
   ).unwrap()
-  assert_eq(prepared_client_identity(reused), prepared_client_identity(original))
+  assert_eq(
+    prepared_client_identity(reused),
+    prepared_client_identity(original),
+  )
   assert_eq(
     prepared_client_program_semantics_cid(reused),
     prepared_client_program_semantics_cid(original),
@@ -33,9 +44,14 @@ test "document preparation consumes the same original Catalog without changing q
   )
   assert_true(
     prepare_effect_free_client_program(
-      multi_source_program, Json, foreign, None, limits,
+      multi_source_program,
+      Json,
+      foreign,
+      None,
+      limits,
       source_catalog=Some(catalog),
-    ) is Err(Check(_)),
+    )
+    is Err(Check(_)),
   )
   assert_true(
     prepare_effect_free_client_program(
@@ -54,7 +70,8 @@ test "document preparation consumes the same original Catalog without changing q
         },
       },
       source_catalog=Some(catalog),
-    ) is Err(Syntax(_)),
+    )
+    is Err(Syntax(_)),
   )
 }
 
@@ -68,10 +85,20 @@ test "Effect document preparation forwards the original Catalog and retains the 
     max_depth: 100,
   }).unwrap()
   let original = prepare_client_effect_computation(
-    document, Json, environment, None, [], limits,
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
   ).unwrap()
   let reused = prepare_client_effect_computation(
-    document, Json, environment, None, [], limits,
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
     source_catalog=Some(catalog),
   ).unwrap()
   assert_eq(
@@ -89,7 +116,14 @@ test "Effect document preparation forwards the original Catalog and retains the 
   )
   assert_true(
     prepare_client_effect_computation(
-      document, Json, foreign, None, [], limits, source_catalog=Some(catalog),
-    ) is Err(Candidate(_)),
+      document,
+      Json,
+      foreign,
+      None,
+      [],
+      limits,
+      source_catalog=Some(catalog),
+    )
+    is Err(Candidate(_)),
   )
 }

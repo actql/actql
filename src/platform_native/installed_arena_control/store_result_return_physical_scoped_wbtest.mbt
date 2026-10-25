@@ -29,7 +29,6 @@ priv struct NativePublicationCommitFixture {
   request : @publication.PublicationContract
   attempt : @publication.PublicationContract
   index : @publication.PublicationContract
-  authority_scope_cid : String
   material_generation_cid : String
   schema_wire : String
 }
@@ -379,7 +378,6 @@ fn store_result_commit_fixture(
     request,
     attempt,
     index,
-    authority_scope_cid,
     material_generation_cid: payload.material_generation_cid,
     schema_wire,
   }

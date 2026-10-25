@@ -9,6 +9,7 @@ import {
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
+  "actql/actql/physical_strategy_host",
   "actql/actql/physical_task_manifest",
   "actql/actql/pipeline_check_context",
 }
@@ -30,7 +31,7 @@ pub fn application_compute_count(Application) -> Int
 
 pub fn application_compute_transfer_capacity(Application) -> Int64
 
-pub fn application_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
+pub fn application_dispatch(Application, @physical_strategy_host.CapturedDAG, Int64, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue] raise
 
 pub fn application_graph(Application) -> @physical_strategy.CheckedDAG
 
@@ -42,29 +43,29 @@ pub fn application_ledger_limits(@physical_resources.Ledger) -> @physical_resour
 
 pub fn application_ledger_usage(@physical_resources.Ledger) -> @physical_resources.LedgerUsage
 
-pub fn application_managed_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
+pub fn application_managed_dispatch(Application, @physical_strategy_host.CapturedDAG, Int64, Int64, Int64, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue] raise
 
-pub fn application_materializing_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Int64, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
+pub fn application_materializing_dispatch(Application, @physical_strategy_host.CapturedDAG, Int64, Int64, Int64, Int64, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue] raise
 
-pub fn application_native_retained_strategy_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Int64, Int64, Bool, local_task_ms? : Array[Int64], native_task_ms? : Array[Int64], resident_estimates? : NativeResidentEstimateProfile, local_eligible? : Bool) -> @standard_host.StrategyHostDispatch raise
+pub fn application_native_retained_strategy_dispatch(Application, @physical_strategy_host.CapturedDAG, Int64, Int64, Int64, Int64, Int64, Bool, local_task_ms? : Array[Int64], native_task_ms? : Array[Int64], resident_estimates? : NativeResidentEstimateProfile, local_eligible? : Bool) -> @standard_host.StrategyHostDispatch raise
 
 pub fn application_native_retained_task_transfer_capacity(Application) -> Int64
 
-pub fn application_output_cid(@physical_strategy.CapturedDAG, Int) -> String?
+pub fn application_output_cid(@physical_strategy_host.CapturedDAG, Int) -> String?
 
-pub fn application_profile_output_cid(Application, @physical_strategy.CapturedDAG, Int) -> String?
+pub fn application_profile_output_cid(Application, @physical_strategy_host.CapturedDAG, Int) -> String?
 
 pub fn application_program_identity(Application) -> @pipeline_check_context.ProgramSourceIdentity
 
-pub fn application_retained_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
+pub fn application_retained_dispatch(Application, @physical_strategy_host.CapturedDAG, Int64, Int64, Int64, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue] raise
 
-pub fn application_retained_local_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Int64, Int64, Array[Int64], Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
+pub fn application_retained_local_dispatch(Application, @physical_strategy_host.CapturedDAG, Int64, Int64, Int64, Int64, Int64, Array[Int64], Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue] raise
 
-pub fn application_retained_task_estimate_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Int64, Int64, Array[Int64], Array[Int64], Bool, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
+pub fn application_retained_task_estimate_dispatch(Application, @physical_strategy_host.CapturedDAG, Int64, Int64, Int64, Int64, Int64, Array[Int64], Array[Int64], Bool, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue] raise
 
 pub fn application_select_acquisition(Application, String, String, String, Array[Int]) -> ApplicationAcquisitionSelection raise
 
-pub fn application_strategy_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Bool) -> @standard_host.StrategyHostDispatch raise
+pub fn application_strategy_dispatch(Application, @physical_strategy_host.CapturedDAG, Int64, Bool) -> @standard_host.StrategyHostDispatch raise
 
 pub fn application_task_completion_preparation(Application, Int) -> @execution_relation.CompletionPreparation raise
 

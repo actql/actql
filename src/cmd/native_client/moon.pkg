@@ -34,7 +34,7 @@ import {
   "actql/actql/program_check" @checked,
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/check_environment" @compiler_environment,
-  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/decode_core" @decode,
   "actql/actql/parameter_binding" @parameters,
   "moonbitlang/core/argparse",
@@ -51,6 +51,11 @@ import {
 } for "wbtest"
 
 options(
-  "native-stub": [ "stdout_stub.c", "command_control_stub.c", "local_journal_transport_probe.c", "initial_crypto_backing_stub.c" ],
+  "native-stub": [
+    "stdout_stub.c",
+    "command_control_stub.c",
+    "local_journal_transport_probe.c",
+    "initial_crypto_backing_stub.c",
+  ],
   link: { "native": { "cc-flags": "-O2" } },
 )

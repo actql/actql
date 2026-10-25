@@ -49,7 +49,7 @@ test "stored publication first validation work is separate from original confirm
     owner.release_observed_commit(view).unwrap()
     owner.release_view(view).unwrap()
     println(
-      "stored publication quantum=\{quantum} contract_read_callbacks=\{reads} wire_bytes=\{bytes} contract_bytes=\{sizes} first_validation_work=\{first} confirmation_work=\{confirmation}",
+      "stored publication quantum=\{quantum} contract_read_callbacks=\{reads} wire_bytes=\{bytes} contract_bytes=\{@debug.to_string(sizes)} first_validation_work=\{first} confirmation_work=\{confirmation}",
     )
   }
   assert_eq(counts[0], counts[1])

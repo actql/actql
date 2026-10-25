@@ -19,7 +19,7 @@ fn LocalCommandBusinessOriginal::close_publication_children(
       Ok(true) => ()
       Ok(false) => return Err(CommandBusinessPublication)
       Err(issue) => {
-        self.publication_cleanup_failure = Some(issue)
+        self._retained_publication_cleanup_failure = Some(issue)
         return Err(CommandBusinessPublication)
       }
     }
@@ -44,7 +44,7 @@ fn LocalCommandBusinessOriginal::close_publication_children(
   // Only managed aliases retire here. Their actual Store/DB, Compute and
   // domain acknowledgements follow separately in the existing parent order.
   self.publication_pending = None
-  self.publication_service = None
+  self._retained_publication_service = None
   self.publication_publisher = None
   self.publication_results = None
   // The borrowed call has returned and its primary presentation is retained
@@ -52,8 +52,8 @@ fn LocalCommandBusinessOriginal::close_publication_children(
   // past their domains after the original cancellation/reclamation or known
   // commit reply above. An unconfirmed commit never reaches this retirement.
   self.publication_failure = None
-  self.publication_commit_failure = None
-  self.publication_cleanup_failure = None
+  self._retained_publication_commit_failure = None
+  self._retained_publication_cleanup_failure = None
   self.publication_result = None
   self.run_receipt_original = None
   self.publication_retired = true

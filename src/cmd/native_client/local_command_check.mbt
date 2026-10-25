@@ -39,7 +39,6 @@ fn command_preparation_cleanup_kind(
     CommandInvalidProfile => "profile"
     CommandUnavailable => "original-unavailable"
     CommandNativeStorage(_) => "native-storage"
-    CommandBacking(code) => "backing(" + code.to_string() + ")"
     CommandHost(_) => "host"
     CommandDomain(_) => "domain"
     CommandRead(_) => "read"

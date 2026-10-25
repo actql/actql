@@ -186,7 +186,7 @@ test "common audit emits the real Sort completion and never substitutes empty ev
 ///|
 test "legacy original restore keeps its exact issued catalogue after fresh defaults change" {
   let original = local_explicit_cast_original(text="SELECT ABS(-3) AS value")
-  let old = issue_prepared_client_legacy_local_normalization(original).unwrap()
+  let old = _issue_prepared_client_legacy_local_normalization(original).unwrap()
   let old_wire = @publication.run_evidence_value_json(
     prepared_client_local_normalization_evidence(original, old).unwrap(),
   )

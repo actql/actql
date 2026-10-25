@@ -8,7 +8,7 @@ import {
   "actql/actql/checkpoint_runtime" @checkpoint,
   "actql/actql/execution_authorization" @authorization,
   "actql/actql/execution_relation" @execution,
-  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/execution_query" @query,
   "actql/actql/physical_resources" @resources,
   "actql/actql/encode_core" @encode,
@@ -57,7 +57,7 @@ import {
 
 import {
   "actql/actql/connector_sdk" @connector,
-  "actql/actql/physical_host" @host_driver,
+  "actql/actql/physical_host_dispatch" @host_driver,
 } for "test"
 
 import {

@@ -289,16 +289,18 @@ test "final watch passes original Checkpoint and reconciliation without changing
     old="\"running\"",
     new="\"succeeded\"",
   )
-  let final = local_status_watch_probe([checkpoint, reconciliation, succeeded])
+  let final_status = local_status_watch_probe([
+    checkpoint, reconciliation, succeeded,
+  ])
   assert_eq(
     local_status_watch_loop(
       { ..local_watch_test_options, final_only: true, },
-      final.operations,
+      final_status.operations,
     ),
     succeeded,
   )
-  assert_eq(final.reads.val, 3)
-  assert_eq(final.emitted, [checkpoint, reconciliation])
+  assert_eq(final_status.reads.val, 3)
+  assert_eq(final_status.emitted, [checkpoint, reconciliation])
   let stable = local_status_watch_probe([checkpoint])
   assert_eq(
     local_status_watch_loop(local_watch_test_options, stable.operations),

@@ -72,7 +72,7 @@ fn evaluation_child(
 
 ///|
 fn emit_text_evaluation_envelope(
-  original : @expression_context.TextBoundResolution,
+  original : @lower.ExpressionTextBound,
   step : String,
   pointer : String,
   arguments_cid : String,
@@ -82,10 +82,10 @@ fn emit_text_evaluation_envelope(
   limits : RegistryLimits,
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-  let bound = @expression_context.text_bound_output(original)
+  let bound = @lower.text_bound_output(original)
   let input = @text_bounds.output_input(bound)
   let policy = @model_environment.text_time_policy(
-    @expression_context.text_bound_policy(original),
+    @lower.text_bound_policy(original),
   )
   let (points, bytes) = @text_bounds.input_extent(input)
   @encode.begin_object(out)
@@ -192,7 +192,7 @@ fn prepare_fragment_evaluations(
         is Some(original) else {
         continue
       }
-      let output = @expression_context.text_bound_output(original)
+      let output = @lower.text_bound_output(original)
       if !(@text_bounds.output_operation(output)
         is (TryNumber | Utf8Truncate(_) | Nfkc | CaseFold)) {
         return Err(GeneratedDecodeFailure)
@@ -214,11 +214,8 @@ fn prepare_fragment_evaluations(
         @identity.object_field(paths, pointer) is Some(tests) else {
         return Err(GeneratedDecodeFailure)
       }
-      let requirement = @expression_context.validation_site_requirement(
-        @expression_context.text_bound_site(original),
-      )
       let mut filter_pointer = None
-      if requirement.filter is Some(filter) {
+      if @lower.text_bound_filter(original) is Some(filter) {
         if roots.length() > work {
           return Err(OutputLimit)
         }
@@ -226,7 +223,7 @@ fn prepare_fragment_evaluations(
         for earlier in 0..<root_index {
           if physical_equal(
               @lower.root_at(index, earlier).unwrap().typed_expression,
-              filter.expression,
+              filter,
             ) {
             filter_pointer = Some("/roots/" + earlier.to_string() + "/source")
           }

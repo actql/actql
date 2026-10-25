@@ -11,7 +11,7 @@ test "issued Run evidence computes each original identity once" {
       4096,
       64,
       8,
-      fn(body, bytes, nodes, depth) {
+      (body, bytes, nodes, depth) => {
         calls.val += 1
         @json.cid_value(body, bytes, nodes, depth)
       },
@@ -42,7 +42,7 @@ test "issued Run evidence computes each original identity once" {
     4096,
     64,
     8,
-    fn(body, bytes, nodes, depth) {
+    (body, bytes, nodes, depth) => {
       calls.val += 1
       @json.cid_value(body, bytes, nodes, depth)
     },
@@ -119,7 +119,7 @@ test "issued Run evidence propagates identity failure without issuing a value" {
     4096,
     64,
     8,
-    fn(_, _, _, _) {
+    (_, _, _, _) => {
       calls.val += 1
       raise @encode.OutputLimit
     },

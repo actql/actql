@@ -2,7 +2,7 @@
 fn original_dispatch_source(text : String) -> ClientSourcePreparation {
   let environment = admit_client_check_environment(
     multi_source_environment,
-    "sha256:8dddb2a590629efb451ee5c579798da0ec64a674980601b49a97ff6a79140505",
+    "sha256:9b20c429c53c8eb9b5b057b26f86209d6964f1ca97d83e594b3a628aebe79c4a",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()

@@ -10,7 +10,8 @@ priv struct NativeClientJournalReadAccess {
   fenced : () -> Bool
   fence : () -> Unit
   schema : () -> Int
-  census : () -> Int64
+  // Retain the original scoped callback for whitebox same-Database routing checks.
+  _observed_census : () -> Int64
   transaction : (NativeClientJournalTransactionOperation) -> Result[
     Unit,
     @sqlite.NativeSqliteIssue,
@@ -109,22 +110,6 @@ fn read_client_submission_name_schema(
         (original.schema)()
       } else {
         -1
-      }
-  }
-}
-
-///|
-fn read_client_submission_name_census(
-  database : @sqlite.Database,
-  reads : NativeClientJournalReadAccess?,
-) -> Int64 {
-  match reads {
-    None => submission_name_census_ffi(database)
-    Some(original) =>
-      if physical_equal(database, original.database) {
-        (original.census)()
-      } else {
-        -1L
       }
   }
 }

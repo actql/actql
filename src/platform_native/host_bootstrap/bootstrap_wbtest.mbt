@@ -174,6 +174,9 @@ test "Common delegation reports are cumulative and unknown final usage is not re
   let usage : @resources.LedgerUsage = {
     planning_work: 2,
     attempts: 1,
+    reserved_attempts: 0,
+    live_reservations: 0,
+    live_delegations: 0,
     holdings: 0,
     transferred_bytes: 7L,
     uncertain_transfer_bytes: 0L,

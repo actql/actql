@@ -578,6 +578,7 @@ fn test_observe_ledger(
     DurationLimit => emit(1813)
     ResourceParked => emit(1814)
     ChildFundingUnavailable => emit(1815)
+    IdentityOverflow => emit(1816)
   }
 }
 

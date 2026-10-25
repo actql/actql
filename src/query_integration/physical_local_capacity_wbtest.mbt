@@ -146,7 +146,7 @@ test "Local working capacity and selected strategy envelope are enforced before 
 }
 
 ///|
-test "strategy comparison cannot reuse consumed attempt or holding record budgets" {
+test "strategy comparison respects spent attempts and live holding budgets" {
   for use_holdings in [false, true] {
     let (run, _) = captured_graph_fixture()
     let ledger = @strategy.captured_dag_ledger(run)
@@ -161,16 +161,22 @@ test "strategy comparison cannot reuse consumed attempt or holding record budget
     assert_true(
       @strategy.revise_strategy(run, offers, registry, None) is Ok(Selected(_)),
     )
+    let holdings : Array[@resources.Holding] = []
     if use_holdings {
       let reservation = @resources.reserve_attempt(ledger, 0L, 0L, 0L).unwrap()
-      for _ in 0..<8 {
-        let holding = @resources.retain_allocation(ledger, reservation, 0L).unwrap()
-        @resources.release_allocation(ledger, holding).unwrap()
+      // Keep nine actual holdings live while comparing the two remaining tasks.
+      for _ in 0..<9 {
+        holdings.push(
+          @resources.retain_allocation(ledger, reservation, 0L).unwrap(),
+        )
       }
       @resources.settle_reservation(ledger, reservation).unwrap()
     } else {
-      for _ in 0..<8 {
+      // The captured source is already supplied, not an entered DAG attempt.
+      // Spend nine of ten originals: the two remaining compute tasks need two.
+      for _ in 0..<9 {
         let reservation = @resources.reserve_attempt(ledger, 0L, 0L, 0L).unwrap()
+        @resources.consume_reserved_attempt(ledger, reservation).unwrap()
         @resources.settle_reservation(ledger, reservation).unwrap()
       }
     }
@@ -187,6 +193,10 @@ test "strategy comparison cannot reuse consumed attempt or holding record budget
         },
       )
     }
+    for holding in holdings {
+      @resources.release_allocation(ledger, holding).unwrap()
+    }
+    assert_eq(@resources.ledger_usage(ledger).holdings, 0)
     assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
     assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
   }

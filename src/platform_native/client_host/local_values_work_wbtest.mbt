@@ -22,7 +22,7 @@ test "Native Local Values work rejects current denial before binding any Run" {
     prepared,
     compiled,
     definition,
-    "{}",
+    native_local_values_test_installed(),
     "{}",
     None,
     None,
@@ -56,7 +56,7 @@ test "Native Local Values work rejects foreign original Run before configuration
     prepared,
     compiled,
     foreign,
-    "{}",
+    native_local_values_test_installed(),
     "{}",
     None,
     None,
@@ -93,7 +93,7 @@ test "Native Local Values work never fills unresolved original Run history" {
     prepared,
     compiled,
     definition,
-    "{}",
+    native_local_values_test_installed(),
     "{}",
     None,
     None,
@@ -128,7 +128,7 @@ test "Native Local Values work never repeats a previously claimed physical start
     prepared,
     compiled,
     definition,
-    "{}",
+    native_local_values_test_installed(),
     "{}",
     None,
     None,
@@ -209,7 +209,7 @@ test "Native Local Values retains the supplied Ledger and never replaces an exha
     |> ignore
     let quoted = @local.single_source_free_local_ledger_limits(
       prepared,
-      assets.registry,
+      native_local_values_test_installed(),
       assets.values,
       Some(assets.fragment),
       assets.ordered,
@@ -234,7 +234,7 @@ test "Native Local Values retains the supplied Ledger and never replaces an exha
       prepared,
       compiled,
       definition,
-      assets.registry,
+      native_local_values_test_installed(),
       assets.values,
       Some(assets.fragment),
       assets.ordered,
@@ -267,4 +267,17 @@ test "Native Local Values retains the supplied Ledger and never replaces an exha
     }
     database.close_checked().unwrap()
   }
+}
+
+///|
+// Genuine installed contract DATA; denial/foreign-Run tests retain their invalid
+// values input and must still refuse before attempting that input's execution.
+fn native_local_values_test_installed() -> @local.ClientInstalledSequenceContracts {
+  let assets = @host.client_local_product_assets()
+  @local.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
 }

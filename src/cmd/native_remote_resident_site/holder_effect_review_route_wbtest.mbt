@@ -41,3 +41,26 @@ test "holder Review artifact URL keeps the installed Site generation and origina
     assert_true(holder_effect_review_artifact_url(invalid, checkpoint) is None)
   }
 }
+
+///|
+/// Use the same configured Site/generation route as observations. Only a
+/// sealed Checkpoint from the original report supplies the final path member;
+/// no candidate URL, future checkpoint identity or new hash is accepted.
+fn holder_effect_review_artifact_url(
+  observation_url : String,
+  checkpoint : @checkpoint.SealedCheckpoint,
+) -> String? {
+  let suffix = "/outbound/observations"
+  if !observation_url.has_prefix("https://") ||
+    !observation_url.has_suffix(suffix) {
+    return None
+  }
+  Some(
+    observation_url.unsafe_substring(
+      start=0,
+      end=observation_url.length() - suffix.length(),
+    ) +
+    "/effect-reviews/" +
+    checkpoint.checkpoint_cid,
+  )
+}

@@ -155,7 +155,7 @@ test "Initial command control preserves exact application text copy" {
   ])
   let copied = command_control_copy_text(original)
   assert_eq(copied.length(), original.length())
-  assert_eq(copied.code_units().to_array(), original.code_units().to_array())
+  assert_eq(copied.code_units().to_owned(), original.code_units().to_owned())
   assert_eq(command_control_copy_text(""), "")
 }
 
@@ -317,4 +317,29 @@ test "Selected command adoption metadata preserves existing exact reply bytes" {
     "Local Host connected; no Run has been admitted.\nAccount: account\nAdoption: adoption",
   )
   assert_true(command_preparation_invocation.val is None)
+}
+
+///|
+test "cleanup cause exposes only closed categories and leaves original family unchanged" {
+  let issue = CommandAdoption(@local_host.CustodyLost)
+  assert_eq(command_preparation_cleanup_kind(issue), "adoption")
+  assert_eq(command_preparation_cleanup_cause(issue), "CustodyLost")
+  let private_message = CommandApplication("private-original-message")
+  assert_eq(
+    command_preparation_cleanup_cause(private_message),
+    "CommandApplication",
+  )
+  let store = CommandBusinessStore(
+    @local_store.LegacyStoreFormat("private-path"),
+  )
+  assert_eq(command_preparation_cleanup_kind(store), "business-store")
+  assert_eq(command_preparation_cleanup_cause(store), "LegacyStoreFormat")
+}
+
+///|
+test "initial Crypto filesystem diagnostic retains its family without private details" {
+  assert_eq(
+    initial_crypto_issue_message(Filesystem(@local_filesystem.InvalidName)),
+    "Filesystem(InvalidName)",
+  )
 }

@@ -140,7 +140,7 @@ test "original publication capacity rejects foreign scope legacy Model and inval
   let legacy = start(
     legacy_prepared,
     2,
-    infer_fixture_registry,
+    infer_fixture_installed_contracts(),
     infer_fixture_values,
     original_funded_start_provider(Ref(0)),
     @publication_host.client_infer_plan_graph_request_cid(legacy_plan),

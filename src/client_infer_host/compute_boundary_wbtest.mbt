@@ -49,7 +49,10 @@ test "bounded Compute suffix consumes exact Infer output without redispatch" {
     )
   let prepared = fixture_prepared(source~)
   let sequence = @input.prepare_client_infer_suffix(
-    prepared, 2, infer_fixture_registry, infer_fixture_values,
+    prepared,
+    2,
+    infer_fixture_installed_contracts(),
+    infer_fixture_values,
   ).unwrap()
   let limits = standard_limits()
   assert_true(
@@ -125,7 +128,10 @@ test "Infer execution owns the suffix across completion and cancellation" {
       ),
     )
     let sequence = @input.prepare_client_infer_suffix(
-      prepared, 2, infer_fixture_registry, infer_fixture_values,
+      prepared,
+      2,
+      infer_fixture_installed_contracts(),
+      infer_fixture_values,
     ).unwrap()
     let calls = Ref(0)
     let active = fixture_start(prepared, () => calls.val += 1)

@@ -88,16 +88,56 @@ fn advance_control_bundle_custody_cleanup(
           response,
         ) {
         Ok(pending) => Some(Responding(pending))
-        Err(_) => {
-          report("bundle-custody-unconfirmed", [("reason", "response-identity")])
-          Some(Unconfirmed(original))
-        }
+        Err(_) =>
+          Some(
+            report_unconfirmed_bundle_custody(
+              Unconfirmed(original),
+              "response-identity",
+              "response",
+            ),
+          )
       }
-    BundleCustodyUncertain(_) => {
-      report("bundle-custody-unconfirmed", [
-        ("reason", "original-store-outcome"),
-      ])
-      Some(Unconfirmed(original))
-    }
+    BundleCustodyUncertain(issue) =>
+      Some(
+        report_unconfirmed_bundle_custody(
+          Unconfirmed(original),
+          "original-store-outcome",
+          match issue {
+            @agent.AuthorityRejected => "authority-rejected"
+            @agent.AdmissionClosed => "admission-closed"
+            @agent.RegistrationMismatch => "registration-mismatch"
+            @agent.Store(_) => "store"
+          },
+        ),
+      )
   }
+}
+
+///|
+// Observe this exact transition once, not on subsequent paced reconciliation
+// passes. Return the same pending duty; this is no Store retry or close ACK.
+fn report_unconfirmed_bundle_custody(
+  pending : PendingBundleCustody,
+  reason : String,
+  category : String,
+) -> PendingBundleCustody {
+  match pending {
+    Unconfirmed(original) =>
+      report("bundle-custody-unconfirmed", [
+        ("reason", reason),
+        ("category", category),
+        (
+          "slot-state",
+          if original.slot_close_unknown {
+            "unknown"
+          } else if original.slot_retired {
+            "retired"
+          } else {
+            "owned"
+          },
+        ),
+      ])
+    _ => ()
+  }
+  pending
 }

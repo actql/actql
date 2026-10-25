@@ -6,28 +6,28 @@ import {
   "actql/actql/connectors/reference_compute",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
-  "actql/actql/physical_host",
-  "actql/actql/physical_strategy",
+  "actql/actql/physical_host_dispatch",
+  "actql/actql/physical_strategy_host",
 }
 
 // Values
-pub fn[C, E] begin_numeric_contribution(NumericComputeContribution, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[AsyncNumericExecution, @physical_strategy.RunIssue]
+pub fn[C, E] begin_numeric_contribution(NumericComputeContribution, @physical_host_dispatch.DispatchHost[C, E], @physical_host_dispatch.PreparedTaskDispatch) -> Result[AsyncNumericExecution, @physical_strategy_host.RunIssue]
 
 pub fn close_async_numeric(AsyncNumericExecution) -> Unit
 
-pub fn complete_async_numeric(AsyncNumericExecution) -> Result[Unit, @physical_strategy.RunIssue]
+pub fn complete_async_numeric(AsyncNumericExecution) -> Result[Unit, @physical_strategy_host.RunIssue]
 
-pub fn configure_numeric_compute(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, NumericComputeConfiguration) -> Result[NumericComputeContribution, @physical_strategy.RunIssue]
+pub fn configure_numeric_compute(@physical_host_dispatch.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, NumericComputeConfiguration) -> Result[NumericComputeContribution, @physical_strategy_host.RunIssue]
 
-pub fn estimate_numeric_dispatch_offer(NumericDispatchModule, Int, Int64?, Int) -> Result[@physical_strategy.TaskOffer?, @physical_strategy.RunIssue]
+pub fn estimate_numeric_dispatch_offer(NumericDispatchModule, Int, Int64?, Int) -> Result[@physical_strategy_host.TaskOffer?, @physical_strategy_host.RunIssue]
 
-pub fn execute_async_numeric(AsyncNumericExecution) -> Result[Unit, @physical_strategy.RunIssue]
+pub fn execute_async_numeric(AsyncNumericExecution) -> Result[Unit, @physical_strategy_host.RunIssue]
 
-pub fn[C, E] execute_numeric_contribution(NumericComputeContribution, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, @physical_strategy.RunIssue]
+pub fn[C, E] execute_numeric_contribution(NumericComputeContribution, @physical_host_dispatch.DispatchHost[C, E], @physical_host_dispatch.PreparedTaskDispatch) -> Result[Unit, @physical_strategy_host.RunIssue]
 
-pub fn[C, E] execute_numeric_contribution_with_completion_admission(NumericComputeContribution, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch, () -> Bool) -> Result[Unit, @physical_strategy.RunIssue]
+pub fn[C, E] execute_numeric_contribution_with_completion_admission(NumericComputeContribution, @physical_host_dispatch.DispatchHost[C, E], @physical_host_dispatch.PreparedTaskDispatch, () -> Bool) -> Result[Unit, @physical_strategy_host.RunIssue]
 
-pub fn[E] numeric_compute_contribution(NumericComputeContribution, (@physical_strategy.RunIssue) -> E, (@physical_strategy.RunIssue) -> E) -> @physical_host.ComputeContribution[Unit, E]
+pub fn[E] numeric_compute_contribution(NumericComputeContribution, (@physical_strategy_host.RunIssue) -> E, (@physical_strategy_host.RunIssue) -> E) -> @physical_host_dispatch.ComputeContribution[Unit, E]
 
 pub fn numeric_contribution_registration(NumericComputeContribution) -> @connector_sdk.CapabilityRegistration
 
@@ -35,15 +35,15 @@ pub fn[T] numeric_managed_dispatch_duration(NumericManagedDispatchConfiguration[
 
 pub fn[T] numeric_managed_dispatch_site_capacity(NumericManagedDispatchConfiguration[T]) -> (Int64, Int64)?
 
-pub fn prepare_numeric_contribution(NumericDispatchModule, Int64?, Int) -> Result[NumericComputeContribution, @physical_strategy.RunIssue]
+pub fn prepare_numeric_contribution(NumericDispatchModule, Int64?, Int) -> Result[NumericComputeContribution, @physical_strategy_host.RunIssue]
 
-pub fn prepare_numeric_dispatch(NumericDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, @physical_strategy.RunIssue]
+pub fn prepare_numeric_dispatch(NumericDispatchModule, Int, @physical_strategy_host.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host_dispatch.DispatchWork, @physical_strategy_host.RunIssue]
 
-pub fn prepare_numeric_dispatch_module(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.CompletionPreparation], @reference_compute.NumericExecutionLimits, @lowering_relation.ExpressionLimits) -> Result[NumericDispatchModule, @reference_compute.PlanIssue]
+pub fn prepare_numeric_dispatch_module(@physical_host_dispatch.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.CompletionPreparation], @reference_compute.NumericExecutionLimits, @lowering_relation.ExpressionLimits) -> Result[NumericDispatchModule, @reference_compute.PlanIssue]
 
-pub fn[T] prepare_numeric_managed_dispatch(NumericComputeContribution, Array[@execution_relation.ManagedCompletedOutput[T]], @execution_relation.ManagedObligations, Int64) -> Result[NumericManagedDispatchConfiguration[T]?, @physical_strategy.RunIssue]
+pub fn[T] prepare_numeric_managed_dispatch(NumericComputeContribution, Array[@execution_relation.ManagedCompletedOutput[T]], @execution_relation.ManagedObligations, Int64) -> Result[NumericManagedDispatchConfiguration[T]?, @physical_strategy_host.RunIssue]
 
-pub fn settle_async_numeric(AsyncNumericExecution) -> Result[Unit, @physical_strategy.RunIssue]
+pub fn settle_async_numeric(AsyncNumericExecution) -> Result[Unit, @physical_strategy_host.RunIssue]
 
 pub fn[T] start_numeric_managed_dispatch(NumericManagedDispatchConfiguration[T]) -> Result[NumericManagedDispatchOperations[T], @reference_compute.PlanIssue]
 

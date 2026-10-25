@@ -5,6 +5,6 @@ supported_targets = "+js"
 pkgtype(kind: "foreign_library")
 
 import {
-  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/physical_task_manifest" @manifest,
 }

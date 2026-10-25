@@ -40,12 +40,21 @@ fn effect_values_work_test_opened(
 ///|
 // Public pinned contract bodies supplied by the bounded matching-target guard.
 // These are test inputs, not an installation, authority or funding supplier.
-fn effect_values_work_test_bodies() -> (String, String, String?) {
-  (
-    @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_REGISTRY").unwrap(),
-    @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_VALUES").unwrap(),
-    @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_FRAGMENT"),
-  )
+fn effect_values_work_test_bodies() -> (
+  @local.ClientInstalledSequenceContracts,
+  String,
+  String?,
+) {
+  let registry = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_REGISTRY").unwrap()
+  let values = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_VALUES").unwrap()
+  let fragment = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_FRAGMENT")
+  let installed = @local.prepare_installed_sequence_contracts(
+    registry,
+    values,
+    fragment,
+    None,
+  ).unwrap()
+  (installed, values, fragment)
 }
 
 ///|

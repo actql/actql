@@ -8,27 +8,28 @@ import {
   "actql/actql/managed_carrier_runtime",
   "actql/actql/physical_cost",
   "actql/actql/physical_host",
-  "actql/actql/physical_strategy",
+  "actql/actql/physical_host_dispatch",
+  "actql/actql/physical_strategy_host",
 }
 
 // Values
-pub fn configure_local_compute(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, LocalComputeConfiguration) -> Result[LocalDispatchModule, LocalDispatchIssue]
+pub fn configure_local_compute(@physical_host_dispatch.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, LocalComputeConfiguration) -> Result[LocalDispatchModule, LocalDispatchIssue]
 
 pub fn configure_local_retained_inputs(LocalDispatchModule, @local.LocalImportLimits, Int64?, metadata? : LocalManagedMetadataLimits?) -> Result[Unit, LocalDispatchIssue]
 
 pub fn configure_local_retained_output(LocalDispatchModule, @local.LocalExportLimits, Int64?) -> Result[Unit, LocalDispatchIssue]
 
-pub fn estimate_local_dispatch_offer(LocalDispatchModule, Int, Array[@physical_cost.SerialEstimateLine], Int) -> Result[@physical_strategy.TaskOffer, LocalDispatchIssue]
+pub fn estimate_local_dispatch_offer(LocalDispatchModule, Int, Array[@physical_cost.SerialEstimateLine], Int) -> Result[@physical_strategy_host.TaskOffer, LocalDispatchIssue]
 
-pub fn estimate_local_installed_offers(LocalDispatchModule, Int, @physical_host.TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], LocalEstimateIssue]
+pub fn estimate_local_installed_offers(LocalDispatchModule, Int, @physical_host.TaskEstimateQuantities) -> Result[Array[@physical_strategy_host.TaskOffer], LocalEstimateIssue]
 
-pub fn estimate_local_module_offers(LocalEstimateModule, Int, @physical_host.TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], LocalEstimateIssue]
+pub fn estimate_local_module_offers(LocalEstimateModule, Int, @physical_host.TaskEstimateQuantities) -> Result[Array[@physical_strategy_host.TaskOffer], LocalEstimateIssue]
 
-pub fn[C, E] execute_local_dispatch(LocalDispatchModule, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, LocalDispatchIssue]
+pub fn[C, E] execute_local_dispatch(LocalDispatchModule, @physical_host_dispatch.DispatchHost[C, E], @physical_host_dispatch.PreparedTaskDispatch) -> Result[Unit, LocalDispatchIssue]
 
 pub fn install_local_dispatch_estimates(LocalDispatchModule, LocalEstimateModule) -> Result[Unit, LocalEstimateIssue]
 
-pub fn[E] local_compute_contribution(LocalDispatchModule, (LocalDispatchIssue) -> E, (LocalEstimateIssue) -> E) -> @physical_host.ComputeContribution[Unit, E]
+pub fn[E] local_compute_contribution(LocalDispatchModule, (LocalDispatchIssue) -> E, (LocalEstimateIssue) -> E) -> @physical_host_dispatch.ComputeContribution[Unit, E]
 
 pub fn local_dispatch_next_carrier_path(LocalDispatchModule) -> Bool
 
@@ -54,11 +55,11 @@ pub fn[T] local_managed_relation_output(@execution_relation.ManagedCompletedOutp
 
 pub fn[T] local_managed_supplied_relation_input() -> LocalManagedAvailableOutput[T]
 
-pub fn local_publication_bridge_limits(LocalDispatchModule, @physical_strategy.CapturedDAG) -> @execution_relation.ManagedPublicationBridgeLimits?
+pub fn local_publication_bridge_limits(LocalDispatchModule, @physical_strategy_host.CapturedDAG) -> @execution_relation.ManagedPublicationBridgeLimits?
 
-pub fn prepare_local_dispatch(LocalDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, LocalDispatchIssue]
+pub fn prepare_local_dispatch(LocalDispatchModule, Int, @physical_strategy_host.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host_dispatch.DispatchWork, LocalDispatchIssue]
 
-pub fn prepare_local_dispatch_module(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, managed_capacity? : @connector_sdk.FixedComputeCapacity, managed_providers? : Array[@local.ManagedProvider]) -> Result[LocalDispatchModule, LocalDispatchIssue]
+pub fn prepare_local_dispatch_module(@physical_host_dispatch.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, managed_capacity? : @connector_sdk.FixedComputeCapacity, managed_providers? : Array[@local.ManagedProvider]) -> Result[LocalDispatchModule, LocalDispatchIssue]
 
 pub fn prepare_local_estimate_module(LocalDispatchModule, Array[@physical_cost.RateSchedule], Int, eligible? : Array[Bool]) -> Result[LocalEstimateModule, LocalEstimateIssue]
 
@@ -68,7 +69,7 @@ pub fn[T] prepare_local_managed_dispatch(LocalDispatchModule, Array[@execution_r
 
 pub fn[T] prepare_local_managed_dispatch_with_outputs(LocalDispatchModule, Array[LocalManagedAvailableOutput[T]], @execution_relation.ManagedObligations, Int64) -> Result[LocalManagedDispatchConfiguration[T]?, LocalDispatchIssue]
 
-pub fn[C, E] start_local_dispatch(LocalDispatchModule, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[LocalDispatchOperations, LocalDispatchIssue]
+pub fn[C, E] start_local_dispatch(LocalDispatchModule, @physical_host_dispatch.DispatchHost[C, E], @physical_host_dispatch.PreparedTaskDispatch) -> Result[LocalDispatchOperations, LocalDispatchIssue]
 
 pub fn[T] start_local_managed_dispatch(LocalManagedDispatchConfiguration[T]) -> Result[LocalManagedDispatchOperations[T], LocalDispatchIssue]
 
@@ -89,9 +90,9 @@ pub(all) struct LocalComputeConfiguration {
 pub(all) enum LocalDispatchIssue {
   Configuration(@connector_sdk.FixedComputeIssue)
   Preparation(@local.LocalModuleIssue)
-  Dispatch(@physical_host.DispatchIssue)
-  Execution(@physical_strategy.RunIssue)
-  Search(@physical_strategy.SearchIssue)
+  Dispatch(@physical_host_dispatch.DispatchIssue)
+  Execution(@physical_strategy_host.RunIssue)
+  Search(@physical_strategy_host.SearchIssue)
   ManagedValues(@execution_relation.ManagedOutputValueIssue)
   ManagedCopy(@execution_relation.ManagedIndependentOutputIssue)
   ManagedRetention(@execution_relation.ManagedOutputRetentionIssue)

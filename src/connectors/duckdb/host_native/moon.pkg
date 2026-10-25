@@ -18,7 +18,7 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/execution_query" @query,
   "actql/actql/physical_resources" @resources,
-  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/platform_native/run_publication" @native_publication,
   "actql/actql/platform_native/http_client" @http,
   "actql/actql/platform_native/retained_task_file" @retained_file,

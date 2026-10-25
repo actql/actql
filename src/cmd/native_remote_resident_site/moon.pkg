@@ -3,6 +3,7 @@ supported_targets = "native"
 pkgtype(kind: "executable")
 
 import {
+  "actql/actql/client_local_host" @local_values,
   "actql/actql/platform_native/remote_agent" @agent,
   "actql/actql/check_environment" @environment,
   "actql/actql/decode_core" @decode,
@@ -10,8 +11,6 @@ import {
   "actql/actql/execution_authorization" @authorization,
   "actql/actql/execution_site" @site,
   "actql/actql/platform_native/bounded_files",
-  "actql/actql/platform_native/host_bootstrap" @bootstrap,
-  "actql/actql/physical_resources" @resources,
   "actql/actql/platform_native/executor_slot" @slot,
   "actql/actql/platform_native/http_client" @http,
   "actql/actql/platform_native/filesystem",

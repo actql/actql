@@ -1,5 +1,5 @@
 ///|
-fn result_envelope_fixture() -> @publication_host.PreparedClientProgram raise {
+fn result_envelope_fixture() -> @publication_host.PreparedClientProgram {
   let assets = @publication_host.client_local_product_assets()
   let environment = @publication_host.admit_client_check_environment(
     assets.environment,
@@ -34,7 +34,7 @@ test "result envelope counts aliases and repeated order occurrences without outp
 ///|
 test "result envelope derives row workspace and rejects representation overflow" {
   let graph = @publication_host.prepared_client_graph(result_envelope_fixture())
-  for (rows, workspace) in [(1, 8), (20000, 40006), (100000,200006)] {
+  for (rows, workspace) in [(1, 8), (20000, 40006), (100000, 200006)] {
     let envelope = client_local_result_envelope(graph, rows).unwrap()
     assert_eq(envelope.fields, 2)
     assert_eq(envelope.mapping_work, 16)
@@ -123,7 +123,12 @@ test "publication bridge metadata is projected only from the exact sealed Run" {
   let prepared = result_envelope_fixture()
   let first = open_source_free_local_retained_host(
     prepared,
-    prepare_installed_sequence_contracts(assets.registry,assets.values,Some(assets.fragment),assets.ordered).unwrap(),
+    prepare_installed_sequence_contracts(
+      assets.registry,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    ).unwrap(),
     assets.values,
     0L,
     0L,
@@ -134,7 +139,12 @@ test "publication bridge metadata is projected only from the exact sealed Run" {
   ).unwrap()
   let second = open_source_free_local_retained_host(
     prepared,
-    prepare_installed_sequence_contracts(assets.registry,assets.values,Some(assets.fragment),assets.ordered).unwrap(),
+    prepare_installed_sequence_contracts(
+      assets.registry,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    ).unwrap(),
     assets.values,
     0L,
     0L,
@@ -169,7 +179,12 @@ test "publication projection borrows the original plan before admission and reje
   let assets = @publication_host.client_local_product_assets()
   let original = prepare_installed_managed_source_free_with_contracts(
     prepared,
-    prepare_installed_sequence_contracts(assets.registry,assets.values,Some(assets.fragment),assets.ordered).unwrap(),
+    prepare_installed_sequence_contracts(
+      assets.registry,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    ).unwrap(),
     assets.values,
     Some(assets.fragment),
     assets.ordered,
@@ -201,10 +216,19 @@ test "unordered Result publication row work follows original 10001 and 100000 ro
     let assets = @publication_host.client_local_product_assets()
     let original = prepare_installed_managed_source_free_with_contracts(
       prepared,
-      prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap(),
-      assets.values, Some(assets.fragment), assets.ordered,
+      prepare_installed_sequence_contracts(
+        assets.registry,
+        assets.values,
+        Some(assets.fragment),
+        assets.ordered,
+      ).unwrap(),
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
     ).unwrap()
-    let projected = prepared_installed_managed_publication_limits(original, prepared, 10000000).unwrap()
+    let projected = prepared_installed_managed_publication_limits(
+      original, prepared, 10000000,
+    ).unwrap()
     assert_eq(projected.max_result_order_work, rows)
     assert_true(projected.max_result_workspace_entries >= 2 * rows)
   }

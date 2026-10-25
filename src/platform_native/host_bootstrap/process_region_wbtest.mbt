@@ -133,6 +133,35 @@ fn process_fixture_finish(value : ProcessRegionTestFixture) -> Unit raise {
 ///|
 test "prepared process binding blocks ordinary retirement until same original abandonment" {
   let value = process_fixture("prepared")
+  // Equal-looking identities cannot retire the actual successfully mapped FD.
+  let foreign_original = { identity: 71, }
+  let foreign_child = { identity: 72, }
+  let reserved = value.host.usage().reserved_execution_bytes
+  assert_true(value.host.try_close(foreign_original) is Err(ForeignOriginal))
+  assert_true(
+    value.host.close_backed_domain(value.original, value.domain, foreign_child)
+    is Err(_),
+  )
+  assert_true(
+    value.host.close_backed_view(
+      value.original,
+      value.domain.view,
+      foreign_child,
+    )
+    is Err(_),
+  )
+  assert_true(
+    value.host.settle_backed_region_after_owner_ack(
+      value.original,
+      value.loan,
+      foreign_child,
+      None,
+    )
+    is Err(_),
+  )
+  assert_false(value.loan.physical_returned)
+  assert_false(value.host.closed)
+  assert_eq(value.host.usage().reserved_execution_bytes, reserved)
   let holder = process_fixture_holder("prepared")
   let record = match
     value.host

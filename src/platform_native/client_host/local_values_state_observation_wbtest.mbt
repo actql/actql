@@ -111,7 +111,7 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
       prepared,
       compiled,
       definition,
-      assets.registry,
+      native_local_values_test_installed(),
       assets.values,
       Some(assets.fragment),
       assets.ordered,

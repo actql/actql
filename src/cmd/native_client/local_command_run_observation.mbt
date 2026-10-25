@@ -10,9 +10,10 @@ priv struct LocalCommandRunObservationOriginal {
   mut parent_failure : @local_filesystem.NativeRootOpenFailure?
   mut root : @local_filesystem.Root?
   mut root_failure : @local_filesystem.NativeRootOpenFailure?
-  mut namespace : String?
+  mut selected_namespace : String?
   mut attempted : Bool
-  mut store_issue : @local_store.NativePublicationStoreIssue?
+  // Retain the exact failed Store receipt with this original across cleanup.
+  mut _retained_store_issue : @local_store.NativePublicationStoreIssue?
 }
 
 ///|
@@ -53,9 +54,9 @@ fn LocalCommandPreparationOriginal::prepare_run_observation_operation(
     parent_failure: None,
     root: None,
     root_failure: None,
-    namespace: None,
+    selected_namespace: None,
     attempted: false,
-    store_issue: None,
+    _retained_store_issue: None,
   })
   Ok(())
 }
@@ -75,7 +76,7 @@ fn LocalCommandPreparationOriginal::open_run_observation_store(
     stop("LocalRunObservationOriginalUnavailable")
   }
   if original.store is Some(store) {
-    guard original.namespace == Some(run.namespace_id) &&
+    guard original.selected_namespace == Some(run.namespace_id) &&
       original.root_bridge is Some(bridge) &&
       store.matches_original_operation(bridge) else {
       stop("LocalRunObservationForeignStore")
@@ -87,7 +88,7 @@ fn LocalCommandPreparationOriginal::open_run_observation_store(
   }
   // A failed first acquisition never becomes a second open or initializer.
   original.attempted = true
-  original.namespace = Some(run.namespace_id)
+  original.selected_namespace = Some(run.namespace_id)
   command_preparation_result(
     original.operation.activate().map_err(issue => CommandStoreOperation(issue)),
   )
@@ -146,11 +147,11 @@ fn LocalCommandPreparationOriginal::open_run_observation_store(
     }
     Err(CleanupRequired(failure)) => {
       original.failure = Some(failure)
-      original.store_issue = Some(failure.issue())
+      original._retained_store_issue = Some(failure.issue())
       stop("LocalRunObservationStoreCleanupPending")
     }
     Err(RefusedBeforeAcquisition(issue)) => {
-      original.store_issue = Some(issue)
+      original._retained_store_issue = Some(issue)
       stop("LocalRunObservationStoreUnavailable")
     }
   }
@@ -262,7 +263,7 @@ fn LocalCommandRunObservationOriginal::close_root_descriptors(
 
 ///|
 // Exact current RunRead selection precedes any Store open. The adopted Runtime
-// and original namespace join this same installed Store; no Result read grant
+// and original selected_namespace join this same installed Store; no Result read grant
 // or business installation is selected merely to observe availability.
 fn LocalCommandPreparationOriginal::refresh_run_observation_state(
   self : LocalCommandPreparationOriginal,

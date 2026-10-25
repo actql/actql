@@ -2,7 +2,7 @@
 /// Strict, one-stage Closed Values topology only. This is a component vector,
 /// not a grant or a second tariff. The original guarded input, source trees,
 /// compiler/result graph and context components remain separate dependencies.
-struct ClosedValuesTopologyLayout {
+priv struct ClosedValuesTopologyLayout {
   retained : PreparationRepresentationUnits
   temporary : PreparationRepresentationUnits
 }
@@ -29,8 +29,13 @@ struct ClosedValuesTopologyLayout {
 /// internals, pipeline_parameters collection, ContextualClosure or check-only
 /// topology is duplicated here. Empty parameter owners are real, not None.
 fn closed_values_topology_retained_layout() -> PreparationRepresentationUnits {
-  {record_headers:52L,reference_slots:137L,scalar_words:73L,
-    owned_utf16_units:0L,owned_wire_bytes:0L}
+  {
+    record_headers: 52L,
+    reference_slots: 137L,
+    scalar_words: 73L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
 }
 
 ///|
@@ -39,13 +44,17 @@ fn closed_values_topology_retained_layout() -> PreparationRepresentationUnits {
 /// and names borrow the source indexed tree; its Map is priced separately.
 /// Root and Stage bodies have at most four members on the exact shape guard.
 fn closed_values_topology_layout() -> ClosedValuesTopologyLayout? {
-  let retained=closed_values_topology_retained_layout()
+  let retained = closed_values_topology_retained_layout()
   let view : PreparationRepresentationUnits = {
-    record_headers:13L,reference_slots:18L,scalar_words:12L,
-    owned_utf16_units:0L,owned_wire_bytes:0L}
-  let map4=closed_values_map_constructor_layout(4).unwrap()
-  let known=closed_values_map_constructor_layout(1).unwrap()
-  let empty=closed_values_map_constructor_layout(0).unwrap()
+    record_headers: 13L,
+    reference_slots: 18L,
+    scalar_words: 12L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  let map4 = closed_values_map_constructor_layout(4).unwrap()
+  let known = closed_values_map_constructor_layout(1).unwrap()
+  let empty = closed_values_map_constructor_layout(0).unwrap()
   // Five distinct opens: parameters.prepare root; local_program stage;
   // parameters.collect stage; bind_ports stage; collect_checked stage.
   // No per-cell traversal occurs in these topology wrappers.
@@ -63,16 +72,27 @@ fn closed_values_topology_layout() -> ClosedValuesTopologyLayout? {
   // (prepare,bind,local_program,collect,imports,inventory,orders,ports,
   // wire,operations,checked). Each limit has at most eight scalar fields.
   let controls : PreparationRepresentationUnits = {
-    record_headers:17L,reference_slots:5L,scalar_words:95L,
-    owned_utf16_units:0L,owned_wire_bytes:0L}
+    record_headers: 17L,
+    reference_slots: 5L,
+    scalar_words: 95L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
   // Output/quote construction: two unit records, this result, Some, and the
   // 15-element sum array wrapper/backing, including scalar backing lengths.
   let proof : PreparationRepresentationUnits = {
-    record_headers:6L,reference_slots:19L,scalar_words:13L,
-    owned_utf16_units:0L,owned_wire_bytes:0L}
+    record_headers: 6L,
+    reference_slots: 19L,
+    scalar_words: 13L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
   guard closed_values_sum_layouts([
-    retained,view,view,view,view,view,map4,map4,map4,map4,map4,
-    known,empty,controls,proof,
-  ]) is Some(temporary) else { return None }
-  Some({retained,temporary})
+      retained, view, view, view, view, view, map4, map4, map4, map4, map4, known,
+      empty, controls, proof,
+    ])
+    is Some(temporary) else {
+    return None
+  }
+  Some({ retained, temporary, })
 }

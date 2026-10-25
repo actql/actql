@@ -6,5 +6,5 @@ pkgtype(kind: "foreign_library")
 import {
   "actql/actql/run_publication" @publication,
   "actql/actql/execution_site" @site,
-  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_strategy_host" @strategy,
 }

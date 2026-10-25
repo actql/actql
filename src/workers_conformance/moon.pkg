@@ -6,7 +6,7 @@ pkgtype(kind: "foreign_library")
 import {
   "actql/actql/connectors/mock/acquisition" @mock,
   "actql/actql/physical_resources" @resources,
-  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/parameter_references" @parameter_refs,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/decode_core" @decode,
@@ -30,7 +30,7 @@ import {
   "actql/actql/sourceview_resolution" @acquisition,
   "actql/actql/numeric_reduction" @numeric,
   "actql/actql/connectors_workers" @builtin,
-  "actql/actql/physical_host" @host_driver,
+  "actql/actql/physical_host_dispatch" @host_driver,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/run_publication" @publication,
   "actql/actql/run_publication_host" @publication_host,

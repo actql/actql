@@ -4,7 +4,7 @@
 /// the Site operator; no dispatch can expand it or replace the Source mapping.
 fn retained_consumer_configuration(
   source : @resident_host.ResidentSourceConfiguration,
-  registry_body : String,
+  installed_contracts : @local_values.ClientInstalledSequenceContracts,
   values_body : String,
   engine_bytes : Int64,
 ) -> @resident_host.ResidentSourceComputeConfiguration? {
@@ -35,7 +35,7 @@ fn retained_consumer_configuration(
       // checked consumer. The operator's byte ceilings remain unchanged.
       ledger: { ..source.ledger, attempts: 2, holdings: 2, },
     },
-    registry_body,
+    installed_contracts,
     values_body,
     dispatch: {
       input_entries: 100,
@@ -173,5 +173,25 @@ fn retained_consumer_input_limits() -> @output.NativeRemoteStandardTransferSourc
       max_work: 200000,
     },
     wire: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+  }
+}
+
+///|
+// The same immutable installed closure feeds both ordinary and retained runs.
+// Invalid operator DATA never becomes a run permission or a replacement pin.
+fn resident_installed_contracts(
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+) -> @local_values.ClientInstalledSequenceContracts? {
+  match
+    @local_values.prepare_installed_sequence_contracts(
+      registry_body,
+      values_body,
+      fragment_body,
+      None,
+    ) {
+    Ok(value) => Some(value)
+    Err(_) => None
   }
 }

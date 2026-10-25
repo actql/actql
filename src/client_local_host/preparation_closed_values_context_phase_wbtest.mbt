@@ -31,7 +31,7 @@ test "ClosedValues context core finite source owners and writer growth" {
   }
   let core = closed_values_context_core_layout(facts).unwrap()
   assert_true(preparation_representation_cost(core.retained).unwrap() > 0L)
-  assert_true(core.failure == core.temporary)
+  assert_true(core._observed_failure == core.temporary)
   let one = closed_values_operation_writer_layout(1, 1).unwrap()
   let many = closed_values_operation_writer_layout(100, 99).unwrap()
   assert_true(

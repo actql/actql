@@ -296,6 +296,7 @@ fn check_impl(
           @carrier.typed_rows(@values.output_schema(checked)),
         ),
         connections: { entries: [], },
+        filter_refinement: None,
         window: None,
       })
       names[binding] = target
@@ -387,6 +388,7 @@ fn check_impl(
             Some(t) => [{ role: Primary, target: t, }]
           },
         },
+        filter_refinement: None,
         window: match main {
           None => None
           Some(Step(i)) => steps[i].window
@@ -479,6 +481,7 @@ fn check_impl(
             target,
           }),
         },
+        filter_refinement: None,
         window: None,
       })
       names[binding] = target
@@ -531,6 +534,7 @@ fn check_impl(
         operation: TimeSeries(checked),
         output: @series.output(checked),
         connections: { entries: [], },
+        filter_refinement: None,
         window: None,
       })
       names[binding] = target
@@ -692,6 +696,7 @@ fn check_impl(
         operation: Serialize(checked),
         output: @carrier.relation(@carrier.typed_rows(checked.output)),
         connections: { entries: [{ role: Primary, target: input, }], },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -744,6 +749,7 @@ fn check_impl(
           @carrier.typed_rows(@evidence.infer_output_schema(checked)),
         ),
         connections: { entries: [{ role: Primary, target: input, }], },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -792,6 +798,7 @@ fn check_impl(
           @carrier.typed_rows(@relation.sequence_output(checked)),
         ),
         connections: { entries: [{ role: Primary, target: input, }], },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -853,6 +860,7 @@ fn check_impl(
             { role: Right, target: right, },
           ],
         },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -911,6 +919,7 @@ fn check_impl(
             { role: Right, target: right, },
           ],
         },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -998,6 +1007,7 @@ fn check_impl(
             { role: Right, target: right, },
           ],
         },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -1083,6 +1093,7 @@ fn check_impl(
             target,
           }),
         },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -1142,6 +1153,7 @@ fn check_impl(
             { role: Right, target: right, },
           ],
         },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -1225,6 +1237,7 @@ fn check_impl(
         ),
         output: @graph.shortest_output(shortest),
         connections: { entries, },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -1298,6 +1311,7 @@ fn check_impl(
         operation: Subgraph(selector=selected, checked~),
         output: @graph.subgraph_output(checked),
         connections: { entries, },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -1388,6 +1402,7 @@ fn check_impl(
         operation,
         output,
         connections: { entries, },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -1441,6 +1456,7 @@ fn check_impl(
         operation: GraphMatch(checked),
         output: @graph.match_output(checked),
         connections: { entries: [{ role: Primary, target: input, }], },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -1510,6 +1526,7 @@ fn check_impl(
         operation,
         output,
         connections: { entries: [{ role: Primary, target: input, }], },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -1549,6 +1566,7 @@ fn check_impl(
         operation: GraphNormalize(checked),
         output: @graph.normalize_output(checked),
         connections: { entries: [{ role: Primary, target: input, }], },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -1593,6 +1611,7 @@ fn check_impl(
         operation: GraphComponents(checked),
         output: @graph.components_output(checked),
         connections: { entries: [{ role: Primary, target: input, }], },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -1654,6 +1673,7 @@ fn check_impl(
             { role: Right, target: queries, },
           ],
         },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -1718,6 +1738,7 @@ fn check_impl(
         operation: Ranking(checked),
         output: @vector.merged_ranking_output(checked),
         connections: { entries: edges, },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -1767,6 +1788,7 @@ fn check_impl(
         operation: Pool(checked),
         output: @vector.pooled_output(checked),
         connections: { entries: [{ role: Primary, target: input, }], },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -1831,6 +1853,7 @@ fn check_impl(
             { role: Right, target: queries, },
           ],
         },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -1883,6 +1906,7 @@ fn check_impl(
         operation: Vector(checked),
         output: @vector.output(checked),
         connections: { entries: [{ role: Primary, target: input, }], },
+        filter_refinement: None,
         window: None,
       })
       if binding_name is Some(name) {
@@ -1941,6 +1965,7 @@ fn check_impl(
         operation,
         output: @event.output(checked),
         connections: { entries: [{ role: Primary, target: input, }], },
+        filter_refinement: None,
         window,
       })
       if binding_name is Some(name) {
@@ -1998,6 +2023,7 @@ fn check_impl(
         operation,
         output: @projection.output(checked),
         connections: { entries: [{ role: Primary, target: input, }], },
+        filter_refinement: None,
         window,
       })
       if binding_name is Some(name) {
@@ -2047,6 +2073,7 @@ fn check_impl(
         operation: Window(checked),
         output: @window.output(checked),
         connections: { entries: [{ role: Primary, target: input, }], },
+        filter_refinement: None,
         window: Some({ starts: [start], ends: [end], }),
       })
       if binding_name is Some(name) {
@@ -2055,6 +2082,7 @@ fn check_impl(
       current = Some(target)
       continue
     }
+    let mut filter_refinement : @evidence.RefinedFilter? = None
     let (checked, output) = match op {
       Some(op) => {
         let input_schema = schema(
@@ -2111,13 +2139,19 @@ fn check_impl(
         b.text -= @relation.text_bytes_used(checked)
         b.nodes -= @relation.nodes_used(checked)
         b.tokens -= @relation.tokens_used(checked)
+        if op is Filter {
+          filter_refinement = infer_filter_refinement(b, source, steps, checked)
+        }
         (
           if key == "window_group" {
             WindowGroup(checked)
           } else {
             Unary(checked)
           },
-          @relation.output_schema(checked),
+          match filter_refinement {
+            Some(proof) => @evidence.refined_filter_output(proof)
+            None => @relation.output_schema(checked)
+          },
         )
       }
       None =>
@@ -2408,6 +2442,7 @@ fn check_impl(
       operation: checked,
       output: @carrier.relation(@carrier.typed_rows(output)),
       connections,
+      filter_refinement,
       window: transfer_window(
         b, operation_body, input, steps, checked, produced_inputs,
       ),
