@@ -324,7 +324,7 @@ test "Notion capped status is refused before early or final query rows" {
         "{\"type\":\"incomplete\"}",
       ] {
       let wire = query_test_page(query_test_row("page"), cursor, more)
-      let wire = wire.substring(start=0, end=wire.length() - 1) +
+      let wire = wire[:wire.length() - 1].to_owned() +
         ",\"request_status\":" +
         status +
         "}"
@@ -352,7 +352,7 @@ test "Notion query status is optional typed provider DATA not a cursor alias" {
     status in [
       "{\"type\":\"complete\"}", "{\"type\":\"complete\",\"incomplete_reason\":\"query_result_limit_reached\"}",
     ] {
-    let wire = base.substring(start=0, end=base.length() - 1) +
+    let wire = base[:base.length() - 1].to_owned() +
       ",\"request_status\":" +
       status +
       "}"
@@ -373,7 +373,7 @@ test "Notion query status is optional typed provider DATA not a cursor alias" {
       "{\"incomplete_reason\":\"query_result_limit_reached\"}", "{\"type\":\"complete\",\"incomplete_reason\":null}",
       "{\"type\":\"complete\",\"incomplete_reason\":\"future\"}", "{\"type\":\"complete\",\"extra\":true}",
     ] {
-    let wire = base.substring(start=0, end=base.length() - 1) +
+    let wire = base[:base.length() - 1].to_owned() +
       ",\"request_status\":" +
       status +
       "}"

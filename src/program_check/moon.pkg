@@ -10,7 +10,7 @@ import {
   "actql/actql/sha256" @sha,
   "actql/actql/canonical_json" @json,
   "actql/actql/lowering_relation" @lower,
-  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/physical_resources" @resources,
   "actql/actql/source_request_slots" @slots,
   "actql/actql/source_frontend" @frontend,

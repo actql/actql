@@ -65,7 +65,7 @@ test "Command presence role is bounded validated when unused and not a general v
       assert_eq(
         body_dependency_at(dependencies, 1),
         Some(
-          "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947",
+          "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1",
         ),
       )
       assert_true(

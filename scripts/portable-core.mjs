@@ -19,6 +19,11 @@ export const pureExternal = Object.freeze({
 // The portable scalar kernel uses their constants and numeric representations,
 // not the target-selected stdlib math implementation. Keep this explicit review
 // local to that Owner; it grants no environment or generated-runtime authority.
+// These packages own live custody, not portable checked-graph proposals. Reject
+// them even if a future implementation happens to contain no syntactic FFI.
+const hostCustodyPackages = new Set([
+  'physical_resources', 'physical_strategy_host', 'physical_host_dispatch',
+]);
 const numericKernelExternal = Object.freeze({
   'moonbitlang/core/builtin': 'Pinned scalar primitive representations; implicit-runtime and explicit-seed audits remain required.',
   'moonbitlang/core/double': 'Pinned Double constants and representations for the portable scalar kernel.',
@@ -194,6 +199,7 @@ export function inspectCore(root, roots = coreRoots) {
   while (pending.length) {
     const name = pending.pop();
     if (packages.has(name)) continue;
+    if (hostCustodyPackages.has(name)) throw new Error(`HostCustodyCoreDependency: ${name}`);
     if (!/^[a-z][a-z_0-9]*$/.test(name) || /^(duckdb_|connectors_|.*_node$|.*_workers$)/.test(name)) {
       throw new Error(`ConcreteCoreDependency: ${name}`);
     }

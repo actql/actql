@@ -13,19 +13,19 @@ extern "js" fn publication_test_url() -> String =
 ///|
 extern "js" fn publication_test_original(
   loader : PublicationTestLoader,
-  input : Array[Int],
+  input : () -> Array[Int],
   current : () -> Unit,
 ) -> @resources.OriginalNodeManagedRunReference =
-  #|(loader,input,current) => loader('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs').retainOrdinaryManagedRun(input,{planningWork:0,attempts:0,holdings:0,transferBytes:0n,retainedBytes:536870912n,executionBytes:536870912n},current,()=>false,'local-preparation')
+  #|(loader,input,current) => loader('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs').retainOrdinaryManagedRun(input(),{planningWork:0,attempts:0,holdings:0,transferBytes:0n,retainedBytes:536870912n,executionBytes:536870912n},current,()=>false,'local-preparation')
 
 ///|
 fn publication_custody_fixture(
   current : () -> Unit,
-) -> (ClientProgramPublication[Array[Int]], @resources.Ledger) raise {
+) -> (ClientProgramPublication[Array[Int]], @resources.Ledger) {
   let input = [1]
   let original = publication_test_original(
     publication_test_loader(publication_test_url()),
-    input,
+    () => input,
     current,
   )
   let initial = @resources.prepare_node_local_preparation_admission(
@@ -92,9 +92,6 @@ fn publication_custody_fixture(
   let value : ClientProgramPublication[Array[Int]] = {
     owner,
     holder,
-    base_retained: 1000000L,
-    snapshot_retained: 0L,
-    snapshot_execution: publication_projection_execution,
     capture_started: false,
     capture: None,
     run: None,
@@ -109,10 +106,10 @@ fn publication_custody_fixture(
 
 ///|
 test "publication handle rejects manager returned by currentness while sibling still borrows" {
-  let armed = Ref::new(false)
+  let armed = Ref(false)
   let selected : Ref[
     @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram]?,
-  ] = Ref::new(None)
+  ] = Ref(None)
   let (value, ledger) = publication_custody_fixture(() => {
     if armed.val {
       armed.val = false
@@ -154,7 +151,7 @@ test "publication escaped handle and one-shot continuation reject retired owner"
 }
 
 ///|
-fn publication_custody_contract() -> @publication.PublicationContract raise {
+fn publication_custody_contract() -> @publication.PublicationContract {
   @publication.result_definition_contract(
     @publication.prepare_result_definition("sha256:" + "8".repeat(64), "answer").unwrap(),
   )
@@ -165,7 +162,7 @@ fn publication_custody_contract() -> @publication.PublicationContract raise {
 /// private constructor ownership, not validity of an assembled publication.
 fn publication_custody_issuer(
   contract : @publication.PublicationContract,
-) -> @publication.CapturedRunIssuancePreparation raise {
+) -> @publication.CapturedRunIssuancePreparation {
   let authoring = @publication.seal_run_evidence_value(
     "authoring_context",
     "{\"version\":\"actql-authoring-context/0.1\",\"program_definition_cid\":\"sha256:" +
@@ -224,8 +221,8 @@ test "publication capture handle retirement cancels private issuer before zero" 
 
 ///|
 test "publication capture handle callback cancellation cannot resume escaped issuer" {
-  let armed = Ref::new(false)
-  let selected : Ref[ClientProgramCapture[Array[Int]]?] = Ref::new(None)
+  let armed = Ref(false)
+  let selected : Ref[ClientProgramCapture[Array[Int]]?] = Ref(None)
   let (value, ledger) = publication_custody_fixture(() => {
     if armed.val {
       armed.val = false

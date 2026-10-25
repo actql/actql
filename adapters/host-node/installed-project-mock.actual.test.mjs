@@ -5,7 +5,7 @@ import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {loadInstalledProjectConfiguration} from './installed-project-configuration.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
-import {prepareInstalledProjectMock} from './installed-project-mock.mjs';
+import {prepareInstalledProjectMock} from '../local-node/installed-project-mock.mjs';
 
 assert.ok(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME, 'Select the matching actual Common runtime');
 const moon = await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME));

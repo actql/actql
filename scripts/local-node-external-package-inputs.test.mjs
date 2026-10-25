@@ -133,3 +133,14 @@ test('copying preserves an external author own packages/sdk helper path', async 
     'adapters/connectors/external_read/packages/sdk/index.mjs'), 'utf8'),
   'export const independentlyOwned = 19;\n');
 });
+
+
+test('external providers cannot import the Core-only source preparation export', async t => {
+  const manifest = JSON.parse(readFileSync(join(repository, 'packages/sdk/package.json'), 'utf8'));
+  assert.equal(manifest.exports['./_internal/source-preparation'], './internal/private-source-preparation.mjs');
+  for (const name of ['@actql/sdk/_internal/source-preparation', '@actql/sdk/_internal/source-preparation/extra']) {
+    const f = fixture(t, {adapterImport: () => name});
+    const inputs = localNodePackageInputs(f.host, {buildInputs: f.inputs});
+    await assert.rejects(inspectExternalLocalNodeAdapterGraph(inputs), /UndeclaredLocalNodeDependency/);
+  }
+});

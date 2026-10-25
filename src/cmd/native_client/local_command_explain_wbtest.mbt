@@ -1,9 +1,9 @@
 ///|
 test "Selected static explain enters the existing operational command scope only in Local mode" {
-  let local = command().parse(argv=[
+  let local_command = command().parse(argv=[
     "--mode", "local", "explain", "--program-file", "original.sql", "--format", "sql",
   ])
-  assert_true(local_command_preparation_selected(local))
+  assert_true(local_command_preparation_selected(local_command))
   assert_true(command_preparation_invocation.val is None)
   let remote = command().parse(argv=[
     "--mode", "remote", "explain", "--program-file", "original.sql", "--format",

@@ -1,7 +1,6 @@
 supported_targets = "+js+wasm+native"
 
 import {
-  "actql/actql/pipeline_check_context" @expression_context,
   "actql/actql/expression_typing" @typing,
   "actql/actql/text_time_policy" @text_policy,
   "actql/actql/text_time_bounds" @text_bounds,
@@ -39,7 +38,7 @@ import {
 
 import {
   "actql/actql/run_publication_host" @client_host,
-  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/infer_typing" @infer,
   "actql/actql/connectors/slack/catalog" @slack,
   "actql/actql/sha256" @sha,

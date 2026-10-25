@@ -76,17 +76,17 @@ fn observe_submission_lookup(
         },
       )
       is Ok(object) &&
-      required_text(object, "namespaceId") is Some(namespace) &&
+      required_text(object, "namespaceId") is Some(run_namespace) &&
       required_text(object, "authorityScopeCid") is Some(scope) &&
       required_text(object, "runDefinitionCid") is Some(definition) else {
       return Err(-31)
     }
-    if namespace != configuration.run_namespace ||
+    if run_namespace != configuration.run_namespace ||
       scope != configuration.authority_scope_cid {
       return Err(-32)
     }
     let observed = @host.inspect_client_saved_run_reference(
-      namespace, scope, definition, 1024, scan, read, submission_append_run_inspection,
+      run_namespace, scope, definition, 1024, scan, read, submission_append_run_inspection,
       cancellation, -31,
     )
     return match check() {

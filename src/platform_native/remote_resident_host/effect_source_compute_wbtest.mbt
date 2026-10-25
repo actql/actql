@@ -53,7 +53,7 @@ test "resident Effect Source uses the original bound two-task graph" {
   let prepared = @host.prepared_client_effect_run_computation(bound)
   let sequences = @local.prepare_client_effect_local_sequences(
     prepared,
-    resident_effect_source_registry,
+    resident_effect_installed_contracts(),
     resident_effect_source_values,
     Some(resident_effect_source_fragment),
     None,

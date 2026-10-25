@@ -140,11 +140,20 @@ test('original UPDATE selection is optional in both closed Plan schemas', () => 
     assert.deepEqual(selection.items.properties.stage_index,
       {type: 'integer', minimum: 0});
   }
+  // The DELETE corpus retains its original complete schemas; later authored
+  // Program changes advance current metadata without rewriting that history.
+  assert.equal(machineCid(deleteSelections),
+    'sha256:37b249c78b3fb5f3b03c875e1ec09745cfebb97a2859e04d328957802bbc5b74');
+  const currentPins = {
+  "executable_plan": "sha256:661fb7d6ff04024797f7733effa16ee82cbc9cb31533425270677906017cd487",
+  "plan_document": "sha256:8faa3038775b916b1446c42b8ef3a2349bed1fb9f4341a96025f668a6d199232",
+  "artifact_registry": "sha256:e0f6390643f9e296112180f4ac29e886d1ddce79a85e8950fabeb6ca3efe6f0b"
+};
   for (const [key, pins] of Object.entries(selections.schema_pins)) {
     // Keep the earlier UPDATE corpus and its original whole-schema identities.
     // The adopted published-store target alternative changed the containing
     // Program schema before this scope-only selection extension.
-    const current = deleteSelections.current_schema_pins[key];
+    const current = currentPins[key];
     const normative = readFileSync('docs/spec/protocols/contracts.md', 'utf8');
     assert(normative.includes(`actql-protocol-schemas.json#/artifact_schemas/${key} ${current}`));
     assert.equal(machineCid(registry.artifact_schemas[key]), current);
@@ -153,7 +162,7 @@ test('original UPDATE selection is optional in both closed Plan schemas', () => 
     assert.notEqual(pins.after, current);
   }
   assert.equal(registry.artifact_registry_cid,
-    deleteSelections.current_schema_pins.artifact_registry);
+    currentPins.artifact_registry);
   assert.equal(registry.artifact_registry_cid, machineCid(registry.artifact_schemas));
 });
 

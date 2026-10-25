@@ -1,4 +1,12 @@
 ///|
+fn client_local_scalar_node_limit(width : Int, max_rows : Int) -> Int? {
+  if width < 1 {
+    return None
+  }
+  client_local_scalar_product(width.to_int64(), max_rows, 3)
+}
+
+///|
 test "scalar capacity retains nullable scalar fields and falls back for text" {
   let schema = @schema.from_fields(
     [

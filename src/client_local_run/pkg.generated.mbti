@@ -12,9 +12,9 @@ import {
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/logical_request_scope",
-  "actql/actql/physical_host",
+  "actql/actql/physical_host_dispatch",
   "actql/actql/physical_resources",
-  "actql/actql/physical_strategy",
+  "actql/actql/physical_strategy_host",
   "actql/actql/program_check",
   "actql/actql/publication_payload",
   "actql/actql/query_planning",
@@ -80,7 +80,7 @@ pub fn issue_source_free_local_run_invocation(LocalRunPlan) -> Result[(@run_publ
 
 pub fn local_compute_producers(LocalComputeHost) -> Array[Int]
 
-pub fn local_compute_run(LocalComputeHost) -> @physical_strategy.CapturedDAG
+pub fn local_compute_run(LocalComputeHost) -> @physical_strategy_host.CapturedDAG
 
 pub fn local_native_source_configuration(LocalNativeSourceConfiguration) -> @host.NativeHostConfiguration
 
@@ -273,18 +273,18 @@ pub fn validate_local_sdk_saved_payload_record(LocalSDKReadSource, @execution_au
 // Types and methods
 pub struct LocalComputeHost {
   plan : LocalRunPlan
-  setup : @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+  setup : @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 }
 
 pub(all) enum LocalComputeIssue {
   AuthorizationMismatch
   UnsupportedCapability
   Configuration
-  Task(@physical_strategy.RunIssue)
+  Task(@physical_strategy_host.RunIssue)
   Obligations(@execution_relation.ManagedObligationIssue)
-  Dispatch(@connectors_builtin.ConfiguredDispatchIssue[@physical_strategy.RunIssue])
+  Dispatch(@connectors_builtin.ConfiguredDispatchIssue[@physical_strategy_host.RunIssue])
   Managed(@driver.LocalDispatchIssue)
-  Estimate(@physical_host.AdaptiveEstimateIssue[@physical_strategy.RunIssue])
+  Estimate(@physical_host_dispatch.AdaptiveEstimateIssue[@physical_strategy_host.RunIssue])
   Start(LocalRunIssue)
   StartNotPermitted
 }

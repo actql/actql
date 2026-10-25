@@ -66,6 +66,7 @@ test "Content family advances actual generation inside the original Relation cha
       let physical_clean = Ref(true)
       let cancelled = Ref(false)
       let closes = Ref(0)
+      let enter_attempt : Ref[() -> Bool] = Ref(fn() { false })
       let family = @client_local_host.client_effect_content_local_provider(
         prepared,
         1,
@@ -89,6 +90,11 @@ test "Content family advances actual generation inside the original Relation cha
           },
         },
         active => {
+          // The fixture owns the declared capacity lifecycle at this actual
+          // original Content handoff, not at capability preparation.
+          if !(enter_attempt.val)() {
+            return false
+          }
           selected.push(active)
           true
         },
@@ -218,6 +224,17 @@ test "Content family advances actual generation inside the original Relation cha
         @execution.serialization_completed_producer_input(barrier, read) is None,
         msg="the Stage input cannot substitute for the exact internal pre-SERIALIZE edge",
       )
+      // Reserving capacity alone does not consume an attempt. Install the
+      // fixture-owned debit only for the original provider's actual handoff.
+      assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+      assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 1)
+      enter_attempt.val = fn() {
+        let usage = @resources.ledger_usage(ledger)
+        if usage.attempts != 0 || usage.reserved_attempts != 1 {
+          return false
+        }
+        @resources.consume_reserved_attempt(ledger, reservation) is Ok(_)
+      }
       let active = @local_connector.start_managed_provider_with_execution(
         provider,
         sequences[1],
@@ -226,6 +243,9 @@ test "Content family advances actual generation inside the original Relation cha
         10000,
         dispatch.local_execution,
       ).unwrap()
+      assert_eq(selected.length(), 0)
+      assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+      assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 1)
       let bytes = StringBuilder()
       let mut sealing = false
       for _ in 0..<10000 {
@@ -267,6 +287,9 @@ test "Content family advances actual generation inside the original Relation cha
         }
       }
       assert_true(sealing)
+      assert_eq(selected.length(), 1)
+      assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+      assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 0)
       let expected = if preserve {
         "{\"value\":2}\n{\"value\":1}\n"
       } else {
@@ -332,7 +355,32 @@ test "Content family advances actual generation inside the original Relation cha
         }
       }
       assert_true(stopped)
-      assert_false(@local_connector.cleanup_managed_provider(active).unwrap())
+      // The conservative chain first retires its original key guards. Each
+      // one-column/two-row guard needs at most two map selections, two tuple
+      // atoms, two tuple releases, one column, one partial tuple and its final
+      // acknowledgement. Bound both guard sides for every entered prefix step.
+      let guard_cleanup_polls = 2 *
+        (serialization_step + 1) *
+        (2 * 3 + 1 + 1 + 1)
+      let cleanup_usage = @resources.ledger_usage(ledger)
+      let cleanup_work = @local_connector.managed_provider_cumulative_work(
+        active,
+      ).unwrap()
+      for _ in 0..<guard_cleanup_polls {
+        assert_false(@local_connector.cleanup_managed_provider(active).unwrap())
+        assert_eq(@resources.ledger_usage(ledger), cleanup_usage)
+        assert_true(@execution.producer_read_available(read))
+        assert_true(
+          @client_local_host.client_local_content_generation_input(step) is None,
+        )
+        assert_eq(
+          @local_connector.managed_provider_cumulative_work(active).unwrap(),
+          cleanup_work,
+        )
+        if closes.val > 0 {
+          break
+        }
+      }
       assert_eq(closes.val, 1)
       assert_eq(
         @resources.ledger_usage(ledger).reserved_execution_bytes,

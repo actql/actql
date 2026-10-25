@@ -171,7 +171,7 @@ fn resident_native_effect_bound_run() -> @host.PreparedClientEffectRun {
     wire,
     @host.prepare_client_effect_source_input_binding(compilation).unwrap(),
     "2026-10-09T01:00:00.000Z",
-    resident_effect_source_registry,
+    resident_compute_installed_contracts(),
     resident_effect_source_values,
     resident_effect_source_fragment,
   ).unwrap()

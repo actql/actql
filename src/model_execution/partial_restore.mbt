@@ -213,12 +213,7 @@ pub fn prepare_model_response_reconciliation(
   // Even missing or invalid original responses leave their sent usage unknown.
   // Cleanup owns this reservation, including any failed retrieval/adoption.
   state.reservations[slot] = reservation
-  match
-    @resources.mark_transfer_uncertain(
-      state.ledger,
-      reservation,
-      state.limits.max_request_bytes + state.limits.max_response_bytes,
-    ) {
+  match mark_model_attempt_entered(state, reservation) {
     Err(issue) => return Err(Ledger(issue))
     Ok(_) => ()
   }

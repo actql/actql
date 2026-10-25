@@ -116,7 +116,6 @@ fn sdk_payload_finish_current(
 /// Retain the exact selected Sealed record until first-delivery full cleanup.
 /// The physical Host keeps its matching original descriptor/generation facts.
 /// Binding is not a new read grant or acknowledgement of any Store write.
-#export_name("actql_publication_commit_export_bind_sdk_payload_record")
 pub fn bind_publication_sdk_payload_record(
   nonce : Int64,
   first_handle : Int,
@@ -166,7 +165,6 @@ pub fn bind_publication_sdk_payload_record(
 /// Routing coordinates only, rechecked under the original Run/current Owner.
 /// The physical Host must bind the exact original record and current six facts
 /// before byte access. field=0 selects Result, field=1 its durable binding.
-#export_name("actql_publication_commit_export_sdk_payload_ordinal")
 pub fn publication_sdk_payload_ordinal(
   nonce : Int64,
   first_handle : Int,

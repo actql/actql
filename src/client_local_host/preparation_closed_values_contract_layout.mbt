@@ -4,7 +4,7 @@
 /// twenty-two unique edges in eight nonempty adjacency owners. The shape and
 /// pinned operation/catalog closure must be checked by the original driver;
 /// these constants do not admit an arbitrary caller-supplied contract graph.
-struct ClosedValuesContractLayout {
+priv struct ClosedValuesContractLayout {
   retained : PreparationRepresentationUnits
   temporary : PreparationRepresentationUnits
 }

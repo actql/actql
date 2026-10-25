@@ -7,6 +7,7 @@ import {
   "actql/actql/calendar_typing",
   "actql/actql/carrier_contract",
   "actql/actql/carrier_projection",
+  "actql/actql/check_environment",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
   "actql/actql/event_typing",
@@ -25,6 +26,7 @@ import {
   "actql/actql/relation_typing",
   "actql/actql/relation_values",
   "actql/actql/temporal_window",
+  "actql/actql/text_time_bounds",
   "actql/actql/time_series",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
@@ -313,9 +315,9 @@ pub fn expression_location(Expression) -> @expression_syntax.Location
 
 pub fn expression_source(Expression) -> @decode_core.Cursor
 
-pub fn expression_text_bound(Expression) -> @pipeline_check_context.TextBoundResolution?
+pub fn expression_text_bound(Expression) -> ExpressionTextBound?
 
-pub fn expression_text_bound_at(Expression, Int) -> @pipeline_check_context.TextBoundResolution?
+pub fn expression_text_bound_at(Expression, Int) -> ExpressionTextBound?
 
 pub fn expression_text_bound_count(Expression) -> Int
 
@@ -1025,6 +1027,12 @@ pub fn set_kernel_step(PreparedSetKernel) -> Int
 
 pub fn source(PreparedNode) -> @decode_core.Cursor
 
+pub fn text_bound_filter(ExpressionTextBound) -> @expression_typing.TypedExpression?
+
+pub fn text_bound_output(ExpressionTextBound) -> @text_time_bounds.Output
+
+pub fn text_bound_policy(ExpressionTextBound) -> @check_environment.TextTime
+
 pub fn time_series_end(PreparedTimeSeries) -> String
 
 pub fn time_series_row_count(PreparedTimeSeries) -> Int
@@ -1363,6 +1371,8 @@ pub struct ExpressionRoot {
   expression : Expression
   typed_expression : @expression_typing.TypedExpression
 }
+
+type ExpressionTextBound
 
 pub struct FragmentEnforcement {
   request : FragmentRequest

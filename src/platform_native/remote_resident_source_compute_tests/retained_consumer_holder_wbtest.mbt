@@ -324,7 +324,7 @@ fn retained_consumer_holder_case(
     budgets: [
       @remote.prepare_remote_dispatch_budget(1048576L, 1048576L).unwrap(),
     ],
-    registry_body: configuration.registry_body,
+    installed_contracts: configuration.installed_contracts,
     values_body: configuration.values_body,
     fixed_ms: 1L,
     per_row_ms: 0L,

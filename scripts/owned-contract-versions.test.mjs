@@ -128,7 +128,7 @@ test('policy candidate owner and consumers stay on the initial contract', () => 
   const current = 'actql-policy-candidates/0.1';
   const changed = current.replace('0.1', future);
   assert.equal(inventory.entries.some(entry => entry.token === changed), false);
-  for (const path of ['src/physical_strategy/policy_consultation.mbt',
+  for (const path of ['src/physical_strategy_host/policy_consultation.mbt',
     'src/query_integration/physical_search_wbtest.mbt',
     'benchmarks/retained-results/native-owner-observations.mjs',
     'benchmarks/retained-results/native-owner-observations.test.mjs']) {

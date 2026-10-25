@@ -45,19 +45,22 @@ const registry = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.
 test('current Local snapshot interpretation binds ContentRef without accepting former contract identities', () => {
   const snapshot = JSON.parse(readFileSync('spec/contracts/actql-local-relation-snapshot.json', 'utf8'));
   // Independently hashed normative bodies; these are not runtime outputs.
-  verifyIdentity(snapshot, 'sha256:b6757d1d2978133784f3b3cd464fa966e432dc0caa99b6cb05d618249ef1076c');
+  verifyIdentity(snapshot, 'sha256:621725e41f803d118b749abf99a40f4c23e2bd3fb15078912c69ff7f82c6f85a');
   assert.equal(snapshot.dependencies.checked_type.cid,
-    'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947');
+    'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1');
   for (const former of [
     'sha256:9cac11de7a617035c56e06a5a6cb28dbbefd0b6ba6ca613a5c700b90d6968200',
     'sha256:0d1b824004f4e26bf3cadbfc437d000cd1d7cc6c218c0f0fc4276b483ba46701',
   ]) assert.throws(() => verifyIdentity(snapshot, former));
+  // Current body with a foreign historical dependency is a distinct mixed
+  // preimage, not the original historical snapshot after later schema changes.
+  // Its fixed digest was independently calculated with Python JSON/hashlib.
   const oldDependency = structuredClone(snapshot);
   oldDependency.dependencies.checked_type.cid =
     'sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551';
-  verifyIdentity(oldDependency, 'sha256:9cac11de7a617035c56e06a5a6cb28dbbefd0b6ba6ca613a5c700b90d6968200');
+  verifyIdentity(oldDependency, 'sha256:c5f7c7c93739be7091e41f3b89073c4c15547083cb9d78d8cbb2ee44da47a664');
   assert.throws(() => verifyIdentity(oldDependency,
-    'sha256:b6757d1d2978133784f3b3cd464fa966e432dc0caa99b6cb05d618249ef1076c'));
+    'sha256:621725e41f803d118b749abf99a40f4c23e2bd3fb15078912c69ff7f82c6f85a'));
 });
 test('both embedded Program input contracts exclude schema_ref', () => {
   checkLocalInputSchemas(registry);

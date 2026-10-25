@@ -7,7 +7,7 @@ fn system_test_row(
   url? : String = "\"https://notion.test/page\"",
 ) -> String {
   let base = query_test_row(id)
-  base[0:base.length() - 1].to_string() +
+  base[:base.length() - 1].to_owned() +
   ",\"url\":" +
   url +
   ",\"created_time\":" +
@@ -91,7 +91,8 @@ test "Notion system timestamp normalization preserves the original version spell
   assert_true(wire.contains("\"version\":\"2026-10-18T10:21:30+09:00\""))
   for
     malformed in [
-      "\"2026-10-18T01:21:30-00:00\"", "\"2026-10-18T01:21:30.0001Z\"", "null", "13",
+      "\"2026-10-18T01:21:30-00:00\"", "\"2026-10-18T01:21:30.0000000001Z\"", "null",
+      "13",
     ] {
     let (binding, page) = system_test_setup(system_test_row(edited=malformed))
     assert_true(
@@ -198,4 +199,22 @@ test "Notion original property aliases cannot overwrite a system Source column" 
     with_notion_source_system_contracts(original, read_test_limits()).unwrap_err(),
     InvalidColumn("names"),
   )
+}
+
+///|
+test "Notion system timestamp retains nanoseconds without rewriting original version" {
+  for
+    (original, expected) in [
+      ("2026-10-18T01:21:30.0001Z", "2026-10-18T01:21:30.0001Z"),
+      ("2026-10-18T10:21:30.000000001+09:00", "2026-10-18T01:21:30.000000001Z"),
+    ] {
+    let (binding, page) = system_test_setup(
+      system_test_row(edited="\"" + original + "\""),
+    )
+    let row = start_notion_read_row(binding, page, 0, row_test_limits()).unwrap()
+    complete_notion_read_row_property(row, 0, row_test_title(binding, page)).unwrap()
+    let wire = notion_read_row_wire(row, 1024, 32, 8).unwrap()
+    assert_true(wire.contains("\"last_edited_time\":\"" + expected + "\""))
+    assert_true(wire.contains("\"version\":\"" + original + "\""))
+  }
 }

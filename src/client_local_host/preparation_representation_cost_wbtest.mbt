@@ -1,4 +1,98 @@
 ///|
+/// Domain callers supply storage/slot inventories, never another tariff or
+/// an already guessed budget. Workspace is simultaneous with retained state;
+/// ExecutionCapacity therefore includes both components in its execution peak.
+priv struct PreparationExecutionInventory {
+  retained : PreparationRepresentationUnits
+  workspace : PreparationRepresentationUnits
+  retained_nodes : Int64
+  workspace_nodes : Int64
+  retained_bytes : Int64
+  workspace_bytes : Int64
+}
+
+///|
+fn preparation_execution_capacity(
+  inventory : PreparationExecutionInventory,
+) -> @execution.ExecutionCapacity? {
+  let node = @execution.execution_capacity_node_bytes()
+  guard preparation_representation_cost(inventory.retained) is Some(retained) else {
+    return None
+  }
+  guard preparation_cost_add(retained, inventory.retained_nodes, node)
+    is Some(retained) else {
+    return None
+  }
+  guard preparation_cost_add(retained, inventory.retained_bytes, 1L)
+    is Some(retained) else {
+    return None
+  }
+  guard preparation_representation_cost(inventory.workspace) is Some(workspace) else {
+    return None
+  }
+  guard preparation_cost_add(workspace, inventory.workspace_nodes, node)
+    is Some(workspace) else {
+    return None
+  }
+  guard preparation_cost_add(workspace, inventory.workspace_bytes, 1L)
+    is Some(workspace) else {
+    return None
+  }
+  guard preparation_cost_add(retained, workspace, 1L) is Some(execution) else {
+    return None
+  }
+  @execution.execution_capacity(retained, execution)
+}
+
+///|
+/// Reconcile one typed owner family in one immutable phase snapshot. The
+/// inventory itself is borrowed, not allocated here. Equal content is not
+/// identity: distinct copied owners are charged separately. Repeated identity
+/// with different extents is not a valid immutable snapshot and refuses.
+fn[T] preparation_owned_representation_cost(
+  owners : Array[(T, PreparationRepresentationUnits)],
+  max_work : Int,
+) -> Int64? {
+  if max_work < 0 {
+    return None
+  }
+  let mut remaining = max_work
+  let mut total = 0L
+  for index in 0..<owners.length() {
+    if remaining == 0 {
+      return None
+    }
+    remaining -= 1
+    let (owner, units) = owners[index]
+    let mut duplicate = false
+    for earlier in 0..<index {
+      if remaining == 0 {
+        return None
+      }
+      remaining -= 1
+      let (previous, extent) = owners[earlier]
+      if physical_equal(owner, previous) {
+        if units != extent {
+          return None
+        }
+        duplicate = true
+        break
+      }
+    }
+    if !duplicate {
+      guard preparation_representation_cost(units) is Some(cost) else {
+        return None
+      }
+      if cost > 9223372036854775807L - total {
+        return None
+      }
+      total += cost
+    }
+  }
+  Some(total)
+}
+
+///|
 test "preparation representation tariff keeps units and checks complete logical sum" {
   let record : PreparationRepresentationUnits = {
     record_headers: 1L,

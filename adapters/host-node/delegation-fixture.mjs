@@ -11,7 +11,9 @@ serveManagedExecution(async (request, signal, context) => {
   if (!context.resourceLimits) throw Error('MissingResourceLimits');
   ledger ??= checked(runtime.processLedgerCreate(context.resourceLimits));
   if (request.command === 'allocate') {
-    reservations.push(checked(runtime.processReserve(ledger, 0n, 1n)));
+    const reservation = checked(runtime.processReserve(ledger, 0n, 1n));
+    checked(runtime.processStarted(ledger, reservation));
+    reservations.push(reservation);
     return {allocated: true};
   }
   if (request.command === 'crash') process.exit(9);

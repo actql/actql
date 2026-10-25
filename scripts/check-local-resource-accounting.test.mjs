@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {dirname, join} from 'node:path';
+import {dirname, join, relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {validateResourceAccounting} from './validate-local-resource-accounting.mjs';
 import {deepFreeze, loadResourceAccountingSources} from './local-resource-accounting-sources.mjs';
 import {boundedSorterAliases, isProductionMoonSource, localResourceApiIssues} from './local-resource-api-guard.mjs';
-import {registeredResourceEnvironmentCase} from './local-resource-environment-fixtures.mjs';
+import {registeredResourceEnvironmentCase, registeredDirectTraversalHostCase} from './local-resource-environment-fixtures.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const script = join(root, 'scripts/check-local-resource-accounting.mjs');
@@ -28,8 +28,10 @@ const sourceTemplate = loadResourceAccountingSources({
   root, manifest: manifestTemplate, routes: routesTemplate,
 });
 const currentPartialGraphOperations = ['shortest_path', 'reach', 'graft_graph', 'mean_graphs'];
-const currentPartialGraphErrors = ['shortest_path', 'reach'].map(operation =>
-  `SGA ${operation}: resource layers are incomplete`);
+const missingDirectGraphErrors = ['shortest_path', 'reach'].flatMap(operation => [
+  `SGA ${operation}: entrypoint boundary assurance is missing`,
+  `SGA ${operation}: entrypoint work/workspace assurance is missing`,
+]);
 
 // Refusal counterfixtures are explicit synthetic source snapshots. The current
 // inventory has no blocked Graph operations and is never rewritten by a test.
@@ -1149,10 +1151,10 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
   for (const directory of directories) assert.equal(existsSync(directory), false);
 });
 
-test('resource gate preserves incomplete current Graph resource layers', () => {
+test('resource gate distinguishes complete bounded resource evidence from partial public acceptance', () => {
   const result = evaluate(undefined, undefined, ['--check-summary']);
-  assert.deepEqual(result.errors, currentPartialGraphErrors);
-  assert.match(result.output, /68 operations, 5 implementation profiles, 68 production routes mapped, 0 typed pre-execution refusals \(not execution success\), 68 with operation-specific boundary records, 66 with four-role boundary evidence, 66 with full work\/workspace assurance, 120 with path-scoped work\/workspace evidence, 2 with selected-only assurance; full boundary completion is not asserted/);
+  assert.deepEqual(result.errors, []);
+  assert.match(result.output, /68 operations, 5 implementation profiles, 68 production routes mapped, 0 typed pre-execution refusals \(not execution success\), 68 with operation-specific boundary records, 68 with four-role boundary evidence, 68 with full work\/workspace assurance, 122 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
   const coverage = sourceTemplate[join(root, manifestTemplate.inventories.families)].json;
   for (const operation of currentPartialGraphOperations) {
     const entry = coverage.operations.find(entry => entry.operation === operation);
@@ -1160,9 +1162,9 @@ test('resource gate preserves incomplete current Graph resource layers', () => {
     assert.ok(entry.completed_layers.includes('resources'));
     const route = routesTemplate.routes.find(entry => entry.operation === operation);
     if (['reach', 'shortest_path'].includes(operation)) {
-      assert.equal(entry.completed_layers.includes('cancellation'), false);
-      assert.equal(route.path_assurance.entrypoint, undefined);
-      assert.equal(route.resource_assurance.entrypoint, undefined);
+      assert.ok(entry.completed_layers.includes('cancellation'));
+      assert.ok(route.path_assurance.entrypoint);
+      assert.ok(route.resource_assurance.entrypoint);
       assert.ok(route.path_assurance.selected_entrypoint);
       assert.ok(route.resource_assurance.selected_entrypoint);
     } else {
@@ -1184,7 +1186,7 @@ for (const operation of currentPartialGraphOperations) {
           (error.includes(`${field} must bind a production source`) ||
             error.includes(`missing ${field} production source`))), `${operation}/${field}`);
         assert.equal(result.errors.includes(`SGA ${operation}: resource layers are incomplete`),
-          ['reach', 'shortest_path'].includes(operation));
+          false);
       }
     }
     assert.match(run(undefined, routes => {
@@ -1209,15 +1211,18 @@ test('current Graph route fixtures cannot borrow another operation or omit a rol
   }
 });
 
-test('current Graph strict accounting retains the unsupported direct Host boundaries', () => {
-  const result = evaluate(undefined, undefined, ['--require-boundary-complete', '--check-summary']);
-  assert.deepEqual(result.errors, [
-    'SGA shortest_path: entrypoint boundary assurance is missing',
-    'SGA shortest_path: entrypoint work/workspace assurance is missing',
-    'SGA reach: entrypoint boundary assurance is missing',
-    'SGA reach: entrypoint work/workspace assurance is missing',
-    ...currentPartialGraphErrors,
-  ]);
+test('current Graph strict accounting rejects missing direct Host boundaries', () => {
+  const result = evaluate(manifest => {
+    manifest.assured_production_paths = manifest.assured_production_paths.filter(claim =>
+      !(['reach', 'shortest_path'].includes(claim.operation) && claim.path === 'entrypoint'));
+  }, routes => {
+    for (const operation of ['reach', 'shortest_path']) {
+      const route = routes.routes.find(entry => entry.operation === operation);
+      delete route.path_assurance.entrypoint;
+      delete route.resource_assurance.entrypoint;
+    }
+  }, ['--require-boundary-complete']);
+  assert.deepEqual(result.errors, missingDirectGraphErrors);
   for (const operation of ['reach', 'shortest_path']) {
     const route = routesTemplate.routes.find(entry => entry.operation === operation);
     const direct = route.boundary_tests.at(-1);
@@ -1440,11 +1445,20 @@ test('retained source-free Values requires exact admission and Host evidence', (
   for (const role of ['retained_source_free_chain_admission',
     'retained_source_free_chain_rejection',
     'retained_source_free_product_configuration',
-    'retained_source_free_product_rejection', 'retained_source_free_chain_budgets']) {
+    'retained_source_free_product_branch_admission',
+    'retained_source_free_branch_execution_and_cancellation', 'retained_source_free_chain_budgets']) {
     assert.match(run(undefined, routes => {
       const route = values(routes);
       route.boundary_tests = route.boundary_tests.filter(test => test.role !== role);
     }), /bounded zero-input Values route lacks its production evidence/u);
+  }
+  for (const role of ['retained_source_free_chain_rejection',
+    'retained_source_free_product_branch_admission',
+    'retained_source_free_branch_execution_and_cancellation']) {
+    assert.match(run(undefined, routes => {
+      values(routes).boundary_tests.find(test => test.role === role).fixture =
+        'product source-free retained factory installs exact bounded chain offers';
+    }), /must bind its distinct checked Values boundary/u);
   }
   for (const role of ['retained_source_free_named_results',
     'retained_source_free_empty_input', 'retained_source_free_empty_output',
@@ -2275,10 +2289,10 @@ test('resource summary rejects stale route counts', () => {
   const gaps = readFileSync(join(
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
-  const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 116 |',
-    '| Path-scoped work/workspace assurance | 54 |',
-  );
+  const row = /^(\| Path-scoped work\/workspace assurance \| )(\d+)( \|)$/mu;
+  assert.match(gaps, row);
+  const stale = gaps.replace(row, (_, prefix, count, suffix) =>
+    `${prefix}${Number(count) + 1}${suffix}`);
   assert.notEqual(stale, gaps);
   assert.match(
     run(undefined, undefined, ['--check-summary'], stale),
@@ -3425,7 +3439,6 @@ test('resource completion rejects every unassured operation', () => {
   /RelA analytic: entrypoint boundary assurance is missing/);
 });
 
-const pendingBoundaryErrors = [];
 
 test('Delta combined workspace and delivered stop cannot lose their registered proof roles', () => {
   const delta = routes => routes.routes.find(route=>route.operation==='apply_graph_delta');
@@ -3446,9 +3459,9 @@ test('Delta combined workspace and delivered stop cannot lose their registered p
   assert(result.errors.includes('SGA apply_graph_delta: entrypoint work/workspace assurance is missing'));
 });
 
-test('strict resource completion accepts the registered Graph boundary evidence', () => {
+test('strict resource completion accepts distinct direct and retained Graph lifecycle evidence', () => {
   assert.deepEqual(evaluate(undefined, undefined,
-    ['--require-boundary-complete']).errors, pendingBoundaryErrors);
+    ['--require-boundary-complete']).errors, []);
 });
 
 test('current Graph diff requires exact limits and delivered Host cancellation evidence', () => {
@@ -4581,7 +4594,7 @@ test('resource validator inputs are immutable and errors are fresh in either ord
     sources: sourceTemplate, requireBoundaryComplete: true};
   const before = JSON.stringify(options);
   const good = validateResourceAccounting(options);
-  assert.deepEqual(good.errors, pendingBoundaryErrors);
+  assert.deepEqual(good.errors, []);
   const badManifest = structuredClone(manifestTemplate);
   badManifest.bindings = [];
   const bad = validateResourceAccounting({...options, manifest: badManifest});
@@ -4591,12 +4604,12 @@ test('resource validator inputs are immutable and errors are fresh in either ord
   assert.notEqual(validateResourceAccounting(options).errors, good.errors);
   assert.equal(JSON.stringify(options), before);
   good.errors.push('caller-owned error collection');
-  assert.deepEqual(validateResourceAccounting(options).errors, pendingBoundaryErrors);
+  assert.deepEqual(validateResourceAccounting(options).errors, []);
 });
 
-test('resource validator matches the CLI for scoped success and strict independent rejections', () => {
+test('resource validator matches the CLI for scoped and strict independent rejections', () => {
   const omitMixed = routes => { routes.mixed_paths = []; };
-  assert.equal(evaluate(undefined, omitMixed).errors.length, 0);
+  assert.deepEqual(evaluate(undefined, omitMixed).errors, []);
   assert.match(run(undefined, omitMixed, ['--require-boundary-complete']),
     /typed prefix mixed-stage assurance is missing/u);
   for (const [mutator, routeMutator, args, gapsText] of [
@@ -4718,4 +4731,130 @@ test('subtraction cannot claim workspace assurance without its own boundary', ()
     subtract.boundary_tests = subtract.boundary_tests.filter(item =>
       item.role !== 'subtract_workspace_exact_one_short_before_fold');
   }), /SGA subtract_graphs: entrypoint operation workspace lacks an executable fixture/);
+});
+
+test('synthetic typed refusals retain successful CLI summary-write and cleanup coverage', () => {
+  // This isolated snapshot declares four typed pre-execution refusals, not
+  // completion evidence for the current executable Graph implementations.
+  const fixture = graphRefusalCounterfixture();
+  const directory = mkdtempSync(join(tmpdir(), 'actql-resource-refusal-cli-'));
+  try {
+    // Reuse the repository's exact locked parser dependency; no registry access
+    // or substitute source is introduced by this isolated CLI fixture.
+    mkdirSync(join(directory, 'node_modules'), {recursive: true});
+    symlinkSync(join(root, 'node_modules/acorn'), join(directory, 'node_modules/acorn'), 'dir');
+    for (const [file, record] of Object.entries(fixture.sources)) {
+      const local = relative(root, file);
+      assert.equal(local.startsWith('../'), false);
+      if (!record.exists || record.directory) continue;
+      const target = join(directory, local);
+      mkdirSync(dirname(target), {recursive: true});
+      writeFileSync(target, record.text);
+    }
+    for (const name of ['check-local-resource-accounting.mjs',
+      'validate-local-resource-accounting.mjs', 'local-resource-accounting-sources.mjs',
+      'local-resource-api-guard.mjs', 'local-resource-environment-fixtures.mjs']) {
+      writeFileSync(join(directory, 'scripts', name), readFileSync(join(root, 'scripts', name)));
+    }
+    const manifest = join(directory, relative(root, source));
+    const routes = join(directory, manifestTemplate.production_routes);
+    const refusalManifest = structuredClone(fixture.manifest);
+    refusalManifest.assured_production_paths = refusalManifest.assured_production_paths
+      .filter(claim => !currentPartialGraphOperations.includes(claim.operation));
+    const inventoryFile = join(directory, refusalManifest.inventories.families);
+    const inventory = JSON.parse(readFileSync(inventoryFile, 'utf8'));
+    for (const operation of currentPartialGraphOperations) {
+      const entry = inventory.operations.find(item => item.operation === operation);
+      // A typed refusal is never resource/cancellation completion.
+      entry.completed_layers = entry.completed_layers.filter(layer =>
+        !['resources', 'cancellation'].includes(layer));
+    }
+    writeFileSync(inventoryFile, JSON.stringify(inventory));
+    writeFileSync(manifest, JSON.stringify(refusalManifest));
+    writeFileSync(routes, JSON.stringify(fixture.routes));
+    const gaps = join(directory, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md');
+    writeFileSync(gaps, gapsTemplate);
+    const invoke = args => execFileSync(process.execPath,
+      [join(directory, 'scripts/check-local-resource-accounting.mjs'), ...args], {
+        cwd: directory, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+        env: {...process.env, ACTQL_LOCAL_RESOURCE_AUDIT: manifest,
+          ACTQL_LOCAL_RESOURCE_GAPS: gaps},
+      });
+    assert.throws(() => invoke(['--check-summary']), error => error.status === 1 &&
+      /resource gaps ledger summary is stale/u.test(String(error.stderr)));
+    assert.equal(readFileSync(gaps, 'utf8'), gapsTemplate);
+    assert.match(invoke(['--check-summary', '--write-summary']),
+      /4 typed pre-execution refusals \(not execution success\)/u);
+    const written = readFileSync(gaps, 'utf8');
+    assert.notEqual(written, gapsTemplate);
+    assert.match(invoke(['--check-summary']), /4 typed pre-execution refusals/u);
+    assert.equal(readFileSync(gaps, 'utf8'), written);
+  } finally {
+    rmSync(directory, {recursive: true, force: true});
+  }
+  assert.equal(existsSync(directory), false);
+});
+
+test('direct traversal Host evidence cannot borrow constructor work or selected cancellation', () => {
+  const hostPath = join(root, 'adapters/connectors/duckdb/node/test/standard-host.test.mjs');
+  const preparerPath = join(root, 'src/connectors/duckdb/conformance/subgraph_cancel_fixture.mbt');
+  const host = sourceTemplate[hostPath].text;
+  const preparer = sourceTemplate[preparerPath].text;
+  for (const operation of ['reach', 'shortest_path']) {
+    assert.equal(registeredDirectTraversalHostCase(operation, host, preparer), true);
+    for (const [before, after] of [
+      ['totalWork += work', 'totalWork = work'],
+      ['totalWork > constructorWork', 'totalWork >= constructorWork'],
+      ['abort.abort()', 'void abort'],
+      ["assert.equal(fixture.subgraphCancelStopped(fused),false, 'request is not stop acknowledgement')",
+        'void fused'],
+      ['localStrategyContribution(runtime,undefined,checked).run(', 'unrelated('],
+      ["assert.equal(advances,settledAdvances,'cleanup never resumes execution')", 'void advances'],
+    ]) {
+      assert.ok(host.includes(before), before);
+      const changed = host.replaceAll(before, after);
+      assert.equal(registeredDirectTraversalHostCase(operation, changed, preparer), false, before);
+      const sources = Object.freeze({...sourceTemplate,
+        [hostPath]: Object.freeze({...sourceTemplate[hostPath], text: changed})});
+      assert.ok(validateResourceAccounting({root, manifest: manifestTemplate,
+        routes: routesTemplate, sources}).errors.includes(
+        `SGA ${operation}: direct Host-driver traversal cancellation evidence is missing or detached`));
+    }
+    for (const marker of ['assert_eq(@execution.generated_sequence_step_count(generated), 2)',
+      '@execution.constrain_generated_traversal(generated, 1, 8L * 8L, 8L)',
+      '@execution.bind_completed_input(consumer, 0, owner, output)',
+      '@local_sga_provider.provider(']) {
+      assert.ok(preparer.includes(marker), marker);
+      assert.equal(registeredDirectTraversalHostCase(operation, host,
+        preparer.replace(marker, 'detached_fixture(')), false, marker);
+    }
+    for (const [before, after] of [
+      ["schema:{node_key:{type:'number',nullable:false}}", "schema:{node_key:{type:'number',nullable:false},extra:{type:'number',nullable:false}}"],
+      ['rows:Array.from({length:8}', 'rows:Array.from({length:9}'],
+      ["nodes:[{...definition,from:'rows'}],edges:[]", "nodes:[{...definition,from:'rows'}],edges:[{}]"],
+      ["{graph:{...constructor,nodes:[{...definition,from:'prior'}]},as:'g'},\n      consumer]", "{graph:{...constructor,nodes:[{...definition,from:'prior'}]},as:'g'},extraTransform,consumer]"],
+    ]) {
+      assert.ok(host.includes(before), before);
+      assert.equal(registeredDirectTraversalHostCase(operation,
+        host.replace(before, after), preparer), false, before);
+    }
+    for (const marker of ['totalWork += work', 'abort.abort()']) {
+      const detached = host.replaceAll(marker, 'void 0');
+      for (const suffix of [`\nfunction unrelated() { ${marker}; }`, `\n/* ${marker} */`]) {
+        assert.equal(registeredDirectTraversalHostCase(operation, detached + suffix, preparer), false);
+      }
+    }
+    const ownerMarker = '@execution.bind_completed_input(consumer, 0, owner, output)';
+    const detachedOwner = preparer.replace(ownerMarker, 'detached_input()');
+    for (const suffix of [`\nfn unrelated() { ${ownerMarker} }`, `\n/* ${ownerMarker} */`]) {
+      assert.equal(registeredDirectTraversalHostCase(operation, host, detachedOwner + suffix), false);
+    }
+    const result = evaluate(undefined, routes => {
+      const route = routes.routes.find(entry => entry.operation === operation);
+      route.path_assurance.entrypoint.in_flight_cancel =
+        route.path_assurance.selected_entrypoint.in_flight_cancel;
+    });
+    assert.ok(result.errors.includes(
+      `SGA ${operation}: direct Host-driver traversal cancellation evidence is missing or detached`));
+  }
 });

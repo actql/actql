@@ -546,6 +546,7 @@ pub struct CheckedStep {
   operation : CheckedOperation
   output : @carrier_contract.Carrier
   connections : Connections
+  filter_refinement : @relation_evidence.RefinedFilter?
   window : WindowEvidence?
 }
 

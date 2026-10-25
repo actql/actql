@@ -427,6 +427,7 @@ fn check_graph_step(
     connections: {
       entries: targets.mapi((index, target) => { role: Sample(index), target, }),
     },
+    filter_refinement: None,
     window: None,
   }
 }

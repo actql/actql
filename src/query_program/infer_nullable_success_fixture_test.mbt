@@ -1,0 +1,31 @@
+///|
+// Fixture task/schema identities are retained from the independent nullable-success owner
+// fixture. The environment sha256:5c72e9b5e8d13d07e936ea41c01eb5307c02b5ff3cca17a948d77b745516fc5b was calculated with Node/Python SHA-256 over
+// the explicit canonical fixture body, never observed from product output.
+fn infer_nullable_success_environment() -> @check.CheckEnvironment {
+  let wire = @environment.read(
+    @utf8.encode(
+      (
+        #|{"command_contracts":[],"connector_capabilities":[],"connector_catalogs":[],"contract_registry":[],"evidence_bundle_cid":"sha256:5c72e9b5e8d13d07e936ea41c01eb5307c02b5ff3cca17a948d77b745516fc5b","host_policy_profile":{"capacity":{"max_aggregate_array_items":1000,"max_analytic_frame_memberships":1000,"max_analytic_input_wire_bytes":1000,"max_analytic_output_wire_bytes":1000,"max_analytic_partition_wire_bytes":1000,"max_artifact_bytes":1000,"max_artifact_rows":1000,"max_effect_items":1000,"max_graph_input_edges":1000,"max_graph_input_nodes":1000,"max_graph_output_rows":1000,"max_graph_paths":1000,"max_infer_items":1000,"max_model_input_tokens_per_item":1000,"max_model_request_bytes_per_item":1000,"max_model_total_duration_ms":1000,"max_nested_value_bytes":1000,"max_nested_value_depth":1000,"max_relation_output_rows":1000,"max_temporal_matches_per_key":1000,"max_temporal_output_rows":1000,"version":"actql-capacity-host-policy/0.1"}},"mapping_contracts":[],"model_task_contracts":[{"authored_model_selector":"fixture-risk-model","connector_id":"models/fixture","contract_cid":"sha256:02bad9fbcedcff44447c4028516a749c37f3d42fb6cf8df2fc25ca8a590c62fa","data_handling":{"accepted_classifications":["public","internal"],"allowed_regions":["fixture-region"],"contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","retention":"none","training_use":"forbidden"},"generation_config":{"max_output_tokens":32,"seed_requested":-7,"temperature":0,"top_p":1},"input_contract":{"additional_properties":false,"fields":{"text":{"nullable":true,"type":"string"}},"nullable":false,"type":"object"},"input_schema_cid":"sha256:57887e29c270383ae1e005ba3476a81c8b0012a8b566db860c75abba9c786dd7","max_items":2,"output_contract":{"additional_properties":false,"fields":{"details":{"additional_properties":false,"fields":{"reason":{"nullable":true,"type":"string"},"risk":{"nullable":false,"type":"string"}},"nullable":true,"type":"object"},"reason":{"nullable":true,"type":"string"},"risk":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"output_schema_cid":"sha256:e637fca8b2d371dafb3e086516db47ef41764add6c525cb8011a2a0fc5ab6e3e","prompt_template_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","retrieval_policy":"none","schema":"actql.model_task/0.1","streaming":false,"task_id":"model-task:risk-score.v1","task_kind":"structured_generate","tool_policy":"none","version":"1"}],"schema_snapshots":[],"source_views":[],"version":"actql-check-environment/0.1"}
+      ),
+    ),
+    "sha256:5c72e9b5e8d13d07e936ea41c01eb5307c02b5ff3cca17a948d77b745516fc5b",
+    { max_bytes: 100000, max_nodes: 10000, max_depth: 100, max_members: 10, },
+  ).unwrap()
+  let tasks = @environment.check_model_tasks(wire, {
+    bodies: {
+      max_bytes: 100000,
+      max_nodes: 10000,
+      max_depth: 100,
+      max_members: 10,
+    },
+    contracts: { max_nodes: 1000, max_depth: 100, max_text_bytes: 10000, },
+    max_work: 100000,
+  }).unwrap()
+  @check.checking_environment(
+    wire,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    model_tasks=Some(tasks),
+  )
+}

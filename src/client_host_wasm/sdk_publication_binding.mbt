@@ -106,7 +106,6 @@ fn sdk_publication_material_wire(
 ///|
 /// Reobserve original saved rows in the actual Host transaction. Candidate
 /// validation cannot complete a write or authorize dispatch by itself.
-#export_name("actql_material_validate_sdk_publication")
 pub fn validate_sdk_publication_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     !value.closing &&
@@ -149,7 +148,6 @@ pub fn validate_sdk_publication_material(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Adopt only an actual same-Store successor through the Common Owner. A
 /// saved candidate, physical response or generation alone is insufficient.
-#export_name("actql_material_confirm_sdk_publication")
 pub fn confirm_sdk_publication_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     !value.closing &&

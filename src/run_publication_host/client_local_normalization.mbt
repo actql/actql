@@ -206,7 +206,7 @@ fn local_sort_normalization_journal_body(
 ///|
 /// Issue only from the inventory retained by the original checked preparation.
 /// No parse, compile, Source acquisition or physical Effect operation occurs.
-fn issue_prepared_client_legacy_local_normalization(
+fn _issue_prepared_client_legacy_local_normalization(
   owner : PreparedClientProgram,
 ) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue] {
   if owner.local_normalization is Some(original) {

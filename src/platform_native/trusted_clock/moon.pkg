@@ -6,3 +6,7 @@ import {
   "moonbitlang/core/env",
   "moonbitlang/core/string",
 }
+
+options(
+  link: { "native": { "cc": "./scripts/native-sqlite-link-driver.sh" } },
+)

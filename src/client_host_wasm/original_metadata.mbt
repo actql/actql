@@ -125,7 +125,6 @@ fn original_configuration_selection_body(object : @decode.ObjectView) -> Bytes? 
 }
 
 ///|
-#export_name("actql_original_reserve")
 pub fn reserve_original_metadata(
   nonce : Int64,
   input : Int,
@@ -180,7 +179,6 @@ pub fn reserve_original_metadata(
 }
 
 ///|
-#export_name("actql_original_produce")
 pub fn produce_original_metadata(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.original_metadata.get(handle) is Some(record) else {
@@ -275,7 +273,6 @@ pub fn produce_original_metadata(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_original_length")
 pub fn original_metadata_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.original_metadata.get(handle) is Some(record) &&
@@ -290,7 +287,6 @@ pub fn original_metadata_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_original_close")
 pub fn close_original_metadata(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.original_metadata.get(handle) is Some(record) else {

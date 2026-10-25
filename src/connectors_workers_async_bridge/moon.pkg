@@ -5,8 +5,8 @@ pkgtype(kind: "foreign_library")
 
 import {
   "actql/actql/connectors_workers_async" @builtin,
-  "actql/actql/physical_host" @host_driver,
-  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_host_dispatch" @host_driver,
+  "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/physical_resources" @resources,
   "actql/actql/execution_relation" @execution,
   "actql/actql/connector_sdk" @connector,

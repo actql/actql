@@ -99,17 +99,6 @@ fn NativeClientStoredRunObservation::matches(
 }
 
 ///|
-fn read_native_run_observation_originals(
-  wire : String,
-  definition : @publication.PublicationContract,
-  program_cid? : String? = None,
-) -> Result[@host.ClientRunObservationOriginals, NativeClientRunJournalIssue] {
-  read_native_stored_run_observation(wire, definition, program_cid).map(value => {
-    value.observation
-  })
-}
-
-///|
 fn read_native_stored_run_observation(
   wire : String,
   definition : @publication.PublicationContract,

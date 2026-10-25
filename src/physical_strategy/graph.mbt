@@ -19,7 +19,7 @@ pub struct ControlEdge {
 ///|
 /// One checked Local input position. It has no producer task and must be
 /// supplied by the Host under the exact bound preparation before execution.
-priv struct LocalInputSlot {
+pub struct LocalInputSlot {
   consumer : Int
   input : Int
   source_input : Int
@@ -61,7 +61,7 @@ struct CheckedEffectComputationDAG {
 ///|
 /// One authored Effect source bound to its exact checked Stage Result port.
 /// This is static provenance, not a retained output or permission to read it.
-struct CheckedEffectSourcePort {
+pub struct CheckedEffectSourcePort {
   member_index : Int
   stage : Int
   task : Int
@@ -71,7 +71,7 @@ struct CheckedEffectSourcePort {
 ///|
 /// The same computation graph retained with its exact admitted Run owner.
 /// This is not a captured input, Preview, or Effect apply permit.
-struct CheckedEffectRunDAG {
+pub struct CheckedEffectRunDAG {
   computation : CheckedEffectComputationDAG
   run : @effect_binding.EffectProgramRunCandidate
 }
@@ -230,7 +230,7 @@ pub fn checked_effect_computation_owner(
 pub fn bind_checked_effect_run_dag(
   computation : CheckedEffectComputationDAG,
   run : @effect_binding.EffectProgramRunCandidate,
-) -> Result[CheckedEffectRunDAG, RunIssue] {
+) -> Result[CheckedEffectRunDAG, CheckedEffectRunIssue] {
   if !physical_equal(
       computation.candidate,
       @effect_binding.effect_program_run_static_candidate(run),
@@ -273,7 +273,7 @@ pub fn graph_program_has_effects(graph : CheckedDAG) -> Bool {
 ///|
 /// Exact checked root export. An authored alias and its ResultPort form one
 /// publication occurrence; graph terminality is not publication evidence.
-priv struct CheckedResultOccurrence {
+pub struct CheckedResultOccurrence {
   task : Int
   occurrence : @execution.ManagedResultOccurrence
 }
@@ -1094,4 +1094,9 @@ pub fn graph_stage_operation_task(
 /// The two-source profile never expands or interleaves its acquisition Stages.
 pub fn graph_captured_prefix(graph : CheckedDAG) -> Int {
   graph.captured_prefix
+}
+
+///|
+pub(all) enum CheckedEffectRunIssue {
+  ForeignCandidate
 }

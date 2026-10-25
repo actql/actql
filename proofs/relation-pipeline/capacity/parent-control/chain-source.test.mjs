@@ -72,3 +72,53 @@ test('the observer remains outside original callbacks and uses real state return
   assert(reader.includes('reclaimed_prefix==count?"true":"false"'),
     'Legacy all-eligible metadata must not classify a partial prefix as full');
 });
+
+// Source roles are independent from retained historical Native measurements.
+test('current advance borrows its byte limit only through start-next ownership', () => {
+  const checked = checkChainSource(source);
+  assert(checked.captureRoles.startNext.includes('max_value_bytes'));
+  assert(!checked.captureRoles.advance.includes('max_value_bytes'));
+  const changed = source.replace('quantum => {\n        if quantum <= 0 || terminal.val',
+    'quantum => {\n        let unexpected_limit = max_value_bytes\n        if quantum <= 0 || terminal.val');
+  assert.notEqual(changed, source);
+  assert.throws(() => checkChainSource(changed), /Unreviewed advance source captures/);
+});
+
+test('current provider census retains the original optional Infer prefix recipe', () => {
+  const census = checkChainCensus(read);
+  const provider = census.sourceFields.find(entry => entry.struct === 'ManagedProvider');
+  assert.deepEqual(provider.fields.map(field => field.name),
+    ['accepts', 'capacity', 'start', 'start_numeric', 'infer_relation_prefix']);
+  const path = 'src/connectors/local/managed_provider.mbt';
+  const original = read(path).toString();
+  const changed = original.replace('infer_relation_prefix : (', 'infer_relation_prefix : Array[(');
+  assert.notEqual(changed, original);
+  assert.throws(() => checkChainCensus(p => p === path ? changed : read(p)),
+    /Unreviewed parent\/edge field or type ManagedProvider/);
+});
+
+test('current generated recipe borrows one original query-time identity', () => {
+  const census = checkChainCensus(read);
+  const state = census.sourceFields.find(entry => entry.struct === 'GeneratedSequence');
+  assert.deepEqual(state.fields.find(field => field.name === 'query_time'),
+    {name: 'query_time', type: '@publication.QueryEvaluationTime?'});
+  const path = 'src/execution_relation/generated_sequence.mbt';
+  const original = read(path).toString();
+  const changed = original.replace('query_time : @publication.QueryEvaluationTime?',
+    'query_time : Array[@publication.QueryEvaluationTime]');
+  assert.notEqual(changed, original);
+  assert.throws(() => checkChainCensus(p => p === path ? changed : read(p)),
+    /Unreviewed parent\/edge field or type GeneratedSequence/);
+});
+
+test('current metadata cursor does not regain obsolete per-operation scalar caps', () => {
+  const path = 'src/connectors/local/relation_chain_input_preparation.mbt';
+  const original = read(path).toString();
+  for (const field of ['max_entries', 'max_value_bytes']) {
+    const changed = original.replace('priv struct RelationChainInputPreparation {',
+      `priv struct RelationChainInputPreparation {\n  ${field} : Int`);
+    assert.notEqual(changed, original);
+    assert.throws(() => checkChainCensus(p => p === path ? changed : read(p)),
+      /Unreviewed parent\/edge field or type RelationChainInputPreparation/);
+  }
+});

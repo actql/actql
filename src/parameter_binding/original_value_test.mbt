@@ -74,13 +74,13 @@ test "original default projection preserves override explicit NULL missing and v
     "{\"id\":{\"type\":\"int64\",\"nullable\":true,\"default\":\"9007199254740993\"}}",
   )
   let selected = original_default_values(definitions, None)
-  let override = original_default_values(
+  let replacement = original_default_values(
     definitions,
     Some("{\"id\":\"9007199254740992\"}"),
   )
   let null_value = original_default_values(definitions, Some("{\"id\":null}"))
   assert_true(
-    @parameter_binding.bound_value_at(override, 0).unwrap().origin
+    @parameter_binding.bound_value_at(replacement, 0).unwrap().origin
     is @parameter_binding.Supplied,
   )
   assert_true(
@@ -91,7 +91,7 @@ test "original default projection preserves override explicit NULL missing and v
     @parameter_binding.bound_value_at(null_value, 0).unwrap().value.value
     is @value.Null,
   )
-  assert_not_eq(identity_cid(selected), identity_cid(override))
+  assert_not_eq(identity_cid(selected), identity_cid(replacement))
   for
     input in [
       "{\"id\":9007199254740993}", "{\"id\":\"9223372036854775808\"}", "{\"id\":true}",

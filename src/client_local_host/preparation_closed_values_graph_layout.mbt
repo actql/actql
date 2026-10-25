@@ -3,7 +3,7 @@
 /// LimitClaims/CandidateMinimum and their strings remain separate owners.
 /// The exact narrow closure has four leaf-only arithmetic graphs of sizes
 /// 0,1,1,2 (evidence, Values, byte publication, row publication), no edges.
-struct ClosedValuesGraphControlLayout {
+priv struct ClosedValuesGraphControlLayout {
   retained : PreparationRepresentationUnits
   temporary : PreparationRepresentationUnits
 }

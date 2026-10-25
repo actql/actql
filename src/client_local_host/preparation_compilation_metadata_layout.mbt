@@ -1,7 +1,7 @@
 ///|
 /// Finite metadata emitted by the one-Values/full-Result compilation recipe.
 /// These are constructor facts, not an admission grant or a second compiler.
-struct ClosedValuesCompilationMetadataLayout {
+priv struct ClosedValuesCompilationMetadataLayout {
   retained : PreparationRepresentationUnits
   temporary : PreparationRepresentationUnits
   graph_extra : ClosedValuesLexicalFacts

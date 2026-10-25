@@ -4,7 +4,7 @@ export const scratchRetirementPath='src/connectors/local/driver/scratch_retireme
 export const inputStopPath='src/connectors/local/driver/input_stop.mbt';
 export const bridgeReclamationPath='src/execution_relation/managed_producer_bridge.mbt';
 export const importReclamationPath='src/execution_relation/completed_output_import.mbt';
-export const strategyPath='src/physical_strategy/task_execution.mbt';
+export const strategyPath='src/physical_strategy_host/task_execution.mbt';
 const clean=s=>s.replace(/\/\/[^\n]*/g,'').replace(/\s+/g,'').replace(/,\)/g,')');
 export function blockAfter(source,anchor) {
   assert.equal(source.split(anchor).length,2,`Changed unique owner boundary ${anchor}`);
@@ -53,6 +53,7 @@ const ownedScratch=`{
   }
   if finalization_values.val is Some(values) {
     @execution.dispose_managed_output_values_scratch(values)
+    finalization_reclamation_steps.val = @execution.managed_output_values_reclamation_steps(values)
     if !@execution.managed_output_values_scratch_released(values) {
       return
     }
@@ -91,6 +92,7 @@ const rootSlice=`{
       Retired => return true
     }
     steps += 1
+    cursor.steps += 1L
   }
   cursor.phase == Retired
 }`.replaceAll(';','');
@@ -293,7 +295,7 @@ export function checkDriverRetirementSource(read) {
   assert.match(driver.replace(/\s+/g,' '),/let relation_snapshot_cancel : Ref\[\(\(\) -> Bool\)\?\] = Ref\(None\)/);
   assert.deepEqual([...driver.matchAll(/relation_snapshot_cancel\.val\s*=\s*([^\n]+)/g)].map(m=>m[1].trim()),
     ['None','Some(fn() {','None','None'],'Unreviewed snapshot callback root replacement');
-  assert.equal(clean(blockAfter(roots,'fn local_managed_scratch_retirement(')),clean('{ { phase: Bridges, index: 0, } }'),'Changed initial scratch retirement phase');
+  assert.equal(clean(blockAfter(roots,'fn local_managed_scratch_retirement(')),clean('{ { phase: Bridges, index: 0, steps: 0L, } }'),'Changed initial scratch retirement phase');
   assert.equal(clean(blockAfter(roots,'advance_local_managed_scratch_retirement(')),clean(rootSlice),'Changed bounded scratch root retirement slice');
   assert.equal(clean(blockAfter(roots,'fn local_managed_input_writes_open(')),clean('{ live && !settled && !disposed }'),'Changed late input write rejection');
   assert.equal((driver.match(/let scratch_retirement = local_managed_scratch_retirement\(\)/g)??[]).length,1,'Changed installed scratch cursor construction');

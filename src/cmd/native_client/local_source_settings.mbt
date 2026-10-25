@@ -3,7 +3,6 @@
 // database, Run or grant and does not select or execute a strategy.
 priv struct LocalSourceInstallation {
   source_ref : String
-  source_contract_cid : String
   library_path : String
   database_file : String
   configuration : (@duckdb.Library, String) -> @source_owner.ResidentSourceComputeConfiguration
@@ -385,7 +384,6 @@ fn local_source_installation(
   ).unwrap_or_else(() => stop("InvalidLocalSourceInstalledContracts"))
   {
     source_ref,
-    source_contract_cid,
     library_path,
     database_file,
     configuration: (library, database_path) => {

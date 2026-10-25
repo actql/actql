@@ -69,6 +69,14 @@ async function fixture(t, {commentsRead = 'allow'} = {}) {
       baseEnvironmentWire: await read('spec/local-check-environment.json')});
     sources.push(source);return source;
   };
+  // Match the installed Host boundary: interpret these fixed contracts once,
+  // then reuse the same Common-issued original for each Program preparation.
+  const aoa = JSON.parse(await read('spec/contracts/actql-aoa.json'));
+  const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+  const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+  const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const registry = checked(common.clientPrepareInstalledSequenceContracts(
+    await read('spec/dependencies/aoa-pipeline-registry.json'), values, fragment, ordered));
   const prepare = async source => {
     const environment = JSON.parse(source.environmentWire);
     const checkedEnvironment = common.clientProgramCheckEnvironment(source.environmentWire,
@@ -85,11 +93,7 @@ async function fixture(t, {commentsRead = 'allow'} = {}) {
       results: {comments: {from: {stage: 'scan', result: 'r'}}}}), 'json', checkedEnvironment, undefined);
     const preparedProgram = common.clientProgramPreparationReady(preparation);
     assert.ok(preparedProgram, inspect(common.clientProgramPreparationIssue(preparation), {depth: 8}));
-    const aoa = JSON.parse(await read('spec/contracts/actql-aoa.json'));
-    return {preparedProgram, registry: await read('spec/dependencies/aoa-pipeline-registry.json'),
-      values: JSON.stringify(aoa.execution_contracts['REL.values']),
-      fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-      ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
+    return {preparedProgram, registry, values, fragment, ordered};
   };
   // Explicit test allocations only, with the same original debt owner.
   const ledger = () => checked(common.clientProgramAcquisitionLedger(1, 1,
@@ -114,6 +118,10 @@ test('installed GitHub comments retain their declared contracts through the orig
   assert.ok(source.sourceReadAccesses.some(value => value.resource === 'issue_comments'));
   const before = f.api.seen().length;
   const inputs = await f.prepare(source);
+  const nextInputs = await f.prepare(source);
+  assert.notStrictEqual(nextInputs.preparedProgram, inputs.preparedProgram);
+  assert.strictEqual(nextInputs.registry, inputs.registry,
+    'distinct Program preparations borrow the same installed contract original');
   const preparedSource = await f.prepareSource(source, inputs);
   assert.equal(f.api.seen().length, before, 'preparation performs no provider lookup');
   const ledger = f.ledger();

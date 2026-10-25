@@ -64,7 +64,6 @@ fn input_cursor(
 ///|
 /// Private, trusted Host configuration; not caller-provided Check evidence.
 /// The environment Owner validates the original canonical wire and its CID.
-#export_name("actql_program_install_environment")
 pub fn install_environment(nonce : Int64, input : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.copies.get(input) is Some((slot, physical)) else { return -2 }
@@ -112,7 +111,6 @@ pub fn install_environment(nonce : Int64, input : Int) -> Int {
 /// Trusted installed environment and publication share one pre-reserved input.
 /// The common publication interpreter binds aliases to admitted Catalog facts;
 /// no caller-defined file, schema or Source read permission is accepted here.
-#export_name("actql_program_install_source_environment")
 pub fn install_source_environment(nonce : Int64, input : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.copies.get(input) is Some((slot, physical)) else {
@@ -186,7 +184,6 @@ fn environment_body_cid(body : String) -> String {
 /// Reserve original input custody before invoking the Checker. The caller
 /// receives this handle even if a later Wasm invocation traps or is cancelled.
 /// No physical reader or semantic preparation starts during reservation.
-#export_name("actql_program_reserve_preparation")
 pub fn reserve_preparation(
   nonce : Int64,
   environment : Int,
@@ -229,7 +226,6 @@ pub fn reserve_preparation(
 /// kind=1 is structured JSON; kind=2 is original AQL carried as a JSON string.
 /// kind=3 keeps the original SDK submitted-intent envelope and bindings.
 /// Readiness is not Run admission. A completed call is not silently repeated.
-#export_name("actql_program_prepare")
 pub fn prepare_program(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.preparations.get(handle) is Some(record) &&
@@ -300,7 +296,6 @@ pub fn prepare_program(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_program_prepared_results")
 pub fn prepared_results(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.preparations.get(handle) is Some(record) else { return -2 }
@@ -315,7 +310,6 @@ pub fn prepared_results(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_program_prepared_tasks")
 pub fn prepared_tasks(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.preparations.get(handle) is Some(record) else { return -2 }
@@ -332,7 +326,6 @@ pub fn prepared_tasks(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_program_close_preparation")
 pub fn close_preparation(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.preparations.get(handle) is Some(record) else { return -2 }
@@ -347,7 +340,6 @@ pub fn close_preparation(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_program_close_environment")
 pub fn close_environment(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.environments.get(handle) is Some(record) else { return -2 }

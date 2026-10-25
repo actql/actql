@@ -2,7 +2,6 @@
 /// One physical event is evaluated once against the current read account. The
 /// existing metadata/receipt/completion Owners decide all logical progression.
 /// An interrupted event keeps its attempt pending; another chunk cannot hide it.
-#export_name("actql_source_accept")
 pub fn accept_native_event(
   nonce : Int64,
   handle : Int,
@@ -49,7 +48,6 @@ pub fn accept_native_event(
 ///|
 /// Observe physical input-stop for this already evaluated event. Retrying
 /// this retirement never evaluates metadata/chunks or completion again.
-#export_name("actql_source_close_event")
 pub fn close_native_event(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.native_attempts.get(handle) is Some(record) else {
@@ -164,7 +162,6 @@ fn apply_native_event(
 
 ///|
 /// Receipt completion and exact physical settlement, not a Run outcome.
-#export_name("actql_source_completed")
 pub fn native_source_completed(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.native_attempts.get(handle) is Some(record) else {

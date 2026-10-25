@@ -2,12 +2,14 @@
 /// Exact ordinary program-intent wrapper over the same proved ASCII object.
 /// No stopBefore/readOnly/parameters or string-input route is inferred here.
 /// Counts are constructor inputs to the original phase owner, never a grant.
-struct ClosedValuesIntentInventories {
+// `_observed_*` fields retain exact bound observations for white-box tests;
+// production consumes the admitted totals, not these diagnostic projections.
+priv struct ClosedValuesIntentInventories {
   retained : PreparationRepresentationUnits
   js_temporary : PreparationRepresentationUnits
   core_temporary : PreparationRepresentationUnits
   shared_temporary : PreparationRepresentationUnits
-  wire_facts : ClosedValuesLexicalFacts
+  _observed_wire_facts : ClosedValuesLexicalFacts
 }
 
 ///|
@@ -264,6 +266,6 @@ fn closed_values_intent_inventories(
     js_temporary,
     core_temporary,
     shared_temporary,
-    wire_facts: facts,
+    _observed_wire_facts: facts,
   })
 }

@@ -20,9 +20,9 @@ test "portable Mock catalogue keeps original declarations and exact alias member
   let update = mock_churn_risk_update_alias_at(catalogue, 0).unwrap()
   assert_eq(update.0, "salesforce.Account")
   assert_eq(physical_equal(update.1, salesforce.1), true)
-  assert_eq(mock_churn_risk_source_at(catalogue, -1).is_none(), true)
-  assert_eq(mock_churn_risk_query_alias_at(catalogue, 2).is_none(), true)
-  assert_eq(mock_churn_risk_update_alias_at(catalogue, 1).is_none(), true)
+  assert_eq(mock_churn_risk_source_at(catalogue, -1) is None, true)
+  assert_eq(mock_churn_risk_query_alias_at(catalogue, 2) is None, true)
+  assert_eq(mock_churn_risk_update_alias_at(catalogue, 1) is None, true)
 }
 
 ///|
@@ -52,15 +52,15 @@ test "portable Mock catalogue does not reuse another factory original" {
 test "portable Mock catalogue preserves declaration refusal under original limits" {
   let small = mock_update_limits()
   assert_eq(
-    prepare_mock_churn_risk_catalogue({ ..small, max_bytes: 1, }).is_err(),
+    prepare_mock_churn_risk_catalogue({ ..small, max_bytes: 1, }) is Err(_),
     true,
   )
   assert_eq(
-    prepare_mock_churn_risk_catalogue({ ..small, max_nodes: 1, }).is_err(),
+    prepare_mock_churn_risk_catalogue({ ..small, max_nodes: 1, }) is Err(_),
     true,
   )
   assert_eq(
-    prepare_mock_churn_risk_catalogue({ ..small, max_fields: 1, }).is_err(),
+    prepare_mock_churn_risk_catalogue({ ..small, max_fields: 1, }) is Err(_),
     true,
   )
 }

@@ -59,7 +59,11 @@ export async function inspectExternalLocalNodeAdapterGraph(inputs) {
           ? rewriteLocalNodePackageImports(JSON.stringify(args.path), args.importer) : JSON.stringify(args.path);
         if (publicImport !== JSON.stringify(args.path)) {
           const name = JSON.parse(publicImport);
-          if (!publicPackage.test(name)) throw new Error(`UndeclaredLocalNodeDependency:${name}`);
+          // This existing package export is private to the Core Host rewrite,
+          // not a new dependency available to external provider imports.
+          if (!publicPackage.test(name) && name !== '@actql/sdk/_internal/source-preparation') {
+            throw new Error(`UndeclaredLocalNodeDependency:${name}`);
+          }
           return {path: name, external: true};
         }
         if (inside(coreRuntime, path)) {

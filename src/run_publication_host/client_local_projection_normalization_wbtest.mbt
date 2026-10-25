@@ -5,7 +5,7 @@ fn local_projection_normalized_output(
   owner : PreparedClientProgram,
   field : String,
 ) -> Unit raise {
-  match issue_prepared_client_legacy_local_normalization(owner) {
+  match _issue_prepared_client_legacy_local_normalization(owner) {
     Ok(_) => ()
     Err(Inventory(ProfileNotInstalled)) =>
       fail("original Local inventory: ProfileNotInstalled")
@@ -78,7 +78,7 @@ let local_projection_expected_journal : String =
 ///|
 test "projection journal retains exact original path rule and independent canonical bytes" {
   let owner = local_projection_drop_original()
-  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
+  let proof = _issue_prepared_client_legacy_local_normalization(owner).unwrap()
   guard proof.audit is SortCompletion(inventory) else {
     fail("owned semantic completion inventory expected")
   }
@@ -107,7 +107,7 @@ test "projection journal retains exact original path rule and independent canoni
   assert_true(
     physical_equal(
       proof,
-      issue_prepared_client_legacy_local_normalization(owner).unwrap(),
+      _issue_prepared_client_legacy_local_normalization(owner).unwrap(),
     ),
   )
 }
@@ -115,7 +115,7 @@ test "projection journal retains exact original path rule and independent canoni
 ///|
 test "projection journal rejects equal foreign owners copied proofs and substituted evidence" {
   let owner = local_projection_drop_original()
-  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
+  let proof = _issue_prepared_client_legacy_local_normalization(owner).unwrap()
   let foreign = local_projection_drop_original()
   assert_true(
     prepared_client_local_normalization_evidence(foreign, proof)
@@ -185,7 +185,7 @@ test "projection journal keeps authored empty rename and drop as distinct origin
   let owner = local_projection_identity_original(
     "{\"rename\":{}},{\"drop\":[]}",
   )
-  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
+  let proof = _issue_prepared_client_legacy_local_normalization(owner).unwrap()
   guard proof.audit is SortCompletion(inventory) else {
     fail("projection inventory expected")
   }
@@ -214,7 +214,7 @@ test "projection journal preserves actual nonzero Sort completion alongside orig
   let document =
     #|{"version":"actql/0.1","id":"local.projection-sort","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"key":{"type":"string","nullable":false}},"rows":[{"key":"b"},{"key":"a"}]},"as":"input"},{"group":{"by":["key"],"aggregates":{"n":{"fn":"count"}}}},{"drop":[]},{"sort":[{"field":"n","dir":"asc","nulls":"last"}],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["key","n"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
   let owner = local_group_original_document(document)
-  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
+  let proof = _issue_prepared_client_legacy_local_normalization(owner).unwrap()
   guard proof.audit is SortCompletion(inventory) else {
     fail("mixed inventory expected")
   }
@@ -250,8 +250,8 @@ test "projection journal retains repeated authored removals without duplicating 
   let repeated = local_group_original_document(
     base.replace(old="[\"other\"]", new="[\"other\",\"other\"]"),
   )
-  let one = issue_prepared_client_legacy_local_normalization(single).unwrap()
-  let two = issue_prepared_client_legacy_local_normalization(repeated).unwrap()
+  let one = _issue_prepared_client_legacy_local_normalization(single).unwrap()
+  let two = _issue_prepared_client_legacy_local_normalization(repeated).unwrap()
   guard two.audit is SortCompletion(inventory) else {
     fail("original repeated removal expected")
   }
@@ -280,7 +280,7 @@ test "projection journal uses original UTF16 schema order for supplementary and 
   let document =
     #|{"version":"actql/0.1","id":"local.unicode-rename","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"":{"type":"number","nullable":false},"𐀀":{"type":"number","nullable":false}},"rows":[{"":2,"𐀀":3}]},"as":"input"},{"rename":{"":"bmp","𐀀":"supp"},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["bmp","supp"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
   let owner = local_group_original_document(document)
-  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
+  let proof = _issue_prepared_client_legacy_local_normalization(owner).unwrap()
   guard proof.audit is SortCompletion(inventory) else {
     fail("owned Unicode projection expected")
   }
@@ -306,7 +306,7 @@ test "projection journal refuses original journal limit overflow without an empt
     .unwrap()
   assert_eq(@checked.local_sort_normalization_entry_count(inventory), 6)
   assert_true(
-    issue_prepared_client_legacy_local_normalization(owner) is Err(Evidence(_)),
+    _issue_prepared_client_legacy_local_normalization(owner) is Err(Evidence(_)),
   )
   assert_true(owner.local_normalization is None)
 }
@@ -327,8 +327,8 @@ test "projection journal keeps original Default and supplied origins despite equ
     Some("{\"id\":\"9007199254740993\"}"),
     text~,
   )
-  let proof = issue_prepared_client_legacy_local_normalization(defaulted).unwrap()
-  let supplied_proof = issue_prepared_client_legacy_local_normalization(
+  let proof = _issue_prepared_client_legacy_local_normalization(defaulted).unwrap()
+  let supplied_proof = _issue_prepared_client_legacy_local_normalization(
     supplied,
   ).unwrap()
   guard proof.audit is SortCompletion(inventory) else {

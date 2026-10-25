@@ -144,5 +144,6 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     renderInstallationPreparationBridge(readFileSync(join(repository, preparationSubjectPath), 'utf8'),
       readFileSync(join(repository, preparationGrantPath), 'utf8')));
   checkInstallationPreparationBridge();
-  console.log('Credential invocation fields match the existing Owner');
+  // Human diagnostics must not prefix npm pack --json metadata on stdout.
+  console.error('Credential invocation fields match the existing Owner');
 }

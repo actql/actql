@@ -22,7 +22,8 @@ class BindingMutationTests(unittest.TestCase):
     def test_scalar_width_and_same_type_order_change_generated_binding(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            for path in [*sorted((ROOT / 'src/client_host_wasm').glob('*.mbt')),
+            for path in [ROOT / 'src/client_host_wasm/moon.pkg',
+                         *sorted((ROOT / 'src/client_host_wasm').glob('*.mbt')),
                          ROOT / 'src/physical_resources/imported_child_ledger_wasm.mbt']:
                 target = root / path.relative_to(ROOT)
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -39,6 +40,161 @@ class BindingMutationTests(unittest.TestCase):
             path.write_text(old.replace('start : Int, count : Int', 'start : String, count : Int', 1))
             with self.assertRaisesRegex(ValueError, 'parameter declaration'):
                 WASM.render(root)
+
+    def test_export_map_matches_actual_public_declarations(self):
+        declared = WASM.package_wasm_exports(ROOT / 'src/client_host_wasm/moon.pkg')
+        self.assertEqual(len(declared), len(set(declared.values())))
+        self.assertEqual(declared['host_abi_version'], 'actql_host_abi_version')
+        self.assertTrue(all(symbol.startswith('actql_') for symbol in declared.values()))
+        self.assertEqual(WASM.render(), WASM.OUTPUT.read_text())
+
+    def test_export_map_rejects_ambiguous_or_executable_configuration(self):
+        valid = 'options(link: {"wasm": {"exports": ["entry:actql_entry"]}})\n'
+        cases = [
+            valid.replace('["entry:actql_entry"]', '[]'),
+            valid.replace('["entry:actql_entry"]', '["entry:actql_entry", "entry:actql_other"]'),
+            valid.replace('["entry:actql_entry"]', '["entry:actql_entry", "other:actql_entry"]'),
+            valid.replace('["entry:actql_entry"]', '["entry"]'),
+            valid.replace('["entry:actql_entry"]', '[load_exports()]'),
+            valid.replace('["entry:actql_entry"]', '["entry:actql_entry"] + extra()'),
+            valid.replace('"exports": [', '"exports": [], "exports": ['),
+            valid + valid,
+            'other(' + valid.strip() + ')',
+            'fn invalid() { ' + valid.strip() + ' }',
+            '/* ' + valid + ' */\n',
+            'let decoy = ' + __import__('json').dumps(valid) + '\n',
+            valid.replace('"wasm"', '"js"'),
+        ]
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'moon.pkg'
+            for text in cases:
+                with self.subTest(text=text):
+                    path.write_text(text)
+                    with self.assertRaises(ValueError):
+                        WASM.package_wasm_exports(path)
+            path.write_text('// options(fake())\n/* nested /* options() */ comment */\n' + valid)
+            self.assertEqual(WASM.package_wasm_exports(path), {'entry': 'actql_entry'})
+
+    def test_export_map_requires_bijection_and_preserves_alias_identity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for path in [ROOT / 'src/client_host_wasm/moon.pkg',
+                         *sorted((ROOT / 'src/client_host_wasm').glob('*.mbt')),
+                         ROOT / 'src/physical_resources/imported_child_ledger_wasm.mbt']:
+                target = root / path.relative_to(ROOT)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(path.read_bytes())
+            path = root / 'src/client_host_wasm/moon.pkg'
+            original = path.read_text()
+            entry = '"host_abi_version:actql_host_abi_version",'
+            self.assertEqual(original.count(entry), 1)
+            for modified in [original.replace(entry, ''),
+                             original.replace('host_abi_version:actql_host_abi_version',
+                                              'missing_function:actql_host_abi_version')]:
+                path.write_text(modified)
+                with self.assertRaisesRegex(ValueError, 'declaration'):
+                    WASM.render(root)
+            # The name is part of the independent ABI, not an interchangeable
+            # integer signature. A different symbol cannot remain fresh.
+            path.write_text(original.replace('host_abi_version:actql_host_abi_version',
+                                             'host_abi_version:actql_buffer_foreign_alias'))
+            self.assertNotEqual(WASM.render(root), WASM.render())
+
+    def test_export_declarations_cannot_be_supplied_by_comments_or_literals(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for path in [ROOT / 'src/client_host_wasm/moon.pkg',
+                         *sorted((ROOT / 'src/client_host_wasm').glob('*.mbt')),
+                         ROOT / 'src/physical_resources/imported_child_ledger_wasm.mbt']:
+                target = root / path.relative_to(ROOT)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(path.read_bytes())
+            path = root / 'src/client_host_wasm/version.mbt'
+            original = path.read_text()
+            for fake in ['/*' + original + '*/',
+                         '// absent real version declaration\n' + '\n'.join('#|' + line for line in original.splitlines()),
+                         'let decoy : String = ' + __import__('json').dumps(original.replace('\n', ' '))]:
+                path.write_text(fake)
+                with self.assertRaisesRegex(ValueError, 'Missing ABI export declarations'):
+                    WASM.render(root)
+            path.write_text(original)
+            self.assertEqual(WASM.render(root), WASM.render())
+
+    def test_reserve_wrapper_keeps_real_cleanup_after_shared_admission(self):
+        source = (ROOT / 'src/client_host_wasm/buffers.mbt').read_text()
+        expected = '''{
+  guard selected(nonce) is Some(value) else { return -1 }
+  let admission = reserve_input_admission(value, physical_input)
+  if admission != 0 {
+    return admission
+  }
+  match @buffers.reserve_buffer(value.pool, wire_bytes, physical_copy_bytes, () => {
+    physical_input_cleanup(physical_input) == 0
+  }) {
+    Err(issue) => issue_code(issue)
+    Ok(slot) => {
+      let handle = value.next_handle
+      value.next_handle += 1
+      value.copies[handle] = (slot, physical_input)
+      handle
+    }
+  }
+}'''
+        def body(text, anchor="pub fn reserve("):
+            code = WASM.declaration_source(text)
+            self.assertEqual(code.count(anchor), 1)
+            begin = code.index('{', code.index(anchor))
+            depth = 0
+            for end in range(begin, len(code)):
+                depth += (code[end] == '{') - (code[end] == '}')
+                if depth == 0:
+                    return ''.join(code[begin:end + 1].split())
+            self.fail('Unclosed reserve wrapper')
+        self.assertEqual(body(source), ''.join(expected.split()))
+        start = source.index('pub fn reserve(')
+        end = source.index('\n///|', start)
+        wrapper = source[start:end]
+        for before, after in [
+            ('reserve_input_admission(value, physical_input)', 'reserve_input_admission(value, 1)'),
+            ('selected(nonce)', 'selected(1L)'),
+            ('if admission != 0', 'if false'),
+            ('physical_input_cleanup(physical_input)', 'physical_input_cleanup(1)'),
+            ('physical_input_cleanup(physical_input) == 0', 'true'),
+            ('let admission = reserve_input_admission',
+             'physical_input_cleanup(physical_input) |> ignore\n  let admission = reserve_input_admission'),
+            ('value.copies[handle] = (slot, physical_input)', 'value.copies[handle] = (slot, 1)'),
+        ]:
+            with self.subTest(before=before):
+                self.assertEqual(wrapper.count(before), 1)
+                mutated = source[:start] + wrapper.replace(before, after, 1) + source[end:]
+                self.assertNotEqual(body(mutated), ''.join(expected.split()))
+        code = WASM.declaration_source(source)
+        self.assertNotIn('pub fn reserve_input_admission', code)
+        admission_expected = '''{
+  if value.closing { return -5 }
+  if physical_input <= 0 ||
+    value.next_handle == 2147483647 ||
+    value.copies.values().any(pair => pair.1 == physical_input) ||
+    value.native_commands.values().any(command => command.physical_ticket == physical_input) ||
+    value.result_chunks.values().any(chunk => chunk.physical_ticket == physical_input) ||
+    value.workspaces.values().any(pair => pair.0 == physical_input) {
+    return -3
+  }
+  0
+}'''
+        admission_anchor = 'fn reserve_input_admission('
+        self.assertEqual(body(source, admission_anchor), ''.join(admission_expected.split()))
+        for before, after in [('value.closing', 'false'),
+                              ('physical_input <= 0', 'false'),
+                              ('value.next_handle == 2147483647', 'false'),
+                              ('pair.1 == physical_input', 'false'),
+                              ('return -5', 'return -3')]:
+            begin = source.index(admission_anchor)
+            end = source.index('\n///|', begin)
+            admission = source[begin:end]
+            self.assertEqual(admission.count(before), 1)
+            mutated = source[:begin] + admission.replace(before, after, 1) + source[end:]
+            self.assertNotEqual(body(mutated, admission_anchor), ''.join(admission_expected.split()))
 
     def test_native_shim_same_type_output_swap_is_not_fresh(self):
         with tempfile.TemporaryDirectory() as temporary:

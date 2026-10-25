@@ -4,7 +4,7 @@ package "actql/actql/node_host_conformance"
 import {
   "actql/actql/connectors_builtin",
   "actql/actql/execution_relation",
-  "actql/actql/physical_strategy",
+  "actql/actql/physical_strategy_host",
 }
 
 // Values
@@ -20,7 +20,7 @@ pub fn prepare_sort_take() -> Scenario raise
 
 pub fn prepare_subset(Int) -> Scenario raise
 
-pub fn subset_host(Scenario) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn subset_host(Scenario) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
 // Errors
 

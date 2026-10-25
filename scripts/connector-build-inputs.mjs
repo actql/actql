@@ -96,6 +96,7 @@ function moduleMetadata(root) {
   const result = {dependencies: {}};
   const fields = new Set(['name', 'version', 'source', 'supported_targets',
     'preferred_target', 'license', 'readme', 'repository', 'description']);
+  let reviewedEsm = false;
   while (!input.done()) {
     const key = input.take('word');
     if (key === 'import') {
@@ -110,6 +111,20 @@ function moduleMetadata(root) {
         if (!input.peek('}')) input.take('symbol', ',');
       }
       input.take('symbol', '}');
+    } else if (key === 'options') {
+      // The current pinned linker selects CJS before module flags. This exact
+      // existing ESM selection is format metadata, not a dependency/build hook
+      // or permission to accept other module options.
+      if (reviewedEsm) throw new Error('Duplicate reviewed module format');
+      for (const [kind, value] of [
+        ['symbol', '('], ['string', 'link-flags'], ['symbol', ':'],
+        ['symbol', '['], ['string', '-js-format'], ['symbol', ','],
+        ['string', 'esm'],
+      ]) input.take(kind, value);
+      input.take('symbol', ']');
+      if (input.peek(',')) input.take('symbol', ',');
+      input.take('symbol', ')');
+      reviewedEsm = true;
     } else if (fields.has(key) && !Object.hasOwn(result, key)) {
       input.take('symbol', '=');
       result[key] = input.take('string');
@@ -124,6 +139,7 @@ function packageMetadata(path) {
   const input = reader(readFileSync(path, 'utf8'), path);
   const imports = [];
   let target;
+  let fileTargets = false;
   while (!input.done()) {
     const directive = input.take('word');
     if (directive === 'supported_targets') {
@@ -147,6 +163,37 @@ function packageMetadata(path) {
       if (!['executable', 'foreign_library', 'library'].includes(input.take('string'))) {
         throw new Error('Unsupported package kind');
       }
+      if (input.peek(',')) input.take('symbol', ',');
+      input.take('symbol', ')');
+    } else if (directive === 'options') {
+      // File selection does not introduce imports, dependencies or build hooks.
+      // Accept only the existing literal per-file target grammar; the compiler
+      // remains responsible for source selection and source existence.
+      if (fileTargets) throw new Error('Duplicate package file-target options');
+      fileTargets = true;
+      input.take('symbol', '('); input.take('word', 'targets'); input.take('symbol', ':');
+      input.take('symbol', '{');
+      const files = new Set();
+      while (!input.peek('}')) {
+        const file = input.take('string');
+        if (!/^[A-Za-z0-9_][A-Za-z0-9_.-]*\.mbt$/.test(file) || files.has(file)) {
+          throw new Error('Invalid or duplicate package file target');
+        }
+        files.add(file);
+        input.take('symbol', ':'); input.take('symbol', '[');
+        const first = input.take('string');
+        let selected = first;
+        if (first === 'not') {
+          input.take('symbol', ','); selected = input.take('string');
+        }
+        if (!['js', 'wasm', 'wasm-gc', 'native'].includes(selected)) {
+          throw new Error('Unsupported package file target');
+        }
+        if (input.peek(',')) input.take('symbol', ',');
+        input.take('symbol', ']');
+        if (!input.peek('}')) input.take('symbol', ',');
+      }
+      input.take('symbol', '}');
       if (input.peek(',')) input.take('symbol', ',');
       input.take('symbol', ')');
     } else if (directive === 'formatter') {
@@ -174,6 +221,9 @@ export function resolveConnectorBuildInputs(configuration) {
     if (!shape(pin, ['namespace', 'version', 'root']) || !namespace(pin.namespace) ||
         !version(pin.version) || typeof pin.root !== 'string' || !isAbsolute(pin.root)) {
       throw new Error('Invalid explicit module pin');
+    }
+    if (pin.namespace === 'moonbitlang/core' || pin.namespace.startsWith('moonbitlang/core/')) {
+      throw new Error('Compiler standard library cannot be supplied or shadowed');
     }
     const root = resolve(pin.root);
     if (modules.has(pin.namespace) || [...modules.values()].some(module =>

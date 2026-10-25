@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {pathToFileURL} from 'node:url';
 import {checked} from '../host-common/runtime-result.mjs';
-import {mockChurnRiskCatalogue} from './mock-churn-risk-catalogue.mjs';
+import {mockChurnRiskCatalogue} from '../local-node/mock-churn-risk-catalogue.mjs';
 
 assert.ok(process.env.ACTQL_TEST_MOCK_CATALOGUE_COMMON_RUNTIME,
   'Select the actual matching Common runtime');

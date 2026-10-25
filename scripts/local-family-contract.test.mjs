@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import {productionPackageImports, productionDependencyClosure} from './source-dependency-closure.mjs';
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const contract = read('spec/contracts/actql-aoa.json');
@@ -177,4 +178,22 @@ test('union vectors retain list positions without a canonical fold tree', () => 
   }
   assert.match(language, /Finite-list operations retain every authored input position/);
   assert.doesNotMatch(language, /emit the binary\s+union nodes as a left fold/);
+});
+
+
+test('family artifact closure follows production edges, not whitebox provider fixtures', () => {
+  const manifest = readFileSync('src/client_local_host/moon.pkg', 'utf8');
+  assert(!productionPackageImports(manifest).includes('local_veca_provider'));
+  const sources = new Map([
+    ['entry', 'import { "actql/actql/host" }'],
+    ['host', 'import { "actql/actql/local_veca_provider" @nearest } for "wbtest"'],
+    ['local_veca_provider', 'import { "actql/actql/local_veca" }'],
+    ['local_veca', ''],
+  ]);
+  const closure = () => productionDependencyClosure('entry', name => sources.get(name));
+  assert.deepEqual(closure(), ['host']);
+  sources.set('host', 'import { "actql/actql/local_veca_provider" @nearest }');
+  assert.deepEqual(closure(), ['host', 'local_veca_provider', 'local_veca']);
+  sources.set('host', 'import { "actql/actql/local_veca_provider" } for "unknown"');
+  assert.throws(closure, /UnknownImportScope/u);
 });

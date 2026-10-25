@@ -103,15 +103,15 @@ test "two-receipt contract admits only the full pin under cumulative dependency 
   // Independent canonical JSON UTF-8 lengths and JSON node counts of the three
   // shared input files, not product verifier usage used as expected values.
   let exact : @planning.QueryEvidenceLimits = {
-    max_bytes: 17588,
-    max_nodes: 764,
+    max_bytes: 18013,
+    max_nodes: 774,
     max_depth: 100,
   }
   let contract = @planning.admit_query_two_receipt_contract(
     dependencies, body, exact,
   ).unwrap()
-  assert_eq(@planning.query_two_receipt_contract_usage(contract), (17588, 764))
-  for limits in [{ ..exact, max_bytes: 17587, }, { ..exact, max_nodes: 763, }] {
+  assert_eq(@planning.query_two_receipt_contract_usage(contract), (18013, 774))
+  for limits in [{ ..exact, max_bytes: 18012, }, { ..exact, max_nodes: 773, }] {
     assert_true(
       @planning.admit_query_two_receipt_contract(dependencies, body, limits)
       is Err(EvidenceBodyLimit),
@@ -300,7 +300,7 @@ fn native_observation_oracle(
       "}",
     )
   }
-  let observation = "{\"version\":\"actql-query-two-receipt-observation/0.1\",\"evidence_contract_cid\":\"sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a\",\"requirement_cid\":" +
+  let observation = "{\"version\":\"actql-query-two-receipt-observation/0.1\",\"evidence_contract_cid\":\"sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929\",\"requirement_cid\":" +
     query_oracle_quote(requirement_cid) +
     ",\"owner\":" +
     req.get("owner").unwrap().stringify() +

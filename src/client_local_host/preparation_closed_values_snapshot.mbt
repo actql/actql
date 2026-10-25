@@ -18,7 +18,7 @@ pub(all) struct ClientClosedValuesInputEnvelope {
 }
 
 ///|
-struct ClosedValuesSnapshotInventories {
+priv struct ClosedValuesSnapshotInventories {
   retained_host_share : PreparationRepresentationUnits
   temporary : PreparationRepresentationUnits
   document : PreparationRepresentationUnits

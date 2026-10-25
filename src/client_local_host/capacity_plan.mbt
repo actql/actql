@@ -9,7 +9,6 @@ priv struct ClientLocalCapacityPlan {
   dispatch_name_bytes : Int
   graph : @strategy.CheckedDAG?
   graph_offset : Int
-  result_envelope : ClientLocalResultEnvelope?
   publication : ClientLocalResultPublicationPlan?
   schema_inventory : ClientLocalSchemaProofInventory?
   demand_inventory : ClientLocalSchemaProofInventory?
@@ -191,7 +190,6 @@ fn client_local_capacity_plan(
         dispatch_name_bytes: dispatch_bounds.1,
         graph,
         graph_offset,
-        result_envelope,
         publication,
         schema_inventory: inventory,
         demand_inventory: dispatch_inventory,
@@ -236,7 +234,6 @@ fn client_local_capacity_plan(
         dispatch_name_bytes: dispatch_bounds.1,
         graph,
         graph_offset,
-        result_envelope,
         publication,
         schema_inventory: inventory,
         demand_inventory: dispatch_inventory,

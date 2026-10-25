@@ -7,7 +7,7 @@ fn client_sequence_preparation_demand(
   max_work : Int,
 ) -> Result[@lower.SequencePreparationDemand, @strategy.GraphIssue] {
   if max_work < 0 || owners.length() > max_work {
-    return Err(@strategy.WorkLimit)
+    return Err(@strategy.GraphIssue::WorkLimit)
   }
   let mut remaining = max_work - owners.length()
   let mut rows = 0L
@@ -19,13 +19,13 @@ fn client_sequence_preparation_demand(
         remaining,
       ) {
       Ok(value) => value
-      Err(@lower.WorkLimit) => return Err(@strategy.WorkLimit)
-      Err(_) => return Err(@strategy.InvalidLimits)
+      Err(@lower.WorkLimit) => return Err(@strategy.GraphIssue::WorkLimit)
+      Err(_) => return Err(@strategy.GraphIssue::InvalidLimits)
     }
     remaining -= demand.work_used
     if demand.authored_literal_rows.to_int64() > 2147483647L - rows ||
       demand.authored_literal_cells.to_int64() > 2147483647L - cells {
-      return Err(@strategy.InvalidLimits)
+      return Err(@strategy.GraphIssue::InvalidLimits)
     }
     rows += demand.authored_literal_rows.to_int64()
     cells += demand.authored_literal_cells.to_int64()

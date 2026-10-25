@@ -1067,11 +1067,11 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(current.template.bound_invocation_template_cid,
     'sha256:65ba2d982078498de560af8d2d2d6e7dfe622ca3f3311fb27555207b2066a806');
   assert.equal(current.executable.executable_plan_cid,
-    'sha256:d3cc183e7c4df1aa6c5ba1b7ee768cb6c39104fa5292c96b898f21587398315b');
+    'sha256:0ca86fa5083813d66fa3c76127fcf3f18c7f55a4535ea44ed944fd731f018e29');
   assert.equal(current.compiled.compiled_plan_cid,
-    'sha256:51857255c4f6a82c205ba2f3f236a25bac3e4a0282e2e784cb87a81024ba8ab0');
+    'sha256:266bff0766b577f6264abbc0ba1461ed777da7fe41466dec585f72fdb44a7672');
   assert.equal(current.run.run_definition_cid,
-    'sha256:277fc685198bd03868852558ec36e08ee4d19c90f03017c9152b9c6020bb498e');
+    'sha256:328953e8eec7cc88fbdfd2d5540df415a08898f2d35262432c8d87fe846b0ebc');
 
   // Keep the published DATA MATCH closure separate from the integrated main grammar.
   const submittedMatch = JSON.parse(readFileSync('scripts/fixtures/submitted-match-data-producer-grammar.json', 'utf8'));
@@ -1346,11 +1346,11 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.equal(current.template.bound_invocation_template_cid,
     "sha256:65ba2d982078498de560af8d2d2d6e7dfe622ca3f3311fb27555207b2066a806");
   assert.equal(current.executable.executable_plan_cid,
-    "sha256:d3cc183e7c4df1aa6c5ba1b7ee768cb6c39104fa5292c96b898f21587398315b");
+    "sha256:0ca86fa5083813d66fa3c76127fcf3f18c7f55a4535ea44ed944fd731f018e29");
   assert.equal(current.compiled.compiled_plan_cid,
-    "sha256:51857255c4f6a82c205ba2f3f236a25bac3e4a0282e2e784cb87a81024ba8ab0");
+    "sha256:266bff0766b577f6264abbc0ba1461ed777da7fe41466dec585f72fdb44a7672");
   assert.equal(current.run.run_definition_cid,
-    "sha256:277fc685198bd03868852558ec36e08ee4d19c90f03017c9152b9c6020bb498e");
+    "sha256:328953e8eec7cc88fbdfd2d5540df415a08898f2d35262432c8d87fe846b0ebc");
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const consumingProgram = runSource.match(

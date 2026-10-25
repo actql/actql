@@ -12,7 +12,7 @@ test "each owned stage resolves its emitted expression root without a caller CID
     )
     let root = stage_identity_expression_contract_cid(stage)
     assert_eq(
-      root, "sha256:e7645d18471d4436b7542302adce28303a8a634ce29e9f5fd849f5cee8d1159e",
+      root, "sha256:b5701b2178a3b2e624d0fbfbda877d0117c367e42a855161e26e0d2e133f1c2c",
     )
     assert_eq(root, @program_refs.stage_semantics_expression_contract(semantic))
     let inherited = stage_identity_inherited_text_time(stage).unwrap()
@@ -30,7 +30,7 @@ test "each owned stage resolves its emitted expression root without a caller CID
     assert_eq(inherited, @environment.Base)
     assert_eq(
       @environment.inherited_text_time_cid(inherited),
-      "sha256:ebae25fecbef6a2c79bdaa971f977d4bdcfb4c4c677b25bc9de6ec67354872e9",
+      "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
     )
     assert_eq(@environment.inherited_text_time_dependency_count(inherited), 8)
     // Semantic contract sharing does not equate the owned stage or Program.

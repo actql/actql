@@ -7,7 +7,7 @@ import {
   "actql/actql/source_frontend" @frontend,
   "actql/actql/query_program" @query,
   "actql/actql/decode_core" @decode,
-  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/parameter_binding" @parameters,
   "actql/actql/relation_schema" @schema,
   "actql/actql/check_environment" @environment,

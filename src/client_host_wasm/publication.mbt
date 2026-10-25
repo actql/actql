@@ -53,7 +53,6 @@ priv struct StoredPublication {
 }
 
 ///|
-#export_name("actql_publication_reserve")
 pub fn reserve_publication(
   nonce : Int64,
   source : Int,
@@ -193,7 +192,6 @@ fn publication_current(
 }
 
 ///|
-#export_name("actql_publication_prepare")
 pub fn prepare_publication(
   nonce : Int64,
   handle : Int,
@@ -400,7 +398,6 @@ fn advance_publication_owner(
 }
 
 ///|
-#export_name("actql_publication_advance")
 pub fn advance_publication(
   nonce : Int64,
   handle : Int,
@@ -465,7 +462,6 @@ pub fn advance_publication(
 }
 
 ///|
-#export_name("actql_publication_progress")
 pub fn publication_progress(nonce : Int64, handle : Int, field : Int) -> Int64 {
   guard selected(nonce) is Some(value) &&
     value.publications.get(handle) is Some(record) else {
@@ -483,7 +479,6 @@ pub fn publication_progress(nonce : Int64, handle : Int, field : Int) -> Int64 {
 }
 
 ///|
-#export_name("actql_publication_finish")
 pub fn finish_publication(
   nonce : Int64,
   handle : Int,
@@ -563,7 +558,6 @@ pub fn finish_publication(
 }
 
 ///|
-#export_name("actql_publication_length")
 pub fn publication_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.publications.get(handle) is Some(record) else {
@@ -578,7 +572,6 @@ pub fn publication_length(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Release only the completed wire projection. Original Receipt, Captured Run,
 /// Result pins, preflight and input borrow remain under their existing Owners.
-#export_name("actql_publication_retire_output")
 pub fn retire_publication_output(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.publications.get(handle) is Some(record) else {
@@ -603,7 +596,6 @@ pub fn retire_publication_output(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_publication_close")
 pub fn close_publication(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.publications.get(handle) is Some(record) else {

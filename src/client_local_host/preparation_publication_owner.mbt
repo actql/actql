@@ -7,9 +7,6 @@ struct ClientProgramPublication[I] {
   holder : @resources.PreparationBodyBorrow[
     @publication_host.PreparedClientProgram,
   ]
-  base_retained : Int64
-  snapshot_retained : Int64
-  snapshot_execution : Int64
   mut run : @strategy.CapturedDAG?
   mut snapshot : ClientProgramSnapshot[I]?
   mut snapshot_starting : Bool
@@ -197,9 +194,6 @@ pub fn[I] reserve_program_publication(
   let value : ClientProgramPublication[I] = {
     owner,
     holder,
-    base_retained: controls_retained,
-    snapshot_retained: retained,
-    snapshot_execution: total_e,
     capture_started: false,
     capture: None,
     run: Some(captured),
