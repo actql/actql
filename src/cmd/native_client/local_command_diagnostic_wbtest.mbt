@@ -182,3 +182,54 @@ test "Pre-Run presentation never reinterprets or truncates a legacy recovery car
     )
   }
 }
+
+///|
+test "Query syntax diagnostics keep the code and omit private parser text" {
+  local_command_diagnostic_reset()
+  let private_text = "synthetic-token=DO_NOT_DISCLOSE\u{001b}"
+  let issue : @frontend.Issue = QuerySyntax({
+    issue: Syntax(private_text),
+    span: None,
+  })
+  let original : @local_host.NativeClientPreparationIssue = Frontend(issue)
+  local_stop_native_preparation(original) catch {
+    ClientStop(_) => ()
+  }
+  let (code, message) = local_command_primary_diagnostic(
+    "LocalPreparationNotReady",
+  )
+  assert_eq(code, "ACTQL_E_PROGRAM_INVALID")
+  assert_true(message.contains("query syntax"))
+  assert_true(message.contains("actql check"))
+  for json in [false, true] {
+    let rendered = local_command_failure_text("LocalPreparationNotReady", json)
+    assert_true(rendered.contains(code))
+    assert_true(rendered.contains("query syntax"))
+    assert_false(rendered.contains("DO_NOT_DISCLOSE"))
+    assert_false(rendered.contains("\u{001b}"))
+  }
+  command_preparation_diagnostic.val = local_frontend_diagnostic_kind(
+    @frontend.QuerySyntax({ issue: Lexical(UnterminatedComment), span: None, }),
+  )
+  assert_eq(local_command_primary_diagnostic("ignored").0, code)
+  assert_true(
+    local_command_primary_diagnostic("ignored").1.contains("query syntax"),
+  )
+  // The parser also reports budget/configuration failures in this carrier.
+  // They must not acquire syntax-specific advice merely by sharing its type.
+  for
+    issue in [
+      @frontend.QuerySyntax({ issue: InvalidLimits, span: None, }),
+      @frontend.QuerySyntax({ issue: Source(InvalidRange), span: None, }),
+      @frontend.QuerySyntax({ issue: Limit(Tokens), span: None, }),
+      @frontend.InvalidFormat,
+      @frontend.WrongQueryForm,
+    ] {
+    command_preparation_diagnostic.val = local_frontend_diagnostic_kind(issue)
+    assert_eq(local_command_primary_diagnostic("ignored").0, code)
+    assert_false(
+      local_command_primary_diagnostic("ignored").1.contains("query syntax"),
+    )
+  }
+  local_command_diagnostic_reset()
+}

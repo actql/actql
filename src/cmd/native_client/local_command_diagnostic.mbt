@@ -9,6 +9,7 @@ priv enum LocalCommandDiagnosticKind {
   ParameterDeclarations
   ParameterBinding
   ProgramInvalid
+  QuerySyntaxInvalid
   ConfigurationInvalid
   UnsupportedPreparation
   PreparationLimit
@@ -81,13 +82,23 @@ fn local_check_diagnostic_kind(
 }
 
 ///|
+fn local_frontend_diagnostic_kind(
+  issue : @frontend.Issue,
+) -> LocalCommandDiagnosticKind {
+  match issue {
+    QuerySyntax({ issue: Syntax(_) | Lexical(_), .. }) => QuerySyntaxInvalid
+    InvalidFormat | WrongQueryForm | QuerySyntax(_) => ProgramInvalid
+    _ => PreparationFailed
+  }
+}
+
+///|
 fn local_native_preparation_diagnostic_kind(
   issue : @local_host.NativeClientPreparationIssue,
 ) -> LocalCommandDiagnosticKind {
   match issue {
-    Syntax(_) | Frontend(InvalidFormat | WrongQueryForm | QuerySyntax(_)) =>
-      ProgramInvalid
-    Frontend(_) => PreparationFailed
+    Syntax(_) => ProgramInvalid
+    Frontend(issue) => local_frontend_diagnostic_kind(issue)
     Computation(Check(diagnostic)) => local_check_diagnostic_kind(diagnostic)
     Computation(NeedsInputs(requests)) => {
       for index in 0..<@checked.input_request_count(requests) {
@@ -150,6 +161,10 @@ fn local_command_primary_diagnostic(message : String) -> (String, String) {
     ParameterBinding =>
       (
         "ACTQL_E_PARAMETER_BINDING", "The original parameter binding could not be completed.",
+      )
+    QuerySyntaxInvalid =>
+      (
+        "ACTQL_E_PROGRAM_INVALID", "The query syntax is invalid. Run actql check with the same input and format for syntax diagnostics.",
       )
     ProgramInvalid =>
       ("ACTQL_E_PROGRAM_INVALID", "The original Program input is invalid.")
@@ -230,3 +245,4 @@ fn local_command_diagnostic_text(
     "actql-native-client: " + code + ": " + quoted
   }
 }
+
