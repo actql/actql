@@ -33,7 +33,7 @@ test "Values compilation parts retain the original checked components without re
     prepared, parts, 100000, 10000, 100,
   ).unwrap()
   assert_true(physical_equal(compiled.owner, prepared))
-  assert_eq(compiled.plan.transformations.length(),0)
+  assert_eq(compiled.plan.transformations.length(), 0)
   assert_true(physical_equal(compiled.plan, parts.plan))
   assert_true(physical_equal(compiled.template, parts.template))
   assert_true(physical_equal(compiled.fragment, parts.fragment))

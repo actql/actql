@@ -7,7 +7,8 @@ pub fn client_compiled_run_has_original_definition(
   definition : @publication.PublicationContract,
 ) -> Bool {
   match value.definition_binding {
-    Some(original) => client_compiled_run_definition_facts_match(original, value, definition)
+    Some(original) =>
+      client_compiled_run_definition_facts_match(original, value, definition)
     None => false
   }
 }

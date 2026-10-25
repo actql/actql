@@ -47,7 +47,12 @@ test "original resident Source Query preparation retains its common checked requ
       prepared,
       0,
       0,
-      prepare_installed_sequence_contracts(source_query_original_registry,source_query_original_values,Some(source_query_original_fragment),None).unwrap(),
+      prepare_installed_sequence_contracts(
+        source_query_original_registry,
+        source_query_original_values,
+        Some(source_query_original_fragment),
+        None,
+      ).unwrap(),
       source_query_original_values,
       Some(source_query_original_fragment),
       None,

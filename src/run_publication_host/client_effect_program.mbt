@@ -157,7 +157,8 @@ pub fn prepare_parsed_client_effect_computation(
     Ok(value) => value
     Err(issue) => return Err(Stage(issue))
   }
-  let sequence_preparation_demand = match client_sequence_preparation_demand(owners,limits.program.max_graph_work) {
+  let sequence_preparation_demand = match
+    client_sequence_preparation_demand(owners, limits.program.max_graph_work) {
     Ok(value) => value
     Err(issue) => return Err(Graph(issue))
   }

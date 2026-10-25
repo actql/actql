@@ -47,7 +47,9 @@ test "closed Values empty normalization has fixed original tree and wire extent"
 ///|
 test "closed Values normalization schema validation has two-frame frontier" {
   let body = "{\"entries\":[],\"rule_catalog_cid\":\"sha256:f93d91b468d850cbc63a8c8350578af8431a2256eb2b1ef3f60586fdc640561d\",\"version\":\"actql-normalization-journal/0.1\"}"
-  let evidence = seal_run_evidence_value("normalization_journal", body, 1024, 32, 8).unwrap()
+  let evidence = seal_run_evidence_value(
+    "normalization_journal", body, 1024, 32, 8,
+  ).unwrap()
   let before = parse_contract_wire(body, 1024, 32, 8).unwrap()
   let layout = empty_normalization_validation_layout()
   let nodes = protocol_schema_nodes()
@@ -69,9 +71,16 @@ test "closed Values normalization schema validation has two-frame frontier" {
         }
       }
     }
-    let cursor = start_protocol_validation(if complete { evidence.value } else { before }, root, nodes, {
-      remaining: 256, max_wire_bytes: 1024, max_nodes: 32, max_depth: 8,
-    })
+    let cursor = start_protocol_validation(
+      if complete {
+        evidence.value
+      } else {
+        before
+      },
+      root,
+      nodes,
+      { remaining: 256, max_wire_bytes: 1024, max_nodes: 32, max_depth: 8, },
+    )
     let mut peak = cursor.pending.length()
     while !cursor.pending.is_empty() {
       cursor.step()

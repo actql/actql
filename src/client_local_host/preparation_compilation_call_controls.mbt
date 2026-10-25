@@ -14,9 +14,9 @@
 /// carrier wrappers between iterations; owned outputs are separately priced.
 /// No borrowed text backing or shared semantic owner is charged again here.
 let compilation_call_control_original : PreparationRepresentationUnits = {
-  record_headers: 549L*3L,
-  reference_slots: 549L*6L,
-  scalar_words: 549L*4L,
+  record_headers: 549L * 3L,
+  reference_slots: 549L * 6L,
+  scalar_words: 549L * 4L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }

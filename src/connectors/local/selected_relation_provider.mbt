@@ -287,9 +287,7 @@ fn relation_chain_step_inputs(
   completed : Array[@execution.CompletedOutput?],
 ) -> Result[Array[ManagedProviderInput], @connector.FixedComputeIssue] {
   let cursor = match
-    start_relation_chain_inputs(
-      sequence, position, inputs, completed,
-    ) {
+    start_relation_chain_inputs(sequence, position, inputs, completed) {
     Ok(cursor) => cursor
     Err(issue) => return Err(issue)
   }
@@ -493,12 +491,7 @@ fn bounded_relation_chain_execution_state(
     input_preparation: None,
   }
   let first_inputs = match
-    relation_chain_step_inputs(
-      sequence,
-      0,
-      inputs,
-      state.completed,
-    ) {
+    relation_chain_step_inputs(sequence, 0, inputs, state.completed) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

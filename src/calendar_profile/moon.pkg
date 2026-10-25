@@ -1,6 +1,11 @@
 supported_targets = "+js+wasm+native"
 
-formatter(ignore: [ "tzdb_fixture.generated_test.mbt", "runtime_laws.generated_test.mbt" ])
+formatter(
+  ignore: [
+    "tzdb_fixture.generated_test.mbt",
+    "runtime_laws.generated_test.mbt",
+  ],
+)
 
 import {
   "actql/actql/calendar_transition" @transition,

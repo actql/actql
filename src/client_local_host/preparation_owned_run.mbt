@@ -137,11 +137,20 @@ pub fn installed_preparation_payload_severed(
   value : ClientInstalledManagedRun,
   request : @publication_host.ClientRequestIdentity,
 ) -> Bool {
-  guard value.original is Some(original) && physical_equal(original,value) &&
-    physical_equal(value.request,request) && value.ledger is Some(ledger) &&
+  guard value.original is Some(original) &&
+    physical_equal(original, value) &&
+    physical_equal(value.request, request) &&
+    value.ledger is Some(ledger) &&
     value.preparation_retirement is Some(retirement) &&
-    value.preparation is None && value.source_free_preparation is None &&
+    value.preparation is None &&
+    value.source_free_preparation is None &&
     value.source_free_captured is None &&
-    retirement.holder is None else { return false }
-  @resources.check_node_preparation_cleanup_original(retirement.admission,ledger) is Ok(_)
+    retirement.holder is None else {
+    return false
+  }
+  @resources.check_node_preparation_cleanup_original(
+    retirement.admission,
+    ledger,
+  )
+  is Ok(_)
 }

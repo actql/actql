@@ -10,11 +10,15 @@ test "cleanup DATA relocation keeps original Ledger and exact charges" {
   stop_imported_child_ledger(frame).unwrap()
   current.val = 1
   // Exact fixture DATA exercises every nested immutable quantity record.
-  ledger.quantity_limits = Some({ tokens: 17L, cost_units: 19L, duration_ms: 23L })
+  ledger.quantity_limits = Some({
+    tokens: 17L,
+    cost_units: 19L,
+    duration_ms: 23L,
+  })
   ledger.quantity_usage = {
-    reserved: { tokens: 2L, cost_units: 3L, duration_ms: 5L },
-    uncertain: { tokens: 7L, cost_units: 11L, duration_ms: 13L },
-    consumed: { tokens: 1L, cost_units: 1L, duration_ms: 1L },
+    reserved: { tokens: 2L, cost_units: 3L, duration_ms: 5L, },
+    uncertain: { tokens: 7L, cost_units: 11L, duration_ms: 13L, },
+    consumed: { tokens: 1L, cost_units: 1L, duration_ms: 1L, },
   }
   let old_usage = ledger_usage(ledger)
   let old_quantities = quantity_usage(ledger)
@@ -28,9 +32,15 @@ test "cleanup DATA relocation keeps original Ledger and exact charges" {
   assert_false(physical_equal(ledger_usage(ledger), old_usage))
   assert_eq(quantity_usage(ledger), old_quantities)
   assert_false(physical_equal(quantity_usage(ledger), old_quantities))
-  assert_false(physical_equal(quantity_usage(ledger).reserved, old_quantities.reserved))
-  assert_false(physical_equal(quantity_usage(ledger).uncertain, old_quantities.uncertain))
-  assert_false(physical_equal(quantity_usage(ledger).consumed, old_quantities.consumed))
+  assert_false(
+    physical_equal(quantity_usage(ledger).reserved, old_quantities.reserved),
+  )
+  assert_false(
+    physical_equal(quantity_usage(ledger).uncertain, old_quantities.uncertain),
+  )
+  assert_false(
+    physical_equal(quantity_usage(ledger).consumed, old_quantities.consumed),
+  )
   assert_eq(ledger.quantity_limits.unwrap(), old_limits)
   assert_false(physical_equal(ledger.quantity_limits.unwrap(), old_limits))
   assert_eq(ledger.next_capacity_serial, serial)
@@ -45,12 +55,20 @@ test "cleanup relocation refuses copied retired and unconfirmed original control
   let (ledger, _, _) = take_imported_child_ledger(frame).unwrap()
   stop_imported_child_ledger(frame).unwrap()
   let copied = { ..frame, }
-  assert_true(relocate_imported_child_cleanup_usage(copied) is Err(ForeignOriginal))
+  assert_true(
+    relocate_imported_child_cleanup_usage(copied) is Err(ForeignOriginal),
+  )
   let usage = ledger_usage(ledger)
   current.val = -41
-  assert_true(relocate_imported_child_cleanup_usage(frame) is Err(Resource(ChildFundingUnavailable)))
+  assert_true(
+    relocate_imported_child_cleanup_usage(frame)
+    is Err(Resource(ChildFundingUnavailable)),
+  )
   current.val = 0
-  assert_true(relocate_imported_child_cleanup_usage(frame) is Err(Resource(ChildFundingUnavailable)))
+  assert_true(
+    relocate_imported_child_cleanup_usage(frame)
+    is Err(Resource(ChildFundingUnavailable)),
+  )
   assert_true(physical_equal(usage, ledger_usage(ledger)))
   assert_eq(reports.val, 0)
   let (uncertain, _, _, _, _) = imported_child_fixture()

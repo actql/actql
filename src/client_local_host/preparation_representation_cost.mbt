@@ -36,34 +36,68 @@ priv struct PreparationRepresentationCostPolicy {
 }
 
 ///|
-let preparation_representation_cost_policy : PreparationRepresentationCostPolicy={
-  record_header_bytes:16L,
-  reference_slot_bytes:8L,
-  scalar_word_bytes:8L,
-  utf16_unit_bytes:2L,
-  wire_byte_bytes:1L,
+let preparation_representation_cost_policy : PreparationRepresentationCostPolicy = {
+  record_header_bytes: 16L,
+  reference_slot_bytes: 8L,
+  scalar_word_bytes: 8L,
+  utf16_unit_bytes: 2L,
+  wire_byte_bytes: 1L,
 }
 
 ///|
 /// Checked projection shared by preparation phase proofs and actual logical
 /// inventory reconciliation. No separate quote/runtime coefficient table.
-fn preparation_representation_cost(units : PreparationRepresentationUnits) -> Int64? {
-  let policy=preparation_representation_cost_policy
-  let mut total=0L
-  guard preparation_cost_add(total,units.record_headers,policy.record_header_bytes) is Some(next) else {return None}
-  total=next
-  guard preparation_cost_add(total,units.reference_slots,policy.reference_slot_bytes) is Some(next) else {return None}
-  total=next
-  guard preparation_cost_add(total,units.scalar_words,policy.scalar_word_bytes) is Some(next) else {return None}
-  total=next
-  guard preparation_cost_add(total,units.owned_utf16_units,policy.utf16_unit_bytes) is Some(next) else {return None}
-  total=next
-  preparation_cost_add(total,units.owned_wire_bytes,policy.wire_byte_bytes)
+fn preparation_representation_cost(
+  units : PreparationRepresentationUnits,
+) -> Int64? {
+  let policy = preparation_representation_cost_policy
+  let mut total = 0L
+  guard preparation_cost_add(
+      total,
+      units.record_headers,
+      policy.record_header_bytes,
+    )
+    is Some(next) else {
+    return None
+  }
+  total = next
+  guard preparation_cost_add(
+      total,
+      units.reference_slots,
+      policy.reference_slot_bytes,
+    )
+    is Some(next) else {
+    return None
+  }
+  total = next
+  guard preparation_cost_add(
+      total,
+      units.scalar_words,
+      policy.scalar_word_bytes,
+    )
+    is Some(next) else {
+    return None
+  }
+  total = next
+  guard preparation_cost_add(
+      total,
+      units.owned_utf16_units,
+      policy.utf16_unit_bytes,
+    )
+    is Some(next) else {
+    return None
+  }
+  total = next
+  preparation_cost_add(total, units.owned_wire_bytes, policy.wire_byte_bytes)
 }
 
 ///|
-fn preparation_cost_add(total : Int64,count : Int64,price : Int64) -> Int64? {
-  if count<0L || price<=0L || count>(9223372036854775807L-total)/price {None} else {Some(total+count*price)}
+fn preparation_cost_add(total : Int64, count : Int64, price : Int64) -> Int64? {
+  if count < 0L || price <= 0L || count > (9223372036854775807L - total) / price {
+    None
+  } else {
+    Some(total + count * price)
+  }
 }
 
 ///|
@@ -72,30 +106,43 @@ fn preparation_cost_add(total : Int64,count : Int64,price : Int64) -> Int64? {
 /// identity: distinct copied owners are charged separately. Repeated identity
 /// with different extents is not a valid immutable snapshot and refuses.
 fn[T] preparation_owned_representation_cost(
-  owners : Array[(T,PreparationRepresentationUnits)],max_work : Int,
+  owners : Array[(T, PreparationRepresentationUnits)],
+  max_work : Int,
 ) -> Int64? {
-  if max_work<0 {return None}
-  let mut remaining=max_work
-  let mut total=0L
+  if max_work < 0 {
+    return None
+  }
+  let mut remaining = max_work
+  let mut total = 0L
   for index in 0..<owners.length() {
-    if remaining==0 {return None}
-    remaining-=1
-    let (owner,units)=owners[index]
-    let mut duplicate=false
+    if remaining == 0 {
+      return None
+    }
+    remaining -= 1
+    let (owner, units) = owners[index]
+    let mut duplicate = false
     for earlier in 0..<index {
-      if remaining==0 {return None}
-      remaining-=1
-      let (previous,extent)=owners[earlier]
-      if physical_equal(owner,previous) {
-        if units!=extent {return None}
-        duplicate=true
+      if remaining == 0 {
+        return None
+      }
+      remaining -= 1
+      let (previous, extent) = owners[earlier]
+      if physical_equal(owner, previous) {
+        if units != extent {
+          return None
+        }
+        duplicate = true
         break
       }
     }
     if !duplicate {
-      guard preparation_representation_cost(units) is Some(cost) else {return None}
-      if cost>9223372036854775807L-total {return None}
-      total+=cost
+      guard preparation_representation_cost(units) is Some(cost) else {
+        return None
+      }
+      if cost > 9223372036854775807L - total {
+        return None
+      }
+      total += cost
     }
   }
   Some(total)
@@ -106,24 +153,35 @@ fn[T] preparation_owned_representation_cost(
 /// source-owned inventory is independently checked in the adapter suite; byte
 /// pricing remains exclusively this Common tariff, not a Node-issued grant.
 fn preparation_node_own_data_scan_cost() -> Int64? {
-  preparation_representation_cost({record_headers:4L,reference_slots:5L,
-    scalar_words:31L,owned_utf16_units:0L,owned_wire_bytes:0L})
+  preparation_representation_cost({
+    record_headers: 4L,
+    reference_slots: 5L,
+    scalar_words: 31L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
 }
 
 ///|
 /// Valid narrow input traversal count from the original header's F/R facts.
 /// UTF16 lengths are inspected in O(1), not characters, in this Node phase.
 /// JSON byte bounds and the later Common lexical scan have distinct units.
-fn preparation_node_own_data_scan_work(fields : Int,rows : Int) -> Int? {
-  if fields<1 || rows<0 {return None}
-  let f=fields.to_int64()
-  let r=rows.to_int64()
-  let maximum=2147483647L
-  if f>(maximum-140L)/(f+19L) {return None}
-  let base=140L+f*f+19L*f
-  let per_row=4L+6L*f
-  if r>(maximum-base)/per_row {return None}
-  Some((base+r*per_row).to_int())
+fn preparation_node_own_data_scan_work(fields : Int, rows : Int) -> Int? {
+  if fields < 1 || rows < 0 {
+    return None
+  }
+  let f = fields.to_int64()
+  let r = rows.to_int64()
+  let maximum = 2147483647L
+  if f > (maximum - 140L) / (f + 19L) {
+    return None
+  }
+  let base = 140L + f * f + 19L * f
+  let per_row = 4L + 6L * f
+  if r > (maximum - base) / per_row {
+    return None
+  }
+  Some((base + r * per_row).to_int())
 }
 
 ///|
@@ -131,8 +189,13 @@ fn preparation_node_own_data_scan_work(fields : Int,rows : Int) -> Int? {
 /// input identity/F/R facts and private state. It is additional to the scanner
 /// owned control family, not hidden in its 344-byte component quote.
 fn preparation_node_own_data_header_cost() -> Int64? {
-  preparation_representation_cost({record_headers:1L,reference_slots:3L,
-    scalar_words:3L,owned_utf16_units:0L,owned_wire_bytes:0L})
+  preparation_representation_cost({
+    record_headers: 1L,
+    reference_slots: 3L,
+    scalar_words: 3L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
 }
 
 ///|
@@ -156,19 +219,23 @@ fn preparation_execution_capacity(
   guard preparation_representation_cost(inventory.retained) is Some(retained) else {
     return None
   }
-  guard preparation_cost_add(retained, inventory.retained_nodes, node) is Some(retained) else {
+  guard preparation_cost_add(retained, inventory.retained_nodes, node)
+    is Some(retained) else {
     return None
   }
-  guard preparation_cost_add(retained, inventory.retained_bytes, 1L) is Some(retained) else {
+  guard preparation_cost_add(retained, inventory.retained_bytes, 1L)
+    is Some(retained) else {
     return None
   }
   guard preparation_representation_cost(inventory.workspace) is Some(workspace) else {
     return None
   }
-  guard preparation_cost_add(workspace, inventory.workspace_nodes, node) is Some(workspace) else {
+  guard preparation_cost_add(workspace, inventory.workspace_nodes, node)
+    is Some(workspace) else {
     return None
   }
-  guard preparation_cost_add(workspace, inventory.workspace_bytes, 1L) is Some(workspace) else {
+  guard preparation_cost_add(workspace, inventory.workspace_bytes, 1L)
+    is Some(workspace) else {
     return None
   }
   guard preparation_cost_add(retained, workspace, 1L) is Some(execution) else {

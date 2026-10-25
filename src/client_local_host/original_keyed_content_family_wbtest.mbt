@@ -49,7 +49,12 @@ fn original_keyed_content_workspace() -> ClientSerializationWorkspaceLimits {
 
 ///|
 test "Pure keyed Content family retains the actual checked boundary without entering Store during capacity selection" {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let (_, prepared, _, _, _, keyed, _) = original_keyed_run_fixture(
     relation_versions=true,
     serialization_max_bytes=4470,

@@ -68,7 +68,8 @@ pub fn issue_client_model_raw_capture_policy(
   }
   if @environment.check_model_response_profile_binding(
       profile, task, installation, probability,
-    ) is Err(_) {
+    )
+    is Err(_) {
     return Err(ForeignProfile)
   }
   guard client_compiled_run_infer_observation_policy(dispatch.compiled)
@@ -79,24 +80,37 @@ pub fn issue_client_model_raw_capture_policy(
   let body = try {
     let writer = @encode.writer(8192, 128, 8)
     @encode.begin_object(writer)
-    for (field, text) in [
-      ("version", "actql-model-raw-capture-policy/0.1"),
-      ("purpose", "model_raw_capture"),
-      ("run_definition_cid", run_cid),
-      ("scope_cid", scope_cid),
-      ("model_task_cid", task_cid),
-      ("response_profile_cid", @environment.model_response_profile_identity(profile)),
-      ("store_authority_cid", store_authority_cid),
-      ("effective_data_policy_cid", data_cid),
-      ("retention_contract_cid", @publication.captured_effect_dependency_body_cid(retention)),
-      ("metadata_retention_policy_cid", @publication.captured_effect_dependency_body_cid(metadata)),
-      ("clock_contract_cid", @publication.captured_effect_dependency_body_cid(clock)),
-      ("selected_at", selected_at),
-      ("available_until", available_until),
-      ("delete_by", delete_by),
-      ("extension_ceiling_at", extension_ceiling_at),
-      ("metadata_delete_by", metadata_delete_by),
-    ] {
+    for
+      (field, text) in [
+        ("version", "actql-model-raw-capture-policy/0.1"),
+        ("purpose", "model_raw_capture"),
+        ("run_definition_cid", run_cid),
+        ("scope_cid", scope_cid),
+        ("model_task_cid", task_cid),
+        (
+          "response_profile_cid",
+          @environment.model_response_profile_identity(profile),
+        ),
+        ("store_authority_cid", store_authority_cid),
+        ("effective_data_policy_cid", data_cid),
+        (
+          "retention_contract_cid",
+          @publication.captured_effect_dependency_body_cid(retention),
+        ),
+        (
+          "metadata_retention_policy_cid",
+          @publication.captured_effect_dependency_body_cid(metadata),
+        ),
+        (
+          "clock_contract_cid",
+          @publication.captured_effect_dependency_body_cid(clock),
+        ),
+        ("selected_at", selected_at),
+        ("available_until", available_until),
+        ("delete_by", delete_by),
+        ("extension_ceiling_at", extension_ceiling_at),
+        ("metadata_delete_by", metadata_delete_by),
+      ] {
       @encode.key(writer, field)
       @encode.string_value(writer, text)
     }
@@ -105,7 +119,8 @@ pub fn issue_client_model_raw_capture_policy(
   } catch {
     _ => return Err(Evidence(@publication.RunEvidenceEncoding))
   }
-  let policy = match @publication.seal_run_evidence_value(
+  let policy = match
+    @publication.seal_run_evidence_value(
       "model_raw_capture_policy", body, 8192, 128, 8,
     ) {
     Ok(value) => value

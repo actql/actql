@@ -10,5 +10,5 @@ import {
 
 import {
   "actql/actql/encode_core" @encode,
-  "moonbitlang/core/json" @json,
+  "moonbitlang/core/json",
 } for "test"

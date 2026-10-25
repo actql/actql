@@ -197,7 +197,8 @@ pub fn estimate_local_dispatch_offer(
   let metadata_bytes = installed.import_metadata
     .map(value => value.retained_bytes)
     .unwrap_or(0L)
-  guard local_retained_with_metadata(capacity.retained_bytes,metadata_bytes) is Some(funded_retained) else {
+  guard local_retained_with_metadata(capacity.retained_bytes, metadata_bytes)
+    is Some(funded_retained) else {
     return Err(Configuration(InvalidLimits))
   }
   let mut retained = funded_retained

@@ -65,8 +65,8 @@ pub fn client_original_keyed_serialization_suffix_capacity(
   measurement : @execution.FixedInputGuardMeasureLimits,
 ) -> @execution.ExecutionCapacity? {
   original_keyed_serialization_suffix_provider(
-    prepared, keyed, task, step, installed_contracts, values_body, fragment_body, ordered_body,
-    execution, measurement,
+    prepared, keyed, task, step, installed_contracts, values_body, fragment_body,
+    ordered_body, execution, measurement,
   ).map(value => value.2)
 }
 
@@ -94,8 +94,8 @@ pub fn start_client_original_keyed_serialization_suffix(
   workspace? : @execution.ExecutionCapacity? = None,
 ) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue] {
   guard original_keyed_serialization_suffix_provider(
-      prepared, keyed, task, step, installed_contracts, values_body, fragment_body, ordered_body,
-      execution, measurement,
+      prepared, keyed, task, step, installed_contracts, values_body, fragment_body,
+      ordered_body, execution, measurement,
     )
     is Some((sequence, provider, capacity)) else {
     return Err(Unavailable)

@@ -288,7 +288,7 @@ export function scalarPairSource(sourceRoot = repository) {
     'fn native_local_scalar_pair_evidence_wire() -> String {\n  ' + JSON.stringify(wire) + '\n}\n\n///|\n' +
     'fn native_local_scalar_pair_evidence_cid() -> String {\n  ' + JSON.stringify(machineCid(evidence)) + '\n}\n' +
     ['original', 'current'].map(side => '\n///|\nfn native_local_scalar_pair_' + side + '_asset_hash(role : String) -> String? {\n  match role {\n' +
-      evidence.asset_pairs.map(row => '    ' + JSON.stringify(row.role) + ' => Some(' + JSON.stringify(row[side + '_sha256']) + ')\n').join('') +
+      evidence.asset_pairs.map(row => '    ' + JSON.stringify(row.role) + ' =>\n      Some(' + JSON.stringify(row[side + '_sha256']) + ')\n').join('') +
       '    _ => None\n  }\n}\n').join('');
 }
 
@@ -317,11 +317,11 @@ export function scalarPairRuntimeFixture(sourceRoot = repository) {
     '\n///|\nfn scalar_pair_test_current_runtime_wire() -> String {\n  ' + JSON.stringify(JSON.stringify(candidate)) + '\n}\n' +
     '\n///|\nfn scalar_pair_test_original_assets() -> ClientLocalProductAssets {\n  {\n' +
     fields.map(role => '    ' + role + ': ' + JSON.stringify(originalAssets.get(role).toString('utf8')) + ',\n').join('') +
-    '    ordered: Some(' + JSON.stringify(originalAssets.get('ordered').toString('utf8')) + '),\n' +
+    '    ordered: Some(\n      ' + JSON.stringify(originalAssets.get('ordered').toString('utf8')) + ',\n    ),\n' +
     '    result_policy: ' + JSON.stringify(originalAssets.get('result-policy').toString('utf8')) + ',\n  }\n}\n' +
     '\n///|\nfn scalar_pair_test_reviewed_current_assets() -> ClientLocalProductAssets {\n  {\n' +
     fields.map(role => '    ' + role + ': ' + JSON.stringify(currentAssets.get(role).toString('utf8')) + ',\n').join('') +
-    '    ordered: Some(' + JSON.stringify(currentAssets.get('ordered').toString('utf8')) + '),\n' +
+    '    ordered: Some(\n      ' + JSON.stringify(currentAssets.get('ordered').toString('utf8')) + ',\n    ),\n' +
     '    result_policy: ' + JSON.stringify(currentAssets.get('result-policy').toString('utf8')) + ',\n  }\n}\n';
 }
 

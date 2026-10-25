@@ -1,7 +1,9 @@
 ///|
 /// Logical retained/workspace allowance per value-node slot, not measured RSS.
 /// The row-policy necessary bound and actual capacity calculator share this unit.
-pub fn execution_capacity_node_bytes() -> Int64 { 256L }
+pub fn execution_capacity_node_bytes() -> Int64 {
+  256L
+}
 
 ///|
 /// Host-private capacity allowances for the existing bounded row executor, not

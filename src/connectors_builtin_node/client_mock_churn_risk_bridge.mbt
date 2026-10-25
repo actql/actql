@@ -51,7 +51,7 @@ pub fn client_program_mock_churn_risk_admit_target_document(
     salesforce,
     snowflake,
     bytes,
-    { max_bytes, max_nodes, max_depth, max_rows },
+    { max_bytes, max_nodes, max_depth, max_rows, },
     max_work,
   )
 }

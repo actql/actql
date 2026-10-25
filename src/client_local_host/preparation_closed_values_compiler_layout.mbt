@@ -17,10 +17,16 @@ struct ClosedValuesLiteralLayout {
 /// length; this common logical spare-capacity envelope covers that length too.
 /// This is not a claim about either engine's allocator or physical heap size.
 fn closed_values_append_capacity(length : Int) -> Int64? {
-  if length < 0 { return None }
-  if length == 0 { return Some(0L) }
+  if length < 0 {
+    return None
+  }
+  if length == 0 {
+    return Some(0L)
+  }
   let mut capacity = 8L
-  while capacity < length.to_int64() { capacity *= 2L }
+  while capacity < length.to_int64() {
+    capacity *= 2L
+  }
   Some(capacity)
 }
 
@@ -38,11 +44,18 @@ fn closed_values_append_capacity(length : Int) -> Int64? {
 /// No temporary Map, decoder view, admission frame or pipeline owner is hidden
 /// in this vector; those must be supplied by their distinct phase components.
 fn closed_values_literal_layout(
-  fields : Int, rows : Int,
+  fields : Int,
+  rows : Int,
 ) -> ClosedValuesLiteralLayout? {
-  if fields <= 0 || rows < 0 { return None }
-  guard closed_values_append_capacity(fields) is Some(field_capacity) else { return None }
-  guard closed_values_append_capacity(rows) is Some(row_capacity) else { return None }
+  if fields <= 0 || rows < 0 {
+    return None
+  }
+  guard closed_values_append_capacity(fields) is Some(field_capacity) else {
+    return None
+  }
+  guard closed_values_append_capacity(rows) is Some(row_capacity) else {
+    return None
+  }
   let f = fields.to_int64()
   let r = rows.to_int64()
   // Int inputs make f*r fit signed Int64; each subsequent projection is still
@@ -50,23 +63,39 @@ fn closed_values_literal_layout(
   let cells = f * r
   // Per-cell (4,6,4); per-row (4,5+field_capacity,3); per-field
   // (2,2,2). Constant owners (16,18,20), plus field/row backing slots.
-  guard preparation_cost_add(16L,cells,4L) is Some(headers) else { return None }
-  guard preparation_cost_add(headers,r,4L) is Some(headers) else { return None }
-  guard preparation_cost_add(headers,f,2L) is Some(headers) else { return None }
-  guard preparation_cost_add(18L,cells,6L) is Some(refs) else { return None }
-  guard preparation_cost_add(refs,r,5L+field_capacity) is Some(refs) else { return None }
-  guard preparation_cost_add(refs,f,2L) is Some(refs) else { return None }
-  guard preparation_cost_add(refs,field_capacity+row_capacity,1L) is Some(refs) else { return None }
-  guard preparation_cost_add(20L,cells,4L) is Some(words) else { return None }
-  guard preparation_cost_add(words,r,3L) is Some(words) else { return None }
-  guard preparation_cost_add(words,f,2L) is Some(words) else { return None }
+  guard preparation_cost_add(16L, cells, 4L) is Some(headers) else {
+    return None
+  }
+  guard preparation_cost_add(headers, r, 4L) is Some(headers) else {
+    return None
+  }
+  guard preparation_cost_add(headers, f, 2L) is Some(headers) else {
+    return None
+  }
+  guard preparation_cost_add(18L, cells, 6L) is Some(refs) else { return None }
+  guard preparation_cost_add(refs, r, 5L + field_capacity) is Some(refs) else {
+    return None
+  }
+  guard preparation_cost_add(refs, f, 2L) is Some(refs) else { return None }
+  guard preparation_cost_add(refs, field_capacity + row_capacity, 1L)
+    is Some(refs) else {
+    return None
+  }
+  guard preparation_cost_add(20L, cells, 4L) is Some(words) else { return None }
+  guard preparation_cost_add(words, r, 3L) is Some(words) else { return None }
+  guard preparation_cost_add(words, f, 2L) is Some(words) else { return None }
   let retained : PreparationRepresentationUnits = {
-    record_headers: headers, reference_slots: refs, scalar_words: words,
-    owned_utf16_units: 0L, owned_wire_bytes: 0L,
+    record_headers: headers,
+    reference_slots: refs,
+    scalar_words: words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
   }
   // Refuse a component whose existing tariff cannot itself be represented.
-  guard preparation_representation_cost(retained) is Some(_) else { return None }
-  Some({retained,field_capacity,row_capacity,cell_count:cells})
+  guard preparation_representation_cost(retained) is Some(_) else {
+    return None
+  }
+  Some({ retained, field_capacity, row_capacity, cell_count: cells, })
 }
 
 ///|
@@ -83,8 +112,13 @@ fn closed_values_literal_layout(
 /// excluded here, not asserted free. No expression-context replacement occurs
 /// because the guarded shape's expression closure is empty.
 fn closed_values_lower_retained_layout() -> PreparationRepresentationUnits {
-  {record_headers:23L,reference_slots:35L,scalar_words:42L,
-    owned_utf16_units:8L,owned_wire_bytes:0L}
+  {
+    record_headers: 23L,
+    reference_slots: 35L,
+    scalar_words: 42L,
+    owned_utf16_units: 8L,
+    owned_wire_bytes: 0L,
+  }
 }
 
 ///|
@@ -100,8 +134,13 @@ fn closed_values_lower_retained_layout() -> PreparationRepresentationUnits {
 /// The single-step Values route does not split carrier tasks; split_boundaries
 /// and work Ref are temporary, not included in this retained vector.
 fn closed_values_dag_retained_layout() -> PreparationRepresentationUnits {
-  {record_headers:39L,reference_slots:59L,scalar_words:45L,
-    owned_utf16_units:0L,owned_wire_bytes:0L}
+  {
+    record_headers: 39L,
+    reference_slots: 59L,
+    scalar_words: 45L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
 }
 
 ///|
@@ -124,11 +163,20 @@ fn closed_values_dag_retained_layout() -> PreparationRepresentationUnits {
 /// + Unqualified(name) per schema field, and one field-array slot: (3,5,3).
 /// The temporary relation_schema::fields array and Field records are separate
 /// scratch; names, contracts and Schema themselves remain borrowed.
-fn closed_values_pipeline_retained_layout(fields : Int) -> PreparationRepresentationUnits? {
-  if fields <= 0 { return None }
-  let f=fields.to_int64()
-  Some({record_headers:79L+3L*f,reference_slots:254L+5L*f,
-    scalar_words:137L+3L*f,owned_utf16_units:0L,owned_wire_bytes:0L})
+fn closed_values_pipeline_retained_layout(
+  fields : Int,
+) -> PreparationRepresentationUnits? {
+  if fields <= 0 {
+    return None
+  }
+  let f = fields.to_int64()
+  Some({
+    record_headers: 79L + 3L * f,
+    reference_slots: 254L + 5L * f,
+    scalar_words: 137L + 3L * f,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
 }
 
 ///|
@@ -141,8 +189,13 @@ fn closed_values_pipeline_retained_layout(fields : Int) -> PreparationRepresenta
 /// and one-element units add two Arrays. Numeric-slot/audit/context objects and
 /// all eight BuiltUnit context arrays remain in the context component.
 fn closed_values_program_wrappers_layout() -> PreparationRepresentationUnits {
-  {record_headers:50L,reference_slots:160L,scalar_words:51L,
-    owned_utf16_units:0L,owned_wire_bytes:0L}
+  {
+    record_headers: 50L,
+    reference_slots: 160L,
+    scalar_words: 51L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
 }
 
 ///|
@@ -153,13 +206,24 @@ fn closed_values_program_wrappers_layout() -> PreparationRepresentationUnits {
 /// (same eight-byte tariff). The initial capacity is eight and the threshold
 /// is capacity*13/16; this also upper-bounds Map(from_array)'s smaller initial
 /// capacities. This helper does not authorize arbitrary Map creation.
-fn closed_values_map_constructor_layout(entries : Int) -> PreparationRepresentationUnits? {
-  if entries < 0 { return None }
-  let n=entries.to_int64()
-  let mut capacity=8L
-  while n>capacity*13L/16L { capacity*=2L }
-  Some({record_headers:3L+4L*n,reference_slots:2L+2L*capacity+6L*n,
-    scalar_words:5L+6L*n,owned_utf16_units:0L,owned_wire_bytes:0L})
+fn closed_values_map_constructor_layout(
+  entries : Int,
+) -> PreparationRepresentationUnits? {
+  if entries < 0 {
+    return None
+  }
+  let n = entries.to_int64()
+  let mut capacity = 8L
+  while n > capacity * 13L / 16L {
+    capacity *= 2L
+  }
+  Some({
+    record_headers: 3L + 4L * n,
+    reference_slots: 2L + 2L * capacity + 6L * n,
+    scalar_words: 5L + 6L * n,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
 }
 
 ///|
@@ -176,10 +240,17 @@ fn closed_values_map_constructor_layout(entries : Int) -> PreparationRepresentat
 /// caller-local schema/name inventories, scalar admission and sorting remain
 /// separate components; none are asserted free by this helper.
 fn closed_values_walk_storage_layout(
-  node_upper : Int, largest_object_fields : Int,
+  node_upper : Int,
+  largest_object_fields : Int,
 ) -> PreparationRepresentationUnits? {
-  if node_upper<=0 || largest_object_fields<0 || largest_object_fields>node_upper { return None }
-  closed_values_walk_storage_from_extents(node_upper,node_upper,largest_object_fields)
+  if node_upper <= 0 ||
+    largest_object_fields < 0 ||
+    largest_object_fields > node_upper {
+    return None
+  }
+  closed_values_walk_storage_from_extents(
+    node_upper, node_upper, largest_object_fields,
+  )
 }
 
 ///|
@@ -188,16 +259,26 @@ fn closed_values_walk_storage_layout(
 /// Shared Cursors may make this additive bound conservative, never a second
 /// actual allocation charge. Both routes use the same wrapper/backing tariff.
 fn closed_values_walk_storage_from_extents(
-  pending : Int, children : Int, names : Int,
+  pending : Int,
+  children : Int,
+  names : Int,
 ) -> PreparationRepresentationUnits? {
-  if pending<=0 || children<0 || names<0 { return None }
-  guard closed_values_append_capacity(pending) is Some(capacity) else { return None }
-  let p=pending.to_int64()
-  let c=children.to_int64()
-  let f=names.to_int64()
-  Some({record_headers:14L+2L*p+c,
-    reference_slots:10L+2L*capacity+3L*p+3L*c+f,
-    scalar_words:14L+2L*p+c,owned_utf16_units:0L,owned_wire_bytes:0L})
+  if pending <= 0 || children < 0 || names < 0 {
+    return None
+  }
+  guard closed_values_append_capacity(pending) is Some(capacity) else {
+    return None
+  }
+  let p = pending.to_int64()
+  let c = children.to_int64()
+  let f = names.to_int64()
+  Some({
+    record_headers: 14L + 2L * p + c,
+    reference_slots: 10L + 2L * capacity + 3L * p + 3L * c + f,
+    scalar_words: 14L + 2L * p + c,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
 }
 
 ///|
@@ -208,11 +289,22 @@ fn closed_values_walk_storage_from_extents(
 /// array, <=F+2. Current decoded child array has <=max(R,F) Cursors; current
 /// object names have <=max(F,3) members. No metadata or other operators enter
 /// this route. Generic unproved traversals retain the node-upper helper above.
-fn closed_values_guarded_walk_storage_layout(fields : Int,rows : Int) -> PreparationRepresentationUnits? {
-  if fields<=0 || rows<0 { return None }
-  let pending=fields.to_int64()+rows.to_int64()+2L
-  if pending>2147483647L { return None }
-  closed_values_walk_storage_from_extents(pending.to_int(),Int::max(fields,rows),Int::max(fields,3))
+fn closed_values_guarded_walk_storage_layout(
+  fields : Int,
+  rows : Int,
+) -> PreparationRepresentationUnits? {
+  if fields <= 0 || rows < 0 {
+    return None
+  }
+  let pending = fields.to_int64() + rows.to_int64() + 2L
+  if pending > 2147483647L {
+    return None
+  }
+  closed_values_walk_storage_from_extents(
+    pending.to_int(),
+    Int::max(fields, rows),
+    Int::max(fields, 3),
+  )
 }
 
 ///|
@@ -224,8 +316,13 @@ fn closed_values_guarded_walk_storage_layout(fields : Int,rows : Int) -> Prepara
 /// Option. CheckedValue and Value::Number belong to retained literals above.
 /// Calls are sequential, so one such component coexists with accumulated rows.
 fn closed_values_numeric_admission_scratch_layout() -> PreparationRepresentationUnits {
-  {record_headers:16L,reference_slots:17L,scalar_words:32L,
-    owned_utf16_units:0L,owned_wire_bytes:0L}
+  {
+    record_headers: 16L,
+    reference_slots: 17L,
+    scalar_words: 32L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
 }
 
 ///|
@@ -238,8 +335,13 @@ fn closed_values_numeric_admission_scratch_layout() -> PreparationRepresentation
 /// Two two-entry ObjectView maps add twice the independently checked grow
 /// envelope (11,30,17). ASCII quick check retains original "number" text.
 fn closed_values_number_contract_scratch_layout() -> PreparationRepresentationUnits {
-  {record_headers:56L,reference_slots:99L,scalar_words:77L,
-    owned_utf16_units:0L,owned_wire_bytes:0L}
+  {
+    record_headers: 56L,
+    reference_slots: 99L,
+    scalar_words: 77L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
 }
 
 ///|
@@ -256,20 +358,28 @@ fn closed_values_number_contract_scratch_layout() -> PreparationRepresentationUn
 /// three field capacities plus one row capacity. Returned data/string backing
 /// is not copied. Algorithmic local frames and error paths remain separate.
 fn closed_values_values_caller_scratch_layout(
-  fields : Int, rows : Int,
+  fields : Int,
+  rows : Int,
 ) -> PreparationRepresentationUnits? {
-  if fields<=0 || rows<0 { return None }
-  guard closed_values_map_constructor_layout(fields) is Some(map) else { return None }
+  if fields <= 0 || rows < 0 {
+    return None
+  }
+  guard closed_values_map_constructor_layout(fields) is Some(map) else {
+    return None
+  }
   guard closed_values_append_capacity(fields) is Some(fc) else { return None }
   guard closed_values_append_capacity(rows) is Some(rc) else { return None }
-  let f=fields.to_int64()
-  let r=rows.to_int64()
+  let f = fields.to_int64()
+  let r = rows.to_int64()
   // Base (23+3F,19+8F+fc+R,40+2F), six large maps,
   // two-field map (11,30,17), empty-map envelope (3,18,5), growth overlap.
-  Some({record_headers:41L+3L*f+6L*map.record_headers,
-    reference_slots:67L+8L*f+4L*fc+rc+r+6L*map.reference_slots,
-    scalar_words:62L+2L*f+6L*map.scalar_words,
-    owned_utf16_units:0L,owned_wire_bytes:0L})
+  Some({
+    record_headers: 41L + 3L * f + 6L * map.record_headers,
+    reference_slots: 67L + 8L * f + 4L * fc + rc + r + 6L * map.reference_slots,
+    scalar_words: 62L + 2L * f + 6L * map.scalar_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
 }
 
 ///|
@@ -285,13 +395,25 @@ fn closed_values_values_caller_scratch_layout(
 /// Both schema-name and Field sorts are synchronous and share this peak, not
 /// two retained arrays or one frame per comparison. ASCII comparison borrows
 /// strings. This constructor convention excludes opaque runtime stack backing.
-fn closed_values_sort_scratch_layout(fields : Int) -> PreparationRepresentationUnits? {
-  if fields<=0 { return None }
-  let mut size=fields
-  let mut depth=1L
-  while size>1 { size=size/2; depth+=1L }
-  Some({record_headers:8L+8L*depth,reference_slots:5L+13L*depth,
-    scalar_words:9L+27L*depth,owned_utf16_units:0L,owned_wire_bytes:0L})
+fn closed_values_sort_scratch_layout(
+  fields : Int,
+) -> PreparationRepresentationUnits? {
+  if fields <= 0 {
+    return None
+  }
+  let mut size = fields
+  let mut depth = 1L
+  while size > 1 {
+    size = size / 2
+    depth += 1L
+  }
+  Some({
+    record_headers: 8L + 8L * depth,
+    reference_slots: 5L + 13L * depth,
+    scalar_words: 9L + 27L * depth,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
 }
 
 ///|
@@ -316,12 +438,23 @@ fn closed_values_sort_scratch_layout(fields : Int) -> PreparationRepresentationU
 /// field-array backing capacities are separate. ContextualClosure and original
 /// pipeline/contract/source dependencies are borrowed and owned elsewhere.
 /// This retained component does not include Result preparation scratch.
-fn closed_values_result_port_retained_layout(fields : Int) -> PreparationRepresentationUnits? {
-  if fields<=0 { return None }
-  guard closed_values_append_capacity(fields) is Some(capacity) else { return None }
-  let f=fields.to_int64()
-  Some({record_headers:91L+13L*f,reference_slots:151L+22L*f+4L*capacity,
-    scalar_words:175L+10L*f,owned_utf16_units:0L,owned_wire_bytes:0L})
+fn closed_values_result_port_retained_layout(
+  fields : Int,
+) -> PreparationRepresentationUnits? {
+  if fields <= 0 {
+    return None
+  }
+  guard closed_values_append_capacity(fields) is Some(capacity) else {
+    return None
+  }
+  let f = fields.to_int64()
+  Some({
+    record_headers: 91L + 13L * f,
+    reference_slots: 151L + 22L * f + 4L * capacity,
+    scalar_words: 175L + 10L * f,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
 }
 
 ///|
@@ -332,20 +465,43 @@ struct ClosedValuesCompilerPhaseLayout {
 } derive(Eq)
 
 ///|
-fn closed_values_sum_layouts(values : Array[PreparationRepresentationUnits]) -> PreparationRepresentationUnits? {
-  let mut h=0L
-  let mut r=0L
-  let mut w=0L
-  let mut t=0L
-  let mut b=0L
+fn closed_values_sum_layouts(
+  values : Array[PreparationRepresentationUnits],
+) -> PreparationRepresentationUnits? {
+  let mut h = 0L
+  let mut r = 0L
+  let mut w = 0L
+  let mut t = 0L
+  let mut b = 0L
   for value in values {
-    guard preparation_cost_add(h,value.record_headers,1L) is Some(n) else { return None }; h=n
-    guard preparation_cost_add(r,value.reference_slots,1L) is Some(n) else { return None }; r=n
-    guard preparation_cost_add(w,value.scalar_words,1L) is Some(n) else { return None }; w=n
-    guard preparation_cost_add(t,value.owned_utf16_units,1L) is Some(n) else { return None }; t=n
-    guard preparation_cost_add(b,value.owned_wire_bytes,1L) is Some(n) else { return None }; b=n
+    guard preparation_cost_add(h, value.record_headers, 1L) is Some(n) else {
+      return None
+    }
+    h = n
+    guard preparation_cost_add(r, value.reference_slots, 1L) is Some(n) else {
+      return None
+    }
+    r = n
+    guard preparation_cost_add(w, value.scalar_words, 1L) is Some(n) else {
+      return None
+    }
+    w = n
+    guard preparation_cost_add(t, value.owned_utf16_units, 1L) is Some(n) else {
+      return None
+    }
+    t = n
+    guard preparation_cost_add(b, value.owned_wire_bytes, 1L) is Some(n) else {
+      return None
+    }
+    b = n
   }
-  let result : PreparationRepresentationUnits={record_headers:h,reference_slots:r,scalar_words:w,owned_utf16_units:t,owned_wire_bytes:b}
+  let result : PreparationRepresentationUnits = {
+    record_headers: h,
+    reference_slots: r,
+    scalar_words: w,
+    owned_utf16_units: t,
+    owned_wire_bytes: b,
+  }
   guard preparation_representation_cost(result) is Some(_) else { return None }
   Some(result)
 }
@@ -359,12 +515,29 @@ fn closed_values_sum_layouts(values : Array[PreparationRepresentationUnits]) -> 
 /// are bounded by the retained Result component's 13 headers,22 refs,10 words
 /// per field. Their eight large Maps are additional, not hidden in that bound.
 /// Ranking transfer owns two current "u:"+name Strings even with empty scores.
-fn closed_values_result_scratch_layout(fields : Int,longest_name : Int) -> PreparationRepresentationUnits? {
-  if longest_name<0 { return None }
-  guard closed_values_result_port_retained_layout(fields) is Some(port) else { return None }
-  guard closed_values_map_constructor_layout(fields) is Some(map) else { return None }
-  let strings : PreparationRepresentationUnits={record_headers:2L,reference_slots:0L,scalar_words:0L,owned_utf16_units:2L*(longest_name.to_int64()+2L),owned_wire_bytes:0L}
-  closed_values_sum_layouts([port,port,map,map,map,map,map,map,map,map,strings])
+fn closed_values_result_scratch_layout(
+  fields : Int,
+  longest_name : Int,
+) -> PreparationRepresentationUnits? {
+  if longest_name < 0 {
+    return None
+  }
+  guard closed_values_result_port_retained_layout(fields) is Some(port) else {
+    return None
+  }
+  guard closed_values_map_constructor_layout(fields) is Some(map) else {
+    return None
+  }
+  let strings : PreparationRepresentationUnits = {
+    record_headers: 2L,
+    reference_slots: 0L,
+    scalar_words: 0L,
+    owned_utf16_units: 2L * (longest_name.to_int64() + 2L),
+    owned_wire_bytes: 0L,
+  }
+  closed_values_sum_layouts([
+    port, port, map, map, map, map, map, map, map, map, strings,
+  ])
 }
 
 ///|
@@ -379,11 +552,20 @@ fn closed_values_result_scratch_layout(fields : Int,longest_name : Int) -> Prepa
 /// source/indexed backing and original phase reservation MUST remain alive
 /// through async raw-cause disclosure/unwind. This is not permission to detach
 /// an opaque raw cause or stringify the entire source without a new proof.
-fn closed_values_compiler_failure_layout(depth_upper : Int) -> PreparationRepresentationUnits? {
-  guard closed_values_append_capacity(depth_upper) is Some(capacity) else { return None }
-  let d=depth_upper.to_int64()
-  Some({record_headers:48L+4L*d,reference_slots:70L+4L*capacity+4L*d,
-    scalar_words:42L+8L*d,owned_utf16_units:0L,owned_wire_bytes:0L})
+fn closed_values_compiler_failure_layout(
+  depth_upper : Int,
+) -> PreparationRepresentationUnits? {
+  guard closed_values_append_capacity(depth_upper) is Some(capacity) else {
+    return None
+  }
+  let d = depth_upper.to_int64()
+  Some({
+    record_headers: 48L + 4L * d,
+    reference_slots: 70L + 4L * capacity + 4L * d,
+    scalar_words: 42L + 8L * d,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
 }
 
 ///|
@@ -404,39 +586,119 @@ fn closed_values_compiler_failure_layout(depth_upper : Int) -> PreparationRepres
 /// checker limit collectors and old/new outer tables. No body-sized string copy
 /// or encoded row wire is introduced by this shape's compiler.
 fn closed_values_compiler_phase_layout(
-  fields : Int, rows : Int, node_upper : Int,
-  longest_name : Int, depth_upper : Int,
+  fields : Int,
+  rows : Int,
+  node_upper : Int,
+  longest_name : Int,
+  depth_upper : Int,
 ) -> ClosedValuesCompilerPhaseLayout? {
-  if longest_name<0 || depth_upper<0 || depth_upper>node_upper || fields>node_upper { return None }
-  guard closed_values_literal_layout(fields,rows) is Some(literal) else { return None }
-  if literal.cell_count>node_upper.to_int64() { return None }
-  guard closed_values_pipeline_retained_layout(fields) is Some(pipeline) else { return None }
-  let wrappers=closed_values_program_wrappers_layout()
-  let lower=closed_values_lower_retained_layout()
-  let dag=closed_values_dag_retained_layout()
-  guard closed_values_result_port_retained_layout(fields) is Some(port) else { return None }
+  if longest_name < 0 ||
+    depth_upper < 0 ||
+    depth_upper > node_upper ||
+    fields > node_upper {
+    return None
+  }
+  guard closed_values_literal_layout(fields, rows) is Some(literal) else {
+    return None
+  }
+  if literal.cell_count > node_upper.to_int64() {
+    return None
+  }
+  guard closed_values_pipeline_retained_layout(fields) is Some(pipeline) else {
+    return None
+  }
+  let wrappers = closed_values_program_wrappers_layout()
+  let lower = closed_values_lower_retained_layout()
+  let dag = closed_values_dag_retained_layout()
+  guard closed_values_result_port_retained_layout(fields) is Some(port) else {
+    return None
+  }
   // Original SequencePreparationDemand: three scalar fields plus its one
   // PreparedClientProgram reference. This is not an output cardinality claim.
-  let demand : PreparationRepresentationUnits={record_headers:1L,reference_slots:1L,scalar_words:3L,owned_utf16_units:0L,owned_wire_bytes:0L}
+  let demand : PreparationRepresentationUnits = {
+    record_headers: 1L,
+    reference_slots: 1L,
+    scalar_words: 3L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
   // One lower demand record/Ok, composition Ok, and two error carriers.
   // Both branches are summed; the actual node scan allocates no collection.
-  let demand_scratch : PreparationRepresentationUnits={record_headers:5L,reference_slots:4L,scalar_words:7L,owned_utf16_units:0L,owned_wire_bytes:0L}
-  guard closed_values_sum_layouts([literal.retained,pipeline,wrappers,lower,dag,port,demand]) is Some(retained) else { return None }
-  let widest=Int::max(fields,3)
-  guard closed_values_guarded_walk_storage_layout(fields,rows) is Some(walk) else { return None }
-  guard closed_values_map_constructor_layout(widest) is Some(map) else { return None }
-  guard closed_values_values_caller_scratch_layout(fields,rows) is Some(caller) else { return None }
-  guard closed_values_sort_scratch_layout(fields) is Some(sort) else { return None }
-  guard closed_values_result_scratch_layout(fields,longest_name) is Some(result) else { return None }
-  guard closed_values_map_constructor_layout(1) is Some(used_names) else { return None }
+  let demand_scratch : PreparationRepresentationUnits = {
+    record_headers: 5L,
+    reference_slots: 4L,
+    scalar_words: 7L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  guard closed_values_sum_layouts([
+      literal.retained,
+      pipeline,
+      wrappers,
+      lower,
+      dag,
+      port,
+      demand,
+    ])
+    is Some(retained) else {
+    return None
+  }
+  let widest = Int::max(fields, 3)
+  guard closed_values_guarded_walk_storage_layout(fields, rows) is Some(walk) else {
+    return None
+  }
+  guard closed_values_map_constructor_layout(widest) is Some(map) else {
+    return None
+  }
+  guard closed_values_values_caller_scratch_layout(fields, rows) is Some(caller) else {
+    return None
+  }
+  guard closed_values_sort_scratch_layout(fields) is Some(sort) else {
+    return None
+  }
+  guard closed_values_result_scratch_layout(fields, longest_name)
+    is Some(result) else {
+    return None
+  }
+  guard closed_values_map_constructor_layout(1) is Some(used_names) else {
+    return None
+  }
   // Fixed planner-owned unit descriptors, Options and the four fixed component
   // lists: 34 unit records +32 Option wrappers +one literal-layout record +one
   // phase record +four Array wrappers/backings; list backing slots total37.
-  let bookkeeping : PreparationRepresentationUnits={record_headers:76L,reference_slots:77L,scalar_words:213L,owned_utf16_units:0L,owned_wire_bytes:0L}
-  guard closed_values_sum_layouts([walk,map,caller,sort,result,
-    closed_values_numeric_admission_scratch_layout(),closed_values_number_contract_scratch_layout(),
-    pipeline,wrappers,wrappers,lower,lower,dag,used_names,bookkeeping,demand_scratch]) is Some(temporary) else { return None }
-  guard closed_values_compiler_failure_layout(depth_upper) is Some(failure) else { return None }
-  guard closed_values_sum_layouts([retained,temporary,failure]) is Some(_) else { return None }
-  Some({retained,temporary,failure})
+  let bookkeeping : PreparationRepresentationUnits = {
+    record_headers: 76L,
+    reference_slots: 77L,
+    scalar_words: 213L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  guard closed_values_sum_layouts([
+      walk,
+      map,
+      caller,
+      sort,
+      result,
+      closed_values_numeric_admission_scratch_layout(),
+      closed_values_number_contract_scratch_layout(),
+      pipeline,
+      wrappers,
+      wrappers,
+      lower,
+      lower,
+      dag,
+      used_names,
+      bookkeeping,
+      demand_scratch,
+    ])
+    is Some(temporary) else {
+    return None
+  }
+  guard closed_values_compiler_failure_layout(depth_upper) is Some(failure) else {
+    return None
+  }
+  guard closed_values_sum_layouts([retained, temporary, failure]) is Some(_) else {
+    return None
+  }
+  Some({ retained, temporary, failure, })
 }

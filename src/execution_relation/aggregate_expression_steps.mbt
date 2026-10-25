@@ -171,7 +171,13 @@ fn[T : IndexedRows] advance_aggregate_expression_impl(
         [],
         state.control,
         state.workspace,
-        Some(expression_roots(scope.budget, state.control.max_frames, query_time=scope.query_time)),
+        Some(
+          expression_roots(
+            scope.budget,
+            state.control.max_frames,
+            query_time=scope.query_time,
+          ),
+        ),
       ) {
       Ok(frame) => Some(frame)
       Err(issue) => {

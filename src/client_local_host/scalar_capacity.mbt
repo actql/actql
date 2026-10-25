@@ -22,13 +22,15 @@ fn client_local_scalar_nodes(
   max_rows : Int,
 ) -> Int? {
   match client_local_schema_proof_inventory(sequences) {
-    Some(inventory) => client_local_inventory_nodes(inventory,max_rows)
+    Some(inventory) => client_local_inventory_nodes(inventory, max_rows)
     None => None
   }
 }
 
 ///|
 fn client_local_scalar_node_limit(width : Int, max_rows : Int) -> Int? {
-  if width<1 {return None}
-  client_local_scalar_product(width.to_int64(),max_rows,3)
+  if width < 1 {
+    return None
+  }
+  client_local_scalar_product(width.to_int64(), max_rows, 3)
 }

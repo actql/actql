@@ -104,7 +104,9 @@ test "serialization sort runs inside the existing generated sequence" {
   // Producer metadata demand follows the physical relation projection, not
   // the authored serialization target's five-field artifact schema.
   let demand = producer_read_schema_demand(
-    exported.schema, completed_output_relation_schema(output), 0,
+    exported.schema,
+    completed_output_relation_schema(output),
+    0,
   ).unwrap()
   assert_eq(producer_read_demand_columns(demand), 3)
   assert_eq(producer_read_demand_entries(demand), 12)

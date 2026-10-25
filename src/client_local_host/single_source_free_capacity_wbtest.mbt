@@ -23,7 +23,12 @@ fn single_source_free_capacity_prepared(
 test "single source-free quote retains the existing admission ceiling without opening a Run" {
   let prepared = single_source_free_capacity_prepared()
   let assets = @publication_host.client_local_product_assets()
-  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let asset_contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   let limits = single_source_free_local_ledger_limits(
     prepared,
     asset_contracts,
@@ -42,7 +47,12 @@ test "single source-free quote retains the existing admission ceiling without op
 ///|
 test "single source-free quote refuses Source acquisition and foreign registry before supply" {
   let assets = @publication_host.client_local_product_assets()
-  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let asset_contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   assert_true(
     single_source_free_local_ledger_limits(
       single_source_free_capacity_prepared(
@@ -57,7 +67,10 @@ test "single source-free quote refuses Source acquisition and foreign registry b
   )
   assert_true(
     prepare_installed_sequence_contracts(
-      "{}", assets.values, Some(assets.fragment), assets.ordered,
+      "{}",
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
     )
     is Err(Unsupported),
   )
@@ -66,7 +79,12 @@ test "single source-free quote refuses Source acquisition and foreign registry b
 ///|
 test "the original public UNION graph is outside the single-task quote before any physical supply" {
   let assets = @publication_host.client_local_product_assets()
-  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let asset_contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   guard @json.parse(assets.environment) is Object(fields) &&
     fields.get("evidence_bundle_cid") is Some(String(cid)) else {
     fail("ordinary original product Environment evidence missing")

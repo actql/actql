@@ -11,4 +11,6 @@ import {
   "moonbitlang/core/env",
 }
 
-options(link: { "native": { "cc-flags": "-O0" } })
+options(
+  link: { "native": { "cc-flags": "-O0" } },
+)

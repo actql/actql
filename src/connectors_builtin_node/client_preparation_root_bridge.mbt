@@ -121,16 +121,23 @@ pub fn client_program_abort_closed_values_preparation_after_cleanup(
 ///|
 #export_name("clientProgramBeginClosedValuesTextCheck")
 pub fn client_program_begin_closed_values_text_check(
-  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+  owner : @client_local_host.ClientClosedValuesPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
   quoted_utf16_units : Int,
-) -> Result[@resources.PreparationPhaseWork, @client_local_host.ClientClosedValuesPreparationIssue] {
+) -> Result[
+  @resources.PreparationPhaseWork,
+  @client_local_host.ClientClosedValuesPreparationIssue,
+] {
   @client_local_host.begin_closed_values_text_check(owner, quoted_utf16_units)
 }
 
 ///|
 #export_name("clientProgramFinishClosedValuesTextCheck")
 pub fn client_program_finish_closed_values_text_check(
-  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+  owner : @client_local_host.ClientClosedValuesPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
 ) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue] {
   @client_local_host.finish_closed_values_text_check(owner)
 }
@@ -141,23 +148,49 @@ pub fn client_program_finish_closed_values_text_check(
 /// custody before this call. No caller resource budget is accepted here.
 #export_name("clientProgramReserveClosedValuesSnapshot")
 pub fn client_program_reserve_closed_values_snapshot(
-  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
-  input_bytes_upper : Int, node_upper : Int, objects : Int, arrays : Int,
-  fields_upper : Int, quoted_tokens : Int, quoted_utf16_units : Int,
-  longest_quoted_utf16 : Int, longest_atom_utf16 : Int, depth_upper : Int,
-  fields : Int, rows : Int, consent_refs : Int,
+  owner : @client_local_host.ClientClosedValuesPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input_bytes_upper : Int,
+  node_upper : Int,
+  objects : Int,
+  arrays : Int,
+  fields_upper : Int,
+  quoted_tokens : Int,
+  quoted_utf16_units : Int,
+  longest_quoted_utf16 : Int,
+  longest_atom_utf16 : Int,
+  depth_upper : Int,
+  fields : Int,
+  rows : Int,
+  consent_refs : Int,
 ) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue] {
-  @client_local_host.reserve_closed_values_snapshot(owner, {
-    input_bytes_upper, node_upper, objects, arrays, fields_upper, quoted_tokens,
-    quoted_utf16_units, longest_quoted_utf16, longest_atom_utf16, depth_upper,
-    fields, rows,
-  }, consent_refs)
+  @client_local_host.reserve_closed_values_snapshot(
+    owner,
+    {
+      input_bytes_upper,
+      node_upper,
+      objects,
+      arrays,
+      fields_upper,
+      quoted_tokens,
+      quoted_utf16_units,
+      longest_quoted_utf16,
+      longest_atom_utf16,
+      depth_upper,
+      fields,
+      rows,
+    },
+    consent_refs,
+  )
 }
 
 ///|
 #export_name("clientProgramBindClosedValuesDocument")
 pub fn client_program_bind_closed_values_document(
-  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+  owner : @client_local_host.ClientClosedValuesPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
   document : String,
 ) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue] {
   @client_local_host.bind_closed_values_document(owner, document)
@@ -166,7 +199,9 @@ pub fn client_program_bind_closed_values_document(
 ///|
 #export_name("clientProgramPrepareClosedValuesBody")
 pub fn client_program_prepare_closed_values_body(
-  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+  owner : @client_local_host.ClientClosedValuesPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
   environment : @program_check.CheckEnvironment,
   publication_environment : @source_publication.PreparedPublishedQueryEnvironment,
   contracts : @client_local_host.ClientInstalledSequenceContracts,
@@ -176,32 +211,48 @@ pub fn client_program_prepare_closed_values_body(
   guard client_generated_manifest_admission.val is Some(Ok(manifests)) else {
     return Err(Policy)
   }
-  @client_local_host.prepare_closed_values_body(owner, environment, publication_environment, contracts, manifests)
+  @client_local_host.prepare_closed_values_body(
+    owner, environment, publication_environment, contracts, manifests,
+  )
 }
 
 ///|
 #export_name("clientProgramCompleteClosedValuesBody")
 pub fn client_program_complete_closed_values_body(
-  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
-) -> Result[@resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram], @client_local_host.ClientClosedValuesPreparationIssue] {
+  owner : @client_local_host.ClientClosedValuesPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+) -> Result[
+  @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+  @client_local_host.ClientClosedValuesPreparationIssue,
+] {
   @client_local_host.complete_closed_values_body(owner)
 }
 
 ///|
 #export_name("clientProgramAdoptClosedValuesPreparation")
 pub fn client_program_adopt_closed_values_preparation(
-  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+  owner : @client_local_host.ClientClosedValuesPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
   prepared : @publication_host.PreparedClientProgram,
   request : @publication_host.ClientRequestIdentity,
-) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue] {
+) -> Result[
+  @client_local_host.ClientInstalledManagedRun,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
   @client_local_host.begin_closed_values_owned_run(owner, prepared, request)
 }
 
 ///|
 #export_name("clientProgramSeverClosedValuesBody")
 pub fn client_program_sever_closed_values_body(
-  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
-  holder : @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+  owner : @client_local_host.ClientClosedValuesPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  holder : @resources.PreparationBodyBorrow[
+    @publication_host.PreparedClientProgram,
+  ],
 ) -> Bool {
   @client_local_host.sever_closed_values_body(owner, holder)
 }
@@ -210,8 +261,12 @@ pub fn client_program_sever_closed_values_body(
 /// Exact initial-owner/issued-manager-token cut witness. Not physical stop.
 #export_name("clientProgramClosedValuesInitialRetirementStarted")
 pub fn client_program_closed_values_initial_retirement_started(
-  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
-  holder : @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+  owner : @client_local_host.ClientClosedValuesPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  holder : @resources.PreparationBodyBorrow[
+    @publication_host.PreparedClientProgram,
+  ],
 ) -> Bool {
   @client_local_host.closed_values_initial_retirement_started(owner, holder)
 }
@@ -220,8 +275,13 @@ pub fn client_program_closed_values_initial_retirement_started(
 /// Read-only logical accounting for the exact original owner. No grant.
 #export_name("clientProgramClosedValuesPreparationAccounting")
 pub fn client_program_closed_values_preparation_accounting(
-  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
-) -> Result[(Int64, Int64, Int64, Int64, Int64, Int64), @client_local_host.ClientClosedValuesPreparationIssue] {
+  owner : @client_local_host.ClientClosedValuesPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+) -> Result[
+  (Int64, Int64, Int64, Int64, Int64, Int64),
+  @client_local_host.ClientClosedValuesPreparationIssue,
+] {
   @client_local_host.closed_values_preparation_accounting(owner)
 }
 
@@ -238,7 +298,9 @@ pub fn client_program_preparation_capacity_refusal(
 /// Fixed original-owner intent admission; no caller numeric limit or grant.
 #export_name("clientProgramPrepareClosedValuesSubmittedIntent")
 pub fn client_program_prepare_closed_values_submitted_intent(
-  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+  owner : @client_local_host.ClientClosedValuesPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
   wire : String,
 ) -> Result[String, @client_local_host.ClientClosedValuesPreparationIssue] {
   @client_local_host.prepare_closed_values_submitted_intent(owner, wire)
@@ -248,7 +310,9 @@ pub fn client_program_prepare_closed_values_submitted_intent(
 /// Borrowed exact semantic intent; fixed active handler lifetime only.
 #export_name("clientProgramClosedValuesSubmittedIntentOriginal")
 pub fn client_program_closed_values_submitted_intent_original(
-  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+  owner : @client_local_host.ClientClosedValuesPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
 ) -> @publication_host.ClientSubmittedIntent? {
   @client_local_host.closed_values_submitted_intent_original(owner)
 }
@@ -256,10 +320,12 @@ pub fn client_program_closed_values_submitted_intent_original(
 ///|
 #export_name("clientProgramClosedValuesCompilationOriginal")
 pub fn client_program_closed_values_compilation_original(
-  owner : @client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal],
+  owner : @client_local_host.ClientClosedValuesPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
   prepared : @publication_host.PreparedClientProgram,
 ) -> @publication_host.ClientValuesCompilation? {
-  @client_local_host.closed_values_compilation_original(owner,prepared)
+  @client_local_host.closed_values_compilation_original(owner, prepared)
 }
 
 ///|
@@ -267,7 +333,9 @@ pub fn client_program_closed_values_compilation_original(
 pub fn strategy_captured_run_preparation_limits(
   original : @publication.CapturedRunIssuancePreparation,
 ) -> Array[Int]? {
-  @publication.captured_run_preparation_limits(original).map(values => [values.0, values.1, values.2])
+  @publication.captured_run_preparation_limits(original).map(values => {
+    [values.0, values.1, values.2]
+  })
 }
 
 ///|

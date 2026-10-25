@@ -12,4 +12,7 @@ supported_targets = "+js+wasm+native"
 
 // The pinned test linker chooses CJS before applying module flags. Keep the
 // existing Node imports and import.meta boundary in one ESM artifact.
-options("link-flags": [ "-js-format", "esm" ])
+
+options(
+  "link-flags": [ "-js-format", "esm" ],
+)

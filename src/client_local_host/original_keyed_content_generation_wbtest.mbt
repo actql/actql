@@ -20,7 +20,12 @@ fn original_keyed_version_content(
   same_ledger_consumer? : Bool = false,
   one_short_census? : Bool = false,
 ) -> Unit raise {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let selected : Array[ClientLocalContentStep] = []
   let clean = Ref(false)
   let closes = Ref(0)

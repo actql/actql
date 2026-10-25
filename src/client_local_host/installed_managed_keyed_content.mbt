@@ -124,12 +124,26 @@ fn installed_managed_keyed_content_limits(
     return None
   }
   keyed_captured_local_installed_limits(
-    prepared, direct, value.keyed, value.capacity,
+    prepared,
+    direct,
+    value.keyed,
+    value.capacity,
     [transport_bytes, value.keyed_transfer_bytes],
     [execution_bytes, value.keyed_execution_bytes],
-    value.max_bytes, value.max_work, installed_contracts, values_body, fragment_body,
+    value.max_bytes,
+    value.max_work,
+    installed_contracts,
+    values_body,
+    fragment_body,
     ordered_body,
-    serialization=Some((value.task, value.step, value.prefix_retained_bytes, value.prefix_execution_bytes)),
+    serialization=Some(
+      (
+        value.task,
+        value.step,
+        value.prefix_retained_bytes,
+        value.prefix_execution_bytes,
+      ),
+    ),
     captured_content=true,
   )
 }

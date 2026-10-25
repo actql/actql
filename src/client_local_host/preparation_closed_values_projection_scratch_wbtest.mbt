@@ -1,7 +1,9 @@
 ///|
 test "fixed projector controls precede all input-sized quote construction" {
   let original = closed_values_projection_scratch_units()
-  assert_true(physical_equal(original, closed_values_projection_scratch_units()))
+  assert_true(
+    physical_equal(original, closed_values_projection_scratch_units()),
+  )
   assert_eq(original.record_headers, 14204L)
   assert_eq(original.reference_slots, 4264L)
   assert_eq(original.scalar_words, 30666L)

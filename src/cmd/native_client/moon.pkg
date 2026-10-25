@@ -51,6 +51,11 @@ import {
 } for "wbtest"
 
 options(
-  "native-stub": [ "stdout_stub.c", "command_control_stub.c", "local_journal_transport_probe.c", "initial_crypto_backing_stub.c" ],
+  "native-stub": [
+    "stdout_stub.c",
+    "command_control_stub.c",
+    "local_journal_transport_probe.c",
+    "initial_crypto_backing_stub.c",
+  ],
   link: { "native": { "cc-flags": "-O2" } },
 )

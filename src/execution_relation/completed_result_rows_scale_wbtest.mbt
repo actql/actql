@@ -26,9 +26,15 @@ test "unordered Result index construction consumes exactly one work unit per row
       let mut failed = false
       for _ in 0..<(count + 20) {
         match advance_completed_result_rows(cursor, 256) {
-          Ok((true, _)) => { succeeded = true; break }
+          Ok((true, _)) => {
+            succeeded = true
+            break
+          }
           Ok((false, _)) => ()
-          Err(Limit) => { failed = true; break }
+          Err(Limit) => {
+            failed = true
+            break
+          }
           Err(_) => abort("unexpected Result view issue")
         }
       }

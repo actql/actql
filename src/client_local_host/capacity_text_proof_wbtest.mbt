@@ -55,7 +55,12 @@ test "text-free capacity proof checks every typed child and original step" {
     ).unwrap()
     let sequences = prepare_client_local_sequences_owned(
       Pure(prepared),
-      prepare_installed_sequence_contracts(assets.registry,assets.values,Some(assets.fragment),assets.ordered).unwrap(),
+      prepare_installed_sequence_contracts(
+        assets.registry,
+        assets.values,
+        Some(assets.fragment),
+        assets.ordered,
+      ).unwrap(),
       assets.values,
       Some(assets.fragment),
       assets.ordered,
@@ -86,22 +91,67 @@ test "text-free capacity proof checks every typed child and original step" {
 
 ///|
 test "capacity plan funds checked leaf nodes separately from text and Result metadata" {
-  let assets=@publication_host.client_local_product_assets()
-  let evidence="sha256:2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f"
-  let environment=@publication_host.admit_client_check_environment(assets.environment,evidence,{text_time:true,veca:false},{rela:true,sga:false,tea:false,calendar:false,text_rank:false}).unwrap()
-  let lowered=@frontend.lower("SELECT 'text' AS value",@frontend.Sql,Some(@frontend.bind_query_context([],evidence).unwrap()),public_primary=true).unwrap()
-  let prepared=@publication_host.prepare_effect_free_client_program(lowered.document,lowered.format,environment,None,@publication_host.client_standard_program_preparation_limits()).unwrap()
-  let sequences=prepare_client_local_sequences_owned(Pure(prepared),prepare_installed_sequence_contracts(assets.registry,assets.values,Some(assets.fragment),assets.ordered).unwrap(),assets.values,Some(assets.fragment),assets.ordered).unwrap()
-  let rows=@publication_host.prepared_client_values_max_rows(prepared)
-  let plan=client_local_capacity_plan(sequences,rows,scalar_values=true,graph=Some(@publication_host.prepared_client_graph(prepared)))
-  assert_eq(plan.imports.wire.max_nodes,plan.values.max_nodes+3)
-  assert_eq(plan.imports.wire.max_bytes,1000000)
-  assert_eq(plan.values.max_text_bytes,500000)
-  assert_eq(plan.execution.rows.output_values.max_text_bytes,500000)
-  let selected_rows=plan.execution.rows.max_rows
-  assert_eq(selected_rows,1)
-  assert_eq(plan.metadata_retained_bytes,(24L+2L*selected_rows.to_int64()+64L)*256L+client_node_publication_schema_bytes().to_int64()*8L+client_local_cleanup_retained_bytes())
-  assert_eq(plan.metadata.retained_bytes,plan.metadata_retained_bytes)
-  assert_eq(plan.metadata.result_workspace_entries,2*selected_rows)
-  assert_true(client_local_sequence_capacity_original(sequences,sequences.length(),capacity_plan=Some(plan),max_rows=rows) is None)
+  let assets = @publication_host.client_local_product_assets()
+  let evidence = "sha256:2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f"
+  let environment = @publication_host.admit_client_check_environment(
+    assets.environment,
+    evidence,
+    { text_time: true, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let lowered = @frontend.lower(
+    "SELECT 'text' AS value",
+    @frontend.Sql,
+    Some(@frontend.bind_query_context([], evidence).unwrap()),
+    public_primary=true,
+  ).unwrap()
+  let prepared = @publication_host.prepare_effect_free_client_program(
+    lowered.document,
+    lowered.format,
+    environment,
+    None,
+    @publication_host.client_standard_program_preparation_limits(),
+  ).unwrap()
+  let sequences = prepare_client_local_sequences_owned(
+    Pure(prepared),
+    prepare_installed_sequence_contracts(
+      assets.registry,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    ).unwrap(),
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let rows = @publication_host.prepared_client_values_max_rows(prepared)
+  let plan = client_local_capacity_plan(
+    sequences,
+    rows,
+    scalar_values=true,
+    graph=Some(@publication_host.prepared_client_graph(prepared)),
+  )
+  assert_eq(plan.imports.wire.max_nodes, plan.values.max_nodes + 3)
+  assert_eq(plan.imports.wire.max_bytes, 1000000)
+  assert_eq(plan.values.max_text_bytes, 500000)
+  assert_eq(plan.execution.rows.output_values.max_text_bytes, 500000)
+  let selected_rows = plan.execution.rows.max_rows
+  assert_eq(selected_rows, 1)
+  assert_eq(
+    plan.metadata_retained_bytes,
+    (24L + 2L * selected_rows.to_int64() + 64L) * 256L +
+    client_node_publication_schema_bytes().to_int64() * 8L +
+    client_local_cleanup_retained_bytes(),
+  )
+  assert_eq(plan.metadata.retained_bytes, plan.metadata_retained_bytes)
+  assert_eq(plan.metadata.result_workspace_entries, 2 * selected_rows)
+  assert_true(
+    client_local_sequence_capacity_original(
+      sequences,
+      sequences.length(),
+      capacity_plan=Some(plan),
+      max_rows=rows,
+    )
+    is None,
+  )
 }

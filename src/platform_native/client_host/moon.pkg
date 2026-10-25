@@ -41,7 +41,7 @@ import {
   "actql/actql/source_value" @source,
   "actql/actql/sha256" @sha,
   "actql/actql/canonical_json" @canonical,
-  "actql/actql/canonical_value" @canonical_value,
+  "actql/actql/canonical_value",
   "actql/actql/parameter_binding" @parameters,
   "actql/actql/value_admission" @values,
   "moonbitlang/core/encoding/base64",

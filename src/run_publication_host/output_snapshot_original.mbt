@@ -8,7 +8,9 @@ pub fn PublicationOutputExport::snapshot_original_extent(
   run : @strategy.CapturedDAG,
   occurrence : @execution.ManagedResultOccurrence,
 ) -> Result[(Int, Int, Int), PublicationOutputExportIssue] {
-  if !self.matches_captured_run(run) { return Err(InvalidState) }
+  if !self.matches_captured_run(run) {
+    return Err(InvalidState)
+  }
   let actual = match self.retained {
     Some(Cells(borrow)) => @strategy.captured_result_borrow_occurrence(borrow)
     Some(Any(borrow)) => @strategy.captured_any_result_borrow_occurrence(borrow)
@@ -20,7 +22,9 @@ pub fn PublicationOutputExport::snapshot_original_extent(
   guard self.receipt is Some(receipt) && self.artifact is Some(_) else {
     return Err(InvalidState)
   }
-  Ok(@execution.logical_relation_usage(
-    @execution.completed_relation_export_identity(receipt),
-  ))
+  Ok(
+    @execution.logical_relation_usage(
+      @execution.completed_relation_export_identity(receipt),
+    ),
+  )
 }

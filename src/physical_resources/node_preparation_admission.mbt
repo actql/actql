@@ -13,14 +13,21 @@ fn[I] prepare_node_preparation_original(
   input : I,
   abort_unpublished : () -> Result[Unit, ImportedChildLedgerIssue],
 ) -> NodePreparationAdmission[I] {
-  { admission: Some(prepare_node_managed_run_original(child, input, abort_unpublished)), transitioning: false }
+  {
+    admission: Some(
+      prepare_node_managed_run_original(child, input, abort_unpublished),
+    ),
+    transitioning: false,
+  }
 }
 
 ///|
 pub fn[I] start_node_preparation_admission(
   owner : NodePreparationAdmission[I],
 ) -> Result[Ledger, ImportedChildLedgerIssue] {
-  if owner.transitioning { return Err(Unknown) }
+  if owner.transitioning {
+    return Err(Unknown)
+  }
   guard owner.admission is Some(admission) else { return Err(AlreadyConsumed) }
   owner.transitioning = true
   let outcome = start_node_managed_run_admission(admission)
@@ -32,13 +39,18 @@ pub fn[I] start_node_preparation_admission(
 /// No new child, start, take, quota or reservation is created here. The
 /// completed preparation debit remains on the exact imported Ledger. The old
 /// input-facing admission is consumed only after that transfer succeeds.
-pub fn[I,P] adopt_node_preparation_admission(
+pub fn[I, P] adopt_node_preparation_admission(
   owner : NodePreparationAdmission[I],
   input : I,
-  capacity : PreparationCapacity[I,P],
+  capacity : PreparationCapacity[I, P],
   prepared : P,
-) -> Result[(NodeManagedRunAdmission[P], Ledger, PreparationRetirement), ImportedChildLedgerIssue] {
-  if owner.transitioning { return Err(Unknown) }
+) -> Result[
+  (NodeManagedRunAdmission[P], Ledger, PreparationRetirement),
+  ImportedChildLedgerIssue,
+] {
+  if owner.transitioning {
+    return Err(Unknown)
+  }
   guard owner.admission is Some(admission) else { return Err(AlreadyConsumed) }
   match check_node_managed_run_preparation(admission, input) {
     Err(issue) => return Err(issue)
@@ -46,37 +58,59 @@ pub fn[I,P] adopt_node_preparation_admission(
   }
   guard admission.ledger is Some(ledger) else { return Err(Unavailable) }
   let child = admission.child
-  if !admission.attempted || admission.cleaned || admission.read_bootstrap_attempted ||
-    admission.read_bootstrap is Some(_) || child.pending_report is Some(_) ||
-    child.pending_report_issue is Some(_) || child.stop_attempted || child.origin.stopping {
+  if !admission.attempted ||
+    admission.cleaned ||
+    admission.read_bootstrap_attempted ||
+    admission.read_bootstrap is Some(_) ||
+    child.pending_report is Some(_) ||
+    child.pending_report_issue is Some(_) ||
+    child.stop_attempted ||
+    child.origin.stopping {
     return Err(Unavailable)
   }
   owner.transitioning = true
   match check_node_managed_run_admission(admission, ledger) {
-    Err(issue) => { owner.transitioning = false; return Err(issue) }
+    Err(issue) => {
+      owner.transitioning = false
+      return Err(issue)
+    }
     Ok(_) => ()
   }
   let holder = match borrow_preparation_body(capacity) {
     Err(issue) => {
       owner.transitioning = false
-      return Err(match issue { ForeignOriginal => ForeignOriginal; Resource(issue) => Resource(issue); _ => Unavailable })
+      return Err(
+        match issue {
+          ForeignOriginal => ForeignOriginal
+          Resource(issue) => Resource(issue)
+          _ => Unavailable
+        },
+      )
     }
     Ok(value) => value
   }
-  let transferred = transfer_preparation_retirement_to_run(capacity, input, prepared, ledger)
+  let transferred = transfer_preparation_retirement_to_run(
+    capacity, input, prepared, ledger,
+  )
   let retirement = match transferred {
     Err(issue) => {
       return_preparation_body_borrow(holder) |> ignore
       owner.transitioning = false
-      return Err(match issue {
-        ForeignOriginal => ForeignOriginal
-        Resource(issue) => Resource(issue)
-        _ => Unavailable
-      })
+      return Err(
+        match issue {
+          ForeignOriginal => ForeignOriginal
+          Resource(issue) => Resource(issue)
+          _ => Unavailable
+        },
+      )
     }
     Ok(value) => value
   }
-  let next = prepare_node_managed_run_original(admission.child, prepared, admission.abort_unpublished)
+  let next = prepare_node_managed_run_original(
+    admission.child,
+    prepared,
+    admission.abort_unpublished,
+  )
   next.attempted = true
   next.ledger = Some(ledger)
   next.preparation_holder = Some(holder)
@@ -93,7 +127,9 @@ pub fn[I,P] adopt_node_preparation_admission(
 pub fn[I] cleanup_node_preparation_admission(
   owner : NodePreparationAdmission[I],
 ) -> Result[Unit, ImportedChildLedgerIssue] {
-  if owner.transitioning { return Err(Unknown) }
+  if owner.transitioning {
+    return Err(Unknown)
+  }
   guard owner.admission is Some(admission) else { return Err(AlreadyConsumed) }
   owner.transitioning = true
   let outcome = cleanup_node_managed_run_admission(admission)
@@ -116,15 +152,21 @@ pub fn[P] release_node_preparation_holder(
   guard admission.preparation_holder is Some(holder) else {
     return if admission.prepared is None { Ok(false) } else { Err(Unavailable) }
   }
-  if !preparation_body_retirement_started(holder) { return Err(Unavailable) }
+  if !preparation_body_retirement_started(holder) {
+    return Err(Unavailable)
+  }
   guard admission.prepared is Some(original) &&
     preparation_body_borrow_value(holder) is Some(body) &&
-    physical_equal(original, body) else { return Err(ForeignOriginal) }
+    physical_equal(original, body) else {
+    return Err(ForeignOriginal)
+  }
   admission.prepared = None
   admission.preparation_holder = None
-  return_preparation_body_borrow(holder).map_err(issue => match issue {
-    Resource(issue) => ImportedChildLedgerIssue::Resource(issue)
-    _ => Unavailable
+  return_preparation_body_borrow(holder).map_err(issue => {
+    match issue {
+      Resource(issue) => ImportedChildLedgerIssue::Resource(issue)
+      _ => Unavailable
+    }
   })
 }
 
@@ -136,7 +178,9 @@ pub fn[P] node_preparation_usage_isolated(
   ledger : Ledger,
 ) -> Bool {
   guard check_node_preparation_cleanup_original(admission, ledger) is Ok(_) &&
-    admission.preparation_holder is Some(holder) else { return false }
+    admission.preparation_holder is Some(holder) else {
+    return false
+  }
   preparation_body_usage_isolated(holder, ledger)
 }
 
@@ -148,7 +192,9 @@ pub fn[I] check_node_preparation_input(
   owner : NodePreparationAdmission[I],
   input : I,
 ) -> Result[Unit, ImportedChildLedgerIssue] {
-  if owner.transitioning { return Err(Unknown) }
+  if owner.transitioning {
+    return Err(Unknown)
+  }
   guard owner.admission is Some(admission) else { return Err(AlreadyConsumed) }
   check_node_managed_run_preparation(admission, input)
 }

@@ -361,14 +361,21 @@ pub fn issue_public_index_entry(
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(CommitIssuanceEncoding)
   }
-  try {
-    emit_public_index_entry_body(
-      namespace_id, authority_scope_cid, run_definition.identity,
-      invocation.identity, manifest.identity, receipt.identity,
-      captured_run.identity, request.identity, attempt.identity, committed_at,
-      binding_cids.length(), index => binding_cids[index], writer,
-    )
-  } catch {
+  emit_public_index_entry_body(
+    namespace_id,
+    authority_scope_cid,
+    run_definition.identity,
+    invocation.identity,
+    manifest.identity,
+    receipt.identity,
+    captured_run.identity,
+    request.identity,
+    attempt.identity,
+    committed_at,
+    binding_cids.length(),
+    index => binding_cids[index],
+    writer,
+  ) catch {
     _ => return Err(CommitIssuanceEncoding)
   }
   finish_publication_body(
@@ -518,13 +525,17 @@ pub fn issue_publication_record(
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(CommitIssuanceEncoding)
   }
-  try {
-    emit_publication_record_body(
-      attempt.identity, prior_cid, state, observed_at,
-      public_index_entry.map(value => value.identity), failure_cid,
-      owners, sequence, writer,
-    )
-  } catch {
+  emit_publication_record_body(
+    attempt.identity,
+    prior_cid,
+    state,
+    observed_at,
+    public_index_entry.map(value => value.identity),
+    failure_cid,
+    owners,
+    sequence,
+    writer,
+  ) catch {
     _ => return Err(CommitIssuanceEncoding)
   }
   let record = match
@@ -562,36 +573,36 @@ fn emit_public_index_entry_body(
   binding_cid : (Int) -> String,
   writer : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-    @encode.begin_object(writer)
-    @encode.key(writer, "authority_scope_cid")
-    @encode.string_value(writer, authority_scope_cid)
-    @encode.key(writer, "captured_run_cid")
-    @encode.string_value(writer, captured_run_cid)
-    @encode.key(writer, "committed_at")
-    @encode.string_value(writer, committed_at)
-    @encode.key(writer, "durable_result_binding_cids")
-    @encode.begin_array(writer)
-    for index = 0; index < binding_count; index = index + 1 {
-      @encode.string_value(writer, binding_cid(index))
-    }
-    @encode.end_array(writer)
-    @encode.key(writer, "invocation_cid")
-    @encode.string_value(writer, invocation_cid)
-    @encode.key(writer, "namespace_id")
-    @encode.string_value(writer, namespace_id)
-    @encode.key(writer, "publication_attempt_cid")
-    @encode.string_value(writer, attempt_cid)
-    @encode.key(writer, "publication_request_cid")
-    @encode.string_value(writer, request_cid)
-    @encode.key(writer, "result_manifest_cid")
-    @encode.string_value(writer, manifest_cid)
-    @encode.key(writer, "run_definition_cid")
-    @encode.string_value(writer, run_definition_cid)
-    @encode.key(writer, "run_receipt_cid")
-    @encode.string_value(writer, receipt_cid)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-public-index-entry/0.1")
-    @encode.end_object(writer)
+  @encode.begin_object(writer)
+  @encode.key(writer, "authority_scope_cid")
+  @encode.string_value(writer, authority_scope_cid)
+  @encode.key(writer, "captured_run_cid")
+  @encode.string_value(writer, captured_run_cid)
+  @encode.key(writer, "committed_at")
+  @encode.string_value(writer, committed_at)
+  @encode.key(writer, "durable_result_binding_cids")
+  @encode.begin_array(writer)
+  for index = 0; index < binding_count; index = index + 1 {
+    @encode.string_value(writer, binding_cid(index))
+  }
+  @encode.end_array(writer)
+  @encode.key(writer, "invocation_cid")
+  @encode.string_value(writer, invocation_cid)
+  @encode.key(writer, "namespace_id")
+  @encode.string_value(writer, namespace_id)
+  @encode.key(writer, "publication_attempt_cid")
+  @encode.string_value(writer, attempt_cid)
+  @encode.key(writer, "publication_request_cid")
+  @encode.string_value(writer, request_cid)
+  @encode.key(writer, "result_manifest_cid")
+  @encode.string_value(writer, manifest_cid)
+  @encode.key(writer, "run_definition_cid")
+  @encode.string_value(writer, run_definition_cid)
+  @encode.key(writer, "run_receipt_cid")
+  @encode.string_value(writer, receipt_cid)
+  @encode.key(writer, "version")
+  @encode.string_value(writer, "actql-public-index-entry/0.1")
+  @encode.end_object(writer)
 }
 
 ///|
@@ -606,43 +617,43 @@ fn emit_publication_record_body(
   sequence : Int64,
   writer : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-    @encode.begin_object(writer)
-    @encode.key(writer, "cleanup_owner_cids")
-    @encode.begin_array(writer)
-    for owner in owners {
-      @encode.string_value(writer, owner)
+  @encode.begin_object(writer)
+  @encode.key(writer, "cleanup_owner_cids")
+  @encode.begin_array(writer)
+  for owner in owners {
+    @encode.string_value(writer, owner)
+  }
+  @encode.end_array(writer)
+  match failure_cid {
+    Some(value) => {
+      @encode.key(writer, "failure_cid")
+      @encode.string_value(writer, value)
     }
-    @encode.end_array(writer)
-    match failure_cid {
-      Some(value) => {
-        @encode.key(writer, "failure_cid")
-        @encode.string_value(writer, value)
-      }
-      None => ()
+    None => ()
+  }
+  @encode.key(writer, "observed_at")
+  @encode.string_value(writer, observed_at)
+  match prior_cid {
+    Some(value) => {
+      @encode.key(writer, "prior_record_cid")
+      @encode.string_value(writer, value)
     }
-    @encode.key(writer, "observed_at")
-    @encode.string_value(writer, observed_at)
-    match prior_cid {
-      Some(value) => {
-        @encode.key(writer, "prior_record_cid")
-        @encode.string_value(writer, value)
-      }
-      None => ()
+    None => ()
+  }
+  match public_index_cid {
+    Some(value) => {
+      @encode.key(writer, "public_index_entry_cid")
+      @encode.string_value(writer, value)
     }
-    match public_index_cid {
-      Some(value) => {
-        @encode.key(writer, "public_index_entry_cid")
-        @encode.string_value(writer, value)
-      }
-      None => ()
-    }
-    @encode.key(writer, "publication_attempt_cid")
-    @encode.string_value(writer, attempt_cid)
-    @encode.key(writer, "sequence")
-    @encode.number_value(writer, sequence.to_double())
-    @encode.key(writer, "state")
-    @encode.string_value(writer, state)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-publication-record/0.1")
-    @encode.end_object(writer)
+    None => ()
+  }
+  @encode.key(writer, "publication_attempt_cid")
+  @encode.string_value(writer, attempt_cid)
+  @encode.key(writer, "sequence")
+  @encode.number_value(writer, sequence.to_double())
+  @encode.key(writer, "state")
+  @encode.string_value(writer, state)
+  @encode.key(writer, "version")
+  @encode.string_value(writer, "actql-publication-record/0.1")
+  @encode.end_object(writer)
 }
