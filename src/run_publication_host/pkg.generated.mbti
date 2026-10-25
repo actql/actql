@@ -520,6 +520,8 @@ pub fn client_effect_result_import_observation_json(ClientEffectResultImportObse
 
 pub fn client_effect_review_checkpoint_binding_fields(@checkpoint_runtime.SealedCheckpoint) -> Result[Array[String], ClientEffectCheckpointBindingIssue]
 
+pub fn client_effect_review_checkpoint_cancelled_state(@checkpoint_runtime.SealedCheckpoint, ClientEffectAllowedRun, @run_publication.PublicationContract, String, String, Array[String], @checkpoint_runtime.WireLimits) -> Result[String, ClientEffectCheckpointCancelledIssue]
+
 pub fn client_effect_review_checkpoint_members(ClientEffectAllowedRun, @run_publication.PublicationContract, String, @checkpoint_runtime.WireLimits, Int, Int) -> Result[Array[String], ClientEffectCheckpointMembersIssue]
 
 pub fn client_effect_review_checkpoint_reconciliation_state(@checkpoint_runtime.SealedCheckpoint, ClientEffectAllowedRun, @run_publication.PublicationContract, String, String, String, String, Array[String], String, Array[String], @checkpoint_runtime.WireLimits) -> Result[String, ClientEffectCheckpointReconciliationIssue]
@@ -2349,6 +2351,12 @@ pub(all) enum ClientEffectCheckpointBindingIssue {
   ForeignSubject
   UnsupportedReview
   OriginalLifetime
+}
+
+pub(all) enum ClientEffectCheckpointCancelledIssue {
+  Binding(ClientEffectCheckpointBindingIssue)
+  Checkpoint(@checkpoint_runtime.CheckpointIssue)
+  RunState(@run_publication.RunStateIssue)
 }
 
 pub(all) enum ClientEffectCheckpointMembersIssue {

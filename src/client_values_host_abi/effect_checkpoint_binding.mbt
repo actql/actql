@@ -87,3 +87,24 @@ pub fn client_values_host_effect_checkpoint_reconciliation_state(
     { max_wire_bytes: 1048576, max_nodes: 65536, max_depth: 64, },
   )
 }
+
+///|
+#export_name("clientValuesHostEffectCheckpointCancelledState")
+pub fn client_values_host_effect_checkpoint_cancelled_state(
+  original : @checkpoint.SealedCheckpoint,
+  allowed : @host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  stored_wire : String,
+  updated_at : String,
+  declared_results : Array[String],
+) -> Result[String, @host.ClientEffectCheckpointCancelledIssue] {
+  @host.client_effect_review_checkpoint_cancelled_state(
+    original,
+    allowed,
+    definition,
+    stored_wire,
+    updated_at,
+    declared_results,
+    { max_wire_bytes: 1048576, max_nodes: 65536, max_depth: 64, },
+  )
+}

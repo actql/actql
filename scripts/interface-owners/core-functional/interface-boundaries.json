@@ -16903,7 +16903,7 @@
     },
     {
       "module": "packages/run-host-core/index.mjs",
-      "sha256": "5a3c6060095c2aea63a01169a0bf65b6ef2711787118ff7e42d7bfb48a8cb96e",
+      "sha256": "be52e099ee925436d2b20c876a1529273a4a3e1ee032a2a2bdbaa55f06ac5654",
       "role": "physical-io",
       "exports": [
         "admitCapturedResultSnapshot",
@@ -16941,6 +16941,7 @@
         "effectResultSchema",
         "effectReviewCheckpointBinding",
         "effectReviewCheckpointBindingFacts",
+        "effectReviewCheckpointCancelledState",
         "effectReviewCheckpointMembers",
         "effectReviewCheckpointReconciliationState",
         "effectReviewCheckpointWaitingState",
@@ -17650,6 +17651,18 @@
             "binding",
             "allowed",
             "definition"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectReviewCheckpointCancelledState",
+          "parameters": [
+            "binding",
+            "allowed",
+            "definition",
+            "storedWire",
+            "updatedAt",
+            "declaredResults"
           ],
           "async": false
         },
@@ -20566,7 +20579,8 @@
             "effectReviewCheckpointWaitingState",
             "effectReviewCheckpointReconciliationState",
             "effectReviewCheckpointReconciliationState/effectReviewCheckpointReconciliationState",
-            "effectReviewCheckpointReconciliationState/snapshot/snapshot"
+            "effectReviewCheckpointReconciliationState/snapshot/snapshot",
+            "effectReviewCheckpointCancelledState"
           ],
           "exports": [
             "admitCapturedResultSnapshot",
@@ -20723,7 +20737,8 @@
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
             "validateRetainedTaskInput",
-            "effectReviewCheckpointReconciliationState"
+            "effectReviewCheckpointReconciliationState",
+            "effectReviewCheckpointCancelledState"
           ],
           "attributes": {
             "responsibility": [
@@ -20952,6 +20967,10 @@
               {
                 "path": "packages/run-host-core/effect-checkpoint-retention.test.mjs",
                 "anchor": "original Checkpoint reconciliation forwards same nominal roots and snapshots receipt DATA"
+              },
+              {
+                "path": "packages/run-host-core/effect-checkpoint-retention.test.mjs",
+                "anchor": "original Checkpoint cancelled DATA forwards same originals without a scalar authority input"
               }
             ]
           }

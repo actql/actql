@@ -68043,7 +68043,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "f14ab27a9563eeca4317358c9f01895db05cc47ceb1c0a8d465841053a2b741e",
+      "sha256": "58f9a88d0a284e7775658068b3fb3c63922fad040c758f98728934e16e749abf",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -68138,6 +68138,7 @@
         "effectResultSchema",
         "effectReviewCheckpointBinding",
         "effectReviewCheckpointBindingFacts",
+        "effectReviewCheckpointCancelledState",
         "effectReviewCheckpointMembers",
         "effectReviewCheckpointReconciliationState",
         "effectReviewCheckpointWaitingState",
@@ -68580,6 +68581,18 @@
             "definition: RunDefinition"
           ],
           "result": "EffectReviewCheckpointBinding"
+        },
+        {
+          "name": "effectReviewCheckpointCancelledState",
+          "parameters": [
+            "binding: EffectReviewCheckpointBinding",
+            "allowed: AllowedEffectRun",
+            "definition: RunDefinition",
+            "storedWire: string",
+            "updatedAt: string",
+            "declaredResults: readonly string[]"
+          ],
+          "result": "string"
         },
         {
           "name": "effectReviewCheckpointMembers",
@@ -70424,7 +70437,8 @@
             "bindPreparedEffectRunMaterials",
             "effectReviewCheckpointBindingFacts",
             "effectReviewCheckpointWaitingState",
-            "effectReviewCheckpointReconciliationState"
+            "effectReviewCheckpointReconciliationState",
+            "effectReviewCheckpointCancelledState"
           ],
           "exports": [
             "AllowedEffectRun",
@@ -70635,7 +70649,8 @@
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
             "validateRetainedTaskInput",
-            "effectReviewCheckpointReconciliationState"
+            "effectReviewCheckpointReconciliationState",
+            "effectReviewCheckpointCancelledState"
           ],
           "attributes": {
             "responsibility": [
@@ -70900,6 +70915,10 @@
               {
                 "path": "packages/run-host-core/effect-checkpoint-retention.test.mjs",
                 "anchor": "original Checkpoint reconciliation forwards same nominal roots and snapshots receipt DATA"
+              },
+              {
+                "path": "packages/run-host-core/effect-checkpoint-retention.test.mjs",
+                "anchor": "original Checkpoint cancelled DATA forwards same originals without a scalar authority input"
               }
             ]
           }

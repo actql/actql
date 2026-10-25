@@ -612,6 +612,30 @@ export function effectReviewCheckpointReconciliationState(binding, allowed, defi
   'RunHostEffectCheckpointReconciliationRejected');
 }
 
+/** Pure confirmed-cancellation DATA for this same original review. The Host
+ * retains every whole-Run no-grant/stop/publication/current/CAS obligation. */
+export function effectReviewCheckpointCancelledState(binding, allowed, definition,
+  storedWire, updatedAt, declaredResults) {
+  effectReviewCheckpointBindingFacts(binding, allowed, definition);
+  const {original} = effectCheckpointBindings.get(binding);
+  if (typeof storedWire !== 'string' || typeof updatedAt !== 'string' ||
+      !Array.isArray(declaredResults) || declaredResults.length > 65536) {
+    throw new TypeError('InvalidRunHostCheckpointCancelledInput');
+  }
+  const names = []; let textUnits = 0;
+  for (let index = 0; index < declaredResults.length; index++) {
+    const field = Object.getOwnPropertyDescriptor(declaredResults, String(index));
+    if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'string') {
+      throw new TypeError('InvalidRunHostCheckpointCancelledInput');
+    }
+    names.push(field.value); textUnits += field.value.length;
+    if (textUnits > 1048576) throw new TypeError('InvalidRunHostCheckpointCancelledInput');
+  }
+  return checked(owner.clientValuesHostEffectCheckpointCancelledState(original,
+    requireHandle(effectAllowedRuns, allowed).value, requireHandle(definitions, definition),
+    storedWire, updatedAt, names), 'RunHostEffectCheckpointCancelledRejected');
+}
+
 /** Original checked member IDs, not Source grants or Effect authority. */
 export function effectReviewCheckpointMembers(allowed, definition, wire) {
   if (typeof wire !== 'string' || wire.length > 65536 || new TextEncoder().encode(wire).length > 65536) {
