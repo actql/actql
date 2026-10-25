@@ -245,4 +245,3 @@ fn local_command_diagnostic_text(
     "actql-native-client: " + code + ": " + quoted
   }
 }
-
