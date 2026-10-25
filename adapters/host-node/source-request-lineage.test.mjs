@@ -115,3 +115,46 @@ test('copied, foreign and over-limit aliases cannot manufacture another original
     format: 'sql', submissionRef: originalSubmission('bounded-original-lineage')}));
   assert.deepEqual(f.counts(), {preparations: 1, finishes: 1, writes: 0});
 });
+
+test('read-only submission lookup keeps the original live Host ingress lineage', async t => {
+  const registry = createEmbeddedHostRegistry((left, right) => left === right);
+  const host = {}, installation = {};
+  const calls = {intentProjection: 0, retain: 0, release: 0, lookup: 0};
+  const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+    durability: 'volatile', scopeRef: 'lookup-lineage', capabilities: ['aql-document'], submissionEpoch,
+    limits: {maxReadWireBytes: 65536, maxRowWireBytes: 1024,
+      maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 65536,
+      maxRows: 256, maxBatchRows: 3, maxBatchRetainedValueBytes: 4096}};
+  const bindOwnedRequest = (parent, derived) =>
+    registry.bindSourceRequest(host, installation, host, parent, derived);
+  const journal = {close() {}, checkSubmittedIntent() {}, recordSubmittedIntent() {assert.fail('NoSubmit');},
+    retainSubmissionOperation(_epoch, _control, borrowed) {
+      assert.equal(borrowed, undefined); calls.retain++;
+      return () => {calls.release++;};
+    },
+    lookupSubmittedIntent() {calls.lookup++; return undefined;}};
+  const service = installNodeClientSubmission({journal,
+    moon: {clientSubmittedIntent() {assert.fail('NoCompiler');}},
+    authorizedScope: () => ({authorityScopeCid: 'sha256:' + 'a'.repeat(64), namespaceId: 'lookup-lineage'}),
+    prepareSubmit() {assert.fail('NoPreparation');}, submit() {assert.fail('NoDispatch');},
+    lookupRequest() {assert.fail('NoRunLookup');}, bindOwnedRequest,
+    submittedIntentOriginal(request) {
+      calls.intentProjection++;
+      // The actual fixed Host resolves this original before asking whether
+      // a selected producer has a borrowed intent. A lookup has no producer.
+      try {registry.originalSourceRequest(host, installation, host, request);}
+      catch(error) {console.log(JSON.stringify({boundary:'submittedIntentOriginal',code:error.code}));throw error;}
+      return undefined;
+    }});
+  host.port = createNodeInProcessClientHost({authenticate: () => 'lookup-actor',
+    authorizeConnection: () => true, negotiate: () => profile,
+    lookupSubmission: service.lookupSubmission, maxRowBytes: 65536, bindOwnedRequest});
+  Object.assign(host, {dispatchOwner: {drain() {}}, retireTerminalEffects() {}, journal, store: {close() {}}});
+  registry.registerPreparation(host, installation, host);
+  const client = await registry.connect('/lookup-lineage', 'lookup-lineage', async () => host,
+    {mode: 'local', owner: 'local'}, host);
+  t.after(() => client.close());
+  const answer = await client.lookupSubmission(originalSubmission('lookup-only'));
+  assert.equal(answer.kind, 'unresolvable');
+  assert.deepEqual(calls, {intentProjection: 0, retain: 1, release: 1, lookup: 1});
+});

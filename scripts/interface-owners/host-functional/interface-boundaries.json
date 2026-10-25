@@ -25265,7 +25265,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0dc2b23d6b5b1502f1be5478784b644bf76ee967f7ed1c06c08f400b9bfebffb",
+      "sha256": "e4b51c3d7a3e5fc5deeb17e082ce14fd2d74edc047f03c3e109a767311927d73",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -25716,6 +25716,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const admissionFailures = new WeakMap();"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Only an input-bearing submission preparation can lend its original submitted"
               }
             ],
             "inputsOutputs": [
@@ -25818,6 +25822,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "admissionFailures.delete(submission);"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Only an input-bearing submission preparation can lend its original submitted"
               }
             ],
             "synchronization": [
@@ -25970,6 +25978,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "run.original !== undefined || run.admission !== undefined || run.value !== undefined ||"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Only an input-bearing submission preparation can lend its original submitted"
               }
             ],
             "extension": [
@@ -26058,6 +26070,10 @@
               {
                 "path": "adapters/host-node/client-submission.test.mjs",
                 "anchor": "test('paired pre-admission original refusal is retained without entering the Run owner', async t => {"
+              },
+              {
+                "path": "adapters/host-node/source-request-lineage.test.mjs",
+                "anchor": "test('read-only submission lookup keeps the original live Host ingress lineage', async t => {"
               }
             ]
           }

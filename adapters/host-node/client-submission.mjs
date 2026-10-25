@@ -84,7 +84,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     try {
       release = validSubmissionRef(value.submissionRef) ?
         journal.retainSubmissionOperation?.(value.submissionRef.epoch, moon,
-          submittedIntentOriginal?.(value)) : undefined;
+          bind ? submittedIntentOriginal?.(value) : undefined) : undefined;
       return await action(value);
     }
     finally {

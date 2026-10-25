@@ -357,6 +357,13 @@ the original Run before projecting a typed preparation failure. The public
 request lookup does not carry a Run control revision: projecting a `ready`
 admission obtains that revision from the authorized journal record.
 
+Only an input-bearing submission preparation can lend its original submitted
+intent to that operation's Journal scope. Read-only submission lookup retains
+the epoch operation and rechecks current Journal authority, but does not ask a
+Source producer for an input borrow or recreate a live preparation lineage.
+Missing history remains unresolvable. This distinction supplies neither
+capacity nor execution permission and does not bypass stored-record admission.
+
 The SDK allocates a submission reference before sending and retains it with the
 detached input on the returned Promise, Run or original error. Callers can save
 the original before the first send; this in-memory snapshot is not durable
