@@ -3,8 +3,8 @@
 const freeze = value => { if (value && typeof value === "object") {Object.values(value).forEach(freeze); Object.freeze(value);} return value; };
 const info = freeze({
   "version": "actql-check-reason-catalog/0.1",
-  "revision": "2026-10-19.1",
-  "reasonSchemaCid": "sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5"
+  "revision": "2026-10-25.1",
+  "reasonSchemaCid": "sha256:29e062b1b136ffb4da40ca3a38348768759293240d008e7d019d36aa6d3de511"
 });
 const entries = freeze({
   "analysis_budget_exhausted": {
@@ -261,6 +261,47 @@ const entries = freeze({
       }
     ]
   },
+  "carrier_mismatch": {
+    "code": "carrier_mismatch",
+    "condition": "The operation requires a different input carrier.",
+    "facts_schema": "#/reason_schema",
+    "disclosure": "Only the existing checked diagnostic may emit these closed type-domain or carrier facts. Actual values, names, private Source distinctions and arbitrary causes are excluded.",
+    "locations": [
+      "source:text or program:structured (owned authored location only; omit when unknown)"
+    ],
+    "default_severity": "error",
+    "family": "input",
+    "presentation": {
+      "variants": [
+        {
+          "when": {
+            "expected_carrier": "relation"
+          },
+          "key": "carrier.expected_relation",
+          "english": [
+            "This operation requires Relation input.",
+            "Provide a Relation before this operation; the current carrier is not a Relation."
+          ]
+        },
+        {
+          "when": {
+            "expected_carrier": "vectors"
+          },
+          "key": "carrier.expected_vectors",
+          "english": [
+            "This operation requires Vectors input.",
+            "Provide Vectors before this operation, for example by converting a compatible Relation with to_vectors."
+          ]
+        }
+      ]
+    },
+    "examples": [
+      {
+        "file": "src/client_local_preparation/check_domain_carrier_diagnostics_wbtest.mbt",
+        "scenario": "public check preserves original vector operation carrier requirements"
+      }
+    ]
+  },
   "check_unclassified": {
     "code": "check_unclassified",
     "condition": "The checker could not establish a classified conclusion.",
@@ -314,6 +355,47 @@ const entries = freeze({
       },
       "variants": []
     }
+  },
+  "expression_domain_mismatch": {
+    "code": "expression_domain_mismatch",
+    "condition": "Expression operands violate the required comparison or arithmetic domain.",
+    "facts_schema": "#/reason_schema",
+    "disclosure": "Only the existing checked diagnostic may emit these closed type-domain or carrier facts. Actual values, names, private Source distinctions and arbitrary causes are excluded.",
+    "locations": [
+      "source:text or program:structured (owned authored location only; omit when unknown)"
+    ],
+    "default_severity": "error",
+    "family": "input",
+    "presentation": {
+      "variants": [
+        {
+          "when": {
+            "domain": "key_comparable_operands"
+          },
+          "key": "expression_domain.key_comparable_operands",
+          "english": [
+            "The expression operands have incompatible types.",
+            "Use mutually compatible operand types for this operation."
+          ]
+        },
+        {
+          "when": {
+            "domain": "matching_numeric_domains"
+          },
+          "key": "expression_domain.matching_numeric_domains",
+          "english": [
+            "The arithmetic operands do not share a supported numeric domain.",
+            "Use operands from the same supported numeric domain."
+          ]
+        }
+      ]
+    },
+    "examples": [
+      {
+        "file": "src/client_local_preparation/check_domain_carrier_diagnostics_wbtest.mbt",
+        "scenario": "public check preserves closed operand domain requirements"
+      }
+    ]
   },
   "expression_type_mismatch": {
     "code": "expression_type_mismatch",

@@ -10034,6 +10034,71 @@ const schemas = {
                               }
                             }
                           ]
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "domain"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "domain": {
+                              "enum": [
+                                "key_comparable_operands",
+                                "matching_numeric_domains"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "expected_carrier",
+                            "actual_carrier"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "expected_carrier": {
+                              "enum": [
+                                "relation",
+                                "vectors"
+                              ]
+                            },
+                            "actual_carrier": {
+                              "enum": [
+                                "relation",
+                                "graph",
+                                "events",
+                                "vectors"
+                              ]
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "not": {
+                                "properties": {
+                                  "expected_carrier": {
+                                    "const": "relation"
+                                  },
+                                  "actual_carrier": {
+                                    "const": "relation"
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "not": {
+                                "properties": {
+                                  "expected_carrier": {
+                                    "const": "vectors"
+                                  },
+                                  "actual_carrier": {
+                                    "const": "vectors"
+                                  }
+                                }
+                              }
+                            }
+                          ]
                         }
                       ]
                     }
@@ -11142,7 +11207,9 @@ const schemas = {
                                 "program_structure_invalid",
                                 "source_selector_unregistered",
                                 "query_alias_absent",
-                                "parameter_consumer_condition"
+                                "parameter_consumer_condition",
+                                "expression_domain_mismatch",
+                                "carrier_mismatch"
                               ]
                             }
                           }
@@ -11287,6 +11354,135 @@ const schemas = {
                               "required": [
                                 "argument"
                               ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "expression_domain_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "domain"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "domain": {
+                                "enum": [
+                                  "key_comparable_operands",
+                                  "matching_numeric_domains"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "carrier_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "expected_carrier",
+                              "actual_carrier"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "expected_carrier": {
+                                "enum": [
+                                  "relation",
+                                  "vectors"
+                                ]
+                              },
+                              "actual_carrier": {
+                                "enum": [
+                                  "relation",
+                                  "graph",
+                                  "events",
+                                  "vectors"
+                                ]
+                              }
+                            },
+                            "allOf": [
+                              {
+                                "not": {
+                                  "properties": {
+                                    "expected_carrier": {
+                                      "const": "relation"
+                                    },
+                                    "actual_carrier": {
+                                      "const": "relation"
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "not": {
+                                  "properties": {
+                                    "expected_carrier": {
+                                      "const": "vectors"
+                                    },
+                                    "actual_carrier": {
+                                      "const": "vectors"
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
+                              }
                             }
                           }
                         }
@@ -12146,6 +12342,71 @@ const schemas = {
                               }
                             }
                           ]
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "domain"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "domain": {
+                              "enum": [
+                                "key_comparable_operands",
+                                "matching_numeric_domains"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "expected_carrier",
+                            "actual_carrier"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "expected_carrier": {
+                              "enum": [
+                                "relation",
+                                "vectors"
+                              ]
+                            },
+                            "actual_carrier": {
+                              "enum": [
+                                "relation",
+                                "graph",
+                                "events",
+                                "vectors"
+                              ]
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "not": {
+                                "properties": {
+                                  "expected_carrier": {
+                                    "const": "relation"
+                                  },
+                                  "actual_carrier": {
+                                    "const": "relation"
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "not": {
+                                "properties": {
+                                  "expected_carrier": {
+                                    "const": "vectors"
+                                  },
+                                  "actual_carrier": {
+                                    "const": "vectors"
+                                  }
+                                }
+                              }
+                            }
+                          ]
                         }
                       ]
                     }
@@ -13254,7 +13515,9 @@ const schemas = {
                                 "program_structure_invalid",
                                 "source_selector_unregistered",
                                 "query_alias_absent",
-                                "parameter_consumer_condition"
+                                "parameter_consumer_condition",
+                                "expression_domain_mismatch",
+                                "carrier_mismatch"
                               ]
                             }
                           }
@@ -13399,6 +13662,135 @@ const schemas = {
                               "required": [
                                 "argument"
                               ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "expression_domain_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "domain"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "domain": {
+                                "enum": [
+                                  "key_comparable_operands",
+                                  "matching_numeric_domains"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "carrier_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "expected_carrier",
+                              "actual_carrier"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "expected_carrier": {
+                                "enum": [
+                                  "relation",
+                                  "vectors"
+                                ]
+                              },
+                              "actual_carrier": {
+                                "enum": [
+                                  "relation",
+                                  "graph",
+                                  "events",
+                                  "vectors"
+                                ]
+                              }
+                            },
+                            "allOf": [
+                              {
+                                "not": {
+                                  "properties": {
+                                    "expected_carrier": {
+                                      "const": "relation"
+                                    },
+                                    "actual_carrier": {
+                                      "const": "relation"
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "not": {
+                                  "properties": {
+                                    "expected_carrier": {
+                                      "const": "vectors"
+                                    },
+                                    "actual_carrier": {
+                                      "const": "vectors"
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
+                              }
                             }
                           }
                         }
@@ -13620,7 +14012,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5"
+            "const": "sha256:29e062b1b136ffb4da40ca3a38348768759293240d008e7d019d36aa6d3de511"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -14770,6 +15162,71 @@ const schemas = {
                               }
                             }
                           ]
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "domain"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "domain": {
+                              "enum": [
+                                "key_comparable_operands",
+                                "matching_numeric_domains"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "expected_carrier",
+                            "actual_carrier"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "expected_carrier": {
+                              "enum": [
+                                "relation",
+                                "vectors"
+                              ]
+                            },
+                            "actual_carrier": {
+                              "enum": [
+                                "relation",
+                                "graph",
+                                "events",
+                                "vectors"
+                              ]
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "not": {
+                                "properties": {
+                                  "expected_carrier": {
+                                    "const": "relation"
+                                  },
+                                  "actual_carrier": {
+                                    "const": "relation"
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "not": {
+                                "properties": {
+                                  "expected_carrier": {
+                                    "const": "vectors"
+                                  },
+                                  "actual_carrier": {
+                                    "const": "vectors"
+                                  }
+                                }
+                              }
+                            }
+                          ]
                         }
                       ]
                     }
@@ -15878,7 +16335,9 @@ const schemas = {
                                 "program_structure_invalid",
                                 "source_selector_unregistered",
                                 "query_alias_absent",
-                                "parameter_consumer_condition"
+                                "parameter_consumer_condition",
+                                "expression_domain_mismatch",
+                                "carrier_mismatch"
                               ]
                             }
                           }
@@ -16023,6 +16482,135 @@ const schemas = {
                               "required": [
                                 "argument"
                               ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "expression_domain_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "domain"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "domain": {
+                                "enum": [
+                                  "key_comparable_operands",
+                                  "matching_numeric_domains"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "carrier_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "expected_carrier",
+                              "actual_carrier"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "expected_carrier": {
+                                "enum": [
+                                  "relation",
+                                  "vectors"
+                                ]
+                              },
+                              "actual_carrier": {
+                                "enum": [
+                                  "relation",
+                                  "graph",
+                                  "events",
+                                  "vectors"
+                                ]
+                              }
+                            },
+                            "allOf": [
+                              {
+                                "not": {
+                                  "properties": {
+                                    "expected_carrier": {
+                                      "const": "relation"
+                                    },
+                                    "actual_carrier": {
+                                      "const": "relation"
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "not": {
+                                  "properties": {
+                                    "expected_carrier": {
+                                      "const": "vectors"
+                                    },
+                                    "actual_carrier": {
+                                      "const": "vectors"
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
+                              }
                             }
                           }
                         }
@@ -16882,6 +17470,71 @@ const schemas = {
                               }
                             }
                           ]
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "domain"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "domain": {
+                              "enum": [
+                                "key_comparable_operands",
+                                "matching_numeric_domains"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "expected_carrier",
+                            "actual_carrier"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "expected_carrier": {
+                              "enum": [
+                                "relation",
+                                "vectors"
+                              ]
+                            },
+                            "actual_carrier": {
+                              "enum": [
+                                "relation",
+                                "graph",
+                                "events",
+                                "vectors"
+                              ]
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "not": {
+                                "properties": {
+                                  "expected_carrier": {
+                                    "const": "relation"
+                                  },
+                                  "actual_carrier": {
+                                    "const": "relation"
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "not": {
+                                "properties": {
+                                  "expected_carrier": {
+                                    "const": "vectors"
+                                  },
+                                  "actual_carrier": {
+                                    "const": "vectors"
+                                  }
+                                }
+                              }
+                            }
+                          ]
                         }
                       ]
                     }
@@ -17990,7 +18643,9 @@ const schemas = {
                                 "program_structure_invalid",
                                 "source_selector_unregistered",
                                 "query_alias_absent",
-                                "parameter_consumer_condition"
+                                "parameter_consumer_condition",
+                                "expression_domain_mismatch",
+                                "carrier_mismatch"
                               ]
                             }
                           }
@@ -18135,6 +18790,135 @@ const schemas = {
                               "required": [
                                 "argument"
                               ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "expression_domain_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "domain"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "domain": {
+                                "enum": [
+                                  "key_comparable_operands",
+                                  "matching_numeric_domains"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "carrier_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "expected_carrier",
+                              "actual_carrier"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "expected_carrier": {
+                                "enum": [
+                                  "relation",
+                                  "vectors"
+                                ]
+                              },
+                              "actual_carrier": {
+                                "enum": [
+                                  "relation",
+                                  "graph",
+                                  "events",
+                                  "vectors"
+                                ]
+                              }
+                            },
+                            "allOf": [
+                              {
+                                "not": {
+                                  "properties": {
+                                    "expected_carrier": {
+                                      "const": "relation"
+                                    },
+                                    "actual_carrier": {
+                                      "const": "relation"
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "not": {
+                                  "properties": {
+                                    "expected_carrier": {
+                                      "const": "vectors"
+                                    },
+                                    "actual_carrier": {
+                                      "const": "vectors"
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "enum": [
+                                  "text",
+                                  "structured"
+                                ]
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "source",
+                                  "program"
+                                ]
+                              }
                             }
                           }
                         }
@@ -18374,7 +19158,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5"
+            "const": "sha256:29e062b1b136ffb4da40ca3a38348768759293240d008e7d019d36aa6d3de511"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -18420,7 +19204,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5"
+            "const": "sha256:29e062b1b136ffb4da40ca3a38348768759293240d008e7d019d36aa6d3de511"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -20139,8 +20923,8 @@ const optionalRequestFields = {
   }
 };
 
-export const checkReasonSchemaCid = "sha256:93e2d1285a3136da858996545d957273d70acad3cf180c07d59aa61cfa126ca5";
-export const checkOutcomeSchemaCid = "sha256:abc1f9da9c6394f61d780139fe10ce220a25f6579ef80ed043a46c5704cf5f3b";
+export const checkReasonSchemaCid = "sha256:29e062b1b136ffb4da40ca3a38348768759293240d008e7d019d36aa6d3de511";
+export const checkOutcomeSchemaCid = "sha256:ce7df95dc9d069472f6dd61273acb6e5d09aba605347cddda5c4a23c6e5e52f6";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function finiteWireNumber(value) {

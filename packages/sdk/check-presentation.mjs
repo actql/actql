@@ -59,6 +59,14 @@ const japanese = Object.freeze(Object.fromEntries(Object.entries({
     '宣言された値を補い、束縛された入力全体を再検査してください。'],
   'reason.parameter_default_type_mismatch': ['パラメータの既定値が宣言された型と一致しません。',
     '宣言された型に合わせて既定値を修正し、再検査してください。'],
+  'expression_domain.key_comparable_operands': ['式のオペランドの型に互換性がありません。',
+    'この演算では、相互に互換性のある型のオペランドを使用してください。'],
+  'expression_domain.matching_numeric_domains': ['算術演算のオペランドが同じ対応数値領域に属していません。',
+    '対応する同じ数値領域のオペランドを使用してください。'],
+  'carrier.expected_relation': ['この演算にはRelation入力が必要です。',
+    'この演算の前にRelationを用意してください。現在のcarrierはRelationではありません。'],
+  'carrier.expected_vectors': ['この演算にはVectors入力が必要です。',
+    'この演算の前にVectorsを用意してください。例えば、互換性のあるRelationをto_vectorsで変換できます。'],
   'reason.expression_type_mismatch': ['式が必要な引数型に違反しています。', '必要な型を持つ引数を使用してください。'],
   'expression_type.number': ['式の引数にはnumber型が必要です。', '拒否された引数にはnumber型の式を使用してください。'],
   'expression_type.boolean': ['式の引数にはboolean型が必要です。', '拒否された引数にはboolean型の式を使用してください。'],
@@ -123,7 +131,7 @@ export function getCheckPresentationInfo(options) {
     const requested = options?.locale;
     if (requested === 'ja' || requested === 'ja-JP') locale = 'ja';
   } catch { /* Locale lookup cannot hide a validated observation. */ }
-  return Object.freeze({locale, translationRevision: `2026-10-07.${locale}.10`});
+  return Object.freeze({locale, translationRevision: `2026-10-25.${locale}.11`});
 }
 
 export function localizeCheck(key, english, options) {

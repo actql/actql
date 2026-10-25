@@ -16,7 +16,7 @@ const presentation = (value, conditional = false) => {
     keys(value.when, [], Object.keys(value.when));
     assert(Object.keys(value.when).length > 0);
     for (const [key, values] of Object.entries(value.when)) {
-      assert(['issue', 'operation', 'document', 'constraint', 'domain', 'expected_type'].includes(key));
+      assert(['issue', 'operation', 'document', 'constraint', 'domain', 'expected_type', 'expected_carrier'].includes(key));
       const admitted = Array.isArray(values) ? values : [values];
       assert(admitted.length > 0); admitted.forEach(text);
     }

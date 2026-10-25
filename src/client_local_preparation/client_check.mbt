@@ -17,6 +17,8 @@ priv enum CheckFinding {
   ExpressionViolation(String, (Int, Int)?)
   FrameViolation
   ExpressionTypeViolation(String)
+  ExpressionDomainViolation(String)
+  CarrierViolation(String, String)
   OperationScalarViolation(String, String, (String, String)?)
   GraphViolation(String, String, (Int, Int)?)
   TypeViolation(String, String, String, String?)
@@ -582,6 +584,8 @@ fn check_source_findings(
       | ExpressionViolation(_, _)
       | FrameViolation
       | ExpressionTypeViolation(_)
+      | ExpressionDomainViolation(_)
+      | CarrierViolation(_, _)
       | OperationScalarViolation(_, _, _)
       | GraphViolation(_, _, _)
       | TypeViolation(_, _, _, _)
@@ -1230,6 +1234,45 @@ fn check_program_finding(
     return ExpressionTypeViolation(expected)
   }
   if @checked.diagnostic_cause(diagnostic)
+    is Source(SourceView(Program(Program(Pipeline(_, issue))))) {
+    if issue.kind is Operation(Expression(TypeMismatch(expected))) {
+      // Closed owner tags only: never publish an arbitrary diagnostic string.
+      match expected {
+        "key-comparable operands" =>
+          return ExpressionDomainViolation("key_comparable_operands")
+        "matching numeric domains" =>
+          return ExpressionDomainViolation("matching_numeric_domains")
+        _ => ()
+      }
+    }
+    if issue.kind is Vector(WrongCarrier(actual_kind)) &&
+      issue.path.length() == 5 &&
+      issue.path[0] is Key("stages") &&
+      issue.path[1] is Index(_) &&
+      issue.path[2] is Key("steps") &&
+      issue.path[3] is Index(_) &&
+      issue.path[4] is Key(operation) {
+      // The original failed vector operation owns this selector. Its closed
+      // input law identifies the expected carrier; no source search or second
+      // check is performed. Other vector paths retain the generic finding.
+      let expected = match operation {
+        "to_vectors" => Some("relation")
+        "score_vectors" | "normalize_vectors" => Some("vectors")
+        _ => None
+      }
+      let actual = match actual_kind {
+        RelationKind => "relation"
+        GraphKind => "graph"
+        EventsKind => "events"
+        VectorsKind => "vectors"
+      }
+      if expected is Some(expected) && expected != actual {
+        return CarrierViolation(expected, actual)
+      }
+      // This generated structural path is not an authored source location.
+    }
+  }
+  if @checked.diagnostic_cause(diagnostic)
     is Closure(Operations(Frames(InvalidFrame(_)))) {
     // The existing closure Owner proves the bound frame violation. Its
     // requirement index is not an authored span or a public input pointer.
@@ -1344,6 +1387,8 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       | ExpressionViolation(_, _)
       | FrameViolation
       | ExpressionTypeViolation(_)
+      | ExpressionDomainViolation(_)
+      | CarrierViolation(_, _)
       | OperationScalarViolation(_, _, _)
       | GraphViolation(_, _, _)
       | SourceSelectorUnregistered(_, _, _)
@@ -1418,6 +1463,8 @@ fn write_check_report(
       ExpressionViolation(_, _) => Some("query_expression_invalid")
       FrameViolation => Some("query_frame_invalid")
       ExpressionTypeViolation(_) => Some("expression_type_mismatch")
+      ExpressionDomainViolation(_) => Some("expression_domain_mismatch")
+      CarrierViolation(_, _) => Some("carrier_mismatch")
       OperationScalarViolation(_, _, _) => Some("operation_parameter_invalid")
       GraphViolation(_, _, _) => Some("graph_operation_invalid")
       SourceSelectorUnregistered(_, _, _) =>
@@ -1899,6 +1946,32 @@ fn write_check_report(
         }
       }
     }
+    if code == "expression_domain_mismatch" {
+      for finding in findings {
+        if finding is ExpressionDomainViolation(domain) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "domain")
+          @encode.string_value(writer, domain)
+          @encode.end_object(writer)
+          break
+        }
+      }
+    }
+    if code == "carrier_mismatch" {
+      for finding in findings {
+        if finding is CarrierViolation(expected, actual) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "actual_carrier")
+          @encode.string_value(writer, actual)
+          @encode.key(writer, "expected_carrier")
+          @encode.string_value(writer, expected)
+          @encode.end_object(writer)
+          break
+        }
+      }
+    }
     if code == "expression_type_mismatch" {
       for finding in findings {
         if finding is ExpressionTypeViolation(expected) {
@@ -1974,6 +2047,7 @@ fn write_check_report(
       documents.program_pointer is Some(pointer) &&
       [
         "program_structure_invalid", "program_invalid", "expression_type_mismatch",
+        "expression_domain_mismatch", "carrier_mismatch",
         "graph_operation_invalid", "query_frame_invalid", "query_expression_invalid",
       ].contains(code) {
       write_check_structured_location(
