@@ -264,7 +264,7 @@ test "acquired Effect run materials retain the original two-task graph" {
     allowed,
     definition,
     environment,
-    client_composed_acquired_effect_environment,
+    local_normalization_environment_wire,
     document,
     None,
     effect_limits,
