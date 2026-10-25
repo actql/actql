@@ -20,7 +20,7 @@ pub fn check_dedupe(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> R
 
 pub fn check_session(@decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedEvent, Issue]
 
-pub fn check_watermark(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedEvent, Issue]
+pub fn check_watermark(@decode_core.Cursor, @carrier_contract.Carrier, Limits, parameters? : @parameter_binding.Declarations?) -> Result[CheckedEvent, Issue]
 
 pub fn dedupe_key_at(DedupeSpec, Int) -> @relation_schema.FieldName?
 
@@ -91,6 +91,8 @@ pub(all) enum IssueKind {
   NotKeyComparable(String)
   NotAuthorOrderable(String)
   InvalidOrder
+  UnknownParameter(String)
+  IncompatibleParameter(String)
   Temporal(@temporal_window.IssueKind)
 } derive(Eq, @debug.Debug)
 
@@ -109,6 +111,7 @@ pub(all) enum Obligation {
   WatermarkClassification
   ConvertTimestampClock
   FailOnTopTie
+  BindWatermark(String)
   BindGap(String)
   SessionArithmetic
   SessionIdentity
@@ -116,7 +119,7 @@ pub(all) enum Obligation {
 
 pub(all) enum Options {
   ToEvents
-  Watermark(Double, Policy)
+  Watermark(WatermarkThreshold, Policy)
   Dedupe(DedupeSpec)
   Session(SessionSpec)
 }
@@ -140,6 +143,11 @@ pub(all) struct Usage {
   nodes : Int
   text_bytes : Int
 } derive(Eq, @debug.Debug)
+
+pub enum WatermarkThreshold {
+  FixedThreshold(Double)
+  ThresholdParameter(String)
+}
 
 // Type aliases
 
