@@ -481,8 +481,13 @@ test('Native public process gate rejects mixed identities and replaced saved tar
   const reused = nativeReport(); reused.latency[1].samples[0].pid = reused.firstQuery.pid;
   reused.latency[1].samples[0].command.pid = reused.firstQuery.pid;
   assert.equal(assessNativeOperations(reused).status, 'failed');
+  const malformedState = nativeReport(); malformedState.latency[1].samples[0].stateId = 'another-project';
+  assert.throws(() => assessNativeOperations(malformedState), /Saved Native target or rows differ/u);
   const state = nativeReport(); state.latency[1].samples[0].stateId = 'another-project';
-  assert.equal(assessNativeOperations(state).status, 'failed');
+  state.latency[1].samples[0].command.cwd = 'another-project';
+  const changedProject = assessNativeOperations(state);
+  assert.equal(changedProject.status, 'failed');
+  assert(changedProject.failures.includes('Native routes must retain the same actual project state'));
 });
 
 test('Native public process gate retains failed or missing original provenance and work', () => {
