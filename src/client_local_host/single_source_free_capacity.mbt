@@ -4,7 +4,7 @@
 /// permission, a Run, or a claim that every input fits the selected facility.
 pub fn single_source_free_local_ledger_limits(
   prepared : @publication_host.PreparedClientProgram,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -16,7 +16,7 @@ pub fn single_source_free_local_ledger_limits(
     return None
   }
   source_free_local_ledger_limits(
-    prepared, registry_body, values_body, fragment_body, ordered_body,
+    prepared, installed_contracts, values_body, fragment_body, ordered_body,
   )
 }
 
@@ -27,13 +27,13 @@ pub fn single_source_free_local_ledger_limits(
 /// physical supply original. The single-task entry above keeps its old scope.
 pub fn source_free_local_ledger_limits(
   prepared : @publication_host.PreparedClientProgram,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.LedgerLimits? {
   prepare_source_free_local_requirements_original(
-    prepared, registry_body, values_body, fragment_body, ordered_body, false,
+    prepared, installed_contracts, values_body, fragment_body, ordered_body, false,
   ).map(value => value.capacity.limits)
 }
 
@@ -42,11 +42,12 @@ pub fn source_free_local_ledger_limits(
 // physical allocation and cannot issue any of those originals.
 struct ClientLocalSourceFreeRequirements {
   prepared : @publication_host.PreparedClientProgram
-  registry : String
+  registry : ClientInstalledSequenceContracts
   values : String
   fragment : String?
   ordered : String?
   sequences : Array[@execution.GeneratedSequence]
+  capacity_plan : ClientLocalCapacityPlan
   capacity : ClientLocalSequenceCapacity
 }
 
@@ -56,20 +57,20 @@ struct ClientLocalSourceFreeRequirements {
 /// maxima is not a claim that a smaller finite facility will satisfy it.
 pub fn prepare_source_free_local_requirements(
   prepared : @publication_host.PreparedClientProgram,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> ClientLocalSourceFreeRequirements? {
   prepare_source_free_local_requirements_original(
-    prepared, registry_body, values_body, fragment_body, ordered_body, true,
+    prepared, installed_contracts, values_body, fragment_body, ordered_body, true,
   )
 }
 
 ///|
 fn prepare_source_free_local_requirements_original(
   prepared : @publication_host.PreparedClientProgram,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -81,8 +82,7 @@ fn prepare_source_free_local_requirements_original(
     @publication_host.prepared_client_uses_graph_carrier(prepared) ||
     @strategy.graph_program_has_effects(graph) ||
     !@strategy.graph_source_free_inputs_complete(graph) ||
-    count < 1 ||
-    count > 32 {
+    count < 1 {
     return None
   }
   for task in 0..<count {
@@ -94,7 +94,7 @@ fn prepare_source_free_local_requirements_original(
     }
   }
   guard prepare_client_local_sequences(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
+      prepared, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Some(sequences) &&
     sequences.length() == count else {
@@ -119,20 +119,28 @@ fn prepare_source_free_local_requirements_original(
     }
     inputs[consumer] += 1
   }
+  let capacity_plan = client_local_capacity_plan(
+    sequences,
+    @publication_host.prepared_client_values_max_rows(prepared),
+    scalar_values=true,
+    graph=Some(graph),
+  )
   client_local_sequence_capacity_original(
     sequences,
     count,
+    capacity_plan=Some(capacity_plan),
     retained_inputs=Some(inputs),
     max_rows=@publication_host.prepared_client_values_max_rows(prepared),
     include_simultaneous~,
     simultaneous_graph=Some(graph),
   ).map(capacity => {
     prepared,
-    registry: registry_body,
+    registry: installed_contracts,
     values: values_body,
     fragment: fragment_body,
     ordered: ordered_body,
     sequences,
+    capacity_plan,
     capacity,
   })
 }
@@ -164,13 +172,13 @@ pub fn ClientLocalSourceFreeRequirements::simultaneous_limits(
 pub fn ClientLocalSourceFreeRequirements::matches(
   self : ClientLocalSourceFreeRequirements,
   prepared : @publication_host.PreparedClientProgram,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> Bool {
   physical_equal(self.prepared, prepared) &&
-  self.registry == registry_body &&
+  physical_equal(self.registry, installed_contracts) &&
   self.values == values_body &&
   self.fragment == fragment_body &&
   self.ordered == ordered_body

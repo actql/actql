@@ -10,8 +10,8 @@ import {resolve} from 'node:path';
 import {canonical, observeTwoSourceProvider,
   readTwoSourceJournal} from './two-source-public-query.mjs';
 
-const nativeEvidence = 'sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a';
-const broadEvidence = 'sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a293989f8a3b';
+const nativeEvidence = 'sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929';
+const broadEvidence = 'sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d';
 const cid = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
 const cidPattern = /^sha256:[0-9a-f]{64}$/u;
 

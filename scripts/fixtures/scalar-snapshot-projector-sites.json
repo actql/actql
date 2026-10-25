@@ -1,0 +1,174 @@
+{
+  "scope": "Fixed snapshot quote projector cumulative allocations (conservative). Every brace counted as record even branch/function; Some patterns counted too; every bracket counted as array. Not VM/local-variable storage.",
+  "bound_rules": {
+    "record": "1header +11refs+11words (largest actual returned facts record11fields)",
+    "Some": "1header+1ref+2words (tag plus possible scalar payload)",
+    "Array": "2headers+43refs+2words; max literal17items, capacity<=8+2*17 plus wrapperref"
+  },
+  "loop_proof": "9 sum calls total50 literal entries; body weighted50 (overcounts fixed results); scalar cost12calls; cost_add250(sum)+60(cost)+10(repeat)=320; sort whole body31times overcounts only nonallocating halving loop. Other functions no allocating input-sized loops.",
+  "items": [
+    {
+      "path": "src/client_local_host/preparation_scalar_snapshot_layout.mbt",
+      "function": "scalar_snapshot_layout",
+      "multiplicity": 1,
+      "record_sites": 32,
+      "some_sites": 13,
+      "array_sites": 5,
+      "source_sha256": "7316a95614b1669af0eba0aa17f19b439bd8a93cde20a42f08899b92fb725c52",
+      "body_sha256": "a5fbfcbd7fd51b7f202d36c7f77c7ce141e6dc815fe30fc97444b89d6bed993a"
+    },
+    {
+      "path": "src/client_local_host/preparation_scalar_snapshot_layout.mbt",
+      "function": "scalar_snapshot_name_normalization_layout",
+      "multiplicity": 1,
+      "record_sites": 5,
+      "some_sites": 0,
+      "array_sites": 1,
+      "source_sha256": "7316a95614b1669af0eba0aa17f19b439bd8a93cde20a42f08899b92fb725c52",
+      "body_sha256": "183b78776a855096cb79efec419fcbe35187723879cb356cc90d0b260f76e348"
+    },
+    {
+      "path": "src/client_local_host/preparation_closed_values_source.mbt",
+      "function": "closed_values_source_inventories",
+      "multiplicity": 1,
+      "record_sites": 13,
+      "some_sites": 0,
+      "array_sites": 0,
+      "source_sha256": "8b2321307a7623b4b6d38c66756d1689ff294b4331eb81bed76cdedba033724e",
+      "body_sha256": "96dfa32ac9cfba2b12d672fc9719cedae318b1c51ef597ed8096b9b9750c0094"
+    },
+    {
+      "path": "src/client_local_host/preparation_compilation_canonical_layout.mbt",
+      "function": "compilation_canonical_layout",
+      "multiplicity": 1,
+      "record_sites": 8,
+      "some_sites": 4,
+      "array_sites": 1,
+      "source_sha256": "1ded831894b844a93e472d4d5f8eb13526adf9c7baf0ea82a3d59e644c651015",
+      "body_sha256": "4d982811819291f5f6b68d9bb93465d24c5b55c83806c46a8cd447b9eac7d9b1"
+    },
+    {
+      "path": "src/client_local_host/preparation_closed_values_compiler_layout.mbt",
+      "function": "closed_values_sort_scratch_layout",
+      "multiplicity": 31,
+      "record_sites": 4,
+      "some_sites": 1,
+      "array_sites": 0,
+      "source_sha256": "8b874fa5bdaba400889db344667b58ecf7c106c9623b0898fa9edd608e87fabc",
+      "body_sha256": "1a563fb0e772c69fdce19e68c539574d616faa87b1af6cf586aafa32171845c4"
+    },
+    {
+      "path": "src/client_local_host/preparation_closed_values_compiler_layout.mbt",
+      "function": "closed_values_sum_layouts",
+      "multiplicity": 50,
+      "record_sites": 9,
+      "some_sites": 7,
+      "array_sites": 0,
+      "source_sha256": "8b874fa5bdaba400889db344667b58ecf7c106c9623b0898fa9edd608e87fabc",
+      "body_sha256": "6b0fbcd0262fb71a77a757391709ceb9b35bf8f43a4f20639a0ef7cf89ae5246"
+    },
+    {
+      "path": "src/client_local_host/preparation_closed_values_source_phase.mbt",
+      "function": "closed_values_units_subtract",
+      "multiplicity": 2,
+      "record_sites": 3,
+      "some_sites": 1,
+      "array_sites": 0,
+      "source_sha256": "adf6d9827fe0524b66856720fdcf2b0e7e60fef5b20a1a56705e15f1ca57c592",
+      "body_sha256": "7364db6870c21802c7d03b802c84a66ec4f16f8e2a3b77c4344c671fef3bd170"
+    },
+    {
+      "path": "src/client_local_host/preparation_closed_values_program.mbt",
+      "function": "closed_values_program_arrays",
+      "multiplicity": 8,
+      "record_sites": 6,
+      "some_sites": 0,
+      "array_sites": 0,
+      "source_sha256": "555d6b58d0805e4efe5b40318779f309964d70a795291ff707a71381c0ea2dc5",
+      "body_sha256": "4ee16a26fe1456fc3f3fbcf1e648992f23589fb262ecd355ab7308a93015cabb"
+    },
+    {
+      "path": "src/client_local_host/preparation_closed_values_program.mbt",
+      "function": "closed_values_program_maps",
+      "multiplicity": 1,
+      "record_sites": 6,
+      "some_sites": 0,
+      "array_sites": 0,
+      "source_sha256": "555d6b58d0805e4efe5b40318779f309964d70a795291ff707a71381c0ea2dc5",
+      "body_sha256": "73298a8509132f8d4ba6677d8c20bcbb91b1de370e2e6404dda09af08edb5fac"
+    },
+    {
+      "path": "src/client_local_host/preparation_compilation_artifact_layout.mbt",
+      "function": "compilation_writer_ancestry_layout",
+      "multiplicity": 2,
+      "record_sites": 7,
+      "some_sites": 2,
+      "array_sites": 1,
+      "source_sha256": "2aba5c51851be61cd4935b76f1566ea03b01c3093d7537fde701414eead41328",
+      "body_sha256": "6390a33c817181742daef199baecb4877241213fb0a30345cfb907f6c25f26ac"
+    },
+    {
+      "path": "src/encode_core/hash_writer_construction_inventory.mbt",
+      "function": "hash_writer_live_key_inventory",
+      "multiplicity": 2,
+      "record_sites": 3,
+      "some_sites": 1,
+      "array_sites": 0,
+      "source_sha256": "f41563d90c783c55c50d0daff5e788439ad5d69b135628aae2c822b71278c8a7",
+      "body_sha256": "c9aa7d7c19310834ea9a371d141f61c73c60e7a83e9a1ffc562bda5fe1400fc7"
+    },
+    {
+      "path": "src/client_local_host/preparation_compilation_metadata_layout.mbt",
+      "function": "compilation_metadata_repeat_units",
+      "multiplicity": 2,
+      "record_sites": 5,
+      "some_sites": 7,
+      "array_sites": 0,
+      "source_sha256": "665ee09941eb8398fe040df7dd26c176326fc96f280894c7c8db0c02705d1fee",
+      "body_sha256": "e328c171350a20e6afa934624363bce25bf976f4b5afbcfacae791067022d82c"
+    },
+    {
+      "path": "src/client_local_host/scalar_wire_capacity.mbt",
+      "function": "client_local_scalar_wire_byte_bound",
+      "multiplicity": 1,
+      "record_sites": 3,
+      "some_sites": 1,
+      "array_sites": 0,
+      "source_sha256": "e762c7b2f73bc5ccda229f704792ba0ee1c8c40a6425f03905e5f1e518580d54",
+      "body_sha256": "b7ea8bc2e75b88a34248e16b0e3df29cc825b1d89ab62afae8ecfd2ca610957d"
+    },
+    {
+      "path": "src/client_local_host/preparation_representation_cost.mbt",
+      "function": "preparation_representation_cost",
+      "multiplicity": 12,
+      "record_sites": 5,
+      "some_sites": 4,
+      "array_sites": 0,
+      "source_sha256": "bc095120a6edf54ea9b795f06243e509027d9112a8c780209a4693064f4ee4ce",
+      "body_sha256": "00560ad99b770f46a0dffca3cf2748f873f166fc368e95ecf946948a0c2d0e88"
+    },
+    {
+      "path": "src/client_local_host/preparation_representation_cost.mbt",
+      "function": "preparation_cost_add",
+      "multiplicity": 320,
+      "record_sites": 3,
+      "some_sites": 1,
+      "array_sites": 0,
+      "source_sha256": "bc095120a6edf54ea9b795f06243e509027d9112a8c780209a4693064f4ee4ce",
+      "body_sha256": "bb9685b368fe9926b6308a685f22357d9d9f0fcd996f791a2f32154696e75d11"
+    }
+  ],
+  "weighted_sites": {
+    "record": 1745,
+    "some": 789,
+    "array": 9
+  },
+  "units": {
+    "record_headers": 2552,
+    "reference_slots": 20371,
+    "scalar_words": 20791,
+    "owned_utf16_units": 0,
+    "owned_wire_bytes": 0
+  },
+  "logical_bytes": 370128
+}

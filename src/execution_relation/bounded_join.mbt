@@ -302,7 +302,13 @@ fn bounded_join_step(
           if !reserve_slots(state.workspace, 3) {
             return bounded_join_failure(Rows(RowLimit), progress, used)
           }
-          state.pairs.keys.push((state.key_left_column, column))
+          state.pairs.keys.push(
+            if state.pairs.reversed {
+              (column, state.key_left_column)
+            } else {
+              (state.key_left_column, column)
+            },
+          )
           state.pairs.orders.push({
             column: state.field,
             descending: false,
@@ -406,7 +412,13 @@ fn bounded_join_step(
                 used + 1,
               )
             }
-            state.pair = Some(pair)
+            state.pair = Some(
+              if state.pairs.reversed {
+                { left: pair.right, right: pair.left, }
+              } else {
+                pair
+              },
+            )
             state.checked_row = []
             state.column = 0
             state.phase = BuildCell
@@ -647,9 +659,19 @@ pub fn start_bounded_join(
     return Err(Rows(RowLimit))
   }
   let control : ControlBudget = { remaining: max_work, max_frames, }
+  let reversed = @lower.inner_join_kind(profile) == @join.Right
   let pairs : BoundedJoinPairs = {
-    left,
-    right,
+    reversed,
+    left: if reversed {
+      right
+    } else {
+      left
+    },
+    right: if reversed {
+      left
+    } else {
+      right
+    },
     profile,
     control,
     workspace,

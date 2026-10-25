@@ -73,6 +73,8 @@ pub fn export_count(Program) -> Int
 
 pub fn exports(Program) -> Array[(String, String, String)]
 
+pub fn finish_program_input(ParsedProgramInput) -> Result[Program, SyntaxError]
+
 pub fn import_at(Stage, Int) -> (String, ImportPort)?
 
 pub fn import_count(Stage) -> Int
@@ -82,6 +84,8 @@ pub fn imports(Stage) -> Array[(String, ImportPort)]
 pub fn parse(String, Limits, format? : Format, source_path? : String) -> Result[Program, SyntaxError]
 
 pub fn parse_bytes(Bytes, Limits, format? : Format, source_path? : String) -> Result[Program, SyntaxError]
+
+pub fn parse_program_input(String, Limits, format? : Format, source_path? : String) -> Result[ParsedProgramInput, SyntaxError]
 
 pub fn prefix_body(Prefix) -> @decode_core.Cursor
 
@@ -93,11 +97,19 @@ pub fn program_binding_names(Program) -> Array[String]
 
 pub fn program_body(Program) -> @decode_core.Cursor
 
+pub fn program_construction_extent(@decode_core.Cursor, Int) -> ProgramConstructionExtent?
+
+pub fn program_input_cursor(ParsedProgramInput) -> @decode_core.Cursor
+
 pub fn program_parameter_names(Program) -> Array[String]
+
+pub fn program_representation_extent(Program, Int) -> ProgramRepresentationExtent?
 
 pub fn program_usage(Program) -> ProgramUsage
 
 pub fn result_names(Stage) -> Array[String]
+
+pub fn same_program_representation_owner(Program, Program) -> Bool
 
 pub fn stage_body(Stage) -> @decode_core.Cursor
 
@@ -169,6 +181,8 @@ pub(all) struct Limits {
   max_stages : Int
 } derive(Eq, @debug.Debug)
 
+type ParsedProgramInput
+
 pub(all) enum Predecessor {
   Initial
   Accepted(String)
@@ -184,6 +198,31 @@ pub struct Program {
   id : String
   // private fields
 }
+
+pub(all) struct ProgramConstructionExtent {
+  stage_records : Int
+  import_tuple_bound : Int64
+  export_tuples : Int
+  name_index_entries : Int64
+  retained_array_capacity_bound : Int64
+  retained_map_capacity_bound : Int64
+  inspection_work : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ProgramRepresentationExtent {
+  program_records : Int64
+  stage_records : Int64
+  array_owners : Int64
+  array_backing_slots : Int64
+  array_uninspected_slots : Int64
+  map_owners : Int64
+  map_backing_slots : Int64
+  map_entries : Int64
+  import_tuples : Int64
+  export_tuples : Int64
+  cursor_references : Int64
+  inspection_work : Int
+} derive(Eq, @debug.Debug)
 
 pub(all) struct ProgramUsage {
   source : @source_value.ParseUsage

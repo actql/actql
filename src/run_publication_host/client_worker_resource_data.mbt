@@ -6,13 +6,15 @@ fn worker_resource_keys() -> Array[String] {
     "access", "allocation_bytes", "extent_offset", "extent_length", "payload_offset",
     "payload_length", "limit_planning_work", "limit_attempts", "limit_holdings",
     "limit_transfer_bytes", "limit_retained_bytes", "limit_execution_bytes", "cumulative_planning_work",
-    "cumulative_attempts", "cumulative_holdings", "cumulative_transferred_bytes",
-    "cumulative_uncertain_transfer_bytes", "peak_retention_bytes", "provision_transfer_bytes",
-    "provision_retained_bytes", "provision_execution_bytes", "provision_open", "provision_cleanup_pending",
-    "region_closing", "read_use", "final_observed", "final_planning_work", "final_attempts",
-    "final_holdings", "final_transferred_bytes", "final_uncertain_transfer_bytes",
-    "final_reserved_transfer_bytes", "final_held_bytes", "final_reserved_retention_bytes",
-    "final_reserved_execution_bytes", "final_peak_retention_bytes",
+    "cumulative_attempts", "occupied_holdings", "cumulative_transferred_bytes", "cumulative_uncertain_transfer_bytes",
+    "peak_retention_bytes", "provision_transfer_bytes", "provision_retained_bytes",
+    "provision_execution_bytes", "provision_open", "provision_cleanup_pending", "region_closing",
+    "read_use", "final_observed", "final_planning_work", "final_attempts", "final_holdings",
+    "final_transferred_bytes", "final_uncertain_transfer_bytes", "final_reserved_transfer_bytes",
+    "final_held_bytes", "final_reserved_retention_bytes", "final_reserved_execution_bytes",
+    "final_peak_retention_bytes", "occupied_reserved_attempts", "occupied_live_reservations",
+    "occupied_live_delegations", "final_reserved_attempts", "final_live_reservations",
+    "final_live_delegations",
   ]
 }
 
@@ -46,7 +48,7 @@ pub fn client_worker_resource_original_body(
     ("limit_execution_bytes", data.limits.execution_bytes.to_string()),
     ("cumulative_planning_work", data.cumulative.planning_work.to_string()),
     ("cumulative_attempts", data.cumulative.attempts.to_string()),
-    ("cumulative_holdings", data.cumulative.holdings.to_string()),
+    ("occupied_holdings", data.occupation.holdings.to_string()),
     (
       "cumulative_transferred_bytes",
       data.cumulative.transferred_bytes.to_string(),
@@ -115,6 +117,39 @@ pub fn client_worker_resource_original_body(
         ]
     }) {
     fields.push((name, text))
+  }
+  fields.push(
+    (
+      "occupied_reserved_attempts",
+      data.occupation.reserved_attempts.to_string(),
+    ),
+  )
+  fields.push(
+    (
+      "occupied_live_reservations",
+      data.occupation.live_reservations.to_string(),
+    ),
+  )
+  fields.push(
+    ("occupied_live_delegations", data.occupation.live_delegations.to_string()),
+  )
+  match data.final_usage {
+    None => {
+      fields.push(("final_reserved_attempts", ""))
+      fields.push(("final_live_reservations", ""))
+      fields.push(("final_live_delegations", ""))
+    }
+    Some(usage) => {
+      fields.push(
+        ("final_reserved_attempts", usage.reserved_attempts.to_string()),
+      )
+      fields.push(
+        ("final_live_reservations", usage.live_reservations.to_string()),
+      )
+      fields.push(
+        ("final_live_delegations", usage.live_delegations.to_string()),
+      )
+    }
   }
   client_local_original_record_body(fields)
 }
@@ -186,7 +221,13 @@ pub fn read_client_worker_resource_original(
       }
       values.push(value)
     }
-    for i in 0..<3 {
+    for i in 39..<42 {
+      guard worker_resource_integer(fields[i]) is Some(value) else {
+        return Err(InvalidOriginal)
+      }
+      values.push(value)
+    }
+    for i in [0, 1, 2, 10, 11, 12] {
       if values[i] > 2147483647L {
         return Err(InvalidOriginal)
       }
@@ -202,14 +243,25 @@ pub fn read_client_worker_resource_original(
       reserved_retention_bytes: values[7],
       reserved_execution_bytes: values[8],
       peak_retention_bytes: values[9],
+      reserved_attempts: values[10].to_int(),
+      live_reservations: values[11].to_int(),
+      live_delegations: values[12].to_int(),
     })
   } else {
-    for i in 26..<36 {
+    for i in [26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 39, 40, 41] {
       if fields[i] != "" {
         return Err(InvalidOriginal)
       }
     }
     None
+  }
+  let occupation : Array[Int] = []
+  for i in 36..<39 {
+    guard worker_resource_integer(fields[i]) is Some(value) &&
+      value <= 2147483647L else {
+      return Err(InvalidOriginal)
+    }
+    occupation.push(value.to_int())
   }
   let data : @resources.BackedExecutionOriginalData = {
     allocation_bytes: numbers[0],
@@ -231,9 +283,14 @@ pub fn read_client_worker_resource_original(
     cumulative: {
       planning_work: numbers[11].to_int(),
       attempts: numbers[12].to_int(),
-      holdings: numbers[13].to_int(),
       transferred_bytes: numbers[14],
       uncertain_transfer_bytes: numbers[15],
+    },
+    occupation: {
+      holdings: numbers[13].to_int(),
+      reserved_attempts: occupation[0],
+      live_reservations: occupation[1],
+      live_delegations: occupation[2],
     },
     peak_retention_bytes: numbers[16],
     provision: {

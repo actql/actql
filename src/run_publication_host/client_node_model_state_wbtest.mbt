@@ -54,7 +54,7 @@ fn client_node_state_test_prepare(
 
 ///|
 test "Node original state Writer uses one descriptor and exact bounded work" {
-  let expected = "[\"actql-original-ledger-state/0.1\",[\"17\",\"2\",\"3\",\"11\",\"7003\",\"3002\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"7003\",\"3002\",\"7003\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],\"-3\",[\"1\",\"0\",\"0\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"-2\",\"0\",\"7000\",\"3000\",true,false,null,null,[false,false,false],null]],[],[]]"
+  let expected = "[\"actql-original-ledger-state/0.1\",[\"17\",\"2\",\"3\",\"11\",\"7003\",\"3002\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"7003\",\"3002\",\"7003\",\"0\",\"2\",\"0\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],[\"-3\",\"0\",\"0\"],[\"1\",\"0\",\"0\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"-2\",\"0\",\"7000\",\"3000\",true,false,null,null,[false,false,false],null,false,false]],[],[]]"
   for quantum in [1, 17] {
     let (compiled, definition, plan, ledger, scope, layout) = client_node_state_test_scope(
       17,

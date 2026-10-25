@@ -48,7 +48,7 @@ const environment = JSON.parse(await readFile('source-environment.json',
 const base = JSON.parse(await readFile('base-environment.json', 'utf8'));
 environment.host_policy_profile = base.host_policy_profile;
 environment.connector_capabilities[0].capability_contract_cids.push(
-  'sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a293989f8a3b');
+  'sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d');
 environment.connector_capabilities[0].capability_contract_cids.sort();
 delete environment.evidence_bundle_cid;
 environment.evidence_bundle_cid = 'sha256:' + createHash('sha256')

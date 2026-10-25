@@ -42,13 +42,13 @@ pub fn client_program_prepare_multi_captured_effect_capacity_ledger(
   capacities : Array[@client_local_host.ClientDuckDBCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
   @client_local_host.prepare_multi_captured_effect_capacity_ledger(
-    prepared, capacities, transport_bytes, transport_execution_bytes, registry_body,
+    prepared, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
     values_body, fragment_body, ordered_body,
   )
 }
@@ -60,13 +60,13 @@ pub fn client_program_prepare_multi_captured_local_capacity_ledger(
   capacities : Array[@client_local_host.ClientDuckDBCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
   @client_local_host.prepare_multi_captured_local_capacity_ledger(
-    prepared, capacities, transport_bytes, transport_execution_bytes, registry_body,
+    prepared, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
     values_body, fragment_body, ordered_body,
   )
 }

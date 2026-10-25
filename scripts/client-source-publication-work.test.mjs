@@ -41,7 +41,7 @@ test('portable pure and Effect preparation consume the same original Catalog', (
       arguments_.push(body[at].value);
     }
     assert.equal(depth, 0, name);
-    const expected = ['source_catalog', '=', 'Some', '(', 'source_catalog', ')'];
+    const expected = ['source_catalog', '=', 'catalog'];
     assert.equal(arguments_.filter((_, index) => expected.every((value, offset) => arguments_[index + offset] === value)).length, 1, name);
   }
   assert.equal(calls('prepare_source_catalog'), 0, 'The publication Owner already supplied the original Catalog');

@@ -7,7 +7,7 @@
     {
       "module": "packages/client-wire/client-host.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "43bd42b64a79271b328b8c9f994f51a9cbf3067521a8dbc842e66d4e4eab41a9",
+      "sha256": "51ff074a34f5c33d00a810c7ae6ab818405b0273bfd96ef0095f0a4642ca58d8",
       "exports": [
         "checkOutcomeProtocol",
         "checkOutcomeSchemaCid",
@@ -1074,6 +1074,10 @@
               {
                 "path": "scripts/check-consumer-condition.test.mjs",
                 "anchor": "test('Take binding conditions are closed template Requirements"
+              },
+              {
+                "path": "packages/sdk/domain-carrier-presentation.test.mjs",
+                "anchor": "test('closed operand and carrier facts give immutable specific English and Japanese advice'"
               }
             ]
           }
@@ -1219,7 +1223,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
+                "anchor": "max_bytes > 2147483519"
               }
             ],
             "extension": [

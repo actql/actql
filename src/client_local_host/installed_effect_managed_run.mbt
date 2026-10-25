@@ -9,7 +9,7 @@ pub fn installed_effect_managed_run_requirements(
   evidence_contract_body : String,
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -21,7 +21,7 @@ pub fn installed_effect_managed_run_requirements(
     evidence_contract_body,
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -37,7 +37,7 @@ pub fn installed_effect_mock_model_run_requirements(
   evidence_contract_body : String,
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -49,7 +49,7 @@ pub fn installed_effect_mock_model_run_requirements(
     evidence_contract_body,
     transport_bytes,
     transport_execution_bytes,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -170,12 +170,138 @@ pub fn check_installed_effect_managed_run(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
-  guard value.preparation is EffectManaged(_, original) &&
-    physical_equal(original, prepared) &&
+  guard value.preparation is Some(preparation) else { return Err(Retired) }
+  let original = match preparation {
+    EffectManaged(_, original) => original
+    PlannedEffectManaged(_, plan) => {
+      if !physical_equal(plan.request, request) { return Err(ForeignOriginal) }
+      plan.prepared
+    }
+    _ => return Err(ForeignOriginal)
+  }
+  guard physical_equal(original, prepared) &&
     value.request == request else {
     return Err(ForeignOriginal)
   }
   require_installed_managed_run(value).map(_ => ())
+}
+
+///|
+/// The admission is bound to this exact plan original, not merely a prepared
+/// Program or an equal six-number quote. The Host retains it before start so a
+/// failed constructor still has the original admission's cleanup carrier.
+pub fn begin_prepared_installed_effect_managed_run(
+  admission : @resources.NodeManagedRunAdmission[ClientInstalledEffectManagedPlan],
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
+  if !installed_effect_plan_matches(plan, prepared, request) {
+    return Err(ForeignOriginal)
+  }
+  match @resources.check_node_source_compute_run_preparation(admission, plan) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
+  }
+  let ledger = match @resources.start_node_managed_run_admission(admission) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(value) => value
+  }
+  if !installed_effect_limits_fit(plan.limits, @resources.ledger_limits(ledger)) {
+    return Err(InsufficientCapacity)
+  }
+  let value = new_installed_managed_run_owned(
+    PlannedEffectManaged(admission, plan), request, ledger,
+  )
+  value.source_free_preparation = plan.source_free
+  require_installed_managed_run(value).map(_ => value)
+}
+
+///|
+/// Borrow only the original plan retained by the admitted parent. Legacy
+/// Compute-only Effect parents cannot fund a normal operation from spare bytes.
+pub fn installed_effect_managed_operation_plan(
+  value : ClientInstalledManagedRun,
+) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
+  guard value.preparation is Some(PlannedEffectManaged(_, plan)) else {
+    return Err(Unsupported)
+  }
+  require_installed_managed_run(value).map(_ => plan)
+}
+
+///|
+/// Original implementation membership only, without another current callback.
+/// The physical operation constructor still checks the same parent, reserves
+/// on its Ledger and performs its own actual before-use/currentness boundary.
+pub fn check_installed_effect_operation_extent(
+  owner : ClientInstalledManagedRun,
+  extent : ClientInstalledEffectOperationExtent,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard owner.original is Some(original) && physical_equal(original, owner) &&
+    owner.preparation is Some(PlannedEffectManaged(_, plan)) else {
+    return Err(ForeignOriginal)
+  }
+  if !extent.physical_attempt { return Err(Unsupported) }
+  for demand in plan.operations {
+    for declared in demand.member_extents {
+      if physical_equal(declared, extent) { return Ok(()) }
+    }
+    for declared in demand.row_extents {
+      if physical_equal(declared, extent) { return Ok(()) }
+    }
+  }
+  Err(ForeignOriginal)
+}
+
+///|
+// Run before legacy derivation: selected capacities/acquisitions/sequences
+// already belong to this same immutable plan, not a re-created scalar quote.
+fn prepare_planned_installed_effect_ledger(
+  value : ClientInstalledManagedRun,
+  plan : ClientInstalledEffectManagedPlan,
+  capacities : Array[ClientInstalledCaptureCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  installed_contracts : ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
+  guard value.preparation is Some(PlannedEffectManaged(_, original)) &&
+    physical_equal(original, plan) && physical_equal(value.request, plan.request) else {
+    return Err(ForeignOriginal)
+  }
+  if !physical_equal(plan.installed_contracts, installed_contracts) ||
+    plan.values_body != values_body || plan.fragment_body != fragment_body ||
+    plan.ordered_body != ordered_body || plan.transport_bytes != transport_bytes ||
+    plan.transport_execution_bytes != transport_execution_bytes ||
+    capacities.length() != plan.captures.length() ||
+    value.reads.length() != plan.declarations.length() {
+    return Err(ForeignOriginal)
+  }
+  for index, capacity in capacities {
+    if !physical_equal(capacity, plan.captures[index]) ||
+      !capacity.original_input || capacity.provider is Some(_) {
+      return Err(ForeignOriginal)
+    }
+    guard value.reads[index] is Some(read) &&
+      read.declaration is Some(declaration) &&
+      physical_equal(declaration, plan.declarations[index]) &&
+      read.acquisition is Some(acquisition) &&
+      physical_equal(acquisition, plan.acquisitions[index]) &&
+      read.requirement is Some(requirement) &&
+      physical_equal(requirement, capacity.requirement) else {
+      return Err(ForeignOriginal)
+    }
+  }
+  let ledger = match require_installed_managed_run(value) {
+    Err(issue) => return Err(issue)
+    Ok(ledger) => ledger
+  }
+  if !installed_effect_limits_fit(plan.limits, @resources.ledger_limits(ledger)) {
+    return Err(InsufficientCapacity)
+  }
+  Ok(ledger)
 }
 
 ///|
@@ -186,7 +312,7 @@ pub fn prepare_installed_effect_managed_run_ledger(
   capacities : Array[ClientInstalledCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -196,7 +322,7 @@ pub fn prepare_installed_effect_managed_run_ledger(
     Ok(_) => ()
   }
   prepare_installed_managed_run_ledger_owned(
-    value, capacities, transport_bytes, transport_execution_bytes, registry_body,
+    value, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
     values_body, fragment_body, ordered_body,
   )
 }

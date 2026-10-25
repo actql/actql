@@ -151,10 +151,10 @@ test "captured JOIN INFER Result retains its original intermediate producer in a
     execution_bytes: 1000000L,
   }).unwrap()
   // Complete dependency traversal must retain both exact Result producers.
-  // Missing physical captures, not an invented producer, still refuse here.
+  // The empty capture list fails the existing arity check before capture identity.
   assert_true(
     open_prepared_multi_captured_client_effect_run(run, [], ledger)
-    is Err(Run(@strategy.ForeignCapture)),
+    is Err(Run(@strategy.UnsupportedGraph)),
   )
   let foreign = captured_infer_result_fixture().0
   assert_true(

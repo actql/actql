@@ -71,8 +71,8 @@ class WorkerControlFrameTests(unittest.TestCase):
             self.assertEqual(self.serve(self.request(frames._CAPACITY, frames._ORDINAL.pack(ordinal)))[-1], expected)
         self.assertGreater(self.f.native_capacities[1], 2**53)
 
-    def test_report_preserves_original_ten_signed_fields_without_python_accounting(self):
-        self.fixture(); usage = (2, 1, 1, 2**53 + 1, 0, 0, 0, 0, 0, 16777216)
+    def test_report_preserves_original_thirteen_signed_fields_without_python_accounting(self):
+        self.fixture(); usage = (2, 1, 1, 2**53 + 1, 0, 0, 0, 0, 0, 16777216, 3, 5, 7)
         self.assertEqual(self.serve(self.request(frames._REPORT, frames._USAGE.pack(*usage)))[-1], 0)
         self.assertIn(('report', usage), self.f.events)
         self.assertFalse(self.channel._stop_attempted)

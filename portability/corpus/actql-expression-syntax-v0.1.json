@@ -1837,6 +1837,25 @@
         }
       },
       "parameters": []
+    },
+    {
+      "source": {
+        "eq": [
+          "x",
+          "NULL"
+        ]
+      },
+      "tree": {
+        "eq": [
+          {
+            "field": "x"
+          },
+          {
+            "literal": null
+          }
+        ]
+      },
+      "parameters": []
     }
   ],
   "negative": [
@@ -1945,12 +1964,6 @@
       "like": [
         "x",
         "pattern"
-      ]
-    },
-    {
-      "eq": [
-        "x",
-        "NULL"
       ]
     },
     {

@@ -521,7 +521,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/capacity-law-registry.join-count-machine",
-      "statement_sha256": "abe0b85db6ea84ededaf832904f8bd5fa43a7a7cb54588f437e055bf97eb4916",
+      "statement_sha256": "2bd21b094ee989bcb7200faaf48dbdf81e2c1a5283b14e9e25541ed553f8044d",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -4316,7 +4316,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "6edabea5c95c84fb7a896bef488c607323c7409b4081bce29e0a0e68ea879649",
+      "statement_sha256": "1c53c2a806e8bce6fcaae32a4011a30274321fa29d0c667ddff47d3a18f055d0",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -162,7 +162,7 @@ test "submitted input parts retain source tree and decoder refusal ordering" {
       (wire, wire.length() - 1, 1000, 20, tree),
       (wire, 10000, 1, 20, tree),
       (wire, 10000, 1000, 1, tree),
-      (wire, 10000, 1000, 65, tree),
+      (wire, 10000, 1000, 2147483647, tree),
       (wire, 10000, 1000, 20, { ..tree, max_nodes: 1, }),
       (wire, 10000, 1000, 20, { ..tree, max_string_bytes: 2, }),
       (wire, 10000, 1000, 20, { ..tree, max_total_string_bytes: 2, }),
@@ -192,6 +192,14 @@ test "submitted input parts retain source tree and decoder refusal ordering" {
       },
     )
   }
+  // A finite policy depth above the former implementation cap remains valid.
+  // Only overflow of the hash-envelope headroom is an invalid limit.
+  let prior = previous_submitted_input_parts(wire, 10000, 1000, 65, tree, read).unwrap()
+  let current = prepare_client_submitted_input_parts_with_reader(
+    wire, 10000, 1000, 65, tree, read,
+  ).unwrap()
+  assert_eq(current.0, prior.0)
+  assert_eq(current.0.wire, wire)
 }
 
 ///|

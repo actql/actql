@@ -65,12 +65,13 @@ int actql_live_channel_report_into(actql_control_host *host, actql_domain *domai
     actql_live_channel *channel, int32_t planning, int32_t attempts, int32_t holdings,
     int64_t transferred, int64_t uncertain, int64_t reserved_transfer, int64_t held,
     int64_t reserved_retention, int64_t reserved_execution, int64_t peak_retention,
+    int32_t reserved_attempts, int32_t live_reservations, int32_t live_delegations,
     actql_live_channel_reply **slot) {
     if (!host || !domain || !channel || !slot || *slot) return ACTQL_CONTROL_INVALID_SLOT;
     if (registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
     *slot = callbacks.report(host, domain, channel, planning, attempts, holdings,
         transferred, uncertain, reserved_transfer, held, reserved_retention,
-        reserved_execution, peak_retention);
+        reserved_execution, peak_retention, reserved_attempts, live_reservations, live_delegations);
     return *slot ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
 }
 

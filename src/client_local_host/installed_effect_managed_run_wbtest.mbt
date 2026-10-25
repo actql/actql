@@ -4,7 +4,7 @@
 fn installed_effect_managed_fixture() -> @publication_host.PreparedClientEffectComputation {
   let environment = @publication_host.admit_client_check_environment(
     source_query_original_environment,
-    "sha256:4ea01561b9ac9815baaf04a81cff8260c8a47c56f19828b5889cf45ec1436e78",
+    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
@@ -22,6 +22,7 @@ fn installed_effect_managed_fixture() -> @publication_host.PreparedClientEffectC
 
 ///|
 test "installed Effect requirements retain the checked Effect owner without a pure cast" {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let prepared = installed_effect_managed_fixture()
   assert_true(installed_managed_owner_shape_supported(Effect(prepared), false))
   let limits = installed_effect_managed_run_requirements(
@@ -31,7 +32,7 @@ test "installed Effect requirements retain the checked Effect owner without a pu
     "",
     [],
     [],
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
@@ -42,6 +43,7 @@ test "installed Effect requirements retain the checked Effect owner without a pu
 
 ///|
 test "installed Effect requirements do not relabel ordinary work as a Mock Model or supplied Source" {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let prepared = installed_effect_managed_fixture()
   assert_true(!installed_managed_owner_shape_supported(Effect(prepared), true))
   assert_true(
@@ -52,7 +54,7 @@ test "installed Effect requirements do not relabel ordinary work as a Mock Model
       "",
       [],
       [],
-      source_query_original_registry,
+      source_contracts,
       source_query_original_values,
       Some(source_query_original_fragment),
       None,
@@ -67,7 +69,7 @@ test "installed Effect requirements do not relabel ordinary work as a Mock Model
       "",
       [1L],
       [],
-      source_query_original_registry,
+      source_contracts,
       source_query_original_values,
       Some(source_query_original_fragment),
       None,

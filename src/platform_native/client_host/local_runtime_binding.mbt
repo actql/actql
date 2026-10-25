@@ -3,6 +3,10 @@
 // authority nor another adoption Owner; the Host retains its original files.
 priv struct NativeLocalRuntimeBinding {
   current : NativeLocalPackagedRuntime
+  installed_assets : (
+    @host.ClientLocalProductAssets,
+    @local.ClientInstalledSequenceContracts,
+  )
   files : Array[NativeLocalSelectedFile]
   pair : @host.ClientNativeLocalScalarRuntimePair?
   principal : String
@@ -304,10 +308,11 @@ fn NativeLocalHostConnection::bind_packaged_runtime_with_access(
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  let assets = match current.assets() {
+  let installed_assets = match current.installed_assets() {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
+  let (assets, _) = installed_assets
   let pair = if original_wire ==
     @host.client_native_local_runtime_original(manifest) {
     // The unchanged cohort is not a migration; preserve its original path.
@@ -342,7 +347,15 @@ fn NativeLocalHostConnection::bind_packaged_runtime_with_access(
       Err(_) => return Err(CustodyLost)
     }
   }
-  let binding = { current, files, pair, principal, connection, scope, }
+  let binding = {
+    current,
+    installed_assets,
+    files,
+    pair,
+    principal,
+    connection,
+    scope,
+  }
   if !local_runtime_binding_current_with_access(binding, access) {
     return Err(AuthorizationDenied)
   }

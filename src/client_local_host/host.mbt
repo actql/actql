@@ -5,8 +5,16 @@ pub fn client_local_import_limits(
   capacity : @connector.FixedComputeCapacity,
   values : @execution.ValueLimits,
 ) -> @local.LocalImportLimits {
+  client_local_import_limits_for_rows(capacity.max_rows, values)
+}
+
+///|
+fn client_local_import_limits_for_rows(
+  max_rows : Int,
+  values : @execution.ValueLimits,
+) -> @local.LocalImportLimits {
   {
-    max_rows: capacity.max_rows,
+    max_rows,
     values,
     wire: {
       max_columns: 100,
@@ -62,7 +70,7 @@ fn reject_client_local_run(
 /// must finish before the Host invokes it or starts physical work.
 pub fn open_source_free_local_host(
   prepared : @publication_host.PreparedClientProgram,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fixed_ms : Int64,
   per_row_ms : Int64,
@@ -77,7 +85,7 @@ pub fn open_source_free_local_host(
   open_checked_local_host(
     prepared,
     None,
-    registry_body,
+    installed_contracts,
     values_body,
     fixed_ms,
     per_row_ms,
@@ -94,7 +102,7 @@ pub fn open_source_free_local_host(
 /// This is trusted Compute configuration, not permission to start a Run.
 pub fn open_source_free_local_retained_host(
   prepared : @publication_host.PreparedClientProgram,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fixed_ms : Int64,
   per_row_ms : Int64,
@@ -109,7 +117,7 @@ pub fn open_source_free_local_retained_host(
   open_checked_local_host(
     prepared,
     None,
-    registry_body,
+    installed_contracts,
     values_body,
     fixed_ms,
     per_row_ms,
@@ -128,7 +136,7 @@ pub fn open_source_free_local_retained_host(
 pub fn open_captured_local_host(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fixed_ms : Int64,
   per_row_ms : Int64,
@@ -143,7 +151,7 @@ pub fn open_captured_local_host(
   open_checked_local_host(
     prepared,
     Some(source),
-    registry_body,
+    installed_contracts,
     values_body,
     fixed_ms,
     per_row_ms,
@@ -161,7 +169,7 @@ pub fn open_captured_local_host(
 pub fn open_captured_local_retained_host(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fixed_ms : Int64,
   per_row_ms : Int64,
@@ -176,7 +184,7 @@ pub fn open_captured_local_retained_host(
   open_checked_local_host(
     prepared,
     Some(source),
-    registry_body,
+    installed_contracts,
     values_body,
     fixed_ms,
     per_row_ms,
@@ -195,7 +203,7 @@ pub fn open_captured_local_host_on_ledger(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource,
   ledger : @resources.Ledger,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -206,7 +214,7 @@ pub fn open_captured_local_host_on_ledger(
   open_checked_local_host(
     prepared,
     Some(source),
-    registry_body,
+    installed_contracts,
     values_body,
     1L,
     0L,
@@ -226,7 +234,7 @@ pub fn open_captured_local_retained_host_on_ledger(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource,
   ledger : @resources.Ledger,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -237,7 +245,7 @@ pub fn open_captured_local_retained_host_on_ledger(
   open_checked_local_host(
     prepared,
     Some(source),
-    registry_body,
+    installed_contracts,
     values_body,
     1L,
     0L,
@@ -258,7 +266,7 @@ pub fn open_captured_local_retained_host_on_ledger(
 pub fn open_source_free_local_retained_host_on_ledger(
   prepared : @publication_host.PreparedClientProgram,
   ledger : @resources.Ledger,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -267,7 +275,7 @@ pub fn open_source_free_local_retained_host_on_ledger(
   open_checked_local_host(
     prepared,
     None,
-    registry_body,
+    installed_contracts,
     values_body,
     1L,
     0L,
@@ -285,7 +293,7 @@ pub fn open_source_free_local_retained_host_on_ledger(
 fn open_checked_local_host(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource?,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fixed_ms : Int64,
   per_row_ms : Int64,
@@ -303,7 +311,7 @@ fn open_checked_local_host(
   source_free_requirements? : ClientLocalSourceFreeRequirements? = None,
   source_free_preparation? : ClientInstalledManagedSourceFreePreparation? = None,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
-  if registry_body.length() > 100000 ||
+  if installed_contracts.original.registry_body.length() > 100000 ||
     values_body.length() > 100000 ||
     fixed_ms < 0L ||
     per_row_ms < 0L ||
@@ -311,13 +319,13 @@ fn open_checked_local_host(
     per_pair_ms < 0L {
     return None
   }
-  // The checked graph admits at most 32 tasks. Reserve one physical attempt
+  // The checked graph already consumed its finite preparation work. Reserve one physical attempt
   // and one retained output per task; a fixed ten-attempt cap would reject a
   // valid longer task graph before its final computation can start.
   let task_count = @strategy.graph_task_count(
     @publication_host.prepared_client_graph(prepared),
   )
-  if task_count < 1 || task_count > 32 {
+  if task_count < 1 {
     return None
   }
   if opened_run is Some(run) &&
@@ -337,7 +345,7 @@ fn open_checked_local_host(
   let generated = match (source_free_requirements, source_free_preparation) {
     (Some(original), None) => {
       if !original.matches(
-          prepared, registry_body, values_body, fragment_body, ordered_body,
+          prepared, installed_contracts, values_body, fragment_body, ordered_body,
         ) ||
         source is Some(_) ||
         !captured_sources.is_empty() ||
@@ -355,7 +363,7 @@ fn open_checked_local_host(
         !installed_source_free_preparation_matches(
           value,
           Pure(prepared),
-          registry_body,
+          installed_contracts,
           values_body,
           fragment_body,
           ordered_body,
@@ -367,7 +375,7 @@ fn open_checked_local_host(
     (None, None) =>
       match
         prepare_client_local_sequences(
-          prepared, registry_body, values_body, fragment_body, ordered_body,
+          prepared, installed_contracts, values_body, fragment_body, ordered_body,
         ) {
         Some(value) => value
         None => return None
@@ -396,10 +404,26 @@ fn open_checked_local_host(
     compute_sequences.push(generated[task])
   }
   let max_rows = @publication_host.prepared_client_values_max_rows(prepared)
-  let (values, execution, measurement) = client_local_execution_limits(
-    max_rows~,
-  )
+  let capacity_plan = match
+    (source_free_requirements, source_free_preparation) {
+    (Some(original), None) => original.capacity_plan
+    (None, Some(original)) => original.capacity_plan
+    (None, None) => client_local_capacity_plan(compute_sequences, max_rows)
+    _ => return None
+  }
+  if !client_local_capacity_plan_matches(
+      capacity_plan, compute_sequences, max_rows,
+    ) {
+    return None
+  }
+  let values = capacity_plan.values
+  let execution = capacity_plan.execution
+  let measurement = capacity_plan.measurement
   let graph = @publication_host.prepared_client_graph(prepared)
+  if capacity_plan.graph is Some(original_graph) &&
+    !physical_equal(original_graph, graph) {
+    return None
+  }
   let retained_inputs = if retained_output {
     let inputs = Array::make(compute_sequences.length(), 0)
     for index in 0..<@strategy.graph_data_count(graph) {
@@ -434,6 +458,7 @@ fn open_checked_local_host(
       client_local_sequence_capacity(
         compute_sequences,
         task_count,
+        capacity_plan=Some(capacity_plan),
         retained_inputs~,
         max_rows~,
       )
@@ -481,9 +506,24 @@ fn open_checked_local_host(
     Err(_) => return None
   }
   configure_client_local_run(
-    run, graph, compute_sequences, first_compute, task_count, max_rows, values, execution,
-    measurement, retained_bytes, execution_bytes, retained_output, fixed_ms, per_row_ms,
-    per_wire_byte_ms, per_pair_ms, provider_factory,
+    run,
+    graph,
+    compute_sequences,
+    first_compute,
+    task_count,
+    max_rows,
+    values,
+    execution,
+    measurement,
+    retained_bytes,
+    execution_bytes,
+    retained_output,
+    fixed_ms,
+    per_row_ms,
+    per_wire_byte_ms,
+    per_pair_ms,
+    provider_factory,
+    capacity_plan=Some(capacity_plan),
   )
 }
 
@@ -511,6 +551,7 @@ fn configure_client_local_run(
   provider_factory : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  capacity_plan? : ClientLocalCapacityPlan? = None,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   let capacity : @connector.FixedComputeCapacity = {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
@@ -588,8 +629,11 @@ fn configure_client_local_run(
   match
     @local_driver.configure_local_retained_inputs(
       installed,
-      client_local_import_limits(capacity, values),
+      capacity_plan
+      .map(plan => plan.imports)
+      .unwrap_or_else(() => client_local_import_limits(capacity, values)),
       Some(0L),
+      metadata=capacity_plan.map(plan => plan.metadata),
     ) {
     Ok(_) => ()
     Err(_) => return reject_client_local_run(run)
@@ -599,7 +643,11 @@ fn configure_client_local_run(
     match
       @local_driver.configure_local_retained_output(
         installed,
-        client_local_export_limits(capacity.max_rows, values),
+        capacity_plan
+        .map(plan => plan.exports)
+        .unwrap_or_else(() => {
+          client_local_export_limits(capacity.max_rows, values)
+        }),
         Some(0L),
       ) {
       Ok(_) => ()
@@ -638,7 +686,9 @@ fn configure_client_local_run(
   }
   match
     @builtin.open_configured_compute_host(
-      modules, registry, capacity, 100, 10000, 1,
+      modules, registry, capacity,
+      capacity_plan.map(plan=>plan.dispatch_entries).unwrap_or(100),
+      capacity_plan.map(plan=>plan.dispatch_name_bytes).unwrap_or(10000), 1,
     ) {
     Ok(value) => {
       if first_compute == 1 {
@@ -716,7 +766,7 @@ pub fn open_multi_captured_local_host(
   prepared : @publication_host.PreparedClientProgram,
   sources : Array[(Int, @query.CapturedInputSource)],
   ledger : @resources.Ledger,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -727,7 +777,7 @@ pub fn open_multi_captured_local_host(
   open_checked_local_host(
     prepared,
     None,
-    registry_body,
+    installed_contracts,
     values_body,
     1L,
     0L,
@@ -748,7 +798,7 @@ pub fn open_multi_captured_local_retained_host(
   prepared : @publication_host.PreparedClientProgram,
   sources : Array[(Int, @query.CapturedInputSource)],
   ledger : @resources.Ledger,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -759,7 +809,7 @@ pub fn open_multi_captured_local_retained_host(
   open_checked_local_host(
     prepared,
     None,
-    registry_body,
+    installed_contracts,
     values_body,
     1L,
     0L,

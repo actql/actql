@@ -24,12 +24,7 @@ fn retained_captured_client_preparation() -> @publication_host.PreparedClientPro
 ///|
 test "product captured retained factory preserves exact acquisition and bounded offers" {
   let prepared = retained_captured_client_preparation()
-  let registry = @identity.stringify_value(
-    registered_body(),
-    100000,
-    10000,
-    100,
-  )
+  let registry = registered_installed_sequence_contracts()
   let values = @identity.stringify_value(
     registered_values(),
     100000,

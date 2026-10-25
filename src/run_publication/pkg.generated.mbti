@@ -412,6 +412,10 @@ pub fn emit_content_serialization_options(ContentSerializationProfile, @encode_c
 
 pub fn empty_initial_input_artifact_set_cid() -> String
 
+pub fn empty_normalization_journal_retained_layout() -> EmptyNormalizationJournalLayout
+
+pub fn empty_normalization_validation_layout() -> EmptyNormalizationValidationLayout
+
 pub fn encode_model_original_resource_document(String, String, String, String, Int, Int, Int) -> Result[String, PublicationContractIssue]
 
 pub fn existing_delivery_attempt_action_code(ExistingDeliveryAttemptAction) -> Int
@@ -630,6 +634,12 @@ pub fn next_result_delivery_row(ResultDeliverySerializer, String) -> Result[Stri
 
 pub fn normalize_control_amount_decimal(String) -> Result[String, RunControlMoneyIssue]
 
+pub fn ordinary_publication_frontier_byte_bounds(PublicationContract, Int, Int, Int, Int) -> Array[Int]
+
+pub fn ordinary_publication_manifest_byte_bound(PublicationContract, Int, Int, Int) -> Int
+
+pub fn ordinary_publication_receipt_byte_bound(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, RunEvidenceValue, Array[String], Array[String], Array[RunEvidenceValue], Array[RunEvidenceValue], Array[String], Int, Int, Int) -> Int
+
 pub fn parse_content_reference_binding(String, @value_admission.ReferenceLimits) -> Result[GeneratedContentBinding, GeneratedContentReferenceIssue]
 
 pub fn parse_control_amount_micro(String) -> Result[Int64, RunControlMoneyIssue]
@@ -842,6 +852,8 @@ pub fn result_definition_name(ResultDefinition) -> String
 
 pub fn result_definition_program_cid(ResultDefinition) -> String
 
+pub fn result_export_issuer_id() -> String
+
 pub fn result_material_holds_binding(ResultMaterialHolds) -> String
 
 pub fn result_material_holds_generation(ResultMaterialHolds) -> String
@@ -861,6 +873,8 @@ pub fn result_ordering_derivation_contract(ResultOrderingEvidence) -> Publicatio
 pub fn result_ordering_evidence_cid(ResultOrderingEvidence) -> String
 
 pub fn result_ordering_evidence_contract(ResultOrderingEvidence) -> PublicationContract
+
+pub fn result_publication_contract_byte_bounds(Array[String], Int, Int, Int, Int) -> Array[Int]
 
 pub fn result_read_availability(PublicationContract, String, PublicationContract, String) -> Result[String, DeliveryIssuanceIssue]
 
@@ -1565,6 +1579,23 @@ pub(all) enum EffectfulPublicationCommitIssue {
   FinalChain(EffectfulFinalChainIssue)
   Index(PublicationCommitIssue)
 } derive(@debug.Debug)
+
+pub(all) struct EmptyNormalizationJournalLayout {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+  body_wire_units : Int64
+  sealed_wire_units : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EmptyNormalizationValidationLayout {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  pending_frames_upper : Int
+  live_frames_upper : Int
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ExistingDeliveryAttemptAction {
   DeliveryConfirmSucceededRecord

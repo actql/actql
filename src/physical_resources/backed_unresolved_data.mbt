@@ -4,9 +4,18 @@
 pub(all) struct BackedExecutionCumulativeData {
   planning_work : Int
   attempts : Int
-  holdings : Int
   transferred_bytes : Int64
   uncertain_transfer_bytes : Int64
+} derive(Eq, Debug)
+
+///|
+/// Current occupation of the same child. These counters may decrease after
+/// actual retirement; none is spent work or a transferable allowance.
+pub(all) struct BackedExecutionOccupationData {
+  holdings : Int
+  reserved_attempts : Int
+  live_reservations : Int
+  live_delegations : Int
 } derive(Eq, Debug)
 
 ///|
@@ -37,6 +46,7 @@ pub(all) struct BackedExecutionOriginalData {
   access : BackedExecutionAccess
   limits : LedgerLimits
   cumulative : BackedExecutionCumulativeData
+  occupation : BackedExecutionOccupationData
   peak_retention_bytes : Int64
   provision : BackedExecutionProvisionData
   region_closing : Bool
@@ -75,7 +85,14 @@ fn backed_unresolved_final_valid(
   let cumulative = data.cumulative
   usage.planning_work == cumulative.planning_work &&
   usage.attempts == cumulative.attempts &&
-  usage.holdings == cumulative.holdings &&
+  // Preserve the actual last observed census independently of the domain's
+  // later confirmed retirement. Current occupation is a separate projection.
+  usage.holdings >= 0 &&
+  usage.holdings <= limits.holdings &&
+  usage.reserved_attempts >= 0 &&
+  usage.reserved_attempts <= limits.attempts - usage.attempts &&
+  usage.live_reservations >= 0 &&
+  usage.live_delegations >= 0 &&
   usage.transferred_bytes == cumulative.transferred_bytes &&
   usage.uncertain_transfer_bytes == cumulative.uncertain_transfer_bytes &&
   usage.reserved_transfer_bytes >= 0L &&
@@ -113,8 +130,12 @@ pub fn admit_unresolved_backed_execution_data(
     cumulative.planning_work > limits.planning_work ||
     cumulative.attempts < 0 ||
     cumulative.attempts > limits.attempts ||
-    cumulative.holdings < 0 ||
-    cumulative.holdings > limits.holdings ||
+    data.occupation.holdings < 0 ||
+    data.occupation.holdings > limits.holdings ||
+    data.occupation.reserved_attempts < 0 ||
+    data.occupation.reserved_attempts > limits.attempts - cumulative.attempts ||
+    data.occupation.live_reservations < 0 ||
+    data.occupation.live_delegations < 0 ||
     cumulative.transferred_bytes < 0L ||
     cumulative.transferred_bytes > limits.transfer_bytes ||
     cumulative.uncertain_transfer_bytes < 0L ||
@@ -140,7 +161,14 @@ pub fn admit_unresolved_backed_execution_data(
       return Err(InvalidData)
     }
   } else {
-    if provision.transfer_bytes != 0L ||
+    if data.occupation !=
+      {
+        holdings: 0,
+        reserved_attempts: 0,
+        live_reservations: 0,
+        live_delegations: 0,
+      } ||
+      provision.transfer_bytes != 0L ||
       provision.retained_bytes != 0L ||
       provision.execution_bytes != 0L ||
       provision.cleanup_pending {
@@ -154,7 +182,6 @@ pub fn admit_unresolved_backed_execution_data(
       None =>
         if cumulative.planning_work != limits.planning_work ||
           cumulative.attempts != limits.attempts ||
-          cumulative.holdings != limits.holdings ||
           cumulative.uncertain_transfer_bytes !=
           limits.transfer_bytes - cumulative.transferred_bytes {
           return Err(InvalidData)
@@ -202,9 +229,23 @@ pub fn[P, C] issue_backed_execution_original_data(
     cumulative: {
       planning_work: logical.planning,
       attempts: logical.attempts,
-      holdings: logical.holdings,
       transferred_bytes: logical.transferred,
       uncertain_transfer_bytes: logical.uncertain,
+    },
+    occupation: if reservation.open {
+      {
+        holdings: logical.holdings,
+        reserved_attempts: logical.reserved_attempts,
+        live_reservations: logical.live_reservations,
+        live_delegations: logical.live_delegations,
+      }
+    } else {
+      {
+        holdings: 0,
+        reserved_attempts: 0,
+        live_reservations: 0,
+        live_delegations: 0,
+      }
     },
     peak_retention_bytes: ticket.peak_retention,
     provision: {

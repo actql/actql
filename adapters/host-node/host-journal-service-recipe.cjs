@@ -22,16 +22,24 @@ const unavailable = () => {
 // These restrict this selected service, not the public language or an
 // unselected Journal. They are neither backed amounts nor success promises.
 // Database/source extent and record limits retain the existing Journal
-// defaults. SQL and operation ceilings bound cumulative construction/history;
+// defaults. SQL limits bound each operation and genuinely retained statements;
 // primary and optional observation connections still have separate lifetimes.
+const journalDatabaseBytes = 64 * MiB;
+const journalInspectionBytes = 64 * MiB;
+// One metadata/statement envelope is necessary within BOTH existing durable
+// and inspection policies. It is not another allocation grant or a prep Ledger.
+const journalParameterBytes = Math.min(journalDatabaseBytes, journalInspectionBytes);
 const journal = record({maxRecords: 100000, maxInspectionEntries: 100000,
-  maxInspectionBytes: 64 * MiB, maxDatabaseBytes: 64 * MiB,
-  maxWalFrames: 268435456, maxJournalOperations: 4096,
-  maxRunDefinitionWireBytes: 65536,
-  primarySqlLimits: record({maxCalls: 4096, maxPreparedStatements: 1024,
+  maxInspectionBytes: journalInspectionBytes, maxDatabaseBytes: journalDatabaseBytes,
+  maxWalFrames: 268435456,
+  // Metadata is bounded by the selected native statement operand envelope.
+  // The journal still sums every operand against that envelope before bind;
+  // these per-object checks do not allocate it independently per field.
+  maxRunDefinitionWireBytes: journalParameterBytes,
+  primarySqlLimits: record({maxPreparedStatements: 1024,
     maxSqlBytes: 8192, maxTotalSqlBytes: 32 * MiB}),
-  primaryExecutionLimits: record({maxStatementCalls: 65536, maxParameters: 64,
-    maxParameterBytes: MiB, maxResultRows: 100000}),
+  primaryExecutionLimits: record({maxParameters: 64,
+    maxParameterBytes: journalParameterBytes, maxResultRows: 100000}),
   primarySchemaLimits: record({maxSchemaBytes: 65536, maxSchemaEntries: 128,
     maxSchemaPages: 256, maxWalFrames: 131072}),
   primarySchemaSqlSupport: sql,

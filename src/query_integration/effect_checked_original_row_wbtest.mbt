@@ -80,12 +80,7 @@ fn checked_original_update_execution() -> (
   let bound = @publication_host.bind_client_effect_compiled_run(
     prepared, allowed, definition,
   ).unwrap()
-  let registry = @identity.stringify_value(
-    registered_body(),
-    100000,
-    10000,
-    100,
-  )
+  let registry = registered_installed_sequence_contracts()
   let values = @identity.stringify_value(
     registered_values(),
     100000,

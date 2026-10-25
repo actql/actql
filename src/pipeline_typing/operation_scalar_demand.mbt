@@ -70,6 +70,7 @@ pub fn operation_scalar_demand(
       }
     EventRequirement(v) =>
       match v {
+        BindWatermark(name) => Some(Finite(name))
         BindGap(name) => Some(Milliseconds(name, signed=false))
         ValidateEventValues
         | ValidateUniqueIdentities

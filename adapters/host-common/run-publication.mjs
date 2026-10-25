@@ -629,9 +629,12 @@ function uncertainFailure(
 // admission and Store commit differ; retry and unknown handling do not.
 async function publishRun(options, effectful, computationLifetime) {
   const keys = ['store', 'control', 'evidence', 'request', 'attempt', 'limits',
-    'now', 'signal'];
+    'now', 'signal', ...(Object.hasOwn(options, 'preparedHandles') ? ['preparedHandles'] : [])];
   if (!exactKeys(options, keys)) fail('InvalidRunPublicationOptions');
   const {store, control, evidence, request, attempt, limits, signal} = options;
+  const preparedHandles = options.preparedHandles === undefined ? [] : options.preparedHandles;
+  if (!Array.isArray(preparedHandles)) fail('InvalidRunPublicationOptions');
+  const originalPreparedHandles = Object.freeze([...preparedHandles]);
   validateStore(store);
   validateControl(control);
   if (effectful !== undefined &&
@@ -815,7 +818,7 @@ async function publishRun(options, effectful, computationLifetime) {
     ], publicationRequest, publicationAttempt);
     committed = effectful === undefined
       ? await store.commitIndex(
-        index.wire, inventory, commitEvidence(evidence), index,
+        index.wire, inventory, commitEvidence(evidence), index, originalPreparedHandles,
       )
       : await store.commitEffectfulIndex({
         ...effectful.preparation, index,

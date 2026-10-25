@@ -75,8 +75,8 @@ test "current owned Reader rejects packet ceilings or incomplete census without 
         new="[\"3\",\"0\",\"0\",true",
       ),
       original.replace(
-        old="[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]]",
-        new="[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null],[\"0\",\"0\",\"0\",\"0\",true,false,null,null,[false,false,false],null]]",
+        old="[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false]]",
+        new="[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false],[\"0\",\"0\",\"0\",\"0\",true,false,null,null,[false,false,false],null,false,false]]",
       ),
     ] {
     let source = original_document_test_cursor(changed)

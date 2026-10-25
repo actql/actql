@@ -61,9 +61,15 @@ test "public check retains the common unused WITH arithmetic input violation" {
     // Only the public outcome is emitted for the focused wire/SDK consumer.
     println("ACTQL_BINDING_CHECK_REPORT " + report)
     assert_true(report.contains("\"verdict\":\"invalid\""), msg=report)
-    // Addition requires comparable numeric domains, not necessarily number.
-    // Its non-scalar required-type tag has no entry in the closed facts schema.
-    assert_true(report.contains("\"code\":\"program_invalid\""), msg=report)
+    // Preserve the original domain requirement, not a guessed scalar type.
+    assert_true(
+      report.contains("\"code\":\"expression_domain_mismatch\""),
+      msg=report,
+    )
+    assert_true(
+      report.contains("\"domain\":\"key_comparable_operands\""),
+      msg=report,
+    )
     assert_true(!report.contains("\"expected_type\""), msg=report)
     assert_true(!report.contains("\"location\""), msg=report)
     assert_true(!report.contains("\"pointer\""), msg=report)

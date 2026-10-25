@@ -14,6 +14,56 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {installTaskObservation} from '../host-common/task-observation.mjs';
 import {bindClientSourceOperation} from './client-source-operation.mjs';
 
+// Diagnostics must not become a second owner of execution/cleanup capabilities.
+// Read only inert own data; accessors and arbitrary thrown objects are not
+// invoked, traversed or retained by the returned diagnostic receipt.
+const dispatchFailureFields = Object.freeze(['primaryFailure', 'closeFailure',
+  'cleanupFailure', 'finishFailure', 'releaseFailure', 'preparationRetirementFailure']);
+function dispatchFailureSnapshot(error) {
+  if (error === undefined) return undefined;
+  const text = name => {
+    try {
+      const field = Object.getOwnPropertyDescriptor(error, name);
+      return field !== undefined && Object.hasOwn(field, 'value') &&
+        typeof field.value === 'string' ? field.value : undefined;
+    } catch { return undefined; }
+  };
+  return Object.freeze({name: text('name') ?? 'Error', code: text('code'),
+    message: typeof error === 'string' ? error : text('message')});
+}
+
+// One original Core holder covers the ordinary configured Host and its
+// transitive outputs through confirmed cleanup. This is not a numeric grant.
+function releaseDispatchPreparationHost(entry) {
+  const holder = entry.preparationHostBorrow;
+  if (holder === undefined) return;
+  const release = entry.preparationHostReturn, runtime = entry.preparationHostRuntime;
+  entry.preparationHostBorrow = entry.preparationHostReturn = entry.preparationHostRuntime = undefined;
+  // A valid Core return consumes its token before any settlement failure;
+  // the original retirement receipt retains a failed debit for cleanup retry.
+  checked(Reflect.apply(release, runtime, [holder]));
+}
+function retainDispatchPreparationHost(entry, moon, managedRun, prepared, request, hasCustody) {
+  const acquire = moon.clientProgramInstalledManagedPreparationBorrow;
+  if (typeof acquire !== 'function') return; // Older, unowned preparation path.
+  if (entry.preparationHostBorrow !== undefined) throw new Error('DuplicatePreparationHostBorrow');
+  const release = moon.clientProgramPreparationBorrowReturn, read = moon.clientProgramPreparationBorrowRead;
+  if (typeof release !== 'function' || typeof read !== 'function') throw new Error('PreparationHostCustodyUnavailable');
+  const holder = checked(Reflect.apply(acquire, moon, [managedRun, prepared, request]));
+  if (holder === undefined) return; // Same runtime's explicit legacy None.
+  entry.preparationHostBorrow = holder;
+  entry.preparationHostReturn = release;
+  entry.preparationHostRuntime = moon;
+  try {
+    if (!hasCustody || Reflect.apply(read, moon, [holder]) !== prepared) {
+      throw new Error('ForeignPreparationHostCustody');
+    }
+  } catch (error) {
+    releaseDispatchPreparationHost(entry);
+    throw error;
+  }
+}
+
 // Terminal observation only, never a send or cancellation permission. The
 // physical owner calls this after confirmed stop and temporary reclamation;
 // restored observers use their persisted physical-close confirmation.
@@ -110,7 +160,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
   ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
   faultInjection, runInfer, runContent, computeConfigurations = {},
-  observation,
+  observation, preparationCustody, beforePublication,
   managedComputeRequired = false,
   retainedRelationOutput = false,
   runPublished = runPublishedCapturedStrategy}) {
@@ -293,6 +343,16 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         !entry.releasePending &&
         (!entry.physicalStarted || entry.stopObserved ||
           !entry.physicalWorkMayHaveStarted)) {
+      try {
+        entry.retirePreparation?.();
+      } catch (failure) {
+        // Keep the original retirement capability and identity for drain.
+        // A settled operation alone does not release preparation custody.
+        entry.preparationRetirementFailure = failure;
+        return;
+      }
+      entry.retirePreparation = undefined;
+      entry.preparationRetirementFailure = undefined;
       entries.delete(keyOf(entry.ref));
     }
   }
@@ -346,7 +406,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     if (entry.pendingSetup !== undefined) {
       moon.strategyHostStop(entry.pendingSetup);
       moon.strategyHostCloseOutputs(entry.pendingSetup);
-      if (moon.strategyHostUsage(entry.pendingSetup).slice(4).some(value => value !== 0n)) {
+      if (moon.strategyHostUsage(entry.pendingSetup).slice(4).some(value => value !== 0n) &&
+          !(entry.preparationHostBorrow !== undefined &&
+            typeof moon.clientProgramPreparationBorrowUsageIsolated === 'function' &&
+            moon.clientProgramPreparationBorrowUsageIsolated(entry.preparationHostBorrow, moon.strategyHostRun(entry.pendingSetup)) === true)) {
         throw new Error('ClientDispatchCleanupPending');
       }
       entry.pendingSetup = undefined;
@@ -420,7 +483,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   }
 
   const start = (submission, requested, accepted, held, finished, gate) => {
-    const {preparedProgram, principalId: actual, connection} = submission;
+    const {principalId: actual, connection} = submission;
     const unstarted = accepted.dispatchReserved !== true ||
       accepted.physicalStartReserved === false &&
       !accepted.preDispatchFailureConfirmed;
@@ -432,6 +495,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     if (gate === undefined && checkpoints?.heldOrigin(submission.requestId)) {
       return Promise.resolve('not_started');
     }
+    let preparationLease = preparationCustody?.begin(submission);
+    let preparedProgram = preparationLease === undefined
+      ? submission.preparedProgram : preparationLease.preparedProgram;
     let reached;
     const physical = new Promise(resolve => { reached = resolve; });
     const entry = {ref: accepted.ref, requestId: submission.requestId,
@@ -444,6 +510,24 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       finishPending: false, releasePending: checkpoints !== undefined,
       cleanupOwner: undefined, cleanupHandle: undefined,
       unresolvedCleanup: false, sourceCapture: undefined};
+    if (preparationLease !== undefined) {
+      entry.retirePreparation = () => {
+        // The complete retirement predicate has settled callbacks, physical
+        // custody and acquisition release. No later drain needs these raw
+        // aliases; discard them before the private owner returns its charge.
+        preparedProgram = undefined;
+        if (held !== undefined) held.plan = undefined;
+        submission = requested = accepted = held = finished = gate = undefined;
+        entry.finished = undefined;
+        entry.observeStopped = undefined;
+        for (const field of dispatchFailureFields) {
+          entry[field] = dispatchFailureSnapshot(entry[field]);
+        }
+        releaseDispatchPreparationHost(entry);
+        preparationLease.retire();
+        preparationLease = undefined;
+      };
+    }
     entries.set(keyOf(accepted.ref), entry);
     entry.promise = Promise.resolve().then(async () => {
       const claim = await startRun({identity: requested, namespaceId,
@@ -678,6 +762,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           throw new Error('InstalledManagedComputeRunUnavailable');
         }
         if (held.managedRun !== undefined) {
+          retainDispatchPreparationHost(entry, moon, held.managedRun, preparedProgram, requested, preparationLease !== undefined);
           if (typeof moon.clientProgramOpenInstalledManagedSourceFreeHost !== 'function') {
             throw new Error('InstalledManagedComputeHostUnavailable');
           }
@@ -987,7 +1072,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           entry.cleanupOwner = owner;
           entry.pendingSetup = undefined;
         }, observation === undefined ? undefined : installTaskObservation(({event, task, durationMs}) =>
-          observation.emit('compute', event, {ref: accepted.ref, task}, {durationMs})));
+          observation.emit('compute', event, {ref: accepted.ref, task}, {durationMs})), entry.preparationHostBorrow,
+        entry.preparationHostBorrow === undefined ? undefined : () => {
+          if (typeof beforePublication !== 'function') throw new Error('PreparationPublicationUnavailable');
+          return beforePublication(preparedProgram);
+        });
       entry.cleanupOwner = published;
       entry.publicationCommitted = true;
       await step('computed', {ref: accepted.ref,
@@ -1166,11 +1255,12 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         code: 'ClientDispatchCleanupPending',
         pendingRefs: [...entries.values()].map(entry => entry.ref),
         failures: [...entries.values()].map(entry => ({ref: entry.ref,
-          primary: entry.primaryFailure,
-          close: entry.closeFailure,
-          cleanup: entry.cleanupFailure,
-          finish: entry.finishFailure,
-          release: entry.releaseFailure})),
+          primary: dispatchFailureSnapshot(entry.primaryFailure),
+          close: dispatchFailureSnapshot(entry.closeFailure),
+          cleanup: dispatchFailureSnapshot(entry.cleanupFailure),
+          finish: dispatchFailureSnapshot(entry.finishFailure),
+          release: dispatchFailureSnapshot(entry.releaseFailure),
+          preparation: dispatchFailureSnapshot(entry.preparationRetirementFailure)})),
       });
     }
   };

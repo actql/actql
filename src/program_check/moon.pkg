@@ -80,6 +80,7 @@ import {
 }
 
 import {
+  "actql/actql/client_source_publication" @installed_publication,
   "actql/actql/binding_declarations" @bindings,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/execution_relation" @execution,

@@ -68,6 +68,7 @@ pub fn start_effect_free_run_evidence_check_retained(
 /// array aliases. This describes input ownership, never current Store authority.
 priv enum PublicationCommitInputOrigin {
   BorrowedInputs
+  OwnedInputs
   StoredInputs
 }
 

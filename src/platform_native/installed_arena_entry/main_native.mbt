@@ -513,6 +513,9 @@ extern "C" fn register_original_live_channel_roots(
       Int64,
       Int64,
       Int64,
+      Int,
+      Int,
+      Int,
     ) -> @control.InstalledArenaLiveChannelReply,
   ],
   original_host : FuncRef[
@@ -995,10 +998,14 @@ fn main {
       reserved_retention,
       reserved_execution,
       peak_retention,
+      reserved_attempts,
+      live_reservations,
+      live_delegations,
     ) {
       @control.report_installed_arena_live_channel_reply(
         host, domain, channel, planning, attempts, holdings, transferred, uncertain,
         reserved_transfer, held, reserved_retention, reserved_execution, peak_retention,
+        reserved_attempts, live_reservations, live_delegations,
       )
     },
     fn(reply) { reply.original_host() },

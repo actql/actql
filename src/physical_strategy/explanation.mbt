@@ -353,6 +353,7 @@ fn emit_strategy_assessment(
           ResourceParked => "resource_parked"
           ChildFundingUnavailable => "child_funding_unavailable"
           InvalidCharge => "invalid_charge"
+          IdentityOverflow => "identity_overflow"
         },
       )
   }

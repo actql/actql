@@ -376,3 +376,67 @@ test "bounded join yields within a long equal text key comparison" {
   assert_true(producer_read_available(reads[0]))
   assert_true(producer_read_available(reads[1]))
 }
+
+///|
+test "bounded right join preserves authored right major order and original bindings" {
+  for quantum in [1, 7, 128] {
+    let (_, execution, reads) = bounded_join_fixture(
+      left_rows="[{\"id\":1,\"v\":10},{\"id\":null,\"v\":12},{\"id\":1,\"v\":11}]",
+      right_rows="[{\"id\":1,\"v\":20},{\"id\":null,\"v\":22},{\"id\":1,\"v\":21},{\"id\":2,\"v\":23}]",
+      kind="right",
+    )
+    let expected = [
+      [Number(1), Number(10), Number(20)],
+      [Number(1), Number(11), Number(20)],
+      [Null, Null, Number(22)],
+      [Number(1), Number(10), Number(21)],
+      [Number(1), Number(11), Number(21)],
+      [Null, Null, Number(23)],
+    ]
+    let output = finish_bounded_join_test(execution, quantum~).unwrap()
+    let rows = Array::makei(completed_row_count(output), row => {
+      Array::makei(3, column => completed_cell(output, row, column).unwrap())
+    })
+    assert_true(join_numeric_rows_equal(rows, expected))
+    assert_true(cleanup_bounded_join(execution).unwrap())
+    assert_eq(execution.state.workspace.live, 0)
+    assert_true(producer_read_available(reads[0]))
+    assert_true(producer_read_available(reads[1]))
+  }
+}
+
+///|
+test "bounded right join keeps authored cardinality and null error sides" {
+  for
+    (left, right, options, expected_side, null_error) in [
+      (
+        "[]", "[{\"id\":1,\"v\":20},{\"id\":1,\"v\":21}]", ",\"cardinality\":\"many_to_one\"",
+        false, false,
+      ),
+      (
+        "[{\"id\":1,\"v\":10},{\"id\":1,\"v\":11}]", "[]", ",\"cardinality\":\"one_to_many\"",
+        true, false,
+      ),
+      ("[]", "[{\"id\":null,\"v\":20}]", ",\"null_key\":\"fail\"", false, true),
+    ] {
+    let (_, execution, _) = bounded_join_fixture(
+      left_rows=left,
+      right_rows=right,
+      options~,
+      kind="right",
+    )
+    match finish_bounded_join_test(execution) {
+      Err(Rows(JoinDuplicateKey(side, 1, 0))) => {
+        assert_eq(side, expected_side)
+        assert_false(null_error)
+      }
+      Err(Rows(JoinNullKey(side, 0, 0))) => {
+        assert_eq(side, expected_side)
+        assert_true(null_error)
+      }
+      _ => fail("right join lost authored-side validation")
+    }
+    assert_true(cleanup_bounded_join(execution).unwrap())
+    assert_eq(execution.state.workspace.live, 0)
+  }
+}

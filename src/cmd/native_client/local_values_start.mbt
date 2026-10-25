@@ -86,7 +86,7 @@ fn local_execute_publish_values(
       prepared,
       compiled,
       definition,
-      installed.registry_body,
+      installed.installed_contracts,
       installed.values_body,
       installed.fragment_body,
       installed.ordered_body,

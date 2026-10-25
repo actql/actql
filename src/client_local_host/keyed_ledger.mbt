@@ -11,7 +11,7 @@ pub fn prepare_keyed_captured_local_installed_ledger(
   transport_execution_bytes : Array[Int64],
   max_bytes : Int,
   max_work : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -28,7 +28,7 @@ pub fn prepare_keyed_captured_local_installed_ledger(
     transport_execution_bytes,
     max_bytes,
     max_work,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -51,7 +51,7 @@ fn keyed_captured_local_installed_limits(
   transport_execution_bytes : Array[Int64],
   max_bytes : Int,
   max_work : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -72,7 +72,7 @@ fn keyed_captured_local_installed_limits(
       @publication_host.client_keyed_acquisition_facts(keyed),
     ) &&
     prepare_local_query_requirement(
-      prepared, stage, input, registry_body, values_body, fragment_body, ordered_body,
+      prepared, stage, input, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Ok(requirement) &&
     @planning.query_requirement_cid(requirement) ==
@@ -85,7 +85,6 @@ fn keyed_captured_local_installed_limits(
   let count = @strategy.graph_task_count(graph)
   if (serialization is Some(_) && infer is Some(_)) ||
     count < (if serialization is Some(_) || infer is Some(_) { 1 } else { 2 }) ||
-    count > 32 ||
     keyed_task <
     (if serialization is Some(_) || infer is Some(_) { 0 } else { 1 }) ||
     keyed_task >= count ||
@@ -158,7 +157,7 @@ fn keyed_captured_local_installed_limits(
     (None, None) => {
       guard prepare_client_local_sequences_owned(
           Pure(prepared),
-          registry_body,
+          installed_contracts,
           values_body,
           fragment_body,
           ordered_body,

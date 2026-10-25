@@ -761,6 +761,13 @@ including when its numeric limit is equal. Prefix, Infer, serialization and
 completed-producer constructors remain separate; Effectful graph-only callers
 keep their original preparation path.
 
+The default Values row envelope covers both the checked authored-input demand
+and the checked closed-generator output bound. An explicitly selected row-limit
+view supplies its actual bound to sequence preparation, including a smaller
+bound that refuses the original input. Re-reading default demand must not
+silently replace that selection. Cell, expression, work, byte and physical
+resource admission remain independent of this sequence envelope.
+
 The inventory shares the existing prepared Program lifetime and contains only
 a task coordinate, the complete limits and the original typed sequence per
 checked task. Its task count is bounded by the checked graph and its contents

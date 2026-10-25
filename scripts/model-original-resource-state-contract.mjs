@@ -18,7 +18,7 @@ const quantities = tuple([count, count, count]);
 const limits = tuple(Array(6).fill(count));
 const reservation = tuple([signed, count, count, count, bool, bool,
   nullable(quantities), nullable(quantities), tuple([bool, bool, bool]),
-  nullable(tuple([nullable(count), count, count]))]);
+  nullable(tuple([nullable(count), count, count])), bool, bool]);
 
 // Positional shape is shared with the existing original-state codec. Integer
 // widths, live token identities, full census and current phase are checked by
@@ -26,9 +26,9 @@ const reservation = tuple([signed, count, count, count, bool, bool,
 export function originalResourceDocumentSchema() {
   return tuple([
     {const: 'actql-original-ledger-state/0.1'}, limits,
-    tuple(Array(10).fill(count)), tuple([count, count, count]),
+    tuple(Array(13).fill(count)), tuple([count, count, count]),
     nullable(quantities), tuple([quantities, quantities, quantities]),
-    nullable(signed),
+    tuple([nullable(signed), nullable(count), nullable(count)]),
     tuple([count, count, count, bool, bool, bool,
       {enum: ['reading', 'parked', 'stopping']}, bool]),
     reservation, {type: 'array', minItems: 1, items: reservation},

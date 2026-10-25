@@ -13,61 +13,20 @@ is developed in MoonBit; see the [implementation guide](design/implementation-po
 Specification checks also verify generated connector code using the pinned
 MoonBit formatter. Complete the MoonBit setup below before running `check:spec`.
 
-### Checkpoint Effect settlement layout
+### Checkpoint journal layout
 
-The Node Checkpoint journal uses the private layout
-`actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1;model-current-cut-link=1`.
-The [settlement design](design/effect-refusal-settlement.md) explains the
-observation-only claim and its authority boundary. Existing journals with the
-preceding `actql-checkpoint-journal/0.1;model-call-provenance=1` layout are
-refused by ordinary startup; they are never silently recreated or upgraded.
+The Node Checkpoint journal uses the current private layout
+`actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1;model-current-cut-link=1;model-current-cut-invalidation=1`.
+The [settlement design](design/effect-refusal-settlement.md) explains its
+observation-only claim and authority boundary.
 
-To update one such journal, stop **every** Host and other process using it,
-including old binaries. Use Node 24 with the checked-out upgrade tool:
-
-```sh
-node scripts/upgrade-checkpoint-effect-settlement.mjs --offline --root JOURNAL_DIRECTORY --backup NEW_BACKUP_FILE
-```
-
-`JOURNAL_DIRECTORY` is the directory containing
-`checkpoint-journal.sqlite3`, not an arbitrary parent Host directory. The
-backup path must be new, separate from that database, and on storage where
-the operator can retain it. `--offline` explicitly confirms that all users of
-the journal have stopped. A SQLite writer lock cannot revoke an already-open
-old connection, so it does not replace that shutdown requirement.
-
-The Effect tool checks the exact old marker and SQLite integrity, checkpoints WAL,
-acquires an exclusive writer transaction, and refuses concurrent WAL changes.
-It creates and synchronizes a private standalone backup before adding the
-empty settlement table and changing the marker in one transaction. It prints
-the backup path and SHA-256. Existing Run, Checkpoint, Resolution, claim,
-admission, Model, and Effect evidence records are retained without rewriting.
-An existing backup, missing journal, unknown layout, or active writer is a
-refusal. A failed transaction leaves the old layout and any completed backup
-available for inspection.
-
-The Effect tool deliberately ends at its historical `;effect-settlement=1`
-marker. That layout is also refused by current startup. With **every** Host
-still stopped, explicitly perform the second offline update with another new
-backup path:
-
-```sh
-node scripts/upgrade-checkpoint-model-current-cut.mjs --offline --root JOURNAL_DIRECTORY --backup NEW_MODEL_CUT_BACKUP_FILE
-```
-
-This second operation adds only the nullable `current_cut_link_json` column to
-the existing Model scope table and changes the private marker atomically. All
-original Run, scope, Entry, signed evidence and cleanup records remain unchanged;
-the new field starts null. Startup never performs either operation or repairs
-missing columns. Null/current-cut absence is unavailable, not park, restore or
-send authority. The layout enables no numeric profile or public INFER capability.
-
-Restart only binaries supporting the new marker. Reverting the marker or
-dropping the settlement table is unsafe: it would discard persisted refusal
-decisions. An offline restoration of the full pre-upgrade backup is possible
-only before new activity is accepted; once new activity exists, restoring that
-backup would lose newer evidence and requires a separate recovery decision.
-The tool never performs that restoration or modifies any other journal.
+Historical saved-Run layouts are not supported. Use a fresh journal for the
+current implementation; there is no offline upgrade command. Startup refuses
+an unsupported layout with `UnsupportedCheckpointJournal` before schema writes.
+It never migrates, recreates, or deletes an existing journal automatically.
+Do not rewrite a layout marker or drop evidence tables to bypass this refusal.
+Current-layout restart preserves the same Run, Checkpoint, Resolution, resume
+intent and cleanup records; it does not grant new execution authority.
 
 ### MoonBit
 
@@ -507,6 +466,28 @@ tarballs with `--ignore-scripts` and need no MoonBit toolchain. Generated API
 interfaces, schema/pins, fixtures, and the tracked Run Host service wrappers
 remain reviewed source artifacts. Regenerate wrapper changes explicitly;
 runtime preparation checks them but does not silently update them.
+
+### Source-free Local scalar capacity
+
+Pure source-free Local preparation can use a smaller scalar value-node envelope
+when every original checked input and intermediate relation schema consists of
+Number or Boolean fields (including nullable fields). The bound is the prepared
+row ceiling times the larger cumulative input or output row-node envelope.
+Each row container counts separately from its scalar fields; input occurrences
+include every original prepared node port (also Step targets and duplicate
+ports), and output occurrences include every original node plus possible
+external producer projections. This conservatively covers shared multi-step
+sequence budgets rather than assuming one kernel per task. It is
+never larger than the general 20,000-node envelope. Missing schemas, nested or
+other value contracts, and out-of-range products retain the general envelope.
+This is an implementation capacity derivation, not a language restriction.
+
+The pre-admission inventory and configured providers/imports/exports use the
+same checked-sequence derivation. Text, expression/intermediate execution,
+serialized-value measurement, row, work, and the 512 MiB retained-store ceilings
+remain unchanged. Values are not sampled, truncated, or replaced to fit a quote;
+retained input ports and task outputs still count separately. Source acquisition
+and Effect paths retain their original envelopes.
 
 ### Checkpoint Resolution and Effect continuation
 

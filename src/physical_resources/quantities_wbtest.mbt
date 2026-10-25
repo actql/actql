@@ -47,7 +47,8 @@ test "quantity reservation is atomic at exact and one-short limits" {
         assert_eq(configure_quantities(ledger, exact), Err(InvalidCharge))
         settle_reservation(ledger, reservation).unwrap()
         assert_eq(quantity_usage(ledger).reserved, zero_quantities())
-        assert_eq(ledger_usage(ledger).attempts, 1)
+        assert_eq(ledger_usage(ledger).attempts, 0)
+        assert_eq(ledger.next_attempt_serial, Some(1))
         assert_eq(ledger_usage(ledger).reserved_transfer_bytes, 0L)
       }
     }

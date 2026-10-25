@@ -2,6 +2,7 @@
 pub(all) enum Kind {
   Inner
   Left
+  Right
   Full
   Semi
   Anti

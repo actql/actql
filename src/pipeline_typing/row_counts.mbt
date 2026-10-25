@@ -184,6 +184,16 @@ fn join_count(
   left_unique? : Bool = false,
   right_unique? : Bool = false,
 ) -> RowCount? raise Stop {
+  if kind is Right {
+    return join_count(
+      source,
+      right,
+      left,
+      Left,
+      left_unique=right_unique,
+      right_unique=left_unique,
+    )
+  }
   // Empty-side rules below are stronger than uniqueness-based upper bounds.
   if (left_unique || right_unique) &&
     !(left is Some({ upper: 0L, .. })) &&
@@ -202,7 +212,7 @@ fn join_count(
         }
         return reduce_count(if right_unique { left } else { right })
       }
-      Left => {
+      Left | Right => {
         if right_unique || (right is Some(v) && v.upper <= 1L) {
           return left
         }
@@ -230,7 +240,7 @@ fn join_count(
       } else {
         reduce_count(left)
       }
-    Left =>
+    Left | Right =>
       if right is Some(v) && v.upper <= 1L {
         left
       } else {

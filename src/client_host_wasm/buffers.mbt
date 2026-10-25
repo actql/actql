@@ -22,6 +22,7 @@ priv struct Instance {
   nonce : Int64
   pool : @buffers.BufferPool
   root : @resources.Ledger
+  installed_sequences : InstalledSequenceContracts
   wasm_capacity : @resources.SharedCapacity
   host_capacity : @resources.SharedCapacity?
   workspaces : Map[Int, (Int, @buffers.WorkspaceLoan)]
@@ -65,6 +66,29 @@ priv struct Instance {
   result_exports : Map[Int, StoredResultExport]
   result_chunks : Map[Int, StoredResultChunk]
   mut next_handle : Int
+}
+
+///|
+/// Per-open immutable installed DATA. The original registry wire remains only
+/// for the ABI selection check; every Run receives the same admitted token.
+priv struct InstalledSequenceContracts {
+  registry : String
+  contracts : @local_host.ClientInstalledSequenceContracts
+}
+
+///|
+fn prepare_product_sequence_contracts() -> InstalledSequenceContracts? {
+  let assets = @host.client_local_product_assets()
+  guard @local_host.prepare_installed_sequence_contracts(
+      assets.registry,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    )
+    is Ok(contracts) else {
+    return None
+  }
+  Some({ registry: assets.registry, contracts, })
 }
 
 ///|
@@ -129,11 +153,13 @@ fn install_buffer_instance(
   host_capacity : @resources.SharedCapacity?,
   pool : @buffers.BufferPool,
   max_slots : Int,
+  installed_sequences : InstalledSequenceContracts,
 ) -> Int {
   instance.val = Some({
     nonce,
     pool,
     root,
+    installed_sequences,
     wasm_capacity,
     host_capacity,
     workspaces: {},
@@ -222,6 +248,9 @@ pub fn open_live(
     max_wire_bytes > 1048576 {
     return -3
   }
+  guard prepare_product_sequence_contracts() is Some(installed_sequences) else {
+    return -31
+  }
   live_initialization_attempt.val = Some(nonce)
   let frame = match @resources.prepare_imported_child_ledger(nonce) {
     Err(issue) => return retain_live_issue(issue)
@@ -251,6 +280,7 @@ pub fn open_live(
         Some(host_capacity),
         pool,
         max_slots,
+        installed_sequences,
       )
   }
 }
@@ -310,6 +340,9 @@ pub fn open(
     host_capacity_bytes < 0L {
     return -3
   }
+  guard prepare_product_sequence_contracts() is Some(installed_sequences) else {
+    return -31
+  }
   let root = match
     @resources.create_ledger({
       planning_work,
@@ -348,7 +381,7 @@ pub fn open(
     Err(issue) => issue_code(issue)
     Ok(pool) =>
       install_buffer_instance(
-        nonce, root, wasm_capacity, host_capacity, pool, max_slots,
+        nonce, root, wasm_capacity, host_capacity, pool, max_slots, installed_sequences,
       )
   }
 }

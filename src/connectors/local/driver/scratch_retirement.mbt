@@ -13,11 +13,12 @@ priv enum LocalManagedScratchPhase {
 priv struct LocalManagedScratchRetirement {
   mut phase : LocalManagedScratchPhase
   mut index : Int
+  mut steps : Int64
 }
 
 ///|
 fn local_managed_scratch_retirement() -> LocalManagedScratchRetirement {
-  { phase: Bridges, index: 0, }
+  { phase: Bridges, index: 0, steps: 0L, }
 }
 
 ///|
@@ -77,6 +78,7 @@ fn[B, I, R, S] advance_local_managed_scratch_retirement(
       Retired => return true
     }
     steps += 1
+    cursor.steps += 1L
   }
   cursor.phase == Retired
 }

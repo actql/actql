@@ -119,8 +119,7 @@ test "membership, truth tests and nonassociative families" {
   for
     source in [
       "x IN (TRUE, NULL) IN (1)", "x LIKE 'a' LIKE 'b'", "x BETWEEN 1 AND 2 BETWEEN 3 AND 4",
-      "x IS TRUE IS FALSE", "x = (NULL)", "NULL < x", "x IN ([])", "x IN ([1])",
-      "x IN (- -1)", "x LIKE concat('a','b')",
+      "x IS TRUE IS FALSE", "x IN ([])", "x IN ([1])", "x IN (- -1)", "x LIKE concat('a','b')",
     ] {
     assert_true(parse(source, test_limits()) is Err(_), msg=source)
   }
@@ -280,7 +279,7 @@ test "numeric rebasing preserves long significands and exponent cancellation" {
   assert_tree("1e-99999999", "{\"literal\":0}")
   assert_tree("5e-324", "{\"literal\":5e-324}")
   assert_tree("9007199254740993", "{\"literal\":9007199254740992}")
-  for source in ["-0", "-(0)", "-1e-99999999", "1e309"] {
+  for source in ["1e309"] {
     assert_true(parse(source, test_limits()) is Err(_), msg=source)
   }
 }
@@ -564,12 +563,18 @@ test "stable lexical and syntax diagnostics retain offending token ranges" {
     ("a . 1", Syntax, { start: 4, end: 5, }),
     ("eval(x)", UnknownFunction, { start: 0, end: 4, }),
     ("len(x,y)", InvalidArguments, { start: 0, end: 3, }),
-    ("-0", InvalidArguments, { start: 0, end: 1, }),
     ("a b", Syntax, { start: 2, end: 3, }),
   ]
   for (source, kind, range) in cases {
     let issue = parse(source, test_limits()).unwrap_err()
     assert_eq(issue.kind, kind)
     assert_eq(issue.range, range)
+  }
+}
+
+///|
+test "signed zero source normalizes to canonical positive zero" {
+  for source in ["-0", "-(0)", "-1e-99999999"] {
+    assert_tree(source, "{\"literal\":0}")
   }
 }

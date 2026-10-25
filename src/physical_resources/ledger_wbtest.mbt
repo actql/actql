@@ -138,7 +138,7 @@ test "allocation identity not content equality determines physical holding" {
 }
 
 ///|
-test "planning and record limits are cumulative and checked before mutation" {
+test "planning and physical attempts remain spent while live holding slots recycle" {
   let ledger = create_ledger({ ..test_limits(), attempts: 1, holdings: 1, }).unwrap()
   charge_planning(ledger, 10).unwrap()
   assert_true(charge_planning(ledger, 1) is Err(PlanningLimit))
@@ -146,8 +146,12 @@ test "planning and record limits are cumulative and checked before mutation" {
   assert_true(reserve_attempt(ledger, -1L, 0L, 0L) is Err(InvalidCharge))
   let r = reserve_attempt(ledger, 0L, 10L, 20L).unwrap()
   let h = retain_allocation(ledger, r, 5L).unwrap()
-  release_allocation(ledger, h).unwrap()
   assert_true(retain_allocation(ledger, r, 0L) is Err(HoldingLimit))
+  release_allocation(ledger, h).unwrap()
+  let replacement = retain_allocation(ledger, r, 0L).unwrap()
+  assert_true(replacement.serial != h.serial)
+  release_allocation(ledger, replacement).unwrap()
+  consume_reserved_attempt(ledger, r).unwrap()
   settle_reservation(ledger, r).unwrap()
   assert_true(reserve_attempt(ledger, 0L, 0L, 0L) is Err(AttemptLimit))
   assert_eq(ledger_usage(ledger).planning_work, 10)

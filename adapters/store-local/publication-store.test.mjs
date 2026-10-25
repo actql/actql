@@ -145,7 +145,7 @@ async function runStoreChild(source) {
   });
 }
 
-async function fixture(t, options = {}, control = contractControl) {
+async function fixture(t, options = {}, control = contractControl, physicalIO) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-publication-store-'));
   t.after(() => removeFixtureDirectory(directory));
   const configuration = {
@@ -158,7 +158,7 @@ async function fixture(t, options = {}, control = contractControl) {
     maxContractDepth: limits.maxDepth,
     ...options,
   };
-  const store = await openLocalPublicationStore(configuration, control);
+  const store = await openLocalPublicationStore(configuration, control, physicalIO);
   t.after(async () => { await store.close(); });
   return {
     directory,
@@ -661,6 +661,13 @@ test('physical commit fixture carries distinct normative CapturedRun identities'
     wire(invocationValue)), code('UnknownPublicationFixtureArtifact'));
 });
 
+const fixturePreparedHandles = new WeakMap();
+// Fixture authority follows the exact prepareCommit result, never a CID lookup.
+function commitFixtureIndex(store, wire, inventory, evidence, original, handles) {
+  return store.commitIndex(wire, inventory, evidence, original,
+    handles ?? fixturePreparedHandles.get(evidence) ?? []);
+}
+
 async function prepareCommit(
   store,
   request,
@@ -706,6 +713,7 @@ async function prepareCommit(
     'durable_result_binding', wire(bindingValue),
   );
   const evidence = physicalCommitEvidence(invocationValue, binding, request);
+  fixturePreparedHandles.set(evidence, Object.freeze([physical.prepared]));
   for (const contract of [evidence.manifest, evidence.receipt, evidence.capturedRun]) {
     await store.putSemantic(contract.wire, contract.identity);
   }
@@ -760,11 +768,11 @@ test('one publication commit acquires each unchanged semantic original once', as
   };
   syncBuiltinESMExports();
   try {
-    assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).committed, true);
+    assert.equal((await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence)).committed, true);
     assert.deepEqual([...acquisitions].sort(), [...selected.values()].map(cid => [cid, 1]).sort(),
       'one commit shares its selected originals across inventory and evidence');
     acquisitions.clear();
-    const repeated = await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+    const repeated = await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence);
     assert.equal(repeated.idempotent, true);
     assert.deepEqual([...acquisitions].sort(), [...selected.values()].map(cid => [cid, 1]).sort(),
       'a distinct operation acquires its own originals');
@@ -786,13 +794,13 @@ test('publication commit never reuses a prior operation semantic original after 
   const borrowed = await store.readSemanticBytes(invocationValue.invocation_cid);
   borrowed.fill(0);
   // The public mutable allocation is not this later commit's private original.
-  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence);
   const selected = join(directory, 'contracts', invocationValue.invocation_cid.slice(7) + '.json');
   const original = await readFile(selected);
   const changed = Buffer.from(original);
   changed[0] ^= 1;
   await writeFile(selected, changed);
-  await assert.rejects(store.commitIndex(wire(entry), prepared.required, prepared.evidence),
+  await assert.rejects(commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence),
     error => error?.code === 'PublicationContractCorrupt' ||
       error?.code === 'ENOENT' && error.syscall === 'lstat' &&
         error.path?.startsWith(join(directory, 'objects') + sep));
@@ -815,9 +823,9 @@ test('publication commit admits its exact Index once before durable staging', as
     durable_result_binding_cids: [prepared.binding.identity],
   });
   selectedWire = wire(entry);
-  assert.equal((await store.commitIndex(selectedWire, prepared.required, prepared.evidence)).committed, true);
+  assert.equal((await commitFixtureIndex(store, selectedWire, prepared.required, prepared.evidence)).committed, true);
   assert.equal(admissions, 1, 'the already admitted immutable Index needs no second admission to persist');
-  await assert.rejects(store.commitIndex('{}', prepared.required, prepared.evidence),
+  await assert.rejects(commitFixtureIndex(store, '{}', prepared.required, prepared.evidence),
     code('InvalidPublicationContract'));
 });
 
@@ -849,7 +857,7 @@ test('publication commit consumes its same-owner issued Index without raw readmi
   original = contractControl.admit('public_index_entry', selectedWire, limits);
   assert(Object.isFrozen(original));
   let result, failure;
-  try {result = await store.commitIndex(selectedWire, prepared.required, prepared.evidence, original);}
+  try {result = await commitFixtureIndex(store, selectedWire, prepared.required, prepared.evidence, original);}
   catch (error) {failure = error;}
   assert.equal(rawAdmissions, 0, 'the issued original is not decoded/admitted/hashed again at this entry');
   if (failure !== undefined) throw failure;
@@ -877,7 +885,7 @@ test('publication Index original reuse keeps copied and omitted-port full admiss
     selectedWire = wire(entry);
     original = contractControl.admit('public_index_entry', selectedWire, limits);
     const args = kind === 'legacy' ? [] : [kind === 'copy' ? Object.freeze({...original}) : original];
-    assert.equal((await store.commitIndex(selectedWire, prepared.required, prepared.evidence, ...args)).committed, true);
+    assert.equal((await commitFixtureIndex(store, selectedWire, prepared.required, prepared.evidence, ...args)).committed, true);
     assert.equal(admissions, 1, kind + ' performs the existing full wire admission');
   }
 });
@@ -899,13 +907,13 @@ test('publication Index original refuses conflicting body and invalid nominal co
   });
   selectedWire = wire(entry);
   original = contractControl.admit('public_index_entry', selectedWire, limits);
-  await assert.rejects(store.commitIndex(selectedWire, prepared.required, prepared.evidence,
+  await assert.rejects(commitFixtureIndex(store, selectedWire, prepared.required, prepared.evidence,
     Object.freeze({...original, wire:'{}'})), code('InvalidPublicationCommitEvidence'));
   mode = 'copy';
-  await assert.rejects(store.commitIndex(selectedWire, prepared.required, prepared.evidence, original),
+  await assert.rejects(commitFixtureIndex(store, selectedWire, prepared.required, prepared.evidence, original),
     code('InvalidPublicationContractControlResult'));
   mode = 'throw';
-  await assert.rejects(store.commitIndex(selectedWire, prepared.required, prepared.evidence, original),
+  await assert.rejects(commitFixtureIndex(store, selectedWire, prepared.required, prepared.evidence, original),
     error => error.code === 'InvalidPublicationContract' && error.cause?.code === 'OriginalRefused');
   assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)), undefined);
   // All refusals precede commit custody. This fixture still owns the original
@@ -1080,7 +1088,7 @@ test('publication commit reuses the exact issued original for its selected nativ
   const entry = indexEntry(request, attempt, invocationValue, {
     durable_result_binding_cids: [prepared.binding.identity],
   });
-  const committed = await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  const committed = await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence);
   assert.equal(committed.committed, true);
   assert.equal(rawAdmissions, 0, 'the actual selected native wire equals the same issued original');
   assert.equal(observations, 1, 'the original is observed once inside this commit');
@@ -1091,7 +1099,7 @@ test('publication commit reuses the exact issued original for its selected nativ
     assert.equal(database.prepare('UPDATE publication_contracts SET wire=? WHERE semantic_cid=?')
       .run('{}', original.identity).changes, 1);
   } finally { database.close(); }
-  await assert.rejects(store.commitIndex(wire(entry), prepared.required, prepared.evidence),
+  await assert.rejects(commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence),
     error => ['InvalidPublicationContract','InvalidDeliveryAttemptIndex'].includes(error?.code));
   assert.equal(observations, 1, 'changed native bytes cannot reuse the old original');
 });
@@ -1121,13 +1129,13 @@ test('publication native original reuse retains copied and omitted-control admis
       durable_result_binding_cids: [prepared.binding.identity],
     });
     if (kind === 'copy') {
-      await assert.rejects(store.commitIndex(wire(entry), prepared.required, evidence),
+      await assert.rejects(commitFixtureIndex(store, wire(entry), prepared.required, evidence),
         code('InvalidPublicationCommitChain'));
       // Full row admission cannot make an arbitrary copied evidence wrapper
       // nominal for the unchanged final chain Owner. Custody has not begun.
       assert.equal(await prepared.prepared.release(), true);
     } else {
-      assert.equal((await store.commitIndex(wire(entry), prepared.required, evidence)).committed, true);
+      assert.equal((await commitFixtureIndex(store, wire(entry), prepared.required, evidence)).committed, true);
     }
     assert.equal(rawAdmissions, 1, `${kind} keeps the selected native row's full admission`);
   }
@@ -1151,7 +1159,7 @@ test('publication inventory reuses only its newly acknowledged Index write withi
   });
   syncBuiltinESMExports();
   try {
-    assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).committed, true);
+    assert.equal((await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence)).committed, true);
     assert.equal(reads, 0, 'same-commit inventory consumes the actual acknowledged writer, not a second reader/hash');
     assert.deepEqual(await store.inspectCommittedIndex(indexKeyFor(request)), entry);
     assert.equal(reads, 1, 'the next public operation acquires its own actual original');
@@ -1178,7 +1186,7 @@ test('publication inventory acquires an existing Index alias instead of treating
   const path = join(directory, 'contracts', entry.public_index_entry_cid.slice(7) + '.json');
   await unlink(path);
   await writeFile(path, wire(entry), {mode: 0o600});
-  await assert.rejects(store.commitIndex(wire(entry), prepared.required, prepared.evidence),
+  await assert.rejects(commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence),
     code('PublicationContractCorrupt'));
   assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)), undefined);
   assert.equal(await prepared.prepared.release(), true);
@@ -1211,7 +1219,7 @@ test('publication inventory retains failed Index alias durability before a fresh
   });
   syncBuiltinESMExports();
   try {
-    await assert.rejects(store.commitIndex(wire(entry), prepared.required, prepared.evidence), error => {
+    await assert.rejects(commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence), error => {
       failure = error;
       return error.primaryFailure === primary && error.cleanupHandle.status().pending;
     });
@@ -1220,7 +1228,7 @@ test('publication inventory retains failed Index alias durability before a fresh
     await assert.rejects(store.close(), code('PublicationStoreCleanupPending'));
     refuse = false;
     assert.equal((await failure.cleanupHandle.retry()).pending, false);
-    assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).committed, true);
+    assert.equal((await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence)).committed, true);
     assert.equal(reads, 2, 'a new attempt checks both its existing alias and its original reader');
   } finally {
     refuse = false;
@@ -1240,7 +1248,7 @@ test('selected publication observation returns its one admitted Index original a
   const invocationValue = invocation(), request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
   const attempt = publicationAttempt(request), prepared = await prepareCommit(store, request, attempt, invocationValue);
   const entry = indexEntry(request, attempt, invocationValue, {durable_result_binding_cids: [prepared.binding.identity]});
-  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence);
   armed = true;
   const selected = await store.readCommittedPublication(indexKeyFor(request));
   assert.strictEqual(selected.index, original); assert.equal(admissions, 1);
@@ -1279,7 +1287,7 @@ test('publication completion batch avoids a separate post-Index native commit', 
     durable_result_binding_cids: [prepared.binding.identity],
   });
   armed = true;
-  const outcome = await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  const outcome = await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence);
   assert.equal(outcome.committed, true);
   assert.equal(commits, 1, 'inventory staging is durable; completion joins a later necessary transaction');
   assert.equal((await store.inspectCommittedIndex(indexKeyFor(request))).public_index_entry_cid, entry.public_index_entry_cid);
@@ -1301,13 +1309,14 @@ test(`publication inventory staging retains its ${afterCommit ? 'committed' : 'r
     if (settled) await removeFixtureDirectory(directory);
     else t.diagnostic(`Unconfirmed original fixture retained: ${directory}`);
   });
+  const stagedWrites = [];
   const prepare = DatabaseSync.prototype.prepare, exec = DatabaseSync.prototype.exec;
   t.mock.method(DatabaseSync.prototype, 'prepare', function(sql, ...args) {
     const statement = Reflect.apply(prepare, this, [sql, ...args]);
     if (sql === 'INSERT INTO native_publication_inventories VALUES(?,?)') {
       const run = statement.run;
       t.mock.method(statement, 'run', function(...values) {
-        if (armed) staged = true;
+        if (armed) {staged = true; stagedWrites.push([...values]);}
         return Reflect.apply(run, this, values);
       });
     }
@@ -1335,7 +1344,7 @@ test(`publication inventory staging retains its ${afterCommit ? 'committed' : 'r
     durable_result_binding_cids: [prepared.binding.identity],
   });
   armed = true;
-  await assert.rejects(store.commitIndex(wire(entry), prepared.required, prepared.evidence), error => {
+  await assert.rejects(commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence), error => {
     failure = error;
     return (error.primaryFailure ?? error).outcome === 'unknown';
   });
@@ -1346,6 +1355,18 @@ test(`publication inventory staging retains its ${afterCommit ? 'committed' : 'r
   await assert.rejects(store.inspectCommittedIndex(indexKeyFor(request)),
     code('DeliveryAttemptIndexCommitOutcomeUnknown'));
   assert.equal(failure.cleanupHandle.status().pending, true);
+  const originalCleanup = failure.cleanupHandle;
+  await assert.rejects(store.close(), code('PublicationStoreCleanupPending'));
+  // close intentionally retries the SAME failed native writer before its
+  // independent prepared-holder fence refuses close. This is confirmation,
+  // not a fresh publication attempt or permission to report success.
+  assert.strictEqual(failure.cleanupHandle, originalCleanup);
+  assert.equal(commits, 2);
+  assert.equal(stagedWrites.length, afterCommit ? 1 : 2,
+    'committed staging is confirmed without replaying its INSERT');
+  if (!afterCommit) assert.deepEqual(stagedWrites[1], stagedWrites[0]);
+  assert.equal(originalCleanup.status().pending, false);
+  assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)), undefined);
   const first = failure.cleanupHandle.retry(), concurrent = failure.cleanupHandle.retry();
   assert.equal(first, concurrent, 'concurrent finalization owns one original write');
   assert.equal((await first).pending, false);
@@ -1354,7 +1375,7 @@ test(`publication inventory staging retains its ${afterCommit ? 'committed' : 'r
   assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)), undefined,
     'staging acknowledgement is not publication success');
   assert.equal((await store.latestRecord(attempt.publication_attempt_cid)).state, 'committing');
-  assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).committed, true);
+  assert.equal((await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence)).committed, true);
   assert.equal(prepared.prepared.status().pending, false);
   settled = true;
 });
@@ -1383,11 +1404,11 @@ test('publication commit parses its Binding once across evidence and metadata in
     }
     return Reflect.apply(parse, this, [value, ...rest]);
   });
-  assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).committed, true);
+  assert.equal((await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence)).committed, true);
   assert.equal(bindingParses, 1, 'schema selection consumes the same parsed Binding');
   assert.equal(schemaParses, 1, 'the selected schema still receives its actual shape check');
   bindingParses = schemaParses = 0;
-  assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).idempotent, true);
+  assert.equal((await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence)).idempotent, true);
   assert.equal(bindingParses, 1, 'a distinct idempotent operation validates its own Binding once');
   assert.equal(schemaParses, 1, 'a distinct operation rechecks the same selected schema');
 });
@@ -1401,7 +1422,7 @@ test('committed evidence validation retains its actual payload and next-operatio
   const entry = indexEntry(request, attempt, invocationValue, {
     durable_result_binding_cids: [prepared.binding.identity],
   });
-  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence);
   const index = contractControl.admit('public_index_entry', wire(entry), limits);
   assert.equal(await store.validateCommittedEvidence(index, prepared.evidence), true);
   const path = join(directory, 'objects', JSON.parse(prepared.binding.wire).material_generation_cid.slice(7));
@@ -1439,9 +1460,9 @@ test('known file-backed Result metadata performs no unrelated native delivery pr
     durable_result_binding_cids: [prepared.binding.identity],
   });
   observing = true;
-  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence);
   assert.deepEqual(probes, [], 'typed commit evidence selects its representation before generic inventory');
-  assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).idempotent, true);
+  assert.equal((await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence)).idempotent, true);
   assert.deepEqual(probes, [], 'a distinct operation reacquires typed evidence without unrelated native probes');
   const description = await store.readCommittedResultDescriptionEvidence(
     indexKeyFor(request), definition.result_definition_cid);
@@ -1476,7 +1497,7 @@ test('publication inventory still acquires additional untyped originals and refu
       });
       const extraWire = '{"auxiliary":true}', extraCid = digest(extraWire);
       if (!missing) await store.putSemantic(extraWire, extraCid);
-      const commit = store.commitIndex(wire(entry), [...prepared.required, extraCid], prepared.evidence);
+      const commit = commitFixtureIndex(store, wire(entry), [...prepared.required, extraCid], prepared.evidence);
       if (missing) {
         await assert.rejects(commit, code('PublicationContractMissing'));
         assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)), undefined);
@@ -2988,7 +3009,7 @@ test('publication commit adopts an existing schema holder without rewriting its 
     const entry = indexEntry(request, attempt, invocationValue, {
       durable_result_binding_cids: [prepared.binding.identity],
     });
-    assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).committed, true);
+    assert.equal((await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence)).committed, true);
     assert.equal(prepared.schemaPrepared.status().pending, false);
   } finally {
     fsPromises.open = originalOpen;
@@ -4266,7 +4287,7 @@ test('crash custody cannot reclaim a committed shared allocation',
     const entry = indexEntry(request, attempt, invocationValue, {
       durable_result_binding_cids: [prepared.binding.identity],
     });
-    await initial.commitIndex(
+    await commitFixtureIndex(initial,
       wire(entry), prepared.required, prepared.evidence,
     );
     const materialCid = JSON.parse(
@@ -5155,7 +5176,7 @@ test('native publication progress commits a real Index and retires only the sele
   const attempt=publicationAttempt(request,'native-index');
   const prepared=await prepareCommit(store,request,attempt,value,cids.policy,false,true);
   const entry=indexEntry(request,attempt,value,{durable_result_binding_cids:[prepared.binding.identity]});
-  assert.equal((await store.commitIndex(wire(entry),prepared.required,prepared.evidence)).committed,true);
+  assert.equal((await commitFixtureIndex(store, wire(entry),prepared.required,prepared.evidence)).committed,true);
   const committed=publicationRecord(attempt,2,'succeeded',prepared.committing,{
     public_index_entry_cid:entry.public_index_entry_cid,
   });
@@ -6636,7 +6657,7 @@ test('public index is invisible before commit and survives a lost response',
     const entry = indexEntry(request, attempt, invocationValue, {
       durable_result_binding_cids: [prepared.binding.identity],
     });
-    const committed = await store.commitIndex(
+    const committed = await commitFixtureIndex(store,
       wire(entry), prepared.required, prepared.evidence,
     );
     assert.equal(committed.committed, true);
@@ -6703,7 +6724,7 @@ test('durable commit adopts prepared schema without deleting shared bytes',
     const entry = indexEntry(request, attempt, invocationValue, {
       durable_result_binding_cids: [prepared.binding.identity],
     });
-    const committed = await store.commitIndex(
+    const committed = await commitFixtureIndex(store,
       wire(entry), prepared.required, prepared.evidence,
     );
     assert.equal(committed.committed, true);
@@ -6743,7 +6764,7 @@ test('metadata retirement preserves a second Run prepared schema owner',
     const entry = indexEntry(request, attempt, invocationValue, {
       durable_result_binding_cids: [prepared.binding.identity],
     });
-    await store.commitIndex(wire(entry), prepared.required,
+    await commitFixtureIndex(store, wire(entry), prepared.required,
       prepared.evidence);
     assert.equal(otherRun.prepared.status().pending, true);
     const result = await store.retireCommittedResult(
@@ -6766,7 +6787,7 @@ test('Result reader consumes its already parsed Binding once while retaining phy
   const invocationValue=invocation(),request=publicationRequest(resultDefinition(),invocationValue.invocation_cid);
   const attempt=publicationAttempt(request),prepared=await prepareCommit(store,request,attempt,invocationValue);
   const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
-  await store.commitIndex(wire(entry),prepared.required,prepared.evidence);
+  await commitFixtureIndex(store, wire(entry),prepared.required,prepared.evidence);
   const parse=JSON.parse;let bindingParses=0;
   t.mock.method(JSON,'parse',function(value,...rest){
     // Count only direct Store DATA interpretation, separately from the
@@ -6794,7 +6815,7 @@ test('Result consumption retains its reader until the same failed FD close ackno
   const invocationValue=invocation(),request=publicationRequest(resultDefinition(),invocationValue.invocation_cid);
   const attempt=publicationAttempt(request),prepared=await prepareCommit(store,request,attempt,invocationValue);
   const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
-  await store.commitIndex(wire(entry),prepared.required,prepared.evidence);
+  await commitFixtureIndex(store, wire(entry),prepared.required,prepared.evidence);
   const binding=JSON.parse(prepared.binding.wire),path=join(directory,'objects',binding.material_generation_cid.slice(7));
   const actualOpen=fsPromises.open;
   let opens=0,streamCloseCalls=0,allowClose=false,failure;
@@ -6843,7 +6864,7 @@ test('durable Result retirement blocks new reads and waits for active readers',
     const entry = indexEntry(request, attempt, invocationValue, {
       durable_result_binding_cids: [prepared.binding.identity],
     });
-    await store.commitIndex(
+    await commitFixtureIndex(store,
       wire(entry), prepared.required, prepared.evidence,
     );
     let enterReader;
@@ -6901,7 +6922,7 @@ test('clean Store reopening does not rescan settled Result deletion history', as
   const entry = indexEntry(request, attempt, invoked, {
     durable_result_binding_cids: [prepared.binding.identity],
   });
-  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence);
   const retired = await store.retireCommittedResult(indexKeyFor(request),
     request.inventory[0].result_definition_cid);
   assert.equal(retired.deleted, true);
@@ -6947,7 +6968,7 @@ test(`Result cleanup ${phase} ${afterCommit ? 'committed' : 'rolled-back'} lost 
   const invoked = invocation(), request = publicationRequest(resultDefinition(), invoked.invocation_cid);
   const attempt = publicationAttempt(request), prepared = await prepareCommit(store, request, attempt, invoked);
   const entry = indexEntry(request, attempt, invoked, {durable_result_binding_cids: [prepared.binding.identity]});
-  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence);
   if (phase === 'begin') armed = true;
   const retired = await store.retireCommittedResult(indexKeyFor(request), request.inventory[0].result_definition_cid);
   if (phase === 'begin') {
@@ -6985,7 +7006,7 @@ test('Result cleanup seal shares physical quota COMMIT and keeps the original na
   const invoked = invocation(), request = publicationRequest(resultDefinition(), invoked.invocation_cid);
   const attempt = publicationAttempt(request), prepared = await prepareCommit(store, request, attempt, invoked);
   const entry = indexEntry(request, attempt, invoked, {durable_result_binding_cids: [prepared.binding.identity]});
-  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence);
   assert.equal((await store.retireCommittedResult(indexKeyFor(request), request.inventory[0].result_definition_cid)).deleted, true);
   armed = refuse = true;
   try {
@@ -7005,7 +7026,7 @@ test('Result cleanup legacy coverage is audited once and a selected corrupt mark
   const invoked = invocation(), request = publicationRequest(resultDefinition(), invoked.invocation_cid);
   const attempt = publicationAttempt(request), prepared = await prepareCommit(store, request, attempt, invoked);
   const entry = indexEntry(request, attempt, invoked, {durable_result_binding_cids: [prepared.binding.identity]});
-  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence);
   assert.equal((await store.retireCommittedResult(indexKeyFor(request), request.inventory[0].result_definition_cid)).deleted, true);
   await store.close();
   const database = new DatabaseSync(join(directory, 'delivery-attempts.sqlite3'));
@@ -7050,7 +7071,7 @@ test('a new process recovers only after an actual interrupted Result cleanup lif
   const invoked = invocation(), request = publicationRequest(resultDefinition(), invoked.invocation_cid);
   const attempt = publicationAttempt(request), prepared = await prepareCommit(store, request, attempt, invoked);
   const entry = indexEntry(request, attempt, invoked, {durable_result_binding_cids: [prepared.binding.identity]});
-  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence);
   await store.close();
   const child = await runStoreChild(`
     import assert from 'node:assert/strict';
@@ -7109,7 +7130,7 @@ test('description evidence admits each selected immutable contract once per read
     const entry = indexEntry(request, attempt, invocationValue, {
       durable_result_binding_cids: [prepared.binding.identity],
     });
-    await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+    await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence);
     for (let operation = 0; operation < 2; operation++) {
       admissions.clear();
       const result = await store.readCommittedResultDescriptionEvidence(
@@ -7151,7 +7172,7 @@ async function selectedMetadataFixture(t, label) {
   const entry = indexEntry(request, attempt, invocationValue, {
     durable_result_binding_cids: [prepared.binding.identity],
   });
-  await setup.store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  await commitFixtureIndex(setup.store, wire(entry), prepared.required, prepared.evidence);
   admissions.clear();
   return {...setup, admissions, entry, key: indexKeyFor(request), definitionCid: definition.result_definition_cid};
 }
@@ -7231,7 +7252,7 @@ test('description evidence survives payload deletion and restart, not metadata d
     const entry = indexEntry(request, attempt, invocationValue, {
       durable_result_binding_cids: [prepared.binding.identity],
     });
-    await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+    await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence);
     const key = indexKeyFor(request);
     const definitionCid = request.inventory[0].result_definition_cid;
     const before = await store.readCommittedResultDescriptionEvidence(key, definitionCid);
@@ -7263,7 +7284,7 @@ test('cold index confirmation reuses unchanged admission and checks post-ACK mut
     const entry = indexEntry(request, attempt, invocationValue, {
       durable_result_binding_cids: [prepared.binding.identity],
     });
-    await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+    await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence);
     await store.close();
     let admissions = 0, indexSyncs = 0, replace = false;
     const control = {...contractControl, admit(name, value, bounds) {
@@ -7312,7 +7333,7 @@ test('metadata retirement hides the Run and reclaims its durable chain',
     const entry = indexEntry(request, attempt, invocationValue, {
       durable_result_binding_cids: [prepared.binding.identity],
     });
-    await store.commitIndex(
+    await commitFixtureIndex(store,
       wire(entry), prepared.required, prepared.evidence,
     );
     // Independently admitted semantic fixtures and the real same-Store native
@@ -7420,7 +7441,7 @@ test('metadata retirement retains capacity until durability retry', async t => {
   const entry = indexEntry(request, attempt, invocationValue, {
     durable_result_binding_cids: [prepared.binding.identity],
   });
-  await store.commitIndex(
+  await commitFixtureIndex(store,
     wire(entry), prepared.required, prepared.evidence,
   );
   const chargedBefore = store.status().storedBytes;
@@ -7472,7 +7493,7 @@ test('restart resumes metadata retirement after an interrupted unlink',
     const entry = indexEntry(request, attempt, invocationValue, {
       durable_result_binding_cids: [prepared.binding.identity],
     });
-    await store.commitIndex(
+    await commitFixtureIndex(store,
       wire(entry), prepared.required, prepared.evidence,
     );
     await store.close();
@@ -7549,10 +7570,10 @@ test('metadata retirement preserves allocations shared by another Run',
       secondRequest, secondAttempt, invocationValue,
       {durable_result_binding_cids: [second.binding.identity]},
     );
-    await store.commitIndex(
+    await commitFixtureIndex(store,
       wire(firstEntry), first.required, first.evidence,
     );
-    await store.commitIndex(
+    await commitFixtureIndex(store,
       wire(secondEntry), second.required, second.evidence,
     );
     const retired = await store.retireCommittedPublicationMetadata(
@@ -7590,7 +7611,7 @@ async function selectedRetentionFixture(setup, label) {
   const invocationValue=invocation(),request=publicationRequest(resultDefinition(),digest(label));
   const attempt=publicationAttempt(request,label),prepared=await prepareCommit(store,request,attempt,invocationValue,base.effective_retention_policy_cid);
   const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
-  await store.commitIndex(wire(entry),prepared.required,prepared.evidence);
+  await commitFixtureIndex(store, wire(entry),prepared.required,prepared.evidence);
   const resultCid=request.inventory[0].result_definition_cid,key=indexKeyFor(request);
   await store.putCommittedResultRetentionExtension(key,resultCid,undefined,
     contractControl.admit('result_retention_policy',wire(extension),limits),'2026-09-18T00:30:00.000Z');
@@ -7723,7 +7744,7 @@ test('Result retention extensions are append-only CAS records across restart',
     const entry = indexEntry(request, attempt, invocationValue, {
       durable_result_binding_cids: [prepared.binding.identity],
     });
-    await store.commitIndex(
+    await commitFixtureIndex(store,
       wire(entry), prepared.required, prepared.evidence,
     );
     const resultCid = request.inventory[0].result_definition_cid;
@@ -7821,7 +7842,7 @@ test('Result retirement retains capacity until object durability retry',
     const entry = indexEntry(request, attempt, invocationValue, {
       durable_result_binding_cids: [prepared.binding.identity],
     });
-    await store.commitIndex(
+    await commitFixtureIndex(store,
       wire(entry), prepared.required, prepared.evidence,
     );
     const before = store.status().storedBytes;
@@ -7895,7 +7916,7 @@ test('restart reconciles a retired Result after unlink response is lost',
     const entry = indexEntry(request, attempt, invocationValue, {
       durable_result_binding_cids: [prepared.binding.identity],
     });
-    await store.commitIndex(
+    await commitFixtureIndex(store,
       wire(entry), prepared.required, prepared.evidence,
     );
     objectSyncFailures = 1;
@@ -7946,7 +7967,7 @@ test('Result retirement preserves a physical allocation held by another Run',
       const entry = indexEntry(request, attempt, invocationValue, {
         durable_result_binding_cids: [prepared.binding.identity],
       });
-      await store.commitIndex(
+      await commitFixtureIndex(store,
         wire(entry), prepared.required, prepared.evidence,
       );
       commits.push({request, prepared});
@@ -8033,7 +8054,7 @@ test('visible index is not committed until directory durability is confirmed',
     });
     let unknown;
     await assert.rejects(
-      store.commitIndex(wire(entry), prepared.required, prepared.evidence),
+      commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence),
       error => {
         unknown = error;
         return error?.code === 'EIO' && error.cleanupPending === true &&
@@ -8050,7 +8071,7 @@ test('visible index is not committed until directory durability is confirmed',
     assert.deepEqual(
       await store.confirmCommittedIndex(indexKeyFor(request)), entry,
     );
-    const idempotent = await store.commitIndex(
+    const idempotent = await commitFixtureIndex(store,
       wire(entry), prepared.required, prepared.evidence,
     );
     assert.equal(idempotent.committed, false);
@@ -8108,7 +8129,7 @@ test('committed payload custody remains retryable after cleanup failure',
     // adoption ACK and reconciliation, not a historical internal sync count.
     custodySyncFailures = 2;
     let unknown;
-    await assert.rejects(store.commitIndex(
+    await assert.rejects(commitFixtureIndex(store,
       wire(entry), prepared.required, prepared.evidence,
     ), error => {
       unknown = error;
@@ -8118,7 +8139,8 @@ test('committed payload custody remains retryable after cleanup failure',
     assert.deepEqual(
       await store.inspectCommittedIndex(indexKeyFor(request)), entry,
     );
-    assert.equal(prepared.prepared.status().pending, true);
+    assert.equal(prepared.prepared.status().pending, false,
+      'the transferred holder is settled; the original commit pin owns failed allocation cleanup');
     const recovered = await unknown.cleanupHandle.retry();
     assert.equal(recovered.pending, false);
     assert.equal(recovered.outcome, 'committed');
@@ -8170,7 +8192,7 @@ test('confirmed non-commit releases custody before prepared reclamation',
       durable_result_binding_cids: [prepared.binding.identity],
     });
     let unknown;
-    await assert.rejects(store.commitIndex(
+    await assert.rejects(commitFixtureIndex(store,
       wire(entry), prepared.required, prepared.evidence,
     ), error => {
       unknown = error;
@@ -8297,7 +8319,7 @@ test('restart reclaims terminal uncommitted publication metadata', async t => {
     durable_result_binding_cids: [prepared.binding.identity],
   });
   let unknown;
-  await assert.rejects(store.commitIndex(
+  await assert.rejects(commitFixtureIndex(store,
     wire(entry), prepared.required, prepared.evidence,
   ), error => {
     unknown = error;
@@ -8368,7 +8390,7 @@ test('commit verifies durable binding against the stored physical generation',
       durable_result_binding_cids: [mismatchedContract.identity],
     });
     await assert.rejects(
-      store.commitIndex(wire(entry), required, evidence),
+      commitFixtureIndex(store, wire(entry), required, evidence),
       code('PublicationDurableBindingMismatch'),
     );
     assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)),
@@ -8390,7 +8412,7 @@ test('same intent is idempotent while conflicting commit is rejected',
     const entry = indexEntry(request, attempt, invocationValue, {
       durable_result_binding_cids: [prepared.binding.identity],
     });
-    await store.commitIndex(
+    await commitFixtureIndex(store,
       wire(entry), prepared.required, prepared.evidence,
     );
 
@@ -8402,7 +8424,7 @@ test('same intent is idempotent while conflicting commit is rejected',
       durable_result_binding_cids: [retry.binding.identity],
       committed_at: '2026-09-18T00:01:00.000Z',
     });
-    const idempotent = await store.commitIndex(
+    const idempotent = await commitFixtureIndex(store,
       wire(retryEntry), retry.required, retry.evidence,
     );
     assert.equal(idempotent.committed, false);
@@ -8417,7 +8439,7 @@ test('same intent is idempotent while conflicting commit is rejected',
         durable_result_binding_cids: [retry.binding.identity],
         run_receipt_cid: otherReceiptCid,
       });
-    await assert.rejects(store.commitIndex(
+    await assert.rejects(commitFixtureIndex(store,
       wire(changedReceipt), [...retry.required, otherReceiptCid],
       retry.evidence,
     ), code('PublicationCommitConflict'));
@@ -8438,7 +8460,7 @@ test('same intent is idempotent while conflicting commit is rejected',
         durable_result_binding_cids: [conflict.binding.identity],
       },
     );
-    await assert.rejects(store.commitIndex(
+    await assert.rejects(commitFixtureIndex(store,
       wire(conflictingEntry), conflict.required, conflict.evidence,
     ), code('PublicationCommitConflict'));
     assert.equal(await conflict.prepared.release(), true);
@@ -8459,8 +8481,8 @@ test('concurrent public commits serialize one installation and one replay',
       durable_result_binding_cids: [prepared.binding.identity],
     });
     const results = await Promise.all([
-      store.commitIndex(wire(entry), prepared.required, prepared.evidence),
-      store.commitIndex(wire(entry), prepared.required, prepared.evidence),
+      commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence),
+      commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence),
     ]);
     assert.deepEqual(results.map(result => [
       result.committed, result.idempotent,
@@ -8560,7 +8582,7 @@ test('native publication Index and inventory share their real commit without dup
   const entry = indexEntry(request, attempt, invocationValue, {durable_result_binding_cids: [prepared.binding.identity]});
   for (const name of ['objects', 'contracts', 'indexes']) tracked.add(join(directory, name));
   armed = true;
-  const committed = await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  const committed = await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence);
   assert.equal(committed.committed, true);
   assert.equal(commits, 1, 'Index CAS, immutable body and inventory share the same actual durable transition');
   assert.deepEqual(syncs, [], 'native Index does not also install filesystem body/Index aliases');
@@ -8595,7 +8617,7 @@ test(`native Index Store retains both storage and payload custody after ${afterC
   const attempt = publicationAttempt(request), prepared = await prepareCommit(store,request,attempt,invoked,cids.policy,false,true);
   const entry = indexEntry(request,attempt,invoked,{durable_result_binding_cids:[prepared.binding.identity]});
   let failure; armed = true;
-  await assert.rejects(store.commitIndex(wire(entry),prepared.required,prepared.evidence),error=>{
+  await assert.rejects(commitFixtureIndex(store, wire(entry),prepared.required,prepared.evidence),error=>{
     failure = error; return error.outcome === 'unknown';
   });
   assert(lost);
@@ -8650,7 +8672,7 @@ test('original Host commit lookup confirms its same native Index writer before r
   const attempt = publicationAttempt(request), prepared = await prepareCommit(store, request, attempt, invoked, cids.policy, false, true);
   const entry = indexEntry(request, attempt, invoked, {durable_result_binding_cids: [prepared.binding.identity]});
   let original; armed = true;
-  await assert.rejects(store.commitIndex(wire(entry), prepared.required, prepared.evidence), error => {
+  await assert.rejects(commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence), error => {
     original = error; return error.outcome === 'unknown' && error.cleanupPending === true;
   });
   t.after(async () => {
@@ -8687,7 +8709,7 @@ test('native Index rechecks the original publication record inside its commit', 
     return Reflect.apply(lstatOriginal,this,[path,...args]);
   });
   syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
-  await assert.rejects(store.commitIndex(wire(entry),prepared.required,prepared.evidence),code('PublicationRecordConflict'));
+  await assert.rejects(commitFixtureIndex(store, wire(entry),prepared.required,prepared.evidence),code('PublicationRecordConflict'));
   assert(changedOnce);
   assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)),undefined);
   assert.equal((await store.latestRecord(attempt.publication_attempt_cid)).publication_record_cid,changed.publication_record_cid);
@@ -8710,7 +8732,7 @@ test('concurrent native Index confirmation retains one original lost-reply write
   const request = publicationRequest(resultDefinition(),digest('concurrent native Index confirmation'));
   const attempt = publicationAttempt(request), prepared = await prepareCommit(store,request,attempt,invoked,cids.policy,false,true);
   const entry = indexEntry(request,attempt,invoked,{durable_result_binding_cids:[prepared.binding.identity]});
-  await store.commitIndex(wire(entry),prepared.required,prepared.evidence); await store.close();
+  await commitFixtureIndex(store, wire(entry),prepared.required,prepared.evidence); await store.close();
   const reopened = await openLocalPublicationStore(configuration,contractControl);
   const lstatOriginal = fsPromises.lstat;
   let entered = 0, release;
@@ -8759,7 +8781,7 @@ test('native Index confirmation retains its same cleanup through two committed l
   const request = publicationRequest(resultDefinition(), digest('repeated native Index confirmation'));
   const attempt = publicationAttempt(request), prepared = await prepareCommit(store, request, attempt, invoked, cids.policy, false, true);
   const entry = indexEntry(request, attempt, invoked, {durable_result_binding_cids: [prepared.binding.identity]});
-  await store.commitIndex(wire(entry), prepared.required, prepared.evidence); await store.close();
+  await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence); await store.close();
   const reopened = await openLocalPublicationStore(configuration, contractControl);
   t.after(async () => {armed = false; t.mock.restoreAll(); await reopened.close();});
   let original;
@@ -8790,7 +8812,7 @@ test('native Index shared Result payload keeps the same allocation until final r
     const invoked = invocation(), request = publicationRequest(resultDefinition(),digest(label));
     const attempt = publicationAttempt(request), prepared = await prepareCommit(store,request,attempt,invoked,cids.policy,false,true);
     const entry = indexEntry(request,attempt,invoked,{durable_result_binding_cids:[prepared.binding.identity]});
-    await store.commitIndex(wire(entry),prepared.required,prepared.evidence);
+    await commitFixtureIndex(store, wire(entry),prepared.required,prepared.evidence);
     return {request,entry,physical:JSON.parse(prepared.binding.wire).material_generation_cid};
   };
   const first = await publish('native first shared Result'), second = await publish('native second shared Result');
@@ -8831,7 +8853,7 @@ test('native Index selected body corruption refuses without rebuilding unrelated
   const request = publicationRequest(resultDefinition(),digest('native selected corruption'));
   const attempt = publicationAttempt(request), prepared = await prepareCommit(store,request,attempt,invoked,cids.policy,false,true);
   const entry = indexEntry(request,attempt,invoked,{durable_result_binding_cids:[prepared.binding.identity]});
-  await store.commitIndex(wire(entry),prepared.required,prepared.evidence); await store.close();
+  await commitFixtureIndex(store, wire(entry),prepared.required,prepared.evidence); await store.close();
   const db = new DatabaseSync(join(directory,'delivery-attempts.sqlite3'));
   try {db.prepare('UPDATE publication_contracts SET wire=?,byte_count=? WHERE semantic_cid=?').run('{}',2,entry.public_index_entry_cid);}
   finally {db.close();}
@@ -8855,7 +8877,7 @@ test('native publication inventory is the durable original without duplicate fil
     return Reflect.apply(actualOpen,this,[path,...args]);
   });
   syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
-  assert.equal((await store.commitIndex(wire(entry),prepared.required,prepared.evidence)).committed,true);
+  assert.equal((await commitFixtureIndex(store, wire(entry),prepared.required,prepared.evidence)).committed,true);
   assert.deepEqual(opens,[],'native inventory is not also an FS body/directory acknowledgement');
   assert.deepEqual(await readdir(inventoryDirectory),[]);
   assert.equal((await store.lookupCommittedIndex(indexKeyFor(request),()=>true)).public_index_entry_cid,entry.public_index_entry_cid);
@@ -8878,7 +8900,7 @@ test('native publication inventory survives reopen and retires only its original
     const invocationValue=invocation(),request=publicationRequest(resultDefinition(),digest(label));
     const attempt=publicationAttempt(request,label),prepared=await prepareCommit(store,request,attempt,invocationValue);
     const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
-    await store.commitIndex(wire(entry),prepared.required,prepared.evidence);
+    await commitFixtureIndex(store, wire(entry),prepared.required,prepared.evidence);
     return {request,entry};
   };
   const first=await publish('first native owner'),second=await publish('second native owner');
@@ -8936,7 +8958,7 @@ test('metadata deletion keeps the same cleanup after native retirement and lost 
   const invocationValue=invocation(),request=publicationRequest(resultDefinition(),invocationValue.invocation_cid);
   const attempt=publicationAttempt(request),prepared=await prepareCommit(store,request,attempt,invocationValue);
   const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
-  await store.commitIndex(wire(entry),prepared.required,prepared.evidence);await store.close();
+  await commitFixtureIndex(store, wire(entry),prepared.required,prepared.evidence);await store.close();
   let lost=false,armed=false;
   const reopened=await openLocalPublicationStore(configuration,contractControl,{async syncDirectory(path){
     if(armed&&!lost&&path===join(directory,'metadata-deletions')&&(await readdir(path)).length===0){
@@ -8975,7 +8997,7 @@ test(`metadata deletion ${phase} Unknown retains the actual Store cleanup origin
   const invocationValue=invocation();request=publicationRequest(resultDefinition(),invocationValue.invocation_cid);
   const attempt=publicationAttempt(request),prepared=await prepareCommit(store,request,attempt,invocationValue);
   const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
-  await store.commitIndex(wire(entry),prepared.required,prepared.evidence);armed=true;
+  await commitFixtureIndex(store, wire(entry),prepared.required,prepared.evidence);armed=true;
   const retired=await store.retireCommittedPublicationMetadata(indexKeyFor(request),'2027-01-01T00:00:00.000Z');
   assert.equal(lost,true);assert.equal(retired.cleanup.status().pending,true);
   const again=await store.retireCommittedPublicationMetadata(indexKeyFor(request),'2027-01-01T00:00:01.000Z');
@@ -8994,7 +9016,7 @@ test('native shared holding selection reads only owners of that holding', async 
     const invocationValue = invocation(), request = publicationRequest(resultDefinition(), digest(label));
     const attempt = publicationAttempt(request, label), prepared = await prepareCommit(store, request, attempt, invocationValue);
     const entry = indexEntry(request, attempt, invocationValue, {durable_result_binding_cids: [prepared.binding.identity]});
-    await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+    await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence);
     return {request, entry};
   };
   const first = await publish('indexed first holding owner');
@@ -9057,7 +9079,7 @@ test('native publication inventories retain one shared physical holding until it
     const invocationValue=invocation(),request=publicationRequest(resultDefinition(),digest(label));
     const attempt=publicationAttempt(request,label),prepared=await prepareCommit(store,request,attempt,invocationValue);
     const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
-    await store.commitIndex(wire(entry),prepared.required,prepared.evidence);return {request,entry};
+    await commitFixtureIndex(store, wire(entry),prepared.required,prepared.evidence);return {request,entry};
   };
   const first=await publish('first shared native holding owner');
   const second=await publish('second shared native holding owner');
@@ -9124,7 +9146,7 @@ test('native publication inventory validates only the selected body and exact In
     const invocationValue=invocation(),request=publicationRequest(resultDefinition(),digest(label));
     const attempt=publicationAttempt(request,label),prepared=await prepareCommit(store,request,attempt,invocationValue);
     const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
-    await store.commitIndex(wire(entry),prepared.required,prepared.evidence);return {request,entry};
+    await commitFixtureIndex(store, wire(entry),prepared.required,prepared.evidence);return {request,entry};
   };
   const healthy=await publish('healthy native tuple'),selected=await publish('selected native tuple');
   await store.close();
@@ -9151,7 +9173,7 @@ async function committedHoldingFixture(setup, label) {
   const entry = indexEntry(request, attempt, invocationValue, {
     durable_result_binding_cids: [prepared.binding.identity],
   });
-  await setup.store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  await commitFixtureIndex(setup.store, wire(entry), prepared.required, prepared.evidence);
   const payload = await preparePhysical(setup.store, `source ${label}`);
   const holding = physicalHolding(digest(`holding ${label}`), digest(`manifest ${label}`),
     [{cid: payload.cid, byte_count: payload.bytes}], 'effect-source');
@@ -9261,7 +9283,7 @@ test('publication recovery completes only its retained inventory after a lost pr
   const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
   armed=true;
   let originalFailure;
-  await assert.rejects(setup.store.commitIndex(wire(entry),prepared.required,prepared.evidence),error=>{
+  await assert.rejects(commitFixtureIndex(setup.store, wire(entry),prepared.required,prepared.evidence),error=>{
     originalFailure=error;return error.outcome==='unknown';
   });
   assert.equal(lost,true);
@@ -9323,7 +9345,7 @@ test('publication recovery retries only the native removal after physical uncomm
   const prepared=await prepareCommit(store,request,attempt,invocationValue);
   const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
   let failure;
-  await assert.rejects(store.commitIndex(wire(entry),prepared.required,prepared.evidence),error=>{failure=error;return error.cleanupHandle?.status().pending===true;});
+  await assert.rejects(commitFixtureIndex(store, wire(entry),prepared.required,prepared.evidence),error=>{failure=error;return error.cleanupHandle?.status().pending===true;});
   for(const name of await readdir(join(directory,'indexes')))await unlink(join(directory,'indexes',name));
   assert.equal((await failure.cleanupHandle.retry()).outcome,'uncommitted');
   await store.appendRecord(wire(publicationRecord(attempt,2,'cancelled',prepared.committing)),{uncommittedConfirmed:true});
@@ -10421,6 +10443,439 @@ test('physical holding retains capacity until unlink durability retry',
     assert.equal(store.status().storedBytes, 0);
     assert.equal(store.status().objectCount, 0);
   });
+
+for (const count of [2, 3]) {
+  test(`prepared adoption serializes ${count} identical-material seals without orphan custody`, async t => {
+    let physicalReady, blocked = false, physicalCount = 0, staging;
+    const ready = new Promise(resolve => { physicalReady = resolve; });
+    const {store, directory, configuration} = await fixture(t, {}, contractControl, {
+      async syncDirectory(path) {
+        const handle = await open(path, 'r');
+        try { await handle.sync(); } finally { await handle.close(); }
+        if (blocked && path === staging && ++physicalCount === count - 1) physicalReady();
+      },
+    });
+    staging = join(directory, 'staging');
+    const request = publicationRequest(resultDefinition(), digest(`custody-race-${count}`));
+    const invocationValue = invocation();
+    const attempt = publicationAttempt(request, `custody-race-${count}`);
+    const first = await prepareCommit(store, request, attempt, invocationValue);
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [first.binding.identity],
+    });
+    const custodyDirectory = join(directory, 'prepared-custody');
+    const names = await readdir(custodyDirectory);
+    assert.equal(names.length, 1);
+    const originalUnlink = fsPromises.unlink;
+    let enter, resume;
+    const entered = new Promise(resolve => { enter = resolve; });
+    const paused = new Promise(resolve => { resume = resolve; });
+    let consumed = false;
+    t.mock.method(fsPromises, 'unlink', async path => {
+      if (!consumed && String(path) === join(custodyDirectory, names[0])) {
+        consumed = true; blocked = true; enter(); await paused;
+      }
+      const result = await originalUnlink(path);
+      return result;
+    });
+    syncBuiltinESMExports();
+    t.after(() => {t.mock.restoreAll(); syncBuiltinESMExports();});
+    const committing = commitFixtureIndex(store, wire(entry), first.required, first.evidence);
+    await entered;
+    const payload = Buffer.from('fixture durable Result payload');
+    const seals = Array.from({length:count-1}, async () => {
+      const writer = store.createPreparedObjectWriter(payload.length);
+      await writer.append(payload);
+      return writer.seal(digest(payload));
+    });
+    try {
+      await ready;
+      // Allow physical seal continuations to attempt metadata attachment while
+      // adoption still owns its original snapshot. The fixed queue waits.
+      await new Promise(resolve => setImmediate(resolve));
+      await assert.rejects(store.close(),code('PublicationStoreCleanupPending'));
+      assert.equal(store.status().closed,false,'queued seal custody prevents premature close');
+    } finally { blocked = false; resume(); }
+    await committing;
+    const later = await Promise.all(seals);
+    for (const value of later) {
+      assert.equal(value.prepared.status().pending, true,
+        'earlier adoption cannot silently retire a later prepared owner');
+      await value.prepared.release();
+    }
+    assert.deepEqual(await readdir(custodyDirectory), []);
+    const bytes = (await store.verifyObject(digest(payload))).bytes;
+    assert.equal(bytes, payload.length, 'published material survives later cancellation');
+    await store.close();
+    const reopened = await openLocalPublicationStore(configuration, contractControl);
+    assert.equal((await reopened.verifyObject(digest(payload))).bytes, payload.length);
+    await reopened.close();
+  });
+}
+
+test('failed prepared custody retirement retains the original retry and later same-CID owner', async t => {
+  const {store, directory} = await fixture(t);
+  const request = publicationRequest(resultDefinition(), digest('custody-retirement-failure'));
+  const invocationValue = invocation();
+  const attempt = publicationAttempt(request, 'custody-retirement-failure');
+  const first = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [first.binding.identity],
+  });
+  const custodyDirectory = join(directory, 'prepared-custody');
+  const [name] = await readdir(custodyDirectory);
+  const originalUnlink = fsPromises.unlink;
+  let refuse = true;
+  t.mock.method(fsPromises, 'unlink', async path => {
+    if (refuse && String(path) === join(custodyDirectory, name)) {
+      throw Object.assign(new Error('OriginalCustodyRetirementUnavailable'), {code:'EIO'});
+    }
+    return originalUnlink(path);
+  });
+  syncBuiltinESMExports();
+  t.after(() => {t.mock.restoreAll(); syncBuiltinESMExports();});
+  let failure;
+  await assert.rejects(commitFixtureIndex(store, wire(entry), first.required, first.evidence), error => {
+    failure=error; return error.cleanupPending===true;
+  });
+  assert.equal(first.prepared.status().pending,false,
+    'durable transfer settled the holder; the original commit pin retains failed allocation cleanup');
+  assert.equal(failure.cleanupHandle.status().pending,true);
+  const payload=Buffer.from('fixture durable Result payload');
+  const writer=store.createPreparedObjectWriter(payload.length);
+  await writer.append(payload);
+  const later=await writer.seal(digest(payload));
+  assert.equal(later.prepared.status().pending,true);
+  await assert.rejects(store.close(),code('PublicationStoreCleanupPending'));
+  refuse=false;
+  await failure.cleanupHandle.retry();
+  assert.equal(failure.cleanupHandle.status().pending,false);
+  assert.equal(later.prepared.status().pending,true,
+    'reconciliation transfers only the original selected holder');
+  await later.prepared.release();
+  assert.deepEqual(await readdir(custodyDirectory),[]);
+  assert.equal((await store.verifyObject(digest(payload))).bytes,payload.length);
+  await store.close();
+});
+
+test('prepared release winning before commit custody acquisition refuses missing material before install', async t => {
+  let stageReady;
+  const staged = new Promise(resolve => {stageReady=resolve;});
+  const {store,directory}=await fixture(t);
+  const request=publicationRequest(resultDefinition(),digest('release-begin-race'));
+  const invocationValue=invocation();
+  const attempt=publicationAttempt(request,'release-begin-race');
+  const first=await prepareCommit(store,request,attempt,invocationValue);
+  const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[first.binding.identity]});
+  const payload=Buffer.from('fixture durable Result payload');
+  const target=join(directory,'objects',digest(payload).slice(7));
+  let sawRelease,resumeRelease,resumeInstall,block=true;
+  const releaseEntered=new Promise(r=>sawRelease=r),releaseWait=new Promise(r=>resumeRelease=r);
+  const installWait=new Promise(r=>resumeInstall=r);
+  const originalStat=fsPromises.lstat,originalLink=fsPromises.link;
+  t.mock.method(fsPromises,'lstat',async function(path,...args){
+    const value=await originalStat(path,...args);
+    if(block&&path===target){block=false;sawRelease();await releaseWait;}
+    return value;
+  });
+  t.mock.method(fsPromises,'link',async function(from,to){
+    if(String(to).startsWith(join(directory,'indexes')+sep))await installWait;
+    const linked=await originalLink(from,to);
+    if(String(to)===join(directory,'contracts',entry.public_index_entry_cid.slice(7)+'.json'))stageReady();
+    return linked;
+  });
+  syncBuiltinESMExports();
+  t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
+  const releasing=first.prepared.release();
+  await releaseEntered;
+  const committing=commitFixtureIndex(store, wire(entry),first.required,first.evidence);
+  committing.catch(()=>{});
+  await staged;
+  await new Promise(resolve=>setImmediate(resolve));
+  resumeRelease();
+  assert.equal(await releasing,true);
+  resumeInstall();
+  await assert.rejects(committing,code('PublicationObjectMissing'));
+  assert.equal(await store.confirmCommittedIndex({namespaceId:entry.namespace_id,
+    authorityScopeCid:entry.authority_scope_cid,runDefinitionCid:entry.run_definition_cid}),undefined);
+});
+
+test('commit custody acquired before prepared cancellation retains material through original install',async t=>{
+ const {store,directory}=await fixture(t);
+ const request=publicationRequest(resultDefinition(),digest('commit-before-cancel'));
+ const invocationValue=invocation(),attempt=publicationAttempt(request,'commit-before-cancel');
+ const first=await prepareCommit(store,request,attempt,invocationValue);
+ const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[first.binding.identity]});
+ let entered,resume;
+ const installing=new Promise(r=>entered=r),wait=new Promise(r=>resume=r);
+ const originalLink=fsPromises.link;
+ t.mock.method(fsPromises,'link',async(from,to)=>{
+  if(String(to).startsWith(join(directory,'indexes')+sep)){entered();await wait;}
+  return originalLink(from,to);
+ });
+ syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
+ const committing=commitFixtureIndex(store, wire(entry),first.required,first.evidence);
+ await installing;
+ assert.equal(await first.prepared.release(),false);
+ assert.equal(first.prepared.status().pending,true);
+ resume();assert.equal((await committing).committed,true);
+ assert.equal(first.prepared.status().pending,false);
+ assert.equal((await store.verifyObject(digest('fixture durable Result payload'))).bytes,30);
+});
+
+for (const privateAdoption of [false,true]) test(`adopted shared material is pinned before another Run index installs, privateAdoption=${privateAdoption}`, async t => {
+  const {store,directory}=await fixture(t);
+  const invoked=invocation();
+  const prepare=async label=>{
+    const request=publicationRequest(resultDefinition(),digest(label));
+    const attempt=publicationAttempt(request,label);
+    const prepared=await prepareCommit(store,request,attempt,invoked);
+    const entry=indexEntry(request,attempt,invoked,{durable_result_binding_cids:[prepared.binding.identity]});
+    return {request,prepared,entry};
+  };
+  const a=await prepare('shared-pin-a'), b=await prepare('shared-pin-b');
+  await commitFixtureIndex(store, wire(a.entry),a.prepared.required,a.prepared.evidence);
+  assert.equal(b.prepared.prepared.status().pending,true);
+  await b.prepared.prepared.release();
+  assert.equal(b.prepared.prepared.status().pending,false);
+  let entered,resume;
+  const installing=new Promise(r=>entered=r), wait=new Promise(r=>resume=r);
+  const originalLink=fsPromises.link;
+  t.mock.method(fsPromises,'link',async(from,to)=>{
+    if(String(to).startsWith(join(directory,'indexes')+sep)){entered();await wait;}
+    return originalLink(from,to);
+  });
+  syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
+  const committing=commitFixtureIndex(store, wire(b.entry),b.prepared.required,b.prepared.evidence);
+  await installing;
+  let holdingRetirement;
+  if (privateAdoption) {
+    const payload=await preparePhysical(store,Buffer.from('fixture durable Result payload'));
+    const holding=physicalHolding(digest('concurrent private adopter'),digest('concurrent private manifest'),
+      [{cid:payload.cid,byte_count:payload.bytes}], 'effect-source');
+    await store.commitPhysicalHolding(holding,[payload.prepared]);
+    holdingRetirement=()=>store.retirePhysicalHolding(holding.holding_cid);
+  }
+  const retired=await store.retireCommittedResult(indexKeyFor(a.request),a.request.inventory[0].result_definition_cid);
+  const privateRetired=await holdingRetirement?.();
+  try {
+    assert.equal(retired.cleanup.status().pending,true,'temporary commit pin retains last original');
+    assert.equal((await store.verifyObject(digest('fixture durable Result payload'))).bytes,30);
+  } finally {resume();await committing;await retired.cleanup.retry();await privateRetired?.cleanup.retry();}
+  const chunks=[];
+  await store.consumeCommittedResult(indexKeyFor(b.request),b.request.inventory[0].result_definition_cid,
+    ()=>true,chunk=>chunks.push(Buffer.from(chunk)));
+  assert.equal(Buffer.concat(chunks).toString(),'fixture durable Result payload');
+});
+
+test('independent prepared holder survives another same-CID publication retirement before its stage', async t => {
+  const {store}=await fixture(t), invoked=invocation();
+  const prepare=async label=>{
+    const request=publicationRequest(resultDefinition(),digest(label)), attempt=publicationAttempt(request,label);
+    const value=await prepareCommit(store,request,attempt,invoked);
+    const entry=indexEntry(request,attempt,invoked,{durable_result_binding_cids:[value.binding.identity]});
+    return {request,value,entry};
+  };
+  const a=await prepare('holder-stage-a'), b=await prepare('holder-stage-b');
+  await commitFixtureIndex(store, wire(a.entry),a.value.required,a.value.evidence,undefined,[a.value.prepared]);
+  assert.equal(a.value.prepared.status().pending,false);
+  assert.equal(b.value.prepared.status().pending,true,'A cannot transfer B by content identity');
+  const retired=await store.retireCommittedResult(indexKeyFor(a.request),a.request.inventory[0].result_definition_cid);
+  assert.equal(retired.cleanup.status().pending,true);
+  const committed=await commitFixtureIndex(store, wire(b.entry),b.value.required,b.value.evidence,undefined,[b.value.prepared]);
+  assert.equal(committed.committed,true);assert.equal(b.value.prepared.status().pending,false);
+  await retired.cleanup.retry();
+  const rows=[];
+  await store.consumeCommittedResult(indexKeyFor(b.request),b.request.inventory[0].result_definition_cid,
+    ()=>true,part=>rows.push(Buffer.from(part)));
+  assert.equal(Buffer.concat(rows).toString(),'fixture durable Result payload');
+});
+
+test('CID-only commit and stored confirmation cannot transfer independent prepared handles', async t => {
+  const {store}=await fixture(t), invoked=invocation();
+  const request=publicationRequest(resultDefinition(),digest('no-holder-authority'));
+  const attempt=publicationAttempt(request), p=await prepareCommit(store,request,attempt,invoked);
+  const entry=indexEntry(request,attempt,invoked,{durable_result_binding_cids:[p.binding.identity]});
+  await store.commitIndex(wire(entry),p.required,p.evidence);
+  assert.equal(p.prepared.status().pending,true);
+  await store.validateCommittedEvidence(contractControl.admit('public_index_entry',wire(entry),limits),p.evidence);
+  assert.equal(p.prepared.status().pending,true);
+  await p.prepared.release();
+  assert.equal(p.prepared.status().pending,false);
+});
+
+const holderPermutations = [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
+for (const order of holderPermutations) for (const adopter of ['public','private'])
+  for (const terminal of ['publish','cancel']) {
+  test(`nominal holder interleaving ${order.join('')}/${adopter}/${terminal}`, async t => {
+    const {store}=await fixture(t), invoked=invocation(), holders=[];
+    for (let i=0;i<3;i++) {
+      const request=publicationRequest(resultDefinition(),digest(`permutation-${order}-${adopter}-${terminal}-${i}`));
+      const attempt=publicationAttempt(request), p=await prepareCommit(store,request,attempt,invoked);
+      const entry=indexEntry(request,attempt,invoked,{durable_result_binding_cids:[p.binding.identity]});
+      holders.push({request,p,entry});
+    }
+    const [a,b,c]=order.map(index=>holders[index]);let retirement;
+    if (adopter==='public') {
+      await store.commitIndex(wire(a.entry),a.p.required,a.p.evidence,undefined,[a.p.prepared,a.p.prepared]);
+      retirement=await store.retireCommittedResult(indexKeyFor(a.request),a.request.inventory[0].result_definition_cid);
+    } else {
+      const material=JSON.parse(a.p.binding.wire);
+      const holding=physicalHolding(digest('permutation-holding'),digest('permutation-manifest'),
+        [{cid:material.material_generation_cid,byte_count:material.byte_count}],'effect-source');
+      await store.commitPhysicalHolding(holding,[a.p.prepared]);
+      retirement=await store.retirePhysicalHolding(holding.holding_cid);
+    }
+    assert.equal(a.p.prepared.status().pending,false);
+    assert.equal(b.p.prepared.status().pending,true);assert.equal(c.p.prepared.status().pending,true);
+    await c.p.prepared.release();assert.equal(b.p.prepared.status().pending,true);
+    if (terminal==='publish') {
+      await store.commitIndex(wire(b.entry),b.p.required,b.p.evidence,undefined,[b.p.prepared]);
+      assert.equal((await store.verifyObject(digest('fixture durable Result payload'))).bytes,30);
+    } else await b.p.prepared.release();
+    assert.equal(b.p.prepared.status().pending,false);assert.equal(c.p.prepared.status().pending,false);
+    await retirement.cleanup.retry();
+  });
+}
+
+for (const creatorFirst of [true,false]) test(`shared original allocation recovery survives holder retirement, creatorFirst=${creatorFirst}`,async t=>{
+ const directory=await mkdtemp(join(tmpdir(),'actql-holder-generation-crash-'));
+ t.after(()=>removeFixtureDirectory(directory));
+ const configuration={directory,storeAuthorityCid:cids.authority,capacityBytes:1024*1024,
+   maxObjectBytes:64*1024,maxObjects:100,maxContractNodes:limits.maxNodes,maxContractDepth:limits.maxDepth};
+ const storeUrl=new URL('./publication-store.mjs',import.meta.url).href;
+ const controlUrl=new URL('../host-common/publication-contract-control.fixture.mjs',import.meta.url).href;
+ const bytes='shared allocation recovery',material=digest(bytes);
+ const holding=physicalHolding(digest('holder-generation-holding'),digest('holder-generation-manifest'),
+   [{cid:material,byte_count:Buffer.byteLength(bytes)}],'effect-source');
+ const child=await runStoreChild(`
+  import assert from 'node:assert/strict';
+  import {openLocalPublicationStore} from ${JSON.stringify(storeUrl)};
+  import {createPublicationContractControlFixture} from ${JSON.stringify(controlUrl)};
+  const store=await openLocalPublicationStore(${JSON.stringify(configuration)},createPublicationContractControlFixture());
+  const holders=[];
+  for(let i=0;i<2;i++){const writer=store.createPreparedObjectWriter(${Buffer.byteLength(bytes)});
+    await writer.append(Buffer.from(${JSON.stringify(bytes)}));holders.push((await writer.seal(${JSON.stringify(material)})).prepared);}
+  const selected=${creatorFirst?0:1}, remaining=1-selected;
+  await store.commitPhysicalHolding(${JSON.stringify(holding)},[holders[selected]]);
+  assert.equal(holders[selected].status().pending,false);assert.equal(holders[remaining].status().pending,true);
+  await store.retirePhysicalHolding(${JSON.stringify(holding.holding_cid)});
+  assert.equal((await store.verifyObject(${JSON.stringify(material)})).bytes,${Buffer.byteLength(bytes)});
+  process.exit(77);
+ `);
+ assert.equal(child.exitCode,77,child.stderr);
+ const reopened=await openLocalPublicationStore(configuration,contractControl);
+ await assert.rejects(reopened.verifyObject(material),code('PublicationObjectMissing'));
+ assert.deepEqual(await readdir(join(directory,'prepared-custody')),[]);
+ assert.equal(reopened.status().storedBytes,0);
+ await reopened.close();
+});
+
+test('original allocation recovery survives zero holders with a pending public commit pin',async t=>{
+ const {store,configuration,directory}=await fixture(t), invoked=invocation();
+ const request=publicationRequest(resultDefinition(),digest('pin-without-holder-crash'));
+ const attempt=publicationAttempt(request),p=await prepareCommit(store,request,attempt,invoked);
+ const entry=indexEntry(request,attempt,invoked,{durable_result_binding_cids:[p.binding.identity]});
+ await p.prepared.release();await store.close();
+ const payload='fixture durable Result payload',material=digest(payload);
+ const holding=physicalHolding(digest('pin-only-private-holding'),digest('pin-only-manifest'),
+   [{cid:material,byte_count:30}],'effect-source');
+ const child=await runStoreChild(`
+  import assert from 'node:assert/strict';import fs from 'node:fs/promises';
+  import {syncBuiltinESMExports} from 'node:module';import {join} from 'node:path';
+  import {openLocalPublicationStore} from ${JSON.stringify(new URL('./publication-store.mjs',import.meta.url).href)};
+  import {createPublicationContractControlFixture} from ${JSON.stringify(new URL('../host-common/publication-contract-control.fixture.mjs',import.meta.url).href)};
+  const control=createPublicationContractControlFixture();
+  const store=await openLocalPublicationStore(${JSON.stringify(configuration)},control);
+  const admit=value=>{if(Array.isArray(value))return value.map(admit);try{return control.admit(value.name,value.wire,${JSON.stringify(limits)});}catch(error){if(error.code!=='UnknownPublicationContract')throw error;return control.admitArtifactFixture(value.name,value.wire);}};
+  const evidence=Object.fromEntries(Object.entries(${JSON.stringify(p.evidence)}).map(([key,value])=>[key,admit(value)]));
+  const writer=store.createPreparedObjectWriter(30);await writer.append(Buffer.from(${JSON.stringify(payload)}));
+  const owner=(await writer.seal(${JSON.stringify(material)})).prepared;
+  let entered;const installing=new Promise(r=>entered=r);const originalLink=fs.link;
+  fs.link=async(from,to)=>{if(String(to).startsWith(join(${JSON.stringify(directory)},'indexes')+'/')){
+    entered();await new Promise(()=>{});}return originalLink(from,to);};syncBuiltinESMExports();
+  store.commitIndex(${JSON.stringify(wire(entry))},${JSON.stringify(p.required)},evidence).catch(error=>{console.error(error);process.exit(79);});
+  await installing;
+  await store.commitPhysicalHolding(${JSON.stringify(holding)},[owner]);
+  assert.equal(owner.status().pending,false);
+  await store.retirePhysicalHolding(${JSON.stringify(holding.holding_cid)});
+  assert.equal((await store.verifyObject(${JSON.stringify(material)})).bytes,30);
+  process.exit(77);
+ `);
+ assert.equal(child.exitCode,77,child.stderr);
+ const reopened=await openLocalPublicationStore(configuration,contractControl);
+ await assert.rejects(reopened.verifyObject(material),code('PublicationObjectMissing'));
+ assert.deepEqual(await readdir(join(directory,'prepared-custody')),[]);
+ await reopened.close();
+});
+
+for (const mode of ['retired','unknown-marker']) test(`final pin checks original Index retirement, ${mode}`,async t=>{
+ let storeRef,directoryRef,selected,armed=false,retirement;
+ const fixtureValue=await fixture(t,{},contractControl,{async syncDirectory(path){
+   const handle=await open(path,'r');try{await handle.sync();}finally{await handle.close();}
+   if(armed&&path===join(directoryRef,'indexes')){
+     armed=false;
+     if(mode==='retired') retirement=await storeRef.retireCommittedResult(
+       indexKeyFor(selected.request),selected.request.inventory[0].result_definition_cid);
+     else refuse=true;
+   }
+ }});
+ const {store,directory}=fixtureValue;storeRef=store;directoryRef=directory;
+ const invoked=invocation(),request=publicationRequest(resultDefinition(),digest('pin-own-retention-'+mode));
+ const attempt=publicationAttempt(request),p=await prepareCommit(store,request,attempt,invoked);
+ const entry=indexEntry(request,attempt,invoked,{durable_result_binding_cids:[p.binding.identity]});
+ selected={request};let refuse=false;
+ const originalStat=fsPromises.lstat;
+ t.mock.method(fsPromises,'lstat',async(path,...args)=>{
+   if(refuse&&String(path).startsWith(join(directory,'deletions')+sep))throw Object.assign(new Error('OriginalDeletionMarkerUnknown'),{code:'EIO'});
+   return originalStat(path,...args);
+ });
+ syncBuiltinESMExports();t.after(()=>{refuse=false;t.mock.restoreAll();syncBuiltinESMExports();});
+ armed=true;
+ if(mode==='retired'){
+   await store.commitIndex(wire(entry),p.required,p.evidence,undefined,[p.prepared]);
+   await retirement.cleanup.retry();
+   await assert.rejects(store.verifyObject(digest('fixture durable Result payload')),code('PublicationObjectMissing'));
+ } else {
+   let failure;
+   await assert.rejects(store.commitIndex(wire(entry),p.required,p.evidence,undefined,[p.prepared]),error=>{
+     failure=error;return error.cleanupPending===true&&error.cleanupHandle.status().pending===true;
+   });
+   assert.equal((await readdir(join(directory,'prepared-custody'))).length,1);
+   refuse=false;await failure.cleanupHandle.retry();
+   assert.equal(failure.cleanupHandle.status().pending,false);
+   assert.equal((await store.verifyObject(digest('fixture durable Result payload'))).bytes,30);
+ }
+});
+
+test('Store typed validation retains semantic close custody while yielded and releases after cancellation',async t=>{
+  let intercept=false, entered, resume;
+  const atBarrier=new Promise(resolve=>{entered=resolve;});
+  const barrier=new Promise(resolve=>{resume=resolve;});
+  const events=[];
+  const control={...contractControl,async effectFreeStoredCommitValid(...args){
+    if(!intercept)return contractControl.effectFreeStoredCommitValid(...args);
+    const requireCurrent=args.pop();
+    try{requireCurrent();entered();await barrier;requireCurrent();throw new Error('InjectedValidationCancellation');}
+    finally{events.push('checker-cancelled');}
+  }};
+  const {store}=await fixture(t,{},control),invoked=invocation();
+  const request=publicationRequest(resultDefinition(),invoked.invocation_cid);
+  const attempt=publicationAttempt(request),p=await prepareCommit(store,request,attempt,invoked);
+  const entry=indexEntry(request,attempt,invoked,{durable_result_binding_cids:[p.binding.identity]});
+  await commitFixtureIndex(store,wire(entry),p.required,p.evidence);
+  await p.prepared.release();
+  intercept=true;
+  const validating=store.validateCommittedEvidence(contractControl.admit('public_index_entry',wire(entry),limits),p.evidence);
+  const refused=assert.rejects(validating,error=>error.code==='InvalidPublicationCommitChain'&&error.cause?.message==='InjectedValidationCancellation');
+  await atBarrier;
+  try {
+    await assert.rejects(store.close(),{code:'PublicationStoreCleanupPending'});
+    assert.equal(store.status().closed,false);assert.deepEqual(events,[]);
+  } finally {resume();await refused;}
+  assert.deepEqual(events,['checker-cancelled']);
+  assert.equal(await store.close(),true);assert.equal(store.status().closed,true);
+});
 
 test('independent physical holding readers survive interleaved equal-CID publication and retirement',
   {timeout: 10000}, async t => {

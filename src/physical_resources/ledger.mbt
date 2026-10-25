@@ -13,7 +13,10 @@ pub(all) struct LedgerLimits {
 pub(all) struct LedgerUsage {
   planning_work : Int
   attempts : Int
+  reserved_attempts : Int
   holdings : Int
+  live_reservations : Int
+  live_delegations : Int
   transferred_bytes : Int64
   uncertain_transfer_bytes : Int64
   reserved_transfer_bytes : Int64
@@ -27,6 +30,8 @@ pub(all) struct LedgerUsage {
 struct Ledger {
   limits : LedgerLimits
   mut usage : LedgerUsage
+  mut next_attempt_serial : Int?
+  mut next_holding_serial : Int?
   mut delegated_planning : Int
   mut delegated_attempts : Int
   mut delegated_holdings : Int
@@ -42,6 +47,9 @@ struct Ledger {
   // Also resident on ordinary Ledgers. The existing installed envelope must
   // cover this reference and any live imported-child controls before use.
   mut imported_child : ImportedChildLedgerOrigin?
+  // One restoration of cumulative DATA into this pristine admitted Ledger.
+  // Even an all-zero continuation consumes this private initialization slot.
+  mut continuation_restored : Bool
 }
 
 ///|
@@ -52,6 +60,8 @@ struct Reservation {
   mut retention : Int64
   mut execution : Int64
   mut open : Bool
+  mut attempt_reserved : Bool
+  mut attempt_started : Bool
   mut cleanup_pending : Bool
   mut quantities : QuantityAmounts?
   mut uncertain_quantities : QuantityAmounts?
@@ -82,6 +92,7 @@ pub(all) enum LedgerIssue {
   ClosedReservation
   ClosedHolding
   InvalidCharge
+  IdentityOverflow
   TokenLimit
   CostLimit
   DurationLimit
@@ -101,6 +112,8 @@ pub fn create_ledger(limits : LedgerLimits) -> Result[Ledger, LedgerIssue] {
   }
   Ok({
     limits,
+    next_attempt_serial: Some(0),
+    next_holding_serial: Some(0),
     delegated_planning: 0,
     delegated_attempts: 0,
     delegated_holdings: 0,
@@ -108,6 +121,7 @@ pub fn create_ledger(limits : LedgerLimits) -> Result[Ledger, LedgerIssue] {
     next_capacity_serial: Some(-1),
     original_inventory: None,
     imported_child: None,
+    continuation_restored: false,
     quantity_usage: {
       reserved: zero_quantities(),
       uncertain: zero_quantities(),
@@ -116,7 +130,10 @@ pub fn create_ledger(limits : LedgerLimits) -> Result[Ledger, LedgerIssue] {
     usage: {
       planning_work: 0,
       attempts: 0,
+      reserved_attempts: 0,
       holdings: 0,
+      live_reservations: 0,
+      live_delegations: 0,
       transferred_bytes: 0L,
       uncertain_transfer_bytes: 0L,
       reserved_transfer_bytes: 0L,
@@ -171,8 +188,33 @@ pub fn reserve_attempt(
   if transfer_bytes < 0L || retained_bytes < 0L || execution_bytes < 0L {
     return Err(InvalidCharge)
   }
+  match check_original_reservation_slot(ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  reserve_attempt_current(
+    ledger, transfer_bytes, retained_bytes, execution_bytes, quantities,
+  )
+}
+
+///|
+// The existing reservation mutation after a trusted current observation.
+// Delegation uses this same path without another reentrant callback between
+// validating its quota and committing the provisioning reservation.
+fn reserve_attempt_current(
+  ledger : Ledger,
+  transfer_bytes : Int64,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+  quantities : QuantityAmounts?,
+) -> Result[Reservation, LedgerIssue] {
+  match check_original_reservation_slot_current(ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   let u = ledger.usage
-  if u.attempts >= ledger.limits.attempts - ledger.delegated_attempts {
+  if u.reserved_attempts >=
+    ledger.limits.attempts - u.attempts - ledger.delegated_attempts {
     return Err(AttemptLimit)
   }
   if transfer_bytes >
@@ -194,14 +236,14 @@ pub fn reserve_attempt(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match check_original_reservation_slot(ledger) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
+  guard ledger.next_attempt_serial is Some(serial) else {
+    return Err(IdentityOverflow)
   }
   let retained = u.held_bytes + u.reserved_retention_bytes + retained_bytes
   ledger.usage = {
     ..u,
-    attempts: u.attempts + 1,
+    reserved_attempts: u.reserved_attempts + 1,
+    live_reservations: u.live_reservations + 1,
     reserved_transfer_bytes: u.reserved_transfer_bytes + transfer_bytes,
     reserved_retention_bytes: u.reserved_retention_bytes + retained_bytes,
     reserved_execution_bytes: u.reserved_execution_bytes + execution_bytes,
@@ -217,13 +259,20 @@ pub fn reserve_attempt(
       reserved: add_quantities(ledger.quantity_usage.reserved, amount),
     }
   }
+  ledger.next_attempt_serial = if serial == 2147483647 {
+    None
+  } else {
+    Some(serial + 1)
+  }
   let reservation : Reservation = {
     owner: ledger,
-    serial: u.attempts,
+    serial,
     transfer: transfer_bytes,
     retention: retained_bytes,
     execution: execution_bytes,
     open: true,
+    attempt_reserved: true,
+    attempt_started: false,
     cleanup_pending: false,
     quantities,
     uncertain_quantities: None,
@@ -245,7 +294,74 @@ fn reservation_check(
   if !reservation.open {
     return Err(ClosedReservation)
   }
-  check_original_resources_mutable(ledger)
+  match check_original_resources_mutable(ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // The original current callback may synchronously finish this same token.
+  if reservation.open {
+    Ok(())
+  } else {
+    Err(ClosedReservation)
+  }
+}
+
+///|
+/// Account the original trusted operation's possible physical use once. This
+/// neither dispatches nor grants permission. A lost outcome never refunds it.
+pub fn consume_reserved_attempt(
+  ledger : Ledger,
+  reservation : Reservation,
+) -> Result[Unit, LedgerIssue] {
+  match reservation_check(ledger, reservation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match check_imported_child_admission_current(ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  consume_reserved_attempt_current(ledger, reservation)
+}
+
+///|
+// Core mutation after the existing current fence. Never call another external
+// current callback between validating a debit and applying that same debit.
+fn consume_reserved_attempt_current(
+  ledger : Ledger,
+  reservation : Reservation,
+) -> Result[Unit, LedgerIssue] {
+  if !physical_equal(ledger, reservation.owner) {
+    return Err(ForeignOwner)
+  }
+  if !reservation.open {
+    return Err(ClosedReservation)
+  }
+  if reservation.attempt_started {
+    return Ok(())
+  }
+  if !reservation.attempt_reserved {
+    return Err(InvalidCharge)
+  }
+  ledger.usage = {
+    ..ledger.usage,
+    attempts: ledger.usage.attempts + 1,
+    reserved_attempts: ledger.usage.reserved_attempts - 1,
+  }
+  reservation.attempt_reserved = false
+  reservation.attempt_started = true
+  Ok(())
+}
+
+///|
+fn return_unused_attempt(ledger : Ledger, reservation : Reservation) -> Unit {
+  if reservation.attempt_reserved {
+    ledger.usage = {
+      ..ledger.usage,
+      reserved_attempts: ledger.usage.reserved_attempts - 1,
+    }
+    reservation.attempt_reserved = false
+  }
 }
 
 ///|
@@ -260,6 +376,21 @@ pub fn charge_transfer(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  charge_transfer_current(ledger, reservation, bytes)
+}
+
+///|
+fn charge_transfer_current(
+  ledger : Ledger,
+  reservation : Reservation,
+  bytes : Int64,
+) -> Result[Unit, LedgerIssue] {
+  if !physical_equal(ledger, reservation.owner) {
+    return Err(ForeignOwner)
+  }
+  if !reservation.open {
+    return Err(ClosedReservation)
+  }
   if reservation.completed_output is Some(_) {
     return Err(ClosedReservation)
   }
@@ -268,6 +399,12 @@ pub fn charge_transfer(
   }
   if bytes > reservation.transfer {
     return Err(TransferLimit)
+  }
+  if bytes > 0L {
+    match consume_reserved_attempt_current(ledger, reservation) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
   }
   reservation.transfer -= bytes
   let u = ledger.usage
@@ -300,6 +437,10 @@ pub fn mark_transfer_uncertain(
   }
   if bytes > reservation.transfer {
     return Err(TransferLimit)
+  }
+  match consume_reserved_attempt_current(ledger, reservation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   reservation.transfer -= bytes
   let usage = ledger.usage
@@ -340,6 +481,9 @@ pub fn retain_allocation(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  guard ledger.next_holding_serial is Some(serial) else {
+    return Err(IdentityOverflow)
+  }
   reservation.retention -= bytes
   ledger.usage = {
     ..u,
@@ -347,9 +491,14 @@ pub fn retain_allocation(
     reserved_retention_bytes: u.reserved_retention_bytes - bytes,
     held_bytes: u.held_bytes + bytes,
   }
+  ledger.next_holding_serial = if serial == 2147483647 {
+    None
+  } else {
+    Some(serial + 1)
+  }
   let holding : Holding = {
     owner: ledger,
-    serial: u.holdings,
+    serial,
     reservation_serial: reservation.serial,
     bytes,
     live: true,
@@ -401,9 +550,21 @@ pub fn settle_completed_output_reservation(
   if reservation.completed_output is Some(previous) {
     return if previous == notification { Ok(()) } else { Err(InvalidCharge) }
   }
-  match reservation_check(ledger, reservation) {
+  if !reservation.open {
+    return Err(ClosedReservation)
+  }
+  match check_original_resources_mutable(ledger) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  // Currentness can synchronously complete this same original. The first
+  // immutable notification wins, including an identical final completion;
+  // never overwrite its pending scratch or reject it merely because it closed.
+  if reservation.completed_output is Some(previous) {
+    return if previous == notification { Ok(()) } else { Err(InvalidCharge) }
+  }
+  if !reservation.open {
+    return Err(ClosedReservation)
   }
   if remaining_execution > reservation.execution ||
     (holding is Some(value) && !value.live) {
@@ -433,6 +594,14 @@ pub fn settle_completed_output_reservation(
   reservation.cleanup_pending = remaining_execution > 0L
   reservation.completed_output = Some(notification)
   reservation.open = remaining_execution > 0L
+  if !reservation.open {
+    return_unused_attempt(ledger, reservation)
+    ledger.usage = {
+      ..ledger.usage,
+      live_reservations: ledger.usage.live_reservations - 1,
+    }
+    retire_original_reservation(ledger, reservation)
+  }
   Ok(())
 }
 
@@ -500,6 +669,23 @@ pub fn settle_reservation(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  settle_reservation_current(ledger, reservation)
+}
+
+///|
+fn settle_reservation_current(
+  ledger : Ledger,
+  reservation : Reservation,
+) -> Result[Unit, LedgerIssue] {
+  if !physical_equal(ledger, reservation.owner) {
+    return Err(ForeignOwner)
+  }
+  if !reservation.open {
+    return Err(ClosedReservation)
+  }
+  if imported_child_fixed_capacity(ledger, reservation) {
+    return Err(ChildFundingUnavailable)
+  }
   if ledger.original_inventory is Some(inventory) &&
     physical_equal(inventory.bootstrap.reservation, reservation) {
     // Only final original-Run cleanup may retire the funded census itself.
@@ -520,6 +706,12 @@ pub fn settle_reservation(
     reservation.quantities = None
   }
   reservation.open = false
+  return_unused_attempt(ledger, reservation)
+  ledger.usage = {
+    ..ledger.usage,
+    live_reservations: ledger.usage.live_reservations - 1,
+  }
+  retire_original_reservation(ledger, reservation)
   Ok(())
 }
 
@@ -540,11 +732,16 @@ pub fn release_allocation(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  if !holding.live {
+    return Err(ClosedHolding)
+  }
   ledger.usage = {
     ..ledger.usage,
     held_bytes: ledger.usage.held_bytes - holding.bytes,
+    holdings: ledger.usage.holdings - 1,
   }
   holding.live = false
+  retire_original_holding(ledger, holding)
   Ok(())
 }
 

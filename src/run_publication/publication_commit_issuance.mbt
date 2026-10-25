@@ -362,36 +362,12 @@ pub fn issue_public_index_entry(
     _ => return Err(CommitIssuanceEncoding)
   }
   try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "authority_scope_cid")
-    @encode.string_value(writer, authority_scope_cid)
-    @encode.key(writer, "captured_run_cid")
-    @encode.string_value(writer, captured_run.identity)
-    @encode.key(writer, "committed_at")
-    @encode.string_value(writer, committed_at)
-    @encode.key(writer, "durable_result_binding_cids")
-    @encode.begin_array(writer)
-    for identity in binding_cids {
-      @encode.string_value(writer, identity)
-    }
-    @encode.end_array(writer)
-    @encode.key(writer, "invocation_cid")
-    @encode.string_value(writer, invocation.identity)
-    @encode.key(writer, "namespace_id")
-    @encode.string_value(writer, namespace_id)
-    @encode.key(writer, "publication_attempt_cid")
-    @encode.string_value(writer, attempt.identity)
-    @encode.key(writer, "publication_request_cid")
-    @encode.string_value(writer, request.identity)
-    @encode.key(writer, "result_manifest_cid")
-    @encode.string_value(writer, manifest.identity)
-    @encode.key(writer, "run_definition_cid")
-    @encode.string_value(writer, run_definition.identity)
-    @encode.key(writer, "run_receipt_cid")
-    @encode.string_value(writer, receipt.identity)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-public-index-entry/0.1")
-    @encode.end_object(writer)
+    emit_public_index_entry_body(
+      namespace_id, authority_scope_cid, run_definition.identity,
+      invocation.identity, manifest.identity, receipt.identity,
+      captured_run.identity, request.identity, attempt.identity, committed_at,
+      binding_cids.length(), index => binding_cids[index], writer,
+    )
   } catch {
     _ => return Err(CommitIssuanceEncoding)
   }
@@ -543,6 +519,93 @@ pub fn issue_publication_record(
     _ => return Err(CommitIssuanceEncoding)
   }
   try {
+    emit_publication_record_body(
+      attempt.identity, prior_cid, state, observed_at,
+      public_index_entry.map(value => value.identity), failure_cid,
+      owners, sequence, writer,
+    )
+  } catch {
+    _ => return Err(CommitIssuanceEncoding)
+  }
+  let record = match
+    finish_publication_body(
+      "publication_record", writer, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    validate_publication_record_transition(
+      previous, record, uncommitted_confirmed,
+    ) {
+    Ok(_) => Ok(record)
+    Err(_) => Err(CommitIssuanceReferenceMismatch("state_transition"))
+  }
+}
+
+///|
+/// One canonical field emitter for actual issuance and preflight measurement.
+/// The accessor lets a projection count fixed-width identities without allocating
+/// a placeholder inventory or manufacturing PublicationContract evidence.
+fn emit_public_index_entry_body(
+  namespace_id : String,
+  authority_scope_cid : String,
+  run_definition_cid : String,
+  invocation_cid : String,
+  manifest_cid : String,
+  receipt_cid : String,
+  captured_run_cid : String,
+  request_cid : String,
+  attempt_cid : String,
+  committed_at : String,
+  binding_count : Int,
+  binding_cid : (Int) -> String,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+    @encode.begin_object(writer)
+    @encode.key(writer, "authority_scope_cid")
+    @encode.string_value(writer, authority_scope_cid)
+    @encode.key(writer, "captured_run_cid")
+    @encode.string_value(writer, captured_run_cid)
+    @encode.key(writer, "committed_at")
+    @encode.string_value(writer, committed_at)
+    @encode.key(writer, "durable_result_binding_cids")
+    @encode.begin_array(writer)
+    for index = 0; index < binding_count; index = index + 1 {
+      @encode.string_value(writer, binding_cid(index))
+    }
+    @encode.end_array(writer)
+    @encode.key(writer, "invocation_cid")
+    @encode.string_value(writer, invocation_cid)
+    @encode.key(writer, "namespace_id")
+    @encode.string_value(writer, namespace_id)
+    @encode.key(writer, "publication_attempt_cid")
+    @encode.string_value(writer, attempt_cid)
+    @encode.key(writer, "publication_request_cid")
+    @encode.string_value(writer, request_cid)
+    @encode.key(writer, "result_manifest_cid")
+    @encode.string_value(writer, manifest_cid)
+    @encode.key(writer, "run_definition_cid")
+    @encode.string_value(writer, run_definition_cid)
+    @encode.key(writer, "run_receipt_cid")
+    @encode.string_value(writer, receipt_cid)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-public-index-entry/0.1")
+    @encode.end_object(writer)
+}
+
+///|
+fn emit_publication_record_body(
+  attempt_cid : String,
+  prior_cid : String?,
+  state : String,
+  observed_at : String,
+  public_index_cid : String?,
+  failure_cid : String?,
+  owners : Array[String],
+  sequence : Int64,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
     @encode.begin_object(writer)
     @encode.key(writer, "cleanup_owner_cids")
     @encode.begin_array(writer)
@@ -566,15 +629,15 @@ pub fn issue_publication_record(
       }
       None => ()
     }
-    match public_index_entry {
+    match public_index_cid {
       Some(value) => {
         @encode.key(writer, "public_index_entry_cid")
-        @encode.string_value(writer, value.identity)
+        @encode.string_value(writer, value)
       }
       None => ()
     }
     @encode.key(writer, "publication_attempt_cid")
-    @encode.string_value(writer, attempt.identity)
+    @encode.string_value(writer, attempt_cid)
     @encode.key(writer, "sequence")
     @encode.number_value(writer, sequence.to_double())
     @encode.key(writer, "state")
@@ -582,21 +645,4 @@ pub fn issue_publication_record(
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-publication-record/0.1")
     @encode.end_object(writer)
-  } catch {
-    _ => return Err(CommitIssuanceEncoding)
-  }
-  let record = match
-    finish_publication_body(
-      "publication_record", writer, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  match
-    validate_publication_record_transition(
-      previous, record, uncommitted_confirmed,
-    ) {
-    Ok(_) => Ok(record)
-    Err(_) => Err(CommitIssuanceReferenceMismatch("state_transition"))
-  }
 }

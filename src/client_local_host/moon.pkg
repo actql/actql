@@ -1,6 +1,17 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/client_source_publication" @source_publication,
+  "actql/actql/expression_typing" @typing,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/stage_syntax" @syntax,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/program_check" @checked,
+  "actql/actql/pipeline_check_context" @context,
+  "actql/actql/check_environment" @environment,
+  "actql/actql/relation_results" @results,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/value_contract" @contract,
   "actql/actql/connectors_builtin" @builtin,
   "actql/actql/physical_host" @host_driver,
   "actql/actql/physical_strategy" @strategy,
@@ -29,10 +40,18 @@ import {
 import {
   "actql/actql/local_veca_provider" @nearest_provider,
   "actql/actql/source_frontend" @frontend,
-  "actql/actql/client_source_publication" @source_publication,
-  "actql/actql/decode_core" @decode,
   "actql/actql/source_value" @source,
-  "actql/actql/check_environment" @environment,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
 } for "wbtest"
+
+options(
+  targets: {
+    "preparation_publication_custody_wbtest.mbt": [ "js" ],
+    "preparation_publication_snapshot_wbtest.mbt": [ "js" ],
+    "preparation_publication_start_custody_wbtest.mbt": [ "js" ],
+    "preparation_publication_validation_custody_wbtest.mbt": [ "js" ],
+    "installed_effect_operation_parent_js_wbtest.mbt": [ "js" ],
+    "installed_capture_parent_js_wbtest.mbt": [ "js" ],
+  },
+)

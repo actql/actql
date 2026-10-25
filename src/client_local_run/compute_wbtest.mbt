@@ -2,7 +2,7 @@
 fn compute_host(plan : LocalRunPlan) -> LocalComputeHost raise {
   configure_source_free_local_compute(
     plan,
-    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    registered_installed_contracts(),
     @identity.stringify_value(registered_values(), 100000, 10000, 100),
     Some(@identity.stringify_value(registered_fragment(), 100000, 10000, 100)),
     Some(@identity.stringify_value(registered_ordered(), 100000, 10000, 100)),

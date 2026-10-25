@@ -1,8 +1,8 @@
 ///|
 fn original_resource_binding_shape_fixture() -> String {
-  // Original independent 360-byte resource fixture. No candidate Writer,
+  // Original independent 406-byte resource fixture. No candidate Writer,
   // installation aggregate, restoration issuer or send permission is used.
-  let state = "[\"actql-original-ledger-state/0.1\",[\"17\",\"2\",\"3\",\"11\",\"10\",\"7\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],\"-3\",[\"1\",\"0\",\"0\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]],[],[]]"
+  let state = "[\"actql-original-ledger-state/0.1\",[\"17\",\"2\",\"3\",\"11\",\"10\",\"7\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\",\"0\",\"2\",\"0\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],[\"-3\",\"0\",\"0\"],[\"1\",\"0\",\"0\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false]],[],[]]"
   let cid = "sha256:" + "1".repeat(64)
   let fields = [
     "run_definition_cid", "prepared_invocation_cid", "host_policy_cid", "execution_context_cid",
@@ -16,7 +16,7 @@ fn original_resource_binding_shape_fixture() -> String {
   origin +
   ",\"resource_state\":" +
   state +
-  ",\"resource_state_cid\":\"sha256:274329df872dc6b95ba33089f7a822419cb91c3169d893342df24fa6c2126da2\",\"resource_phase\":\"preparation_base\",\"cut\":null}"
+  ",\"resource_state_cid\":\"sha256:7ed6db2394d7eaa87d65b022a6bc78f722efaf7a0293115de52c09a89893aae9\",\"resource_phase\":\"preparation_base\",\"cut\":null}"
 }
 
 ///|
@@ -60,6 +60,12 @@ test "original resource registered shape refuses extra fields and wrong position
         old="\"run_id\":\"original-é\\r\\n\"",
         new="\"run_id\":null",
       ),
+      wire.replace(
+        old="[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\",\"0\",\"2\",\"0\"]",
+        new="[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\"]",
+      ),
+      wire.replace(old="[\"-3\",\"0\",\"0\"]", new="\"-3\""),
+      wire.replace(old=",null,false,false]", new=",null]"),
       wire.replace(old="\"-3\"", new="-3"),
       wire.replace(old="\"-3\"", new="\"-0\""),
       wire.replace(old="\"-3\"", new="\"-03\""),

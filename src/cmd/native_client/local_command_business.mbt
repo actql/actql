@@ -338,6 +338,7 @@ fn LocalCommandPreparationOriginal::close_business_execution(
 fn LocalCommandPreparationOriginal::require_business_program(
   self : LocalCommandPreparationOriginal,
   prepared : @run_host.PreparedClientProgram,
+  installed_contracts : @local_values.ClientInstalledSequenceContracts,
   assets : @run_host.ClientLocalProductAssets,
   requirements : @local_values.ClientLocalSourceFreeRequirements,
 ) -> Result[@initial_resources.LedgerLimits, LocalCommandPreparationIssue] {
@@ -352,7 +353,7 @@ fn LocalCommandPreparationOriginal::require_business_program(
   }
   if !requirements.matches(
       prepared,
-      assets.registry,
+      installed_contracts,
       assets.values,
       Some(assets.fragment),
       assets.ordered,

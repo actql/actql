@@ -31,6 +31,7 @@ struct PreparedClientProgram {
   check_environment_cid : String
   source : @syntax.Program
   local_values_max_rows : Int
+  sequence_preparation_demand : @lower.SequencePreparationDemand
   mut local_normalization : ClientLocalNormalization?
   full_sequences : Array[ClientFullSequence]
 }
@@ -75,6 +76,10 @@ pub fn prepared_client_values_sequence_limits(
   {
     ..client_standard_values_sequence_limits(),
     max_rows: value.local_values_max_rows,
+    max_cells: Int::max(
+      client_standard_values_sequence_limits().max_cells,
+      value.sequence_preparation_demand.authored_literal_cells,
+    ),
   }
 }
 
@@ -182,6 +187,7 @@ pub fn prepared_client_requires_task_compilation(
   value : PreparedClientProgram,
 ) -> Bool {
   if @strategy.graph_task_count(value.graph) > 1 ||
+    prepared_client_result_count(value) != 1 ||
     prepared_client_uses_graph_carrier(value) {
     return true
   }
@@ -982,6 +988,56 @@ fn emit_client_values_pipeline_graph(
   max_depth : Int,
   preparation? : PreparedClientProgram? = None,
 ) -> Result[String, ClientValuesPipelineIssue] {
+  // The enclosing original funds this measuring pass before construction.
+  // Materialization is bounded by the exact usage of this same serializer;
+  // measurement neither creates a new grant nor retains another wire.
+  let (bytes, nodes, depth) = match
+    measure_client_values_pipeline_graph(
+      graph,
+      task,
+      limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      preparation~,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(usage) => usage
+  }
+  let writer = @encode.writer(bytes, nodes, depth) catch {
+    _ => return Err(Encoding)
+  }
+  match
+    emit_client_values_pipeline_into(
+      graph,
+      task,
+      limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      writer,
+      preparation~,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
+  Ok(body)
+}
+
+///|
+/// One serializer serves measurement and materialization. The caller retains
+/// the same checked preparation and supplies its funded encoding envelope.
+fn emit_client_values_pipeline_into(
+  graph : @strategy.CheckedDAG,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  writer : @encode.Writer,
+  preparation? : PreparedClientProgram? = None,
+) -> Result[Unit, ClientValuesPipelineIssue] {
   guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
     return Err(MissingTask)
   }
@@ -1000,9 +1056,6 @@ fn emit_client_values_pipeline_graph(
         Ok(result) => result
         Err(issue) => return Err(Sequence(issue))
       }
-  }
-  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(Encoding)
   }
   guard @lower.sequence_step(sequence, 0) is Some(@lower.ValuesStep(_)) &&
     @lower.node_at(
@@ -1037,8 +1090,61 @@ fn emit_client_values_pipeline_graph(
   } catch {
     _ => return Err(Encoding)
   }
-  let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
-  Ok(body)
+  Ok(())
+}
+
+///|
+/// Measure the original pipeline without retaining a second wire. This is
+/// not authority to enlarge the envelope or to compile a different owner.
+pub fn measure_prepared_client_values_pipeline(
+  value : PreparedClientProgram,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(Int, Int, Int), ClientValuesPipelineIssue] {
+  measure_client_values_pipeline_graph(
+    value.graph,
+    task,
+    limits,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    preparation=Some(value),
+  )
+}
+
+///|
+fn measure_client_values_pipeline_graph(
+  graph : @strategy.CheckedDAG,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  preparation? : PreparedClientProgram? = None,
+) -> Result[(Int, Int, Int), ClientValuesPipelineIssue] {
+  let writer = @encode.measuring_writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  match
+    emit_client_values_pipeline_into(
+      graph,
+      task,
+      limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      writer,
+      preparation~,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  Ok(@encode.finish_measurement_usage(writer)) catch {
+    _ => Err(Encoding)
+  }
 }
 
 ///|
@@ -1603,6 +1709,11 @@ pub fn prepare_parsed_effect_free_client_program(
         },
       )
   }
+  let sequence_preparation_demand = match
+    client_sequence_preparation_demand(owners, limits.max_graph_work) {
+    Ok(value) => value
+    Err(issue) => return Err(Graph(issue))
+  }
   match
     @strategy.prepare_checked_dag(
       checked,
@@ -1618,11 +1729,21 @@ pub fn prepare_parsed_effect_free_client_program(
     Ok(graph) =>
       Ok({
         graph,
+        sequence_preparation_demand,
         check_environment_cid: @checked.checking_environment_cid(environment),
         source: parsed,
         local_normalization: None,
         full_sequences: [],
-        local_values_max_rows: client_standard_values_sequence_limits().max_rows,
+        // The default covers authored inlet demand and checked closed outputs.
+        // An explicit row-limit view replaces this envelope. The owned capacity
+        // plan still independently admits the actual execution resources.
+        local_values_max_rows: Int::max(
+          client_standard_values_sequence_limits().max_rows,
+          Int::max(
+            sequence_preparation_demand.authored_literal_rows,
+            client_closed_owner_rows(owners, limits.max_graph_work).unwrap_or(0),
+          ),
+        ),
       })
     Err(issue) => Err(Graph(issue))
   }

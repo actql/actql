@@ -5,7 +5,7 @@
 fn original_keyed_left_prefix_provider(
   prepared : @publication_host.PreparedClientProgram,
   keyed : @publication_host.ClientKeyedAcquisition,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -43,7 +43,7 @@ fn original_keyed_left_prefix_provider(
   }
   guard prepare_client_local_sequences_owned(
       Pure(prepared),
-      registry_body,
+      installed_contracts,
       values_body,
       fragment_body,
       ordered_body,
@@ -71,7 +71,7 @@ fn original_keyed_left_prefix_provider(
 pub fn client_original_keyed_left_prefix_capacity(
   prepared : @publication_host.PreparedClientProgram,
   keyed : @publication_host.ClientKeyedAcquisition,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -79,7 +79,7 @@ pub fn client_original_keyed_left_prefix_capacity(
   measurement : @execution.FixedInputGuardMeasureLimits,
 ) -> @execution.ExecutionCapacity? {
   original_keyed_left_prefix_provider(
-    prepared, keyed, registry_body, values_body, fragment_body, ordered_body, execution,
+    prepared, keyed, installed_contracts, values_body, fragment_body, ordered_body, execution,
     measurement,
   ).map(value => value.2)
 }
@@ -98,7 +98,7 @@ pub fn start_client_original_keyed_left_prefix(
   prepared : @publication_host.PreparedClientProgram,
   keyed : @publication_host.ClientKeyedAcquisition,
   capture : @row_source_host.RowSourceCapture,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -109,7 +109,7 @@ pub fn start_client_original_keyed_left_prefix(
   workspace? : @execution.ExecutionCapacity? = None,
 ) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue] {
   start_client_original_keyed_left_prefix_owned(
-    scope, compiled, definition, plan, prepared, keyed, capture, registry_body, values_body,
+    scope, compiled, definition, plan, prepared, keyed, capture, installed_contracts, values_body,
     fragment_body, ordered_body, execution, measurement, max_entries, max_name_bytes,
     workspace,
   ).map(value => value.0)
@@ -126,7 +126,7 @@ fn start_client_original_keyed_left_prefix_owned(
   prepared : @publication_host.PreparedClientProgram,
   keyed : @publication_host.ClientKeyedAcquisition,
   capture : @row_source_host.RowSourceCapture,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -163,7 +163,7 @@ fn start_client_original_keyed_left_prefix_owned(
     )
   }
   guard original_keyed_left_prefix_provider(
-      prepared, keyed, registry_body, values_body, fragment_body, ordered_body, execution,
+      prepared, keyed, installed_contracts, values_body, fragment_body, ordered_body, execution,
       measurement,
     )
     is Some((sequence, provider, capacity, captured_step)) else {

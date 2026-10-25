@@ -1672,6 +1672,38 @@
           }
         }
       }
+    },
+    {
+      "source": "x = NULL",
+      "tree": {
+        "eq": [
+          {
+            "field": "x"
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "x <> NULL",
+      "tree": {
+        "neq": [
+          {
+            "field": "x"
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "-0",
+      "tree": {
+        "literal": 0
+      }
     }
   ],
   "negative": [
@@ -1682,14 +1714,11 @@
     "x IN (1 + 2)",
     "x LIKE pattern",
     "$\"quoted name\"",
-    "x = NULL",
-    "x <> NULL",
     "x::number",
     "CAST(x AS unknown_type)",
     "7 // 2",
     "x IN ()",
     "x < y < z",
-    "-0",
     "01",
     "1e999",
     "x.",

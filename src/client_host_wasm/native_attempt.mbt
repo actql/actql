@@ -127,7 +127,15 @@ pub fn start_native_attempt(nonce : Int64, handle : Int) -> Int {
       capacity.retained_bytes,
       capacity.execution_bytes,
     ) {
-    Ok(reservation) => record.capacity = Some(reservation)
+    Ok(reservation) => {
+      record.capacity = Some(reservation)
+      // Crossing the physical start boundary spends this original attempt,
+      // including zero-transfer starts. Cleanup returns bytes, not this use.
+      match @resources.consume_reserved_attempt(value.root, reservation) {
+        Ok(_) => ()
+        Err(_) => return -4
+      }
+    }
     Err(_) => return -4
   }
   let exact = record.exact_attempt

@@ -357,7 +357,7 @@ pub fn client_program_prepare_keyed_captured_local_installed_ledger(
   transport_execution_bytes : Array[Int64],
   max_bytes : Int,
   max_work : Int,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -372,7 +372,7 @@ pub fn client_program_prepare_keyed_captured_local_installed_ledger(
     transport_execution_bytes,
     max_bytes,
     max_work,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -391,7 +391,7 @@ pub fn client_program_prepare_keyed_serialization_captured_ledger(
   transport_execution_bytes : Array[Int64],
   max_bytes : Int,
   max_work : Int,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -410,7 +410,7 @@ pub fn client_program_prepare_keyed_serialization_captured_ledger(
     transport_execution_bytes,
     max_bytes,
     max_work,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -436,7 +436,7 @@ pub fn client_program_prepare_keyed_infer_captured_ledger(
   transport_execution_bytes : Array[Int64],
   max_bytes : Int,
   max_work : Int,
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -445,7 +445,7 @@ pub fn client_program_prepare_keyed_infer_captured_ledger(
   guard @client_local_host.prepare_client_composed_infer_prefix(
       prepared,
       occurrence,
-      registry_body,
+      installed_contracts,
       values_body,
       fragment_body~,
       ordered_body~,
@@ -459,7 +459,7 @@ pub fn client_program_prepare_keyed_infer_captured_ledger(
     let prepared_suffix = @client_local_host.prepare_client_composed_infer_suffix(
       prepared,
       occurrence,
-      registry_body,
+      installed_contracts,
       values_body,
       fragment_body~,
       ordered_body~,
@@ -488,7 +488,7 @@ pub fn client_program_prepare_keyed_infer_captured_ledger(
     transport_execution_bytes,
     max_bytes,
     max_work,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -905,13 +905,13 @@ pub fn client_program_keyed_lookup_stop(
 pub fn client_program_keyed_lookup_join_prepare(
   prepared : @publication_host.PreparedClientProgram,
   lookup : @publication_host.ClientKeyedLookupInput,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
 ) -> @client_local_host.ClientKeyedJoinPreparation? {
   @client_local_host.prepare_client_keyed_local_join(
-    prepared, lookup, registry, values, fragment, ordered,
+    prepared, lookup, sequence_contracts, values, fragment, ordered,
   )
 }
 
@@ -933,7 +933,7 @@ pub fn client_program_keyed_lookup_open_local_host(
   prepared : @publication_host.PreparedClientProgram,
   lookup : @publication_host.ClientKeyedLookupInput,
   ledger : @resources.Ledger,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
@@ -943,7 +943,7 @@ pub fn client_program_keyed_lookup_open_local_host(
     prepared,
     lookup,
     ledger,
-    registry,
+    sequence_contracts,
     values,
     fragment,
     ordered,
@@ -999,13 +999,13 @@ pub fn client_program_keyed_lookup_dag_stop(
 pub fn client_program_effect_keyed_lookup_join_prepare(
   prepared : @publication_host.PreparedClientEffectComputation,
   lookup : @publication_host.ClientKeyedLookupInput,
-  registry : String,
+  sequence_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values : String,
   fragment : String?,
   ordered : String?,
 ) -> @client_local_host.ClientKeyedJoinPreparation? {
   @client_local_host.prepare_client_effect_keyed_local_join(
-    prepared, lookup, registry, values, fragment, ordered,
+    prepared, lookup, sequence_contracts, values, fragment, ordered,
   )
 }
 

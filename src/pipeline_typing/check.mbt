@@ -1902,7 +1902,10 @@ fn check_impl(
           }
         "to_events" => @event.check_bridge
         "dedupe_events" => @event.check_dedupe
-        _ => @event.check_watermark
+        _ =>
+          fn(source, input, caps) {
+            @event.check_watermark(source, input, caps, parameters~)
+          }
       }
       let checked = match
         check_event(operation_body, carrier(input, inputs, steps), {

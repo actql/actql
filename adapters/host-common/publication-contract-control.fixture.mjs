@@ -316,6 +316,12 @@ export function createPublicationContractControlFixture() {
         equal(left.durable_result_binding_cids,
           right.durable_result_binding_cids);
     },
+    effectFreeStoredCommitValid(...args) {
+      const requireCurrent = args.pop();
+      if (typeof requireCurrent !== 'function') throw new TypeError('Missing Store fixture owner');
+      requireCurrent();
+      return this.effectFreeCommitValid(...args);
+    },
     effectFreeCommitValid(
       runDefinition,
       invocation,

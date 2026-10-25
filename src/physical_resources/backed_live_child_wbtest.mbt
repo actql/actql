@@ -6,6 +6,9 @@ fn backed_live_test_usage() -> LedgerUsage {
     planning_work: 2,
     attempts: 1,
     holdings: 1,
+    reserved_attempts: 0,
+    live_reservations: 0,
+    live_delegations: 0,
     transferred_bytes: 3L,
     uncertain_transfer_bytes: 1L,
     reserved_transfer_bytes: 0L,
@@ -43,7 +46,7 @@ test "backed live child keeps original allowance and cumulative reports without 
   ).unwrap()
   let reported = ledger_usage(ledger)
   assert_eq(reported.planning_work, 2)
-  assert_eq(reported.attempts, before.attempts + 1)
+  assert_eq(reported.attempts, before.attempts + 2)
   assert_eq(reported.transferred_bytes, 3L)
   assert_eq(reported.uncertain_transfer_bytes, 1L)
   assert_eq(reported.reserved_execution_bytes, before.reserved_execution_bytes)
@@ -306,8 +309,8 @@ test "backed live child retirement separates reference read and confirmed stop a
   settle_backed_execution_after_owner_ack(region, provider, child, ticket, None).unwrap()
   assert_eq(shared_allocation_usage(allocation).readers, 1)
   assert_eq(ledger_usage(ledger).planning_work, 4)
-  // Arena reservation1 + original child provisioning1 + unknown child quota2.
-  assert_eq(ledger_usage(ledger).attempts, 4)
+  // Pure arena capacity consumes no attempt; provisioning1 + unknown quota2.
+  assert_eq(ledger_usage(ledger).attempts, 3)
   assert_eq(ledger_usage(ledger).transferred_bytes, 3L)
   assert_eq(ledger_usage(ledger).uncertain_transfer_bytes, 7L)
 }
@@ -356,6 +359,9 @@ fn backed_live_test_zero_usage() -> LedgerUsage {
     planning_work: 0,
     attempts: 0,
     holdings: 0,
+    reserved_attempts: 0,
+    live_reservations: 0,
+    live_delegations: 0,
     transferred_bytes: 0L,
     uncertain_transfer_bytes: 0L,
     reserved_transfer_bytes: 0L,

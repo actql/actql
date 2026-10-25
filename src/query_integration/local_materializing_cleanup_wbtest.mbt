@@ -6,12 +6,14 @@ test "materializing unverified import keeps reservation until sliced cleanup" {
     imported_rows=100,
     finish_input=false,
   )
+  assert_false(@local_connector.local_materializing_started(attempt))
   let ledger = @strategy.captured_dag_ledger(run)
   let source = @strategy.captured_task_output(run, 1, Step(1)).unwrap()
   let before = @resources.ledger_usage(ledger)
   assert_true(@local_connector.cancel_local_materializing_attempt(attempt))
   assert_false(@local_connector.cancel_local_materializing_attempt(attempt))
   assert_true(@local_connector.local_materializing_stopped(attempt))
+  assert_false(@local_connector.local_materializing_started(attempt))
   assert_true(
     @local_connector.append_local_materializing_input(attempt, 0, "{\"id\":3}")
     is Err(State),
@@ -120,15 +122,18 @@ test "materializing close retains stopped provider through cleanup error and ret
       )
     }),
   )
+  assert_false(@local_connector.local_materializing_started(attempt))
   let first = @local_connector.advance_local_materializing_attempt(attempt, 1).unwrap()
   assert_false(first.complete)
   assert_eq(first.work, 1L)
   assert_eq(starts.val, 1)
+  assert_true(@local_connector.local_materializing_started(attempt))
   assert_eq(compute_advances.val, 1)
   let source = @strategy.captured_task_output(run, 1, Step(1)).unwrap()
   let ledger = @strategy.captured_dag_ledger(run)
   let before = @resources.ledger_usage(ledger)
   @strategy.close_task_execution(run, ticket)
+  assert_true(@local_connector.local_materializing_started(attempt))
   assert_false(@local_connector.local_materializing_stopped(attempt))
   assert_eq(cleanup_calls.val, 0)
   assert_false(
@@ -142,6 +147,7 @@ test "materializing close retains stopped provider through cleanup error and ret
     is Err(State),
   )
   assert_true(@local_connector.local_materializing_stopped(attempt))
+  assert_true(@local_connector.local_materializing_started(attempt))
   @strategy.settle_task_execution(run, ticket, true).unwrap()
   assert_false(
     @local_connector.advance_local_materializing_cleanup(attempt, 64),

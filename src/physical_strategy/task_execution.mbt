@@ -716,6 +716,25 @@ fn task_execution_matches(run : CapturedDAG, execution : TaskExecution) -> Bool 
 }
 
 ///|
+/// Account possible physical use at the installed driver's actual execution
+/// boundary. Registration/preparation alone does not consume an attempt.
+/// Repeated bounded advances of this same original consume it only once;
+/// cancellation, empty output and lost outcomes never refund a started use.
+/// This does not authorize execution or confirm its physical settlement.
+pub fn begin_task_execution_use(
+  run : CapturedDAG,
+  execution : TaskExecution,
+) -> Result[Unit, @resources.LedgerIssue] {
+  if !task_execution_matches(run, execution) {
+    return Err(ForeignOwner)
+  }
+  if run.stopped || execution.disposed || execution.execution_settled {
+    return Err(ClosedReservation)
+  }
+  @resources.consume_reserved_attempt(run.ledger, execution.reservation)
+}
+
+///|
 pub fn charge_task_execution_transfer(
   run : CapturedDAG,
   execution : TaskExecution,
