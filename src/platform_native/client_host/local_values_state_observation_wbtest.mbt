@@ -111,7 +111,9 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
       prepared,
       compiled,
       definition,
-      assets.registry,
+      @local.prepare_installed_sequence_contracts(
+        assets.registry, assets.values, Some(assets.fragment), assets.ordered,
+      ).unwrap(),
       assets.values,
       Some(assets.fragment),
       assets.ordered,

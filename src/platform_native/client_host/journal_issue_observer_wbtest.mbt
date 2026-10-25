@@ -578,6 +578,7 @@ fn test_observe_ledger(
     DurationLimit => emit(1813)
     ResourceParked => emit(1814)
     ChildFundingUnavailable => emit(1815)
+    IdentityOverflow => emit(1816)
   }
 }
 
@@ -596,6 +597,15 @@ fn test_observe_journal_reply(
 }
 
 // End of test-only observer helpers.
+
+///|
+test "test-only Ledger observer keeps identity overflow distinct from token and ownership failures" {
+  let tags : Array[Int] = []
+  test_observe_ledger(@resources.IdentityOverflow, tag => tags.push(tag), 32)
+  test_observe_ledger(@resources.TokenLimit, tag => tags.push(tag), 32)
+  test_observe_ledger(@resources.ForeignOwner, tag => tags.push(tag), 32)
+  assert_eq(tags, [1816, 1811, 1807])
+}
 
 ///|
 test "test-only original issue observer keeps phase and transaction causes" {
