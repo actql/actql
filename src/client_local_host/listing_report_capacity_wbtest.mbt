@@ -74,7 +74,8 @@ test "checked listing refuses missing capacity and either shortage before the or
     )
     if shortage == 0 {
       let run = started.unwrap()
-      assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+      assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+      assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 1)
       assert_eq(
         @resources.ledger_usage(ledger).reserved_retention_bytes,
         retained + 7L,

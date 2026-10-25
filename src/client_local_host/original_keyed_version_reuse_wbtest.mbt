@@ -39,7 +39,12 @@ fn original_keyed_version_history(
   same_ledger_consumer? : Bool = false,
   one_short_census? : Bool = false,
 ) -> Unit raise {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let same_ledger_consumer = same_ledger_consumer || one_short_census
   let typed_content = typed_content || same_ledger_consumer
   let content = content || typed_content
@@ -527,22 +532,12 @@ fn original_keyed_version_history(
       execution, measurement, workspace_capacity, ledger,
     )
   }
-  assert_eq(
-    @resources.ledger_usage(ledger).attempts,
-    if suffix {
-      6
-    } else {
-      5
-    },
-  )
-  assert_eq(
-    @resources.ledger_usage(ledger).holdings,
-    if content {
-      5
-    } else {
-      4
-    },
-  )
+  // One Direct page and two distinct keyed provider responses are consumed.
+  // Prefix, assembly and serialization reservations are live capacity only.
+  assert_eq(@resources.ledger_usage(ledger).attempts, 3)
+  // The Content helper has released its separate byte allocation already.
+  // Direct capture, two keyed children and the lookup still retain four slots.
+  assert_eq(@resources.ledger_usage(ledger).holdings, 4)
   complete = false
   for _ in 0..<10000 {
     if @publication_host.cleanup_client_original_keyed_prefix_lookup(
@@ -603,8 +598,9 @@ fn original_keyed_version_history(
     ).unwrap(),
   )
   let final_usage = @resources.ledger_usage(ledger)
-  assert_eq(final_usage.attempts, if suffix { 6 } else { 5 })
-  assert_eq(final_usage.holdings, if content { 5 } else { 4 })
+  assert_eq(final_usage.attempts, 3)
+  assert_eq(final_usage.reserved_attempts, 0)
+  assert_eq(final_usage.holdings, 0)
   assert_eq(final_usage.held_bytes, 0L)
   assert_eq(final_usage.reserved_retention_bytes, 0L)
   assert_eq(final_usage.reserved_execution_bytes, 0L)

@@ -116,7 +116,12 @@ fn original_keyed_version_serialize(
   workspace : @execution.ExecutionCapacity,
   ledger : @resources.Ledger,
 ) -> Unit raise {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let before = @resources.ledger_usage(ledger)
   let suffix = start_client_original_keyed_serialization_suffix(
     scope,
@@ -137,7 +142,8 @@ fn original_keyed_version_serialize(
     workspace=Some(workspace),
   ).unwrap()
   let active = @resources.ledger_usage(ledger)
-  assert_eq(active.attempts, before.attempts + 1)
+  assert_eq(active.attempts, before.attempts)
+  assert_eq(active.reserved_attempts, before.reserved_attempts + 1)
   assert_eq(active.holdings, before.holdings)
   assert_eq(active.transferred_bytes, before.transferred_bytes)
   // The same exact Source/prefix/assembly/children cannot begin a second suffix.

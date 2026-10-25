@@ -55,7 +55,7 @@ test "original serialization prefix cleanup preserves same census until child an
   assert_true(@resources.reservation_open(reservation))
   assert_true(cleanup_client_serialization_prefix(prefix) is Ok(true))
   assert_false(@resources.original_ledger_prefix_available(identity))
-  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
   assert_true(
     @resources.finish_original_ledger_inventory(ledger, true).unwrap(),
   )
@@ -112,7 +112,7 @@ test "serialization input keeps the original reservation through cleanup failure
     is Ok(Stopped(progress=0L, work=0L)),
   )
   assert_eq(advances.val, 1)
-  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
 }
 
 ///|

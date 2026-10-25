@@ -26,7 +26,12 @@ fn original_captured_prefix_fixture(
     @publication_host.ClientInferPlanGraph,
   )? = None,
 ) -> OriginalCapturedPrefixFixture raise {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let (prepared, compiled, definition, plan) = match checked {
     Some(value) => value
     None => original_prefix_execution_fixture(source=true)
@@ -146,7 +151,12 @@ fn original_captured_prefix_start(
   task? : Int = 1,
   step? : Int = 1,
 ) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue] {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   start_client_original_captured_serialization_prefix(
     value.scope,
     value.compiled,
@@ -195,7 +205,7 @@ test "original captured Source executes the checked sorted prefix without reacqu
   assert_eq(before.reserved_retention_bytes, 3L)
   let prefix = original_captured_prefix_start(value).unwrap()
   assert_true(physical_equal(prefix.ledger, value.ledger))
-  assert_eq(@resources.ledger_usage(value.ledger).attempts, 2)
+  assert_eq(@resources.ledger_usage(value.ledger).attempts, 1)
   assert_eq(@resources.ledger_usage(value.ledger).held_bytes, before.held_bytes)
   assert_eq(
     @resources.ledger_usage(value.ledger).transferred_bytes,
@@ -248,7 +258,7 @@ test "original captured Source executes the checked sorted prefix without reacqu
   assert_eq(@resources.ledger_usage(value.ledger).held_bytes, before.held_bytes)
   @publication_host.settle_client_model_read(read, true).unwrap()
   original_captured_prefix_close(value)
-  assert_eq(@resources.ledger_usage(value.ledger).attempts, 2)
+  assert_eq(@resources.ledger_usage(value.ledger).attempts, 1)
   assert_eq(
     @resources.ledger_usage(value.ledger).transferred_bytes,
     before.transferred_bytes,
@@ -257,7 +267,12 @@ test "original captured Source executes the checked sorted prefix without reacqu
 
 ///|
 test "original captured prefix rejects foreign capture wrong coordinates and descriptor issuance before a new reservation" {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let value = original_captured_prefix_fixture()
   let foreign = original_captured_prefix_fixture()
   let other_ledger = original_captured_prefix_fixture(
@@ -332,7 +347,12 @@ test "original captured prefix rejects foreign capture wrong coordinates and des
 
 ///|
 test "original Row prefix guard rechecks custody after the verifier synchronously starts cleanup" {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let value = original_captured_prefix_fixture()
   let before = @resources.ledger_usage(value.ledger)
   let cleanup_result : Ref[Bool?] = Ref(None)
@@ -425,7 +445,7 @@ test "original captured prefix cancellation keeps the source until both existing
   }
   assert_true(cleaned)
   assert_false(@resources.reservation_open(prefix.reservation))
-  assert_eq(@resources.ledger_usage(value.ledger).attempts, 2)
+  assert_eq(@resources.ledger_usage(value.ledger).attempts, 1)
   assert_eq(@resources.ledger_usage(value.ledger).held_bytes, before.held_bytes)
   assert_eq(@resources.ledger_usage(value.ledger).reserved_retention_bytes, 3L)
   assert_true(@row_source_host.row_capture_source(value.capture) is Ok(_))

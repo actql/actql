@@ -240,7 +240,8 @@ test "original keyed children share original custody and retain failed physical 
       _ => stops.val,
     ).unwrap()
     children.push(child)
-    assert_eq(@resources.ledger_usage(ledger).attempts, index + 3)
+    assert_eq(@resources.ledger_usage(ledger).attempts, index + 1)
+    assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 2)
     let before_repeat = @resources.ledger_usage(ledger)
     assert_true(
       start_client_original_keyed_row_acquisition(
@@ -322,7 +323,7 @@ test "original keyed children share original custody and retain failed physical 
       original_keyed_child_expected_row(index),
     )
   }
-  assert_eq(@resources.ledger_usage(ledger).attempts, 4)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 3)
   assert_eq(@resources.ledger_usage(ledger).holdings, 4)
   done = false
   for _ in 0..<10000 {
@@ -359,8 +360,9 @@ test "original keyed children share original custody and retain failed physical 
     ).unwrap(),
   )
   let final_usage = @resources.ledger_usage(ledger)
-  assert_eq(final_usage.attempts, 4)
-  assert_eq(final_usage.holdings, 4)
+  assert_eq(final_usage.attempts, 3)
+  assert_eq(final_usage.reserved_attempts, 0)
+  assert_eq(final_usage.holdings, 0)
   assert_eq(final_usage.held_bytes, 0L)
   assert_eq(final_usage.reserved_retention_bytes, 0L)
   assert_eq(final_usage.reserved_execution_bytes, 0L)
