@@ -53,6 +53,20 @@ export function tokens(source, sourceCode = false) {
       if (depth) throw new Error('UnclosedComment');
       continue;
     }
+    if (sourceCode && source.startsWith('$|', i)) {
+      // Interpolation contains executable expressions. Do not hide them as DATA.
+      throw new Error('UnsupportedInterpolatedMultilineString');
+    }
+    if (sourceCode && source.startsWith('#|', i) &&
+        /^[\t ]*$/.test(source.slice(source.lastIndexOf('\n', i - 1) + 1, i))) {
+      // A leading #| line is raw DATA, including quotes, comments and \{...}.
+      // Only that physical line is opaque; following source is still inspected.
+      const start = i + 2;
+      const newline = source.indexOf('\n', start);
+      i = newline < 0 ? source.length : newline;
+      result.push({kind:'string', value:source.slice(start, i)});
+      continue;
+    }
     if (source[i] === '"' || (sourceCode && source[i] === "'")) {
       const quote = source[i];
       const start = i++;
@@ -117,8 +131,8 @@ export function packageImports(source) {
 }
 
 function inspectSource(source, path) {
-  // Reject embedded multi-line strings: in Moon they can contain executable
-  // target code. Literal data strings and comments do not trigger name checks.
+  // Literal DATA and comments do not trigger name checks. Foreign declarations,
+  // embedded target code and unsupported interpolated lines still fail closed.
   const ts = tokens(source, true);
   const words = ts.filter(t => t.kind !== 'string').map(t => t.value);
   const forbidden = new Set(['extern', 'fetch', 'performance', 'println', 'print',

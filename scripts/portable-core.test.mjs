@@ -228,3 +228,51 @@ test('isolated build retains production aliases and excludes test-only packages 
   assert.equal(existsSync(join(isolated, 'src', 'internal_structural_fixture')), false);
   assert.deepEqual(inspectCore(isolated, ['root']).packages, audit.packages);
 });
+
+
+test('raw multiline Moon data keeps environment names literal', t => {
+  const f = fixture(t);
+  f.put('root', 'main.mbt', String.raw`pub fn data() -> String {
+    #|{"extern":"fetch", "Date.now":"process", "quoted":"\{eval()}", "hash":"#cfg"}
+    #|// require crypto @"js" /* println */
+  }
+  `);
+  assert.deepEqual(f.check().packages, ['root']);
+});
+
+test('raw multiline data cannot hide following code or foreign declarations', t => {
+  const f = fixture(t);
+  for (const source of [
+    'extern "js" fn host() -> Int =\n  #|() => 1\n',
+    'fn data() -> String {\n  #|safe data\n}\nfn io() { println("output") }',
+    'fn data() -> String {\n  #|safe data\n}\nfn io() { Date.now() }',
+  ]) {
+    f.put('root', 'main.mbt', source);
+    assert.throws(f.check, /CoreEnvironmentAccess/);
+  }
+  f.put('root', 'main.mbt', '@\n  #|() => 1\n');
+  assert.throws(f.check, /CoreEmbeddedCode/);
+});
+
+test('raw multiline support keeps misplaced prefixes and unknown attributes closed', t => {
+  const f = fixture(t);
+  for (const source of [
+    'fn data() -> String { #|not a leading raw line\n}',
+    '#unknown\nfn data() -> String {\n  #|literal\n}',
+    '#cfg(target="js")\nfn data() -> String {\n  #|literal\n}',
+  ]) {
+    f.put('root', 'main.mbt', source);
+    assert.throws(f.check, /CoreForeignOrUnknownAttribute/);
+  }
+});
+
+test('interpolated multiline source is never treated as opaque raw data', t => {
+  const f = fixture(t);
+  for (const source of [
+    'fn data(x : Int) -> String {\n  $|value \\{x}\n}',
+    'fn data(x : Int) -> String {\n  #|raw line\n  $|value \\{x}\n}',
+  ]) {
+    f.put('root', 'main.mbt', source);
+    assert.throws(f.check, /UnsupportedInterpolatedMultilineString/);
+  }
+});
