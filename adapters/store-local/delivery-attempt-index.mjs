@@ -6,7 +6,7 @@ import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 
 const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-const version = 14;
+const version = 15;
 const resultRecoveryTable = `CREATE TABLE result_deletion_recovery (
   id INTEGER PRIMARY KEY CHECK(id=1), dirty INTEGER NOT NULL CHECK(dirty IN (0,1)),
   ack_revision INTEGER NOT NULL CHECK(ack_revision>=1 AND ack_revision<=9007199254740991)
@@ -24,15 +24,11 @@ const physicalObjectsTable = `CREATE TABLE physical_objects (
   cid TEXT PRIMARY KEY, byte_count INTEGER NOT NULL CHECK(byte_count>=0),
   device TEXT NOT NULL, inode TEXT NOT NULL
 ) WITHOUT ROWID`;
-const legacyPhysicalPreparationsTable = `CREATE TABLE physical_object_preparations (
+const physicalPreparationsTable = `CREATE TABLE physical_object_preparations (
   cid TEXT NOT NULL, byte_count INTEGER NOT NULL CHECK(byte_count>=0),
-  device TEXT NOT NULL, inode TEXT NOT NULL,
+  device TEXT NOT NULL, inode TEXT NOT NULL, semantic_cid TEXT,
   PRIMARY KEY(cid,device,inode)
 ) WITHOUT ROWID`;
-const physicalPreparationsTable = legacyPhysicalPreparationsTable.replace(
-  'device TEXT NOT NULL, inode TEXT NOT NULL,',
-  'device TEXT NOT NULL, inode TEXT NOT NULL, semantic_cid TEXT,',
-);
 const physicalUsageTable = `CREATE TABLE physical_object_usage (
   id INTEGER PRIMARY KEY CHECK(id=1), complete INTEGER NOT NULL CHECK(complete IN (0,1)),
   objects INTEGER NOT NULL CHECK(objects>=0), bytes INTEGER NOT NULL CHECK(bytes>=0),
@@ -112,9 +108,12 @@ const publicationUsageTable = `CREATE TABLE publication_usage (
 const completionTable = `CREATE TABLE completions (
   attempt_cid TEXT PRIMARY KEY REFERENCES attempts(attempt_cid) ON DELETE CASCADE,
   record_cid TEXT NOT NULL UNIQUE, record_wire TEXT NOT NULL,
-  receipt_cid TEXT NOT NULL UNIQUE, receipt_wire TEXT NOT NULL,
+  receipt_cid TEXT NOT NULL, receipt_wire TEXT NOT NULL,
   ack_revision INTEGER NOT NULL CHECK(ack_revision>=1 AND ack_revision<=9007199254740991)
 ) WITHOUT ROWID`;
+// Receipt identity excludes the attempt. Equal immutable receipts may be
+// referenced by distinct attempt-owned completions, never merged into one ACK.
+const completionReceiptIndex = 'CREATE INDEX completion_receipts ON completions(receipt_cid)';
 
 export async function openDeliveryAttemptIndex(path, {
   create, maxEntries, maxWireBytes, initializeEmpty = false,
@@ -218,20 +217,25 @@ export async function openDeliveryAttemptIndex(path, {
     transactionState = Object.getOwnPropertyDescriptor(database,'isTransaction')?.get;
     if (typeof transactionState !== 'function') fail('DeliveryAttemptIndexUnavailable');
     database.open();
-    if (create) await chmod(path, 0o600);
+    const initialize = create && prepare(
+      "SELECT name FROM sqlite_schema WHERE type='table' LIMIT 1").get() === undefined;
+    // Private format 15 is intentionally breaking. Refuse old stores before
+    // any persistent PRAGMA, DDL, permission change, or original-row mutation.
+    if (!initialize && prepare('SELECT version FROM coverage WHERE id=1').get()?.version !== version) {
+      fail('DeliveryAttemptIndexUnavailable');
+    }
+    if (initialize) await chmod(path, 0o600);
     // Match the Store's original durable synchronization boundary on Darwin;
     // FULL alone is not the same as libuv's fullfsync selection there.
-    if (create) exec('PRAGMA journal_mode=WAL');
+    if (initialize) exec('PRAGMA journal_mode=WAL');
     const mode = prepare('PRAGMA journal_mode').get().journal_mode;
     if (mode !== 'wal') fail('DeliveryAttemptIndexUnavailable');
     exec('PRAGMA synchronous=FULL; PRAGMA fullfsync=ON; PRAGMA checkpoint_fullfsync=ON; PRAGMA mmap_size=0; PRAGMA cache_size=-64; PRAGMA temp_store=MEMORY');
     const transaction = createSqliteTransaction({exec,
       get isTransaction() { return Reflect.apply(transactionState,database,[]); }},
     'DeliveryAttemptIndex');
-    const initialize = create && prepare(
-      "SELECT name FROM sqlite_schema WHERE type='table' LIMIT 1").get() === undefined;
     // Only the Store's actual first format creation selects empty coverage.
-    // Existing or interrupted formats keep their original migration protocol.
+    // An interrupted current-format initialization retains its coverage.
     if (initializeEmpty && !initialize) fail('DeliveryAttemptIndexUnavailable');
     const initialComplete = initializeEmpty ? 1 : 0;
     if (initialize) transaction.run(() => {
@@ -253,7 +257,7 @@ export async function openDeliveryAttemptIndex(path, {
           initial_wire TEXT NOT NULL, initial_cid TEXT,
           ack_revision INTEGER NOT NULL DEFAULT 1 CHECK(ack_revision>=1 AND ack_revision<=9007199254740991)) WITHOUT ROWID;
         CREATE UNIQUE INDEX initial_record_identity ON initial_records(initial_cid);
-        ${completionTable}; ${publicationTable}; ${publicationUsageTable};
+        ${completionTable}; ${completionReceiptIndex}; ${publicationTable}; ${publicationUsageTable};
         ${publicationAttemptsTable}; ${publicationRecordsTable}; ${publicationAttemptRunIndex};
         ${publicationRecoveryTable}; ${pendingPublicationTable};
         ${nativeInventoryTable}; ${nativeInventoryUsageTable};
@@ -271,161 +275,43 @@ export async function openDeliveryAttemptIndex(path, {
     });
     const state = prepare('SELECT version,complete,entries FROM coverage WHERE id=1');
     const selected = state.get();
-    if (![1,2,3,4,5,6,7,8,9,10,11,12,13,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
+    if (selected?.version !== version || ![0,1].includes(selected.complete) ||
         !Number.isSafeInteger(selected.entries) || selected.entries < 0 || selected.entries > maxEntries) {
       fail('DeliveryAttemptIndexUnavailable');
     }
-    // Additive private progress metadata. Old attempts retain their original
-    // pending/ready protocol; a joint START stores its initial record in the
-    // SAME claim transaction, not a second progress-only COMMIT after files.
-    const initialTable = prepare(
-      "SELECT name FROM sqlite_schema WHERE type='table' AND name='initial_records'").get();
-    if (selected.version === 1) transaction.run(() => {
-      if (initialTable !== undefined) fail('DeliveryAttemptIndexUnavailable');
-      exec(`CREATE TABLE initial_records (
-        attempt_cid TEXT PRIMARY KEY REFERENCES attempts(attempt_cid) ON DELETE CASCADE,
-        initial_wire TEXT NOT NULL) WITHOUT ROWID;
-        UPDATE coverage SET version=2 WHERE id=1;`);
-    });
-    else if (initialTable === undefined) fail('DeliveryAttemptIndexUnavailable');
-    // New joint START bodies are native originals. Null preserves the older
-    // file-backed protocol without scanning or parsing historical rows here.
-    if (selected.version < 3) transaction.run(() => {
-      exec(`ALTER TABLE initial_records ADD COLUMN initial_cid TEXT;
-        CREATE UNIQUE INDEX initial_record_identity ON initial_records(initial_cid);
-        UPDATE coverage SET version=3 WHERE id=1;`);
-    });
-    else if (!prepare("PRAGMA table_info(initial_records)").all().some(row=>row.name==='initial_cid') ||
+    const initialColumns = prepare('PRAGMA table_info(initial_records)').all();
+    if (!['initial_cid','ack_revision'].every(name => initialColumns.some(row => row.name === name)) ||
         prepare("SELECT name FROM sqlite_schema WHERE type='index' AND name='initial_record_identity'").get() === undefined) {
       fail('DeliveryAttemptIndexUnavailable');
     }
-    if(selected.version<4) transaction.run(()=>exec(`ALTER TABLE initial_records ADD COLUMN
-      ack_revision INTEGER NOT NULL DEFAULT 1 CHECK(ack_revision>=1 AND ack_revision<=9007199254740991);
-      ${completionTable}; UPDATE coverage SET version=4 WHERE id=1;`));
-    else if(prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name='completions'").get()?.sql!==completionTable) {
-      fail('DeliveryAttemptIndexUnavailable');
-    }
-    if(!prepare('PRAGMA table_info(initial_records)').all().some(row=>row.name==='ack_revision')) {
-      fail('DeliveryAttemptIndexUnavailable');
-    }
-    if (selected.version < 5) transaction.run(() => {
-      // Only the old version permits first adoption. Missing adopted metadata
-      // is never repaired by resetting its capacity counters or originals.
-      exec(`${publicationTable}; ${publicationUsageTable};
-        INSERT INTO publication_usage VALUES(1,0,0,1);
-        UPDATE coverage SET version=5 WHERE id=1;`);
-    });
-    for (const [name, sql] of [['publication_contracts', publicationTable],
-      ['publication_usage', publicationUsageTable]]) {
-      if (prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name=?").get(name)?.sql !== sql) {
-        fail('DeliveryAttemptIndexUnavailable');
-      }
-    }
-    if (selected.version < 6) transaction.run(() => {
-      // Atomic private-format adoption. An adopted missing table is refusal,
-      // never permission to reconstruct coverage from historical state again.
-      exec(`${publicationRecoveryTable}; ${pendingPublicationTable};
-        INSERT INTO publication_recovery VALUES(1,0,0,1);
-        UPDATE coverage SET version=6 WHERE id=1;`);
-    });
-    for (const [name,sql] of [['publication_recovery',publicationRecoveryTable],
-      ['pending_publications',pendingPublicationTable]]) {
-      if (prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name=?").get(name)?.sql !== sql) {
-        fail('DeliveryAttemptIndexUnavailable');
-      }
-    }
-    if (selected.version < 7) transaction.run(() => {
-      exec(`${nativeInventoryTable}; ${nativeInventoryUsageTable};
-        INSERT INTO native_publication_inventory_usage VALUES(1,0,1);
-        UPDATE coverage SET version=7 WHERE id=1;`);
-    });
-    for (const [name,sql] of [['native_publication_inventories',nativeInventoryTable],
-      ['native_publication_inventory_usage',nativeInventoryUsageTable]]) {
-      if (prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name=?").get(name)?.sql !== sql) {
-        fail('DeliveryAttemptIndexUnavailable');
-      }
-    }
-    if (selected.version < 8) transaction.run(() => {
-      exec(`${metadataFenceTable}; ${metadataFenceCoverageTable};
-        CREATE INDEX metadata_deletion_runs ON metadata_deletion_fences(run_cid);
-        INSERT INTO metadata_deletion_fence_coverage VALUES(1,0,1);
-        UPDATE coverage SET version=8 WHERE id=1;`);
-    });
-    for (const [name,sql] of [['metadata_deletion_fences',metadataFenceTable],
-      ['metadata_deletion_fence_coverage',metadataFenceCoverageTable]]) {
-      if (prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name=?").get(name)?.sql !== sql) {
-        fail('DeliveryAttemptIndexUnavailable');
-      }
-    }
-    if (prepare("SELECT sql FROM sqlite_schema WHERE type='index' AND name='metadata_deletion_runs'").get()?.sql !==
-        'CREATE INDEX metadata_deletion_runs ON metadata_deletion_fences(run_cid)') fail('DeliveryAttemptIndexUnavailable');
-    if (selected.version < 9) transaction.run(() => {
-      exec(`${physicalObjectsTable}; ${physicalUsageTable}; ${legacyPhysicalPreparationsTable};
-        INSERT INTO physical_object_usage VALUES(1,0,0,0,1);
-        UPDATE coverage SET version=9 WHERE id=1;`);
-    });
-    for (const [name,sql] of [['physical_objects',physicalObjectsTable],
-      ['physical_object_usage',physicalUsageTable], ['physical_object_preparations',
-        selected.version < 14 ? legacyPhysicalPreparationsTable : physicalPreparationsTable]]) {
-      if (prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name=?").get(name)?.sql !== sql) {
-        fail('DeliveryAttemptIndexUnavailable');
-      }
-    }
-    if (selected.version < 10) transaction.run(() => exec(`${publicationAttemptsTable}; ${publicationRecordsTable};
-      ${publicationAttemptRunIndex}; UPDATE coverage SET version=10 WHERE id=1;`));
-    for (const [type,name,sql] of [['table','publication_attempts',publicationAttemptsTable],
-      ['table','publication_records',publicationRecordsTable],['index','publication_attempt_runs',publicationAttemptRunIndex]]) {
-      if (prepare('SELECT sql FROM sqlite_schema WHERE type=? AND name=?').get(type,name)?.sql !== sql) {
-        fail('DeliveryAttemptIndexUnavailable');
-      }
-    }
-    if (selected.version < 11) transaction.run(() => exec(`${resultRecoveryTable};
-      INSERT INTO result_deletion_recovery VALUES(1,1,1);
-      UPDATE coverage SET version=11 WHERE id=1;`));
-    if (prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name='result_deletion_recovery'")
-      .get()?.sql !== resultRecoveryTable) fail('DeliveryAttemptIndexUnavailable');
-    if (selected.version < 12) {
-      // One atomic private-format transition indexes the original native
-      // inventories once. Later opens never rebuild it from absent metadata.
-      const rows = prepare('SELECT public_index_cid,inventory_wire FROM native_publication_inventories LIMIT ?')
-        .all(maxEntries + 1);
-      const usage = prepare('SELECT entries FROM native_publication_inventory_usage WHERE id=1').get();
-      if (rows.length > maxEntries || rows.length !== usage?.entries || rows.some(row =>
-        !cid(row.public_index_cid) || typeof row.inventory_wire !== 'string' ||
-        Buffer.byteLength(row.inventory_wire, 'utf8') > maxWireBytes)) fail('DeliveryAttemptIndexUnavailable');
-      transaction.run(() => exec(`${nativeReferencesTable}; ${nativeReferenceOwnerIndex};
-        ${nativeReferenceInsert}; ${nativeReferenceUpdate};
-        INSERT INTO native_publication_references
-          SELECT n.public_index_cid,'contract',json_extract(c.value,'$.semantic_cid')
-            FROM native_publication_inventories n,json_each(n.inventory_wire,'$.contract_objects') c
-          UNION SELECT n.public_index_cid,'holding',h.value
-            FROM native_publication_inventories n,json_each(n.inventory_wire,'$.physical_holding_cids') h;
-        UPDATE coverage SET version=12 WHERE id=1;`));
-    }
-    for (const [type, name, sql] of [
-      ['table', 'native_publication_references', nativeReferencesTable],
-      ['index', 'native_publication_reference_owners', nativeReferenceOwnerIndex],
-      ['trigger', 'native_publication_references_insert', nativeReferenceInsert],
-      ['trigger', 'native_publication_references_update', nativeReferenceUpdate],
+    // Current-format metadata is admitted exactly, never repaired or upgraded.
+    for (const [type,name,sql] of [
+      ['table','completions',completionTable],
+      ['index','completion_receipts',completionReceiptIndex],
+      ['table','publication_contracts',publicationTable],
+      ['table','publication_usage',publicationUsageTable],
+      ['table','publication_recovery',publicationRecoveryTable],
+      ['table','pending_publications',pendingPublicationTable],
+      ['table','native_publication_inventories',nativeInventoryTable],
+      ['table','native_publication_inventory_usage',nativeInventoryUsageTable],
+      ['table','metadata_deletion_fences',metadataFenceTable],
+      ['table','metadata_deletion_fence_coverage',metadataFenceCoverageTable],
+      ['index','metadata_deletion_runs','CREATE INDEX metadata_deletion_runs ON metadata_deletion_fences(run_cid)'],
+      ['table','physical_objects',physicalObjectsTable],
+      ['table','physical_object_usage',physicalUsageTable],
+      ['table','physical_object_preparations',physicalPreparationsTable],
+      ['table','publication_attempts',publicationAttemptsTable],
+      ['table','publication_records',publicationRecordsTable],
+      ['index','publication_attempt_runs',publicationAttemptRunIndex],
+      ['table','result_deletion_recovery',resultRecoveryTable],
+      ['table','native_publication_references',nativeReferencesTable],
+      ['index','native_publication_reference_owners',nativeReferenceOwnerIndex],
+      ['trigger','native_publication_references_insert',nativeReferenceInsert],
+      ['trigger','native_publication_references_update',nativeReferenceUpdate],
+      ['table','native_publication_indexes',nativeIndexTable],
+      ['table','native_publication_materials',nativeIndexMaterialsTable],
     ]) {
-      if (prepare('SELECT sql FROM sqlite_schema WHERE type=? AND name=?').get(type, name)?.sql !== sql) {
-        fail('DeliveryAttemptIndexUnavailable');
-      }
-    }
-    // Existing file Indexes retain their representation. This additive
-    // transition creates no publication or historical reconstruction.
-    if (selected.version < 14) transaction.run(() => {
-      if (selected.version < 13) exec(`${nativeIndexTable}; ${nativeIndexMaterialsTable};`);
-      exec(`ALTER TABLE physical_object_preparations RENAME TO old_physical_object_preparations;
-        ${physicalPreparationsTable};
-        INSERT INTO physical_object_preparations
-          SELECT cid,byte_count,device,inode,NULL FROM old_physical_object_preparations;
-        DROP TABLE old_physical_object_preparations;
-        UPDATE coverage SET version=14 WHERE id=1;`);
-    });
-    for (const [name, sql] of [['native_publication_indexes',nativeIndexTable],
-      ['native_publication_materials',nativeIndexMaterialsTable]]) {
-      if (prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name=?").get(name)?.sql !== sql) {
+      if (prepare('SELECT sql FROM sqlite_schema WHERE type=? AND name=?').get(type,name)?.sql !== sql) {
         fail('DeliveryAttemptIndexUnavailable');
       }
     }
@@ -1662,7 +1548,11 @@ export async function openDeliveryAttemptIndex(path, {
             const attempt=byAttempt.get(entry.attempt_cid);
             if(attempt?.ready!==1 || attempt.initial_cid!==entry.prior_cid) fail('DeliveryRecordConflict');
             const retained=completionCopy(completion.get(entry.attempt_cid));
-            if(retained===undefined) insertCompletion.run(entry.attempt_cid,entry.record_cid,entry.record_wire,entry.receipt_cid,entry.receipt_wire);
+            if(retained===undefined) {
+              const receipt = prepare('SELECT receipt_wire FROM completions WHERE receipt_cid=? LIMIT 1').get(entry.receipt_cid);
+              if (receipt !== undefined && receipt.receipt_wire !== entry.receipt_wire) fail('DeliveryRecordConflict');
+              insertCompletion.run(entry.attempt_cid,entry.record_cid,entry.record_wire,entry.receipt_cid,entry.receipt_wire);
+            }
             else {
               if(!sameCompletion({...retained,prior_cid:entry.prior_cid},entry)) fail('DeliveryRecordConflict');
               // A real write in the SAME database confirms a lost earlier

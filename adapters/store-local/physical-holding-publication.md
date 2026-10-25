@@ -1159,9 +1159,19 @@ they are not free storage or a proof of the retained error graph's byte size.
 Before a new semantic batch acquires object names, the existing native physical
 preparation records durably retain each exact digest, extent, device/inode and
 intended semantic CID. The same bounded transaction serves the whole batch;
-there is no per-item custody file. Private metadata format fourteen preserves
-older targetless preparations without inventing a semantic target. Physical
-quota recovery preserves these separate pending duties.
+there is no per-item custody file. Current private metadata format fifteen
+retains these preparations across same-format reopen. Physical quota recovery
+preserves these separate pending duties.
+
+This is an intentional breaking private-format change: formats one through
+fourteen are refused untouched, without automatic upgrade, copying, or deletion.
+A genuinely empty first-created database can still initialize the current format.
+No normative contract version changes: `result_delivery_receipt/0.1` identifies
+immutable delivered content and does not include an attempt identity. Distinct
+attempts can therefore own completions referencing the same receipt CID. The
+receipt lookup is nonunique; completion and acknowledgement ownership remain
+keyed by the exact attempt and record. Repeating one attempt's acknowledgement
+cannot acknowledge, overwrite, or retire another attempt's completion.
 
 A physical-directory acknowledgement alone does not settle the semantic alias.
 Successful alias publication retires its original preparation after the actual
