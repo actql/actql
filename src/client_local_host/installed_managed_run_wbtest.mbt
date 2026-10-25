@@ -23,7 +23,12 @@ fn source_free_managed_prepared_fixture(
 
 ///|
 test "source-free managed Run quotes the existing Local output envelope without a Source" {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let prepared = source_free_managed_prepared_fixture()
   assert_true(installed_managed_run_purpose_supported(prepared))
   let required = installed_managed_run_requirements(
@@ -45,7 +50,12 @@ test "source-free managed Run quotes the existing Local output envelope without 
 
 ///|
 test "source-free managed Run refuses supplied Source transport and changed registry" {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let prepared = source_free_managed_prepared_fixture()
   assert_true(
     installed_managed_run_requirements(
@@ -64,7 +74,10 @@ test "source-free managed Run refuses supplied Source transport and changed regi
   )
   assert_true(
     prepare_installed_sequence_contracts(
-      "{}", source_query_original_values, Some(source_query_original_fragment), None,
+      "{}",
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
     )
     is Err(Unsupported),
   )
@@ -72,7 +85,12 @@ test "source-free managed Run refuses supplied Source transport and changed regi
 
 ///|
 test "managed Run requires the actual declaration for a single Source instead of treating it as source-free" {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let prepared = installed_source_read_prepared_fixture()
   assert_true(installed_managed_run_purpose_supported(prepared))
   assert_true(
@@ -94,7 +112,12 @@ test "managed Run requires the actual declaration for a single Source instead of
 
 ///|
 test "local Mock quote does not relabel ordinary Compute or serialized Model as its purpose" {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let plain = source_free_managed_prepared_fixture()
   let (serialized, _, _, _) = original_prefix_execution_fixture()
   for prepared in [plain, serialized] {

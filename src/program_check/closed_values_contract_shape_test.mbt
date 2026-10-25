@@ -2,12 +2,29 @@
 test "closed Values contract shape validates actual checked one-stage original" {
   let (_, _, environment, _, limits) = public_input_fixture()
   let catalog = @program_check.prepare_source_catalog(environment, {
-    max_work: 10000000, max_bytes: 1000000, max_nodes: 100000, max_depth: 100,
+    max_work: 10000000,
+    max_bytes: 1000000,
+    max_nodes: 100000,
+    max_depth: 100,
   }).unwrap()
-  let dependencies = @program_check.source_catalog_closed_values_dependencies(catalog, 1000000).unwrap()
-  assert_eq(@program_check.source_catalog_closed_values_dependencies(catalog, dependencies.scanned_work), Some(dependencies))
+  let dependencies = @program_check.source_catalog_closed_values_dependencies(
+    catalog, 1000000,
+  ).unwrap()
+  assert_eq(
+    @program_check.source_catalog_closed_values_dependencies(
+      catalog,
+      dependencies.scanned_work,
+    ),
+    Some(dependencies),
+  )
   if dependencies.scanned_work > 0 {
-    assert_true(@program_check.source_catalog_closed_values_dependencies(catalog, dependencies.scanned_work - 1) is None)
+    assert_true(
+      @program_check.source_catalog_closed_values_dependencies(
+        catalog,
+        dependencies.scanned_work - 1,
+      )
+      is None,
+    )
   }
   let document = "{\"version\":\"actql/0.1\",\"id\":\"closed\",\"stages\":[{\"id\":\"s\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1}]},\"as\":\"v\"}],\"results\":{\"r\":{\"from\":\"v\",\"fields\":[\"id\"]}}}],\"results\":{\"r\":{\"from\":{\"stage\":\"s\",\"result\":\"r\"}}}}"
   let checked = public_checked(

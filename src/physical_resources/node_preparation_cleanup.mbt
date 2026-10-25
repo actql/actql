@@ -18,9 +18,12 @@ pub fn[P] check_node_preparation_cleanup_original(
   if value.cleaned || child.origin.fixed_capacities || !child.taken {
     return Err(Unavailable)
   }
-  guard value.ledger is Some(admitted) && physical_equal(admitted, ledger) &&
-    child.ledger is Some(original) && physical_equal(original, ledger) &&
-    ledger.imported_child is Some(origin) && physical_equal(origin, child.origin) else {
+  guard value.ledger is Some(admitted) &&
+    physical_equal(admitted, ledger) &&
+    child.ledger is Some(original) &&
+    physical_equal(original, ledger) &&
+    ledger.imported_child is Some(origin) &&
+    physical_equal(origin, child.origin) else {
     return Err(ForeignOriginal)
   }
   // Unlike admission, this original check allows the owner's stopping signal;

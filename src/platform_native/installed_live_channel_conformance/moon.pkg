@@ -3,7 +3,7 @@ supported_targets = "native"
 pkgtype(kind: "executable")
 
 import {
-  "moonbitlang/core/debug" @debug,
+  "moonbitlang/core/debug",
   "actql/actql/platform_native/installed_arena_control" @control,
   "actql/actql/platform_native/host_bootstrap" @bootstrap,
 }

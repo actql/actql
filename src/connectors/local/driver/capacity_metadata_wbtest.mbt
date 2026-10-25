@@ -14,7 +14,7 @@ test "metadata policy preserves zero wire legacy and rejects negative independen
     max_batch_bytes: 0,
   }
   let legacy = local_managed_metadata_limits(limits, None).unwrap()
-  assert_eq(legacy.name_bytes,0)
+  assert_eq(legacy.name_bytes, 0)
   assert_eq(legacy.schema.max_nodes, 0)
   assert_eq(legacy.bridge_entries, 0)
   assert_eq(legacy.completion_entries, 0)
@@ -22,11 +22,11 @@ test "metadata policy preserves zero wire legacy and rejects negative independen
   assert_eq(legacy.retained_bytes, 0L)
   for
     bad in [
-      { ..legacy, schema: {..legacy.schema,max_nodes:-1}, },
-      { ..legacy, schema: {..legacy.schema,max_fields:-1}, },
-      { ..legacy, schema: {..legacy.schema,max_bytes:-1}, },
-      { ..legacy, schema: {..legacy.schema,max_depth:-1}, },
-      { ..legacy, name_bytes:-1 },
+      { ..legacy, schema: { ..legacy.schema, max_nodes: -1, }, },
+      { ..legacy, schema: { ..legacy.schema, max_fields: -1, }, },
+      { ..legacy, schema: { ..legacy.schema, max_bytes: -1, }, },
+      { ..legacy, schema: { ..legacy.schema, max_depth: -1, }, },
+      { ..legacy, name_bytes: -1, },
       { ..legacy, bridge_entries: -1, },
       { ..legacy, completion_entries: -1, },
       { ..legacy, result_workspace_entries: -1, },
@@ -36,7 +36,7 @@ test "metadata policy preserves zero wire legacy and rejects negative independen
   }
   let independent = {
     ..legacy,
-    schema: {..legacy.schema,max_nodes:100000},
+    schema: { ..legacy.schema, max_nodes: 100000, },
     bridge_entries: 100000,
     completion_entries: 100000,
     result_workspace_entries: 201,
@@ -51,10 +51,13 @@ test "metadata policy preserves zero wire legacy and rejects negative independen
 
 ///|
 test "metadata retained conversion rejects negative and overflow before reservation" {
-  assert_eq(local_retained_with_metadata(0L,0L),Some(0L))
-  assert_eq(local_retained_with_metadata(123L,456L),Some(579L))
-  assert_eq(local_retained_with_metadata(9223372036854775806L,1L),Some(9223372036854775807L))
-  assert_eq(local_retained_with_metadata(9223372036854775806L,2L),None)
-  assert_eq(local_retained_with_metadata(-1L,0L),None)
-  assert_eq(local_retained_with_metadata(0L,-1L),None)
+  assert_eq(local_retained_with_metadata(0L, 0L), Some(0L))
+  assert_eq(local_retained_with_metadata(123L, 456L), Some(579L))
+  assert_eq(
+    local_retained_with_metadata(9223372036854775806L, 1L),
+    Some(9223372036854775807L),
+  )
+  assert_eq(local_retained_with_metadata(9223372036854775806L, 2L), None)
+  assert_eq(local_retained_with_metadata(-1L, 0L), None)
+  assert_eq(local_retained_with_metadata(0L, -1L), None)
 }

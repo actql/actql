@@ -16,6 +16,4 @@ import {
   "moonbitlang/core/json",
 } for "test"
 
-formatter(
-  ignore: ["command_environment_receiver.generated_test.mbt"],
-)
+formatter(ignore: [ "command_environment_receiver.generated_test.mbt" ])

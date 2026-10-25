@@ -22,7 +22,12 @@ fn installed_effect_managed_fixture() -> @publication_host.PreparedClientEffectC
 
 ///|
 test "installed Effect requirements retain the checked Effect owner without a pure cast" {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let prepared = installed_effect_managed_fixture()
   assert_true(installed_managed_owner_shape_supported(Effect(prepared), false))
   let limits = installed_effect_managed_run_requirements(
@@ -43,7 +48,12 @@ test "installed Effect requirements retain the checked Effect owner without a pu
 
 ///|
 test "installed Effect requirements do not relabel ordinary work as a Mock Model or supplied Source" {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let prepared = installed_effect_managed_fixture()
   assert_true(!installed_managed_owner_shape_supported(Effect(prepared), true))
   assert_true(

@@ -233,7 +233,11 @@ test "query time invocation bounded rows preserve one original through every adv
     registered_relation_contracts(),
     sequence,
     [bounded_binding_rows_ordered_context(sequence)],
-    [@lower.node_id(@lower.node_at(@lower.bound_preparation(receiver), 0).unwrap())],
+    [
+      @lower.node_id(
+        @lower.node_at(@lower.bound_preparation(receiver), 0).unwrap(),
+      ),
+    ],
     100000,
     10000,
   ).unwrap()

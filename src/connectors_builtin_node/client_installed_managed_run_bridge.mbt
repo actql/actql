@@ -216,7 +216,8 @@ pub fn client_program_installed_mock_model_managed_run_requirements(
   let base = match
     @client_local_host.installed_mock_model_run_requirements(
       prepared, declarations, query_contract_body, evidence_contract_body, transport_bytes,
-      transport_execution_bytes, installed_contracts, values_body, fragment_body, ordered_body,
+      transport_execution_bytes, installed_contracts, values_body, fragment_body,
+      ordered_body,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
@@ -284,8 +285,8 @@ pub fn client_program_installed_managed_capture_run_requirements(
   ordered_body : String?,
 ) -> Result[Array[Int64], @client_local_host.ClientInstalledManagedRunIssue] {
   @client_local_host.installed_managed_capture_run_requirements(
-    prepared, capacities, transport_bytes, transport_execution_bytes,
-    installed_contracts, values_body, fragment_body, ordered_body,
+    prepared, capacities, transport_bytes, transport_execution_bytes, installed_contracts,
+    values_body, fragment_body, ordered_body,
   )
 }
 

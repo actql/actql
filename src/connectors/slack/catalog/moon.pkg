@@ -10,4 +10,3 @@ import {
   "actql/actql/value_admission" @admitted,
   "actql/actql/sha256" @sha,
 }
-

@@ -14,12 +14,18 @@ fn native_local_scalar_pair_evidence_cid() -> String {
 ///|
 fn native_local_scalar_pair_original_asset_hash(role : String) -> String? {
   match role {
-    "environment" => Some("e79109d982ad96e84d19d3d91b71cbec6f38511f94e80e62b5ad4573b5d7173c")
-    "registry" => Some("a212a9ee1aa4d927591ffc15f25df3218548e9da2f9aa688c6b5733f7348a8aa")
-    "values" => Some("7f667a6f89689763a2cb8bf8db81318408bd6eb0b3ad399ed5fd218d79ffa529")
-    "fragment" => Some("9d361dde54e27332a350f3f1d2ebfaef8c991b69a935538b45a049a739f775ca")
-    "ordered" => Some("96f0783f537b1856116d818cc5f73c67c27977b48ec6f2f6e2d1eac5b0a04748")
-    "result-policy" => Some("470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563")
+    "environment" =>
+      Some("e79109d982ad96e84d19d3d91b71cbec6f38511f94e80e62b5ad4573b5d7173c")
+    "registry" =>
+      Some("a212a9ee1aa4d927591ffc15f25df3218548e9da2f9aa688c6b5733f7348a8aa")
+    "values" =>
+      Some("7f667a6f89689763a2cb8bf8db81318408bd6eb0b3ad399ed5fd218d79ffa529")
+    "fragment" =>
+      Some("9d361dde54e27332a350f3f1d2ebfaef8c991b69a935538b45a049a739f775ca")
+    "ordered" =>
+      Some("96f0783f537b1856116d818cc5f73c67c27977b48ec6f2f6e2d1eac5b0a04748")
+    "result-policy" =>
+      Some("470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563")
     _ => None
   }
 }
@@ -27,12 +33,18 @@ fn native_local_scalar_pair_original_asset_hash(role : String) -> String? {
 ///|
 fn native_local_scalar_pair_current_asset_hash(role : String) -> String? {
   match role {
-    "environment" => Some("e79109d982ad96e84d19d3d91b71cbec6f38511f94e80e62b5ad4573b5d7173c")
-    "registry" => Some("6ae574874934fcda0f8b0d7bf5f26b085a6c25fad25f5be319f4430ba9e66633")
-    "values" => Some("8ff4a4f20578297eff9f7c40df8d32f4dd1e6d5ccbc9a24156b6ab533c292b53")
-    "fragment" => Some("3da36b6da829dce7db05c15bbe00baa8abe3884a8b33e348c31d6ff55a1abacd")
-    "ordered" => Some("dd5c69871006b36152fa87ffc5cbb21fb045d4ad29ef85e3a28e2b6508944343")
-    "result-policy" => Some("470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563")
+    "environment" =>
+      Some("e79109d982ad96e84d19d3d91b71cbec6f38511f94e80e62b5ad4573b5d7173c")
+    "registry" =>
+      Some("6ae574874934fcda0f8b0d7bf5f26b085a6c25fad25f5be319f4430ba9e66633")
+    "values" =>
+      Some("8ff4a4f20578297eff9f7c40df8d32f4dd1e6d5ccbc9a24156b6ab533c292b53")
+    "fragment" =>
+      Some("3da36b6da829dce7db05c15bbe00baa8abe3884a8b33e348c31d6ff55a1abacd")
+    "ordered" =>
+      Some("dd5c69871006b36152fa87ffc5cbb21fb045d4ad29ef85e3a28e2b6508944343")
+    "result-policy" =>
+      Some("470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563")
     _ => None
   }
 }

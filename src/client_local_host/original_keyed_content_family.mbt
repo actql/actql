@@ -73,8 +73,8 @@ pub fn client_original_keyed_content_suffix_capacity(
   retain : (ClientLocalContentStep) -> Bool,
 ) -> @execution.ExecutionCapacity? {
   original_keyed_content_suffix_provider(
-    prepared, keyed, task, step, installed_contracts, values_body, fragment_body, ordered_body,
-    execution, measurement, workspace, physical, retain,
+    prepared, keyed, task, step, installed_contracts, values_body, fragment_body,
+    ordered_body, execution, measurement, workspace, physical, retain,
   ).map(value => value.2)
 }
 
@@ -103,8 +103,8 @@ pub fn start_client_original_keyed_content_suffix(
   retain : (ClientLocalContentStep) -> Bool,
 ) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue] {
   guard original_keyed_content_suffix_provider(
-      prepared, keyed, task, step, installed_contracts, values_body, fragment_body, ordered_body,
-      execution, measurement, workspace, physical, retain,
+      prepared, keyed, task, step, installed_contracts, values_body, fragment_body,
+      ordered_body, execution, measurement, workspace, physical, retain,
     )
     is Some((sequence, provider, capacity)) else {
     return Err(Unavailable)

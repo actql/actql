@@ -61,7 +61,12 @@ fn values_filter_capacity_cleanup(
 fn values_filter_capacity_execute(count : Int, filtered : Bool) -> Unit raise {
   let prepared = values_filter_capacity_prepared(count, filtered, 2000)
   let assets = @publication_host.client_local_product_assets()
-  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let asset_contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   let sequences = prepare_client_local_sequences(
     prepared,
     asset_contracts,
@@ -166,7 +171,12 @@ test "admitted Values row capacity reaches direct and filtered managed execution
 ///|
 test "Values filter keeps exact and one-short row profile admission" {
   let assets = @publication_host.client_local_product_assets()
-  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let asset_contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   for count in [100, 500, 1000] {
     let prepared = values_filter_capacity_prepared(count, true, count)
     assert_true(
@@ -209,7 +219,12 @@ test "larger Values filter remains cancellable with original finite cleanup" {
   let count = 500
   let prepared = values_filter_capacity_prepared(count, true, 2000)
   let assets = @publication_host.client_local_product_assets()
-  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let asset_contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   let sequence = prepare_client_local_sequences(
       prepared,
       asset_contracts,
@@ -302,7 +317,12 @@ fn values_filter_wide_prepared(
 ///|
 test "wide Values filter retains both independent columns at larger row counts" {
   let assets = @publication_host.client_local_product_assets()
-  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let asset_contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   for count in [500, 1000] {
     let prepared = values_filter_wide_prepared(count)
     let sequence = prepare_client_local_sequences(

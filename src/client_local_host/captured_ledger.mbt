@@ -1,5 +1,7 @@
 ///|
-fn client_local_general_value_nodes() -> Int { 20000 }
+fn client_local_general_value_nodes() -> Int {
+  20000
+}
 
 ///|
 fn client_local_execution_limits(
@@ -21,11 +23,13 @@ fn client_local_execution_limits(
   } else if scalar_demand is Some(demand) {
     Some(demand.value_nodes)
   } else if scalar_inventory is Some(inventory) {
-    client_local_inventory_nodes(inventory,max_rows)
-  } else { match scalar_sequences {
-    Some(sequences) => client_local_scalar_nodes(sequences, max_rows)
-    None => None
-  }}
+    client_local_inventory_nodes(inventory, max_rows)
+  } else {
+    match scalar_sequences {
+      Some(sequences) => client_local_scalar_nodes(sequences, max_rows)
+      None => None
+    }
+  }
   let values : @execution.ValueLimits = {
     max_nodes: scalar_nodes.unwrap_or(client_local_general_value_nodes()),
     max_text_bytes: 500000,
@@ -47,8 +51,10 @@ fn client_local_execution_limits(
   let measurement : @execution.FixedInputGuardMeasureLimits = {
     max_work: values.max_work,
     // Guard measurement counts serialized scalar bytes, not text payload.
-    max_bytes: scalar_demand.map(demand=>Int::max(500000,demand.wire_bytes)).unwrap_or(500000),
-    max_nodes: Int::max(20000,scalar_nodes.unwrap_or(20000)),
+    max_bytes: scalar_demand
+    .map(demand => Int::max(500000, demand.wire_bytes))
+    .unwrap_or(500000),
+    max_nodes: Int::max(20000, scalar_nodes.unwrap_or(20000)),
     max_depth: values.max_depth,
   }
   (values, execution, measurement)
@@ -103,7 +109,9 @@ fn client_local_sequence_capacity_original(
   if !client_local_capacity_plan_matches(plan, sequences, max_rows) {
     return None
   }
-  if plan.metadata_retained_bytes > 0L && retained_inputs is None { return None }
+  if plan.metadata_retained_bytes > 0L && retained_inputs is None {
+    return None
+  }
   let execution = plan.execution
   let measurement = plan.measurement
   let mut retained_bytes = 0L
@@ -153,7 +161,8 @@ fn client_local_sequence_capacity_original(
         ),
       )
     }
-    if retained < 0L || retained > client_local_retained_byte_ceiling() - total_retained_bytes {
+    if retained < 0L ||
+      retained > client_local_retained_byte_ceiling() - total_retained_bytes {
       return None
     }
     total_retained_bytes += retained
@@ -365,10 +374,7 @@ pub fn client_effect_family_ledger_limits(
   )
   let count = @strategy.graph_task_count(graph)
   let first = @strategy.graph_captured_prefix(graph)
-  if count < 1 ||
-    first < 0 ||
-    first >= count ||
-    families.is_empty() {
+  if count < 1 || first < 0 || first >= count || families.is_empty() {
     return None
   }
   guard prepare_client_effect_local_sequences(
@@ -655,10 +661,14 @@ fn multi_captured_capacity_limits_selected(
     transport_execution_bytes.length() != captured {
     return None
   }
-  if sequences.length() != count { return None }
+  if sequences.length() != count {
+    return None
+  }
   for index, sequence in sequences {
-    guard @strategy.graph_task_owner(graph,index) is Some(original) &&
-      physical_equal(original,@execution.generated_sequence_owner(sequence)) else { return None }
+    guard @strategy.graph_task_owner(graph, index) is Some(original) &&
+      physical_equal(original, @execution.generated_sequence_owner(sequence)) else {
+      return None
+    }
   }
   let (_, execution, measurement) = client_local_execution_limits()
   let mut retained = 0L
@@ -678,9 +688,11 @@ fn multi_captured_capacity_limits_selected(
   if transfer_envelopes > 9223372036854775807L / 1000000L {
     return None
   }
-  let mut transfer = local_capacity.map(value => value.limits.transfer_bytes)
+  let mut transfer = local_capacity
+    .map(value => value.limits.transfer_bytes)
     .unwrap_or(transfer_envelopes * 1000000L)
-  let mut execution_capacity = local_capacity.map(value => value.limits.execution_bytes)
+  let mut execution_capacity = local_capacity
+    .map(value => value.limits.execution_bytes)
     .unwrap_or(client_local_execution_byte_ceiling())
   for index in 0..<captured {
     let (capture_retained, capture_execution) = capacities[index]
@@ -707,7 +719,9 @@ fn multi_captured_capacity_limits_selected(
   let native_retained = retained
   retained = 0L
   for task in captured..<count {
-    if local_capacity is Some(_) { break }
+    if local_capacity is Some(_) {
+      break
+    }
     guard @execution.generated_sequence_capacity(
         sequences[task],
         execution,
@@ -724,7 +738,8 @@ fn multi_captured_capacity_limits_selected(
   }
   // Preserve the existing Local import/output allowance in addition to,
   // rather than underneath, the independently held native inputs.
-  let compute_retained = local_capacity.map(value => value.limits.retained_bytes)
+  let compute_retained = local_capacity
+    .map(value => value.limits.retained_bytes)
     .unwrap_or(Int64::max(retained, 200000000L))
   if compute_retained > 9223372036854775807L - native_retained {
     return None

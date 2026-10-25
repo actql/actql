@@ -23,9 +23,13 @@ pub fn prepared_sequence_preparation_demand(
   prepared : Prepared,
   max_work : Int,
 ) -> Result[SequencePreparationDemand, SequencePreparationDemandIssue] {
-  if max_work < 0 { return Err(InvalidLimits) }
+  if max_work < 0 {
+    return Err(InvalidLimits)
+  }
   let count = node_count(prepared)
-  if count > max_work { return Err(WorkLimit) }
+  if count > max_work {
+    return Err(WorkLimit)
+  }
   let mut rows = 0L
   let mut cells = 0L
   for index in 0..<count {
@@ -43,5 +47,9 @@ pub fn prepared_sequence_preparation_demand(
       _ => ()
     }
   }
-  Ok({authored_literal_rows:rows.to_int(),authored_literal_cells:cells.to_int(),work_used:count})
+  Ok({
+    authored_literal_rows: rows.to_int(),
+    authored_literal_cells: cells.to_int(),
+    work_used: count,
+  })
 }

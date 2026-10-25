@@ -320,7 +320,12 @@ fn[T : RelationRows] prepare_sequence_with_importers(
     Some(contexts) =>
       match
         attach_fragment_budgets(
-          contracts, sequence, contexts, ordered_budgets, control, metadata,
+          contracts,
+          sequence,
+          contexts,
+          ordered_budgets,
+          control,
+          metadata,
           query_times=Some(query_times),
         ) {
         Ok(_) => ()

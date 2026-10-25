@@ -26,7 +26,12 @@ fn single_installed_ledger(
   transfer? : Int64 = 4096L,
   execution? : Int64 = 4096L,
 ) -> @resources.Ledger? {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   prepare_single_captured_local_installed_ledger(
     prepared,
     capacity,
@@ -41,7 +46,12 @@ fn single_installed_ledger(
 
 ///|
 test "single installed capture preserves its accounted holding on the original planned ledger" {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let prepared = single_installed_prepared()
   let acquisition = original_row_acquisition_fixture(
     original_row_requirement(prepared),

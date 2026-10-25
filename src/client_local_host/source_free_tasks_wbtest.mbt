@@ -32,7 +32,12 @@ fn source_free_tasks_original_union() -> @publication_host.PreparedClientProgram
 test "the original eight-task public UNION quotes every original input and executes on one Ledger" {
   let prepared = source_free_tasks_original_union()
   let assets = @publication_host.client_local_product_assets()
-  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let asset_contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   let graph = @publication_host.prepared_client_graph(prepared)
   assert_eq(@strategy.graph_task_count(graph), 8)
   assert_eq(@strategy.graph_result_task(graph, 0), Some(7))
@@ -133,7 +138,12 @@ test "the original eight-task public UNION quotes every original input and execu
 test "source-free multi-task current refusal cannot execute or replace the original graph" {
   let prepared = source_free_tasks_original_union()
   let assets = @publication_host.client_local_product_assets()
-  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let asset_contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   let limits = source_free_local_ledger_limits(
     prepared,
     asset_contracts,
@@ -163,7 +173,12 @@ test "source-free multi-task current refusal cannot execute or replace the origi
 test "source-free multi-task current loss after the first completed task retains one cleanup and never executes another task" {
   let prepared = source_free_tasks_original_union()
   let assets = @publication_host.client_local_product_assets()
-  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let asset_contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   let limits = source_free_local_ledger_limits(
     prepared,
     asset_contracts,
@@ -213,7 +228,12 @@ fn source_free_tasks_boundary_counts(
 ) -> (Int, Int, Array[String]) raise {
   let prepared = source_free_tasks_original_union()
   let assets = @publication_host.client_local_product_assets()
-  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let asset_contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   let limits = source_free_local_ledger_limits(
     prepared,
     asset_contracts,
@@ -279,7 +299,12 @@ test "closed source-free finalization quantum changes lifetime polling but not a
 test "a retired source-free lifetime refuses before dispatch despite unchanged authority" {
   let prepared = source_free_tasks_original_union()
   let assets = @publication_host.client_local_product_assets()
-  let asset_contracts = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let asset_contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   let limits = source_free_local_ledger_limits(
     prepared,
     asset_contracts,

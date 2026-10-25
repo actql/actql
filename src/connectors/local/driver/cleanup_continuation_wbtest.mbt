@@ -9,7 +9,10 @@ test "scratch continuation counter advances only finite original retirement" {
   let mut slices = 0
   while cursor.phase != Retired {
     let before = cursor.steps
-    advance_local_managed_scratch_retirement(cursor, bridges, imports, reads, cids, issuers) |> ignore
+    advance_local_managed_scratch_retirement(
+      cursor, bridges, imports, reads, cids, issuers,
+    )
+    |> ignore
     assert_true(cursor.steps > before && cursor.steps - before <= 64L)
     slices += 1
     assert_true(slices <= 10)
@@ -19,6 +22,10 @@ test "scratch continuation counter advances only finite original retirement" {
   assert_true(cids.all(value => value is None))
   assert_true(issuers.is_empty())
   let completed = cursor.steps
-  assert_true(advance_local_managed_scratch_retirement(cursor, bridges, imports, reads, cids, issuers))
+  assert_true(
+    advance_local_managed_scratch_retirement(
+      cursor, bridges, imports, reads, cids, issuers,
+    ),
+  )
   assert_eq(cursor.steps, completed)
 }

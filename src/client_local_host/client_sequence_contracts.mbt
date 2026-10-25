@@ -103,9 +103,20 @@ pub fn prepare_installed_sequence_contracts(
   ordered_body : String?,
 ) -> Result[ClientInstalledSequenceContracts, ClientInstalledManagedRunIssue] {
   guard read_client_local_sequence_contracts(
-    registry_body, values_body, fragment_body, ordered_body,
-  ) is Some(value) else { return Err(Unsupported) }
-  Ok({original: {registry_body, values_body, fragment_body, ordered_body, value}})
+      registry_body, values_body, fragment_body, ordered_body,
+    )
+    is Some(value) else {
+    return Err(Unsupported)
+  }
+  Ok({
+    original: {
+      registry_body,
+      values_body,
+      fragment_body,
+      ordered_body,
+      value,
+    },
+  })
 }
 
 ///|
@@ -113,7 +124,9 @@ pub fn prepare_installed_sequence_contracts(
 // A Values-only prefix may omit fragment/ordered support from a fuller bundle.
 fn client_local_sequence_selection_matches(
   installed : ClientInstalledSequenceContracts,
-  values : String, fragment : String?, ordered : String?,
+  values : String,
+  fragment : String?,
+  ordered : String?,
 ) -> Bool {
   let original = installed.original
   original.values_body == values &&

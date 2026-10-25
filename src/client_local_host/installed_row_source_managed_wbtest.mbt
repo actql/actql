@@ -7,7 +7,12 @@ fn installed_single_row_source_limits(
   transfer : Array[Int64],
   workspace : Array[Int64],
 ) -> @resources.LedgerLimits? {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   multi_captured_installed_limits_owned(
     Pure(prepared),
     capacities,

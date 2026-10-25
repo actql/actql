@@ -367,7 +367,9 @@ fn CapturedResultSnapshotPreparation::step(
         if @json.advance_emit(cursor) {
           let writer = self.writer.unwrap()
           @encode.end_object(writer)
-          let (digest, bytes, nodes, depth) = @encode.finish_hash_metrics(writer)
+          let (digest, bytes, nodes, depth) = @encode.finish_hash_metrics(
+            writer,
+          )
           self.writer = None
           if contract_string(self.artifact, "logical_result_cid") !=
             Some("sha256:" + digest) {

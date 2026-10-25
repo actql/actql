@@ -26,16 +26,25 @@ fn continuation_state_valid(state : OriginalLedgerSnapshot) -> Bool {
   // Do not add counters before bounding them: malformed saved Int64 fields
   // must not overflow while testing the exact original transfer envelope.
   if !backed_unresolved_limits_valid(limits) ||
-    usage.planning_work < 0 || usage.planning_work > limits.planning_work ||
-    usage.attempts < 0 || usage.attempts > limits.attempts ||
-    usage.reserved_attempts != 0 || usage.holdings != 0 ||
-    usage.live_reservations != 0 || usage.live_delegations != 0 ||
-    usage.transferred_bytes < 0L || usage.transferred_bytes > limits.transfer_bytes ||
+    usage.planning_work < 0 ||
+    usage.planning_work > limits.planning_work ||
+    usage.attempts < 0 ||
+    usage.attempts > limits.attempts ||
+    usage.reserved_attempts != 0 ||
+    usage.holdings != 0 ||
+    usage.live_reservations != 0 ||
+    usage.live_delegations != 0 ||
+    usage.transferred_bytes < 0L ||
+    usage.transferred_bytes > limits.transfer_bytes ||
     usage.uncertain_transfer_bytes < 0L ||
-    usage.uncertain_transfer_bytes > limits.transfer_bytes - usage.transferred_bytes ||
-    usage.reserved_transfer_bytes != 0L || usage.held_bytes != 0L ||
-    usage.reserved_retention_bytes != 0L || usage.reserved_execution_bytes != 0L ||
-    usage.peak_retention_bytes < 0L || usage.peak_retention_bytes > limits.retained_bytes ||
+    usage.uncertain_transfer_bytes >
+    limits.transfer_bytes - usage.transferred_bytes ||
+    usage.reserved_transfer_bytes != 0L ||
+    usage.held_bytes != 0L ||
+    usage.reserved_retention_bytes != 0L ||
+    usage.reserved_execution_bytes != 0L ||
+    usage.peak_retention_bytes < 0L ||
+    usage.peak_retention_bytes > limits.retained_bytes ||
     state.delegated != (0, 0, 0) ||
     !valid_quantities(state.quantities.reserved) ||
     state.quantities.reserved != zero_quantities() ||
@@ -54,7 +63,8 @@ fn continuation_state_valid(state : OriginalLedgerSnapshot) -> Bool {
     return false
   }
   match state.quantity_limits {
-    None => state.quantities.uncertain == zero_quantities() &&
+    None =>
+      state.quantities.uncertain == zero_quantities() &&
       state.quantities.consumed == zero_quantities()
     // Actual observed quantity overruns remain debt. Do not clamp them to the
     // configured limit or make a saved overrun admit another physical attempt.
@@ -65,11 +75,16 @@ fn continuation_state_valid(state : OriginalLedgerSnapshot) -> Bool {
 ///|
 fn continuation_quiescent(ledger : Ledger) -> Bool {
   let usage = ledger.usage
-  usage.reserved_attempts == 0 && usage.holdings == 0 &&
-  usage.live_reservations == 0 && usage.live_delegations == 0 &&
-  usage.reserved_transfer_bytes == 0L && usage.held_bytes == 0L &&
-  usage.reserved_retention_bytes == 0L && usage.reserved_execution_bytes == 0L &&
-  ledger.delegated_planning == 0 && ledger.delegated_attempts == 0 &&
+  usage.reserved_attempts == 0 &&
+  usage.holdings == 0 &&
+  usage.live_reservations == 0 &&
+  usage.live_delegations == 0 &&
+  usage.reserved_transfer_bytes == 0L &&
+  usage.held_bytes == 0L &&
+  usage.reserved_retention_bytes == 0L &&
+  usage.reserved_execution_bytes == 0L &&
+  ledger.delegated_planning == 0 &&
+  ledger.delegated_attempts == 0 &&
   ledger.delegated_holdings == 0 &&
   ledger.quantity_usage.reserved == zero_quantities()
 }
@@ -107,7 +122,8 @@ pub fn check_ledger_continuation_current(
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
   }
-  if !continuation_quiescent(ledger) || original_ledger_snapshot(ledger) != saved.state {
+  if !continuation_quiescent(ledger) ||
+    original_ledger_snapshot(ledger) != saved.state {
     return Err(ChangedOriginal)
   }
   Ok(())
@@ -122,7 +138,8 @@ pub fn admit_quiescent_ledger_state(
 ) -> Result[LedgerContinuationState, LedgerContinuationIssue] {
   let state = (fn() -> OriginalLedgerSnapshot raise OriginalStateDocumentFailure {
     document_array(source, 7)
-    if @decode.text(document_at(source, 0)) != Ok("actql-ledger-continuation/0.1") {
+    if @decode.text(document_at(source, 0)) !=
+      Ok("actql-ledger-continuation/0.1") {
       raise BadDocument
     }
     let quantities = document_at(source, 4)
@@ -214,12 +231,18 @@ pub fn restore_quiescent_ledger_state(
     return Err(ChangedLimits)
   }
   let zero = zero_quantities()
-  if !continuation_quiescent(ledger) || ledger.original_inventory is Some(_) ||
-    ledger.next_attempt_serial != Some(0) || ledger.next_holding_serial != Some(0) ||
-    ledger.next_capacity_serial != Some(-1) || ledger.quantity_limits is Some(_) ||
-    ledger.quantity_usage.uncertain != zero || ledger.quantity_usage.consumed != zero ||
-    ledger.usage.planning_work != 0 || ledger.usage.attempts != 0 ||
-    ledger.usage.transferred_bytes != 0L || ledger.usage.uncertain_transfer_bytes != 0L ||
+  if !continuation_quiescent(ledger) ||
+    ledger.original_inventory is Some(_) ||
+    ledger.next_attempt_serial != Some(0) ||
+    ledger.next_holding_serial != Some(0) ||
+    ledger.next_capacity_serial != Some(-1) ||
+    ledger.quantity_limits is Some(_) ||
+    ledger.quantity_usage.uncertain != zero ||
+    ledger.quantity_usage.consumed != zero ||
+    ledger.usage.planning_work != 0 ||
+    ledger.usage.attempts != 0 ||
+    ledger.usage.transferred_bytes != 0L ||
+    ledger.usage.uncertain_transfer_bytes != 0L ||
     ledger.usage.peak_retention_bytes != 0L {
     return Err(NotPristine)
   }

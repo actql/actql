@@ -32,9 +32,9 @@ pub fn start_client_original_keyed_prefix_input(
   workspace? : @execution.ExecutionCapacity? = None,
 ) -> Result[ClientOriginalKeyedPrefixInput, ClientSerializationPrefixIssue] {
   start_client_original_keyed_left_prefix_owned(
-    scope, compiled, definition, plan, prepared, keyed, capture, installed_contracts, values_body,
-    fragment_body, ordered_body, execution, measurement, max_entries, max_name_bytes,
-    workspace,
+    scope, compiled, definition, plan, prepared, keyed, capture, installed_contracts,
+    values_body, fragment_body, ordered_body, execution, measurement, max_entries,
+    max_name_bytes, workspace,
   ).map(tuple => {
     let (prefix, source, input) = tuple
     {

@@ -7,5 +7,5 @@ import {
   "actql/actql/platform_native/host_bootstrap" @bootstrap,
   "actql/actql/physical_resources" @resources,
   "actql/actql/platform_native/client_host" @runtime,
-  "actql/actql/platform_native/signature" @signature,
+  "actql/actql/platform_native/signature",
 }

@@ -3,7 +3,7 @@
 /// limits. Sharing this profile keeps Host intake consistent when Hosts use
 /// the same checked Program owner.
 pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationLimits {
-  let graph_work=1000000
+  let graph_work = 1000000
   {
     checking: {
       input: {

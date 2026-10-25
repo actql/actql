@@ -9,7 +9,7 @@ extern "js" fn absent_node_source_reference() -> OriginalNodeSourceReference =
 ///|
 test "absent actual Node Source issuer refuses before observing a supplied reference" {
   assert_true(
-    prepare_node_original_source_child(absent_node_source_reference()) is
-    Err(Unavailable),
+    prepare_node_original_source_child(absent_node_source_reference())
+    is Err(Unavailable),
   )
 }

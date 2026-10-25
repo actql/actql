@@ -62,7 +62,9 @@ test "failed SQLite open retains original handle and diagnosis through cleanup r
       assert_eq(message, "injected original database open failure")
     _ => fail("cleanup overwrote the original open classification")
   }
-  let restored = library.open_existing_database_with_custody(selected, 1024L).unwrap()
+  let restored = library
+    .open_existing_database_with_custody(selected, 1024L)
+    .unwrap()
   assert_eq(restored.read("original", "input").unwrap().body, b"e\xcc\x81\r\n")
   let usage = restored.capacity_usage("original").unwrap()
   assert_eq(usage.reserved_bytes, 7L)
@@ -76,7 +78,8 @@ test "existing SQLite failed-open custody does not create missing originals" {
   let (library, root, path) = open_failure_fixture()
   let name = "open-failure-missing.sqlite3"
   assert_eq(root.inspect_generation(name).unwrap(), None)
-  let failure = match library.open_existing_database_with_custody(path + "/" + name, 1024L) {
+  let failure = match
+    library.open_existing_database_with_custody(path + "/" + name, 1024L) {
     Err(value) => value
     Ok(_) => {
       fail("missing original database was opened")
@@ -95,7 +98,8 @@ test "existing SQLite failed-open custody does not create missing originals" {
 test "SQLite custody API keeps positive admission and refuses invalid limits before open" {
   let (library, root, path) = open_failure_fixture()
   let name = "open-failure-limit.sqlite3"
-  let failure = match library.open_database_with_custody(path + "/" + name, -1L) {
+  let failure = match
+    library.open_database_with_custody(path + "/" + name, -1L) {
     Err(value) => value
     Ok(_) => {
       fail("negative SQLite limit was accepted")
@@ -106,7 +110,9 @@ test "SQLite custody API keeps positive admission and refuses invalid limits bef
   assert_true(failure.database is None)
   failure.retry_cleanup().unwrap()
   assert_eq(root.inspect_generation(name).unwrap(), None)
-  let accepted = library.open_database_with_custody(path + "/" + name, 64L).unwrap()
+  let accepted = library
+    .open_database_with_custody(path + "/" + name, 64L)
+    .unwrap()
   accepted.insert("positive", "input", b"original").unwrap() |> ignore
   assert_eq(accepted.read("positive", "input").unwrap().body, b"original")
   accepted.close_checked().unwrap()

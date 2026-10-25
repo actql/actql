@@ -25,7 +25,9 @@ fn composite_vector_source_test_declaration(
       resource_kind: "table",
       schema_wire,
       schema_cid,
-      facts_wire: Some("{\"relation_keys\":{\"candidate_keys\":[[\"b\",\"a\"]]}}"),
+      facts_wire: Some(
+        "{\"relation_keys\":{\"candidate_keys\":[[\"b\",\"a\"]]}}",
+      ),
       request_schema_wire: None,
       acquisition_wire: None,
     }),
@@ -70,7 +72,9 @@ fn composite_vector_source_preparation_context() -> (
   let environment_cid = text_cid(body)
   let complete = body.replace(
     old="\"host_policy_profile\":",
-    new="\"evidence_bundle_cid\":\"" + environment_cid + "\",\"host_policy_profile\":",
+    new="\"evidence_bundle_cid\":\"" +
+      environment_cid +
+      "\",\"host_policy_profile\":",
   )
   // Preserve the first typed Catalog refusal instead of hiding it in the
   // shared fixture's unwrap. The same strict reader and limits still apply.
@@ -97,21 +101,34 @@ fn composite_vector_source_preparation_context() -> (
   let aliases = ["queries", "candidates"].map(resource => {
     let source_ref = "connector://composite_fixture/" + resource + "#records"
     let view = @row_host.row_declaration_view(declaration, source_ref).unwrap()
-    "{\"name\":\"" + resource + "\",\"sourceRef\":\"" +
-    view.source_ref + "\",\"sourceViewContractCid\":\"" + view.view_cid +
-    "\",\"schemaContractCid\":\"" + view.carrier_schema_cid + "\"}"
+    "{\"name\":\"" +
+    resource +
+    "\",\"sourceRef\":\"" +
+    view.source_ref +
+    "\",\"sourceViewContractCid\":\"" +
+    view.view_cid +
+    "\",\"schemaContractCid\":\"" +
+    view.carrier_schema_cid +
+    "\"}"
   })
-  let publication = "{\"environmentCid\":\"" + environment_cid +
-    "\",\"aliases\":[" + aliases.join(",") + "],\"tableWrites\":[]}"
+  let publication = "{\"environmentCid\":\"" +
+    environment_cid +
+    "\",\"aliases\":[" +
+    aliases.join(",") +
+    "],\"tableWrites\":[]}"
   let context = @local_input.bind_local_published_input_context(
-    environment, publication, None,
+    environment,
+    publication,
+    None,
   ).unwrap()
   (environment, context)
 }
 
 ///|
 test "composite Vector Source original JSON SQL and AQL reach strict preparation" {
-  assert_true(composite_vector_source_test_declaration(false) is Err(InvalidContracts))
+  assert_true(
+    composite_vector_source_test_declaration(false) is Err(InvalidContracts),
+  )
   let (environment, context) = composite_vector_source_preparation_context()
   let cases = composite_vector_source_preparation_normal_inputs()
   assert_eq(cases.length(), 5)
@@ -130,10 +147,7 @@ test "composite Vector Source original JSON SQL and AQL reach strict preparation
       @publication_host.prepared_client_result_name(prepared, 0),
       Some("answer"),
     )
-    assert_eq(
-      @publication_host.prepared_client_result_name(prepared, 1),
-      None,
-    )
+    assert_eq(@publication_host.prepared_client_result_name(prepared, 1), None)
     let schema = @publication_host.issue_prepared_client_result_schema(
       prepared,
       0,
@@ -158,7 +172,8 @@ test "composite Vector Source reordered role keys refuse before Run admission" {
         environment,
         Some(context),
         @publication_host.client_standard_program_preparation_limits(),
-      ) is Err(Frontend(QueryLowering(InvalidQuery))),
+      )
+      is Err(Frontend(QueryLowering(InvalidQuery))),
     )
   }
 }

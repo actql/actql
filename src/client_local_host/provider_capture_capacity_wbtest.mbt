@@ -68,7 +68,12 @@ test "provider capture planner refuses missing overflow and listing profile subs
 
 ///|
 test "provider capture planner carries its overlap into the same prepared Run ledger" {
-  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let prepared = single_installed_prepared()
   let acquisition = original_row_acquisition_fixture(
     original_row_requirement(prepared),

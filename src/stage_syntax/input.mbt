@@ -130,19 +130,22 @@ struct ParsedProgramInput {
 
 ///|
 fn admit_program_input(
-  parsed : @source.ParsedSource, limits : Limits,
+  parsed : @source.ParsedSource,
+  limits : Limits,
 ) -> Result[ParsedProgramInput, SyntaxError] {
   match @wire.admit(parsed.node, limits.tree) {
-    Ok(root) => Ok({root, usage:parsed.usage, max_stages:limits.max_stages})
+    Ok(root) =>
+      Ok({ root, usage: parsed.usage, max_stages: limits.max_stages, })
     Err(issue) => Err(Decode(issue))
   }
 }
 
 ///|
 fn admit_program(
-  parsed : @source.ParsedSource, limits : Limits,
+  parsed : @source.ParsedSource,
+  limits : Limits,
 ) -> Result[Program, SyntaxError] {
-  match admit_program_input(parsed,limits) {
+  match admit_program_input(parsed, limits) {
     Ok(original) => finish_program_input(original)
     Err(issue) => Err(issue)
   }
@@ -160,7 +163,9 @@ pub fn parse_program_input(
   format? : Format = Auto,
   source_path? : String = "<memory>",
 ) -> Result[ParsedProgramInput, SyntaxError] {
-  if !valid_limits(limits) { return Err(InvalidLimits) }
+  if !valid_limits(limits) {
+    return Err(InvalidLimits)
+  }
   let node = read_source(
     format => {
       if format == Yaml {
@@ -168,10 +173,11 @@ pub fn parse_program_input(
       } else {
         @source.parse_program_json_measured(source, limits.source, source_path~)
       }
-    }, format,
+    },
+    format,
   )
   match node {
-    Ok(node) => admit_program_input(node,limits)
+    Ok(node) => admit_program_input(node, limits)
     Err(error) => Err(error)
   }
 }
@@ -186,7 +192,9 @@ pub fn program_input_cursor(original : ParsedProgramInput) -> @wire.Cursor {
 ///|
 /// Continue the same ordinary structural decoder after its fixed caller has
 /// admitted the next construction phase. Original stage policy is preserved.
-pub fn finish_program_input(original : ParsedProgramInput) -> Result[Program, SyntaxError] {
+pub fn finish_program_input(
+  original : ParsedProgramInput,
+) -> Result[Program, SyntaxError] {
   Ok(decode(original.root, original.max_stages, original.usage)) catch {
     Abort(error) => Err(error)
   }
@@ -201,7 +209,7 @@ pub fn parse(
   format? : Format = Auto,
   source_path? : String = "<memory>",
 ) -> Result[Program, SyntaxError] {
-  match parse_program_input(source,limits,format~,source_path~) {
+  match parse_program_input(source, limits, format~, source_path~) {
     Ok(original) => finish_program_input(original)
     Err(issue) => Err(issue)
   }

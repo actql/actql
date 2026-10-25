@@ -2,7 +2,12 @@
 test "managed source-free preparation retains the quoted original sequences and scalar limits" {
   let prepared = source_free_tasks_original_union()
   let assets = @publication_host.client_local_product_assets()
-  let installed = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let installed = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   let original = prepare_installed_managed_source_free_with_contracts(
     prepared,
     installed,
@@ -50,7 +55,12 @@ test "managed source-free preparation retains the quoted original sequences and 
 test "managed source-free preparation executes the same generated originals on one diagnostic Ledger" {
   let prepared = source_free_tasks_original_union()
   let assets = @publication_host.client_local_product_assets()
-  let installed = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let installed = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   let original = prepare_installed_managed_source_free_with_contracts(
     prepared,
     installed,
@@ -98,7 +108,12 @@ test "managed source-free preparation executes the same generated originals on o
 test "managed source-free preparation refuses a foreign owner or changed contract original" {
   let prepared = source_free_tasks_original_union()
   let assets = @publication_host.client_local_product_assets()
-  let installed = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
+  let installed = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   let original = prepare_installed_managed_source_free_with_contracts(
     prepared,
     installed,
@@ -117,16 +132,48 @@ test "managed source-free preparation refuses a foreign owner or changed contrac
       assets.ordered,
     ),
   )
-  let independent = prepare_installed_sequence_contracts(assets.registry, assets.values, Some(assets.fragment), assets.ordered).unwrap()
-  assert_false(installed_source_free_preparation_matches(original, Pure(prepared), independent, assets.values, Some(assets.fragment), assets.ordered))
-  for (values, fragment, ordered) in [
-    ("{}", Some(assets.fragment), assets.ordered),
-    (assets.values, None, assets.ordered),
-    (assets.values, Some(assets.fragment), Some("{}")),
-  ] {
-    assert_false(installed_source_free_preparation_matches(original, Pure(prepared), installed, values, fragment, ordered))
+  let independent = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  assert_false(
+    installed_source_free_preparation_matches(
+      original,
+      Pure(prepared),
+      independent,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    ),
+  )
+  for
+    (values, fragment, ordered) in [
+      ("{}", Some(assets.fragment), assets.ordered),
+      (assets.values, None, assets.ordered),
+      (assets.values, Some(assets.fragment), Some("{}")),
+    ] {
+    assert_false(
+      installed_source_free_preparation_matches(
+        original,
+        Pure(prepared),
+        installed,
+        values,
+        fragment,
+        ordered,
+      ),
+    )
   }
-  assert_true(prepare_installed_sequence_contracts("{}", assets.values, Some(assets.fragment), assets.ordered) is Err(Unsupported))
+  assert_true(
+    prepare_installed_sequence_contracts(
+      "{}",
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    )
+    is Err(Unsupported),
+  )
   // Use the independently authored Source Environment's declared identity;
   // do not retarget the historical helpers or their original failed vectors.
   guard @json.parse(source_query_original_environment) is Object(fields) &&

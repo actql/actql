@@ -174,13 +174,14 @@ pub fn check_installed_effect_managed_run(
   let original = match preparation {
     EffectManaged(_, original) => original
     PlannedEffectManaged(_, plan) => {
-      if !physical_equal(plan.request, request) { return Err(ForeignOriginal) }
+      if !physical_equal(plan.request, request) {
+        return Err(ForeignOriginal)
+      }
       plan.prepared
     }
     _ => return Err(ForeignOriginal)
   }
-  guard physical_equal(original, prepared) &&
-    value.request == request else {
+  guard physical_equal(original, prepared) && value.request == request else {
     return Err(ForeignOriginal)
   }
   require_installed_managed_run(value).map(_ => ())
@@ -191,7 +192,9 @@ pub fn check_installed_effect_managed_run(
 /// Program or an equal six-number quote. The Host retains it before start so a
 /// failed constructor still has the original admission's cleanup carrier.
 pub fn begin_prepared_installed_effect_managed_run(
-  admission : @resources.NodeManagedRunAdmission[ClientInstalledEffectManagedPlan],
+  admission : @resources.NodeManagedRunAdmission[
+    ClientInstalledEffectManagedPlan,
+  ],
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
   plan : ClientInstalledEffectManagedPlan,
@@ -211,7 +214,9 @@ pub fn begin_prepared_installed_effect_managed_run(
     return Err(InsufficientCapacity)
   }
   let value = new_installed_managed_run_owned(
-    PlannedEffectManaged(admission, plan), request, ledger,
+    PlannedEffectManaged(admission, plan),
+    request,
+    ledger,
   )
   value.source_free_preparation = plan.source_free
   require_installed_managed_run(value).map(_ => value)
@@ -237,17 +242,24 @@ pub fn check_installed_effect_operation_extent(
   owner : ClientInstalledManagedRun,
   extent : ClientInstalledEffectOperationExtent,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
-  guard owner.original is Some(original) && physical_equal(original, owner) &&
+  guard owner.original is Some(original) &&
+    physical_equal(original, owner) &&
     owner.preparation is Some(PlannedEffectManaged(_, plan)) else {
     return Err(ForeignOriginal)
   }
-  if !extent.physical_attempt { return Err(Unsupported) }
+  if !extent.physical_attempt {
+    return Err(Unsupported)
+  }
   for demand in plan.operations {
     for declared in demand.member_extents {
-      if physical_equal(declared, extent) { return Ok(()) }
+      if physical_equal(declared, extent) {
+        return Ok(())
+      }
     }
     for declared in demand.row_extents {
-      if physical_equal(declared, extent) { return Ok(()) }
+      if physical_equal(declared, extent) {
+        return Ok(())
+      }
     }
   }
   Err(ForeignOriginal)
@@ -268,12 +280,15 @@ fn prepare_planned_installed_effect_ledger(
   ordered_body : String?,
 ) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
   guard value.preparation is Some(PlannedEffectManaged(_, original)) &&
-    physical_equal(original, plan) && physical_equal(value.request, plan.request) else {
+    physical_equal(original, plan) &&
+    physical_equal(value.request, plan.request) else {
     return Err(ForeignOriginal)
   }
   if !physical_equal(plan.installed_contracts, installed_contracts) ||
-    plan.values_body != values_body || plan.fragment_body != fragment_body ||
-    plan.ordered_body != ordered_body || plan.transport_bytes != transport_bytes ||
+    plan.values_body != values_body ||
+    plan.fragment_body != fragment_body ||
+    plan.ordered_body != ordered_body ||
+    plan.transport_bytes != transport_bytes ||
     plan.transport_execution_bytes != transport_execution_bytes ||
     capacities.length() != plan.captures.length() ||
     value.reads.length() != plan.declarations.length() {
@@ -281,7 +296,8 @@ fn prepare_planned_installed_effect_ledger(
   }
   for index, capacity in capacities {
     if !physical_equal(capacity, plan.captures[index]) ||
-      !capacity.original_input || capacity.provider is Some(_) {
+      !capacity.original_input ||
+      capacity.provider is Some(_) {
       return Err(ForeignOriginal)
     }
     guard value.reads[index] is Some(read) &&
