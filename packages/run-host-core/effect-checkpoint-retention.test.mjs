@@ -271,11 +271,13 @@ test('receipt facades retain one bounded array extent across reentry', () => {
   const members = changing('member');
   assert.equal(f.api.effectReviewCheckpointReconciliationState(binding, f.allowed, f.definition,
     f.fields[1], 'preview', 'invocation', 'set', members.input, 'time', []), 'original-reconciliation-wire');
+  assert.equal(f.reconciliationCalls[0].data[4].length, 1);
   assert.deepEqual(f.reconciliationCalls[0].data[4], ['member']);
   assert.deepEqual(members.counts(), {lengthReads: 1, descriptors: 1});
   const names = changing('published');
   assert.equal(f.api.effectReviewCheckpointCancelledState(binding, f.allowed, f.definition,
     f.fields[1], 'time', names.input), 'original-cancelled-wire');
+  assert.equal(f.cancelledCalls[0].data[2].length, 1);
   assert.deepEqual(f.cancelledCalls[0].data[2], ['published']);
   assert.deepEqual(names.counts(), {lengthReads: 1, descriptors: 1});
 });
