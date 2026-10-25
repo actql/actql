@@ -5434,7 +5434,7 @@
           ]
         }
       ],
-      "sha256": "669b540391b2619f4927413a72fbcc31eb715a801d6d5c04b3b34af7284604d2",
+      "sha256": "f86e15112e416e5c2b524bd036bb56357a80bd992ed7a19be01e7be8418db0f6",
       "role": "observation-presentation",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -5565,6 +5565,10 @@
               {
                 "path": "packages/python-sdk/tests/test_boundaries.py",
                 "anchor": "DiagnosticTests"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_check_reason_presentation.py",
+                "anchor": "class CheckReasonPresentationTests(unittest.TestCase):"
               }
             ]
           }
@@ -8050,6 +8054,8 @@
         "CheckOutcome0ReportReasonsItemFacts13",
         "CheckOutcome0ReportReasonsItemFacts13ReferenceItem",
         "CheckOutcome0ReportReasonsItemFacts14",
+        "CheckOutcome0ReportReasonsItemFacts15",
+        "CheckOutcome0ReportReasonsItemFacts16",
         "CheckOutcome0ReportReasonsItemFacts2",
         "CheckOutcome0ReportReasonsItemFacts2Admission",
         "CheckOutcome0ReportReasonsItemFacts2AdmissionConstraintsItem0",
@@ -8082,6 +8088,8 @@
         "CheckOutcome0ReportRequirementsItemFacts13",
         "CheckOutcome0ReportRequirementsItemFacts13ReferenceItem",
         "CheckOutcome0ReportRequirementsItemFacts14",
+        "CheckOutcome0ReportRequirementsItemFacts15",
+        "CheckOutcome0ReportRequirementsItemFacts16",
         "CheckOutcome0ReportRequirementsItemFacts2",
         "CheckOutcome0ReportRequirementsItemFacts2Admission",
         "CheckOutcome0ReportRequirementsItemFacts2AdmissionConstraintsItem0",
@@ -8129,6 +8137,8 @@
         "CheckOutcome1PartialReportReasonsItemFacts13",
         "CheckOutcome1PartialReportReasonsItemFacts13ReferenceItem",
         "CheckOutcome1PartialReportReasonsItemFacts14",
+        "CheckOutcome1PartialReportReasonsItemFacts15",
+        "CheckOutcome1PartialReportReasonsItemFacts16",
         "CheckOutcome1PartialReportReasonsItemFacts2",
         "CheckOutcome1PartialReportReasonsItemFacts2Admission",
         "CheckOutcome1PartialReportReasonsItemFacts2AdmissionConstraintsItem0",
@@ -8161,6 +8171,8 @@
         "CheckOutcome1PartialReportRequirementsItemFacts13",
         "CheckOutcome1PartialReportRequirementsItemFacts13ReferenceItem",
         "CheckOutcome1PartialReportRequirementsItemFacts14",
+        "CheckOutcome1PartialReportRequirementsItemFacts15",
+        "CheckOutcome1PartialReportRequirementsItemFacts16",
         "CheckOutcome1PartialReportRequirementsItemFacts2",
         "CheckOutcome1PartialReportRequirementsItemFacts2Admission",
         "CheckOutcome1PartialReportRequirementsItemFacts2AdmissionConstraintsItem0",
@@ -8519,7 +8531,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_types.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "9636d363cce5713be505f2c0e8f031bd35ded3e4bf66d382536bce4e1c59e701",
+      "sha256": "0fdc913e73e9332e3e6a62334a5ca157453106a9f3a620ea3a08f0b52f128d08",
       "role": "public-wire-codec",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -8582,6 +8594,8 @@
             "CheckOutcome0ReportReasonsItemFacts13",
             "CheckOutcome0ReportReasonsItemFacts13ReferenceItem",
             "CheckOutcome0ReportReasonsItemFacts14",
+            "CheckOutcome0ReportReasonsItemFacts15",
+            "CheckOutcome0ReportReasonsItemFacts16",
             "CheckOutcome0ReportReasonsItemFacts2",
             "CheckOutcome0ReportReasonsItemFacts2Admission",
             "CheckOutcome0ReportReasonsItemFacts2AdmissionConstraintsItem0",
@@ -8614,6 +8628,8 @@
             "CheckOutcome0ReportRequirementsItemFacts13",
             "CheckOutcome0ReportRequirementsItemFacts13ReferenceItem",
             "CheckOutcome0ReportRequirementsItemFacts14",
+            "CheckOutcome0ReportRequirementsItemFacts15",
+            "CheckOutcome0ReportRequirementsItemFacts16",
             "CheckOutcome0ReportRequirementsItemFacts2",
             "CheckOutcome0ReportRequirementsItemFacts2Admission",
             "CheckOutcome0ReportRequirementsItemFacts2AdmissionConstraintsItem0",
@@ -8661,6 +8677,8 @@
             "CheckOutcome1PartialReportReasonsItemFacts13",
             "CheckOutcome1PartialReportReasonsItemFacts13ReferenceItem",
             "CheckOutcome1PartialReportReasonsItemFacts14",
+            "CheckOutcome1PartialReportReasonsItemFacts15",
+            "CheckOutcome1PartialReportReasonsItemFacts16",
             "CheckOutcome1PartialReportReasonsItemFacts2",
             "CheckOutcome1PartialReportReasonsItemFacts2Admission",
             "CheckOutcome1PartialReportReasonsItemFacts2AdmissionConstraintsItem0",
@@ -8693,6 +8711,8 @@
             "CheckOutcome1PartialReportRequirementsItemFacts13",
             "CheckOutcome1PartialReportRequirementsItemFacts13ReferenceItem",
             "CheckOutcome1PartialReportRequirementsItemFacts14",
+            "CheckOutcome1PartialReportRequirementsItemFacts15",
+            "CheckOutcome1PartialReportRequirementsItemFacts16",
             "CheckOutcome1PartialReportRequirementsItemFacts2",
             "CheckOutcome1PartialReportRequirementsItemFacts2Admission",
             "CheckOutcome1PartialReportRequirementsItemFacts2AdmissionConstraintsItem0",
@@ -9232,6 +9252,10 @@
               {
                 "path": "scripts/check-consumer-condition.test.mjs",
                 "anchor": "test('Take binding conditions are closed template Requirements"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_domain_carrier_presentation.py",
+                "anchor": "class DomainCarrierPresentationTests(unittest.TestCase):"
               }
             ]
           }

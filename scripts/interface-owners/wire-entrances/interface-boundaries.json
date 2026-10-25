@@ -6,7 +6,7 @@
     {
       "module": "packages/client-wire/client-host.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "c8edb290b4768ef9d66292217583ec705fc8aab3eea4a6d9cbabeacfcfbc42ce",
+      "sha256": "5a751ede48e1dd5b921fb0383c0a605151bbfb8973dc00ee5b317972f9a936e7",
       "exports": [
         "ClientHostOperation",
         "WireAdmissionShape",
@@ -272,6 +272,10 @@
               {
                 "path": "scripts/check-consumer-condition.test.mjs",
                 "anchor": "test('Take binding conditions are closed template Requirements"
+              },
+              {
+                "path": "packages/sdk/domain-carrier-presentation.typecheck.mts",
+                "anchor": "const domain: Reason ="
               }
             ]
           }
