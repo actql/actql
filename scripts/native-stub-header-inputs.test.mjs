@@ -69,3 +69,15 @@ test('actual Native incremental build observes a header-only body change', async
   assert.notEqual(digest(), original, 'header-only change must rebuild the actual stub');
   scratch.passed();
 });
+
+
+test('Python provider recipe isolates image capture from ordinary bootstrap', () => {
+  const result = spawnSync('python3', ['scripts/test_python_native_provider.py', '-v'], {
+    cwd: root, encoding: 'utf8', timeout: 60000, killSignal: 'SIGTERM',
+    maxBuffer: 1024 * 1024, env: process.env,
+  });
+  assert(!result.error, result.error?.message);
+  assert.equal(result.signal, null);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stderr, /Ran [1-9][0-9]* tests/u, 'nonzero Python cases required');
+});
