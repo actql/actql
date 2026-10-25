@@ -10,7 +10,7 @@ import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 import {buildLocalNodeAdapters, inspectExternalLocalNodeAdapterGraph} from './build-local-node-adapters.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
-function fixture(t, {collision = false, adapterImport} = {}) {
+function fixture(t, {collision = false, adapterImport, deferAdapterImport = false} = {}) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-external-inventory-')));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const host = join(root, 'host'); mkdirSync(join(host, 'src'), {recursive: true});
@@ -30,15 +30,18 @@ function fixture(t, {collision = false, adapterImport} = {}) {
     writeFileSync(path, readFileSync(path, 'utf8').replaceAll('external_read', 'duckdb'));
     reader.name = 'duckdb';
   }
-  if (adapterImport !== undefined) {
-    const adapter = join(providers[0].root, 'adapters/connectors/external_read/host/installation.mjs');
-    const helper = join(dirname(adapter), 'helper.mjs');
-    writeFileSync(helper, 'export const independent = 17;\n');
-    const target = adapterImport({providers, helper});
-    const specifier = isAbsolute(target) ? relative(dirname(adapter), target).split(sep).join('/') : target;
-    const prefix = specifier.startsWith('.') || !isAbsolute(target) ? '' : './';
-    writeFileSync(adapter, `import ${JSON.stringify(prefix + specifier)};\n` + readFileSync(adapter, 'utf8'));
-  }
+  const applyAdapterImport = () => {
+    if (adapterImport !== undefined) {
+      const adapter = join(providers[0].root, 'adapters/connectors/external_read/host/installation.mjs');
+      const helper = join(dirname(adapter), 'helper.mjs');
+      writeFileSync(helper, 'export const independent = 17;\n');
+      const target = adapterImport({providers, helper});
+      const specifier = isAbsolute(target) ? relative(dirname(adapter), target).split(sep).join('/') : target;
+      const prefix = specifier.startsWith('.') || !isAbsolute(target) ? '' : './';
+      writeFileSync(adapter, `import ${JSON.stringify(prefix + specifier)};\n` + readFileSync(adapter, 'utf8'));
+    }
+  };
+  if (!deferAdapterImport) applyAdapterImport();
   const inputs = resolveConnectorBuildInputs({target: 'js',
     modules: [{namespace: 'actql/actql', version: '0.0.1', root: repository},
       {namespace: 'fixture/installed_host', version: '0.0.1', root: host},
@@ -46,7 +49,7 @@ function fixture(t, {collision = false, adapterImport} = {}) {
     host: 'fixture/installed_host', connectors: providers.map(entry => ({name: entry.name,
       module: `fixture/external_${entry.role}`, directory: `src/connectors/${entry.name}`}))});
   checkNodeAssembly(host, true, {buildInputs: inputs, installations: true});
-  return {host, inputs, providers};
+  return {host, inputs, providers, applyAdapterImport};
 }
 
 test('external inventory separates exact provider build owners from stable distribution keys', t => {
@@ -103,8 +106,12 @@ test('cross-owner adapter and runtime imports refuse before a producer-relative 
     () => join(repository, '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js'),
     ({providers}) => join(providers[1].root, 'adapters/connectors/external_effect/host/installation.mjs'),
   ]) {
-    const f = fixture(t, {adapterImport: target});
+    // Admit the ordinary fixture inventory first. The tested inspector must
+    // reject the later foreign edge even when no compiled Core runtime exists;
+    // setup graph discovery must not turn this into a missing-file assertion.
+    const f = fixture(t, {adapterImport: target, deferAdapterImport: true});
     const inputs = localNodePackageInputs(f.host, {buildInputs: f.inputs});
+    f.applyAdapterImport();
     await assert.rejects(inspectExternalLocalNodeAdapterGraph(inputs), /CrossOwnerLocalNodeAdapterImport/);
   }
 });
