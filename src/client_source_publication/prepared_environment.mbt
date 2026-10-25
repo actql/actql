@@ -323,3 +323,19 @@ pub fn prepared_published_effect_parts(
     ),
   )
 }
+
+///|
+/// Project the already interpreted installation Catalog for a funded borrowed
+/// preparation phase. Unlike the legacy projection, a tighter later admission
+/// cannot silently construct a replacement Catalog. The Root still owns the
+/// original installation lifetime and must keep it current until borrows end.
+/// Retain this shallow wrapper once with that owner, rather than readmitting
+/// the publication or creating another Catalog cache for each query.
+pub fn prepared_published_required_catalog(
+  prepared : PreparedPublishedQueryEnvironment,
+  environment : @program_check.CheckEnvironment,
+) -> Result[@program_check.PreparedSourceCatalog, PreparedPublicationIssue] {
+  prepared_published_query_catalog(prepared, environment).map(
+    @program_check.require_source_catalog_reuse,
+  )
+}

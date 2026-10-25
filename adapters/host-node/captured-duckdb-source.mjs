@@ -64,7 +64,7 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   sourceAccess, transportLimits, acquisitionPlanning, requireImmediateReadAuthorization = false,
   occurrence = {stage: 0, input: 0, task: 0}}) {
   if (typeof database !== 'string' || typeof schema !== 'string' ||
-      typeof table !== 'string' || typeof registry !== 'string' ||
+      typeof table !== 'string' || registry === undefined || registry === null ||
       typeof values !== 'string' || typeof fragment !== 'string' ||
       typeof ordered !== 'string' || typeof requireImmediateReadAuthorization !== 'boolean' ||
       (preparedProgram === undefined) ===

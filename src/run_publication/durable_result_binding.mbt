@@ -1,4 +1,50 @@
 ///|
+fn emit_durable_result_binding_body(
+  byte_count : Int, codec_contract_cid : String, retention_cid : String,
+  invocation_cid : String, logical_cid : String, material_generation_cid : String,
+  ordering_cid : String, physical_sha256 : String, result_fields : Array[String],
+  definition_cid : String, schema_cid : String, row_count : Int,
+  run_definition_cid : String, store_authority_cid : String, writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+    @encode.begin_object(writer)
+    @encode.key(writer, "byte_count")
+    @encode.number_value(writer, byte_count.to_double())
+    @encode.key(writer, "codec_contract_cid")
+    @encode.string_value(writer, codec_contract_cid)
+    @encode.key(writer, "effective_retention_policy_cid")
+    @encode.string_value(writer, retention_cid)
+    @encode.key(writer, "invocation_cid")
+    @encode.string_value(writer, invocation_cid)
+    @encode.key(writer, "logical_result_cid")
+    @encode.string_value(writer, logical_cid)
+    @encode.key(writer, "material_generation_cid")
+    @encode.string_value(writer, material_generation_cid)
+    @encode.key(writer, "ordering_evidence_cid")
+    @encode.string_value(writer, ordering_cid)
+    @encode.key(writer, "physical_sha256")
+    @encode.string_value(writer, physical_sha256)
+    @encode.key(writer, "result_fields")
+    @encode.begin_array(writer)
+    for field in result_fields {
+      @encode.string_value(writer, field)
+    }
+    @encode.end_array(writer)
+    @encode.key(writer, "result_definition_cid")
+    @encode.string_value(writer, definition_cid)
+    @encode.key(writer, "result_schema_cid")
+    @encode.string_value(writer, schema_cid)
+    @encode.key(writer, "row_count")
+    @encode.number_value(writer, row_count.to_double())
+    @encode.key(writer, "run_definition_cid")
+    @encode.string_value(writer, run_definition_cid)
+    @encode.key(writer, "store_authority_cid")
+    @encode.string_value(writer, store_authority_cid)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-durable-result-binding/0.1")
+    @encode.end_object(writer)
+}
+
+///|
 pub(all) enum DurableResultBindingIssue {
   DurableBindingWrongContract(String)
   DurableBindingReferenceMismatch(String)
@@ -131,42 +177,12 @@ pub fn issue_durable_result_binding(
     _ => return Err(DurableBindingEncoding)
   }
   try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "byte_count")
-    @encode.number_value(writer, byte_count.to_double())
-    @encode.key(writer, "codec_contract_cid")
-    @encode.string_value(writer, codec_contract_cid)
-    @encode.key(writer, "effective_retention_policy_cid")
-    @encode.string_value(writer, retention.identity)
-    @encode.key(writer, "invocation_cid")
-    @encode.string_value(writer, invocation.identity)
-    @encode.key(writer, "logical_result_cid")
-    @encode.string_value(writer, logical_cid)
-    @encode.key(writer, "material_generation_cid")
-    @encode.string_value(writer, material_generation_cid)
-    @encode.key(writer, "ordering_evidence_cid")
-    @encode.string_value(writer, ordering.identity)
-    @encode.key(writer, "physical_sha256")
-    @encode.string_value(writer, physical_sha256)
-    @encode.key(writer, "result_fields")
-    @encode.begin_array(writer)
-    for field in result_fields {
-      @encode.string_value(writer, field)
-    }
-    @encode.end_array(writer)
-    @encode.key(writer, "result_definition_cid")
-    @encode.string_value(writer, definition.identity)
-    @encode.key(writer, "result_schema_cid")
-    @encode.string_value(writer, schema_cid)
-    @encode.key(writer, "row_count")
-    @encode.number_value(writer, row_count.to_double())
-    @encode.key(writer, "run_definition_cid")
-    @encode.string_value(writer, run_definition.identity)
-    @encode.key(writer, "store_authority_cid")
-    @encode.string_value(writer, store_authority_cid)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-durable-result-binding/0.1")
-    @encode.end_object(writer)
+    emit_durable_result_binding_body(
+      byte_count, codec_contract_cid, retention.identity, invocation.identity,
+      logical_cid, material_generation_cid, ordering.identity, physical_sha256,
+      result_fields, definition.identity, schema_cid, row_count,
+      run_definition.identity, store_authority_cid, writer,
+    )
   } catch {
     _ => return Err(DurableBindingEncoding)
   }

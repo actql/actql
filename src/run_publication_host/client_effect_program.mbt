@@ -35,6 +35,7 @@ struct PreparedClientEffectComputation {
   supplied : @decode.Cursor?
   candidate : @checked.EffectProgramStaticCandidate
   graph : @strategy.CheckedEffectComputationDAG
+  sequence_preparation_demand : @lower.SequencePreparationDemand
   check_environment_cid : String
 }
 
@@ -48,6 +49,7 @@ fn client_effect_program_view(
   {
     graph: @strategy.checked_effect_computation_graph(value.graph),
     source: value.source,
+    sequence_preparation_demand: value.sequence_preparation_demand,
     local_values_max_rows: client_standard_values_sequence_limits().max_rows,
     check_environment_cid: value.check_environment_cid,
     local_normalization: None,
@@ -155,6 +157,10 @@ pub fn prepare_parsed_client_effect_computation(
     Ok(value) => value
     Err(issue) => return Err(Stage(issue))
   }
+  let sequence_preparation_demand = match client_sequence_preparation_demand(owners,limits.program.max_graph_work) {
+    Ok(value) => value
+    Err(issue) => return Err(Graph(issue))
+  }
   let graph = match
     @strategy.prepare_checked_effect_computation_dag(
       candidate,
@@ -179,6 +185,7 @@ pub fn prepare_parsed_client_effect_computation(
     source: parsed,
     supplied,
     candidate,
+    sequence_preparation_demand,
     graph,
     check_environment_cid: @checked.checking_environment_cid(environment),
   })

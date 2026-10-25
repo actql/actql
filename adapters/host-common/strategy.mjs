@@ -292,7 +292,7 @@ function coreOutputSiteOwner(core, setup, siteInstallation) {
 // This owner exists only after immutable preflight refuses, before any
 // Compute contribution has entered. It owns this exact setup, not an execution
 // or a Result. Successful stop/output-close steps are never repeated.
-function preflightSetupCleanup({core, setup, siteCleanup}) {
+function preflightSetupCleanup({core, setup, siteCleanup, preparationHolder}) {
   let stopped = false, outputsClosed = false, released = false;
   let closeAttempted = false, closeFailed = false, closeFailure;
   let cleanupFailure;
@@ -311,7 +311,8 @@ function preflightSetupCleanup({core, setup, siteCleanup}) {
       }
       const usage = core.usage(setup);
       if (['reservedTransferBytes', 'heldBytes', 'reservedRetentionBytes',
-        'reservedExecutionBytes'].some(key => usage[key] !== 0n)) {
+        'reservedExecutionBytes'].some(key => usage[key] !== 0n) &&
+          !(preparationHolder !== undefined && core.preparationUsageIsolated?.(setup, preparationHolder) === true)) {
         throw new StrategyHostError('PublicationPreflightCleanupPending');
       }
       released = true;
@@ -342,9 +343,9 @@ function preflightSetupCleanup({core, setup, siteCleanup}) {
 
 // One installed receiver owns both the refused setup and any partial Site
 // installation. Exception wrappers are not the custody transport.
-function rejectSetupPreflight({primary, core, setup, retainPreflightCleanup, siteCleanup}) {
+function rejectSetupPreflight({primary, core, setup, retainPreflightCleanup, siteCleanup, preparationHolder}) {
   if (retainPreflightCleanup !== undefined) {
-    const owner = preflightSetupCleanup({core, setup, siteCleanup});
+    const owner = preflightSetupCleanup({core, setup, siteCleanup, preparationHolder});
     // The installed receiver consumes its pending setup synchronously, before
     // this owner may stop it. A refused handoff grants no stop observation.
     try { retainPreflightCleanup(owner); }
@@ -395,7 +396,7 @@ export async function runInstalledStrategy({
     authorization = missingAuthorizationGate()},
   control: {signal, observeCompletion, observeTaskStart, taskObservation} = {},
   publication: {beforeCompute} = {},
-  cleanup: {retainPreflightCleanup} = {},
+  cleanup: {retainPreflightCleanup, preparationHolder} = {},
 }) {
   if (retainPreflightCleanup !== undefined && typeof retainPreflightCleanup !== 'function') {
     throw new StrategyHostError('InvalidPreflightCleanupReceiver');
@@ -461,7 +462,7 @@ export async function runInstalledStrategy({
       signal?.throwIfAborted();
     }
   } catch (primary) {
-    rejectSetupPreflight({primary, core, setup, retainPreflightCleanup});
+    rejectSetupPreflight({primary, core, setup, retainPreflightCleanup, preparationHolder});
   }
   // Snapshot the implementation set before invoking any implementation. Opaque
   // registration object identity, never a display name, selects the driver.
@@ -493,7 +494,7 @@ export async function runInstalledStrategy({
     if (retainPreflightCleanup === undefined ||
         typeof failureMember(siteCleanup, 'status') !== 'function' ||
         typeof failureMember(siteCleanup, 'retry') !== 'function') throw primary;
-    rejectSetupPreflight({primary, core, setup, retainPreflightCleanup, siteCleanup});
+    rejectSetupPreflight({primary, core, setup, retainPreflightCleanup, siteCleanup, preparationHolder});
   }
   const transfers = createManagedSiteTransferCoordinator(
     setup, core, siteInstallation, {
@@ -1150,7 +1151,7 @@ export async function runInstalledStrategy({
     resultInventory: checkedResultInventory,
     publicationInventory,
     ...(preflight === undefined ? {} : {publicationPreflight: preflight}),
-    async publishEffectFreeRun(store, publication, signal) {
+    async publishEffectFreeRun(store, publication, signal, publicationResource) {
       if (closed) throw new StrategyHostError('ReleasedStrategy');
       if (programHasEffects) {
         throw new StrategyHostError('EffectfulProgramRequiresEffectRun');
@@ -1176,9 +1177,9 @@ export async function runInstalledStrategy({
         store,
         control: core.publicationControl,
         signal,
-      });
+      }, publicationResource);
     },
-    async storePublicationResult(result, store, publication, signal) {
+    async storePublicationResult(result, store, publication, signal, publicationResource) {
       if (closed) throw new StrategyHostError('ReleasedStrategy');
       if (!Number.isSafeInteger(result) || result < 0 ||
           result >= resultInventory.length ||
@@ -1251,6 +1252,8 @@ export async function runInstalledStrategy({
         },
         signal,
         beginResult,
+        undefined,
+        publicationResource,
       );
       return Object.freeze({
         occurrence: Object.freeze({

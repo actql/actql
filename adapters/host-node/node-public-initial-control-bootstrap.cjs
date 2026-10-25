@@ -26,7 +26,7 @@ const {declareOrdinaryInitialControlPhaseEnvelope, inspectOrdinaryInitialControl
 const {declareSourceManagedPhaseEnvelope,declareSourceComputePhaseEnvelope,
   declareSourceFreeManagedComputePhaseEnvelope} = require('./source-managed-phase-envelope.cjs');
 const {declareHostJournalServiceRecipe} = require('./host-journal-service-recipe.cjs');
-const {declareHostResultServiceRecipe, facilityFields: resultFacilityFields}
+const {declareHostResultServiceRecipe, validOriginalResultPublicationExtent, facilityFields: resultFacilityFields}
   = require('./host-result-service-recipe.cjs');
 const {declareHostLocalMockModelServiceRecipe}
   = require('./host-local-mock-model-service-recipe.cjs');
@@ -481,8 +481,8 @@ function admitResultRun(original, held, prepared) {
   entry.runAttempted = true;
   const required = apply(entry.service.callbacks.requirements, entry.service.namespace, [held, prepared]);
   const results = field(required, 'resultCount'), rows = field(required, 'maxRows');
-  if (!Number.isSafeInteger(results) || results < 1 || results > entry.service.recipe.result.maxResults ||
-      !Number.isSafeInteger(rows) || rows < 0 || rows > entry.service.recipe.result.maxRows) resultUnavailable();
+  if (!validOriginalResultPublicationExtent(results, rows, field(required, 'maxContractBytes'), 1) ||
+      results > entry.service.recipe.result.maxResults) resultUnavailable();
   resultCurrent(original, held);
   managedRunCurrent(run);
   entry.candidate = freeze({prepared, run, results, rows});
@@ -1275,18 +1275,19 @@ function prepareOriginalSourceChildPorts(original) {
     },
     limit(ordinal) {return Number.isInteger(ordinal) && ordinal >= 0 && ordinal < quotas.length ? quotas[ordinal] : -42n;},
     report(planning, attempts, holdings, transferred, uncertain, reservedTransfer,
-      heldBytes, reservedRetention, reservedExecution, peakRetention) {
+      heldBytes, reservedRetention, reservedExecution, peakRetention, reservedAttempts, liveReservations, liveDelegations) {
       // Core supplies this usage; these counters never acknowledge the FD or
       // return the actual process-lived response ArrayBuffers to a sibling.
-      if (!child.admitted || child.stopped || ![planning, attempts, holdings].every(Number.isSafeInteger) ||
-          planning < 0 || attempts < 0 || holdings < 0 || BigInt(planning) > quotas[0] ||
-          BigInt(attempts) > quotas[1] || BigInt(holdings) > quotas[2] ||
+      if (!child.admitted || child.stopped || ![planning, attempts, holdings, reservedAttempts, liveReservations, liveDelegations].every(Number.isSafeInteger) ||
+          planning < 0 || attempts < 0 || holdings < 0 || reservedAttempts < 0 || liveReservations < 0 || liveDelegations < 0 ||
+          [planning, attempts, holdings, reservedAttempts, liveReservations, liveDelegations].some(value => value > 2147483647) || BigInt(planning) > quotas[0] ||
+          BigInt(attempts) + BigInt(reservedAttempts) > quotas[1] || BigInt(holdings) > quotas[2] ||
           ![transferred, uncertain, reservedTransfer, heldBytes, reservedRetention, reservedExecution, peakRetention]
             .every(value => typeof value === 'bigint' && value >= 0n) ||
           transferred + uncertain + reservedTransfer > quotas[3] ||
           heldBytes + reservedRetention > quotas[4] || peakRetention > quotas[4] || reservedExecution > quotas[5]) return -42;
       child.usage = freeze({planning, attempts, holdings, transferred, uncertain, reservedTransfer,
-        heldBytes, reservedRetention, reservedExecution, peakRetention});
+        heldBytes, reservedRetention, reservedExecution, peakRetention, reservedAttempts, liveReservations, liveDelegations});
       return 0;
     },
   });

@@ -21,6 +21,8 @@ pub fn cid(Policy) -> String
 
 pub fn emit(Policy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn policy_construction_inventory() -> PolicyConstructionInventory?
+
 // Errors
 
 // Types and methods
@@ -44,6 +46,23 @@ pub(all) struct Limits {
 }
 
 type Policy
+
+pub(all) struct PolicyConstructionInventory {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+  source_wire_bytes_upper : Int
+  source_nodes_upper : Int
+  source_fields_upper : Int
+  source_quoted_tokens_upper : Int
+  source_text_utf16_upper : Int
+  source_longest_quoted_utf16_upper : Int
+  source_longest_atom_utf16_upper : Int
+  source_depth_upper : Int
+  map_entries_upper : Int
+  map_backing_slots_upper : Int
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

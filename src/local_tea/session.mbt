@@ -19,6 +19,7 @@ priv enum SessionPhase {
   IdentityBegin
   IdentityTerm
   IdentityCommit
+  LabelRecords
   EmitBegin
   EmitFields
   EmitCommit
@@ -69,6 +70,9 @@ priv struct SessionState {
   mut times : Array[Int64]
   mut source_order : Array[Int]
   mut target_order : Array[Int]
+  preserve_order : Bool
+  mut label_starts : Array[Int64]
+  mut label_ends : Array[Int64]
   initialized_cells : Ref[Int]
   initialized_records : Ref[Int]
   mut sort_identity : Bool
@@ -223,6 +227,10 @@ fn session_initialize_step(state : SessionState) -> Unit {
         state.times.push(0L)
         state.source_order.push(state.source_order.length())
         state.target_order.push(0)
+        if state.preserve_order {
+          state.label_starts.push(0L)
+          state.label_ends.push(0L)
+        }
         state.initialized_records.val += 1
       } else {
         state.phase = LoadBegin
@@ -660,8 +668,29 @@ fn session_identity_step(state : SessionState) -> Result[Unit, SessionIssue] {
       }
       state.session_id = identity
       state.identity_parts = []
-      state.emit = state.group_start
-      state.phase = EmitBegin
+      if state.preserve_order {
+        state.phase = EmitFields
+      } else {
+        state.emit = state.group_start
+        state.phase = EmitBegin
+      }
+      Ok(())
+    }
+    LabelRecords => {
+      // Session membership follows chronological order, emission follows the
+      // original Events occurrence order. Charge each label assignment.
+      // Sorting is complete: reuse its spare index buffer for group leaders.
+      // Rebuild IDs during emission instead of retaining generated strings.
+      if state.emit >= state.group_scan {
+        state.group_start = state.group_scan
+        state.phase = GroupBegin
+      } else {
+        let record = state.source_order[state.emit]
+        state.label_starts[record] = state.session_start
+        state.label_ends[record] = state.session_end
+        state.target_order[record] = state.identity_first
+        state.emit += 1
+      }
       Ok(())
     }
     _ => Err(InvalidSessionKernel)
@@ -679,7 +708,12 @@ fn session_finish_group(state : SessionState) -> Result[Unit, SessionIssue] {
   }
   state.session_end = last_time + state.gap
   state.identity_first = first
-  state.phase = IdentityBegin
+  if state.preserve_order {
+    state.emit = state.group_start
+    state.phase = LabelRecords
+  } else {
+    state.phase = IdentityBegin
+  }
   Ok(())
 }
 
@@ -688,11 +722,18 @@ fn session_group_step(state : SessionState) -> Result[Unit, SessionIssue] {
   match state.phase {
     GroupBegin => {
       if state.group_start >= state.records {
-        state.cells = []
         state.times = []
         state.source_order = []
-        state.target_order = []
-        state.phase = Finish
+        if !state.preserve_order {
+          state.cells = []
+          state.target_order = []
+        }
+        if state.preserve_order {
+          state.emit = 0
+          state.phase = EmitBegin
+        } else {
+          state.phase = Finish
+        }
         return Ok(())
       }
       let first = state.source_order[state.group_start]
@@ -757,15 +798,32 @@ fn session_emit_step(state : SessionState) -> Result[Bool, SessionIssue] {
   match state.phase {
     EmitBegin => {
       if state.emit >= state.group_scan {
-        state.group_start = state.group_scan
-        state.phase = GroupBegin
+        if state.preserve_order {
+          state.label_starts = []
+          state.label_ends = []
+          state.cells = []
+          state.target_order = []
+          state.phase = Finish
+        } else {
+          state.group_start = state.group_scan
+          state.phase = GroupBegin
+        }
         return Ok(false)
+      }
+      if state.preserve_order {
+        state.session_start = state.label_starts[state.emit]
+        state.session_end = state.label_ends[state.emit]
+        state.identity_first = state.target_order[state.emit]
       }
       if state.output_record_limit is Some(limit) &&
         state.emit.to_int64() >= limit {
         return Err(SessionOutput(@records.Storage(@storage.RecordLimit)))
       }
-      let record = state.source_order[state.emit]
+      let record = if state.preserve_order {
+        state.emit
+      } else {
+        state.source_order[state.emit]
+      }
       guard session_source_field_count(state.source, record) is Some(fields) &&
         session_checked_add(fields, 3) is Some(width) &&
         session_checked_add(state.scratch, width) is Some(field_slots) &&
@@ -789,11 +847,19 @@ fn session_emit_step(state : SessionState) -> Result[Bool, SessionIssue] {
       }
       state.emit_field = 0
       state.emit_fields = []
-      state.phase = EmitFields
+      state.phase = if state.preserve_order {
+        IdentityBegin
+      } else {
+        EmitFields
+      }
       Ok(false)
     }
     EmitFields => {
-      let record = state.source_order[state.emit]
+      let record = if state.preserve_order {
+        state.emit
+      } else {
+        state.source_order[state.emit]
+      }
       let count = session_source_field_count(state.source, record).unwrap_or(-1)
       if state.emit_field >= count {
         if state.session_start < -9007199254740991L ||
@@ -903,7 +969,7 @@ fn session_step(
       | VerifyIdentity
       | ResetOrder => session_sort_step(state)
       GroupBegin | GroupCompareKey | GroupBoundary => session_group_step(state)
-      IdentityBegin | IdentityTerm | IdentityCommit =>
+      IdentityBegin | IdentityTerm | IdentityCommit | LabelRecords =>
         session_identity_step(state)
       EmitBegin | EmitFields | EmitCommit | EmitAppend =>
         match session_emit_step(state) {
@@ -950,6 +1016,8 @@ fn cleanup_session_state(state : SessionState) -> Bool {
   state.times = []
   state.source_order = []
   state.target_order = []
+  state.label_starts = []
+  state.label_ends = []
   state.session_id = ""
   state.identity_parts = []
   state.emit_fields = []
@@ -1000,10 +1068,17 @@ fn start_session_with_source(
     session_checked_multiply(records, terms) is Some(cell_count) else {
     return Err(SessionWorkspaceLimit)
   }
-  guard records <= limits.max_input_records &&
+  let preserve_order = match source {
+    Relation(_, _) => false
+    Stored(_, _) | Viewed(_) => true
+  }
+  guard session_checked_multiply(records, if preserve_order { 2 } else { 0 })
+    is Some(label_slots) &&
+    records <= limits.max_input_records &&
     records <= limits.max_records &&
     session_scratch(records, terms) is Some(base_scratch) &&
-    session_checked_add(base_scratch, 1) is Some(scratch) &&
+    session_checked_add(base_scratch, label_slots) is Some(retained_scratch) &&
+    session_checked_add(retained_scratch, 1) is Some(scratch) &&
     scratch <= limits.max_workspace_slots else {
     return Err(SessionWorkspaceLimit)
   }
@@ -1067,6 +1142,9 @@ fn start_session_with_source(
     times: [],
     source_order: [],
     target_order: [],
+    preserve_order,
+    label_starts: [],
+    label_ends: [],
     initialized_cells,
     initialized_records,
     sort_identity: false,

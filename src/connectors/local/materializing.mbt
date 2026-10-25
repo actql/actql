@@ -421,6 +421,14 @@ pub fn finish_local_materializing_input(
 }
 
 ///|
+/// Original provider-start observation only. A started attempt may still need
+/// its existing bounded advance to observe stop after its use scope closes.
+/// This is neither current permission nor a physical-stop acknowledgement.
+pub fn local_materializing_started(attempt : LocalMaterializingAttempt) -> Bool {
+  attempt.started
+}
+
+///|
 pub fn execute_local_materializing_attempt(
   attempt : LocalMaterializingAttempt,
 ) -> Result[Unit, LocalMaterializingIssue] {

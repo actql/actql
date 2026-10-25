@@ -8,9 +8,9 @@ priv struct LedgerOriginalInventory {
   max_reservations : Int
   max_holdings : Int
   max_delegations : Int
-  reservations : Array[Reservation]
-  holdings : Array[Holding]
-  delegations : Array[ExecutionDelegation]
+  reservations : OriginalTokenSlots[Reservation]
+  holdings : OriginalTokenSlots[Holding]
+  delegations : OriginalTokenSlots[ExecutionDelegation]
   mut descriptor_issued : Bool
   mut read_claimed : Bool
   mut closing : Bool
@@ -43,7 +43,9 @@ pub fn begin_original_ledger_inventory(
     ledger.next_capacity_serial != Some(-2) {
     return Err(InvalidBootstrap)
   }
-  if !original_ledger_has_only_bootstrap(ledger, bootstrap) {
+  if ledger.next_attempt_serial != Some(0) ||
+    ledger.next_holding_serial != Some(0) ||
+    !original_ledger_has_only_bootstrap(ledger, bootstrap) {
     return Err(ChangedOriginalState)
   }
   if max_reservations < 0 ||
@@ -60,9 +62,9 @@ pub fn begin_original_ledger_inventory(
     max_reservations,
     max_holdings,
     max_delegations,
-    reservations: [],
-    holdings: [],
-    delegations: [],
+    reservations: original_token_slots(),
+    holdings: original_token_slots(),
+    delegations: original_token_slots(),
     descriptor_issued: false,
     read_claimed: false,
     closing: false,
@@ -80,6 +82,7 @@ fn original_ledger_has_only_bootstrap(
     ledger,
     bootstrap.reservation.retention,
     bootstrap.reservation.execution,
+    live_reservations=1,
   )
 }
 
@@ -88,11 +91,15 @@ fn original_ledger_has_no_child_usage(
   ledger : Ledger,
   retained_bytes : Int64,
   execution_bytes : Int64,
+  live_reservations? : Int = 0,
 ) -> Bool {
   let usage = ledger.usage
   !(usage.planning_work != 0 ||
   usage.attempts != 0 ||
+  usage.reserved_attempts != 0 ||
   usage.holdings != 0 ||
+  usage.live_reservations != live_reservations ||
+  usage.live_delegations != 0 ||
   usage.transferred_bytes != 0L ||
   usage.uncertain_transfer_bytes != 0L ||
   usage.reserved_transfer_bytes != 0L ||
@@ -171,6 +178,8 @@ pub fn original_ledger_prefix_available(
   value.holdings.is_empty() &&
   value.delegations.is_empty() &&
   identity.ledger.next_capacity_serial == Some(-2) &&
+  identity.ledger.next_attempt_serial == Some(0) &&
+  identity.ledger.next_holding_serial == Some(0) &&
   original_ledger_has_only_bootstrap(identity.ledger, identity.bootstrap)
 }
 
@@ -182,6 +191,15 @@ fn check_original_reservation_slot(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  check_original_reservation_slot_current(ledger)
+}
+
+///|
+// No callbacks after the caller's final current observation. A synchronous
+// observation may reenter this Ledger and alter its live inventory/quotas.
+fn check_original_reservation_slot_current(
+  ledger : Ledger,
+) -> Result[Unit, LedgerIssue] {
   guard ledger.original_inventory is Some(value) else { return Ok(()) }
   match check_original_inventory_open(value) {
     Err(issue) => return Err(issue)
@@ -251,6 +269,59 @@ fn record_original_delegation(
 }
 
 ///|
+fn retire_original_reservation(ledger : Ledger, value : Reservation) -> Unit {
+  if ledger.original_inventory is Some(inventory) {
+    // A retained output still requires the original closed reservation binding.
+    // This is live custody, unlike an expired identity retained only as history.
+    if inventory.holdings.any(holding => {
+        holding.live && holding.reservation_serial == value.serial
+      }) {
+      return
+    }
+    for index in 0..<inventory.reservations.length() {
+      if physical_equal(inventory.reservations[index], value) {
+        inventory.reservations.remove(index) |> ignore
+        break
+      }
+    }
+  }
+}
+
+///|
+fn retire_original_holding(ledger : Ledger, value : Holding) -> Unit {
+  if ledger.original_inventory is Some(inventory) {
+    for index in 0..<inventory.holdings.length() {
+      if physical_equal(inventory.holdings[index], value) {
+        inventory.holdings.remove(index) |> ignore
+        break
+      }
+    }
+    for index in 0..<inventory.reservations.length() {
+      let reservation = inventory.reservations[index]
+      if reservation.serial == value.reservation_serial && !reservation.open {
+        retire_original_reservation(ledger, reservation)
+        break
+      }
+    }
+  }
+}
+
+///|
+fn retire_original_delegation(
+  ledger : Ledger,
+  value : ExecutionDelegation,
+) -> Unit {
+  if ledger.original_inventory is Some(inventory) {
+    for index in 0..<inventory.delegations.length() {
+      if physical_equal(inventory.delegations[index], value) {
+        inventory.delegations.remove(index) |> ignore
+        break
+      }
+    }
+  }
+}
+
+///|
 pub fn[T] issue_recorded_original_ledger_descriptor(
   identity : OriginalLedgerIdentity,
   origin : T,
@@ -269,7 +340,7 @@ pub fn[T] issue_recorded_original_ledger_descriptor(
     return Err(SpentClaim)
   }
   let descriptor = match
-    issue_original_ledger_descriptor(
+    issue_original_ledger_descriptor_from_slots(
       ledger,
       origin,
       bootstrap,

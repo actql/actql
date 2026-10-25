@@ -42,12 +42,12 @@ fn client_original_origin_test_wire(
   let origin = fields
     .map(pair => "\"" + pair.0 + "\":\"" + pair.1 + "\"")
     .join(",")
-  let state = "[\"actql-original-ledger-state/0.1\",[\"17\",\"2\",\"3\",\"11\",\"10\",\"7\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],\"-3\",[\"1\",\"0\",\"0\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]],[],[]]"
+  let state = "[\"actql-original-ledger-state/0.1\",[\"17\",\"2\",\"3\",\"11\",\"10\",\"7\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\",\"0\",\"2\",\"0\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],[\"-3\",\"0\",\"0\"],[\"1\",\"0\",\"0\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false]],[],[]]"
   "{\"cut\":null,\"origin\":{" +
   origin +
   "},\"resource_phase\":\"preparation_base\",\"resource_state\":" +
   state +
-  ",\"resource_state_cid\":\"sha256:274329df872dc6b95ba33089f7a822419cb91c3169d893342df24fa6c2126da2\",\"version\":\"actql-model-original-resource-state/0.1\"}"
+  ",\"resource_state_cid\":\"sha256:7ed6db2394d7eaa87d65b022a6bc78f722efaf7a0293115de52c09a89893aae9\",\"version\":\"actql-model-original-resource-state/0.1\"}"
 }
 
 ///|

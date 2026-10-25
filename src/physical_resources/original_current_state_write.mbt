@@ -79,7 +79,13 @@ fn[T] original_current_state_write_block(
       state_write_quantities(writer, ledger.quantity_usage.consumed)
       @encode.end_array(writer)
     }
-    6 => state_write_optional_int(writer, ledger.next_capacity_serial)
+    6 => {
+      @encode.begin_array(writer)
+      state_write_optional_int(writer, ledger.next_capacity_serial)
+      state_write_optional_int(writer, ledger.next_attempt_serial)
+      state_write_optional_int(writer, ledger.next_holding_serial)
+      @encode.end_array(writer)
+    }
     7 => {
       @encode.begin_array(writer)
       state_write_int(writer, inventory.max_reservations)
@@ -133,14 +139,24 @@ fn[T] original_current_state_write_block(
         state_write_int(writer, token.reservation.serial)
         state_write_limits(writer, token.limits)
         @encode.begin_array(writer)
-        let (planning, attempts, holdings, transfer, uncertain) = original_delegation_snapshot(
-          token,
-        )
+        let (
+          planning,
+          attempts,
+          holdings,
+          transfer,
+          uncertain,
+          pending,
+          reservations,
+          delegations,
+        ) = original_delegation_snapshot(token)
         state_write_int(writer, planning)
         state_write_int(writer, attempts)
         state_write_int(writer, holdings)
         state_write_long(writer, transfer)
         state_write_long(writer, uncertain)
+        state_write_int(writer, pending)
+        state_write_int(writer, reservations)
+        state_write_int(writer, delegations)
         @encode.end_array(writer)
         @encode.end_array(writer)
       } else {

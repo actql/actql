@@ -5117,7 +5117,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               },
               {
                 "path": "packages/client-wire/index.d.ts",
@@ -6212,7 +6212,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -6318,7 +6318,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -6422,7 +6422,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -6528,7 +6528,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -6632,7 +6632,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -6736,7 +6736,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -6847,7 +6847,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               },
               {
                 "path": "packages/client-wire/index.mjs",
@@ -6999,7 +6999,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -7103,7 +7103,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -7208,7 +7208,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -7315,7 +7315,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -7421,7 +7421,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -7527,7 +7527,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               },
               {
                 "path": "packages/client-wire/index.mjs",
@@ -7641,7 +7641,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               },
               {
                 "path": "packages/client-wire/index.mjs",
@@ -7754,7 +7754,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               },
               {
                 "path": "packages/client-wire/index.mjs",
@@ -7866,7 +7866,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -7970,7 +7970,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -8076,7 +8076,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -8182,7 +8182,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -8288,7 +8288,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -8394,7 +8394,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -8500,7 +8500,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -8607,7 +8607,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -8713,7 +8713,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -8828,7 +8828,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               },
               {
                 "path": "spec/contracts/actql-client-host.json",
@@ -8900,7 +8900,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
+                "anchor": "max_bytes > 2147483519"
               }
             ],
             "extension": [
@@ -8974,7 +8974,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -9081,7 +9081,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -9187,7 +9187,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -9296,7 +9296,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -9400,7 +9400,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -9506,7 +9506,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -9612,7 +9612,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -9719,7 +9719,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -9825,7 +9825,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -9932,7 +9932,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -10041,7 +10041,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -10149,7 +10149,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -10255,7 +10255,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -10361,7 +10361,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -10467,7 +10467,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -10573,7 +10573,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -10679,7 +10679,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -10785,7 +10785,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -10891,7 +10891,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -10997,7 +10997,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -11103,7 +11103,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -11209,7 +11209,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -11315,7 +11315,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -11422,7 +11422,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               }
             ],
             "identity": [
@@ -11530,7 +11530,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               },
               {
                 "path": "packages/client-wire/index.d.ts",
@@ -11548,7 +11548,7 @@
               },
               {
                 "path": "packages/client-wire/index.mjs",
-                "anchor": "Structural Client\u2013Host wire admission only."
+                "anchor": "Structural Client–Host wire admission only."
               },
               {
                 "path": "spec/contracts/actql-client-host.json",

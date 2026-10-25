@@ -12,7 +12,7 @@ function retainOrdinaryManagedRun(prepared, requirements, assertCurrent,
   childrenPending, purpose = 'source-compute') {
   if (prepared === null || typeof prepared !== 'object' ||
       typeof assertCurrent !== 'function' || typeof childrenPending !== 'function' ||
-      !['source-compute', 'local-mock-model', 'local-content'].includes(purpose)) unavailable();
+      !['source-compute', 'local-mock-model', 'local-content', 'local-preparation'].includes(purpose)) unavailable();
   const quotas = ['planningWork', 'attempts', 'holdings', 'transferBytes', 'retainedBytes', 'executionBytes']
     .map((name, index) => {
       const amount = requirements[name];
@@ -22,38 +22,55 @@ function retainOrdinaryManagedRun(prepared, requirements, assertCurrent,
     });
   assertCurrent();
   const original = freeze(Object.create(null));
-  runs.set(original, {prepared, quotas: freeze(quotas), assertCurrent, childrenPending, purpose,
+  // Exact identity membership is provenance, not ownership of the heavy body.
+  // The active preparation/Run owns that body; this fixed Root retains only a
+  // weak original receipt and cannot accept an equal-shaped replacement.
+  const preparedOriginals = new WeakSet();
+  preparedOriginals.add(prepared);
+  runs.set(original, {preparedOriginals, quotas: freeze(quotas), assertCurrent, childrenPending, purpose,
     portsTaken: false, admitted: false, stopped: false, retiring: false, usage: undefined});
   return original;
 }
 function originalRun(original, prepared) {
   const state = runs.get(original);
-  if (state === undefined || state.prepared !== prepared || state.stopped || state.retiring) unavailable();
+  if (state === undefined || state.stopped || state.retiring || !state.preparedOriginals.has(prepared)) unavailable();
   try {state.assertCurrent();} catch (cause) {state.retiring = true; throw cause;}
   return state;
 }
 function ports(original, prepared, purpose) {
   const state = runs.get(original);
-  if (state === undefined || state.prepared !== prepared || state.purpose !== purpose ||
-      state.portsTaken || state.stopped) return null;
+  if (state === undefined || state.stopped || state.preparedOriginals === undefined ||
+      !state.preparedOriginals.has(prepared) || state.purpose !== purpose || state.portsTaken) return null;
   try {originalRun(original, prepared);} catch {return null;}
   state.portsTaken = true;
+  return retainedPorts(original, state);
+}
+// Keep the admitted preparation out of every retained port closure. The
+// initial ports check has already established its original identity.
+function retainedPorts(original, state) {
+  const releasePreparation = () => {
+    state.preparedOriginals = undefined;
+    state.assertCurrent = undefined;
+    state.childrenPending = undefined;
+  };
   const current = () => {
     if (state.stopped || state.retiring) return 1;
-    try {originalRun(original, prepared); return 0;} catch {return 1;}
+    if (runs.get(original) !== state) return 1;
+    try {state.assertCurrent(); return 0;} catch {state.retiring = true; return 1;}
   };
   return freeze({
     cancelUnpublished() {
       if (state.unpublished) return 0;
       if (state.stopped || state.usage !== undefined || state.childrenPending()) return -42;
-      state.unpublished = true; state.stopped = true; return 0;
+      state.unpublished = true; state.stopped = true;
+      releasePreparation(); return 0;
     },
     status(operation) {
       if (operation === 2) {
         const usage = state.usage;
         if (!state.admitted || state.stopped || usage === undefined || usage.some(value => value !== 0n) ||
             state.childrenPending()) return -42;
-        state.stopped = true; return 0;
+        state.stopped = true; releasePreparation(); return 0;
       }
       if (operation === 1) return current();
       if (operation !== 0 || state.admitted || current() !== 0) return -42;
@@ -61,18 +78,18 @@ function ports(original, prepared, purpose) {
     },
     limit(ordinal) {return Number.isInteger(ordinal) && ordinal >= 0 && ordinal < 6 ? state.quotas[ordinal] : -42n;},
     report(planning, attempts, holdings, transferred, uncertain, reservedTransfer,
-      heldBytes, reservedRetention, reservedExecution, peakRetention) {
+      heldBytes, reservedRetention, reservedExecution, peakRetention, reservedAttempts, liveReservations, liveDelegations) {
       const q = state.quotas;
-      if (!state.admitted || state.stopped || ![planning, attempts, holdings].every(value =>
-        Number.isSafeInteger(value) && value >= 0) || BigInt(planning) > q[0] ||
-          BigInt(attempts) > q[1] || BigInt(holdings) > q[2] ||
+      if (!state.admitted || state.stopped || ![planning, attempts, holdings, reservedAttempts, liveReservations, liveDelegations].every(value =>
+        Number.isSafeInteger(value) && value >= 0 && value <= 2147483647) || BigInt(planning) > q[0] ||
+          BigInt(attempts) + BigInt(reservedAttempts) > q[1] || BigInt(holdings) > q[2] ||
           ![transferred, uncertain, reservedTransfer, heldBytes, reservedRetention, reservedExecution, peakRetention]
             .every(value => typeof value === 'bigint' && value >= 0n) ||
           transferred + uncertain + reservedTransfer > q[3] || heldBytes + reservedRetention > q[4] ||
           peakRetention > q[4] || reservedExecution > q[5]) return -42;
       // Spent planning/attempt/wire history remains in Core. Only actual live
       // logical resources block this stop; it supplies no FD/native ACK.
-      state.usage = freeze([uncertain, reservedTransfer, heldBytes, reservedRetention, reservedExecution]);
+      state.usage = freeze([uncertain, reservedTransfer, heldBytes, reservedRetention, reservedExecution, BigInt(holdings), BigInt(reservedAttempts), BigInt(liveReservations), BigInt(liveDelegations)]);
       return 0;
     },
   });
@@ -84,6 +101,8 @@ module.exports = {retainOrdinaryManagedRun,
     if (state === undefined) unavailable();
     return freeze({admitted: state.admitted, stopped: state.stopped, retiring: state.retiring});
   },
+  // Distinct original purpose: its imported child is later adopted, never restarted.
+  prepareOriginalLocalPreparationPorts(original, input) {return ports(original, input, 'local-preparation');},
   prepareOriginalManagedRunPorts(original, prepared) {return ports(original, prepared, 'source-compute');},
   prepareOriginalLocalMockModelRunPorts(original, prepared) {return ports(original, prepared, 'local-mock-model');},
   prepareOriginalLocalContentRunPorts(original, prepared) {return ports(original, prepared, 'local-content');},

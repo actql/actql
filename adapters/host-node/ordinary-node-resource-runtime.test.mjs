@@ -4,7 +4,19 @@ import runtime from './ordinary-node-resource-runtime.cjs';
 
 const requirements = Object.freeze({planningWork: 100, attempts: 10, holdings: 10,
   transferBytes: 1000n, retainedBytes: 2000n, executionBytes: 3000n});
-const zero = ports => ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n);
+const zero = ports => ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0);
+
+test('same Run reports pending and live counters without refunding spent attempts at retirement', () => {
+  const prepared = {}, original = runtime.retainOrdinaryManagedRun(prepared, requirements, () => {}, () => false);
+  const ports = runtime.prepareOriginalManagedRunPorts(original, prepared);
+  assert.equal(ports.status(0), 0);
+  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n), -42);
+  assert.equal(ports.report(0, 1, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 10, 1, 0), -42);
+  assert.equal(ports.report(0, 1, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 1, 1, 0), 0);
+  assert.equal(ports.status(2), -42);
+  assert.equal(ports.report(0, 1, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);
+  assert.equal(ports.status(2), 0);
+});
 
 test('ordinary Run keeps same-prepared identity, purpose and managed limits without a preload', () => {
   const prepared = {}, original = runtime.retainOrdinaryManagedRun(prepared, requirements, () => {}, () => false);
@@ -15,7 +27,7 @@ test('ordinary Run keeps same-prepared identity, purpose and managed limits with
   assert.equal(ports.limit(4), 2000n);
   assert.equal(ports.status(0), 0);
   assert.equal(ports.status(2), -42); // No invented zero-usage observation.
-  assert.equal(ports.report(101, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n), -42);
+  assert.equal(ports.report(101, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), -42);
   assert.equal(zero(ports), 0);
   assert.equal(ports.status(2), 0);
   assert.equal(ports.status(1), 1);

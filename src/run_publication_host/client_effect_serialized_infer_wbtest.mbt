@@ -4,8 +4,8 @@ fn client_effect_serialized_infer_fixture(
 ) -> PreparedClientEffectComputation raise {
   let (_, _, limits) = client_composed_effect_base_fixture()
   let base = admit_client_check_environment(
-    client_composed_acquired_effect_environment,
-    "sha256:cd4aeacdc39164df2cf7e7cb74faf349a157677a5927d9e84379d0d8df2d91e7",
+    local_normalization_environment_wire,
+    "sha256:9882e5f1412beaf650b0fdaf55035b198b7b87e8e9e3c3a0f07730953b0a72ed",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()

@@ -7,8 +7,6 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {C, input, open, immediateIdentity, immediateReference, seedApproval} from './model-resume-state.fixture.mjs';
-import {MODEL_CURRENT_CUT_JOURNAL_LAYOUT} from './sqlite-checkpoint-journal.mjs';
-import {upgradeCheckpointModelCurrentCut} from '../../scripts/upgrade-checkpoint-model-current-cut.mjs';
 import {assertOriginalModelJournalInvalidation} from './model-resume-state.mjs';
 
 const freeze = value => {
@@ -295,28 +293,17 @@ test('current cut foreign connection and restart retain data but cannot reissue 
   assert.throws(() => f.journal.invalidateOriginalModelCurrentCut(op, f.request), {code: 'CheckpointJournalClosed'});
 });
 
-test('current cut old layout refuses before DDL and offline change preserves every original row', t => {
+test('current cut old layout refuses before DDL without changing original rows', t => {
   const f = fixture(t); f.journal.close();
   const db = new DatabaseSync(f.journal.path);
   try {
     db.exec('ALTER TABLE resume_model_scopes DROP COLUMN current_cut_link_json');
+    db.exec('ALTER TABLE resume_model_scopes DROP COLUMN current_cut_invalidation_json');
     db.prepare('UPDATE journal_metadata SET value = ? WHERE key = ?').run(
       'actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1', 'schema_version');
   } finally {db.close();}
   const before = readFileSync(f.journal.path); const old = rows(f.journal.path);
   assert.throws(() => open(f.root), {code: 'UnsupportedCheckpointJournal'});
   assert.deepEqual(readFileSync(f.journal.path), before);
-  const backupPath = join(f.root, 'original-current-cut-backup.sqlite3');
-  assert.throws(() => upgradeCheckpointModelCurrentCut({root: f.root, backupPath}), /OfflineCheckpointUpgradeRequired/u);
-  const receipt = upgradeCheckpointModelCurrentCut({root: f.root, backupPath, offline: true});
-  assert.equal(receipt.to, MODEL_CURRENT_CUT_JOURNAL_LAYOUT);
-  assert.deepEqual(rows(backupPath), old);
-  const after = rows(f.journal.path);
-  for (const scope of after.resume_model_scopes) {
-    assert.equal(scope.current_cut_link_json, null); delete scope.current_cut_link_json;
-  }
-  assert.deepEqual(after, old);
-  // The older upgrade retains its own declared target. It does not silently
-  // adopt the new durable-invalidation layout or grant cold continuation.
-  assert.throws(() => open(f.root), {code: 'UnsupportedCheckpointJournal'});
+  assert.deepEqual(rows(f.journal.path), old);
 });

@@ -142,8 +142,8 @@ fn normalization_source_fixture(
   let document =
     #|{"version":"actql/0.1","id":"normalization-source","stages":[{"id":"source","inputs":{"table":{"connector":"crm/main","resource":"r","view":"v"}},"steps":[{"filter":{"gte":[{"field":"id"},{"literal":0}]}},{"select":[{"value":"id"}],"as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]}}},{"id":"apply","inputs":{"input":{"result":{"stage":"source","result":"out"}}},"steps":[{"select":["value"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]}},"effects":{"save":{"create":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"out"}}}}}],"results":{"published":{"from":{"stage":"apply","result":"out"}}}}
   let environment = admit_client_check_environment(
-    client_composed_acquired_effect_environment,
-    "sha256:cd4aeacdc39164df2cf7e7cb74faf349a157677a5927d9e84379d0d8df2d91e7",
+    local_normalization_environment_wire,
+    "sha256:9882e5f1412beaf650b0fdaf55035b198b7b87e8e9e3c3a0f07730953b0a72ed",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()

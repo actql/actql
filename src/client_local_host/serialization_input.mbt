@@ -26,7 +26,7 @@ fn serialization_prefix_provider(
   prepared : @publication_host.PreparedClientProgram,
   task : Int,
   step : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -45,11 +45,11 @@ fn serialization_prefix_provider(
   }
   let sequence = if acquired {
     prepare_client_acquired_serialization_prefix(
-      prepared, task, step, registry_body, values_body, fragment_body, ordered_body,
+      prepared, task, step, installed_contracts, values_body, fragment_body, ordered_body,
     )
   } else {
     prepare_client_serialization_prefix(
-      prepared, task, step, registry_body, values_body, fragment_body, ordered_body,
+      prepared, task, step, installed_contracts, values_body, fragment_body, ordered_body,
     )
   }
   guard sequence is Some(sequence) &&
@@ -67,7 +67,7 @@ pub fn client_serialization_prefix_capacity(
   prepared : @publication_host.PreparedClientProgram,
   task : Int,
   step : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -75,7 +75,7 @@ pub fn client_serialization_prefix_capacity(
   measurement : @execution.FixedInputGuardMeasureLimits,
 ) -> @execution.ExecutionCapacity? {
   serialization_prefix_provider(
-    prepared, task, step, registry_body, values_body, fragment_body, ordered_body,
+    prepared, task, step, installed_contracts, values_body, fragment_body, ordered_body,
     execution, measurement,
   ).map(value => value.2)
 }
@@ -85,7 +85,7 @@ pub fn start_client_serialization_prefix(
   prepared : @publication_host.PreparedClientProgram,
   task : Int,
   step : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -95,7 +95,7 @@ pub fn start_client_serialization_prefix(
   workspace? : @execution.ExecutionCapacity? = None,
 ) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue] {
   guard serialization_prefix_provider(
-      prepared, task, step, registry_body, values_body, fragment_body, ordered_body,
+      prepared, task, step, installed_contracts, values_body, fragment_body, ordered_body,
       execution, measurement,
     )
     is Some((sequence, provider, capacity)) else {
@@ -118,7 +118,7 @@ pub fn client_acquired_serialization_prefix_capacity(
   prepared : @publication_host.PreparedClientProgram,
   task : Int,
   step : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -129,7 +129,7 @@ pub fn client_acquired_serialization_prefix_capacity(
     prepared,
     task,
     step,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -147,7 +147,7 @@ pub fn start_client_acquired_serialization_prefix(
   task : Int,
   step : Int,
   source : @query.CapturedInputSource,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -162,7 +162,7 @@ pub fn start_client_acquired_serialization_prefix(
     task,
     step,
     source,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -184,7 +184,7 @@ fn start_client_acquired_serialization_prefix_owned(
   task : Int,
   step : Int,
   source : @query.CapturedInputSource,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -217,7 +217,7 @@ fn start_client_acquired_serialization_prefix_owned(
       prepared,
       task,
       step,
-      registry_body,
+      installed_contracts,
       values_body,
       fragment_body,
       ordered_body,

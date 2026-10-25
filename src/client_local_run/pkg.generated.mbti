@@ -32,15 +32,15 @@ pub fn bind_local_compute_start(LocalComputeHost, LocalRunPhysicalStart) -> Resu
 
 pub fn check_local_publication_preflight(LocalPublicationIntent, LocalRunInvocation, @execution_authorization.AdmittedAccountConfiguration, Array[@run_publication.PublicationContract]) -> Result[LocalPublicationPreflight, LocalPublicationIntentIssue]
 
-pub fn configure_captured_source_local_compute(LocalRunPlan, @execution_query.CapturedInputSource, String, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
+pub fn configure_captured_source_local_compute(LocalRunPlan, @execution_query.CapturedInputSource, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
 
-pub fn configure_captured_source_local_compute_on_ledger(LocalRunPlan, @execution_query.CapturedInputSource, @physical_resources.Ledger, String, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
+pub fn configure_captured_source_local_compute_on_ledger(LocalRunPlan, @execution_query.CapturedInputSource, @physical_resources.Ledger, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
 
-pub fn configure_local_native_source(LocalRunPlan, Int, Int, String, String, String?, String?, String, String, String, String, String, @execution_authorization.AccessTuple, @execution_authorization.AdmittedAccountConfiguration, String) -> Result[LocalNativeSourceConfiguration, LocalNativeSourceIssue]
+pub fn configure_local_native_source(LocalRunPlan, Int, Int, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, String, String, String, String, String, @execution_authorization.AccessTuple, @execution_authorization.AdmittedAccountConfiguration, String) -> Result[LocalNativeSourceConfiguration, LocalNativeSourceIssue]
 
-pub fn configure_source_free_local_compute(LocalRunPlan, String, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
+pub fn configure_source_free_local_compute(LocalRunPlan, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
 
-pub fn configure_source_free_local_compute_on_ledger(LocalRunPlan, @physical_resources.Ledger, String, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
+pub fn configure_source_free_local_compute_on_ledger(LocalRunPlan, @physical_resources.Ledger, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
 
 pub fn confirm_local_compute_start(LocalComputeHost, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[LocalComputeStart, LocalComputeIssue]
 

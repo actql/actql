@@ -1,3 +1,4 @@
+import {validOriginalResultPublicationExtent} from './host-result-service-recipe.cjs';
 import {join} from 'node:path';
 import {ordinaryHostJournalInstallation} from './ordinary-host-journal.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
@@ -105,10 +106,15 @@ export function prepareOrdinaryHostResult(originals, subject, requirements, effe
     // A terminal Effect may publish no Named Result. Its own publication
     // purpose still owns the checked command outcome; Pure requires a Result.
     const minimumResults = kind === 'effect' ? 0 : 1;
-    if (!Number.isSafeInteger(value.resultCount) || value.resultCount < minimumResults || value.resultCount > 10 ||
-        !Number.isSafeInteger(value.maxRows) || value.maxRows < 0 || value.maxRows > 10000 ||
-        !Number.isSafeInteger(value.maxContractBytes) || value.maxContractBytes < 1 ||
-        value.maxContractBytes > 2147483647) {
+    // Both fixed requirement callbacks read the original nominal checked
+    // Program inventory under the pending request's custody. Do not impose
+    // a second structural Result-count cap here; Store bytes/objects remain
+    // independently admitted before publication.
+    // The fixed requirements callback already reads the checked original's
+    // extent under its live request. Publication eligibility must not replace
+    // that extent with the independent all() collection limit.
+    if (!validOriginalResultPublicationExtent(value.resultCount, value.maxRows,
+        value.maxContractBytes, minimumResults)) {
       throw new TypeError('HostResultPublicationUnsupported');
     }
     current();

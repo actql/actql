@@ -7,6 +7,8 @@ import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {installClientStaticPlan} from './client-interactive-plan.mjs';
+import {createEmbeddedHostRegistry} from './embedded-local-lifecycle.mjs';
+import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
 import {validClientBody, prepareClientHostRequest} from '../../packages/client-wire/index.mjs';
 import {mapBody, planCid, cid} from '../../scripts/fixtures/interactive-run-control-vectors.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
@@ -28,6 +30,60 @@ const profile = mode => ({version: 'actql-client-host/0.1', mode, owner: mode,
 const connection = {mode: 'local', owner: 'local', consentRefs: [], runners: []};
 const request = {connection, kind: 'program', input: {stages: []}, parameters: null,
   maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64};
+
+for (const deferred of [false, true]) {
+  test(`static plan keeps its original pending request through funded preparation (${deferred ? 'deferred' : 'direct'})`, async t => {
+    const registry = createEmbeddedHostRegistry(() => true);
+    const host = {}, installation = {}, environment = {}, checkedProgram = {};
+    const aliases = [];
+    let probes = 0, compilations = 0, current = true;
+    const original = value => registry.originalSourceRequest(host, installation, host, value);
+    const bindOwnedRequest = (parent, derived) =>
+      registry.bindSourceRequest(host, installation, host, parent, derived);
+    const moon = {
+      clientProgramPrepareEffectFreeWithParameters() {return {prepared: checkedProgram};},
+      clientProgramPreparationReady: outcome => outcome.prepared,
+      clientProgramPreparationIssue() {}, clientProgramPreparationIssueCode() {},
+      clientProgramRequiresTaskCompilation: () => false,
+    };
+    const prepare = installNodeClientProgramPreparation({moon, environment,
+      getFundedPreparation(value, selected) {
+        assert.strictEqual(selected, environment);
+        assert.notEqual(original(value), value, 'Ingress owns its admitted derivative');
+        assert.throws(() => original({...value}), {code: 'InstalledHostPreparationChanged'});
+        aliases.push(value); probes++;
+        // A static read has no submitted producer, so ordinary preparation
+        // continues without claiming that it obtained managed Run funding.
+        return undefined;
+      }});
+    const plan = installClientStaticPlan({moon, prepare, authorize: () => current,
+      control: {readCheckedClientStaticPlan(value) {
+        assert.strictEqual(value, checkedProgram); compilations++;
+        return JSON.stringify(mockView());
+      }}});
+    const ports = {authenticate: () => 'plan-test', authorizeConnection: () => current,
+      negotiate: () => profile('local'), maxRowBytes: 65536, bindOwnedRequest};
+    const ingress = createNodeInProcessClientHost({...ports, plan});
+    host.port = deferred ? createNodeInProcessClientHost({...ports,
+      async performInstalledRequest(operation, body, signal) {
+        await Promise.resolve();
+        return ingress.perform(operation, body, signal);
+      }}) : ingress;
+    Object.assign(host, {dispatchOwner: {async drain() {}}, retireTerminalEffects() {},
+      journal: {async close() {}}, store: {async close() {}}});
+    registry.registerPreparation(host, installation, host);
+    const client = await registry.connect('static-lineage', {}, async () => host,
+      {mode: 'local', owner: 'local'}, host);
+    t.after(() => client.close());
+    assert.deepEqual(await client.plan({stages: []}), mockView());
+    assert.equal(probes, 1); assert.equal(compilations, 1);
+    for (const alias of aliases) assert.throws(() => original(alias),
+      {code: 'InstalledHostPreparationChanged'});
+    current = false;
+    await assert.rejects(client.plan({stages: []}), {code: 'ClientConnectionDenied'});
+    assert.equal(probes, 1); assert.equal(compilations, 1);
+  });
+}
 
 test('static request owns the original input without a fabricated submission identity', () => {
   const prepared = prepareClientHostRequest('plan', request);

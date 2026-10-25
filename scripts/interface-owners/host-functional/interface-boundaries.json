@@ -1487,7 +1487,7 @@
     {
       "module": "adapters/host-common/completed-run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4d173ab10983f1c11a3834aacbb367f94191474d6aa3fd8b804ad2808fb48de0",
+      "sha256": "253fe48f3f8f5f9b812d98d5c2d8de2ab2decafe282b794942504dac3355c2ea",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -1562,7 +1562,8 @@
             "outputLimits",
             "contractLimits",
             "signal",
-            "exported"
+            "exported",
+            "publicationResource"
           ],
           "async": true
         },
@@ -1878,7 +1879,8 @@
         {
           "name": "publishCompletedEffectFreeRun",
           "parameters": [
-            "options"
+            "options",
+            "publicationResource"
           ],
           "async": true
         },
@@ -1919,6 +1921,13 @@
         },
         {
           "name": "publishCompletedEffectFreeRun/evidence/evidence#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publishCompletedEffectFreeRun/publication/publication",
           "parameters": [
             "value"
           ],
@@ -2716,9 +2725,113 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publishCompletedEffectFreeRun/publication/publication"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "preparedHandles: Object.freeze(exported.flatMap"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "preparedHandles: Object.freeze(exported.flatMap"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "preparedHandles: Object.freeze(exported.flatMap"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "preparedHandles: Object.freeze(exported.flatMap"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "preparedHandles: Object.freeze(exported.flatMap"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "preparedHandles: Object.freeze(exported.flatMap"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "preparedHandles: Object.freeze(exported.flatMap"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "preparedHandles: Object.freeze(exported.flatMap"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "preparedHandles: Object.freeze(exported.flatMap"
+              },
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Selection and transfer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/run-publication-preflight-capacity.test.mjs",
+                "anchor": "test('preflight owns the input-CID inventory used by its narrowed derivation quote',()=>{"
+              }
+            ]
+          }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
       "imports": [
         "./private-publication-holding.mjs",
         "./run-publication.mjs"
@@ -2922,7 +3035,7 @@
     {
       "module": "adapters/host-common/durable-result-payload.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d1dfdf7002d126cf2a5f00a5551b6db329c7a0c8538fce406092f5f5a79c7077",
+      "sha256": "6f00d3ebb1ad902a8ba7feab116070be869f0efa7f6687b914db6cddbe8166ca",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -3117,7 +3230,8 @@
             "publication",
             "signal",
             "beginResult",
-            "readBatch"
+            "readBatch",
+            "publicationResource"
           ],
           "async": true
         },
@@ -3388,7 +3502,7 @@
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
       "imports": [],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -7989,7 +8103,7 @@
     {
       "module": "adapters/host-common/run-publication-preflight.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "009f6868a161327f4ad4163ebe08607f67c588751537977792d10ca990e1853c",
+      "sha256": "5f2873d277ba0a1b18401dda2f328fb85067c7ff7f4bbcb391ddd67b91d03b6d",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -7997,15 +8111,6 @@
         "prepareCompletedEffectFreeRunPublication"
       ],
       "operations": [
-        {
-          "name": "checkedCapacity",
-          "parameters": [
-            "resultCount",
-            "outputLimits",
-            "contractLimits"
-          ],
-          "async": false
-        },
         {
           "name": "contract/contract",
           "parameters": [
@@ -8030,6 +8135,28 @@
           "async": false
         },
         {
+          "name": "ownedDataArray",
+          "parameters": [
+            "value",
+            "capture"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownedDataArray/ownedDataArray",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownedDataRecord",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "positive/positive",
           "parameters": [
             "value"
@@ -8040,6 +8167,13 @@
           "name": "prepareCompletedEffectFreeRunPublication",
           "parameters": [
             "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCompletedEffectFreeRunPublication/bounds/bounds",
+          "parameters": [
+            "result"
           ],
           "async": false
         },
@@ -8087,9 +8221,16 @@
           "async": false
         },
         {
+          "name": "snapshotPlan/bindings/bindings",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "snapshotPlan/results/results",
           "parameters": [
-            "result"
+            "original"
           ],
           "async": false
         }
@@ -8099,7 +8240,6 @@
           "operations": [
             "<module>",
             "RunPublicationPreflightError/constructor:constructor/constructor:constructor",
-            "checkedCapacity",
             "contract/contract",
             "exactKeys/exactKeys",
             "fail/fail",
@@ -8254,6 +8394,114 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "ownedDataArray",
+            "ownedDataArray/ownedDataArray",
+            "ownedDataRecord",
+            "prepareCompletedEffectFreeRunPublication/bounds/bounds",
+            "snapshotPlan/bindings/bindings"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "anchor": "function ownedDataArray(value, capture = item => item)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "anchor": "function ownedDataArray(value, capture = item => item)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "anchor": "function ownedDataArray(value, capture = item => item)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "anchor": "function ownedDataArray(value, capture = item => item)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "anchor": "function ownedDataArray(value, capture = item => item)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "anchor": "function ownedDataArray(value, capture = item => item)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "anchor": "function ownedDataArray(value, capture = item => item)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "anchor": "function ownedDataArray(value, capture = item => item)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "anchor": "function ownedDataArray(value, capture = item => item)"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Shared publication encoders"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/run-publication-preflight-capacity.test.mjs",
+                "anchor": "test('preflight owns the input-CID inventory used by its narrowed derivation quote',()=>{"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -8266,7 +8514,7 @@
     {
       "module": "adapters/host-common/run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ea495df9b1a659668dfc3b30a36e2f396b8781f1a35569b02deffe4aba840b68",
+      "sha256": "b16a4716bedf756327698060e54b1252eec7439be4b59b1fdb7804792a16082a",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -10970,7 +11218,7 @@
     {
       "module": "adapters/host-common/strategy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e9f308e814df1e2980cb87ec21ef7e7d201ed77bbd1f3fa210c866f743ec4d17",
+      "sha256": "b85eedf2f4d5aba23051ca11c3d2d7b41662927654323dfb253d07b04e01967b",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
@@ -11045,7 +11293,8 @@
           "parameters": [
             "core",
             "setup",
-            "siteCleanup"
+            "siteCleanup",
+            "preparationHolder"
           ],
           "async": false
         },
@@ -11095,7 +11344,8 @@
             "core",
             "setup",
             "retainPreflightCleanup",
-            "siteCleanup"
+            "siteCleanup",
+            "preparationHolder"
           ],
           "async": false
         },
@@ -11173,7 +11423,8 @@
             "observeTaskStart",
             "taskObservation",
             "beforeCompute",
-            "retainPreflightCleanup"
+            "retainPreflightCleanup",
+            "preparationHolder"
           ],
           "async": true
         },
@@ -11302,7 +11553,8 @@
           "parameters": [
             "store",
             "publication",
-            "signal"
+            "signal",
+            "publicationResource"
           ],
           "async": true
         },
@@ -11319,7 +11571,8 @@
             "result",
             "store",
             "publication",
-            "signal"
+            "signal",
+            "publicationResource"
           ],
           "async": true
         },
@@ -11730,7 +11983,7 @@
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
       "imports": [
         "./authorization-gate.mjs",
         "./completed-run-publication.mjs",
@@ -16770,7 +17023,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
+                "anchor": "max_bytes > 2147483519"
               }
             ],
             "extension": [
@@ -18602,7 +18855,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d3314fb7d60f2a9c3f4e993dd70f8881476800b79d96ddfa539d2299b0eb834a",
+      "sha256": "0f82edab80f60ffccdda1d56db5504ea1b3161864fac69610d79f5e16e1def0d",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -18675,7 +18928,8 @@
             "verifyRequestValuePolicy",
             "restoreEffectOriginal",
             "restoreInferOriginal",
-            "getPreparedSourceEnvironment"
+            "getPreparedSourceEnvironment",
+            "getFundedPreparation"
           ],
           "async": false
         },
@@ -18755,6 +19009,13 @@
           "name": "installNodeClientProgramPreparation/init:restoreOriginal/init:restoreOriginal",
           "parameters": [
             "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientProgramPreparation/init:retireOriginal/init:retireOriginal",
+          "parameters": [
+            "prepared"
           ],
           "async": false
         },
@@ -19172,7 +19433,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
+                "anchor": "max_bytes > 2147483519"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -19391,6 +19652,110 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "installNodeClientProgramPreparation/init:retireOriginal/init:retireOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "retireOriginal(prepared) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "retireOriginal(prepared) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "retireOriginal(prepared) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "retireOriginal(prepared) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "retireOriginal(prepared) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "retireOriginal(prepared) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "retireOriginal(prepared) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "retireOriginal(prepared) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "retireOriginal(prepared) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-preparation-custody-public.test.mjs",
+                "anchor": "test('retired Pure preparation preserves saved plan and original lookup after reopen', async () => {"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -19405,7 +19770,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a752af98b87db5d14e6fd196784d4af4730e25f2c7949b96f5ae74e8a7204c4c",
+      "sha256": "1a30d6ee152f71bd770ef06d60ccdf1969b5dc1efb0a0ab7daf28d8bd1aa14c2",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -19716,30 +20081,6 @@
           "async": false
         },
         {
-          "name": "boundJournalOperations",
-          "parameters": [
-            "journal",
-            "maximum",
-            "assertCurrent"
-          ],
-          "async": false
-        },
-        {
-          "name": "boundJournalOperations/boundJournalOperations",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "boundJournalOperations/boundJournalOperations#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "boundJournalOperations/enter/enter",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "checkedIdentity",
           "parameters": [
             "handle",
@@ -19815,6 +20156,29 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "guardJournalCurrentness",
+          "parameters": [
+            "journal",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "guardJournalCurrentness/enter/enter",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "guardJournalCurrentness/guardJournalCurrentness",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "guardJournalCurrentness/guardJournalCurrentness#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -20182,7 +20546,6 @@
             "maxInspectionBytes",
             "maxDatabaseBytes",
             "maxWalFrames",
-            "maxJournalOperations",
             "primarySqlLimits",
             "primaryExecutionLimits",
             "primarySchemaLimits",
@@ -20421,6 +20784,13 @@
             "purpose",
             "control",
             "persist"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/intentWireBytes/intentWireBytes",
+          "parameters": [
+            "wire"
           ],
           "async": false
         },
@@ -20986,7 +21356,7 @@
           "parameters": [
             "epoch",
             "control",
-            "parentEpoch"
+            "borrowedIntent"
           ],
           "async": false
         },
@@ -21402,7 +21772,8 @@
         {
           "name": "retainedResultNames",
           "parameters": [
-            "row"
+            "row",
+            "maxWireBytes"
           ],
           "async": false
         },
@@ -22045,7 +22416,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "return () => {submissionOperations.delete(epoch);};"
+                "anchor": "if (submissionOperations.get(epoch) === operation) submissionOperations.delete(epoch);"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -22305,7 +22676,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
+                "anchor": "max_bytes > 2147483519"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -22345,7 +22716,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const intent = control.clientSubmittedIntent(wire, 1048576, 65536, 64);"
+                "anchor": "const intent = control.clientSubmittedIntent(wire, bytes, bytes, bytes);"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -23058,24 +23429,19 @@
           }
         },
         {
-          "operations": [
-            "boundJournalOperations",
-            "boundJournalOperations/boundJournalOperations",
-            "boundJournalOperations/boundJournalOperations#2",
-            "boundJournalOperations/enter/enter"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "SQL and native-statement counters do not bound an operation that refuses"
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "function boundJournalOperations(journal, maximum, assertCurrent) {"
+                "anchor": "function guardJournalCurrentness(journal, assertCurrent) {"
               }
             ],
             "identity": [
@@ -23085,7 +23451,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const deliveredJournal = boundJournalOperations(journal, maxJournalOperations, primaryCurrent);"
+                "anchor": "const deliveredJournal = guardJournalCurrentness(journal, primaryCurrent);"
               }
             ],
             "ownership": [
@@ -23101,7 +23467,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "attempts++;"
+                "anchor": "const enter = () => {assertCurrent();};"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -23111,11 +23477,11 @@
             "failure": [
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "if (attempts >= maximum) throw failure;"
+                "anchor": "const enter = () => {assertCurrent();};"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const failure = new OperationError('ClientRequestJournalOperationUnavailable');"
+                "anchor": "const enter = () => {assertCurrent();};"
               }
             ],
             "cancellation": [
@@ -23125,19 +23491,19 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "operations, available without operation credit or currentness."
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "record, forwarding closures/receivers, operation count, retained refusal and"
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "must combine it with the original per-operation input/cardinality/SQL limits"
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
               }
             ],
             "verification": [
@@ -23444,6 +23810,114 @@
               {
                 "path": "adapters/host-node/ordinary-host-journal.test.mjs",
                 "anchor": "test('owned native format refusal retains the captured close and Store exclusion until its real ACK'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "guardJournalCurrentness",
+            "guardJournalCurrentness/enter/enter",
+            "guardJournalCurrentness/guardJournalCurrentness",
+            "guardJournalCurrentness/guardJournalCurrentness#2",
+            "openClientRequestJournal/intentWireBytes/intentWireBytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function guardJournalCurrentness("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function guardJournalCurrentness("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function guardJournalCurrentness("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function guardJournalCurrentness("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function guardJournalCurrentness("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function guardJournalCurrentness("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function guardJournalCurrentness("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function guardJournalCurrentness("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function guardJournalCurrentness("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Journal calls have no historical issuance or session-work ceiling."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/journal-lifecycle-limits.test.mjs",
+                "anchor": "new original Journal operations remain usable beyond former 4096 lifetime attempts"
               }
             ]
           }
@@ -24791,7 +25265,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "509db62cb154439cc645e8801d3af03b027023dd48469a7ef569d754a9ef8066",
+      "sha256": "e4b51c3d7a3e5fc5deeb17e082ce14fd2d74edc047f03c3e109a767311927d73",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -24831,7 +25305,9 @@
             "lookupRequest",
             "checkSubmissionInput",
             "bindOwnedRequest",
-            "admitPreparedSubmission"
+            "admitPreparedSubmission",
+            "preparationCustody",
+            "submittedIntentOriginal"
           ],
           "async": false
         },
@@ -24856,6 +25332,14 @@
           "parameters": [
             "value",
             "bind"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientSubmission/copyRequest/copyRequest",
+          "parameters": [
+            "value",
+            "changes"
           ],
           "async": false
         },
@@ -24928,6 +25412,21 @@
           "async": false
         },
         {
+          "name": "installNodeClientSubmission/preparedSubmission/preparedSubmission",
+          "parameters": [
+            "value",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientSubmission/preparedValue/preparedValue",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeClientSubmission/prepareOwned/prepareOwned",
           "parameters": [
             "value",
@@ -24937,6 +25436,13 @@
         },
         {
           "name": "installNodeClientSubmission/prepareOwned/prepareOwned/prepareOwned",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientSubmission/prepareOwned/prepareOwned/prepareOwned#2",
           "parameters": [
             "original"
           ],
@@ -25210,6 +25716,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const admissionFailures = new WeakMap();"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Only an input-bearing submission preparation can lend its original submitted"
               }
             ],
             "inputsOutputs": [
@@ -25312,6 +25822,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "admissionFailures.delete(submission);"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Only an input-bearing submission preparation can lend its original submitted"
               }
             ],
             "synchronization": [
@@ -25447,7 +25961,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 1048576"
+                "anchor": "max_bytes > 2147483519"
               },
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
@@ -25464,6 +25978,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "run.original !== undefined || run.admission !== undefined || run.value !== undefined ||"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Only an input-bearing submission preparation can lend its original submitted"
               }
             ],
             "extension": [
@@ -25552,6 +26070,10 @@
               {
                 "path": "adapters/host-node/client-submission.test.mjs",
                 "anchor": "test('paired pre-admission original refusal is retained without entering the Run owner', async t => {"
+              },
+              {
+                "path": "adapters/host-node/source-request-lineage.test.mjs",
+                "anchor": "test('read-only submission lookup keeps the original live Host ingress lineage', async t => {"
               }
             ]
           }
@@ -25616,7 +26138,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "return () => {submissionOperations.delete(epoch);};"
+                "anchor": "if (submissionOperations.get(epoch) === operation) submissionOperations.delete(epoch);"
               }
             ],
             "synchronization": [
@@ -25672,7 +26194,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const intent = control.clientSubmittedIntent(wire, 1048576, 65536, 64);"
+                "anchor": "const intent = control.clientSubmittedIntent(wire, bytes, bytes, bytes);"
               }
             ],
             "extension": [
@@ -25705,6 +26227,113 @@
               {
                 "path": "adapters/host-node/client-submission-operation.test.mjs",
                 "anchor": "test('one submit admits each unchanged intent wire once through preparation and original Run acceptance'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeClientSubmission/copyRequest/copyRequest",
+            "installNodeClientSubmission/preparedSubmission/preparedSubmission",
+            "installNodeClientSubmission/preparedValue/preparedValue",
+            "installNodeClientSubmission/prepareOwned/prepareOwned/prepareOwned#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const preparedSubmission = (value, prepared) => preparationCustody === undefined"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const preparedSubmission = (value, prepared) => preparationCustody === undefined"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const preparedSubmission = (value, prepared) => preparationCustody === undefined"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const preparedSubmission = (value, prepared) => preparationCustody === undefined"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const preparedSubmission = (value, prepared) => preparationCustody === undefined"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const preparedSubmission = (value, prepared) => preparationCustody === undefined"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const preparedSubmission = (value, prepared) => preparationCustody === undefined"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const preparedSubmission = (value, prepared) => preparationCustody === undefined"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const preparedSubmission = (value, prepared) => preparationCustody === undefined"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-preparation-custody-public.test.mjs",
+                "anchor": "test('retired Pure preparation preserves saved plan and original lookup after reopen', async () => {"
               }
             ]
           }
@@ -28918,7 +29547,7 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "938482d1eab359259ec6fc9ce61c6bb0395e9114edc1b7242b3cdf8d75ba0886",
+      "sha256": "6ccb32aeb796cc5cf6e16d04c9b559dd017fc427f8a7e032303b761adde73a46",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -29061,7 +29690,8 @@
           "parameters": [
             "kind",
             "input",
-            "options"
+            "options",
+            "originalConnection"
           ],
           "async": false
         },
@@ -29120,6 +29750,15 @@
         {
           "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:perform/init:perform/pending/pending",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:publishSourceSnapshot/init:publishSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "body",
+            "publication"
+          ],
           "async": false
         },
         {
@@ -30097,8 +30736,8 @@
                 "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               },
               {
-                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "if (selected.aliases.length === 16)"
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Inputs and outputs"
               }
             ],
             "extension": [
@@ -30130,6 +30769,110 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createEmbeddedHostRegistry/init:connect/init:connect/port/init:publishSourceSnapshot/init:publishSourceSnapshot"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "publishSourceSnapshot(receipt, body, publication)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "publishSourceSnapshot(receipt, body, publication)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "publishSourceSnapshot(receipt, body, publication)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "publishSourceSnapshot(receipt, body, publication)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "publishSourceSnapshot(receipt, body, publication)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "publishSourceSnapshot(receipt, body, publication)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "publishSourceSnapshot(receipt, body, publication)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "publishSourceSnapshot(receipt, body, publication)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "publishSourceSnapshot(receipt, body, publication)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/submission-snapshot-publication.test.mjs",
+                "anchor": "SDK publishes immutable snapshot before pending return and preserves caller value after Host close"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -30144,7 +30887,7 @@
     {
       "module": "adapters/host-node/entry.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7cfef09c2bcbd1265d2595bf6cc40aef28faf737caf98f4eeaee8d6f391aab3a",
+      "sha256": "78dc2438ff88c83d05a439ab1e0ed939327bc1cdbb4f828ab38c39b7e4154732",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -30231,7 +30974,9 @@
             "signal",
             "observer",
             "retainExecution",
-            "taskObservation"
+            "taskObservation",
+            "preparationHolder",
+            "beforePublication"
           ],
           "async": false
         },
@@ -30291,7 +31036,8 @@
             "taskObservation",
             "publishCheckedResults",
             "publication",
-            "retainPreflightCleanup"
+            "retainPreflightCleanup",
+            "preparationHolder"
           ],
           "async": true
         },
@@ -30312,7 +31058,9 @@
             "signal",
             "observer",
             "taskObservation",
-            "retainExecution"
+            "beforePublication",
+            "retainExecution",
+            "preparationHolder"
           ],
           "async": true
         },
@@ -30423,7 +31171,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/entry.mjs",
-                "anchor": "cleanup: {retainPreflightCleanup} = {},"
+                "anchor": "cleanup: {retainPreflightCleanup, preparationHolder} = {},"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -30533,7 +31281,7 @@
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
       "imports": [
         "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../connectors-builtin/strategy.generated.mjs",
@@ -32130,7 +32878,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-service-recipe.cjs",
-      "sha256": "16ba5a61638050c0f8edbe5d1b69b0168ee3d587943e773450c78f1415b03218",
+      "sha256": "f8796b17a4527aec546f701994c36c8a6140e3e5dab30844264fb5aa04f7ff3a",
       "exports": [
         "commonjs:declareHostJournalServiceRecipe"
       ],
@@ -32282,10 +33030,11 @@
     },
     {
       "module": "adapters/host-node/host-result-service-recipe.cjs",
-      "sha256": "2e6c262b32f14aa7422d5f82d368fc6ff3d038f8a55a5e8255648ae031115644",
+      "sha256": "2fe3abdb2ae2243e194ec85edc64e183c00169698f5aaaf193a14386102e0884",
       "exports": [
         "commonjs:declareHostResultServiceRecipe",
-        "commonjs:facilityFields"
+        "commonjs:facilityFields",
+        "commonjs:validOriginalResultPublicationExtent"
       ],
       "operations": [
         {
@@ -32323,6 +33072,16 @@
         {
           "name": "unavailable/unavailable",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "validOriginalResultPublicationExtent",
+          "parameters": [
+            "resultCount",
+            "maxRows",
+            "maxContractBytes",
+            "minimumResults"
+          ],
           "async": false
         }
       ],
@@ -32439,6 +33198,112 @@
               {
                 "path": "adapters/host-node/host-result-service.test.mjs",
                 "anchor": "candidate refusal, Promise or Boolean cannot cross the actual durable record boundary"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "validOriginalResultPublicationExtent"
+          ],
+          "exports": [
+            "commonjs:validOriginalResultPublicationExtent"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "anchor": "function validOriginalResultPublicationExtent("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "anchor": "function validOriginalResultPublicationExtent("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "anchor": "function validOriginalResultPublicationExtent("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "anchor": "function validOriginalResultPublicationExtent("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "anchor": "function validOriginalResultPublicationExtent("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "anchor": "function validOriginalResultPublicationExtent("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "anchor": "function validOriginalResultPublicationExtent("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "anchor": "function validOriginalResultPublicationExtent("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "anchor": "function validOriginalResultPublicationExtent("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-result-extent.test.mjs",
+                "anchor": "Result publication accepts original extents beyond collection support without granting bytes"
               }
             ]
           }
@@ -32940,7 +33805,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fe4615e75393db758ac036df7be5b12785a2fc52d68fffabb48427d0607c63d4",
+      "sha256": "9cbbfec214faab7d629684b1e4c72e16496e12068fa259af2a46427160987e2e",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -44630,12 +45495,13 @@
     {
       "module": "adapters/host-node/installed-host-policy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "892d835fe3ee9a3c0206a43c406919de6c56c6814100379723dc6365eb1006bd",
+      "sha256": "54fdf42f41b0df4da7782c89f6cdec7f6315237b7440c318455f2360fd57c51e",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
         "localFilesLookupExecutionPolicy",
         "selectInstalledHostEnvironment",
+        "selectInstalledLocalMaterializationEnvironment",
         "snapshotHostCapacityPolicy",
         "snapshotHostLookupExecutionPolicy"
       ],
@@ -44663,6 +45529,16 @@
         },
         {
           "name": "selectInstalledHostEnvironment",
+          "parameters": [
+            "moon",
+            "baseWire",
+            "selection",
+            "lookupSelection"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectInstalledLocalMaterializationEnvironment",
           "parameters": [
             "moon",
             "baseWire",
@@ -44968,6 +45844,112 @@
               {
                 "path": "adapters/host-node/local-files-lookup-policy.test.mjs",
                 "anchor": "test('selected lookup limits enter the same canonical Environment without changing generic absence',()=>{"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "selectInstalledLocalMaterializationEnvironment"
+          ],
+          "exports": [
+            "selectInstalledLocalMaterializationEnvironment"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-host-policy.mjs",
+                "anchor": "export function selectInstalledLocalMaterializationEnvironment("
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Installed inventory bounds"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-host-policy.mjs",
+                "anchor": "export function selectInstalledLocalMaterializationEnvironment("
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Installed inventory bounds"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-host-policy.mjs",
+                "anchor": "export function selectInstalledLocalMaterializationEnvironment("
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Installed inventory bounds"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-host-policy.mjs",
+                "anchor": "export function selectInstalledLocalMaterializationEnvironment("
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Installed inventory bounds"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-host-policy.mjs",
+                "anchor": "export function selectInstalledLocalMaterializationEnvironment("
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Installed inventory bounds"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-policy.mjs",
+                "anchor": "export function selectInstalledLocalMaterializationEnvironment("
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Installed inventory bounds"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-host-policy.mjs",
+                "anchor": "export function selectInstalledLocalMaterializationEnvironment("
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Installed inventory bounds"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-host-policy.mjs",
+                "anchor": "export function selectInstalledLocalMaterializationEnvironment("
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Installed inventory bounds"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-host-policy.mjs",
+                "anchor": "export function selectInstalledLocalMaterializationEnvironment("
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Installed inventory bounds"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-local-row-policy.test.mjs",
+                "anchor": "test('Local default row ceilings consume nominal installed policy; generic saved environment stays unchanged',()=>{"
               }
             ]
           }
@@ -48986,7 +49968,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2ed12f80a8732b03e7fc2d899f20adadac50d90664f421654a7bbe70bc0f5bc7",
+      "sha256": "3cb2146c6ae18fa93633a069908d6da4a698c057345c7a609890679be5d3a1e5",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -49021,6 +50003,13 @@
             "principalId"
           ],
           "async": true
+        },
+        {
+          "name": "duckdbAdapter/capacityContracts/capacityContracts",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         },
         {
           "name": "duckdbAdapter/catalogIds/catalogIds",
@@ -49088,6 +50077,13 @@
           "name": "duckdbAdapter/init:ledgerCapacity/init:ledgerCapacity",
           "parameters": [
             "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "duckdbAdapter/init:managedCaptureCapacity/init:managedCaptureCapacity",
+          "parameters": [
+            "requirement"
           ],
           "async": false
         },
@@ -49764,12 +50760,83 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "duckdbAdapter/capacityContracts/capacityContracts",
+            "duckdbAdapter/init:managedCaptureCapacity/init:managedCaptureCapacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "An ordinary installed Source uses the existing Host Source/Compute manager and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "opaque capture capacity for that actual QueryRequirement plus its existing"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Each real prepared Source is privately associated with its original checked"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "The existing dispatch retirement predicate first settles actual Source/Compute"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Program and parent after the preparation await and a second current fence."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Copied, foreign and cancelled preparations cannot supply that association."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "children and unresolved cleanup. Only then may its existing preparation holder"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Actual selected capacities must fit that original Ledger before dispatch; a"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Source-empty Program. Unsupported installations keep their existing refusal."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Plural installations forward the same parent through every selected capacity;"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../connectors-builtin/installations.generated.mjs",
         "../connectors/duckdb/node/native-runtime.mjs",
+        "../connectors/duckdb/node/physical-capacity.mjs",
+        "../host-common/runtime-result.mjs",
         "./captured-duckdb-source.mjs",
         "./duckdb-physical-target.mjs",
         "./installed-check-environment.mjs",
@@ -49781,6 +50848,7 @@
         "./source-alias-publication.mjs",
         "./source-profile-json.mjs",
         "node:crypto",
+        "node:fs/promises",
         "node:path"
       ],
       "compilerFields": [],
@@ -55426,7 +56494,7 @@
     },
     {
       "module": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-      "sha256": "6ac768bd7938bab0d88f365b408f7d54d02c923d6329d0d140f574584f2b7079",
+      "sha256": "79b5801d474f2504c807e75a21dc77067bde10034836fba17f425f1d65d2d233",
       "exports": [
         "commonjs:admitHostJournalRootFormat",
         "commonjs:admitHostResultPublicationRun",
@@ -56255,12 +57323,22 @@
             "heldBytes",
             "reservedRetention",
             "reservedExecution",
-            "peakRetention"
+            "peakRetention",
+            "reservedAttempts",
+            "liveReservations",
+            "liveDelegations"
           ],
           "async": false
         },
         {
           "name": "prepareOriginalSourceChildPorts/init:report/init:report/init:report",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalSourceChildPorts/init:report/init:report/init:report#2",
           "parameters": [
             "value"
           ],
@@ -57223,6 +58301,7 @@
             "prepareOriginalSourceChildPorts/init:limit/init:limit",
             "prepareOriginalSourceChildPorts/init:report/init:report",
             "prepareOriginalSourceChildPorts/init:report/init:report/init:report",
+            "prepareOriginalSourceChildPorts/init:report/init:report/init:report#2",
             "prepareOriginalSourceChildPorts/init:status/init:status",
             "prepareSource",
             "prepareSource/prepareSource",
@@ -57340,6 +58419,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "physicalBackingReleased: false});"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "[planning, attempts, holdings, reservedAttempts, liveReservations, liveDelegations].every(Number.isSafeInteger)"
               }
             ],
             "extension": [
@@ -58040,7 +59123,7 @@
     },
     {
       "module": "adapters/host-node/node-source-managed-installation.mjs",
-      "sha256": "c7a739acbc4c96a46f45b2003f691521578a50378cfeabae3f6b168ea885f688",
+      "sha256": "e902c57ee556b7ee22a86ba00d02e5d2a12a2a631101385a80fbd567feb2b00c",
       "exports": [
         "assertManagedComputeInstallationCurrent",
         "assertManagedComputePreparationCurrent",
@@ -74374,7 +75457,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-result.mjs",
-      "sha256": "0da03a7b2b2e07062174df5394f41a1ee5f4c84a682656026fd63109d958870c",
+      "sha256": "0c33e69e625867c0156605e28d2c3cccfb25ab7fe3fe45905e2024226c4c0219",
       "exports": [
         "prepareOrdinaryHostResult"
       ],
@@ -74516,6 +75599,7 @@
       ],
       "imports": [
         "../store-local/publication-store.mjs",
+        "./host-result-service-recipe.cjs",
         "./local-continuation-evidence.mjs",
         "./ordinary-host-journal.mjs",
         "node:path"
@@ -74942,7 +76026,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "bb663ec26e4e907f5365f23ec0a95833e55070bd5965b97a25f151edb34ea3c8",
+      "sha256": "1520865f99fcb5cad58e4bc611601a627885ee13d8117d2ac95cb6434a61d3b2",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -75042,16 +76126,16 @@
           "async": false
         },
         {
-          "name": "prepareOrdinaryManagedInstallation/prepareRun/producer/producer",
+          "name": "prepareOrdinaryManagedInstallation/producerFor/producerFor",
           "parameters": [
-            "value"
+            "receipt"
           ],
           "async": false
         },
         {
-          "name": "prepareOrdinaryManagedInstallation/producerFor/producerFor",
+          "name": "prepareOrdinaryManagedInstallation/producerForRequest/producerForRequest",
           "parameters": [
-            "receipt"
+            "request"
           ],
           "async": false
         },
@@ -75092,6 +76176,20 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/releaseFinishedProducer/releaseFinishedProducer",
+          "parameters": [
+            "producer"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/retireInitialPreparation/retireInitialPreparation",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/runFor",
           "parameters": [
             "prepared"
@@ -75101,6 +76199,15 @@
         {
           "name": "prepareOrdinaryManagedInstallation/status/status",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity"
+          ],
           "async": false
         },
         {
@@ -75123,8 +76230,14 @@
           "parameters": [
             "kind",
             "input",
-            "options"
+            "options",
+            "originalConnection"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/accepted/accepted",
+          "parameters": [],
           "async": false
         },
         {
@@ -75145,6 +76258,14 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:borrowPreparation/init:borrowPreparation",
+          "parameters": [
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:close/init:close",
           "parameters": [],
           "async": true
@@ -75155,10 +76276,25 @@
           "async": true
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:compilationOriginal/init:compilationOriginal",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
           "parameters": [
             "receipt",
             "terminal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation",
+          "parameters": [
+            "request",
+            "environment"
           ],
           "async": false
         },
@@ -75296,6 +76432,66 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:publicationPreparation/init:publicationPreparation",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:publishSourceSnapshot/init:publishSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "body",
+            "publication"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:reservePublication/init:reservePublication",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retireRun/init:retireRun",
+          "parameters": [
+            "prepared",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retireRun/init:retireRun/init:retireRun",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retireSeveredPreparation/init:retireSeveredPreparation",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:severPreparation/init:severPreparation",
+          "parameters": [
+            "prepared",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:submittedIntentOriginal/init:submittedIntentOriginal",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryProjectSourceManagedInstallation",
           "parameters": [
             "originals",
@@ -75314,6 +76510,10 @@
         }
       ],
       "imports": [
+        "../../packages/sdk/internal/private-source-preparation.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./closed-values-preparation-adapter.mjs",
         "./ordinary-node-resource-runtime.cjs",
         "./source-profile-json.mjs",
         "node:fs/promises"
@@ -75432,7 +76632,6 @@
             "prepareOrdinaryManagedInstallation/prepareRun/prepareRun",
             "prepareOrdinaryManagedInstallation/prepareRun/prepareRun#2",
             "prepareOrdinaryManagedInstallation/prepareRun/prepareRun/prepareRun",
-            "prepareOrdinaryManagedInstallation/prepareRun/producer/producer",
             "prepareOrdinaryManagedInstallation/view/init:prepareLocalMockModelRun/init:prepareLocalMockModelRun"
           ],
           "exports": [],
@@ -75751,17 +76950,312 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/releaseFinishedProducer/releaseFinishedProducer",
+            "prepareOrdinaryManagedInstallation/view/init:retireRun/init:retireRun",
+            "prepareOrdinaryManagedInstallation/view/init:retireRun/init:retireRun/init:retireRun"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "retireRun(prepared, original) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "retireRun(prepared, original) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "retireRun(prepared, original) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "retireRun(prepared, original) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "retireRun(prepared, original) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "retireRun(prepared, original) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "retireRun(prepared, original) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "retireRun(prepared, original) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "retireRun(prepared, original) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-preparation-custody-public.test.mjs",
+                "anchor": "test('retired Pure preparation preserves saved plan and original lookup after reopen', async () => {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/producerForRequest/producerForRequest",
+            "prepareOrdinaryManagedInstallation/retireInitialPreparation/retireInitialPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/accepted/accepted",
+            "prepareOrdinaryManagedInstallation/view/init:borrowPreparation/init:borrowPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:publishSourceSnapshot/init:publishSourceSnapshot",
+            "prepareOrdinaryManagedInstallation/view/init:retireSeveredPreparation/init:retireSeveredPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:severPreparation/init:severPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:submittedIntentOriginal/init:submittedIntentOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "const retireInitialPreparation ="
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "const retireInitialPreparation ="
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "const retireInitialPreparation ="
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "const retireInitialPreparation ="
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "const retireInitialPreparation ="
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "const retireInitialPreparation ="
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "const retireInitialPreparation ="
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "const retireInitialPreparation ="
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "const retireInitialPreparation ="
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/preparation-initial-failure-public.test.mjs",
+                "anchor": "Ready initial preparations retire before Run adoption after Result refusal"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:compilationOriginal/init:compilationOriginal",
+            "prepareOrdinaryManagedInstallation/view/init:publicationPreparation/init:publicationPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:reservePublication/init:reservePublication"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Scope and responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Original identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Ownership and handoff"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Synchronization and currentness"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Failure and uncertainty"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Cancellation and retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Resources and scratch cut"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Extension and pending work"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('typed retained chain and commit consume original contracts without numeric limit relay'"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-      "sha256": "6f15012067305fba4e08af7f1a3b4edacd581a23ee2daafc35afc02c33fe3d10",
+      "sha256": "637fdb1df82a9af271ebf778e6d4605c155cebf53d823fd668203eaa57b9c760",
       "exports": [
         "commonjs:assertOrdinaryManagedRunCurrent",
         "commonjs:ordinaryManagedRunStatus",
         "commonjs:prepareOriginalLocalContentRunPorts",
         "commonjs:prepareOriginalLocalMockModelRunPorts",
+        "commonjs:prepareOriginalLocalPreparationPorts",
         "commonjs:prepareOriginalManagedRunPorts",
         "commonjs:prepareOriginalSourceChildPorts",
         "commonjs:retainOrdinaryManagedRun"
@@ -75799,6 +77293,14 @@
           "async": false
         },
         {
+          "name": "init:prepareOriginalLocalPreparationPorts/init:prepareOriginalLocalPreparationPorts",
+          "parameters": [
+            "original",
+            "input"
+          ],
+          "async": false
+        },
+        {
           "name": "init:prepareOriginalManagedRunPorts/init:prepareOriginalManagedRunPorts",
           "parameters": [
             "original",
@@ -75829,24 +77331,32 @@
           "async": false
         },
         {
-          "name": "ports/current/current",
+          "name": "retainedPorts",
+          "parameters": [
+            "original",
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainedPorts/current/current",
           "parameters": [],
           "async": false
         },
         {
-          "name": "ports/init:cancelUnpublished/init:cancelUnpublished",
+          "name": "retainedPorts/init:cancelUnpublished/init:cancelUnpublished",
           "parameters": [],
           "async": false
         },
         {
-          "name": "ports/init:limit/init:limit",
+          "name": "retainedPorts/init:limit/init:limit",
           "parameters": [
             "ordinal"
           ],
           "async": false
         },
         {
-          "name": "ports/init:report/init:report",
+          "name": "retainedPorts/init:report/init:report",
           "parameters": [
             "planning",
             "attempts",
@@ -75857,36 +77367,44 @@
             "heldBytes",
             "reservedRetention",
             "reservedExecution",
-            "peakRetention"
+            "peakRetention",
+            "reservedAttempts",
+            "liveReservations",
+            "liveDelegations"
           ],
           "async": false
         },
         {
-          "name": "ports/init:report/init:report/init:report",
+          "name": "retainedPorts/init:report/init:report/init:report",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "ports/init:report/init:report/init:report#2",
+          "name": "retainedPorts/init:report/init:report/init:report#2",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "ports/init:status/init:status",
+          "name": "retainedPorts/init:status/init:status",
           "parameters": [
             "operation"
           ],
           "async": false
         },
         {
-          "name": "ports/init:status/init:status/init:status",
+          "name": "retainedPorts/init:status/init:status/init:status",
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "retainedPorts/releasePreparation/releasePreparation",
+          "parameters": [],
           "async": false
         },
         {
@@ -75931,14 +77449,6 @@
             "init:prepareOriginalSourceChildPorts/init:prepareOriginalSourceChildPorts",
             "originalRun",
             "ports",
-            "ports/current/current",
-            "ports/init:cancelUnpublished/init:cancelUnpublished",
-            "ports/init:limit/init:limit",
-            "ports/init:report/init:report",
-            "ports/init:report/init:report/init:report",
-            "ports/init:report/init:report/init:report#2",
-            "ports/init:status/init:status",
-            "ports/init:status/init:status/init:status",
             "retainOrdinaryManagedRun",
             "retainOrdinaryManagedRun/quotas/quotas",
             "unavailable/unavailable"
@@ -75967,7 +77477,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "state.prepared !== prepared"
+                "anchor": "!state.preparedOriginals.has(prepared)"
               }
             ],
             "ownership": [
@@ -76043,7 +77553,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-                "anchor": "runs.set(original, {prepared, quotas: freeze(quotas), assertCurrent, childrenPending, purpose,"
+                "anchor": "runs.set(original, {preparedOriginals, quotas: freeze(quotas), assertCurrent, childrenPending, purpose,"
               }
             ],
             "synchronization": [
@@ -76080,6 +77590,225 @@
               {
                 "path": "adapters/host-node/ordinary-node-resource-runtime.test.mjs",
                 "anchor": "test('ordinary Content ports keep their original purpose and physical-child cleanup'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "retainedPorts",
+            "retainedPorts/current/current",
+            "retainedPorts/init:cancelUnpublished/init:cancelUnpublished",
+            "retainedPorts/init:limit/init:limit",
+            "retainedPorts/init:report/init:report",
+            "retainedPorts/init:report/init:report/init:report",
+            "retainedPorts/init:report/init:report/init:report#2",
+            "retainedPorts/init:status/init:status",
+            "retainedPorts/init:status/init:status/init:status",
+            "retainedPorts/releasePreparation/releasePreparation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "function retainedPorts(original, state) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "function retainedPorts(original, state) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "function retainedPorts(original, state) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "function retainedPorts(original, state) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "function retainedPorts(original, state) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "function retainedPorts(original, state) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "function retainedPorts(original, state) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "function retainedPorts(original, state) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "function retainedPorts(original, state) {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Preparation and capacity authority"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-preparation-custody-public.test.mjs",
+                "anchor": "test('retired Pure preparation preserves saved plan and original lookup after reopen', async () => {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "init:prepareOriginalLocalPreparationPorts/init:prepareOriginalLocalPreparationPorts"
+          ],
+          "exports": [
+            "commonjs:prepareOriginalLocalPreparationPorts"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "prepareOriginalLocalPreparationPorts(original, input)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "prepareOriginalLocalPreparationPorts(original, input)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "prepareOriginalLocalPreparationPorts(original, input)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "prepareOriginalLocalPreparationPorts(original, input)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "prepareOriginalLocalPreparationPorts(original, input)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "prepareOriginalLocalPreparationPorts(original, input)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "prepareOriginalLocalPreparationPorts(original, input)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "prepareOriginalLocalPreparationPorts(original, input)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "prepareOriginalLocalPreparationPorts(original, input)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/preparation-root-bridge.test.mjs",
+                "anchor": "actual compiled preparation bridge refuses same-shaped foreign original and Compute purpose"
               }
             ]
           }
@@ -78856,6 +80585,1676 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/host-node/closed-values-own-data-scan.mjs",
+      "sha256": "00ed21bd06d3eab9facd99dc686bedded1e5a52544c6a21a407297eb448812b2",
+      "exports": [
+        "closedValuesOwnDataHeaderFields",
+        "closedValuesOwnDataHeaderRows",
+        "closedValuesOwnDataScanControlInventory",
+        "closedValuesOwnDataScanWorkUpper",
+        "probeClosedValuesOwnDataHeader",
+        "retireClosedValuesOwnDataHeader",
+        "scanClosedValuesOwnData",
+        "scanClosedValuesOwnDataAscii"
+      ],
+      "operations": [
+        {
+          "name": "add",
+          "parameters": [
+            "s",
+            "amount"
+          ],
+          "async": false
+        },
+        {
+          "name": "array",
+          "parameters": [
+            "s",
+            "value",
+            "depth"
+          ],
+          "async": false
+        },
+        {
+          "name": "ClosedValuesHeader/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "token",
+            "input",
+            "fields",
+            "rows",
+            "fieldCount",
+            "rowCount"
+          ],
+          "async": false
+        },
+        {
+          "name": "ClosedValuesHeader/method:fields/method:fields",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "ClosedValuesHeader/method:matchesFields/method:matchesFields",
+          "parameters": [
+            "value",
+            "count"
+          ],
+          "async": false
+        },
+        {
+          "name": "ClosedValuesHeader/method:matchesRows/method:matchesRows",
+          "parameters": [
+            "value",
+            "count"
+          ],
+          "async": false
+        },
+        {
+          "name": "ClosedValuesHeader/method:retire/method:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "ClosedValuesHeader/method:rows/method:rows",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "ClosedValuesHeader/static method:matches/static method:matches",
+          "parameters": [
+            "value",
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "closedValuesOwnDataHeaderFields",
+          "parameters": [
+            "header",
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "closedValuesOwnDataHeaderRows",
+          "parameters": [
+            "header",
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "closedValuesOwnDataScanWorkUpper",
+          "parameters": [
+            "header",
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "data",
+          "parameters": [
+            "s",
+            "value",
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "descriptor",
+          "parameters": [
+            "s",
+            "value",
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "falseValue",
+          "parameters": [
+            "s",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "headerLength",
+          "parameters": [
+            "s",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "item",
+          "parameters": [
+            "s",
+            "value",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "noToJson",
+          "parameters": [
+            "s",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "number",
+          "parameters": [
+            "s",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "plain",
+          "parameters": [
+            "s",
+            "value",
+            "array"
+          ],
+          "async": false
+        },
+        {
+          "name": "probeClosedValuesOwnDataHeader",
+          "parameters": [
+            "input",
+            "options",
+            "phase"
+          ],
+          "async": false
+        },
+        {
+          "name": "record",
+          "parameters": [
+            "s",
+            "value",
+            "expected",
+            "depth"
+          ],
+          "async": false
+        },
+        {
+          "name": "retireClosedValuesOwnDataHeader",
+          "parameters": [
+            "header",
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "scanClosedValues",
+          "parameters": [
+            "input",
+            "options",
+            "phase",
+            "header",
+            "ascii"
+          ],
+          "async": false
+        },
+        {
+          "name": "scanClosedValuesOwnData",
+          "parameters": [
+            "input",
+            "options",
+            "phase",
+            "header"
+          ],
+          "async": false
+        },
+        {
+          "name": "scanClosedValuesOwnDataAscii",
+          "parameters": [
+            "input",
+            "options",
+            "phase"
+          ],
+          "async": false
+        },
+        {
+          "name": "singleKey",
+          "parameters": [
+            "s",
+            "value",
+            "depth"
+          ],
+          "async": false
+        },
+        {
+          "name": "text",
+          "parameters": [
+            "s",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "work",
+          "parameters": [
+            "s",
+            "amount"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Local preparation resource and original-custody owners; Node inspection/custody only, no Run grant",
+      "referenceQualification": "Source-backed functional boundary declaration; references do not claim hosted CI or physical-memory coverage.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "add",
+            "array",
+            "ClosedValuesHeader/constructor:constructor/constructor:constructor",
+            "ClosedValuesHeader/method:fields/method:fields",
+            "ClosedValuesHeader/method:matchesFields/method:matchesFields",
+            "ClosedValuesHeader/method:matchesRows/method:matchesRows",
+            "ClosedValuesHeader/method:retire/method:retire",
+            "ClosedValuesHeader/method:rows/method:rows",
+            "ClosedValuesHeader/static method:matches/static method:matches",
+            "closedValuesOwnDataHeaderFields",
+            "closedValuesOwnDataHeaderRows",
+            "closedValuesOwnDataScanWorkUpper",
+            "data",
+            "descriptor",
+            "falseValue",
+            "headerLength",
+            "item",
+            "noToJson",
+            "number",
+            "plain",
+            "probeClosedValuesOwnDataHeader",
+            "record",
+            "retireClosedValuesOwnDataHeader",
+            "scanClosedValues",
+            "scanClosedValuesOwnData",
+            "scanClosedValuesOwnDataAscii",
+            "singleKey",
+            "text",
+            "work"
+          ],
+          "exports": [
+            "closedValuesOwnDataHeaderFields",
+            "closedValuesOwnDataHeaderRows",
+            "closedValuesOwnDataScanControlInventory",
+            "closedValuesOwnDataScanWorkUpper",
+            "probeClosedValuesOwnDataHeader",
+            "retireClosedValuesOwnDataHeader",
+            "scanClosedValuesOwnData",
+            "scanClosedValuesOwnDataAscii"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/closed-values-own-data-scan.mjs",
+                "anchor": "export function probeClosedValuesOwnDataHeader("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Responsibility and scope"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/closed-values-own-data-scan.mjs",
+                "anchor": "export function probeClosedValuesOwnDataHeader("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/closed-values-own-data-scan.mjs",
+                "anchor": "export function probeClosedValuesOwnDataHeader("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/closed-values-own-data-scan.mjs",
+                "anchor": "export function probeClosedValuesOwnDataHeader("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/closed-values-own-data-scan.mjs",
+                "anchor": "export function probeClosedValuesOwnDataHeader("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/closed-values-own-data-scan.mjs",
+                "anchor": "export function probeClosedValuesOwnDataHeader("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/closed-values-own-data-scan.mjs",
+                "anchor": "export function probeClosedValuesOwnDataHeader("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/closed-values-own-data-scan.mjs",
+                "anchor": "export function probeClosedValuesOwnDataHeader("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/closed-values-own-data-scan.mjs",
+                "anchor": "export function probeClosedValuesOwnDataHeader("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Extension boundary"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/closed-values-own-data-scan.test.mjs",
+                "anchor": "original work debit exact succeeds and one-short refuses, not fallback"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/closed-values-preparation-adapter.mjs",
+      "sha256": "f9f72be26cb688f7bc5dadda9d8f05284150f99f6841babeeacccf9e7eb2b74f",
+      "exports": [
+        "beginClosedValuesInput",
+        "bindClosedValuesSnapshot",
+        "checkedPreparation",
+        "cleanupClosedValuesInput",
+        "closedValuesPreparationAvailable"
+      ],
+      "operations": [
+        {
+          "name": "beginClosedValuesInput",
+          "parameters": [
+            "state",
+            "input",
+            "receipt",
+            "connection",
+            "requirements",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindClosedValuesSnapshot",
+          "parameters": [
+            "state",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedPreparation",
+          "parameters": [
+            "moon",
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "cleanupClosedValuesInput",
+          "parameters": [
+            "state",
+            "retireInitialPreparation"
+          ],
+          "async": false
+        },
+        {
+          "name": "closedValuesPreparationAvailable",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "commonInt/commonInt",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "noPhysicalChildren/noPhysicalChildren",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "phaseAdapter/phaseAdapter",
+          "parameters": [
+            "moon",
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "phaseAdapter/phaseAdapter/init:spendWork/init:spendWork",
+          "parameters": [
+            "amount"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./closed-values-own-data-scan.mjs",
+        "./ordinary-node-resource-runtime.cjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Local preparation resource and original-custody owners; Node inspection/custody only, no Run grant",
+      "referenceQualification": "Source-backed functional boundary declaration; references do not claim hosted CI or physical-memory coverage.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "beginClosedValuesInput",
+            "bindClosedValuesSnapshot",
+            "checkedPreparation",
+            "cleanupClosedValuesInput",
+            "closedValuesPreparationAvailable",
+            "commonInt/commonInt",
+            "invalid/invalid",
+            "noPhysicalChildren/noPhysicalChildren",
+            "phaseAdapter/phaseAdapter",
+            "phaseAdapter/phaseAdapter/init:spendWork/init:spendWork"
+          ],
+          "exports": [
+            "beginClosedValuesInput",
+            "bindClosedValuesSnapshot",
+            "checkedPreparation",
+            "cleanupClosedValuesInput",
+            "closedValuesPreparationAvailable"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function cleanupClosedValuesInput("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Responsibility and scope"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function cleanupClosedValuesInput("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function cleanupClosedValuesInput("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function cleanupClosedValuesInput("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function cleanupClosedValuesInput("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function cleanupClosedValuesInput("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function cleanupClosedValuesInput("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function cleanupClosedValuesInput("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function cleanupClosedValuesInput("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Extension boundary"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/preparation-capacity-refusal.test.mjs",
+                "anchor": "prepared initial cleanup requires its fixed retirement callback and preserves retry ownership"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/local-preparation-custody.mjs",
+      "sha256": "e5be89835acb0a499e003d71cd8854f0770176923658ee4c0751097e8e170efd",
+      "exports": [
+        "createLocalPreparationCustody"
+      ],
+      "operations": [
+        {
+          "name": "createLocalPreparationCustody",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalPreparationCustody/clearIfRetired/clearIfRetired",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalPreparationCustody/init:borrow/init:borrow",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalPreparationCustody/init:borrow/init:borrow/init:borrow",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalPreparationCustody/init:borrow/init:borrow/init:release/init:release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalPreparationCustody/init:confirmRetired/init:confirmRetired",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalPreparationCustody/init:requestRetirement/init:requestRetirement",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Local preparation resource and original-custody owners; Node inspection/custody only, no Run grant",
+      "referenceQualification": "Source-backed functional boundary declaration; references do not claim hosted CI or physical-memory coverage.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createLocalPreparationCustody",
+            "createLocalPreparationCustody/clearIfRetired/clearIfRetired",
+            "createLocalPreparationCustody/init:borrow/init:borrow",
+            "createLocalPreparationCustody/init:borrow/init:borrow/init:borrow",
+            "createLocalPreparationCustody/init:borrow/init:borrow/init:release/init:release",
+            "createLocalPreparationCustody/init:confirmRetired/init:confirmRetired",
+            "createLocalPreparationCustody/init:requestRetirement/init:requestRetirement"
+          ],
+          "exports": [
+            "createLocalPreparationCustody"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-preparation-custody.mjs",
+                "anchor": "export function createLocalPreparationCustody("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Responsibility and scope"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-preparation-custody.mjs",
+                "anchor": "export function createLocalPreparationCustody("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-preparation-custody.mjs",
+                "anchor": "export function createLocalPreparationCustody("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-preparation-custody.mjs",
+                "anchor": "export function createLocalPreparationCustody("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-preparation-custody.mjs",
+                "anchor": "export function createLocalPreparationCustody("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-preparation-custody.mjs",
+                "anchor": "export function createLocalPreparationCustody("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-preparation-custody.mjs",
+                "anchor": "export function createLocalPreparationCustody("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-preparation-custody.mjs",
+                "anchor": "export function createLocalPreparationCustody("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-preparation-custody.mjs",
+                "anchor": "export function createLocalPreparationCustody("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Extension boundary"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-preparation-custody.test.mjs",
+                "anchor": "Local preparation custody retains pending cleanup and closes new borrowing"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/local-preparation-registry.mjs",
+      "sha256": "8a0c04fd7abbae2533fe514326a75893d56183c79f5bcd25030d3b98e8aa86cf",
+      "exports": [
+        "installLocalPreparationRegistry"
+      ],
+      "operations": [
+        {
+          "name": "installLocalPreparationRegistry",
+          "parameters": [
+            "select",
+            "retirePrepared",
+            "resource"
+          ],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/adopt/adopt",
+          "parameters": [
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/bindPayload/bindPayload",
+          "parameters": [
+            "value",
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/bindPayload/bindPayload/bindPayload",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/copy/copy",
+          "parameters": [
+            "value",
+            "changes"
+          ],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/create/create",
+          "parameters": [
+            "payload"
+          ],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/init:attach/init:attach",
+          "parameters": [
+            "submission",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/init:attach/init:attach/init:attach",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/init:begin/init:begin",
+          "parameters": [
+            "submission"
+          ],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/init:begin/init:begin/init:begin",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/init:begin/init:begin/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/init:capture/init:capture",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/init:finishHandler/init:finishHandler",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/init:retireQuiescentUndispatched/init:retireQuiescentUndispatched",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/init:retireRetiringOriginal/init:retireRetiringOriginal",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/payload/payload",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/payload/payload/payload",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/read/read",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/requireOpen/requireOpen",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/retireUndispatched/retireUndispatched",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "installLocalPreparationRegistry/returnCore/returnCore",
+          "parameters": [
+            "entry",
+            "field"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs",
+        "./local-preparation-custody.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Local preparation resource and original-custody owners; Node inspection/custody only, no Run grant",
+      "referenceQualification": "Source-backed functional boundary declaration; references do not claim hosted CI or physical-memory coverage.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installLocalPreparationRegistry",
+            "installLocalPreparationRegistry/adopt/adopt",
+            "installLocalPreparationRegistry/bindPayload/bindPayload",
+            "installLocalPreparationRegistry/bindPayload/bindPayload/bindPayload",
+            "installLocalPreparationRegistry/copy/copy",
+            "installLocalPreparationRegistry/create/create",
+            "installLocalPreparationRegistry/init:attach/init:attach",
+            "installLocalPreparationRegistry/init:attach/init:attach/init:attach",
+            "installLocalPreparationRegistry/init:begin/init:begin",
+            "installLocalPreparationRegistry/init:begin/init:begin/init:begin",
+            "installLocalPreparationRegistry/init:begin/init:begin/init:retire/init:retire",
+            "installLocalPreparationRegistry/init:capture/init:capture",
+            "installLocalPreparationRegistry/init:finishHandler/init:finishHandler",
+            "installLocalPreparationRegistry/init:retireQuiescentUndispatched/init:retireQuiescentUndispatched",
+            "installLocalPreparationRegistry/init:retireRetiringOriginal/init:retireRetiringOriginal",
+            "installLocalPreparationRegistry/payload/payload",
+            "installLocalPreparationRegistry/payload/payload/payload",
+            "installLocalPreparationRegistry/read/read",
+            "installLocalPreparationRegistry/requireOpen/requireOpen",
+            "installLocalPreparationRegistry/retireUndispatched/retireUndispatched",
+            "installLocalPreparationRegistry/returnCore/returnCore"
+          ],
+          "exports": [
+            "installLocalPreparationRegistry"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-preparation-registry.mjs",
+                "anchor": "export function installLocalPreparationRegistry("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Responsibility and scope"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-preparation-registry.mjs",
+                "anchor": "export function installLocalPreparationRegistry("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-preparation-registry.mjs",
+                "anchor": "export function installLocalPreparationRegistry("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Identity and currentness"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-preparation-registry.mjs",
+                "anchor": "export function installLocalPreparationRegistry("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-preparation-registry.mjs",
+                "anchor": "export function installLocalPreparationRegistry("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## State and lifetimes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-preparation-registry.mjs",
+                "anchor": "export function installLocalPreparationRegistry("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-preparation-registry.mjs",
+                "anchor": "export function installLocalPreparationRegistry("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Failure, cancellation and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-preparation-registry.mjs",
+                "anchor": "export function installLocalPreparationRegistry("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Work and storage units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-preparation-registry.mjs",
+                "anchor": "export function installLocalPreparationRegistry("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Extension boundary"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-preparation-registry.test.mjs",
+                "anchor": "Core handler and dispatch tokens return only after their JS payload slots are severed"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-common/publication-capacity.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "9574ed5b83dba729d50f85695f4d785e44c11c8c81bb6af9a7650aae9c6139f5",
+      "role": "physical-io",
+      "owner": "Existing Common publication preflight and installed Store capacity owner",
+      "exports": [
+        "completedPublicationCapacity"
+      ],
+      "operations": [
+        {
+          "name": "bytes/bytes",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "completedPublicationCapacity",
+          "parameters": [
+            "plan",
+            "definitions",
+            "request",
+            "attempt",
+            "resultBounds",
+            "frontier"
+          ],
+          "async": false
+        },
+        {
+          "name": "completedPublicationCapacity/add/add",
+          "parameters": [
+            "size"
+          ],
+          "async": false
+        },
+        {
+          "name": "completedPublicationCapacity/completedPublicationCapacity",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "completedPublicationCapacity/completedPublicationCapacity#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "completedPublicationCapacity/completedPublicationCapacity#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "bytes/bytes",
+            "completedPublicationCapacity",
+            "completedPublicationCapacity/add/add",
+            "completedPublicationCapacity/completedPublicationCapacity",
+            "completedPublicationCapacity/completedPublicationCapacity#2",
+            "completedPublicationCapacity/completedPublicationCapacity#3"
+          ],
+          "exports": [
+            "completedPublicationCapacity"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/publication-capacity.mjs",
+                "anchor": "export function completedPublicationCapacity("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/publication-capacity.mjs",
+                "anchor": "return Object.freeze({requiredBytes, objectCount, maxObjectBytes});"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/publication-capacity.mjs",
+                "anchor": "throw new TypeError('ConflictingPublicationContractIdentity');"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/publication-capacity.mjs",
+                "anchor": "const known = new Map();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/run-publication-preflight.mjs",
+                "anchor": "capacity = completedPublicationCapacity("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/publication-capacity.mjs",
+                "anchor": "throw new RangeError('RunPublicationPreflightCapacityOverflow');"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous capacity DATA projection creates no Run, permission or cleanup owner; the original publication continuation owns cancellation."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-common/publication-capacity.mjs",
+                "anchor": "for (const bound of obligations) add(bound);"
+              }
+            ],
+            "extension": {
+              "notApplicable": "No extension registration. Existing checked publication per-kind bounds remain separate from permission and physical admission."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-common/publication-capacity.test.mjs",
+                "anchor": "frontier sums current and foreign winner obligations"
+              },
+              {
+                "path": "package.json",
+                "anchor": "\"check:publication-runtime\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/store-local/prepared-custody-queue.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "facae5b870e7c7cc1e0a3df323b5dbf48beeca5cb441ccf41665f48bf8ae4c87",
+      "role": "physical-io",
+      "owner": "Existing installed Store prepared-custody transition owner",
+      "exports": [
+        "createPreparedCustodyQueue"
+      ],
+      "operations": [
+        {
+          "name": "createPreparedCustodyQueue",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPreparedCustodyQueue/createPreparedCustodyQueue",
+          "parameters": [
+            "cid",
+            "transition"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedCustodyQueue/createPreparedCustodyQueue/createPreparedCustodyQueue",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPreparedCustodyQueue/createPreparedCustodyQueue/tail/tail",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPreparedCustodyQueue/createPreparedCustodyQueue/tail/tail#2",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPreparedCustodyQueue",
+            "createPreparedCustodyQueue/createPreparedCustodyQueue",
+            "createPreparedCustodyQueue/createPreparedCustodyQueue/createPreparedCustodyQueue",
+            "createPreparedCustodyQueue/createPreparedCustodyQueue/tail/tail",
+            "createPreparedCustodyQueue/createPreparedCustodyQueue/tail/tail#2"
+          ],
+          "exports": [
+            "createPreparedCustodyQueue"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/prepared-custody-queue.mjs",
+                "anchor": "export function createPreparedCustodyQueue()"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/prepared-custody-queue.mjs",
+                "anchor": "return (cid, transition) => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/prepared-custody-queue.mjs",
+                "anchor": "const previous = tails.get(cid) ?? Promise.resolve();"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/prepared-custody-queue.mjs",
+                "anchor": "if (tails.get(cid) === tail) tails.delete(cid);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/prepared-custody-queue.mjs",
+                "anchor": "const operation = previous.then(transition);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/prepared-custody-queue.mjs",
+                "anchor": "const tail = operation.then(() => {}, () => {});"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Queue settlement only serializes original metadata transitions. It neither cancels a physical writer nor confirms custody/cleanup; those remain with the original Store operation."
+            },
+            "resources": [
+              {
+                "path": "adapters/store-local/prepared-custody-queue.mjs",
+                "anchor": "const tails = new Map();"
+              }
+            ],
+            "extension": {
+              "notApplicable": "This is the existing per-material metadata serialization helper, not an execution or allocator extension port."
+            },
+            "verification": [
+              {
+                "path": "adapters/store-local/prepared-custody-queue.test.mjs",
+                "anchor": "failed later commit acquisition returns earlier original pins"
+              },
+              {
+                "path": "package.json",
+                "anchor": "\"check:retained-boundary\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/store-local/prepared-holder-owner.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "739f77e3a8e18b3f1287a85f338313fccd05f923564100486b87c82fbf6a1467",
+      "role": "physical-io",
+      "owner": "Existing installed Store original prepared-holder and transfer owner",
+      "exports": [
+        "createPreparedHolderRegistry"
+      ],
+      "operations": [
+        {
+          "name": "createPreparedHolderRegistry",
+          "parameters": [
+            "invalid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedHolderRegistry/finishTransfer/finishTransfer",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedHolderRegistry/init:forgetHolder/init:forgetHolder",
+          "parameters": [
+            "holder"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedHolderRegistry/init:forgetHolder/init:forgetHolder/remaining/remaining",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedHolderRegistry/init:original/init:original",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedHolderRegistry/init:pendingTransfer/init:pendingTransfer",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedHolderRegistry/init:register/init:register",
+          "parameters": [
+            "handle",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedHolderRegistry/init:retainTransfer/init:retainTransfer",
+          "parameters": [
+            "key",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedHolderRegistry/init:retainTransfer/init:retainTransfer/combined/combined",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPreparedHolderRegistry/init:select/init:select",
+          "parameters": [
+            "handles",
+            "allowed"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPreparedHolderRegistry",
+            "createPreparedHolderRegistry/finishTransfer/finishTransfer",
+            "createPreparedHolderRegistry/init:forgetHolder/init:forgetHolder",
+            "createPreparedHolderRegistry/init:forgetHolder/init:forgetHolder/remaining/remaining",
+            "createPreparedHolderRegistry/init:original/init:original",
+            "createPreparedHolderRegistry/init:pendingTransfer/init:pendingTransfer",
+            "createPreparedHolderRegistry/init:register/init:register",
+            "createPreparedHolderRegistry/init:retainTransfer/init:retainTransfer",
+            "createPreparedHolderRegistry/init:retainTransfer/init:retainTransfer/combined/combined",
+            "createPreparedHolderRegistry/init:select/init:select"
+          ],
+          "exports": [
+            "createPreparedHolderRegistry"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/prepared-holder-owner.mjs",
+                "anchor": "export function createPreparedHolderRegistry(invalid)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/prepared-holder-owner.mjs",
+                "anchor": "originals.set(handle, Object.freeze(original));"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/prepared-holder-owner.mjs",
+                "anchor": "const original = originals.get(handle);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/prepared-holder-owner.mjs",
+                "anchor": "const transfers = new Map(), holderTransfers = new WeakMap();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/prepared-holder-owner.mjs",
+                "anchor": "finishTransfer,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/prepared-holder-owner.mjs",
+                "anchor": "if (original === undefined || allowed.get(original.cid) !== original.bytes) invalid();"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/prepared-holder-owner.mjs",
+                "anchor": "forgetHolder(holder) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/prepared-holder-owner.mjs",
+                "anchor": "if (remaining.length === 0) transfers.delete(key);"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Nominal handle selection does not create a new issuer, capacity grant, physical ACK or public extension."
+            },
+            "verification": [
+              {
+                "path": "adapters/store-local/prepared-holder-owner.test.mjs",
+                "anchor": "unknown private transfer retains exact immutable selection"
+              },
+              {
+                "path": "package.json",
+                "anchor": "\"check:retained-boundary\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/installed-managed-source.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "fd5f873f42d1dc25d452112754b9df77c9fb9686f95d9841a9b55511d1d22dcc",
+      "role": "physical-io",
+      "owner": "Existing Host Source/Compute Run and installed Source acquisition Owners",
+      "exports": [
+        "bindInstalledManagedSources"
+      ],
+      "operations": [
+        {
+          "name": "bindInstalledManagedSources",
+          "parameters": [
+            "profile",
+            "runFor"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledManagedSources/bindInstalledManagedSources",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledManagedSources/bindInstalledManagedSources#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledManagedSources/sources/sources",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledManagedSources/sources/sources/init:ledgerCapacity/init:ledgerCapacity",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledManagedSources/sources/sources/init:managedCaptureCapacity/init:managedCaptureCapacity",
+          "parameters": [
+            "requirement"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledManagedSources/sources/sources/init:prepare/init:prepare",
+          "parameters": [
+            "facts"
+          ],
+          "async": true
+        },
+        {
+          "name": "bindInstalledManagedSources/sources/sources/sources",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledManagedSources/sources/sources/sources#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "exports": [
+            "bindInstalledManagedSources"
+          ],
+          "operations": [
+            "<module>",
+            "bindInstalledManagedSources",
+            "bindInstalledManagedSources/bindInstalledManagedSources",
+            "bindInstalledManagedSources/bindInstalledManagedSources#2",
+            "bindInstalledManagedSources/sources/sources",
+            "bindInstalledManagedSources/sources/sources/init:ledgerCapacity/init:ledgerCapacity",
+            "bindInstalledManagedSources/sources/sources/init:managedCaptureCapacity/init:managedCaptureCapacity",
+            "bindInstalledManagedSources/sources/sources/init:prepare/init:prepare",
+            "bindInstalledManagedSources/sources/sources/sources",
+            "bindInstalledManagedSources/sources/sources/sources#2"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "An ordinary installed Source uses the existing Host Source/Compute manager and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "opaque capture capacity for that actual QueryRequirement plus its existing"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Each real prepared Source is privately associated with its original checked"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "The existing dispatch retirement predicate first settles actual Source/Compute"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Program and parent after the preparation await and a second current fence."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Copied, foreign and cancelled preparations cannot supply that association."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "children and unresolved cleanup. Only then may its existing preparation holder"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Actual selected capacities must fit that original Ledger before dispatch; a"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Source-empty Program. Unsupported installations keep their existing refusal."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Plural installations forward the same parent through every selected capacity;"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Source contract references only; component ports are not ordinary runtime, backing, permission or cleanup ACK evidence."
     }
   ],
   "generated": [],

@@ -107,7 +107,7 @@ pub fn client_program_installed_effect_managed_run_prepare_ledger(
   capacities : Array[@client_local_host.ClientInstalledCaptureCapacity],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -117,7 +117,7 @@ pub fn client_program_installed_effect_managed_run_prepare_ledger(
 ] {
   @client_local_host.prepare_installed_effect_managed_run_ledger(
     value, prepared, request, capacities, transport_bytes, transport_execution_bytes,
-    registry_body, values_body, fragment_body, ordered_body,
+    installed_contracts, values_body, fragment_body, ordered_body,
   )
 }
 
@@ -130,14 +130,14 @@ pub fn client_program_installed_effect_managed_run_requirements(
   evidence_contract_body : String,
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> Result[Array[Int64], @client_local_host.ClientInstalledManagedRunIssue] {
   @client_local_host.installed_effect_managed_run_requirements(
     prepared, declarations, query_contract_body, evidence_contract_body, transport_bytes,
-    transport_execution_bytes, registry_body, values_body, fragment_body, ordered_body,
+    transport_execution_bytes, installed_contracts, values_body, fragment_body, ordered_body,
   )
 }
 
@@ -155,7 +155,7 @@ pub fn client_program_installed_effect_mock_model_managed_run_requirements(
   evidence_contract_body : String,
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
-  registry_body : String,
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -175,7 +175,7 @@ pub fn client_program_installed_effect_mock_model_managed_run_requirements(
   let base = match
     @client_local_host.installed_effect_mock_model_run_requirements(
       prepared, declarations, query_contract_body, evidence_contract_body, transport_bytes,
-      transport_execution_bytes, registry_body, values_body, fragment_body, ordered_body,
+      transport_execution_bytes, installed_contracts, values_body, fragment_body, ordered_body,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value

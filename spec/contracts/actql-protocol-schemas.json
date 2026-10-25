@@ -17279,7 +17279,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:042174a79928a7cd2ba56e13765c046910e372f7b1197a0506a9a95d874a41db",
+  "artifact_registry_cid": "sha256:64ce1076453e8a8ca412dcad58f559e24a6c72ff123e6c66d466900f7227330c",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77",
@@ -17289,7 +17289,7 @@
     "observation_set": "sha256:a2a967e39998c2d2037b035d81aab0eb5dce50b308c6d0c08f8b88512307f59c",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:1098d75bc7df1517ab9d30588cd5f0690812908ac33e900c6a01a187a8c206b5",
+    "executable_plan": "sha256:661fb7d6ff04024797f7733effa16ee82cbc9cb31533425270677906017cd487",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
@@ -17313,7 +17313,7 @@
     "verified_checkpoint_resolution": "sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76",
     "result_manifest": "sha256:bd718c411677e83cdf33258176d09c6dd690789b3cc7bb897cbff2b629290e02",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:83d6e0a0939a601b07b1f0bed0abea1f25bc028595478e2a68b5b3a276d3b95f",
+    "plan_document": "sha256:8faa3038775b916b1446c42b8ef3a2349bed1fb9f4341a96025f668a6d199232",
     "plan_result": "sha256:692b481d25e23400f0f81e0ddade946aba2dafca4dd2f1fe6c22c7e15e5122c1",
     "run_state": "sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2",
     "captured_run": "sha256:a37894cfc6919e1562be6b44293871f349085e6b94e27281eec26b7af8d0514c",
@@ -17350,7 +17350,7 @@
     "model_invocation_evidence_compatible": "sha256:395b29533430f97fda7a13019417abb991e7fe1d2b0e92d579a58887f53a6756",
     "model_capture_bundle_compatible": "sha256:750be57601bea98a9446d2ec3222e6f1cde2e2c40069cbef917fc475a15e9ddb",
     "model_response_profile": "sha256:f44d7f923a662f2487ab1e87f8c5cf5872aa38c64e944e57470bb63dd819c7d7",
-    "model_original_resource_state": "sha256:6be8dc0eec799400cb68173ac39ee88c49d9af80cabc762a62a8bdceddf778df",
+    "model_original_resource_state": "sha256:33b975b742274ca24e3997ec9c57762d4131de8659dd1111ad2d7e74671b3842",
     "model_journal_entry": "sha256:2be8611d08d277590783ff06299130c78170eb4de49b4d76d67a940d0e3fccb7",
     "model_journal_settlement": "sha256:e5739efb68a1d6059c5d9c58cd74eabbc8ca28c071e81c2b1984d26e5125161b",
     "openai_chat_prompt": "sha256:c785e9b1efaefbf6a0c74c52bc103dd2e67eb774a9c2f860642007bce1e81a9a",
@@ -26899,6 +26899,56 @@
                           }
                         }
                       }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "array_offset"
+                      ],
+                      "properties": {
+                        "array_offset": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "value",
+                            "index"
+                          ],
+                          "properties": {
+                            "value": {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            "index": {
+                              "$ref": "#/$defs/value_expression"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "array_safe_offset"
+                      ],
+                      "properties": {
+                        "array_safe_offset": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "value",
+                            "index"
+                          ],
+                          "properties": {
+                            "value": {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            "index": {
+                              "$ref": "#/$defs/value_expression"
+                            }
+                          }
+                        }
+                      }
                     }
                   ]
                 },
@@ -32843,6 +32893,56 @@
                           ],
                           "properties": {
                             "value": {
+                              "$ref": "#/$defs/value_expression"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "array_offset"
+                      ],
+                      "properties": {
+                        "array_offset": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "value",
+                            "index"
+                          ],
+                          "properties": {
+                            "value": {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            "index": {
+                              "$ref": "#/$defs/value_expression"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "array_safe_offset"
+                      ],
+                      "properties": {
+                        "array_safe_offset": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "value",
+                            "index"
+                          ],
+                          "properties": {
+                            "value": {
+                              "$ref": "#/$defs/value_expression"
+                            },
+                            "index": {
                               "$ref": "#/$defs/value_expression"
                             }
                           }
@@ -58862,6 +58962,56 @@
                               }
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "array_offset"
+                          ],
+                          "properties": {
+                            "array_offset": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "value",
+                                "index"
+                              ],
+                              "properties": {
+                                "value": {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                "index": {
+                                  "$ref": "#/$defs/value_expression"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "array_safe_offset"
+                          ],
+                          "properties": {
+                            "array_safe_offset": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "value",
+                                "index"
+                              ],
+                              "properties": {
+                                "value": {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                "index": {
+                                  "$ref": "#/$defs/value_expression"
+                                }
+                              }
+                            }
+                          }
                         }
                       ]
                     },
@@ -64806,6 +64956,56 @@
                               ],
                               "properties": {
                                 "value": {
+                                  "$ref": "#/$defs/value_expression"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "array_offset"
+                          ],
+                          "properties": {
+                            "array_offset": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "value",
+                                "index"
+                              ],
+                              "properties": {
+                                "value": {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                "index": {
+                                  "$ref": "#/$defs/value_expression"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "array_safe_offset"
+                          ],
+                          "properties": {
+                            "array_safe_offset": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "value",
+                                "index"
+                              ],
+                              "properties": {
+                                "value": {
+                                  "$ref": "#/$defs/value_expression"
+                                },
+                                "index": {
                                   "$ref": "#/$defs/value_expression"
                                 }
                               }
@@ -103106,11 +103306,23 @@
                 {
                   "type": "string",
                   "pattern": "^(0|[1-9][0-9]*)$(?![\\s\\S])"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$(?![\\s\\S])"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$(?![\\s\\S])"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$(?![\\s\\S])"
                 }
               ],
               "items": false,
-              "minItems": 10,
-              "maxItems": 10
+              "minItems": 13,
+              "maxItems": 13
             },
             {
               "type": "array",
@@ -103228,15 +103440,45 @@
               "maxItems": 3
             },
             {
-              "oneOf": [
+              "type": "array",
+              "prefixItems": [
                 {
-                  "type": "null"
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^(0|-?[1-9][0-9]*)$(?![\\s\\S])"
+                    }
+                  ]
                 },
                 {
-                  "type": "string",
-                  "pattern": "^(0|-?[1-9][0-9]*)$(?![\\s\\S])"
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$(?![\\s\\S])"
+                    }
+                  ]
+                },
+                {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$(?![\\s\\S])"
+                    }
+                  ]
                 }
-              ]
+              ],
+              "items": false,
+              "minItems": 3,
+              "maxItems": 3
             },
             {
               "type": "array",
@@ -103406,11 +103648,17 @@
                       "maxItems": 3
                     }
                   ]
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "boolean"
                 }
               ],
               "items": false,
-              "minItems": 10,
-              "maxItems": 10
+              "minItems": 12,
+              "maxItems": 12
             },
             {
               "type": "array",
@@ -103544,11 +103792,17 @@
                         "maxItems": 3
                       }
                     ]
+                  },
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "boolean"
                   }
                 ],
                 "items": false,
-                "minItems": 10,
-                "maxItems": 10
+                "minItems": 12,
+                "maxItems": 12
               }
             },
             {

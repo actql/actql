@@ -176,12 +176,14 @@ fn prepare_client_submitted_intent_originals(
   (ClientSubmittedIntent, @source.Node?, @canonical.CanonicalValue),
   ClientSubmittedIntentIssue,
 ] {
+  // The selected owner supplies finite policy bounds. Only representation
+  // headroom for the hash envelope (+128 bytes,+4 nodes,+1 depth) is intrinsic.
   if max_bytes < 1 ||
-    max_bytes > 1048576 ||
+    max_bytes > 2147483519 ||
     max_nodes < 1 ||
-    max_nodes > 65536 ||
+    max_nodes > 2147483643 ||
     max_depth < 1 ||
-    max_depth > 64 {
+    max_depth > 2147483646 {
     return Err(InvalidLimits)
   }
   let source = match

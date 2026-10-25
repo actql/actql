@@ -140,6 +140,8 @@ pub fn checking_environment_with_request_value_policies(CheckEnvironment, Array[
 
 pub fn close_effect_computation_static(EffectComputationCandidate, @check_environment.MappingContractShapes, @stage_results.EffectStaticCandidateLimits) -> Result[EffectProgramStaticCandidate, @stage_results.EffectStaticCandidateIssue]
 
+pub fn closed_values_local_owner_layout(Int) -> ClosedValuesLocalOwnerLayout?
+
 pub fn complete_template_check(TemplateDeclarationPreparation) -> Result[TemplateCheckedProgram, TemplateConstructionIssue]
 
 pub fn completion_free_inventory_matches(CompletionFreeInventory, EffectProgramStaticCandidate) -> Bool
@@ -614,6 +616,8 @@ pub fn request_value_policy_subject_wire(SourceExecution, Int, Int, Int, Int) ->
 
 pub fn request_value_policy_subject_wires(Array[SourceExecution], Int, Int, Int, Int) -> Array[String] raise UnitBuildFailure
 
+pub fn require_source_catalog_reuse(PreparedSourceCatalog) -> PreparedSourceCatalog
+
 pub fn requirements(CheckedProgram) -> @pipeline_check_context.StageRequirementClosure
 
 pub fn selected_expression_profiles(CheckedProgram) -> @pipeline_check_context.ExpressionProfiles
@@ -624,9 +628,17 @@ pub fn sequence_limit_selection(SequenceLimit) -> @pipeline_check_context.Sequen
 
 pub fn sequence_limit_source(SequenceLimit) -> UnitOperationSource
 
+pub fn source_catalog_closed_values_dependencies(PreparedSourceCatalog, Int) -> @check_environment.ClosedValuesCatalogDependencies?
+
 pub fn source_catalog_contracts(PreparedSourceCatalog) -> @check_environment.SourceRequestContracts
 
 pub fn source_catalog_owner(PreparedSourceCatalog) -> CheckEnvironment
+
+pub fn source_catalog_replay_limits(PreparedSourceCatalog) -> SourceCatalogLimits
+
+pub fn source_catalog_requires_reuse(PreparedSourceCatalog) -> Bool
+
+pub fn source_catalog_same_original(PreparedSourceCatalog, PreparedSourceCatalog) -> Bool
 
 pub fn source_catalog_usage(PreparedSourceCatalog) -> SourceCatalogUsage
 
@@ -990,6 +1002,14 @@ type CheckedLocalDependencyBody
 
 type CheckedProgram
 
+pub(all) struct ClosedValuesLocalOwnerLayout {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+  owned_wire_bytes : Int64
+} derive(Eq, @debug.Debug)
+
 pub(all) struct CompileArtifactLimits {
   bytes : Int
   nodes : Int
@@ -1248,6 +1268,7 @@ pub struct PreparedSourceCatalog {
   references : @check_environment.CatalogReferences
   usage : SourceCatalogUsage
   depth_limit : Int
+  require_reuse : Bool
 }
 
 type PublicationExecution

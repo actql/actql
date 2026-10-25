@@ -288,3 +288,33 @@ request or Run up by its identity; never retry a write by resubmitting it.
 - [Run lifecycle and recovery](run-lifecycle.md): every state and what to do
   in it.
 - [Python](python.md): the same API from Python.
+
+### Bounded text conversion and Unicode normalization
+
+The standard embedded Local runtime includes the bounded text-time policy used by
+`TRY_NUMBER(string)`, `ACTQL.NFKC(string)`, and `ACTQL.CASE_FOLD(string)`.
+These functions use the portable scalar owner; they do not call a remote
+provider, the host's locale routines, or a host Unicode normalizer.
+
+```js
+await db.sql("SELECT TRY_NUMBER('12.5') AS amount").all();
+// [{amount: 12.5}]
+await db.sql("SELECT ACTQL.NFKC('ＡＢＣ') AS text").all();
+// [{text: 'ABC'}]
+await db.sql("SELECT ACTQL.CASE_FOLD('Straße') AS text").all();
+// [{text: 'strasse'}]
+```
+
+`TRY_NUMBER` returns `NULL` for invalid numeric text, without trimming or
+implicit conversion. It does not catch an error evaluating its argument.
+Normalization uses the pinned Unicode 16.0.0 tables: NFKC performs compatibility
+normalization; case folding uses full default C/F mappings, not locale-specific
+T mappings. Both return NFC.
+
+The installed policy bounds each input at 4,096 Unicode scalars and 16,384 UTF-8
+bytes, and each output at 1,048,576 bytes. Existing Run, workspace, live-value and
+publication limits still apply. Exceeding a bound fails rather than truncating.
+After upgrading the installed runtime, close and reopen the Local Client to use
+its current default policy for new submissions. Previously retained Runs keep
+their original admitted evidence and identities; reopening does not rewrite
+those originals. No state-directory deletion or reinitialization is required.

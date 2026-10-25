@@ -64,6 +64,8 @@ pub fn unary(
       }
     // Constructed text is evaluated only by the bounded expression continuation.
     Upper
+    | Nfkc
+    | CaseFold
     | Lower
     | Trim
     | LTrim

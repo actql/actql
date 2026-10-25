@@ -11,8 +11,8 @@ function actual(name, ports) {
   const node = ast.body.find(node => node.type === 'ExportNamedDeclaration' &&
     node.declaration?.type === 'FunctionDeclaration' && node.declaration.id.name === name);
   assert(node, name);
-  const helpers = ast.body.filter(node => node.type === 'FunctionDeclaration' &&
-    node.id.name === 'installedManagedRunContracts');
+  const helpers = ast.body.flatMap(node => node.type === 'ExportNamedDeclaration' ? [node.declaration] : [node]).filter(node => node?.type === 'FunctionDeclaration' &&
+    ['installedManagedRunContracts','prepareInstalledSequenceContractOriginal'].includes(node.id.name) && node.id.name !== name);
   return new Function(...Object.keys(ports),
     helpers.map(node => source.slice(node.start, node.end)).join('\n') + '\n' +
     source.slice(node.declaration.start, node.declaration.end) + `;return ${name};`)(...Object.values(ports));
@@ -22,7 +22,9 @@ function fixture() {
   let current = true;
   const calls = [];
   const limits = [7n, 2n, 3n, 0n, 32n, 64n];
+  const contractAdmission = {};
   const moon = {
+    clientPrepareInstalledSequenceContracts: () => contractAdmission,
     clientProgramInstalledManagedRunRequirements(...args) {calls.push(['requirements', args]); return limits;},
     clientSubmittedIntent(wire, ...bounds) {calls.push(['intent', wire, bounds]); return wire;},
     clientSubmittedIntentCid(intent) {calls.push(['cid', intent]); return 'sha256:' + 'a'.repeat(64);},
@@ -56,7 +58,7 @@ function fixture() {
     canonicalValueJson(value, options) {assert.deepEqual(options, {dataKeys: true}); return JSON.stringify(value);},
     clientOperationError: code => Object.assign(new Error(code), {code}),
   };
-  return {prepared, request, raw, originals, moon, calls, limits, ports, assets,
+  return {prepared, request, raw, originals, moon, calls, limits, ports, assets, contractAdmission,
     stop: () => {current = false;},
     requirements: () => actual('readManagedComputeRunRequirements', ports),
     intent: () => actual('managedComputeSubmittedIntentCid', ports)};
@@ -152,7 +154,7 @@ test('source-free requirements forward the same checked preparation and empty So
   const args = f.calls[0][1];
   assert.strictEqual(args[0], f.prepared);
   assert.deepEqual(args.slice(1), [[], 'acquisition-original', 'process-original', [], [],
-    'registry-original', '{"kind":"values"}', '{"kind":"expression"}', '{"kind":"derive"}']);
+    f.contractAdmission, '{"kind":"values"}', '{"kind":"expression"}', '{"kind":"derive"}']);
 });
 
 test('foreign Host or copied prepared request refuses before any Core requirement call', () => {
@@ -170,6 +172,7 @@ test('requirements retain the post-Core current and same-request fence', () => {
 
 test('Core refusal propagates without replacement requirements', () => {
   const f = fixture(), stopped = new Error('OriginalCoreRefusal');
+  actual('prepareInstalledSequenceContractOriginal',f.ports)(f.originals);
   f.ports.checked = () => {throw stopped;};
   assert.throws(() => f.requirements()(f.originals, f.prepared), error => error === stopped);
   assert.equal(f.calls.length, 1);
@@ -188,7 +191,7 @@ function preparedRunFixture() {
   const f = fixture(), original = {}, run = {runtime: f.moon, prepared: f.prepared, request: f.request, closed: false};
   f.originals.installation.computeRuns = new Map([[f.prepared, run]]);
   f.moon.clientProgramInstalledManagedRunIssueIsUnsupported = () => false;
-  f.moon.clientProgramPrepareInstalledManagedSourceFree = (...args) => {
+  f.moon.clientProgramPrepareInstalledManagedSourceFreeWithContracts = (...args) => {
     f.calls.push(['prepare', args]); return original;
   };
   f.moon.clientProgramPreparedInstalledManagedSourceFreeRequirements = value => {
@@ -205,7 +208,7 @@ test('same Host Run retains one typed sequence preparation before repeated scala
   assert.strictEqual(f.run.preparedSequences, f.original);
   assert.equal(f.calls.filter(([name]) => name === 'prepare').length, 1);
   assert.equal(f.calls.filter(([name]) => name === 'project').length, 2);
-  assert.deepEqual(f.calls[0][1], [f.prepared, 'registry-original',
+  assert.deepEqual(f.calls[0][1], [f.prepared, f.contractAdmission,
     '{"kind":"values"}', '{"kind":"expression"}', '{"kind":"derive"}']);
 });
 
@@ -227,7 +230,7 @@ test('same typed preparation survives failed projection or current observation w
 test('foreign or closed Run and missing typed APIs refuse without legacy regeneration', () => {
   for (const change of [f => {f.run.runtime = {};}, f => {f.run.prepared = {};},
     f => {f.run.closed = true;},
-    f => {f.moon.clientProgramPrepareInstalledManagedSourceFree = undefined;},
+    f => {f.moon.clientProgramPrepareInstalledManagedSourceFreeWithContracts = undefined;},
     f => {f.moon.clientProgramInstalledManagedRunIssueIsUnsupported = undefined;},
     f => {f.moon.clientProgramPreparedInstalledManagedSourceFreeRequirements = undefined;}]) {
     const f = preparedRunFixture(); change(f);
@@ -276,12 +279,13 @@ test('intent current changes, missing admission and malformed CID cannot become 
 test('only the original pure preparation Unsupported is a typed refusal', () => {
   for (const unsupported of [false, true]) {
     const f = preparedRunFixture(), result = {}, issue = {}, originalFailure = new Error('OriginalCoreFailure');
-    f.moon.clientProgramPrepareInstalledManagedSourceFree = () => result;
+    f.moon.clientProgramPrepareInstalledManagedSourceFreeWithContracts = () => result;
     f.ports.runtimeIsError = value => {assert.strictEqual(value, result); return true;};
     f.ports.runtimeField = (value, index) => {assert.strictEqual(value, result); assert.equal(index, 0); return issue;};
     f.moon.clientProgramInstalledManagedRunIssueIsUnsupported = value => {
       assert.strictEqual(value, issue); return unsupported;
     };
+    actual('prepareInstalledSequenceContractOriginal',f.ports)(f.originals);
     f.ports.checked = value => {assert.strictEqual(value, result); throw originalFailure;};
     assert.throws(() => f.requirements()(f.originals, f.prepared), unsupported
       ? {code: 'ClientProgramUnsupported'} : error => error === originalFailure);
@@ -294,12 +298,49 @@ test('Unsupported after Resource or a retained failure never issues a new pure r
   for (const field of ['original', 'admission', 'value', 'failure']) {
     const f = preparedRunFixture(), result = {}, issue = {}, failure = new Error('OriginalCoreFailure');
     f.run[field] = {};
-    f.moon.clientProgramPrepareInstalledManagedSourceFree = () => result;
+    f.moon.clientProgramPrepareInstalledManagedSourceFreeWithContracts = () => result;
     f.ports.runtimeIsError = value => {assert.strictEqual(value, result); return true;};
     f.ports.runtimeField = value => {assert.strictEqual(value, result); return issue;};
     f.moon.clientProgramInstalledManagedRunIssueIsUnsupported = value => {assert.strictEqual(value, issue); return true;};
+    actual('prepareInstalledSequenceContractOriginal',f.ports)(f.originals);
     f.ports.checked = value => {assert.strictEqual(value, result); throw failure;};
     assert.throws(() => f.requirements()(f.originals, f.prepared), error => error === failure);
     assert.equal(f.run.preAdmissionRefusal, undefined);
   }
+});
+
+test('installed Source demand retains actual checked occurrence capacities before the same Resource admission', () => {
+  const f = fixture(), requirements = [{}, {}], capacities = [{}, {}], seen = [];
+  f.moon.clientPrepareInstalledCompilationManifests = () => {};
+  const adapters = capacities.map((capacity, index) => ({managedCaptureCapacity(requirement) {
+    assert.strictEqual(requirement, requirements[index]); seen.push(index);
+    return {capacity, transferBytes: BigInt(index + 5), executionBytes: BigInt(index + 9)};
+  }}));
+  const profile = {sources: adapters};
+  const run = {runtime: f.moon, prepared: f.prepared, request: f.request, sourceProfile: profile};
+  Object.assign(f.originals.installation, {managedSourceProfile: profile, computeRuns: new WeakMap([[f.prepared, run]])});
+  f.moon.clientProgramAcquisitionCount = value => {assert.strictEqual(value, f.prepared); return 2;};
+  f.moon.clientProgramPrepareLocalQueryRequirement = (value, stage, input, contracts) => {
+    assert.strictEqual(value, f.prepared); assert.equal(input, 0); assert.strictEqual(contracts, f.contractAdmission);
+    return requirements[stage];
+  };
+  f.moon.clientProgramQueryRequirementSourceRef = value => 'source:' + requirements.indexOf(value);
+  f.ports.installedSourceFor = (selected, ref) => {
+    assert.strictEqual(selected, profile); return adapters[Number(ref.slice(7))];
+  };
+  let quotes = 0;
+  f.moon.clientProgramInstalledManagedCaptureRunRequirements = (value, captures, transfer, workspace, contracts) => {
+    assert.strictEqual(value, f.prepared); assert.deepEqual(captures, capacities);
+    assert.deepEqual(transfer, [5n, 6n]); assert.deepEqual(workspace, [9n, 10n]);
+    assert.strictEqual(contracts, f.contractAdmission); quotes++; return f.limits;
+  };
+  const read = f.requirements();
+  for (let index = 0; index < 2; index++) assert.equal(read(f.originals, f.prepared).executionBytes, 64n);
+  assert.deepEqual(seen, [0, 1], 'Each checked occurrence retains its original Source envelope');
+  assert.equal(quotes, 2, 'Limits projection is not a full-work recurrence counter');
+  assert(Object.isFrozen(run.sourceCapacities));
+  assert.strictEqual(run.sourceCapacities[0].adapter, adapters[0]);
+  run.sourceProfile = {...profile};
+  assert.throws(() => read(f.originals, f.prepared), {code: 'NodeManagedRunRuntimeUnavailable'});
+  assert.deepEqual(seen, [0, 1]);
 });

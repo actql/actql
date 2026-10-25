@@ -16,12 +16,12 @@ static bool signature(const actql_compiler_signature *item, const char *paramete
 }
 int main(void) {
     bool cases[] = {
-        ACTQL_COMPILER_CORE_ABI == 74,
+        ACTQL_COMPILER_CORE_ABI == 78,
         ACTQL_COMPILER_IMPORTS_COUNT == 24,
         signature(find(actql_compiler_imports, ACTQL_COMPILER_IMPORTS_COUNT, "input_byte"),
                   "i32 i32", "i32"),
         signature(find(actql_compiler_imports, ACTQL_COMPILER_IMPORTS_COUNT, "execution_child_report"),
-                  "i64 i32 i32 i32 i64 i64 i64 i64 i64 i64 i64", "i32"),
+                  "i64 i32 i32 i32 i64 i64 i64 i64 i64 i64 i64 i32 i32 i32", "i32"),
         signature(find(actql_compiler_exports, ACTQL_COMPILER_EXPORTS_COUNT, "actql_buffer_open_live"),
                   "i64 i64 i32 i32", "i32"),
         find(actql_compiler_exports, ACTQL_COMPILER_EXPORTS_COUNT, "actql_buffer_open_fake") == NULL,

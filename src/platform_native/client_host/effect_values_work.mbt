@@ -67,7 +67,7 @@ fn open_native_client_effect_values_work(
   materials : @host.ClientEffectRunMaterials,
   bound : @host.PreparedClientEffectRun,
   captured : @strategy.CapturedEffectRunDAG,
-  registry_body : String,
+  installed_contracts : @local.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -145,7 +145,7 @@ fn open_native_client_effect_values_work(
     return Err(effect_values_work_failure(OriginalRunNotCurrent))
   }
   guard @local.configure_source_free_effect_local_retained_host(
-      bound, captured, registry_body, values_body, fragment_body, ordered_body,
+      bound, captured, installed_contracts, values_body, fragment_body, ordered_body,
     )
     is Some(setup) else {
     return Err(effect_values_work_failure(Configuration))
@@ -215,7 +215,7 @@ pub fn NativeLocalHostConnection::open_effect_values_work(
   materials : @host.ClientEffectRunMaterials,
   bound : @host.PreparedClientEffectRun,
   captured : @strategy.CapturedEffectRunDAG,
-  registry_body : String,
+  installed_contracts : @local.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -241,7 +241,7 @@ pub fn NativeLocalHostConnection::open_effect_values_work(
     materials,
     bound,
     captured,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,

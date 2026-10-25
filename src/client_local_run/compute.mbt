@@ -31,7 +31,7 @@ pub(all) enum LocalComputeIssue {
 ///|
 pub fn configure_source_free_local_compute(
   plan : LocalRunPlan,
-  registry_body : String,
+  installed_contracts : @local.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -39,7 +39,7 @@ pub fn configure_source_free_local_compute(
   configure_local_compute(
     plan,
     None,
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -52,7 +52,7 @@ pub fn configure_source_free_local_compute(
 pub fn configure_captured_source_local_compute(
   plan : LocalRunPlan,
   source : @query.CapturedInputSource,
-  registry_body : String,
+  installed_contracts : @local.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -60,7 +60,7 @@ pub fn configure_captured_source_local_compute(
   configure_local_compute(
     plan,
     Some(source),
-    registry_body,
+    installed_contracts,
     values_body,
     fragment_body,
     ordered_body,
@@ -74,7 +74,7 @@ pub fn configure_captured_source_local_compute_on_ledger(
   plan : LocalRunPlan,
   source : @query.CapturedInputSource,
   ledger : @resources.Ledger,
-  registry_body : String,
+  installed_contracts : @local.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -86,7 +86,7 @@ pub fn configure_captured_source_local_compute_on_ledger(
       plan.prepared,
       source,
       ledger,
-      registry_body,
+      installed_contracts,
       values_body,
       fragment_body,
       ordered_body,
@@ -103,7 +103,7 @@ pub fn configure_captured_source_local_compute_on_ledger(
 fn configure_local_compute(
   plan : LocalRunPlan,
   source : @query.CapturedInputSource?,
-  registry_body : String,
+  installed_contracts : @local.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -120,7 +120,7 @@ fn configure_local_compute(
     None =>
       @local.open_source_free_local_retained_host(
         prepared,
-        registry_body,
+        installed_contracts,
         values_body,
         1L,
         0L,
@@ -133,7 +133,7 @@ fn configure_local_compute(
       @local.open_captured_local_retained_host(
         prepared,
         source,
-        registry_body,
+        installed_contracts,
         values_body,
         1L,
         0L,

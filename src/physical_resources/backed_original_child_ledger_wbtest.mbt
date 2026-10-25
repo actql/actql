@@ -133,7 +133,7 @@ test "backed original child closing rejects new reservations and retains origina
   close_shared_capacity(capacity).unwrap()
   settle_shared_capacity(capacity).unwrap()
   report_imported_child_ledger(frame).unwrap()
-  assert_eq(ledger_usage(parent), { ..before, attempts: before.attempts + 1, })
+  assert_eq(ledger_usage(parent), before)
   assert_eq(ledger_usage(ledger).reserved_execution_bytes, 0L)
   // Logical stop is not the physical-owner ACK; all parent obligations remain.
   assert_true(projection.access is Some(_))
@@ -203,16 +203,25 @@ test "backed original child enforces inherited bytes and reports actual attempts
   assert_eq(ledger_usage(ledger).attempts, 0)
   let reservation = reserve_attempt(ledger, 0L, 0L, 20L).unwrap()
   assert_true(reserve_shared_capacity(ledger, 1L) is Err(ExecutionLimit))
-  assert_eq(ledger_usage(ledger).attempts, 1)
+  assert_eq(ledger_usage(ledger).attempts, 0)
+  assert_eq(ledger_usage(ledger).reserved_attempts, 1)
+  consume_reserved_attempt(ledger, reservation).unwrap()
   report_imported_child_ledger(frame).unwrap()
   let reported = ledger_usage(parent)
-  assert_eq(reported, { ..before, attempts: before.attempts + 1, })
+  assert_eq(reported, {
+    ..before,
+    attempts: before.attempts + 1,
+    live_reservations: before.live_reservations + 1,
+  })
   report_imported_child_ledger(frame).unwrap()
   assert_eq(ledger_usage(parent), reported)
   stop_imported_child_ledger(frame).unwrap()
   settle_reservation(ledger, reservation).unwrap()
   report_imported_child_ledger(frame).unwrap()
-  assert_eq(ledger_usage(parent), reported)
+  assert_eq(ledger_usage(parent), {
+    ..reported,
+    live_reservations: reported.live_reservations - 1,
+  })
   assert_true(access.read_use.unwrap().live_access_pending)
   assert_true(access.ticket.unwrap().logical.unwrap().reservation.open)
 }

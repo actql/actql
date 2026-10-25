@@ -7,6 +7,7 @@
     "inner": "L * R",
     "cross_join": "L * R; a right_rows: one assertion is not permission to discard extra rows and remains subject to validation",
     "left": "L * max(1, R)",
+    "right": "R * max(1, L)",
     "full": "R if L = 0; L if R = 0; L + R if L = 1 or R = 1; otherwise L * R",
     "semi": "0 if R = 0; otherwise L",
     "anti": "L",
@@ -16,6 +17,7 @@
     "eligibility": "Use only applicable checked join-key uniqueness evidence or a retained cardinality assertion with its required validation. At least one side must be unique. Equal row types, repeated conditions and distinct producer names are not uniqueness evidence. For a zero input bound use the unrefined rules.",
     "inner": "min(L, R) if both sides are unique; L if only the right is unique; R if only the left is unique",
     "left": "L if the right is unique; otherwise L + R - 1 when only the left is unique",
+    "right": "R if the left is unique; otherwise L + R - 1 when only the right is unique; zero input bounds use the unrefined rules",
     "full": "L + R",
     "semi_and_anti": "L; a smaller bound may follow separately from empty-input rules"
   },

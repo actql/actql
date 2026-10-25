@@ -17,12 +17,12 @@ fn original_protocol_frontier_wire() -> String {
   )
   .replace(old="false,\"reading\",true", new="false,\"parked\",true")
   .replace(
-    old="[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]],[],[]]",
-    new="[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],[null,\"7\",\"5\"]]],[],[]]",
+    old="[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false]],[],[]]",
+    new="[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],[null,\"7\",\"5\"],false,false]],[],[]]",
   )
   .replace(
-    old="274329df872dc6b95ba33089f7a822419cb91c3169d893342df24fa6c2126da2",
-    new="0ef163528ba32a6fab5002cc149bb63d427532d8fb175bac0759417a021e3c48",
+    old="7ed6db2394d7eaa87d65b022a6bc78f722efaf7a0293115de52c09a89893aae9",
+    new="b3634928020e48a45973a4a7499890ecc0037ed354d61c8dc7e64eea78bd2097",
   )
 }
 
@@ -48,19 +48,19 @@ fn original_protocol_frontier_finish(
 ///|
 test "original resource protocol keeps generated pending frontier independent of tuple width" {
   let wire = original_protocol_frontier_wire()
-  assert_eq(@utf8.encode(wire).length(), 2181)
+  assert_eq(@utf8.encode(wire).length(), 2227)
   assert_eq(
     @sha.hex(@utf8.encode(wire)),
-    "da916cf3ff72583a1d380e76f8ca508fd4f6f5af16656d80f0eb1933b712734e",
+    "106d906a66a9054ad305e41b81c6dfbb249a14c3b64b9d501a8561b43896e87a",
   )
-  let document = read_model_original_resource_document(wire, 2181, 215, 5).unwrap()
+  let document = read_model_original_resource_document(wire, 2227, 215, 5).unwrap()
   let root = generated_protocol_schema_root(
     "model_original_resource_state", true,
   ).unwrap()
   let nodes = protocol_schema_nodes()
   let cursor = start_protocol_validation(document.value, root, nodes, {
     remaining: 215 * 8,
-    max_wire_bytes: 2181,
+    max_wire_bytes: 2227,
     max_nodes: 215,
     max_depth: 5,
   })
@@ -74,7 +74,7 @@ test "original resource protocol keeps generated pending frontier independent of
   assert_eq(cursor.advance(1), (false, 0))
   // Cursor retirement neither mutates the borrowed DATA nor proves physical
   // cleanup, releases its original reservation or issues a Model grant.
-  assert_eq(@json.stringify_value(document.value, 2181, 215, 5), wire)
+  assert_eq(@json.stringify_value(document.value, 2227, 215, 5), wire)
 }
 
 ///|

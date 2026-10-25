@@ -168,6 +168,12 @@ fn original_keyed_run_fixture(
   @publication_host.ClientKeyedAcquisition,
   @planning.QueryRequirement,
 ) raise {
+  let source_contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let (declaration, environment) = original_keyed_declaration_environment(
     relation_versions~,
   )
@@ -273,7 +279,7 @@ fn original_keyed_run_fixture(
     prepared,
     0,
     direct,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
@@ -331,7 +337,7 @@ test "original keyed Direct binding follows the checked resource occurrence befo
     0L,
   ).unwrap()
   assert_eq(verifies.val, 0)
-  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
   assert_true(
     start_client_original_keyed_direct_row_acquisition(
       scope,
@@ -351,7 +357,7 @@ test "original keyed Direct binding follows the checked resource occurrence befo
     ),
   )
   @row_source_host.close_accounted_row_run(run).unwrap()
-  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
   assert_true(
     @publication_host.finish_client_model_read_scope(
       scope, compiled, definition, plan, true,
@@ -531,7 +537,11 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
     scope, compiled, definition, plan, prepared, keyed, capture, 100, 4096, 64, 64,
   ).unwrap()
   let assembled_usage = @resources.ledger_usage(ledger)
-  assert_eq(assembled_usage.attempts, 2)
+  assert_eq(assembled_usage.attempts, captured_usage.attempts)
+  assert_eq(
+    assembled_usage.reserved_attempts,
+    captured_usage.reserved_attempts + 1,
+  )
   assert_eq(assembled_usage.reserved_retention_bytes, 4611L)
   assert_eq(assembled_usage.reserved_execution_bytes, 6658L)
   assert_eq(assembled_usage.holdings, 1)
@@ -546,7 +556,8 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
     @publication_host.cleanup_client_keyed_lookup_input(lookup, 8).unwrap(),
   )
   let retired = @resources.ledger_usage(ledger)
-  assert_eq(retired.attempts, 2)
+  assert_eq(retired.attempts, captured_usage.attempts)
+  assert_eq(retired.reserved_attempts, captured_usage.reserved_attempts)
   assert_eq(retired.holdings, 1)
   assert_eq(retired.reserved_retention_bytes, 3L)
   assert_eq(retired.reserved_execution_bytes, 2L)
@@ -574,10 +585,9 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
   assert_eq(@resources.ledger_usage(ledger).holdings, 1)
   @row_source_host.close_accounted_row_run(run).unwrap()
   assert_true(@row_source_host.row_capture_source(capture) is Err(_))
-  // LedgerUsage.holdings is the cumulative issued identity count. The existing
-  // release_allocation retires holding.live and subtracts held_bytes; it does
-  // not refund this count. Final Scope cleanup below checks actual live tokens.
-  assert_eq(@resources.ledger_usage(ledger).holdings, 1)
+  // The original physical child's ACK returns its live holding slot. Issued
+  // token identity and consumed work/transfer are independent of that slot.
+  assert_eq(@resources.ledger_usage(ledger).holdings, 0)
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
   assert_true(
     @publication_host.finish_client_model_read_scope(

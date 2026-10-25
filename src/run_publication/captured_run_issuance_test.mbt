@@ -35,6 +35,7 @@ fn captured_test_wire(value : @json.CanonicalValue) -> String {
 ///|
 fn captured_run_test_chain(
   with_model? : Bool = false,
+  row_count? : Int = 1,
   logical_cid? : String? = None,
   schema_cid? : String = ordering_test_cid("9"),
 ) -> CapturedRunTestChain {
@@ -84,7 +85,7 @@ fn captured_run_test_chain(
     8,
   ).unwrap()
   let artifact = issue_complete_result_artifact(
-    definition, invocation, evidence, retention, 1, 32768, 256, 8,
+    definition, invocation, evidence, retention, row_count, 32768, 256, 8,
   ).unwrap()
   let manifest = issue_result_manifest(
     run,

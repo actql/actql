@@ -25,7 +25,8 @@ test "evidence streams use exact bounded fragments and independent control total
   let text = "é".repeat(257) + "😀"
   let value = stream_fixture_value("\"" + text + "\"")
   let wire = "\"" + text + "\""
-  // Begin, opening quote emit/compare, five Text emit/compare pairs, Done.
+  // Wire comparison runs in the canonical writer: Begin plus six emits.
+  // Pair comparison retains its two emitters and bounded fragment comparisons.
   for quantum in [1, 7, 64] {
     let check = stream_test(value, Wire(wire), 1038)
     let mut work = 0
@@ -40,7 +41,7 @@ test "evidence streams use exact bounded fragments and independent control total
       }
     }
     assert_true(done)
-    assert_eq(work, 14)
+    assert_eq(work, 7)
     assert_eq(check.peak, 1038)
     assert_true(check.finish().unwrap())
     assert_eq(check.live, 0)
@@ -69,8 +70,8 @@ test "evidence streams use exact bounded fragments and independent control total
 
 ///|
 test "evidence stream comparison preserves escaping Unicode and finite writer limits" {
-  // Sixty-four escaped controls emit 384 ASCII units plus the two quotes;
-  // comparison takes seven bounded fragments, even for one emitter Visit.
+  // Sixty-four escaped controls emit 384 ASCII units plus the two quotes.
+  // The comparing writer validates that complete bounded emitter Visit.
   let wire = "\"" + "\\u0000".repeat(64) + "\""
   let value = stream_fixture_value(wire)
   let check = stream_test(value, Wire(wire), 1038, bytes=386, nodes=1, depth=0)
@@ -83,7 +84,7 @@ test "evidence stream comparison preserves escaping Unicode and finite writer li
     }
     assert_true(work < 11)
   }
-  assert_eq(work, 10)
+  assert_eq(work, 2)
   assert_true(check.finish().unwrap())
   let short = stream_test(value, Wire(wire), 1038, bytes=385, nodes=1, depth=0)
   assert_eq(short.advance(1).unwrap(), (false, 1))
@@ -156,9 +157,15 @@ test "evidence stream identity hashes and partial comparisons retire only privat
   for target in [EvidenceStreamTarget::Wire("\"" + text + "\""), Pair(value)] {
     let child = stream_test(value, target, 8192)
     let mut partial = false
-    for _ in 0..<100 {
+    for index in 0..<100 {
       assert_true(!child.advance(1).unwrap().0)
-      if child.right_offset >= 64 {
+      if child.right_offset >= 64 ||
+        (
+          target is Wire(_) &&
+          index >= 3 &&
+          child.left is Some(_) &&
+          !child.left_done
+        ) {
         partial = true
         break
       }
@@ -225,9 +232,9 @@ test "publication root traverses long names and exact Artifact wires without inv
     ).unwrap(),
   }
   let original = inputs.manifest.wire
-  // Two twelve-field Artifacts each have 47 emitter transitions and 46
-  // nonempty fragment comparisons: Begin + 47 + 46 + Done = 95. The root's
-  // kind/name/reference scans contribute 59 transitions for these names.
+  // Two twelve-field Artifacts each have Begin plus 47 emitter transitions.
+  // Their exact Wire comparison runs in the same writer; there is no second
+  // fragment-comparison traversal. The root scans contribute 59 transitions.
   // Twelve root slots plus a stream's 12 + 1024 + three pending frames and
   // one provisional reservation give a peak of 1052.
   for quantum in [1, 7, 64] {
@@ -244,7 +251,7 @@ test "publication root traverses long names and exact Artifact wires without inv
       }
     }
     assert_true(finished)
-    assert_eq(work, 249)
+    assert_eq(work, 155)
     assert_eq(check.peak, 1052)
     check.cancel()
     assert_true(check.inputs is None && check.results is None)
@@ -256,7 +263,9 @@ test "publication root traverses long names and exact Artifact wires without inv
   let mut partial = false
   for _ in 0..<10000 {
     assert_true(!check.advance(1).unwrap().0)
-    if check.phase is Wire(_, _, child) && child.right_offset > 64 {
+    if check.phase is Wire(_, _, child) &&
+      child.left is Some(_) &&
+      !child.left_done {
       partial = true
       break
     }

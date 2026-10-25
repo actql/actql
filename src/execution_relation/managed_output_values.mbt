@@ -133,7 +133,9 @@ pub fn cancel_managed_output_values(value : ManagedOutputValues) -> Bool {
 }
 
 ///|
-fn request_managed_output_values_disposal(value : ManagedOutputValues) -> Unit {
+/// Revoke the original admission buffer without performing cleanup work.
+/// The existing reclamation cursor owns all subsequent bounded retirement.
+pub fn request_managed_output_values_disposal(value : ManagedOutputValues) -> Unit {
   if !value.disposal_requested {
     value.buffer.reclaiming = true
   }
@@ -852,4 +854,12 @@ pub fn managed_output_value_measurement(
   receipt : ManagedOutputValueReceipt,
 ) -> (Int, Int, Int) {
   receipt.measured
+}
+
+///|
+/// Only local finite reclamation is runnable; a live reader remains a blocker.
+/// Observation grants no release and does not advance the original cursor.
+pub fn managed_output_values_reclamation_runnable(value : ManagedOutputValues) -> Bool {
+  value.disposal_requested && !value.disposal_complete &&
+  value.active_uses == 0 && !value.buffer.reading
 }

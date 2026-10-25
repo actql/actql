@@ -69,8 +69,25 @@ fn prepare_event_node(
         2,
       )
     }
-    @event.Watermark(value, policy) =>
-      (EventWatermarkParams(value, policy), 0, 0, 2)
+    @event.Watermark(threshold, policy) => {
+      let (value, bindings, names) = match threshold {
+        @event.FixedThreshold(value) => (value, 0, 0)
+        @event.ThresholdParameter(name) => {
+          guard parameter_value(owner, name) is Some(bound) else {
+            return Err(MissingEventParameter(name))
+          }
+          guard bound.value is @value.Number(value) &&
+            @scalar.read_finite_number(value) is Some(_) else {
+            return Err(InvalidEventParameter(name))
+          }
+          guard add_event_name_bytes(0, name, max_name_bytes) is Some(names) else {
+            return Err(EventPreparationLimit)
+          }
+          (value, 1, names)
+        }
+      }
+      (EventWatermarkParams(value, policy), bindings, names, 2 + bindings)
+    }
     @event.Dedupe(spec) => {
       let keys = @event.dedupe_keys(spec)
       let order_count = @event.dedupe_order_count(spec)

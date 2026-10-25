@@ -37,7 +37,6 @@ test "backed unresolved DATA projects same live quota overhead and unobserved fi
   assert_eq(data.cumulative, {
     planning_work: 0,
     attempts: 0,
-    holdings: 0,
     transferred_bytes: 0L,
     uncertain_transfer_bytes: 0L,
   })
@@ -70,6 +69,9 @@ test "backed unresolved DATA keeps cumulative debt and immutable earlier snapsho
     planning_work: 2,
     attempts: 1,
     holdings: 2,
+    reserved_attempts: 0,
+    live_reservations: 0,
+    live_delegations: 0,
     transferred_bytes: 4L,
     uncertain_transfer_bytes: 1L,
     held_bytes: 10L,
@@ -85,9 +87,14 @@ test "backed unresolved DATA keeps cumulative debt and immutable earlier snapsho
   assert_eq(next.cumulative, {
     planning_work: 2,
     attempts: 1,
-    holdings: 2,
     transferred_bytes: 4L,
     uncertain_transfer_bytes: 1L,
+  })
+  assert_eq(next.occupation, {
+    holdings: 2,
+    reserved_attempts: 0,
+    live_reservations: 0,
+    live_delegations: 0,
   })
   assert_eq(next.provision.transfer_bytes, 5L)
   assert_eq(next.peak_retention_bytes, 12L)
@@ -198,7 +205,6 @@ test "backed unresolved closed unknown DATA consumes original debt without a col
     cumulative: {
       planning_work: 4,
       attempts: 2,
-      holdings: 3,
       transferred_bytes: 4L,
       uncertain_transfer_bytes: 6L,
     },
@@ -258,6 +264,9 @@ test "backed unresolved known final DATA retains its exact nonzero observations"
     planning_work: 3,
     attempts: 1,
     holdings: 2,
+    reserved_attempts: 0,
+    live_reservations: 0,
+    live_delegations: 0,
     transferred_bytes: 4L,
     uncertain_transfer_bytes: 1L,
     reserved_transfer_bytes: 0L,
@@ -271,7 +280,6 @@ test "backed unresolved known final DATA retains its exact nonzero observations"
     cumulative: {
       planning_work: 3,
       attempts: 1,
-      holdings: 2,
       transferred_bytes: 4L,
       uncertain_transfer_bytes: 1L,
     },

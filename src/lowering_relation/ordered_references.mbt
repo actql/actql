@@ -141,7 +141,7 @@ pub fn prepare_ordered_references(
                 return Err(ReferenceLimit)
               }
             }
-            Subscript(value, index) => {
+            Subscript(value, index) | ArrayOffset(value, index, _) => {
               guard append_path(path, "/body/value") is Some(value_path) &&
                 append_path(path, "/body/index") is Some(index_path) else {
                 return Err(ReferenceLimit)

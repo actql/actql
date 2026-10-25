@@ -36,7 +36,7 @@ This decision does not change public 0.1 wire bodies, CID preimages, or signed
 approval artifacts. It changes the Node Checkpoint journal's private layout
 from `actql-checkpoint-journal/0.1;model-call-provenance=1` to
 `actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1`.
-New Hosts refuse the old layout before schema writes. Old binaries must not
-access an upgraded journal. The explicit, backed-up offline procedure is in
-[Development](../development.md#checkpoint-effect-settlement-layout).
+Historical saved-Run layouts are unsupported and are refused before schema
+writes. Use a fresh journal for the current implementation; no historical
+upgrade path is retained. See [Development](../development.md#checkpoint-journal-layout).
 Startup never migrates a journal or erases old evidence automatically.

@@ -222,7 +222,8 @@ fn transfer_matched_keys(
     spend(b, source, ls.length())
     spend(b, source, rs.length())
     for key in ls {
-      if join_mapped(key, lm, records, kind == Full, source, b) is Some(mapped) {
+      if join_mapped(key, lm, records, kind == Full || kind == Right, source, b)
+        is Some(mapped) {
         mapped_left.push((key, mapped))
         if kind == Semi ||
           kind == Anti ||
@@ -241,7 +242,7 @@ fn transfer_matched_keys(
       if join_mapped(key, rm, records, kind == Full || kind == Left, source, b)
         is Some(mapped) {
         mapped_right.push((key, mapped))
-        if kind == Inner && lu {
+        if (kind == Inner || kind == Right) && lu {
           let parents = [(@row.Right, key)]
           if lcovered is Some(other) {
             parents.push((Left, other))

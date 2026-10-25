@@ -23,6 +23,7 @@ fn source_free_managed_prepared_fixture(
 
 ///|
 test "source-free managed Run quotes the existing Local output envelope without a Source" {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let prepared = source_free_managed_prepared_fixture()
   assert_true(installed_managed_run_purpose_supported(prepared))
   let required = installed_managed_run_requirements(
@@ -32,7 +33,7 @@ test "source-free managed Run quotes the existing Local output envelope without 
     "",
     [],
     [],
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
@@ -44,6 +45,7 @@ test "source-free managed Run quotes the existing Local output envelope without 
 
 ///|
 test "source-free managed Run refuses supplied Source transport and changed registry" {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let prepared = source_free_managed_prepared_fixture()
   assert_true(
     installed_managed_run_requirements(
@@ -53,7 +55,7 @@ test "source-free managed Run refuses supplied Source transport and changed regi
       "",
       [1L],
       [],
-      source_query_original_registry,
+      source_contracts,
       source_query_original_values,
       Some(source_query_original_fragment),
       None,
@@ -61,17 +63,8 @@ test "source-free managed Run refuses supplied Source transport and changed regi
     is Err(Unsupported),
   )
   assert_true(
-    installed_managed_run_requirements(
-      prepared,
-      [],
-      "",
-      "",
-      [],
-      [],
-      "{}",
-      source_query_original_values,
-      Some(source_query_original_fragment),
-      None,
+    prepare_installed_sequence_contracts(
+      "{}", source_query_original_values, Some(source_query_original_fragment), None,
     )
     is Err(Unsupported),
   )
@@ -79,6 +72,7 @@ test "source-free managed Run refuses supplied Source transport and changed regi
 
 ///|
 test "managed Run requires the actual declaration for a single Source instead of treating it as source-free" {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let prepared = installed_source_read_prepared_fixture()
   assert_true(installed_managed_run_purpose_supported(prepared))
   assert_true(
@@ -89,7 +83,7 @@ test "managed Run requires the actual declaration for a single Source instead of
       "",
       [],
       [],
-      source_query_original_registry,
+      source_contracts,
       source_query_original_values,
       Some(source_query_original_fragment),
       None,
@@ -100,6 +94,7 @@ test "managed Run requires the actual declaration for a single Source instead of
 
 ///|
 test "local Mock quote does not relabel ordinary Compute or serialized Model as its purpose" {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let plain = source_free_managed_prepared_fixture()
   let (serialized, _, _, _) = original_prefix_execution_fixture()
   for prepared in [plain, serialized] {
@@ -112,7 +107,7 @@ test "local Mock quote does not relabel ordinary Compute or serialized Model as 
         "",
         [],
         [],
-        source_query_original_registry,
+        source_contracts,
         source_query_original_values,
         Some(source_query_original_fragment),
         None,
@@ -146,20 +141,23 @@ test "managed Run usage projection preserves all limits and live Ledger counters
   let live = installed_managed_run_usage_values(ledger)
   assert_eq(live, [
     10L, 3L, 2L, 1000L, 2000L, 3000L, 7L, 1L, 1L, 100L, 50L, 250L, 200L, 300L, 600L,
-    500L,
+    500L, 0L, 1L, 0L,
   ])
   // Observation neither settles reservations nor retires the actual holding.
   assert_eq(installed_managed_run_usage_values(ledger), live)
   @resources.settle_reservation(ledger, reservation).unwrap()
   assert_eq(installed_managed_run_usage_values(ledger), [
     10L, 3L, 2L, 1000L, 2000L, 3000L, 7L, 1L, 1L, 100L, 50L, 0L, 200L, 0L, 0L, 500L,
+    0L, 0L, 0L,
   ])
   @resources.release_allocation(ledger, holding).unwrap()
   assert_eq(installed_managed_run_usage_values(ledger), [
-    10L, 3L, 2L, 1000L, 2000L, 3000L, 7L, 1L, 1L, 100L, 50L, 0L, 0L, 0L, 0L, 500L,
+    10L, 3L, 2L, 1000L, 2000L, 3000L, 7L, 1L, 0L, 100L, 50L, 0L, 0L, 0L, 0L, 500L,
+    0L, 0L, 0L,
   ])
   assert_eq(live[11], 250L)
   assert_eq(live[12], 200L)
+  assert_eq(live[17], 1L)
 }
 
 ///|

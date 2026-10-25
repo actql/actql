@@ -7,7 +7,7 @@ fn original_keyed_content_suffix_provider(
   keyed : @publication_host.ClientKeyedAcquisition,
   task : Int,
   step : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -30,7 +30,7 @@ fn original_keyed_content_suffix_provider(
     join < step &&
     prepare_client_local_sequences(
       prepared,
-      registry_body,
+      installed_contracts,
       values_body,
       fragment_body,
       ordered_body,
@@ -40,7 +40,7 @@ fn original_keyed_content_suffix_provider(
     @execution.select_generated_sequence_range(original, join, step)
     is Some(sequence) &&
     client_content_local_provider(
-      prepared, task, step, registry_body, values_body, fragment_body, ordered_body,
+      prepared, task, step, installed_contracts, values_body, fragment_body, ordered_body,
       execution, measurement, workspace, physical, retain,
     )
     is Some(family) &&
@@ -62,7 +62,7 @@ pub fn client_original_keyed_content_suffix_capacity(
   keyed : @publication_host.ClientKeyedAcquisition,
   task : Int,
   step : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -73,7 +73,7 @@ pub fn client_original_keyed_content_suffix_capacity(
   retain : (ClientLocalContentStep) -> Bool,
 ) -> @execution.ExecutionCapacity? {
   original_keyed_content_suffix_provider(
-    prepared, keyed, task, step, registry_body, values_body, fragment_body, ordered_body,
+    prepared, keyed, task, step, installed_contracts, values_body, fragment_body, ordered_body,
     execution, measurement, workspace, physical, retain,
   ).map(value => value.2)
 }
@@ -92,7 +92,7 @@ pub fn start_client_original_keyed_content_suffix(
   keyed : @publication_host.ClientKeyedAcquisition,
   task : Int,
   step : Int,
-  registry_body : String,
+  installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
@@ -103,7 +103,7 @@ pub fn start_client_original_keyed_content_suffix(
   retain : (ClientLocalContentStep) -> Bool,
 ) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue] {
   guard original_keyed_content_suffix_provider(
-      prepared, keyed, task, step, registry_body, values_body, fragment_body, ordered_body,
+      prepared, keyed, task, step, installed_contracts, values_body, fragment_body, ordered_body,
       execution, measurement, workspace, physical, retain,
     )
     is Some((sequence, provider, capacity)) else {

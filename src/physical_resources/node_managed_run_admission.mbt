@@ -11,7 +11,8 @@ priv enum NodeManagedRunPurpose {
 ///|
 pub struct NodeManagedRunAdmission[P] {
   priv mut original : NodeManagedRunAdmission[P]?
-  priv prepared : P
+  priv mut prepared : P?
+  priv mut preparation_holder : PreparationBodyBorrow[P]?
   priv purpose : NodeManagedRunPurpose
   priv child : ImportedChildLedger
   priv abort_unpublished : () -> Result[Unit, ImportedChildLedgerIssue]
@@ -33,7 +34,8 @@ fn[P] prepare_node_managed_run_original(
 ) -> NodeManagedRunAdmission[P] {
   let value : NodeManagedRunAdmission[P] = {
     original: None,
-    prepared,
+    prepared: Some(prepared),
+    preparation_holder: None,
     purpose,
     abort_unpublished,
     child,
@@ -72,6 +74,7 @@ pub fn[P] cleanup_node_managed_run_admission(
     return match child.stop_outcome {
       Some(issue) => Err(issue)
       None => {
+        value.prepared = None
         value.cleaned = true
         Ok(())
       }
@@ -130,6 +133,7 @@ pub fn[P] cleanup_node_managed_run_admission(
       }
     }
   }
+  value.prepared = None
   value.cleaned = true
   Ok(())
 }
@@ -167,6 +171,8 @@ pub fn[P] reserve_node_managed_run_read_bootstrap(
   if retained_bytes <= 0L ||
     execution_bytes <= 0L ||
     ledger.next_capacity_serial != Some(-1) ||
+    ledger.next_attempt_serial != Some(0) ||
+    ledger.next_holding_serial != Some(0) ||
     ledger.original_inventory is Some(_) ||
     !original_ledger_has_no_child_usage(ledger, 0L, 0L) {
     return Err(Resource(InvalidCharge))
@@ -267,6 +273,31 @@ pub fn[P] start_node_managed_run_admission(
 }
 
 ///|
+/// The existing fixed Host has already authenticated the saved accounting
+/// original and bound it to this new preparation/request/definition. Import
+/// ONE actual original child, seed it before publishing its Ledger, and retain
+/// that same admission for failed initialization cleanup. DATA admission does
+/// not supply the Host authentication or authorize this physical supplier.
+pub fn[P] restore_node_managed_run_admission(
+  value : NodeManagedRunAdmission[P],
+  prepared : P,
+  saved : LedgerContinuationState,
+) -> Result[Ledger, LedgerContinuationIssue] {
+  match check_node_managed_run_preparation(value, prepared) {
+    Err(_) => return Err(ChangedOriginal)
+    Ok(_) => ()
+  }
+  let ledger = match start_node_managed_run_admission(value) {
+    Err(_) => return Err(ChangedOriginal)
+    Ok(ledger) => ledger
+  }
+  match restore_quiescent_ledger_state(ledger, saved) {
+    Err(issue) => Err(issue)
+    Ok(_) => Ok(ledger)
+  }
+}
+
+///|
 /// A caller cannot substitute an equal-limit, sibling or reconstructed Ledger.
 /// The original installed port also rechecks currentness and purpose.
 pub fn[P] check_node_managed_run_admission(
@@ -294,7 +325,10 @@ pub fn[P] check_node_managed_run_preparation(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if physical_equal(value.prepared, prepared) {
+  if value.cleaned {
+    return Err(AlreadyConsumed)
+  }
+  if value.prepared is Some(original) && physical_equal(original, prepared) {
     Ok(())
   } else {
     Err(ForeignOriginal)

@@ -49,6 +49,7 @@ fn original_keyed_content_workspace() -> ClientSerializationWorkspaceLimits {
 
 ///|
 test "Pure keyed Content family retains the actual checked boundary without entering Store during capacity selection" {
+  let source_contracts = prepare_installed_sequence_contracts(source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let (_, prepared, _, _, _, keyed, _) = original_keyed_run_fixture(
     relation_versions=true,
     serialization_max_bytes=4470,
@@ -90,7 +91,7 @@ test "Pure keyed Content family retains the actual checked boundary without ente
     prepared,
     0,
     7,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
@@ -105,7 +106,7 @@ test "Pure keyed Content family retains the actual checked boundary without ente
   ).unwrap()
   let sequences = prepare_client_local_sequences(
     prepared,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
@@ -121,7 +122,7 @@ test "Pure keyed Content family retains the actual checked boundary without ente
     keyed,
     0,
     7,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
@@ -143,7 +144,7 @@ test "Pure keyed Content family retains the actual checked boundary without ente
   )
   let other = prepare_client_local_sequences(
     foreign,
-    source_query_original_registry,
+    source_contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
     None,
@@ -156,7 +157,7 @@ test "Pure keyed Content family retains the actual checked boundary without ente
       keyed,
       0,
       7,
-      source_query_original_registry,
+      source_contracts,
       source_query_original_values,
       Some(source_query_original_fragment),
       None,

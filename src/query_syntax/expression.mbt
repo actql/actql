@@ -24,10 +24,12 @@ pub(all) enum ExpressionKind {
   Reference(Array[NamePart])
   ParameterReference(String)
   Property(Int, NamePart)
+  ArrayOffset(Int, Int, Bool)
   Unary(String, Int)
   Binary(String, Int, Int)
   Call(Array[NamePart], Array[Int])
   ArrayConstructor(Array[Int], ArrayElementType?)
+  StructConstructor(Array[(NamePart, Int)])
   Parenthesized(Int)
   Predicate(String, Array[Int])
   SearchedCase(Array[(Int, Int)], Int)
@@ -96,6 +98,7 @@ pub fn expression_node(expression : Expression, index : Int) -> ExpressionNode? 
     Reference(parts) => Reference(parts.copy())
     Call(parts, args) => Call(parts.copy(), args.copy())
     ArrayConstructor(items, target) => ArrayConstructor(items.copy(), target)
+    StructConstructor(fields) => StructConstructor(fields.copy())
     Predicate(op, args) => Predicate(op, args.copy())
     SearchedCase(branches, otherwise) =>
       SearchedCase(branches.copy(), otherwise)
@@ -153,7 +156,7 @@ fn expression_subtree(
       | Cast(child, _)
       | Interval(child, _)
       | Property(child, _) => pending.push(child)
-      Binary(_, left, right) => {
+      Binary(_, left, right) | ArrayOffset(left, right, _) => {
         pending.push(left)
         pending.push(right)
       }
@@ -162,6 +165,10 @@ fn expression_subtree(
       | ArrayConstructor(arguments, _) =>
         for argument in arguments {
           pending.push(argument)
+        }
+      StructConstructor(fields) =>
+        for (_, child) in fields {
+          pending.push(child)
         }
       SearchedCase(branches, otherwise) => {
         pending.push(otherwise)
@@ -193,6 +200,8 @@ fn expression_subtree(
       match node.kind {
         Unary(op, child) => Unary(op, remap[child])
         Binary(op, left, right) => Binary(op, remap[left], remap[right])
+        ArrayOffset(left, right, safe) =>
+          ArrayOffset(remap[left], remap[right], safe)
         Parenthesized(child) => Parenthesized(remap[child])
         Cast(child, target) => Cast(remap[child], target)
         Interval(child, unit) => Interval(remap[child], unit)
@@ -201,6 +210,8 @@ fn expression_subtree(
           Call(path.copy(), arguments.map(argument => remap[argument]))
         ArrayConstructor(items, target) =>
           ArrayConstructor(items.map(item => remap[item]), target)
+        StructConstructor(fields) =>
+          StructConstructor(fields.map(field => (field.0, remap[field.1])))
         Predicate(op, arguments) =>
           Predicate(op, arguments.map(argument => remap[argument]))
         SearchedCase(branches, otherwise) =>
@@ -238,6 +249,8 @@ priv enum ExpressionFrame {
   CloseGroup(Int)
   Argument(Array[NamePart], Array[Int], Int, Int)
   ArrayItem(Array[Int], ArrayElementType?, Int, Int)
+  StructItem(Array[(NamePart, Int)], Int, Int)
+  OffsetIndex(Int, Bool, Bool, Int, Int)
   BetweenLower(Int, Bool, Int, Int)
   BetweenUpper(Int, Int, Bool, Int, Int)
   InItem(Int, Bool, Array[Int], Int, Int)
@@ -330,12 +343,16 @@ fn ExpressionParser::add(
     | Cast(child, _)
     | Interval(child, _)
     | Property(child, _) => child_depth = self.depths[child]
-    Binary(_, left, right) =>
+    Binary(_, left, right) | ArrayOffset(left, right, _) =>
       child_depth = self.depths[left].max(self.depths[right])
     Call(_, arguments)
     | Predicate(_, arguments)
     | ArrayConstructor(arguments, _) =>
       for child in arguments {
+        child_depth = child_depth.max(self.depths[child])
+      }
+    StructConstructor(fields) =>
+      for (_, child) in fields {
         child_depth = child_depth.max(self.depths[child])
       }
     SearchedCase(branches, otherwise) => {
@@ -601,6 +618,22 @@ fn ExpressionParser::expression(
               frames.push(Enter(1, depth + 1))
             }
           }
+          Word(name) if upper_ascii(name) == "STRUCT" => {
+            let open = self.advance()
+            if open.value != Symbol(40) {
+              raise ExpressionAbort(
+                "Expected STRUCT opening parenthesis",
+                open.start,
+              )
+            }
+            if self.peek().value == Symbol(41) {
+              let close = self.advance()
+              result = self.add(StructConstructor([]), t.start, close.end)
+            } else {
+              frames.push(StructItem([], t.start, depth))
+              frames.push(Enter(1, depth + 1))
+            }
+          }
           Numeric(value) => result = self.add(Number(value), t.start, t.end)
           Parameter(name) =>
             result = self.add(
@@ -725,6 +758,25 @@ fn ExpressionParser::expression(
       Tail(left, minimum, depth) => {
         let left = if left < 0 { result } else { left }
         let token = self.peek()
+        if token.value == Symbol(91) {
+          ignore(self.advance())
+          let mode = self.peek()
+          let wrapped = keyword(mode, "OFFSET") || keyword(mode, "SAFE_OFFSET")
+          let safe = keyword(mode, "SAFE_OFFSET")
+          if wrapped {
+            ignore(self.advance())
+            let open = self.advance()
+            if open.value != Symbol(40) {
+              raise ExpressionAbort(
+                "Expected array offset opening parenthesis",
+                open.start,
+              )
+            }
+          }
+          frames.push(OffsetIndex(left, safe, wrapped, minimum, depth))
+          frames.push(Enter(1, depth + 1))
+          continue
+        }
         if token.value == Symbol(46) {
           if self.stop_before_star &&
             self.source.tokens[self.offset + 1].value == Symbol(42) {
@@ -1045,6 +1097,50 @@ fn ExpressionParser::expression(
         } else {
           raise ExpressionAbort(
             "Expected comma or closing parenthesis",
+            token.start,
+          )
+        }
+      }
+      OffsetIndex(left, safe, wrapped, minimum, depth) => {
+        if wrapped {
+          let close = self.advance()
+          if close.value != Symbol(41) {
+            raise ExpressionAbort(
+              "Expected array offset closing parenthesis",
+              close.start,
+            )
+          }
+        }
+        let close = self.advance()
+        if close.value != Symbol(93) {
+          raise ExpressionAbort("Expected array closing bracket", close.start)
+        }
+        result = self.add(
+          ArrayOffset(left, result, safe),
+          self.nodes[left].start,
+          close.end,
+        )
+        frames.push(Tail(result, minimum, depth))
+      }
+      StructItem(fields, start, depth) => {
+        self.require_keyword("AS")
+        let token = self.advance()
+        let name = match token.value {
+          Word(value) => { value, quoted: false, }
+          QuotedName(value) =>
+            { value: self.source.identifier(value), quoted: true, }
+          _ => raise ExpressionAbort("Expected STRUCT field name", token.start)
+        }
+        fields.push((name, result))
+        let token = self.advance()
+        if token.value == Symbol(44) {
+          frames.push(StructItem(fields, start, depth))
+          frames.push(Enter(1, depth + 1))
+        } else if token.value == Symbol(41) {
+          result = self.add(StructConstructor(fields), start, token.end)
+        } else {
+          raise ExpressionAbort(
+            "Expected comma or closing STRUCT parenthesis",
             token.start,
           )
         }

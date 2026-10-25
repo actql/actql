@@ -89,11 +89,14 @@ extern "js" fn original_node_source_child_report(
   reserved_retention : Int64,
   reserved_execution : Int64,
   peak_retention : Int64,
+  reserved_attempts : Int,
+  live_reservations : Int,
+  live_delegations : Int,
 ) -> Int =
   #|(ports, planning, attempts, holdings, transferred, uncertain, reservedTransfer,
-  #|    held, reservedRetention, reservedExecution, peakRetention) =>
+  #|    held, reservedRetention, reservedExecution, peakRetention, reservedAttempts, liveReservations, liveDelegations) =>
   #|  ports.report(planning, attempts, holdings, transferred, uncertain,
-  #|    reservedTransfer, held, reservedRetention, reservedExecution, peakRetention)
+  #|    reservedTransfer, held, reservedRetention, reservedExecution, peakRetention, reservedAttempts, liveReservations, liveDelegations)
 
 ///|
 /// Consume the actual Node Source installation's nominal original once.
@@ -135,6 +138,9 @@ fn prepare_node_original_child_ports(
         usage.reserved_retention_bytes,
         usage.reserved_execution_bytes,
         usage.peak_retention_bytes,
+        usage.reserved_attempts,
+        usage.live_reservations,
+        usage.live_delegations,
       )
     },
     _ => original_node_source_child_status(ports, 2),

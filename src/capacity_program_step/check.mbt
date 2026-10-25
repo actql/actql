@@ -735,6 +735,12 @@ fn join_bound(
         }
         @numeric.add(left, @numeric.read(r - 1L).unwrap())
       }
+      @join.Right => {
+        if lu {
+          return Ok(r)
+        }
+        @numeric.add(right, @numeric.read(l - 1L).unwrap())
+      }
       @join.Full => @numeric.add(left, right)
       @join.Semi | @join.Anti => return Ok(l)
     }
@@ -751,6 +757,11 @@ fn join_bound(
       @numeric.multiply(
         left,
         @numeric.read(if r == 0L { 1L } else { r }).unwrap(),
+      )
+    @join.Right =>
+      @numeric.multiply(
+        right,
+        @numeric.read(if l == 0L { 1L } else { l }).unwrap(),
       )
     @join.Full => {
       if l == 0L {

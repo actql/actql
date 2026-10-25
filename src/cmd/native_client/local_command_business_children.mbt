@@ -74,7 +74,7 @@ fn LocalCommandBusinessPreparation::open_values_work(
       self.prepared,
       compiled,
       definition,
-      installed.registry_body,
+      self.installed_contracts,
       installed.values_body,
       installed.fragment_body,
       installed.ordered_body,

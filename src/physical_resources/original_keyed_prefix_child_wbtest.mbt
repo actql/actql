@@ -104,7 +104,9 @@ test "original prefixed keyed census requires exact live prefix and physical dow
   settle_reservation(ledger, prefix).unwrap()
   release_allocation(ledger, source_holding).unwrap()
   assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
-  assert_eq(ledger_usage(ledger).attempts, 4)
-  assert_eq(ledger_usage(ledger).holdings, 2)
+  assert_eq(ledger_usage(ledger).attempts, 0)
+  assert_eq(ledger.next_attempt_serial, Some(4))
+  assert_eq(ledger_usage(ledger).holdings, 0)
+  assert_eq(ledger.next_holding_serial, Some(2))
   assert_eq(ledger_usage(ledger).held_bytes, 0L)
 }

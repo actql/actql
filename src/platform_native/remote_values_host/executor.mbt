@@ -53,7 +53,7 @@ pub fn install_native_remote_values_task_executor(
   admission : @publication.RunPublicationAdmission,
   run_definition : @publication.PublicationContract,
   input_binding : @remote.RemoteInputBinding,
-  registry_body : String,
+  installed_contracts : @local.ClientInstalledSequenceContracts,
   values_body : String,
   fixed_ms : Int64,
   per_row_ms : Int64,
@@ -115,7 +115,7 @@ pub fn install_native_remote_values_task_executor(
       }
       let setup = match
         @local.open_source_free_local_host(
-          prepared, registry_body, values_body, fixed_ms, per_row_ms, per_wire_byte_ms,
+          prepared, installed_contracts, values_body, fixed_ms, per_row_ms, per_wire_byte_ms,
           per_pair_ms,
         ) {
         Some(value) => value

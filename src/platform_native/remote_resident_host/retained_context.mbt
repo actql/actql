@@ -209,7 +209,7 @@ pub fn prepare_resident_effect_retained_producer_context(
   site_generation : Int,
   intent : @remote.RemoteRetainedInputIntent,
   at : String,
-  registry_body : String,
+  installed_contracts : @local.ClientInstalledSequenceContracts,
   values_body : String,
   fragment_contract_body : String,
 ) -> Result[
@@ -251,7 +251,7 @@ pub fn prepare_resident_effect_retained_producer_context(
       at,
       // Requirement preparation needs trusted compilation contracts. They are
       // supplied explicitly by the existing Site configuration, not the wire.
-      registry_body,
+      installed_contracts,
       values_body,
       fragment_contract_body,
     ) {

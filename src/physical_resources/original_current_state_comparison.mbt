@@ -113,6 +113,9 @@ fn[T] original_current_state_block_matches(
         document_count(document_at(observed, 2)),
         document_nonnegative(document_at(observed, 3)),
         document_nonnegative(document_at(observed, 4)),
+        document_count(document_at(observed, 5)),
+        document_count(document_at(observed, 6)),
+        document_count(document_at(observed, 7)),
       ) ==
       original_delegation_snapshot(token)
     } else {

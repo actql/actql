@@ -41,7 +41,7 @@ fn original_prefix_execution_fixture(
       _ => abort("fixture environment object")
     }
   } else if source {
-    "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554"
+    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8"
   } else {
     "sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904"
   }
@@ -240,11 +240,17 @@ test "original checked Content prefix executes through the new Local entry on th
     100000,
     100,
   )
+  let prefix_contracts = prepare_installed_sequence_contracts(
+    registry,
+    values,
+    None,
+    None,
+  ).unwrap()
   let capacity = client_serialization_prefix_capacity(
     prepared,
     0,
     1,
-    registry,
+    prefix_contracts,
     values,
     None,
     None,
@@ -277,7 +283,7 @@ test "original checked Content prefix executes through the new Local entry on th
       prepared,
       0,
       2,
-      registry,
+      prefix_contracts,
       values,
       None,
       None,
@@ -295,7 +301,7 @@ test "original checked Content prefix executes through the new Local entry on th
     prepared,
     0,
     1,
-    registry,
+    prefix_contracts,
     values,
     None,
     None,
@@ -303,7 +309,7 @@ test "original checked Content prefix executes through the new Local entry on th
     measurement,
   ).unwrap()
   assert_true(physical_equal(prefix.ledger, ledger))
-  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
   assert_eq(
     @resources.ledger_usage(ledger).reserved_retention_bytes,
     retention + 3L,
@@ -321,7 +327,7 @@ test "original checked Content prefix executes through the new Local entry on th
       prepared,
       0,
       1,
-      registry,
+      prefix_contracts,
       values,
       None,
       None,
@@ -354,11 +360,11 @@ test "original checked Content prefix executes through the new Local entry on th
   )
   assert_true(client_serialization_prefix_work(prefix).unwrap() > 0L)
   assert_true(cleanup_client_serialization_prefix(prefix).unwrap())
-  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 3L)
   assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 2L)
   // Issue the ORIGINAL descriptor only after prefix work, from its actual
-  // census including the spent attempt. Zero read bytes are not a send grant.
+  // census including its consumed work. Zero read bytes are not a send grant.
   let read = @publication_host.prepare_client_model_read(scope, 0L, 0L).unwrap()
   assert_true(
     @publication_host.client_model_read_available(
@@ -381,5 +387,5 @@ test "original checked Content prefix executes through the new Local entry on th
   )
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
-  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
 }

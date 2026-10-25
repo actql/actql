@@ -907,3 +907,131 @@ test('paired named refusal preserves its accepted intent without inventing a Run
   assertReferenceOnly(replay.outcome, first.outcome);
   assert.deepEqual(f.counts, {prepare: 1, submit: 0}); assert.equal(p.requestReads, 1); assert.equal(p.projections, 1);
 });
+
+test('journal lends only the explicitly registered original intent until its operation releases', async t => {
+  const f = await fixture(t);
+  const intent = moon.clientSubmittedIntent(JSON.stringify({kind: 'aql',
+    input: {format: 'aql-text', text: 'SELECT 1 AS value'}, parameters: null}), 1048576, 65536, 64);
+  const wire = moon.clientSubmittedIntentWire(intent);
+  let parses = 0;
+  const control = {...moon, clientSubmittedIntent(...args) {
+    parses++; return moon.clientSubmittedIntent(...args);
+  }};
+  const epoch = Object.freeze({...f.ref.epoch});
+  const release = f.journal.retainSubmissionOperation(epoch, control, intent);
+  try {
+    assert.equal(f.journal.prepareSubmittedIntent(epoch, wire, control), intent);
+    assert.equal(parses, 0);
+    const foreignControl = {...control};
+    assert.notEqual(f.journal.prepareSubmittedIntent(epoch, wire, foreignControl), intent);
+    assert.equal(parses, 1);
+    const otherEpoch = Object.freeze({...epoch});
+    const releaseOther = f.journal.retainSubmissionOperation(otherEpoch, control);
+    try {
+      assert.notEqual(f.journal.prepareSubmittedIntent(otherEpoch, wire, control), intent);
+      assert.equal(parses, 2, 'a different epoch never inherits the borrowed original');
+    } finally {releaseOther();}
+  } finally {release();}
+  assert.notEqual(f.journal.prepareSubmittedIntent(epoch, wire, control), intent);
+  assert.equal(parses, 3, 'release removes the exact borrowed original rather than retaining a cache');
+});
+
+test('Journal intent reader honors exact UTF8 budget and rejects one byte short before parsing', async t => {
+  const wire = canonicalText({kind: 'aql', input: {format: 'aql-text',
+    text: 'SELECT 1 /*' + '猫'.repeat(20000) + '*/'}, parameters: null});
+  const bytes = Buffer.byteLength(wire, 'utf8');
+  const exact = await fixture(t, {journalOptions: {maxInspectionBytes: bytes}});
+  assert.ok(exact.journal.prepareSubmittedIntent(undefined, wire, moon));
+  const narrow = await fixture(t, {journalOptions: {maxInspectionBytes: bytes - 1}});
+  let calls = 0;
+  const control = {...moon, clientSubmittedIntent() {calls++; assert.fail('narrow policy must refuse before parser');}};
+  assert.throws(() => narrow.journal.prepareSubmittedIntent(undefined, wire, control),
+    {code: 'ClientSubmittedIntentCapacity'});
+  assert.equal(calls, 0);
+  const intent = moon.clientSubmittedIntent(wire, bytes, bytes, bytes);
+  assert.throws(() => narrow.journal.retainSubmissionOperation(Object.freeze({...narrow.ref.epoch}),
+    moon, intent), {code: 'ClientSubmittedIntentCapacity'});
+});
+
+test('current-version Journal intent larger than 1MiB survives record, lost reply, and reopen', async t => {
+  const f = await fixture(t);
+  const wire = canonicalText({kind: 'aql', input: {format: 'aql-text',
+    text: 'SELECT 1 /*' + 'x'.repeat(1048576) + '*/'}, parameters: null});
+  const bytes = Buffer.byteLength(wire, 'utf8');
+  assert.ok(bytes > 1048576);
+  const intent = f.journal.prepareSubmittedIntent(undefined, wire, moon);
+  assert.ok(intent);
+  const originalCid = moon.clientSubmittedIntentCid(intent);
+  // Deliberately discard the first accepted receipt: the same saved original,
+  // not resubmission or a reconstructed identity, is observed after reopen.
+  f.journal.recordSubmittedIntent(f.ref, intent, fields, moon);
+  const before = f.journal.lookupSubmittedIntent(f.ref, fields, moon);
+  assert.equal(before.intentCid, originalCid);
+  assert.equal(before.intentWire, wire);
+  f.restart();
+  const after = f.journal.lookupSubmittedIntent(f.ref, fields, moon);
+  assert.equal(after.intentCid, originalCid);
+  assert.equal(after.intentWire, wire);
+  assert.equal(after.requestId, before.requestId);
+  assert.equal(after.phase, 'preparing');
+});
+
+for (const failureAt of ['original_getter', 'journal_registration']) {
+  test(`submission finishes original handler when ${failureAt} refuses before action`, async t => {
+    const f = await fixture(t);
+    let finished = 0, authorized = 0, registered = 0;
+    const failure = Object.assign(new Error('ClientSubmittedIntentCapacity'), {code: 'ClientSubmittedIntentCapacity'});
+    const service = installNodeClientSubmission({moon,
+      journal: {...f.journal, retainSubmissionOperation() {registered++; throw failure;}},
+      authorizedScope() {authorized++; return fields;},
+      prepareSubmit() {assert.fail('no preparation');}, submit() {assert.fail('no submit');},
+      lookupRequest() {assert.fail('no lookup');},
+      preparationCustody: {capture: value => value, finishHandler() {finished++;}},
+      submittedIntentOriginal() {if (failureAt === 'original_getter') throw failure;},
+    });
+    await assert.rejects(service.submitAttempt(f.body()), error => error === failure);
+    assert.equal(finished, 1);
+    assert.equal(authorized, 0);
+    assert.equal(registered, failureAt === 'original_getter' ? 0 : 1);
+  });
+}
+
+test('stale Journal operation release cannot remove a newer same-epoch original', async t => {
+  const f = await fixture(t);
+  const epoch = Object.freeze({...f.ref.epoch});
+  const wire = canonicalText({kind: 'aql', input: {format: 'aql-text', text: 'SELECT 1'}, parameters: null});
+  const intent = moon.clientSubmittedIntent(wire, 1048576, 65536, 64);
+  const oldRelease = f.journal.retainSubmissionOperation(epoch, moon, intent);
+  oldRelease();
+  const nextRelease = f.journal.retainSubmissionOperation(epoch, moon, intent);
+  try {
+    oldRelease();
+    assert.equal(f.journal.prepareSubmittedIntent(epoch, wire, moon), intent);
+  } finally {nextRelease();}
+});
+
+test('selected Journal metadata envelope derives durable/inspection policy and SQL operands share one total', async () => {
+  const {default: recipe} = await import('./host-journal-service-recipe.cjs');
+  const selected = recipe.declareHostJournalServiceRecipe(Object.freeze({}));
+  assert.equal(selected.numericalBackingClaim, false);
+  const limits = selected.journal;
+  assert.equal(limits.primaryExecutionLimits.maxParameterBytes,
+    Math.min(limits.maxDatabaseBytes, limits.maxInspectionBytes));
+  assert.equal(limits.maxRunDefinitionWireBytes, limits.primaryExecutionLimits.maxParameterBytes);
+  const source = readFileSync(new URL('./client-request-journal.mjs', import.meta.url), 'utf8');
+  const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const owner = ast.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'boundedPrimarySql');
+  const declaration = owner.body.body.flatMap(node => node.type === 'VariableDeclaration' ? node.declarations : [])
+    .find(node => node.id.name === 'operands');
+  assert.ok(declaration);
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const operands = new Function('executionLimits', 'assertCurrent', 'cursors', 'fail',
+    'applyOriginal', 'byteLength', 'buffer', 'return ' +
+    source.slice(declaration.init.start, declaration.init.end))(
+      {maxParameters: 4, maxParameterBytes: 16},
+      () => {}, [], fail, Reflect.apply, Buffer.byteLength, Buffer);
+  operands(['12345678', '12345678']);
+  assert.throws(() => operands(['12345678', '123456789']), {code: 'ClientRequestJournalSqlUnavailable'});
+  operands(['猫'.repeat(5), 'x']);
+  assert.throws(() => operands(['猫'.repeat(5), 'xx']), {code: 'ClientRequestJournalSqlUnavailable'});
+});

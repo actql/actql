@@ -777,3 +777,20 @@ explicit and omitted item keys. That path checks the actual joined prefix and it
 original schemas and keys before inference. The retained-Result JOIN specialization
 remains available for queries without INFER; no type conversion, inferred key or
 additional authority follows from routing through Script.
+
+## Immediate NULL comparison and signed source zero
+
+The approved capability completion replaces the former literal-NULL comparison
+prohibition with ordinary three-valued comparison against an independently typed
+peer. The existing common comparison type join supplies that context; it does
+not coerce distinct non-null domains, resolve unknown names, or infer a domain
+for two untyped NULLs. Null predicates use a nullable Boolean annotation solely
+to represent their immediate NULL child: no non-null value is converted.
+Authored operands and eager failure precedence remain intact.
+
+SQL and common expression text accept signed zero tokens and normalize their
+value to canonical positive zero, consistently with scalar negation. This is a
+source-acceptance change, not a change to canonical Number wire admission;
+negative-zero JSON values and Parameter values remain invalid. Source expression
+normalization retains the existing numeric-literal lowering owner. No identity
+equivalence for arbitrary arithmetic or implicit non-null coercion is added.

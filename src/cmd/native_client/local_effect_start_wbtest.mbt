@@ -89,6 +89,12 @@ test "CLI first Effect binding remains the nominal owner through Local Values Co
   let registry = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_REGISTRY").unwrap()
   let values = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_VALUES").unwrap()
   let fragment = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_FRAGMENT")
+  let registry = @local_values.prepare_installed_sequence_contracts(
+    registry,
+    values,
+    fragment,
+    None,
+  ).unwrap()
   let capacity = @local_values.client_effect_local_ledger_limits(
     original.materials.prepared,
     registry,

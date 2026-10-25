@@ -40,7 +40,8 @@ def unit(symbol: str, name: str) -> str:
         return 'bytes; bounds and retention charge remain with original Owner'
     if name in {'planning', 'planning_work', 'quantum'}:
         return 'logical work units; original Owner bounds'
-    if name in {'max_slots', 'attempts', 'holdings', 'count'}:
+    if name in {'max_slots', 'attempts', 'holdings', 'count',
+                'reserved_attempts', 'live_reservations', 'live_delegations'}:
         return 'count in ' + symbol + '; original named collection/chunk bounds'
     if name in {'start', 'index', 'byte'}:
         return ('byte value0..255' if name == 'byte' else
