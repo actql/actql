@@ -69509,7 +69509,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "e1527b65bb9b7a124bb9206ea0a1dc0cb0e416864e9577f749991c7f31136bf7",
+      "sha256": "b8160e2f834ed6cc3e4a811649792b85409ad7310b2a457209fc38f41e3b1c68",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -69604,7 +69604,9 @@
         "effectResultSchema",
         "effectReviewCheckpointBinding",
         "effectReviewCheckpointBindingFacts",
+        "effectReviewCheckpointCancelledState",
         "effectReviewCheckpointMembers",
+        "effectReviewCheckpointReconciliationState",
         "effectReviewCheckpointWaitingState",
         "effectRunStartCurrent",
         "effectSourceEvidenceFacts",
@@ -70047,6 +70049,18 @@
           "result": "EffectReviewCheckpointBinding"
         },
         {
+          "name": "effectReviewCheckpointCancelledState",
+          "parameters": [
+            "binding: EffectReviewCheckpointBinding",
+            "allowed: AllowedEffectRun",
+            "definition: RunDefinition",
+            "storedWire: string",
+            "updatedAt: string",
+            "declaredResults: readonly string[]"
+          ],
+          "result": "string"
+        },
+        {
           "name": "effectReviewCheckpointMembers",
           "parameters": [
             "allowed: AllowedEffectRun",
@@ -70054,6 +70068,22 @@
             "checkpointWire: string"
           ],
           "result": "readonly string[]"
+        },
+        {
+          "name": "effectReviewCheckpointReconciliationState",
+          "parameters": [
+            "binding: EffectReviewCheckpointBinding",
+            "allowed: AllowedEffectRun",
+            "definition: RunDefinition",
+            "storedWire: string",
+            "previewWire: string",
+            "invocationWire: string",
+            "setReceiptWire: string",
+            "memberReceiptWires: readonly string[]",
+            "updatedAt: string",
+            "declaredResults: readonly string[]"
+          ],
+          "result": "string"
         },
         {
           "name": "effectReviewCheckpointWaitingState",
@@ -71872,7 +71902,9 @@
             "validateRetainedTaskInput",
             "bindPreparedEffectRunMaterials",
             "effectReviewCheckpointBindingFacts",
-            "effectReviewCheckpointWaitingState"
+            "effectReviewCheckpointWaitingState",
+            "effectReviewCheckpointReconciliationState",
+            "effectReviewCheckpointCancelledState"
           ],
           "exports": [
             "AllowedEffectRun",
@@ -72082,7 +72114,9 @@
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput"
+            "validateRetainedTaskInput",
+            "effectReviewCheckpointReconciliationState",
+            "effectReviewCheckpointCancelledState"
           ],
           "attributes": {
             "responsibility": [
@@ -72343,6 +72377,14 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "packages/run-host-core/effect-checkpoint-retention.test.mjs",
+                "anchor": "original Checkpoint reconciliation forwards same nominal roots and snapshots receipt DATA"
+              },
+              {
+                "path": "packages/run-host-core/effect-checkpoint-retention.test.mjs",
+                "anchor": "original Checkpoint cancelled DATA forwards same originals without a scalar authority input"
               }
             ]
           }

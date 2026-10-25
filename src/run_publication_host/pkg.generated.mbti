@@ -523,7 +523,11 @@ pub fn client_effect_result_import_observation_json(ClientEffectResultImportObse
 
 pub fn client_effect_review_checkpoint_binding_fields(@checkpoint_runtime.SealedCheckpoint) -> Result[Array[String], ClientEffectCheckpointBindingIssue]
 
+pub fn client_effect_review_checkpoint_cancelled_state(@checkpoint_runtime.SealedCheckpoint, ClientEffectAllowedRun, @run_publication.PublicationContract, String, String, Array[String], @checkpoint_runtime.WireLimits) -> Result[String, ClientEffectCheckpointCancelledIssue]
+
 pub fn client_effect_review_checkpoint_members(ClientEffectAllowedRun, @run_publication.PublicationContract, String, @checkpoint_runtime.WireLimits, Int, Int) -> Result[Array[String], ClientEffectCheckpointMembersIssue]
+
+pub fn client_effect_review_checkpoint_reconciliation_state(@checkpoint_runtime.SealedCheckpoint, ClientEffectAllowedRun, @run_publication.PublicationContract, String, String, String, String, Array[String], String, Array[String], @checkpoint_runtime.WireLimits) -> Result[String, ClientEffectCheckpointReconciliationIssue]
 
 pub fn client_effect_review_checkpoint_unit_definition_cid(ClientEffectAllowedRun, @run_publication.PublicationContract, @checkpoint_runtime.SealedCheckpoint) -> Result[String, ClientEffectCheckpointBindingIssue]
 
@@ -2361,11 +2365,28 @@ pub(all) enum ClientEffectCheckpointBindingIssue {
   OriginalLifetime
 }
 
+pub(all) enum ClientEffectCheckpointCancelledIssue {
+  Binding(ClientEffectCheckpointBindingIssue)
+  Checkpoint(@checkpoint_runtime.CheckpointIssue)
+  RunState(@run_publication.RunStateIssue)
+}
+
 pub(all) enum ClientEffectCheckpointMembersIssue {
   Binding(ClientEffectCheckpointBindingIssue)
   InvalidLimits
   WorkLimit
   UnsupportedInventory
+}
+
+pub(all) enum ClientEffectCheckpointReconciliationIssue {
+  Binding(ClientEffectCheckpointBindingIssue)
+  Checkpoint(@checkpoint_runtime.CheckpointIssue)
+  Authoring(ClientAuthoringContextIssue)
+  Preview(@run_publication.EffectPreviewIdentityIssue)
+  ForeignPreview
+  Invocation(@run_publication.PublicationContractIssue)
+  RunBinding(@run_publication.EffectPreviewRunBindingIssue)
+  RunState(@run_publication.RunStateIssue)
 }
 
 pub(all) enum ClientEffectCheckpointWaitingIssue {
