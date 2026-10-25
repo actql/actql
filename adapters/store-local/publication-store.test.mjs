@@ -10421,3 +10421,71 @@ test('physical holding retains capacity until unlink durability retry',
     assert.equal(store.status().storedBytes, 0);
     assert.equal(store.status().objectCount, 0);
   });
+
+test('independent physical holding readers survive interleaved equal-CID publication and retirement',
+  {timeout: 10000}, async t => {
+    const {store, directory} = await fixture(t);
+    const publish = async (name, value) => {
+      const prepared = await preparePhysical(store, value);
+      const record = physicalHolding(digest(`interleaved holding ${name}`),
+        digest(`interleaved manifest ${value}`),
+        [{cid: prepared.cid, byte_count: prepared.bytes}]);
+      await store.commitPhysicalHolding(record, [prepared.prepared]);
+      return record;
+    };
+    const first = await publish('first', 'shared');
+    const second = await publish('second', 'shared');
+    const unrelated = await publish('unrelated', 'different');
+    assert.equal(first.objects[0].cid, second.objects[0].cid);
+    const consume = async (record, accept = () => {}) => {
+      const chunks = [];
+      await store.consumePhysicalHolding(record.holding_cid, 0, async chunk => {
+        chunks.push(Buffer.from(chunk));
+        await accept();
+      });
+      return Buffer.concat(chunks).toString('utf8');
+    };
+    let releaseFirst, releaseSecond, enterFirst, enterSecond;
+    const firstGate = new Promise(resolve => {releaseFirst = resolve;});
+    const secondGate = new Promise(resolve => {releaseSecond = resolve;});
+    const firstEntered = new Promise(resolve => {enterFirst = resolve;});
+    const secondEntered = new Promise(resolve => {enterSecond = resolve;});
+    const firstRead = consume(first, async () => {enterFirst(); await firstGate;});
+    const secondRead = consume(second, async () => {enterSecond(); await secondGate;});
+    try {
+      await Promise.all([firstEntered, secondEntered]);
+      const firstRetirement = await store.retirePhysicalHolding(first.holding_cid);
+      assert.equal(firstRetirement.deleted, false);
+      const fourth = physicalHolding(digest('interleaved holding fourth'),
+        second.manifest_cid, second.objects);
+      assert.equal((await store.sharePhysicalHolding(second.holding_cid, fourth)).created, true);
+      assert.equal((await store.sharePhysicalHolding(second.holding_cid, fourth)).created, false);
+      assert.equal((await store.retirePhysicalHolding(unrelated.holding_cid)).deleted, true);
+      assert.equal(store.status().storedBytes, 6);
+      assert.equal(store.status().objectCount, 1);
+      assert.equal(await consume(fourth), 'shared');
+      releaseFirst();
+      assert.equal(await firstRead, 'shared');
+      assert.equal((await firstRetirement.cleanup.retry()).pending, false);
+      const secondRetirement = await store.retirePhysicalHolding(second.holding_cid);
+      assert.equal(secondRetirement.deleted, false);
+      assert.equal(await consume(fourth), 'shared');
+      assert.equal(store.status().storedBytes, 6);
+      releaseSecond();
+      assert.equal(await secondRead, 'shared');
+      assert.equal((await secondRetirement.cleanup.retry()).pending, false);
+      assert.equal(await consume(fourth), 'shared');
+      assert.equal((await store.retirePhysicalHolding(fourth.holding_cid)).deleted, true);
+      const status = store.status();
+      for (const field of ['storedBytes', 'reservedBytes', 'objectCount', 'reservedObjects']) {
+        assert.equal(status[field], 0, field);
+      }
+      assert.deepEqual(await readdir(join(directory, 'objects')), []);
+    } finally {
+      // Always unblock and settle actual readers, including a failed oracle.
+      releaseFirst();
+      releaseSecond();
+      await Promise.allSettled([firstRead, secondRead]);
+      await store.recoverPhysicalHoldingDeletions();
+    }
+  });
