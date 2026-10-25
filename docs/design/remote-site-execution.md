@@ -1158,3 +1158,15 @@ result during the read. These representations retain the existing Host
 accounting and lifetime obligations; projection or garbage collection is not
 physical retirement or a resource acknowledgement. The returned task cleanup
 facts are explicitly separate from whole Effect/Run cleanup.
+
+
+The original Checkpoint reconciliation projection uses the same nominal
+binding and Allowed/Definition roots as waiting projection. It confirms the
+actual stored Checkpoint wire, derives authoring context from the original
+prepared source, binds the complete Preview and actual Invocation to that Run,
+and delegates complete set/member receipt admission to the existing Run-state
+writer. Only admitted unknown members appear in `needs_reconciliation`.
+This projection does not issue an outcome, approval, grant, physical-stop or
+cleanup receipt. The authenticated Journal/report owner retains actual receipt
+custody, revision/current/CAS checks and same-dispatch reconciliation; no resend
+is implied. Restored or foreign runtime namespaces admit their own originals.

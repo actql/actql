@@ -573,6 +573,45 @@ export function effectReviewCheckpointWaitingState(binding, allowed, definition,
     storedWire, updatedAt, results), 'RunHostEffectCheckpointWaitingRejected');
 }
 
+/** Same original review plus complete authenticated receipt DATA. Journal
+ * custody/current/CAS and physical outcomes remain the caller's obligations. */
+export function effectReviewCheckpointReconciliationState(binding, allowed, definition,
+  storedWire, previewWire, invocationWire, setReceiptWire, memberReceiptWires,
+  updatedAt, declaredResults) {
+  effectReviewCheckpointBindingFacts(binding, allowed, definition);
+  const {original} = effectCheckpointBindings.get(binding);
+  const wires = [storedWire, previewWire, invocationWire, setReceiptWire, updatedAt];
+  if (wires.some(value => typeof value !== 'string')) {
+    throw new TypeError('InvalidRunHostCheckpointReconciliationInput');
+  }
+  const snapshot = value => {
+    if (!Array.isArray(value) || value.length > 65536) {
+      throw new TypeError('InvalidRunHostCheckpointReconciliationInput');
+    }
+    const result = [];
+    for (let index = 0; index < value.length; index++) {
+      const field = Object.getOwnPropertyDescriptor(value, String(index));
+      if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'string') {
+        throw new TypeError('InvalidRunHostCheckpointReconciliationInput');
+      }
+      result.push(field.value);
+    }
+    return result;
+  };
+  const members = snapshot(memberReceiptWires), results = snapshot(declaredResults);
+  // Necessary lower bound only. Common meters UTF-8, complete schemas and the
+  // emitted state; this guard does not certify any receipt or physical fact.
+  let textUnits = 0;
+  for (const text of [...wires, ...members, ...results]) {
+    textUnits += text.length;
+    if (textUnits > 1048576) throw new TypeError('InvalidRunHostCheckpointReconciliationInput');
+  }
+  return checked(owner.clientValuesHostEffectCheckpointReconciliationState(original,
+    requireHandle(effectAllowedRuns, allowed).value, requireHandle(definitions, definition),
+    storedWire, previewWire, invocationWire, setReceiptWire, members, updatedAt, results),
+  'RunHostEffectCheckpointReconciliationRejected');
+}
+
 /** Original checked member IDs, not Source grants or Effect authority. */
 export function effectReviewCheckpointMembers(allowed, definition, wire) {
   if (typeof wire !== 'string' || wire.length > 65536 || new TextEncoder().encode(wire).length > 65536) {

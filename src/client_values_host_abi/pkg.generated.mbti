@@ -123,6 +123,8 @@ pub fn client_values_host_effect_checkpoint_binding_fields(@checkpoint_runtime.S
 
 pub fn client_values_host_effect_checkpoint_members(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Result[Array[String], @run_publication_host.ClientEffectCheckpointMembersIssue]
 
+pub fn client_values_host_effect_checkpoint_reconciliation_state(@checkpoint_runtime.SealedCheckpoint, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, String, String, String, String, Array[String], String, Array[String]) -> Result[String, @run_publication_host.ClientEffectCheckpointReconciliationIssue]
+
 pub fn client_values_host_effect_checkpoint_waiting_state(@checkpoint_runtime.SealedCheckpoint, String, String, Array[String]) -> Result[String, @run_publication_host.ClientEffectCheckpointWaitingIssue]
 
 pub fn client_values_host_effect_compiled_plan_wire(@run_publication_host.ClientEffectCompilation) -> String
