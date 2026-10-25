@@ -182,3 +182,127 @@ test "Pre-Run presentation never reinterprets or truncates a legacy recovery car
     )
   }
 }
+
+///|
+test "Query syntax diagnostics keep the code and omit private parser text" {
+  local_command_diagnostic_reset()
+  let private_text = "synthetic-token=DO_NOT_DISCLOSE\u{001b}"
+  let issue : @frontend.Issue = QuerySyntax({
+    issue: Syntax(private_text),
+    span: None,
+  })
+  let original : @local_host.NativeClientPreparationIssue = Frontend(issue)
+  local_stop_native_preparation(original) catch {
+    ClientStop(_) => ()
+  }
+  let (code, message) = local_command_primary_diagnostic(
+    "LocalPreparationNotReady",
+  )
+  assert_eq(code, "ACTQL_E_PROGRAM_INVALID")
+  assert_true(message.contains("query syntax"))
+  assert_true(message.contains("actql check"))
+  for json in [false, true] {
+    let rendered = local_command_failure_text("LocalPreparationNotReady", json)
+    assert_true(rendered.contains(code))
+    assert_true(rendered.contains("query syntax"))
+    assert_false(rendered.contains("DO_NOT_DISCLOSE"))
+    assert_false(rendered.contains("\u{001b}"))
+  }
+  command_preparation_diagnostic.val = local_frontend_diagnostic_kind(
+    @frontend.QuerySyntax({ issue: Lexical(UnterminatedComment), span: None, }),
+  )
+  assert_eq(local_command_primary_diagnostic("ignored").0, code)
+  assert_true(
+    local_command_primary_diagnostic("ignored").1.contains("query syntax"),
+  )
+  // The parser also reports budget/configuration failures in this carrier.
+  // They must not acquire syntax-specific advice merely by sharing its type.
+  for
+    issue in [
+      @frontend.QuerySyntax({ issue: InvalidLimits, span: None, }),
+      @frontend.QuerySyntax({ issue: Source(InvalidRange), span: None, }),
+      @frontend.InvalidFormat,
+      @frontend.WrongQueryForm,
+    ] {
+    command_preparation_diagnostic.val = local_frontend_diagnostic_kind(issue)
+    assert_eq(local_command_primary_diagnostic("ignored").0, code)
+    assert_false(
+      local_command_primary_diagnostic("ignored").1.contains("query syntax"),
+    )
+  }
+  local_command_diagnostic_reset()
+}
+
+///|
+test "Query parser resource refusals are not classified as invalid syntax" {
+  for
+    text in [
+      "SELECT " + Array::make(4200, "1").join(","),
+      "SELECT " + " ".repeat(65536) + "1 AS value",
+    ] {
+    guard @frontend.parse_query(text, @frontend.Text) is Err(issue) else {
+      fail("the query must exceed the fixed parser resource budget")
+    }
+    guard issue is QuerySyntax({ issue: Limit(_) | Source(InputLimit), .. }) else {
+      fail("the original parser must retain its typed resource cause")
+    }
+    local_command_diagnostic_reset()
+    let original : @local_host.NativeClientPreparationIssue = Frontend(issue)
+    local_stop_native_preparation(original) catch {
+      ClientStop(_) => ()
+    }
+    let (code, message) = local_command_primary_diagnostic("private source")
+    assert_eq(code, "ACTQL_E_PREPARATION_LIMIT")
+    assert_true(message.contains("limit"))
+    assert_false(message.contains("invalid"))
+    for json in [false, true] {
+      let rendered = local_command_failure_text("private source", json)
+      assert_true(rendered.contains(code))
+      assert_false(rendered.contains("private source"))
+    }
+  }
+  assert_true(
+    @frontend.parse_query("SELECT 1 AS value", @frontend.Text) is Ok(_),
+  )
+  local_command_diagnostic_reset()
+}
+
+///|
+test "Primary file diagnostics disclose closed causes without replacing custody or cleanup families" {
+  let prefix = "LocalCommandPreparationUnavailable:configuration-read:filesystem"
+  let cases : Array[(@files.NativeBoundedTextIssue, String?)] = [
+    (Missing, Some("input file is missing")),
+    (CapacityExceeded, Some("configured read limit")),
+    (InvalidUtf8, Some("not valid UTF-8")),
+    (InvalidLimit, None),
+    (Filesystem(Read("SYNTHETIC_OS_SECRET")), None),
+    (
+      Cleanup(Read("SYNTHETIC_OS_SECRET"), Cleanup("SYNTHETIC_CLEANUP_SECRET")),
+      None,
+    ),
+  ]
+  for (issue, hint) in cases {
+    local_command_diagnostic_reset()
+    let failure : Result[Unit, LocalCommandPreparationIssue] = Err(
+      CommandFilesystem(issue),
+    )
+    let message = try {
+      command_preparation_result(failure, stage=Some("configuration-read"))
+      "unexpected success"
+    } catch {
+      ClientStop(message) => message
+    }
+    assert_true(message.has_prefix(prefix))
+    match hint {
+      Some(hint) => assert_true(message.contains(hint))
+      None => assert_eq(message, prefix)
+    }
+    assert_false(message.contains("SYNTHETIC_OS_SECRET"))
+    assert_false(message.contains("SYNTHETIC_CLEANUP_SECRET"))
+    assert_eq(
+      command_preparation_cleanup_kind(CommandFilesystem(issue)),
+      "filesystem",
+    )
+  }
+  local_command_diagnostic_reset()
+}

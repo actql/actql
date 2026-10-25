@@ -9,6 +9,7 @@ priv enum LocalCommandDiagnosticKind {
   ParameterDeclarations
   ParameterBinding
   ProgramInvalid
+  QuerySyntaxInvalid
   ConfigurationInvalid
   UnsupportedPreparation
   PreparationLimit
@@ -81,13 +82,25 @@ fn local_check_diagnostic_kind(
 }
 
 ///|
+fn local_frontend_diagnostic_kind(
+  issue : @frontend.Issue,
+) -> LocalCommandDiagnosticKind {
+  match issue {
+    QuerySyntax({ issue: Syntax(_) | Lexical(_), .. }) => QuerySyntaxInvalid
+    QuerySyntax({ issue: Limit(_) | Source(InputLimit), .. }) =>
+      PreparationLimit
+    InvalidFormat | WrongQueryForm | QuerySyntax(_) => ProgramInvalid
+    _ => PreparationFailed
+  }
+}
+
+///|
 fn local_native_preparation_diagnostic_kind(
   issue : @local_host.NativeClientPreparationIssue,
 ) -> LocalCommandDiagnosticKind {
   match issue {
-    Syntax(_) | Frontend(InvalidFormat | WrongQueryForm | QuerySyntax(_)) =>
-      ProgramInvalid
-    Frontend(_) => PreparationFailed
+    Syntax(_) => ProgramInvalid
+    Frontend(issue) => local_frontend_diagnostic_kind(issue)
     Computation(Check(diagnostic)) => local_check_diagnostic_kind(diagnostic)
     Computation(NeedsInputs(requests)) => {
       for index in 0..<@checked.input_request_count(requests) {
@@ -150,6 +163,10 @@ fn local_command_primary_diagnostic(message : String) -> (String, String) {
     ParameterBinding =>
       (
         "ACTQL_E_PARAMETER_BINDING", "The original parameter binding could not be completed.",
+      )
+    QuerySyntaxInvalid =>
+      (
+        "ACTQL_E_PROGRAM_INVALID", "The query syntax is invalid. Run actql check with the same input and format for syntax diagnostics.",
       )
     ProgramInvalid =>
       ("ACTQL_E_PROGRAM_INVALID", "The original Program input is invalid.")
@@ -228,5 +245,28 @@ fn local_command_diagnostic_text(
       ClientStop(_) => "\"The command diagnostic could not be encoded.\""
     }
     "actql-native-client: " + code + ": " + quoted
+  }
+}
+
+///|
+// Add only closed primary read advice. The original failure and all Reader/Root
+// custody stay with their owner; OS strings and protected paths are not facts.
+fn local_bounded_file_diagnostic_message(
+  original : String,
+  issue : @files.NativeBoundedTextIssue,
+) -> String {
+  let hint = match issue {
+    Missing =>
+      Some(
+        "The input file is missing. Check the selected file and configuration.",
+      )
+    CapacityExceeded =>
+      Some("The input file does not fit the configured read limit.")
+    InvalidUtf8 => Some("The input file is not valid UTF-8. Use UTF-8 text.")
+    _ => None
+  }
+  match hint {
+    Some(hint) => original + ": " + hint
+    None => original
   }
 }
