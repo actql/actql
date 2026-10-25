@@ -6,7 +6,7 @@ import {readCheckReasonCatalog, validateCheckReasonCatalog, checkReasonSchemaFro
 import {buildCheckReasonCatalog, generateCheckReasonCatalog} from './generate-check-reason-catalog.mjs';
 const registry = JSON.parse(readFileSync(new URL('../spec/contracts/actql-protocol-schemas.json', import.meta.url)));
 const catalog = readCheckReasonCatalog();
-const fixed = JSON.parse(readFileSync(new URL('./fixtures/check-consumer-condition-historical.json', import.meta.url)));
+const fixed = JSON.parse(readFileSync(new URL('./fixtures/check-domain-carrier-identities.json', import.meta.url)));
 test('catalog generates current facts wire, SDK metadata and reference outputs with independently fixed current pins', () => {
   assert.equal(registry.artifact_schema_cids.check_reason,
     fixed.checkSchemas.reason.cid);

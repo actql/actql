@@ -1,6 +1,6 @@
 {
   "version": "actql-check-reason-catalog/0.1",
-  "revision": "2026-10-19.1",
+  "revision": "2026-10-25.1",
   "reason_schema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://smooth.dev/schemas/actql-check-reason-0.1.json",
@@ -828,6 +828,71 @@
                   "properties": {
                     "minimum": {
                       "const": 0
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "domain"
+            ],
+            "properties": {
+              "domain": {
+                "enum": [
+                  "key_comparable_operands",
+                  "matching_numeric_domains"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "expected_carrier",
+              "actual_carrier"
+            ],
+            "properties": {
+              "expected_carrier": {
+                "enum": [
+                  "relation",
+                  "vectors"
+                ]
+              },
+              "actual_carrier": {
+                "enum": [
+                  "relation",
+                  "graph",
+                  "events",
+                  "vectors"
+                ]
+              }
+            },
+            "allOf": [
+              {
+                "not": {
+                  "properties": {
+                    "expected_carrier": {
+                      "const": "relation"
+                    },
+                    "actual_carrier": {
+                      "const": "relation"
+                    }
+                  }
+                }
+              },
+              {
+                "not": {
+                  "properties": {
+                    "expected_carrier": {
+                      "const": "vectors"
+                    },
+                    "actual_carrier": {
+                      "const": "vectors"
                     }
                   }
                 }
@@ -1941,7 +2006,9 @@
                   "program_structure_invalid",
                   "source_selector_unregistered",
                   "query_alias_absent",
-                  "parameter_consumer_condition"
+                  "parameter_consumer_condition",
+                  "expression_domain_mismatch",
+                  "carrier_mismatch"
                 ]
               }
             }
@@ -2086,6 +2153,135 @@
                 "required": [
                   "argument"
                 ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "code": {
+              "const": "expression_domain_mismatch"
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "facts"
+          ],
+          "properties": {
+            "facts": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "domain"
+              ],
+              "properties": {
+                "domain": {
+                  "enum": [
+                    "key_comparable_operands",
+                    "matching_numeric_domains"
+                  ]
+                }
+              }
+            },
+            "location": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "text",
+                    "structured"
+                  ]
+                },
+                "document_id": {
+                  "enum": [
+                    "source",
+                    "program"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "code": {
+              "const": "carrier_mismatch"
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "facts"
+          ],
+          "properties": {
+            "facts": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "expected_carrier",
+                "actual_carrier"
+              ],
+              "properties": {
+                "expected_carrier": {
+                  "enum": [
+                    "relation",
+                    "vectors"
+                  ]
+                },
+                "actual_carrier": {
+                  "enum": [
+                    "relation",
+                    "graph",
+                    "events",
+                    "vectors"
+                  ]
+                }
+              },
+              "allOf": [
+                {
+                  "not": {
+                    "properties": {
+                      "expected_carrier": {
+                        "const": "relation"
+                      },
+                      "actual_carrier": {
+                        "const": "relation"
+                      }
+                    }
+                  }
+                },
+                {
+                  "not": {
+                    "properties": {
+                      "expected_carrier": {
+                        "const": "vectors"
+                      },
+                      "actual_carrier": {
+                        "const": "vectors"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "location": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "text",
+                    "structured"
+                  ]
+                },
+                "document_id": {
+                  "enum": [
+                    "source",
+                    "program"
+                  ]
+                }
               }
             }
           }
@@ -2349,6 +2545,47 @@
       ]
     },
     {
+      "code": "carrier_mismatch",
+      "condition": "The operation requires a different input carrier.",
+      "facts_schema": "#/reason_schema",
+      "disclosure": "Only the existing checked diagnostic may emit these closed type-domain or carrier facts. Actual values, names, private Source distinctions and arbitrary causes are excluded.",
+      "locations": [
+        "source:text or program:structured (owned authored location only; omit when unknown)"
+      ],
+      "default_severity": "error",
+      "family": "input",
+      "presentation": {
+        "variants": [
+          {
+            "when": {
+              "expected_carrier": "relation"
+            },
+            "key": "carrier.expected_relation",
+            "english": [
+              "This operation requires Relation input.",
+              "Provide a Relation before this operation; the current carrier is not a Relation."
+            ]
+          },
+          {
+            "when": {
+              "expected_carrier": "vectors"
+            },
+            "key": "carrier.expected_vectors",
+            "english": [
+              "This operation requires Vectors input.",
+              "Provide Vectors before this operation, for example by converting a compatible Relation with to_vectors."
+            ]
+          }
+        ]
+      },
+      "examples": [
+        {
+          "file": "src/client_local_preparation/check_domain_carrier_diagnostics_wbtest.mbt",
+          "scenario": "public check preserves original vector operation carrier requirements"
+        }
+      ]
+    },
+    {
       "code": "check_unclassified",
       "condition": "The checker could not establish a classified conclusion.",
       "facts_schema": "#/reason_schema",
@@ -2401,6 +2638,47 @@
         },
         "variants": []
       }
+    },
+    {
+      "code": "expression_domain_mismatch",
+      "condition": "Expression operands violate the required comparison or arithmetic domain.",
+      "facts_schema": "#/reason_schema",
+      "disclosure": "Only the existing checked diagnostic may emit these closed type-domain or carrier facts. Actual values, names, private Source distinctions and arbitrary causes are excluded.",
+      "locations": [
+        "source:text or program:structured (owned authored location only; omit when unknown)"
+      ],
+      "default_severity": "error",
+      "family": "input",
+      "presentation": {
+        "variants": [
+          {
+            "when": {
+              "domain": "key_comparable_operands"
+            },
+            "key": "expression_domain.key_comparable_operands",
+            "english": [
+              "The expression operands have incompatible types.",
+              "Use mutually compatible operand types for this operation."
+            ]
+          },
+          {
+            "when": {
+              "domain": "matching_numeric_domains"
+            },
+            "key": "expression_domain.matching_numeric_domains",
+            "english": [
+              "The arithmetic operands do not share a supported numeric domain.",
+              "Use operands from the same supported numeric domain."
+            ]
+          }
+        ]
+      },
+      "examples": [
+        {
+          "file": "src/client_local_preparation/check_domain_carrier_diagnostics_wbtest.mbt",
+          "scenario": "public check preserves closed operand domain requirements"
+        }
+      ]
     },
     {
       "code": "expression_type_mismatch",
