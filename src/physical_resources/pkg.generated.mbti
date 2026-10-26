@@ -204,6 +204,10 @@ pub fn ledger_limits(Ledger) -> LedgerLimits
 
 pub fn ledger_usage(Ledger) -> LedgerUsage
 
+pub fn ledger_usage_diagnostic_json(LedgerUsage) -> String
+
+pub fn ledger_usage_has_pending_resources(LedgerUsage) -> Bool
+
 pub fn mark_cleanup_pending(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 
 pub fn mark_quantities_uncertain(Ledger, Reservation) -> Result[Unit, LedgerIssue]
