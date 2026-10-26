@@ -12,6 +12,8 @@ pub fn compare_utf16(String, String) -> Int
 
 pub fn compare_utf16_fragment(String, String, Int, Int) -> (Int?, Int, Int)
 
+pub fn nfc_lf_construction_extent(Int) -> NormalizationConstructionExtent?
+
 pub fn normalization_count(NormalizationCursor) -> Int
 
 pub fn normalization_scalar(NormalizationCursor, Int) -> Char?
@@ -27,6 +29,14 @@ pub fn validate_scalar_text(String) -> Result[Unit, TextNormalizationError]
 // Errors
 
 // Types and methods
+pub(all) struct NormalizationConstructionExtent {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+  max_output_utf16_units : Int64
+} derive(Eq, @debug.Debug)
+
 pub struct NormalizationCursor {
   input : String
   fold : Bool

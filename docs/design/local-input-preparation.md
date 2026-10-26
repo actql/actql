@@ -130,3 +130,23 @@ private six-number Run projection is updated only after every dimension fits;
 refusal leaves it unchanged. The original read reservations, census, current
 checks and cleanup remain with their existing owners. A composed numerical
 limit supplies neither physical backing nor permission.
+
+
+## Canonical normalization construction inventory
+
+The canonical-value owner declares the logical construction inventory of its
+existing NFC-plus-LF operation. Local snapshot preparation projects those named
+units into its existing representation model rather than retaining a second
+Unicode expansion or string-builder formula. This preserves the original Local
+reservation; byte pricing and resource admission remain with their existing
+owners. The input String is borrowed, and the returned String is covered beside
+current constructor scratch. Multiple retained results require cumulative text
+and reference inventory.
+
+The pinned canonical decomposition expands to at most four scalars per input
+scalar; compatibility normalization and casefolding are separate operations.
+JS concatenation and the pinned non-JS doubling UInt16 builder have different
+backing lifetimes. Growth and the final `to_string` copy do not coexist. Both
+recipes fit the declared logical bound, including preceding NFC and first
+LF-pass text during the second LF pass. This is a constructor inventory, not
+allocator/RSS, physical backend supply or complete preparation funding evidence.
