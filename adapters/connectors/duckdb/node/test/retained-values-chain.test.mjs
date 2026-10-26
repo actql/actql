@@ -689,7 +689,9 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
     publication = await openLocalPublicationStore({
       directory: join(directory, 'publication'), storeAuthorityCid: cid('c'),
       capacityBytes: 512 * 1024 * 1024,
-      maxObjectBytes: plan.outputLimits.maxWireBytes, maxObjects: 100,
+      // The same Store holds Result data, schemas and publication contracts.
+      maxObjectBytes: Math.max(plan.outputLimits.maxWireBytes,
+        plan.outputLimits.maxSchemaBytes, plan.contractLimits.maxWireBytes), maxObjects: 100,
       maxContractNodes: 10000, maxContractDepth: 64,
     }, runtime.publicationControl);
     // Carrier and Bridge outputs retain managed generations; this injects a
