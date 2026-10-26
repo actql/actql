@@ -2,6 +2,7 @@
 // declaration meaning, original acquisition, checked cells and capture.
 import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
+import {types} from 'node:util';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {readSourceProfileJson,readBoundedConfigurationText} from '../../../host-node/source-profile-json.mjs';
@@ -61,11 +62,30 @@ function checkSite(site){
   return Object.freeze(selected);
 }
 
-async function readInputs(profile){
+function configurationReads(reader, readJson) {
+  const unavailable = () => fail('InstalledCalendarConfigurationReaderUnavailable');
+  if (readJson !== undefined && typeof readJson !== 'function') unavailable();
+  if (reader === undefined) return Object.freeze({
+    readJson: readJson ?? readSourceProfileJson, readText: readBoundedConfigurationText,
+  });
+  if (reader === null || typeof reader !== 'object' || Array.isArray(reader) || types.isProxy(reader)) unavailable();
+  const json = Object.getOwnPropertyDescriptor(reader, 'readJson');
+  const text = Object.getOwnPropertyDescriptor(reader, 'readText');
+  if (!json || !Object.hasOwn(json, 'value') || typeof json.value !== 'function' ||
+      !text || !Object.hasOwn(text, 'value') || typeof text.value !== 'function') unavailable();
+  // Retain both original methods and their receiver before the first read awaits.
+  return Object.freeze({
+    readJson: readJson ?? ((...args) => Reflect.apply(json.value, reader, args)),
+    readText: (...args) => Reflect.apply(text.value, reader, args),
+  });
+}
+
+async function readInputs(profile,configurationReader,readJson){
   const installed=checkInstalledCalendarSourceProfile(profile);
-  const site=checkSite(await readSourceProfileJson(installed.siteProfilePath));let ca;
+  const reads=configurationReads(configurationReader,readJson);
+  const site=checkSite(await reads.readJson(installed.siteProfilePath));let ca;
   if(site.caPath!==undefined){
-    const pem=await readBoundedConfigurationText(site.caPath,{maxBytes:installed.limits.maxCaBytes});
+    const pem=await reads.readText(site.caPath,{maxBytes:installed.limits.maxCaBytes});
     if(/[^\x09\x0a\x0d\x20-\x7e]/u.test(pem)||!pem.includes('-----BEGIN CERTIFICATE-----')||
       !pem.includes('-----END CERTIFICATE-----'))fail('InvalidInstalledCalendarTlsAuthority');
     ca=Buffer.from(pem,'ascii');
@@ -73,8 +93,8 @@ async function readInputs(profile){
   return{installed,site,ca,binding:ca===undefined?{}:{caSha256:sha(ca)}};
 }
 
-export async function installedCalendarSourceIdentityParts(profile,providerProfile){
-  const{site,binding}=await readInputs(providerProfile);
+export async function installedCalendarSourceIdentityParts(profile,providerProfile,read,_installation,context){
+  const{site,binding}=await readInputs(providerProfile,context?.configurationReader,read);
   return[{...profile,accountConfigurationWire:JSON.parse(profile.accountConfigurationWire)},site,binding];
 }
 
@@ -143,11 +163,11 @@ function originalReaderFactory({provider,site,installed,capacity}){
 }
 
 export async function loadInstalledCalendarSource(profile,{root,principalId,moon,providerMoon,
-  baseEnvironmentWire,runtimeBundleCid,resolveSecret,readerCapacity}={}){
+  baseEnvironmentWire,runtimeBundleCid,resolveSecret,readerCapacity,configurationReader}={}){
   if(readerCapacity===undefined||readerCapacity===null)fail('CalendarReaderCapacityUnavailable');
   if(typeof resolveSecret!=='function')fail('CalendarCredentialMaterialUnavailable');
   const provider=captureProvider(providerMoon);
-  const{installed,site:siteProfile,ca,binding}=await readInputs(profile),{limits}=installed;
+  const{installed,site:siteProfile,ca,binding}=await readInputs(profile,configurationReader),{limits}=installed;
   const wire=checked(provider.calendarListSchemaWire(limits.maxDeclarationBytes,limits.maxDeclarationNodes,limits.maxDepth));
   const declaration=checked(moon.clientProgramRowSourceRestoreRelationDeclaration(installed.connectorId,
     registration,revision,JSON.stringify({views:[{resource,resource_kind:'calendar_list',schema_wire:wire,

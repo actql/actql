@@ -429,3 +429,15 @@ source qualifications.
   actual installed Sites, a shared admitted account configuration and original
   Set recovery without resending the applied member. Routing refusals, singular
   recovery and bounded index capture have separate focused consumers.
+
+### Calendar configuration reader lifetime
+
+Calendar retains supplied configuration readers before awaiting reads. The
+existing identity JSON port and optional installation configuration reader keep
+the original receiver and own data methods. Both methods are captured before
+the first read; accessor-backed or incomplete readers refuse before I/O.
+The configured CA byte limit, PEM validation, ASCII authority bytes and binding
+hash remain unchanged. Calls without a reader keep the existing direct bounded
+reads. Original read errors and their cleanup duties propagate unchanged; the
+connector does not retry or retire an installer-owned reader. Source capacity,
+current authorization and physical cleanup remain their original obligations.
