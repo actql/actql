@@ -1284,6 +1284,8 @@ pub fn retain_completed_segment_input(CompletedOutput, ProducerRead) -> Complete
 
 pub fn retain_completion_evidence(CompletedOutput, Int, Int) -> Result[RetainedCompletionEvidence, RetainedCompletionEvidenceIssue]
 
+pub fn retain_generated_sequence_refinement(GeneratedSequence, GeneratedSequence) -> GeneratedSequence?
+
 pub fn[P, T] retain_managed_output(ManagedOutputRetentionPort[P, T], P) -> Result[ManagedRetainedOutput[T], ManagedOutputRetentionIssue]
 
 pub fn retained_completed_material_matches(RetainedOutputMaterial, CompletedOutput) -> Bool

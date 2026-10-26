@@ -156,9 +156,11 @@ fn closed_values_initial_control_units() -> @execution.PreparationRepresentation
   let adopted_js_headers = 10L + 1L
   let adopted_js_refs = 48L + 5L
   let adopted_js_words = 9L
-  let run_headers = 11L + 1L
-  let run_refs = 18L + 1L
-  let run_words = 14L + 1L
+  // The common prepared Local packet retains graph, original policy,
+  // registry, module and fixed capacity plus the retained-output flag.
+  let run_headers = 11L + 1L + 1L
+  let run_refs = 18L + 1L + 5L
+  let run_words = 14L + 1L + 1L
   // The closed PurePreparation/EffectPlanPreparation custody choice adds one
   // original wrapper header, one reference and its scalar variant tag. Both
   // cases still use the same already counted retirement record and engine.

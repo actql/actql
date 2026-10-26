@@ -172,3 +172,28 @@ record, admission and Run holders and each simultaneous operation/dispatch
 borrow. This connection does not turn a numeric final Plan quote into complete
 initial constructor funding, enable an unfunded Model/Content family, or
 acknowledge physical stop from alias severance.
+
+
+## Retained physical module selection
+
+The checked Effect plan retains the actual prepared Local module, provider
+selection, task capacities and import/output policies. Its factory runs during
+preparation; opening the original Run binds that same module and cannot replace
+it with an equal numerical configuration. A policy sealed for quotation is not
+configured again after binding. Repeated input ports remain separate holdings.
+
+Each physical slot retains its original selected provider and capacity. The
+sequence owner validates genuine refinements against the same registered
+contracts, prepared sequence, contexts, query time, numeric callbacks, selected
+occurrences and retained Results. A changed capacity follows its provider's
+full check and cannot exceed that slot's original envelope. Input sequence and
+provider containers are snapshotted before callbacks can reenter; immutable
+provider dependencies remain shared rather than copied or upgraded.
+
+Per-task execution envelopes do not pay for compilation, factory construction,
+retained module/control objects or their next-phase overlap. Those inventories
+must be funded by the original preparation before construction, using the same
+shared representation units. The existing Working growth/retirement protocol
+owns that transition. Native and Remote consumers must retain their actual
+backend module and limits; a Node owner or Local policy is not a substitute.
+Completed-only metadata access supplies no execution or restoration authority.

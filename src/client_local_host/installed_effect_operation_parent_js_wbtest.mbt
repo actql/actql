@@ -338,7 +338,12 @@ fn effect_parent_bound_run(
 ///|
 test "planned Effect Compute executes retained sequence on the original managed parent Ledger" {
   let (prepared, request, contracts) = effect_operation_plan_inputs()
-  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let factories = Ref(0)
+  let plan = effect_operation_plan_fixture(prepared, request, contracts, provider_factory=_ => {
+    factories.val += 1
+    []
+  })
+  assert_eq(factories.val, 1)
   let bound = effect_parent_bound_run(prepared)
   let admission = effect_parent_test_admission(
     plan,
@@ -355,6 +360,16 @@ test "planned Effect Compute executes retained sequence on the original managed 
     )
     .unwrap()
     .unwrap()
+  assert_eq(factories.val, 1)
+  let installed = @builtin.configured_local_module(
+    @builtin.configured_host_modules(host),
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      @local_driver.local_dispatch_original_preparation(installed).unwrap(),
+      plan.configuration.dispatch,
+    ),
+  )
   let dag = @strategy.captured_effect_run_dag(captured)
   assert_true(physical_equal(@strategy.captured_dag_ledger(dag), ledger))
   assert_true(
@@ -387,34 +402,36 @@ test "planned Effect Compute rejects foreign bound Run and fences same-parent ca
   let plan = effect_operation_plan_fixture(prepared, request, contracts)
   let bound = effect_parent_bound_run(prepared)
   let foreign = effect_parent_bound_run(installed_effect_managed_fixture())
-  let admission = effect_parent_test_admission(
-    plan,
-    prepared_installed_effect_managed_requirements(plan),
-  )
-  let owner = begin_prepared_installed_effect_managed_run(
-    admission, prepared, request, plan,
-  ).unwrap()
-  assert_true(
-    open_installed_effect_managed_host(owner, foreign, [])
-    is Err(ForeignOriginal),
-  )
-  assert_true(owner.source_free_captured is None)
   let called = Ref(0)
   let reentry_refused = Ref(false)
   let retirement_pending = Ref(false)
-  let (host, captured, _) = open_installed_effect_managed_host(
-      owner,
-      bound,
-      [],
-      provider_factory=_ => {
+  let armed = Ref(false)
+  let selected : Ref[ClientInstalledManagedRun?] = Ref(None)
+  let admission = effect_parent_test_admission(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+    current=() => {
+      if armed.val && selected.val is Some(owner) {
+        armed.val = false
         called.val += 1
         reentry_refused.val = open_installed_effect_managed_host(owner, bound, [])
           is Err(AlreadyBound)
         retirement_pending.val = retire_installed_managed_run(owner)
           is Err(CleanupPending)
-        []
-      },
-    )
+      }
+    },
+  )
+  let owner = begin_prepared_installed_effect_managed_run(
+    admission, prepared, request, plan,
+  ).unwrap()
+  selected.val = Some(owner)
+  assert_true(
+    open_installed_effect_managed_host(owner, foreign, [])
+    is Err(ForeignOriginal),
+  )
+  assert_true(owner.source_free_captured is None)
+  armed.val = true
+  let (host, captured, _) = open_installed_effect_managed_host(owner, bound, [])
     .unwrap()
     .unwrap()
   assert_eq(called.val, 1)
@@ -441,19 +458,27 @@ test "planned Effect callback current loss retains original DAG cleanup and star
   let plan = effect_operation_plan_fixture(prepared, request, contracts)
   let bound = effect_parent_bound_run(prepared)
   let available = Ref(true)
+  let selected : Ref[ClientInstalledManagedRun?] = Ref(None)
+  let armed = Ref(false)
   let admission = effect_parent_test_admission(
     plan,
     prepared_installed_effect_managed_requirements(plan),
-    current=() => effect_parent_test_require_current(available.val),
+    current=() => {
+      if armed.val &&
+        selected.val is Some(owner) &&
+        owner.source_free_captured is Some(_) {
+        available.val = false
+      }
+      effect_parent_test_require_current(available.val)
+    },
   )
   let owner = begin_prepared_installed_effect_managed_run(
     admission, prepared, request, plan,
   ).unwrap()
   let ledger = require_installed_managed_run(owner).unwrap()
-  let outcome = open_installed_effect_managed_host(owner, bound, [], provider_factory=_ => {
-    available.val = false
-    []
-  })
+  selected.val = Some(owner)
+  armed.val = true
+  let outcome = open_installed_effect_managed_host(owner, bound, [])
   assert_false(available.val)
   assert_true(outcome is Err(Resource(Unavailable)))
   assert_false(owner.source_free_opening)
@@ -624,6 +649,7 @@ test "temporal plan refuses an unbound context and copied request without a seco
       None,
       plan.operations,
       query_time=Some(unbound),
+      provider_factory=_ => [],
     )
     is Err(Unsupported),
   )
@@ -650,6 +676,7 @@ test "temporal plan refuses an unbound context and copied request without a seco
       None,
       plan.operations,
       query_time=Some(original),
+      provider_factory=_ => [],
     )
     is Err(Unsupported),
   )
