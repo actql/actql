@@ -190,6 +190,16 @@ full check and cannot exceed that slot's original envelope. Input sequence and
 provider containers are snapshotted before callbacks can reenter; immutable
 provider dependencies remain shared rather than copied or upgraded.
 
+Preparation domains supply the owned representation extents and declared
+coexistence. `execution_relation.compose_preparation_representation` owns their
+checked five-unit composition under the same tariff. Composition preserves
+occurrences; it cannot infer aliases or release a previous owner. Phase drivers
+reserve the result through their original `PreparationCapacity`.
+The common `PreparationExecutionInventory` also composes retained/workspace
+representations, value-node extents and existing byte quotes. Its execution
+capacity includes retained state alongside workspace; that projection is not
+an independent initial-construction reservation or physical backing receipt.
+
 Per-task execution envelopes do not pay for compilation, factory construction,
 retained module/control objects or their next-phase overlap. Those inventories
 must be funded by the original preparation before construction, using the same

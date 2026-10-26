@@ -484,71 +484,6 @@ struct ClosedValuesCompilerPhaseLayout {
 } derive(Eq)
 
 ///|
-fn closed_values_sum_layouts(
-  values : Array[@execution.PreparationRepresentationUnits],
-) -> @execution.PreparationRepresentationUnits? {
-  let mut h = 0L
-  let mut r = 0L
-  let mut w = 0L
-  let mut t = 0L
-  let mut b = 0L
-  for value in values {
-    guard @execution.checked_preparation_add_product(
-        h,
-        value.record_headers,
-        1L,
-      )
-      is Some(n) else {
-      return None
-    }
-    h = n
-    guard @execution.checked_preparation_add_product(
-        r,
-        value.reference_slots,
-        1L,
-      )
-      is Some(n) else {
-      return None
-    }
-    r = n
-    guard @execution.checked_preparation_add_product(w, value.scalar_words, 1L)
-      is Some(n) else {
-      return None
-    }
-    w = n
-    guard @execution.checked_preparation_add_product(
-        t,
-        value.owned_utf16_units,
-        1L,
-      )
-      is Some(n) else {
-      return None
-    }
-    t = n
-    guard @execution.checked_preparation_add_product(
-        b,
-        value.owned_wire_bytes,
-        1L,
-      )
-      is Some(n) else {
-      return None
-    }
-    b = n
-  }
-  let result : @execution.PreparationRepresentationUnits = {
-    record_headers: h,
-    reference_slots: r,
-    scalar_words: w,
-    owned_utf16_units: t,
-    owned_wire_bytes: b,
-  }
-  guard @execution.preparation_representation_cost(result) is Some(_) else {
-    return None
-  }
-  Some(result)
-}
-
-///|
 /// All source/declaration/Select/port scratch is conservatively added rather
 /// than relying on early GC. Declaration and strict Select each have at most
 /// the complete Result graph's fixed owners and per-field slots: declaration
@@ -577,7 +512,7 @@ fn closed_values_result_scratch_layout(
     owned_utf16_units: 2L * (longest_name.to_int64() + 2L),
     owned_wire_bytes: 0L,
   }
-  closed_values_sum_layouts([
+  @execution.compose_preparation_representation([
     port, port, map, map, map, map, map, map, map, map, strings,
   ])
 }
@@ -673,7 +608,7 @@ fn closed_values_compiler_phase_layout(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       literal.retained,
       pipeline,
       wrappers,
@@ -715,7 +650,7 @@ fn closed_values_compiler_phase_layout(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       walk,
       map,
       caller,
@@ -739,7 +674,10 @@ fn closed_values_compiler_phase_layout(
   guard closed_values_compiler_failure_layout(depth_upper) is Some(failure) else {
     return None
   }
-  guard closed_values_sum_layouts([retained, temporary, failure]) is Some(_) else {
+  guard @execution.compose_preparation_representation([
+      retained, temporary, failure,
+    ])
+    is Some(_) else {
     return None
   }
   Some({ retained, temporary, failure, })

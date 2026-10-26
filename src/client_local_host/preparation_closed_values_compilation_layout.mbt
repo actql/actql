@@ -88,14 +88,15 @@ fn closed_values_compilation_layout(
       contract_bytes.to_int(),
     )
     is Some(artifact) &&
-    closed_values_sum_layouts([artifact, meta.retained]) is Some(retained) else {
+    @execution.compose_preparation_representation([artifact, meta.retained])
+    is Some(retained) else {
     return None
   }
   // Every parser returns before the next starts. Conservatively retain all
   // five canonical values, even those no longer returned by intermediate parts.
   // Private AST/admission scratch takes a componentwise phase maximum; shared
   // decoded String owners remain in each parse.value, never silently refunded.
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       aoa_parse.value,
       fragment_parse.value,
       program_parse.value,
@@ -147,7 +148,7 @@ fn closed_values_compilation_layout(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       meta.temporary,
       canonical_values,
       parser,

@@ -37,7 +37,9 @@ fn program_validation_inventory_layout(
     owned_wire_bytes: 0L,
   }
   let empty_fields = closed_values_program_arrays(1L, 0L, false)
-  closed_values_sum_layouts([copies, records, links, empty_fields])
+  @execution.compose_preparation_representation([
+    copies, records, links, empty_fields,
+  ])
 }
 
 ///|
@@ -82,7 +84,7 @@ fn program_retained_validation_layout(
     owned_utf16_units: 74L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       flags,
       fields,
       diagnostics,

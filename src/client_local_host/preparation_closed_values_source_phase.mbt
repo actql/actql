@@ -49,14 +49,14 @@ fn closed_values_source_phase_layout(
     is Some(ast_private) else {
     return None
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       owner.source_shared_dependencies,
       owner.indexed_additional,
     ])
     is Some(retained) else {
     return None
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       ast_private,
       owner.source_growth_peak,
       owner.key_admission_peak,
@@ -66,7 +66,7 @@ fn closed_values_source_phase_layout(
     is Some(parser_temporary) else {
     return None
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       ast_private,
       owner.key_admission_peak,
       owner.decoder_ancestry_peak,

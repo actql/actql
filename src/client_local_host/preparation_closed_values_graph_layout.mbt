@@ -21,7 +21,7 @@ fn closed_values_leaf_graph_layout(
   // identities, checked values/units/leaves; boxed arithmetic.Value per node;
   // linked index Map (constructor growth bound deliberately retained here).
   let map = closed_values_map_constructor_layout(nodes).unwrap()
-  closed_values_sum_layouts([
+  @execution.compose_preparation_representation([
     {
       record_headers: 13L + n,
       reference_slots: 13L + 2L * cap + n,
@@ -61,7 +61,9 @@ fn closed_values_graph_control_layout() -> ClosedValuesGraphControlLayout? {
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([zero, one, one, two, wrappers])
+  guard @execution.compose_preparation_representation([
+      zero, one, one, two, wrappers,
+    ])
     is Some(retained) else {
     return None
   }
@@ -110,7 +112,7 @@ fn closed_values_graph_control_layout() -> ClosedValuesGraphControlLayout? {
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       wrappers, arithmetic, cycle_arrays, empty, empty, empty, policy, controls,
       proof,
     ])

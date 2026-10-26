@@ -91,7 +91,9 @@ fn closed_values_snapshot_inventories(
     owned_utf16_units: 72L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([cloned_program, metadata_clones, controls])
+  guard @execution.compose_preparation_representation([
+      cloned_program, metadata_clones, controls,
+    ])
     is Some(retained_host_share) else {
     return None
   }
@@ -121,7 +123,9 @@ fn closed_values_snapshot_inventories(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([wire_strings, freeze_scratch])
+  guard @execution.compose_preparation_representation([
+      wire_strings, freeze_scratch,
+    ])
     is Some(temporary) else {
     return None
   }

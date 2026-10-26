@@ -72,7 +72,9 @@ fn closed_values_execution_plan_controls_layout() -> ClosedValuesExecutionPlanCo
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([records, generated, sequence, cache, copies])
+  guard @execution.compose_preparation_representation([
+      records, generated, sequence, cache, copies,
+    ])
     is Some(retained) else {
     return None
   }
@@ -151,7 +153,7 @@ fn closed_values_execution_plan_controls_layout() -> ClosedValuesExecutionPlanCo
   }
   // Two old policy-record inventories cover original -> width-specialized ->
   // scalar-wire-specialized immutable copies. Shared schemas/rows are excluded.
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       records, records, wiring, positions, fragments, arguments, replaced, quote,
       outcomes, controls,
     ])

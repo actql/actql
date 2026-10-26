@@ -152,7 +152,7 @@ fn closed_values_operation_capacity_layout(
     owned_wire_bytes: 0L,
   }
   let empty_map = closed_values_map_constructor_layout(0).unwrap()
-  let mut retained = closed_values_sum_layouts([
+  let mut retained = @execution.compose_preparation_representation([
     records, arrays, carriers, strings, empty_map,
   ]).unwrap()
   let mut temporary : @execution.PreparationRepresentationUnits = {
@@ -170,12 +170,12 @@ fn closed_values_operation_capacity_layout(
     // Retain all four trees conservatively, including temporary rowproof and
     // AST containers otherwise dead after decode. Their small slack is explicit;
     // no source/indexed Strings or spans charged twice within a tree.
-    retained = closed_values_sum_layouts([
+    retained = @execution.compose_preparation_representation([
       retained,
       source.source_retained,
       source.indexed_additional,
     ]).unwrap()
-    temporary = closed_values_sum_layouts([
+    temporary = @execution.compose_preparation_representation([
       temporary,
       source.source_growth_peak,
       source.key_admission_peak,
@@ -224,11 +224,11 @@ fn closed_values_operation_capacity_layout(
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     }
-    temporary = closed_values_sum_layouts([
+    temporary = @execution.compose_preparation_representation([
       temporary, walk, walk, views, sort, frames,
     ]).unwrap()
     for _ in 0..<(facts.objects * 2) {
-      temporary = closed_values_sum_layouts([temporary, map]).unwrap()
+      temporary = @execution.compose_preparation_representation([temporary, map]).unwrap()
     }
     // Owned serialized Bytes plus separately decoded ASCII document. The
     // common Node byte-decode recipe owns String/BytesView/subarray/result
@@ -244,13 +244,17 @@ fn closed_values_operation_capacity_layout(
       facts.input_bytes.to_int64(),
       1,
     ).unwrap()
-    temporary = closed_values_sum_layouts([temporary, wire, decoded]).unwrap()
+    temporary = @execution.compose_preparation_representation([
+      temporary, wire, decoded,
+    ]).unwrap()
   }
   // Named staging copy bounds immutable pending/complete variants, closure
   // environments, API Result/Option/tuple carriers and construction limits.
   // A whole payload packet remains live beside the retained final packet;
   // this does not charge fixed VM call frames or duplicate graph-control.
-  temporary = closed_values_sum_layouts([temporary, records, carriers, arrays]).unwrap()
+  temporary = @execution.compose_preparation_representation([
+    temporary, records, carriers, arrays,
+  ]).unwrap()
   guard @execution.preparation_representation_cost(retained) is Some(_) &&
     @execution.preparation_representation_cost(temporary) is Some(_) else {
     return None

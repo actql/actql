@@ -47,7 +47,8 @@ fn compilation_parse_layout(
     is Some(private_ast) &&
     closed_values_js_bytes_document_layout(facts.input_bytes.to_int64(), 1)
     is Some(document) &&
-    closed_values_sum_layouts([canonical.tree, text]) is Some(value) else {
+    @execution.compose_preparation_representation([canonical.tree, text])
+    is Some(value) else {
     return None
   }
   // PinnedJS utf8.encode accepts a StringView and calls src.slice before
@@ -61,7 +62,7 @@ fn compilation_parse_layout(
     owned_utf16_units: facts.input_bytes.to_int64(),
     owned_wire_bytes: facts.input_bytes.to_int64(),
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       private_ast,
       source.source_growth_peak,
       source.key_admission_peak,
@@ -124,5 +125,7 @@ fn compilation_program_emitter_layout(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  closed_values_sum_layouts([fields, maps, omitted, empty_tags, controls])
+  @execution.compose_preparation_representation([
+    fields, maps, omitted, empty_tags, controls,
+  ])
 }

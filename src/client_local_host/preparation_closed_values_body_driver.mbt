@@ -56,7 +56,7 @@ pub fn[I] prepare_closed_values_body(
     is Some(proof) &&
     closed_values_compilation_layout(facts, shape.fields, shape.rows)
     is Some(compilation) &&
-    closed_values_sum_layouts([
+    @execution.compose_preparation_representation([
       context.retained,
       compiler.retained,
       plan.retained,
@@ -64,7 +64,7 @@ pub fn[I] prepare_closed_values_body(
       compilation.retained,
     ])
     is Some(retained_units) &&
-    closed_values_sum_layouts([
+    @execution.compose_preparation_representation([
       context.temporary,
       compiler.temporary,
       compiler.failure,

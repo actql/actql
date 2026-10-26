@@ -1,42 +1,4 @@
 ///|
-/// Domain callers supply storage/slot inventories, never another tariff or
-/// an already guessed budget. Workspace is simultaneous with retained state;
-/// ExecutionCapacity therefore includes both components in its execution peak.
-priv struct PreparationExecutionInventory {
-  retained : @execution.PreparationRepresentationUnits
-  workspace : @execution.PreparationRepresentationUnits
-  retained_nodes : Int64
-  workspace_nodes : Int64
-  retained_bytes : Int64
-  workspace_bytes : Int64
-}
-
-///|
-fn preparation_execution_capacity(
-  inventory : PreparationExecutionInventory,
-) -> @execution.ExecutionCapacity? {
-  guard @execution.preparation_representation_cost(inventory.retained)
-    is Some(retained) &&
-    @execution.preparation_representation_cost(inventory.workspace)
-    is Some(workspace) else {
-    return None
-  }
-  @execution.execution_capacity_inventory(
-    [
-      { unit: QuotedBytes, count: retained, copies: 1, },
-      { unit: ValueNodeSlots, count: inventory.retained_nodes, copies: 1, },
-      { unit: QuotedBytes, count: inventory.retained_bytes, copies: 1, },
-    ],
-    [
-      { unit: QuotedBytes, count: workspace, copies: 1, },
-      { unit: ValueNodeSlots, count: inventory.workspace_nodes, copies: 1, },
-      { unit: QuotedBytes, count: inventory.workspace_bytes, copies: 1, },
-    ],
-    @execution.RetainedAlongsideExecution,
-  )
-}
-
-///|
 /// Fixed owned control family of the ordinary Node structural scanner. Its
 /// source-owned inventory is independently checked in the adapter suite; byte
 /// pricing remains exclusively this Common tariff, not a Node-issued grant.
