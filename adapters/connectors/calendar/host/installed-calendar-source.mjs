@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {readSourceProfileJson,readBoundedConfigurationText} from '../../../host-node/source-profile-json.mjs';
+import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
 import {createInstalledRowSource,installRowSourceAuthorization,openRowSourceCredentialSite,
   rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
@@ -61,11 +61,13 @@ function checkSite(site){
   return Object.freeze(selected);
 }
 
-async function readInputs(profile){
+async function readInputs(profile,configurationReader,readJson){
   const installed=checkInstalledCalendarSourceProfile(profile);
-  const site=checkSite(await readSourceProfileJson(installed.siteProfilePath));let ca;
+  const reads=captureConfigurationReaders(configurationReader,readJson,
+    ()=>fail('InstalledCalendarConfigurationReaderUnavailable'));
+  const site=checkSite(await reads.readJson(installed.siteProfilePath));let ca;
   if(site.caPath!==undefined){
-    const pem=await readBoundedConfigurationText(site.caPath,{maxBytes:installed.limits.maxCaBytes});
+    const pem=await reads.readText(site.caPath,{maxBytes:installed.limits.maxCaBytes});
     if(/[^\x09\x0a\x0d\x20-\x7e]/u.test(pem)||!pem.includes('-----BEGIN CERTIFICATE-----')||
       !pem.includes('-----END CERTIFICATE-----'))fail('InvalidInstalledCalendarTlsAuthority');
     ca=Buffer.from(pem,'ascii');
@@ -73,8 +75,8 @@ async function readInputs(profile){
   return{installed,site,ca,binding:ca===undefined?{}:{caSha256:sha(ca)}};
 }
 
-export async function installedCalendarSourceIdentityParts(profile,providerProfile){
-  const{site,binding}=await readInputs(providerProfile);
+export async function installedCalendarSourceIdentityParts(profile,providerProfile,read,_installation,context){
+  const{site,binding}=await readInputs(providerProfile,context?.configurationReader,read);
   return[{...profile,accountConfigurationWire:JSON.parse(profile.accountConfigurationWire)},site,binding];
 }
 
@@ -143,11 +145,11 @@ function originalReaderFactory({provider,site,installed,capacity}){
 }
 
 export async function loadInstalledCalendarSource(profile,{root,principalId,moon,providerMoon,
-  baseEnvironmentWire,runtimeBundleCid,resolveSecret,readerCapacity}={}){
+  baseEnvironmentWire,runtimeBundleCid,resolveSecret,readerCapacity,configurationReader}={}){
   if(readerCapacity===undefined||readerCapacity===null)fail('CalendarReaderCapacityUnavailable');
   if(typeof resolveSecret!=='function')fail('CalendarCredentialMaterialUnavailable');
   const provider=captureProvider(providerMoon);
-  const{installed,site:siteProfile,ca,binding}=await readInputs(profile),{limits}=installed;
+  const{installed,site:siteProfile,ca,binding}=await readInputs(profile,configurationReader),{limits}=installed;
   const wire=checked(provider.calendarListSchemaWire(limits.maxDeclarationBytes,limits.maxDeclarationNodes,limits.maxDepth));
   const declaration=checked(moon.clientProgramRowSourceRestoreRelationDeclaration(installed.connectorId,
     registration,revision,JSON.stringify({views:[{resource,resource_kind:'calendar_list',schema_wire:wire,
