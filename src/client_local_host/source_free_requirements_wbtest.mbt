@@ -55,6 +55,8 @@ test "source-free preparation refuses two competing retained originals" {
     assets.values,
     Some(assets.fragment),
     assets.ordered,
+    retained_output=true,
+    provider_factory=_ => [],
   ).unwrap()
   let ledger = @resources.create_ledger(requirements.maximum_limits()).unwrap()
   assert_true(

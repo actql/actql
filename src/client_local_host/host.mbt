@@ -479,6 +479,13 @@ fn open_checked_local_host(
   guard capacity is Some((limits, retained_bytes, execution_bytes)) else {
     return None
   }
+  let retained_configuration = source_free_preparation.bind(value => {
+    value.configuration
+  })
+  if retained_configuration is Some(original) &&
+    original.retained_output != retained_output {
+    return None
+  }
   let opened = if opened_run is Some(run) {
     Ok(run)
   } else if captured_sources.length() == 2 {
@@ -516,6 +523,11 @@ fn open_checked_local_host(
   let run = match opened {
     Ok(value) => value
     Err(_) => return None
+  }
+  if retained_configuration is Some(original) {
+    return bind_client_local_configuration(
+      run, original, fixed_ms, per_row_ms, per_wire_byte_ms, per_pair_ms,
+    )
   }
   configure_client_local_run(
     run,
