@@ -418,3 +418,135 @@ test "original Local estimate eligibility uses slot zero for a source-free first
   @strategy.stop_captured_dag(run)
   @strategy.refresh_captured_retention(run)
 }
+
+///|
+test "prepared Local slot retains the same selected provider and capacity without a second factory" {
+  let (_, registry, registration, sequences, execution, measurement, _) = dispatch_preparation_test_inputs()
+  let sequence = sequences[0]
+  let count = Ref(0)
+  let capacity = @execution.execution_capacity(37L, 53L).unwrap()
+  let observed = Ref(capacity)
+  let provider = @local.managed_provider(
+    _ => true,
+    _ => {
+      count.val += 1
+      Some(observed.val)
+    },
+    (_, _, _, _, _) => Err(@connector.ComputeUnsupported),
+  )
+  let installed = @local.prepare_local_compute_module(
+    registry,
+    registration,
+    [sequence],
+    execution,
+    measurement,
+    100,
+    1,
+    managed_providers=[provider],
+  ).unwrap()
+  assert_eq(count.val, 1)
+  for _ in 0..<3 {
+    assert_true(
+      physical_equal(
+        @local.local_module_managed_provider(installed, 0, sequence).unwrap(),
+        provider,
+      ),
+    )
+    assert_true(
+      physical_equal(
+        @local.local_module_capacity(installed, 0).unwrap(),
+        capacity,
+      ),
+    )
+    assert_true(
+      physical_equal(
+        @local.local_module_capacity_for_sequence(installed, 0, sequence).unwrap(),
+        capacity,
+      ),
+    )
+  }
+  assert_eq(count.val, 1)
+  let step = @execution.generated_sequence_step_index_at(sequence, 0).unwrap()
+  let changed = @execution.select_generated_sequence_step(sequence, step).unwrap()
+  observed.val = @execution.execution_capacity(38L, 53L).unwrap()
+  assert_true(
+    @local.local_module_capacity_for_sequence(installed, 0, changed) is None,
+  )
+  assert_eq(count.val, 2)
+  observed.val = @execution.execution_capacity(36L, 52L).unwrap()
+  assert_true(
+    @local.local_module_capacity_for_sequence(installed, 0, changed) is Some(_),
+  )
+  assert_eq(count.val, 3)
+  assert_true(
+    physical_equal(
+      @local.local_module_capacity(installed, 0).unwrap(),
+      capacity,
+    ),
+  )
+  assert_true(
+    @local.local_module_managed_provider(installed, 1, sequence) is None,
+  )
+  let (other, _, _, _, _, _, _) = dispatch_preparation_test_inputs()
+  let assets = @publication_host.client_local_product_assets()
+  let contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let foreign = prepare_client_local_sequences(
+      other,
+      contracts,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    ).unwrap()[0]
+  assert_true(
+    @local.local_module_managed_provider(installed, 0, foreign) is None,
+  )
+  assert_eq(count.val, 3)
+}
+
+///|
+test "prepared module snapshots original input containers before provider callback reentry" {
+  let (_, registry, registration, sequences, execution, measurement, _) = dispatch_preparation_test_inputs()
+  let sequence = sequences[0]
+  let input_sequences = [sequence]
+  let input_providers : Array[@local.ManagedProvider] = []
+  let capacity = @execution.execution_capacity(37L, 53L).unwrap()
+  let provider = @local.managed_provider(
+    _ => {
+      input_sequences.clear()
+      input_providers.clear()
+      true
+    },
+    _ => Some(capacity),
+    (_, _, _, _, _) => Err(@connector.ComputeUnsupported),
+  )
+  input_providers.push(provider)
+  let installed = @local.prepare_local_compute_module(
+    registry,
+    registration,
+    input_sequences,
+    execution,
+    measurement,
+    100,
+    1,
+    managed_providers=input_providers,
+  ).unwrap()
+  assert_true(input_sequences.is_empty())
+  assert_true(input_providers.is_empty())
+  assert_true(
+    physical_equal(
+      @local.local_module_managed_provider(installed, 0, sequence).unwrap(),
+      provider,
+    ),
+  )
+  assert_true(
+    physical_equal(
+      @local.local_module_capacity(installed, 0).unwrap(),
+      capacity,
+    ),
+  )
+}

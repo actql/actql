@@ -61,7 +61,7 @@ test "original interval JSON and SQL use the installed bounded Relation chain" {
       managed_providers=[family],
     ).unwrap()
     let provider = @local_connector.local_module_managed_provider(
-      implementation, generated,
+      implementation, 0, generated,
     ).unwrap()
     let active = @local_connector.start_managed_provider_with_inputs_and_execution(
       provider,

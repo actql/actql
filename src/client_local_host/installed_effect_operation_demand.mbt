@@ -101,8 +101,7 @@ struct ClientInstalledEffectManagedPlan {
   sequences : Array[@execution.GeneratedSequence]
   compute_sequences : Array[@execution.GeneratedSequence]
   capacity_plan : ClientLocalCapacityPlan
-  provider_retained_bytes : Int64
-  provider_execution_bytes : Int64
+  configuration : ClientPreparedLocalConfiguration
   rows : Int
   held_children : Int
   _observed_compute_limits : @resources.LedgerLimits
@@ -164,6 +163,9 @@ pub fn prepare_installed_effect_managed_plan(
   fragment_body : String?,
   ordered_body : String?,
   selected_operations : Array[ClientInstalledEffectOperationDemand],
+  provider_factory~ : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
   source_providers? : Array[@execution.ExecutionCapacity]? = None,
 ) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
@@ -308,14 +310,35 @@ pub fn prepare_installed_effect_managed_plan(
       (tail, configuration, capacity)
     }
   }
+  let configuration = match
+    prepare_client_local_configuration(
+      graph,
+      capacity_plan,
+      ExecutionRows,
+      local_capacity.provider_retained,
+      local_capacity.provider_execution,
+      true,
+      provider_factory,
+    ) {
+    Some(value) => value
+    None => return Err(Unsupported)
+  }
+  let actual_local_capacity = match
+    client_prepared_local_configuration_capacity(
+      configuration,
+      local_capacity.limits,
+    ) {
+    Some(value) => value
+    None => return Err(Unsupported)
+  }
   let compute_limits = match source_free {
-    Some(original) => {
+    Some(_) => {
       if !declarations.is_empty() ||
         !transport_bytes.is_empty() ||
         !transport_execution_bytes.is_empty() {
         return Err(Unsupported)
       }
-      original.limits
+      actual_local_capacity.limits
     }
     None => {
       if @strategy.graph_captured_prefix(graph) == 0 {
@@ -327,7 +350,7 @@ pub fn prepare_installed_effect_managed_plan(
           transport_bytes,
           transport_execution_bytes,
           sequences,
-          local_capacity=Some(local_capacity),
+          local_capacity=Some(actual_local_capacity),
         )
         is Some(limits) else {
         return Err(Unsupported)
@@ -525,8 +548,7 @@ pub fn prepare_installed_effect_managed_plan(
     sequences,
     compute_sequences,
     capacity_plan,
-    provider_retained_bytes: local_capacity.provider_retained,
-    provider_execution_bytes: local_capacity.provider_execution,
+    configuration,
     rows,
     held_children: held_children.to_int(),
     _observed_compute_limits: compute_limits,

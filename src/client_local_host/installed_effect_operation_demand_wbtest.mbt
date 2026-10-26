@@ -91,6 +91,9 @@ fn effect_operation_plan_fixture(
   request : @publication_host.ClientRequestIdentity,
   contracts : ClientInstalledSequenceContracts,
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
+  provider_factory? : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ] = _ => [],
 ) -> ClientInstalledEffectManagedPlan {
   let metadata = prepare_installed_effect_operation_extent(
     "operation",
@@ -131,6 +134,7 @@ fn effect_operation_plan_fixture(
     None,
     [demand],
     query_time~,
+    provider_factory~,
   ).unwrap()
 }
 
@@ -295,6 +299,7 @@ fn effect_operation_source_plan_fixture(
     [demand],
     query_time=query_time_for.map(make => make(prepared, request)),
     source_providers=provider.map(value => [value]),
+    provider_factory=_ => [],
   ).unwrap()
 }
 
@@ -474,6 +479,7 @@ test "Effect plan snapshots selected arrays and never treats returned quote DATA
     Some(source_query_original_fragment),
     None,
     demands,
+    provider_factory=_ => [],
   ).unwrap()
   demands.clear()
   let quote = prepared_installed_effect_managed_requirements(plan)
@@ -529,6 +535,7 @@ test "Effect operation demand preserves exact checked member and request binding
       Some(source_query_original_fragment),
       None,
       [foreign],
+      provider_factory=_ => [],
     )
     is Err(ForeignOriginal),
   )
@@ -583,6 +590,7 @@ test "Effect demand refuses invalid and overflowing extents without raising a bo
       Some(source_query_original_fragment),
       None,
       [demand],
+      provider_factory=_ => [],
     )
     is Err(Unsupported),
   )
@@ -770,6 +778,7 @@ test "operation demand follows checked zero or three rows and both ordered Effec
       Some(source_query_original_fragment),
       None,
       [first, second],
+      provider_factory=_ => [],
     ).unwrap()
     assert_eq(plan.rows, count)
     assert_eq(
@@ -798,8 +807,42 @@ test "operation demand follows checked zero or three rows and both ordered Effec
         Some(source_query_original_fragment),
         None,
         [second, first],
+        provider_factory=_ => [],
       )
       is Err(ForeignOriginal),
     )
   }
+}
+
+///|
+test "actual retained module provider envelopes determine the same checked task quote" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let small = @execution.execution_capacity(37L, 53L).unwrap()
+  let large = @execution.execution_capacity(137L, 253L).unwrap()
+  let make : (@execution.ExecutionCapacity) -> Array[@local.ManagedProvider] = capacity => {
+    [
+      @local.managed_provider(_ => true, _ => Some(capacity), (_, _, _, _, _) => {
+        Err(@connector.ComputeUnsupported)
+      }),
+    ]
+  }
+  let first = effect_operation_plan_fixture(prepared, request, contracts, provider_factory=_ => {
+    make(small)
+  })
+  let second = effect_operation_plan_fixture(prepared, request, contracts, provider_factory=_ => {
+    make(large)
+  })
+  let tasks = first.compute_sequences.length().to_int64()
+  assert_true(tasks > 0L)
+  assert_eq(
+    second._observed_compute_limits.retained_bytes -
+    first._observed_compute_limits.retained_bytes,
+    100L * tasks,
+  )
+  // RetainedAlongsideExecution includes this task's retained backing too.
+  assert_eq(
+    second._observed_compute_limits.execution_bytes -
+    first._observed_compute_limits.execution_bytes,
+    300L * tasks,
+  )
 }

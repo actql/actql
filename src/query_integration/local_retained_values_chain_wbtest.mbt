@@ -60,7 +60,7 @@ test "retained source-free Values chain admits the exact bounded producer" {
     1,
   ).unwrap()
   assert_true(
-    @local_connector.local_module_managed_provider(implementation, generated)
+    @local_connector.local_module_managed_provider(implementation, 0, generated)
     is Some(_),
   )
   assert_true(
@@ -195,7 +195,7 @@ test "source-free scalar chain uses independent exact work and workspace limits"
         1,
       ).unwrap()
       let provider = @local_connector.local_module_managed_provider(
-        installed, generated,
+        installed, 0, generated,
       ).unwrap()
       let active = @local_connector.start_managed_provider_with_inputs_and_execution(
         provider,
@@ -429,7 +429,7 @@ test "source-free Values chains preserve ordered results and cancellation custod
       1,
     ).unwrap()
     let provider = @local_connector.local_module_managed_provider(
-      installed, generated,
+      installed, 0, generated,
     ).unwrap()
     for cancel in [false, true] {
       let active = @local_connector.start_managed_provider_with_inputs_and_execution(

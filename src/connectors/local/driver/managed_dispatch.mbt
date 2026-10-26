@@ -537,6 +537,7 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
   }
   let provider = @local.local_module_managed_provider(
     installed.implementation,
+    local_task_slot(installed, task),
     sequence,
   )
   // Managed Local work runs only through a bounded provider. A sequence no
@@ -546,7 +547,12 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     return Ok(None)
   }
   let base = match provider {
-    Some(value) => @local.managed_provider_capacity(value, sequence)
+    Some(_) =>
+      @local.local_module_capacity_for_sequence(
+        installed.implementation,
+        local_task_slot(installed, task),
+        sequence,
+      )
     None =>
       @execution.generated_sequence_capacity(
         sequence,
