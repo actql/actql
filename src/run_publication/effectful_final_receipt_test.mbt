@@ -1859,3 +1859,37 @@ test "Effect-free commit chain rejects self-identified substituted rows" {
     is Err(EvidenceReferenceMismatch("captured_result_values")),
   )
 }
+
+///|
+test "completion chain retains admitted Set outcomes with its original final Receipt" {
+  let chain = captured_run_test_chain()
+  let preview = final_test_preview(chain)
+  let captured = final_test_captured(chain)
+  let (set_wire, members, set_cid) = final_test_receipts(preview)
+  let final_wire = final_test_receipt_wire(
+    chain.receipt,
+    preview,
+    set_cid,
+    captured,
+  )
+  let (receipt, outcomes) = admit_effectful_final_run_evidence_with_outcomes(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    captured,
+    preview,
+    set_wire,
+    members,
+    final_wire,
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_eq(publication_contract_json(receipt), final_wire)
+  assert_eq(effect_set_apply_receipt_disposition(outcomes), 0)
+  // The existing fixture has a complete empty row inventory, not an entered row.
+  assert_true(effect_set_apply_receipt_all_unattempted(outcomes))
+}

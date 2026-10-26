@@ -139,6 +139,7 @@ fn effect_operation_plan_fixture(
 // generation supplies only fixture inputs; no Source/physical observation is
 // generated, and expected identities/rows are not taken from execution output.
 fn effect_operation_source_plan_fixture(
+  provider? : @execution.ExecutionCapacity? = None,
   query_time_for? : ((
     @publication_host.PreparedClientEffectComputation,
     @publication_host.ClientRequestIdentity,
@@ -293,6 +294,7 @@ fn effect_operation_source_plan_fixture(
     None,
     [demand],
     query_time=query_time_for.map(make => make(prepared, request)),
+    source_providers=provider.map(value => [value]),
   ).unwrap()
 }
 

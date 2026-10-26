@@ -204,6 +204,31 @@ pub fn admit_effect_set_apply_receipt_references(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[PublicationContract, EffectSetApplyReceiptBindingIssue] {
+  admit_effect_set_apply_receipt_evidence(
+    preview, set_wire, member_receipt_wires, max_wire_bytes, max_nodes, max_depth,
+  ).map(value => value.receipt)
+}
+
+///|
+/// Complete admitted member outcomes retained by the existing Receipt owner.
+/// This DATA is not a dispatch, cancellation, publication or physical ACK.
+pub struct EffectSetApplyReceiptEvidence {
+  priv receipt : PublicationContract
+  priv disposition : Int
+  priv all_unattempted : Bool
+}
+
+///|
+/// Admit the full closure once and retain its actual row partition. A member
+/// aggregate or failed disposition cannot stand in for the admitted rows.
+pub fn admit_effect_set_apply_receipt_evidence(
+  preview : EffectPreviewIdentity,
+  set_wire : String,
+  member_receipt_wires : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[EffectSetApplyReceiptEvidence, EffectSetApplyReceiptBindingIssue] {
   let count = effect_preview_member_count(preview)
   if member_receipt_wires.length() != count {
     return Err(MemberCountMismatch)
@@ -287,7 +312,37 @@ pub fn admit_effect_set_apply_receipt_references(
   if contract_string(set, "status") != Some(expected_status) {
     return Err(SetStatusMismatch)
   }
-  Ok(set)
+  let disposition = match contract_string(set, "status") {
+    Some("applied") | Some("accepted") => 0
+    Some("unknown_outcome") => 1
+    _ => 2
+  }
+  let mut all_unattempted = true
+  for receipt in receipts {
+    for row in effect_receipt_rows(receipt.value).unwrap() {
+      match @json.object_field(row, "state") {
+        Some(@json.String("unattempted")) => ()
+        _ => all_unattempted = false
+      }
+    }
+  }
+  Ok({ receipt: set, disposition, all_unattempted, })
+}
+
+///|
+pub fn effect_set_apply_receipt_disposition(
+  value : EffectSetApplyReceiptEvidence,
+) -> Int {
+  value.disposition
+}
+
+///|
+/// Every actual admitted row is unattempted; no current authority or whole-Run
+/// stop follows from this immutable partition. Empty row inventories are vacuous.
+pub fn effect_set_apply_receipt_all_unattempted(
+  value : EffectSetApplyReceiptEvidence,
+) -> Bool {
+  value.all_unattempted
 }
 
 ///|
@@ -302,16 +357,7 @@ pub fn effect_set_receipt_run_disposition(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[Int, EffectSetApplyReceiptBindingIssue] {
-  let set = match
-    admit_effect_set_apply_receipt_references(
-      preview, set_wire, member_receipt_wires, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  match contract_string(set, "status") {
-    Some("applied") | Some("accepted") => Ok(0)
-    Some("unknown_outcome") => Ok(1)
-    _ => Ok(2)
-  }
+  admit_effect_set_apply_receipt_evidence(
+    preview, set_wire, member_receipt_wires, max_wire_bytes, max_nodes, max_depth,
+  ).map(value => value.disposition)
 }
