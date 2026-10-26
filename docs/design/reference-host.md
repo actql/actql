@@ -1518,10 +1518,13 @@ single consuming grammar, including return validation for all consumers.
 The callback receives the exact original response before charge or projection
 and must return synchronous Unit. The valid path returns `undefined` without
 allocating a Promise. A non-Unit returned value, including an async callback's
-Promise of Unit, is joined before the consumer's original protocol error is
-raised. Consumers await a returned value only when it is not `undefined`.
-An original synchronous callback throw stays primary. Connector-specific
-error selection remains with the consumer's supplied error factory.
+Promise of Unit, is joined before refusing a fulfilled result with the
+consumer's original protocol error. A rejected borrow instead propagates its
+exact original rejection unchanged, retaining any outcome and pending cleanup
+carrier; the helper does not inspect or clone it. Consumers await a returned
+value only when it is not `undefined`. An original synchronous callback throw
+also stays primary. Connector-specific protocol error selection remains with
+the consumer's supplied error factory.
 
 This helper performs no I/O, permission, charge, outcome classification or
 cleanup. Selecting the callback supplies no capacity or retirement ACK, and

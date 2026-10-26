@@ -82660,7 +82660,7 @@
     {
       "module": "adapters/host-common/source-response-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "139e88e0e8d8c4136d7148aac5e8852838ade96bd81fa702454b22d3af430681",
+      "sha256": "e5d53c97c58a18dba4cea01f84af1300bc0b4d16beee5a80997338557e4d34b0",
       "role": "physical-io",
       "owner": "Existing installed Source response custody and provider sequence Owners",
       "exports": [
@@ -82686,11 +82686,6 @@
           "name": "captureSourceResponseCustody/retainSourceResponse/retainSourceResponse",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "captureSourceResponseCustody/retainSourceResponse/retainSourceResponse#2",
-          "parameters": [],
-          "async": false
         }
       ],
       "contracts": [
@@ -82699,8 +82694,7 @@
             "<module>",
             "captureSourceResponseCustody",
             "captureSourceResponseCustody/retainSourceResponse",
-            "captureSourceResponseCustody/retainSourceResponse/retainSourceResponse",
-            "captureSourceResponseCustody/retainSourceResponse/retainSourceResponse#2"
+            "captureSourceResponseCustody/retainSourceResponse/retainSourceResponse"
           ],
           "exports": [
             "captureSourceResponseCustody"
@@ -82768,6 +82762,10 @@
               {
                 "path": "adapters/host-common/source-response-custody.test.mjs",
                 "anchor": "test('non-Unit response custody stays joined"
+              },
+              {
+                "path": "adapters/host-common/source-response-custody.test.mjs",
+                "anchor": "test('a rejected custody borrow preserves"
               }
             ]
           }
