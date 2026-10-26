@@ -197,3 +197,22 @@ shared representation units. The existing Working growth/retirement protocol
 owns that transition. Native and Remote consumers must retain their actual
 backend module and limits; a Node owner or Local policy is not a substitute.
 Completed-only metadata access supplies no execution or restoration authority.
+
+
+## Native standard module handoff
+
+The existing Native Source preparation can retain its full Pure or Effect
+sequence array; it does not need a Node managed owner to preserve that DATA.
+The standard Local/DuckDB module preparation takes the original checked graph,
+parent Ledger, registrations, sequences and typed backend limits before any
+captured Run exists. DuckDB static compiler work charges that same Ledger
+before each task; partial failure retains consumed work. This is planning,
+not an attempt, Source read or physical database allocation.
+
+Binding requires the exact graph and parent Ledger and uses the original
+prepared modules through the canonical configured-module assembly. Static
+rejections and compilation are retained rather than recomputed at binding.
+The selected Local input/output and Native retained-output policies are sealed
+before quotation; later estimates and strategy/current checks still use the
+actual Run. This does not supply Native Source/database physical backing or
+fund initial constructor controls from execution buffer limits.
