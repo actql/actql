@@ -8375,7 +8375,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9166,7 +9166,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -24130,6 +24130,145 @@
               {
                 "path": "src/client_local_host/installed_source_read_wbtest.mbt",
                 "anchor": "test \"Source read requirement keeps the same checked Program and occurrence\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/physical_strategy/retained_task_projection.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "b72d4be834ff4bfc686577f4ca0722d86d27095cbe626bd67109b71d981ff8ed",
+      "role": "common-semantics",
+      "owner": "Existing original retained-task projection and checked graph Owner; no preparation, capture or admission issuer",
+      "exports": [],
+      "operations": [
+        {
+          "name": "open_retained_effect_task_dag",
+          "declaration": "open_retained_effect_task_dag ( checked : CheckedEffectRunDAG , projection : RetainedTaskProjection , output : @ execution . CompletedOutput , ledger : @ resources . Ledger , canonical_wire_bytes ~ : Int , ) - > Result [ CapturedEffectRunDAG , RunIssue ]"
+        },
+        {
+          "name": "open_retained_task_dag",
+          "declaration": "open_retained_task_dag ( value : RetainedTaskProjection , output : @ execution . CompletedOutput , ledger : @ resources . Ledger , canonical_wire_bytes ~ : Int , ) - > Result [ CapturedDAG , RunIssue ]"
+        },
+        {
+          "name": "prepare_retained_effect_task_projection",
+          "declaration": "prepare_retained_effect_task_projection ( checked : CheckedEffectRunDAG , ) - > Result [ RetainedTaskProjection , RunIssue ]"
+        },
+        {
+          "name": "prepare_retained_task_projection",
+          "declaration": "prepare_retained_task_projection ( original : CheckedDAG , consumer : Int , ) - > Result [ RetainedTaskProjection , RunIssue ]"
+        },
+        {
+          "name": "prepare_retained_task_projection_owned",
+          "declaration": "prepare_retained_task_projection_owned ( original : CheckedDAG , consumer : Int , ) - > Result [ RetainedTaskProjection , RunIssue ]"
+        },
+        {
+          "name": "retained_task_projection_consumer",
+          "declaration": "retained_task_projection_consumer ( value : RetainedTaskProjection ) - > Int"
+        },
+        {
+          "name": "retained_task_projection_graph",
+          "declaration": "retained_task_projection_graph ( value : RetainedTaskProjection ) - > CheckedDAG"
+        },
+        {
+          "name": "retained_task_projection_matches_output",
+          "declaration": "retained_task_projection_matches_output ( value : RetainedTaskProjection , output : @ execution . CompletedOutput , ) - > Bool"
+        },
+        {
+          "name": "retained_task_projection_producer",
+          "declaration": "retained_task_projection_producer ( value : RetainedTaskProjection ) - > Int"
+        },
+        {
+          "name": "retained_task_projection_reference",
+          "declaration": "retained_task_projection_reference ( value : RetainedTaskProjection , max_references : Int , max_work : Int , ) - > Result [ CheckedTaskReference , CheckedTaskReferenceIssue ]"
+        },
+        {
+          "name": "retained_task_projection_target",
+          "declaration": "retained_task_projection_target ( value : RetainedTaskProjection , ) - > @ pipeline . Target"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "open_retained_effect_task_dag",
+            "open_retained_task_dag",
+            "prepare_retained_effect_task_projection",
+            "prepare_retained_task_projection",
+            "prepare_retained_task_projection_owned",
+            "retained_task_projection_consumer",
+            "retained_task_projection_graph",
+            "retained_task_projection_matches_output",
+            "retained_task_projection_producer",
+            "retained_task_projection_reference",
+            "retained_task_projection_target"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Ownership and scope"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/physical_strategy/retained_task_projection.mbt",
+                "anchor": "pub fn retained_task_projection_graph("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/physical_strategy/retained_task_projection.mbt",
+                "anchor": "struct RetainedTaskProjection {"
+              },
+              {
+                "path": "src/physical_strategy/retained_task_projection.mbt",
+                "anchor": "  graph : CheckedDAG"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/physical_strategy/retained_task_projection.mbt",
+                "anchor": "  value.graph"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/physical_strategy/retained_task_projection.mbt",
+                "anchor": "pub fn retained_task_projection_graph("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/physical_strategy/retained_task_projection.mbt",
+                "anchor": "return Err(UnsupportedGraph)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "Closing a retained task revokes result use immediately."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/physical_strategy/retained_task_projection.mbt",
+                "anchor": "immutable graph creates no capture, module, Run or execution authority."
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/physical_strategy/retained_task_projection.mbt",
+                "anchor": "pub fn retained_task_projection_reference("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_strategy/pkg.generated.mbti",
+                "anchor": "pub fn retained_task_projection_graph(RetainedTaskProjection) -> CheckedDAG"
               }
             ]
           }
