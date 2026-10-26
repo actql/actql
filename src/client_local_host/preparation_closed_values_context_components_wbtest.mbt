@@ -29,7 +29,7 @@ test "Unit publication composes generated parsers and writers without row payloa
   assert_true(a.source_admission == b.source_admission)
   assert_true(a.writers == b.writers)
   assert_eq(a.payload.owned_wire_bytes, 796L)
-  let combined = closed_values_sum_layouts([
+  let combined = @execution.compose_preparation_representation([
     a.payload,
     a.source_admission,
     a.writers,

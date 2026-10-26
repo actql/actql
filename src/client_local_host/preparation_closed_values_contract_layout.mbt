@@ -89,7 +89,7 @@ fn closed_values_contract_layout() -> ClosedValuesContractLayout? {
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       seen, owners, seen, adjacency_maps, adjacency, growth, controls, edge, proof,
     ])
     is Some(temporary) else {

@@ -72,7 +72,9 @@ fn closed_values_execution_plan_controls_layout() -> ClosedValuesExecutionPlanCo
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([records, generated, sequence, cache, copies])
+  guard @execution.compose_preparation_representation([
+      records, generated, sequence, cache, copies,
+    ])
     is Some(retained) else {
     return None
   }
@@ -107,14 +109,21 @@ fn closed_values_execution_plan_controls_layout() -> ClosedValuesExecutionPlanCo
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  // generated_sequence_capacity's three scalar arrays(lengths3/7/3), one
-  // ExecutionCapacity, Some, ClientLocalSequenceCapacity, two result tuples
-  // and two Some carriers. Capacity values are scalar DATA, not allocations
-  // of the executor's reported 256-byte allowance per future node.
+  // generated_sequence_capacity now constructs three typed inventory lists
+  // (4/10/2 entries), not the former scalar arrays (3/7/3). Each list owns
+  // an Array/backing pair:6H/19R/6W. Its16 ExecutionCapacityItem records own
+  //16H/0R/48W (unit,count,copies); scalar enum tags do not own payload trees.
+  // The shared inventory fold returns16 per-item and3 final scalar Options:
+  //19H/0R/38W. The one Values sequence has no fragment contexts, so the
+  // per-fragment list is never constructed. This is preparation of the quote,
+  // not backing for any executor value-node allowance.
+  // Keep the original non-list controls separately: ExecutionCapacity+Some,
+  // ClientLocalSequenceCapacity, two result tuples and two Some carriers:
+  //7H/5R/12W. Source rows, policies and plan bodies remain original aliases.
   let quote : @execution.PreparationRepresentationUnits = {
-    record_headers: 13L,
-    reference_slots: 8L,
-    scalar_words: 31L,
+    record_headers: 6L + 16L + 19L + 7L,
+    reference_slots: 19L + 5L,
+    scalar_words: 6L + 48L + 38L + 12L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
@@ -144,7 +153,7 @@ fn closed_values_execution_plan_controls_layout() -> ClosedValuesExecutionPlanCo
   }
   // Two old policy-record inventories cover original -> width-specialized ->
   // scalar-wire-specialized immutable copies. Shared schemas/rows are excluded.
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       records, records, wiring, positions, fragments, arguments, replaced, quote,
       outcomes, controls,
     ])

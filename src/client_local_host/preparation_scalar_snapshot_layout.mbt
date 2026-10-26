@@ -79,7 +79,7 @@ fn scalar_snapshot_layout(
     owned_wire_bytes: 0L,
   }
   let final_fields = closed_values_program_arrays(1L, f, false)
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       canonical.tree,
       strings,
       snapshot,
@@ -93,7 +93,7 @@ fn scalar_snapshot_layout(
   // Parsing -> indexed admission -> canonical admission may overlap at transfer.
   // Sum their private inventories conservatively. Strings above remain R even
   // after those owners are cleared; no GC or RSS release claim is made.
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       private_source,
       source.source_growth_peak,
       source.indexed_additional,
@@ -196,7 +196,7 @@ fn scalar_snapshot_layout(
   }
   guard scalar_snapshot_name_normalization_layout(name_bytes)
     is Some(normalization) &&
-    closed_values_sum_layouts([
+    @execution.compose_preparation_representation([
       source_peak, keys, key_map, pending, indices, admission, output_growth, emit_pending,
       emits, preparation, field_keys, field_growth, indices, writers, normalization,
       field_sort, access,
@@ -240,7 +240,9 @@ fn scalar_snapshot_layout(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([private_export_writer, export_controls])
+  guard @execution.compose_preparation_representation([
+      private_export_writer, export_controls,
+    ])
     is Some(export_peak) else {
     return None
   }
@@ -284,7 +286,7 @@ fn scalar_snapshot_layout(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       sequential,
       original_wire,
       export_fields,
@@ -343,5 +345,5 @@ fn scalar_snapshot_name_normalization_layout(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  closed_values_sum_layouts([arrays, text, controls])
+  @execution.compose_preparation_representation([arrays, text, controls])
 }

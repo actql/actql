@@ -44,7 +44,7 @@ fn closed_values_normalization_layout(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       wrappers,
       {
         record_headers: journal.record_headers,
@@ -111,7 +111,7 @@ fn closed_values_normalization_layout(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       source.source_retained,
       source.source_growth_peak,
       source.indexed_additional,

@@ -30,7 +30,7 @@ test "identity source traversal and simultaneous emitter frames grow with origin
     @execution.preparation_representation_cost(deep.emission).unwrap() >
     @execution.preparation_representation_cost(small.emission).unwrap(),
   )
-  let total = closed_values_sum_layouts([
+  let total = @execution.compose_preparation_representation([
     small.fixed,
     small.preparation,
     small.emission,

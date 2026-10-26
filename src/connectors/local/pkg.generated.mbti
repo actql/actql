@@ -114,6 +114,8 @@ pub fn local_module_capacity(LocalComputeModule, Int) -> @execution_relation.Exe
 
 pub fn local_module_capacity_for_sequence(LocalComputeModule, Int, @execution_relation.GeneratedSequence) -> @execution_relation.ExecutionCapacity?
 
+pub fn local_module_container_inventory(Int, Int) -> @execution_relation.PreparationRepresentationUnits?
+
 pub fn local_module_execution_limits(LocalComputeModule) -> @execution_relation.SequenceExecutionLimits
 
 pub fn local_module_managed_capacity(LocalComputeModule) -> @connector_sdk.FixedComputeCapacity
@@ -125,8 +127,6 @@ pub fn local_module_managed_sequence_supported(LocalComputeModule, Int) -> Bool
 pub fn local_module_max_work(LocalComputeModule) -> Int
 
 pub fn local_module_measurement_limits(LocalComputeModule) -> @execution_relation.FixedInputGuardMeasureLimits
-
-pub fn local_module_selection_container_inventory(Int) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn local_module_sequence_contains_carrier_step(LocalComputeModule, Int) -> Bool
 

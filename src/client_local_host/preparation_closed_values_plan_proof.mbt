@@ -85,7 +85,7 @@ fn closed_values_plan_proof_layout(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       arrays, controls, field_views, writers, material, emission_arrays, emission,
     ])
     is Some(temporary) else {

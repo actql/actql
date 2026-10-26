@@ -190,6 +190,16 @@ full check and cannot exceed that slot's original envelope. Input sequence and
 provider containers are snapshotted before callbacks can reenter; immutable
 provider dependencies remain shared rather than copied or upgraded.
 
+Preparation domains supply the owned representation extents and declared
+coexistence. `execution_relation.compose_preparation_representation` owns their
+checked five-unit composition under the same tariff. Composition preserves
+occurrences; it cannot infer aliases or release a previous owner. Phase drivers
+reserve the result through their original `PreparationCapacity`.
+The common `PreparationExecutionInventory` also composes retained/workspace
+representations, value-node extents and existing byte quotes. Its execution
+capacity includes retained state alongside workspace; that projection is not
+an independent initial-construction reservation or physical backing receipt.
+
 Per-task execution envelopes do not pay for compilation, factory construction,
 retained module/control objects or their next-phase overlap. Those inventories
 must be funded by the original preparation before construction, using the same
@@ -218,16 +228,31 @@ actual Run. This does not supply Native Source/database physical backing or
 fund initial constructor controls from execution buffer limits.
 
 
-## Retained selection container ownership
+## Retained module container ownership
 
-The two retained Local selection arrays have a domain-owned container
-inventory: exact slot storage, both array/backing pairs and the module's
-references. It uses the common representation units and price without adding
-a tariff or copying the referenced provider/capacity bodies. The one-task
-closed Values supplier includes those containers in its original initial
-reservation before construction. This container inventory does not cover the
-providers' closure/kernel construction, capacity payload ownership or other
-module controls; those remain separate simultaneous demands.
+Local snapshots the sequence and installed-provider containers before invoking
+callbacks, and owns the provider/capacity selection arrays. Their exact-length
+storage is one domain inventory: eight array/backing headers, `3N + M + 8`
+reference slots and eight scalar words for N sequences and M installed
+providers. References borrow original sequence/provider/capacity bodies;
+those bodies and factory temporaries have separate owners and demands.
+Preparation of an execution quote also owns its typed inventory item records,
+list backings and scalar fold outcomes. The executor's quoted byte allowances
+do not fund those constructor objects.
+
+The selected Node package retains one immutable container recipe. One compiled
+ordered family composition supplies both its provider count and actual factory
+traversal. Projecting that count constructs no policy, provider or kernel. The
+existing initial-control and begin bridges use that SAME recipe without
+accepting a JavaScript count or unit override. The provider-free RelA factory
+has an empty installed dimension; it does not expose these Node initial
+bridges. The generic domain inventory retains that zero-provider case.
+The original preparation owns
+one borrowed reference to it; every later phase reuses it for the original
+reservation. Provider/kernel construction, callback scratch and other module
+controls still require their complete inventories before their actual
+constructors may move into this fixed Body path. A container quote is neither
+physical backing nor permission to run those unfunded constructors.
 
 
 ## Pure selected module preparation

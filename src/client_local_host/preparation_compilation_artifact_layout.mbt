@@ -66,7 +66,7 @@ fn compilation_number_contract_emitter_layout() -> @execution.PreparationReprese
     owned_wire_bytes: 0L,
   }
   guard closed_values_sort_scratch_layout(4) is Some(sort) else { return None }
-  closed_values_sum_layouts([packet, sort])
+  @execution.compose_preparation_representation([packet, sort])
 }
 
 ///|
@@ -141,5 +141,5 @@ fn compilation_writer_ancestry_layout(
     owned_utf16_units: 2L * m * bytes.to_int64(),
     owned_wire_bytes: 0L,
   }
-  closed_values_sum_layouts([repeated, material])
+  @execution.compose_preparation_representation([repeated, material])
 }

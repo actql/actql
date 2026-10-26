@@ -18,7 +18,9 @@ fn compilation_small_witness_emitter_layout() -> @execution.PreparationRepresent
   let arrays = closed_values_program_arrays(4L, 27L, true)
   guard closed_values_walk_storage_layout(15, 9) is Some(walk) &&
     closed_values_sort_scratch_layout(9) is Some(sort) &&
-    closed_values_sum_layouts([records, maps, arrays, walk, sort, sort, sort])
+    @execution.compose_preparation_representation([
+      records, maps, arrays, walk, sort, sort, sort,
+    ])
     is Some(one) else {
     return None
   }

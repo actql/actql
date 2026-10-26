@@ -79,7 +79,8 @@ fn compilation_canonical_layout(
     is Some(sort) else {
     return None
   }
-  guard closed_values_sum_layouts([maps, admission, sort]) is Some(temporary) &&
+  guard @execution.compose_preparation_representation([maps, admission, sort])
+    is Some(temporary) &&
     @execution.preparation_representation_cost(tree) is Some(_) else {
     return None
   }
