@@ -28,6 +28,7 @@ import {
   "actql/actql/connectors/duckdb/host_native" @duckdb_native,
   "actql/actql/connectors/duckdb/adapters/native" @duckdb,
   "actql/actql/physical_strategy_host" @strategy,
+  "actql/actql/physical_strategy" @graph,
   "actql/actql/physical_resources" @resources,
   "actql/actql/execution_query" @query,
   "actql/actql/execution_relation" @execution,

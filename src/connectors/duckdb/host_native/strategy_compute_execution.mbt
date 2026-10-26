@@ -267,6 +267,25 @@ pub fn execute_native_strategy_compute_runtime(
     })
   }
   runtime.started = true
+  // Use the original TaskExecution reservation at this actual physical
+  // boundary, before any retained file, import or transaction can start.
+  // Reentry is already spent above, and a lost outcome never refunds use.
+  match
+    @strategy.begin_task_execution_use(
+      runtime.graph,
+      @duckdb_driver.captured_duckdb_execution(runtime.task),
+    ) {
+    Ok(_) => ()
+    Err(issue) => {
+      close_native_strategy_database(runtime)
+      let settlement = dispose_native_strategy_task(runtime)
+      return Err({
+        primary: Strategy(Physical(issue)),
+        rollback: None,
+        settlement,
+      })
+    }
+  }
   let retained : NativeComputeRetainedOutput? = match
     (runtime.retained_profile, runtime.retained_bytes) {
     (Some(profile), Some(bytes)) => {

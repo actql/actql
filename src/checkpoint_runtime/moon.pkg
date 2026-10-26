@@ -10,3 +10,7 @@ import {
 }
 
 formatter(ignore: [ "signature_vectors.generated_test.mbt" ])
+
+import {
+  "moonbitlang/core/encoding/utf8",
+} for "wbtest"

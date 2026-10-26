@@ -6,6 +6,7 @@ priv struct LocalInitialSigningAdoptionOptions {
   ttl_ms : Double
   max_records : Int
   max_snapshot_bytes : Int64
+  initial_host_signing : (String, String, String)?
 }
 
 ///|
@@ -31,7 +32,11 @@ fn local_open_initial_signing_adoption(
       options.max_snapshot_bytes,
     )
   }
-  let material = match session.create_initial_signing_material(crypto) {
+  let material = match
+    session.create_initial_signing_material(
+      crypto,
+      host_signing_subject=options.initial_host_signing,
+    ) {
     Ok(value) => value
     // The original Session retains this same failed acquisition/Writer until
     // actual cleanup acknowledgement. The enclosing caller closes that Session

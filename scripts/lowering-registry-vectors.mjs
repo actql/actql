@@ -136,8 +136,15 @@ function nativeSourceAcquisitionContracts() {
   const environment = nativeSourceEnvironment(
     readFileSync(nativeSourceFixture + 'source_fixture_wbtest.mbt', 'utf8'),
     'resident_effect_source_environment', ['actql-query-two-receipt']);
-  assert.equal(body.split(environment.originalCid).length, 2, `${path}: original Environment admission`);
-  return body.replace(environment.originalCid, environment.generatedCid);
+  const shared = readFileSync(nativeSourceFixture + 'source_fixture_wbtest.mbt', 'utf8');
+  const bundle = [...shared.matchAll(/let resident_effect_source_bundle_cid : String =\s*"([^"\n]+)"/g)];
+  assert.equal(bundle.length, 1, `${path}: one original Environment bundle declaration`);
+  assert.equal(bundle[0][1], environment.originalCid, `${path}: original Environment bundle identity`);
+  assert.equal(body.split('resident_effect_source_bundle_cid').length, 2,
+    `${path}: original Environment admission`);
+  // The shared fixture generator refreshes the one declared bundle alongside
+  // its Environment; callers retain that same original instead of stale CIDs.
+  return body;
 }
 function installedConsumerContracts(alias, name) {
   return consumerLines.join('\n') + `

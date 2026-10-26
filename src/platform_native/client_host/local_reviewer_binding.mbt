@@ -105,6 +105,8 @@ struct NativeLocalAuthenticatedEffectReviewer {
   binding : NativeLocalEffectReviewerBinding
   authentication : @checkpoint.HostAuthentication
   registration : @effect_resolution.NativeEffectReviewerRegistration
+  resolution_wire : String
+  limits : @checkpoint.WireLimits
 }
 
 ///|
@@ -302,30 +304,75 @@ pub fn NativeLocalEffectReviewerBinding::authenticate_resolution(
   if self.read_current(selected, registration.key_id) != Some(registration) {
     return Err(ReviewerUnavailable)
   }
-  Ok({ binding: self, authentication, registration, })
+  Ok({ binding: self, authentication, registration, resolution_wire, limits, })
 }
 
 ///|
 /// Signature authentication is only one input to the existing Resolution
 /// Owner. Actual Host attestation and all common admission/commit checks still
 /// apply; current Reviewer and original Client read are rechecked at admission.
-/// This remains private until the actual Host attestation installation supplies
-/// its trusted keys. Public callers cannot choose Host attestation authority.
-// Operational admission still requires the original authenticated Host
-// attestation supplier; exporting this private seam would bypass that boundary.
+/// This Local operational path consumes its adopted independent Host key
+/// original. The actual attestation signing supplier is still required; no
+/// public caller can choose an authority array or borrow the Reviewer key.
+// Keep this private until the operational signer and original caller are joined.
 #warnings("-unused_value")
 fn NativeLocalAuthenticatedEffectReviewer::admit_original_resolution(
   self : NativeLocalAuthenticatedEffectReviewer,
   verified_wire : String,
-  host_authorities : Array[@effect_resolution.NativeEffectHostAuthority],
+  host_key : NativeLocalSigningKeyOriginal,
   now : () -> String,
 ) -> Result[NativeClientRunRecord, NativeLocalEffectReviewerBindingIssue] {
   let binding = self.binding
+  let authority = match
+    local_effect_host_attestation_authority(
+      binding.host,
+      host_key,
+      self.registration.public_key_pem,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
   let current = () => {
-    binding.read_current(self.registration.selection, self.registration.key_id) ==
-    Some(self.registration)
+    if binding.read_current(
+        self.registration.selection,
+        self.registration.key_id,
+      ) !=
+      Some(self.registration) {
+      return false
+    }
+    match
+      local_effect_host_attestation_authority(
+        binding.host,
+        host_key,
+        self.registration.public_key_pem,
+      ) {
+      Ok(value) =>
+        value.key_id == authority.key_id &&
+        value.public_key_pem == authority.public_key_pem
+      Err(_) => false
+    }
   }
   if !current() {
+    return Err(ReviewerUnavailable)
+  }
+  // Authenticate the actual embedded proof too. An earlier authentication of
+  // an equal unsigned body cannot certify changed signature/self-CID bytes.
+  let authentication = match
+    @effect_resolution.authenticate_native_effect_wrapper_reviewer(
+      {
+        crypto: binding.crypto,
+        current_site: current,
+        read_current: (selection, key) => binding.read_current(selection, key),
+      },
+      self.registration.selection,
+      verified_wire,
+      self.resolution_wire,
+      self.limits,
+    ) {
+    Err(issue) => return Err(ReviewerAuthentication(issue))
+    Ok(value) => value
+  }
+  if authentication != self.authentication || !current() {
     return Err(ReviewerUnavailable)
   }
   binding.host.journal
@@ -333,14 +380,14 @@ fn NativeLocalAuthenticatedEffectReviewer::admit_original_resolution(
     binding.request,
     binding.crypto,
     verified_wire,
-    self.authentication,
+    authentication,
     [
       {
         key_id: self.registration.key_id,
         reviewer_id: self.registration.reviewer_id,
       },
     ],
-    host_authorities,
+    [authority],
     current,
     now,
   )
