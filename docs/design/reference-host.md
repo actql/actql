@@ -1506,3 +1506,23 @@ resume/current gates retain their original positions. This holder retains no
 Account decision, dispatch permission or acknowledgement. Pending children keep
 their original callbacks through cleanup; no unconditional completion finally
 invalidates the same continuation. Journal closure still refuses later probes.
+# Standard Source response custody callback
+
+The standard reader supplies one frozen object with exactly one own DATA
+method, `retain(response)`. A consumer captures that original method and
+receiver before its first await. Omission preserves the legacy path; a Proxy,
+accessor, mutable holder or extra own field is refused without invoking it.
+`captureSourceResponseCustody` in the existing Host common layer owns this
+single consuming grammar, including return validation for all consumers.
+
+The callback receives the exact original response before charge or projection
+and must return synchronous Unit. The valid path returns `undefined` without
+allocating a Promise. A non-Unit returned value, including an async callback's
+Promise of Unit, is joined before the consumer's original protocol error is
+raised. Consumers await a returned value only when it is not `undefined`.
+An original synchronous callback throw stays primary. Connector-specific
+error selection remains with the consumer's supplied error factory.
+
+This helper performs no I/O, permission, charge, outcome classification or
+cleanup. Selecting the callback supplies no capacity or retirement ACK, and
+joining an invalid return does not settle its owner's physical duties.
