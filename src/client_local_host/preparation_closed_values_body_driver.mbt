@@ -148,16 +148,20 @@ pub fn[I] prepare_closed_values_body(
   }
   owner.prepared = Some(prepared)
   let installed = contracts.original
+  // This existing fixed supplier still retains its raw sequence preparation.
+  // Actual module construction cannot move here until the complete constructor
+  // overlap, selected output mode and factory have their original funding.
   let source_free = match
-    prepare_installed_managed_source_free_with_contracts(
-      prepared,
+    source_free_installed_managed_preparation_owned(
+      Pure(prepared),
       contracts,
       installed.values_body,
       installed.fragment_body,
       installed.ordered_body,
+      false,
     ) {
-    Err(issue) => return Err(Installed(issue))
-    Ok(value) => value
+    Some(value) => value
+    None => return Err(Installed(Unsupported))
   }
   owner.source_free = Some(source_free)
   let artifact = match

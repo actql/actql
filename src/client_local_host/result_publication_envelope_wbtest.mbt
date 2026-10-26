@@ -14,6 +14,8 @@ fn publication_plan_fixture(
     assets.values,
     Some(assets.fragment),
     assets.ordered,
+    retained_output=true,
+    provider_factory=_ => [],
   ).unwrap()
 }
 
@@ -219,6 +221,8 @@ test "publication projection borrows the original plan before admission and reje
     assets.values,
     Some(assets.fragment),
     assets.ordered,
+    retained_output=true,
+    provider_factory=_ => [],
   ).unwrap()
   let projected = prepared_installed_managed_publication_limits(
     original, prepared, 4096,
@@ -260,6 +264,8 @@ test "unordered Result publication row work follows original 10001 and 100000 ro
       assets.values,
       Some(assets.fragment),
       assets.ordered,
+      retained_output=true,
+      provider_factory=_ => [],
     ).unwrap()
     let projected = prepared_installed_managed_publication_limits(
       original, prepared, 10000000,

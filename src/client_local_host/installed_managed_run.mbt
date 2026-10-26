@@ -48,6 +48,7 @@ struct ClientInstalledManagedSourceFreePreparation {
   ordered_body : String?
   sequences : Array[@execution.GeneratedSequence]
   capacity_plan : ClientLocalCapacityPlan
+  configuration : ClientPreparedLocalConfiguration?
   limits : @resources.LedgerLimits
   provider_retained_bytes : Int64
   provider_execution_bytes : Int64
@@ -202,6 +203,7 @@ fn source_free_installed_managed_preparation_owned(
     ordered_body,
     sequences,
     capacity_plan,
+    configuration: None,
     limits,
     provider_retained_bytes,
     provider_execution_bytes,
@@ -209,17 +211,24 @@ fn source_free_installed_managed_preparation_owned(
 }
 
 ///|
+/// Retain the actual selected module before its Run exists. The caller must
+/// already fund factory/module/control construction on its original initial
+/// preparation; the returned execution limits do not pay for that overlap.
 pub fn prepare_installed_managed_source_free_with_contracts(
   prepared : @publication_host.PreparedClientProgram,
   installed_contracts : ClientInstalledSequenceContracts,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
+  retained_output~ : Bool,
+  provider_factory~ : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
 ) -> Result[
   ClientInstalledManagedSourceFreePreparation,
   ClientInstalledManagedRunIssue,
 ] {
-  match
+  let original = match
     source_free_installed_managed_preparation_owned(
       Pure(prepared),
       installed_contracts,
@@ -228,9 +237,30 @@ pub fn prepare_installed_managed_source_free_with_contracts(
       ordered_body,
       false,
     ) {
-    Some(value) => Ok(value)
-    None => Err(Unsupported)
+    Some(value) => value
+    None => return Err(Unsupported)
   }
+  let configuration = match
+    prepare_client_local_configuration(
+      @publication_host.prepared_client_graph(prepared),
+      original.capacity_plan,
+      AdmittedRows,
+      original.provider_retained_bytes,
+      original.provider_execution_bytes,
+      retained_output,
+      provider_factory,
+    ) {
+    Some(value) => value
+    None => return Err(Unsupported)
+  }
+  let actual = match
+    client_prepared_local_configuration_capacity(configuration, original.limits) {
+    Some(value) => value
+    None => return Err(Unsupported)
+  }
+  // The raw sequence/policy inputs remain the same originals. The actual
+  // selected module and its sealed IO envelopes replace a late factory call.
+  Ok({ ..original, configuration: Some(configuration), limits: actual.limits, })
 }
 
 ///|
@@ -282,7 +312,9 @@ pub fn begin_prepared_installed_managed_source_free_run(
   request : @publication_host.ClientRequestIdentity,
   original : ClientInstalledManagedSourceFreePreparation,
 ) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
-  guard original.owner is Pure(owner) && physical_equal(owner, prepared) else {
+  guard original.owner is Pure(owner) &&
+    physical_equal(owner, prepared) &&
+    original.configuration is Some(_) else {
     return Err(ForeignOriginal)
   }
   let value = match begin_installed_managed_run(admission, prepared, request) {
@@ -996,6 +1028,11 @@ fn open_installed_managed_source_free_host_original(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  if value.source_free_preparation is Some(original) &&
+    original.configuration is Some(configuration) &&
+    configuration.retained_output != retained_output {
+    return Err(ForeignOriginal)
+  }
   let ledger = match
     prepare_installed_managed_run_ledger(
       value,
@@ -1012,6 +1049,38 @@ fn open_installed_managed_source_free_host_original(
     Err(issue) => return Err(issue)
     Ok(ledger) => ledger
   }
+  if value.source_free_preparation is Some(original) &&
+    original.configuration is Some(configuration) {
+    let run = match
+      @strategy.open_source_free_dag(
+        @publication_host.prepared_client_graph(prepared),
+        ledger,
+      ) {
+      Ok(value) => value
+      Err(_) => return Ok(None)
+    }
+    // The existing Run owner retains its only issued graph before binding.
+    // A failed bind or reentrant current change cannot authorize another open.
+    value.source_free_captured = Some(run)
+    let host = bind_client_local_configuration(
+      run, configuration, 1L, 0L, 0L, 0L,
+    )
+    match require_installed_managed_run(value) {
+      Err(issue) => {
+        ignore(reject_client_local_run(run))
+        return Err(issue)
+      }
+      Ok(parent) =>
+        if !physical_equal(parent, ledger) {
+          ignore(reject_client_local_run(run))
+          return Err(ForeignOriginal)
+        }
+    }
+    return Ok(host)
+  }
+  // Explicit unconverted raw preparation callers keep their existing path.
+  // A nominal preprepared Run cannot reach this branch: begin_prepared above
+  // requires its actual configuration. No failure falls back into this path.
   let opened = open_checked_local_host(
     prepared,
     None,

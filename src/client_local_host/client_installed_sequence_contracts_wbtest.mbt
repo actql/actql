@@ -69,6 +69,8 @@ test "required sequence preparation retains exact installed nominal owner" {
     assets.values,
     Some(assets.fragment),
     assets.ordered,
+    retained_output=true,
+    provider_factory=_ => [],
   ).unwrap()
   assert_true(physical_equal(sequence.installed_contracts, original))
   assert_true(
@@ -98,6 +100,8 @@ test "required sequence preparation retains exact installed nominal owner" {
       assets.values + " ",
       Some(assets.fragment),
       assets.ordered,
+      retained_output=true,
+      provider_factory=_ => [],
     )
     is Err(Unsupported),
   )

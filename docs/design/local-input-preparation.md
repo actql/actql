@@ -228,3 +228,22 @@ closed Values supplier includes those containers in its original initial
 reservation before construction. This container inventory does not cover the
 providers' closure/kernel construction, capacity payload ownership or other
 module controls; those remain separate simultaneous demands.
+
+
+## Pure selected module preparation
+
+The nominal Pure source-free preparation receives its actual installed
+provider factory and selected retained-output mode before quoting. It retains
+the resulting module and immutable IO policies, and its prepared Run entry
+requires that actual configuration. The existing managed Run records its
+issued DAG before binding, so failed binding or reentrant current loss cannot
+issue another graph. A changed output mode refuses before graph construction;
+it cannot trigger a late factory or choose a fallback configuration.
+
+The raw sequence preparation still serves explicitly unmigrated Effect/Model
+projections and the fixed closed Values driver. Its absent module choice is
+an inline scalar word priced in that driver's existing semantic constructor
+inventory. Full module construction must not be moved into that fixed driver
+until the selected mode and complete simultaneous constructor inventory are
+funded by its original preparation. These old callers remain migration work,
+not another successful route for the nominal prepared module entry.

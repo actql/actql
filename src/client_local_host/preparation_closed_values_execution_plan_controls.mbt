@@ -12,7 +12,7 @@ priv struct ClosedValuesExecutionPlanControlsLayout {
 ///|
 fn closed_values_execution_plan_controls_layout() -> ClosedValuesExecutionPlanControlsLayout? {
   // Fixed policy/cache records (H,R,W):
-  // ClientInstalledManagedSourceFreePreparation including contracts:1,9,2
+  // ClientInstalledManagedSourceFreePreparation including contracts:1,9,3
   // Pure owner and Some installed contracts:                         2,2,2
   // ClientLocalCapacityPlan16 fields +Some original graph:            2,13,5
   // LedgerLimits:                                                   1,0,6
@@ -26,11 +26,12 @@ fn closed_values_execution_plan_controls_layout() -> ClosedValuesExecutionPlanCo
   // Leaf node demand(original +two scalar dimensions), Some and two plan refs:
   //                                                               2,4,3
   // Retained demand-inventory Some (underlying schema owner borrowed):1,1,1
-  // Sum24,41,73. ResourcePolicy and exact contract bodies remain borrowed.
+  // The absent actual-module choice is an inline scalar tag, not a module.
+  // Sum24,41,74. ResourcePolicy and exact contract bodies remain borrowed.
   let records : @execution.PreparationRepresentationUnits = {
     record_headers: 24L,
     reference_slots: 41L,
-    scalar_words: 73L,
+    scalar_words: 74L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }

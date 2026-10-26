@@ -955,6 +955,8 @@ test "pure staged preparation retains its original dispatch and same generic ret
     assets.values,
     Some(assets.fragment),
     assets.ordered,
+    retained_output=true,
+    provider_factory=_ => [],
   ).unwrap()
   let input = [17]
   let quote = prepared_installed_managed_source_free_requirements(source_free)
