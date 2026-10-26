@@ -318,3 +318,17 @@ original Ledger and Reservation; it does not initialize or substitute either.
 The existing common task-use operation checks the original live TaskExecution.
 Plan preparation, capacity reservation and pre-I/O refusal do not consume an
 attempt. Started, failed and unknown physical uses are never refunded.
+
+## Selected Model limit composition
+
+The common Ledger owner composes nonnegative `LedgerLimits` in their six
+original dimensions, refusing overflow before a sum is formed. Retention and
+execution remain independent. This immutable DATA operation does not select
+a policy or create, reserve or debit a Ledger.
+
+Installed Model requirements add the existing Model allowance and two
+simultaneous read/bootstrap contributions through this checked owner. The
+private six-number Run projection is updated only after every dimension fits;
+refusal leaves it unchanged. The original read reservations, census, current
+checks and cleanup remain with their existing owners. A composed numerical
+limit supplies neither physical backing nor permission.

@@ -376,16 +376,7 @@ pub fn[P, C] report_backed_execution_delegation(
     Ok(_) => {
       ticket.peak_retention = usage.peak_retention_bytes
       ticket.live_usage_reported = ticket.live_usage_reported ||
-        usage.planning_work != 0 ||
-        usage.attempts != 0 ||
-        usage.holdings != 0 ||
-        usage.transferred_bytes != 0L ||
-        usage.uncertain_transfer_bytes != 0L ||
-        usage.reserved_transfer_bytes != 0L ||
-        usage.held_bytes != 0L ||
-        usage.reserved_retention_bytes != 0L ||
-        usage.reserved_execution_bytes != 0L ||
-        usage.peak_retention_bytes != 0L
+        usage != initial_ledger_usage
       Ok(())
     }
   }
@@ -393,21 +384,31 @@ pub fn[P, C] report_backed_execution_delegation(
 
 ///|
 fn backed_final_usage_equal(left : LedgerUsage?, right : LedgerUsage?) -> Bool {
-  match (left, right) {
-    (None, None) => true
-    (Some(a), Some(b)) =>
-      a.planning_work == b.planning_work &&
-      a.attempts == b.attempts &&
-      a.holdings == b.holdings &&
-      a.transferred_bytes == b.transferred_bytes &&
-      a.uncertain_transfer_bytes == b.uncertain_transfer_bytes &&
-      a.reserved_transfer_bytes == b.reserved_transfer_bytes &&
-      a.held_bytes == b.held_bytes &&
-      a.reserved_retention_bytes == b.reserved_retention_bytes &&
-      a.reserved_execution_bytes == b.reserved_execution_bytes &&
-      a.peak_retention_bytes == b.peak_retention_bytes
-    _ => false
-  }
+  // Derived typed equality follows every field of the owned record, including
+  // current live/reserved counts. None is still distinct from a zero report.
+  left == right
+}
+
+///|
+// Both first-bootstrap consumers use the same reported-history fence. This is
+// additional to their original ticket/runtime/current checks, not proof that a
+// zero-byte or settled identity is pristine or that a physical child stopped.
+fn[P, C] backed_child_usage_unreported(
+  ticket : BackedExecutionDelegation[P, C],
+) -> Bool {
+  guard ticket.logical is Some(logical) else { return false }
+  !ticket.live_usage_reported &&
+  logical.reservation.open &&
+  logical.planning == 0 &&
+  logical.attempts == 0 &&
+  logical.reserved_attempts == 0 &&
+  logical.live_reservations == 0 &&
+  logical.live_delegations == 0 &&
+  logical.holdings == 0 &&
+  logical.transferred == 0L &&
+  logical.uncertain == 0L &&
+  ticket.peak_retention == 0L &&
+  ticket.final_usage is None
 }
 
 ///|

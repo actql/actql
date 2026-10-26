@@ -978,3 +978,20 @@ which builds the connector-independent JS bridge with the pinned MoonBit toolcha
 Common admission, encoding, conversion and completion tests belong to the MoonBit
 three-target checks. These component checks do not substitute for standard
 Host, native acquisition, real DuckDB or end-to-end performance acceptance.
+
+## Complete accounting history at a backed-child boundary
+
+A successful backed-child report records whether the complete owned
+`LedgerUsage` differs from its initial DATA value. The marker remains set when
+an unused zero-byte reservation later settles. Current live reservations,
+reserved attempts and delegations therefore cannot disappear from first-use
+history merely because their byte fields are zero. Both original-child gates
+retain the same ticket/runtime/current checks and one shared history predicate.
+Numerical emptiness alone does not prove pristine serials or original identity.
+
+After logical settlement, a still-held shared borrower retains the exact final
+usage snapshot. Repeated settlement compares the full typed record, including
+live counts; absent final usage remains distinct from a reported zero value.
+This comparison neither replaces the physical owner's stop acknowledgement nor
+requires cumulative planning, attempts, transfer or retention peak to become
+zero. Those spent facts remain separate from the original live occupancy.
