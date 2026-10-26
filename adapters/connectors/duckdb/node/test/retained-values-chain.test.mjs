@@ -711,6 +711,10 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
           route.attemptCreates = (route.attemptCreates ?? 0) + 1;
           return publication.createAttempt(...args);
         },
+        async beginPublicationAttemptWithRecords(...args) {
+          route.atomicAttemptCreates = (route.atomicAttemptCreates ?? 0) + 1;
+          return publication.beginPublicationAttemptWithRecords(...args);
+        },
       }) : !route.publicationFault ? publication
       : Object.freeze({...publication,
         createPreparedObjectWriter(...args) {
@@ -1111,7 +1115,8 @@ for (const phase of ['success', 'before-retained-check', 'after-retained-check']
         assert.ok(route.namespacePolls > 1);
         assert.equal(route.storeValidationRetirements, 1);
         await assertPublishedRows(publication, plan, owner.execution, [second, first]);
-        assert.equal(route.attemptCreates, 1);
+        assert.equal(route.atomicAttemptCreates, 1);
+        assert.equal(route.attemptCreates ?? 0, 0);
       } else {
         await assert.rejects(run(), error => {
           assert.equal(error.code, 'CapturedRunPublicationFailed');
@@ -1124,6 +1129,7 @@ for (const phase of ['success', 'before-retained-check', 'after-retained-check']
         assert.equal(route.validationCancels, 1);
         assert.equal(route.commitPolls ?? 0, 0);
         assert.equal(route.contractWrites ?? 0, 0);
+        assert.equal(route.atomicAttemptCreates ?? 0, 0);
         assert.equal(route.attemptCreates ?? 0, 0);
         assert.equal(observations().scheduled, true);
         await assert.rejects(publication.lookupCommittedIndex({
