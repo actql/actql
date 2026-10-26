@@ -9,3 +9,26 @@ test "initial module recipe follows this exact installed family factory" {
   assert_true(installed_client_module_container_units == quote)
   // Constructor DATA correspondence only; no physical backing/admission ACK.
 }
+
+///|
+test "fixed family constructor recipe follows actual enum composition without activation" {
+  assert_eq(installed_client_family_provider_count(), 9)
+  assert_eq(
+    @execution.preparation_representation_cost(
+      installed_client_family_construction_retained,
+    ),
+    Some(2024L),
+  )
+  assert_eq(
+    @execution.preparation_representation_cost(
+      installed_client_family_construction_array,
+    ),
+    Some(128L),
+  )
+  assert_eq(
+    @execution.preparation_representation_cost(
+      installed_client_family_construction_temporary,
+    ),
+    Some(336L),
+  )
+}

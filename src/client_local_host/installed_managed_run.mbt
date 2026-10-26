@@ -701,46 +701,25 @@ fn require_installed_managed_run(
 /// usage, stop the child or acknowledge cleanup. A pending original remains
 /// observable; a foreign or retired handle cannot supply a zero snapshot.
 ///
-/// The fresh array contains six LedgerLimits fields followed by the ten
-/// LedgerUsage fields, in their declaration order. These are managed accounting
-/// values, not a measurement of process memory or physical cleanup.
-pub fn installed_managed_run_usage(
+/// The fresh array follows the complete Core-owned LedgerLimits and
+/// LedgerUsage declaration order; the generator owns both field inventories.
+/// These are managed accounting values, not a measurement of process memory
+/// or physical cleanup.
+pub fn installed_managed_run_accounting(
   value : ClientInstalledManagedRun,
 ) -> Result[Array[Int64], ClientInstalledManagedRunIssue] {
   guard value.original is Some(original) && physical_equal(value, original) else {
     return Err(ForeignOriginal)
   }
   guard value.ledger is Some(ledger) else { return Err(Retired) }
-  Ok(installed_managed_run_usage_values(ledger))
+  Ok(installed_managed_run_accounting_values(ledger))
 }
 
 ///|
-fn installed_managed_run_usage_values(
+fn installed_managed_run_accounting_values(
   ledger : @resources.Ledger,
 ) -> Array[Int64] {
-  let limits = @resources.ledger_limits(ledger)
-  let usage = @resources.ledger_usage(ledger)
-  [
-    limits.planning_work.to_int64(),
-    limits.attempts.to_int64(),
-    limits.holdings.to_int64(),
-    limits.transfer_bytes,
-    limits.retained_bytes,
-    limits.execution_bytes,
-    usage.planning_work.to_int64(),
-    usage.attempts.to_int64(),
-    usage.holdings.to_int64(),
-    usage.transferred_bytes,
-    usage.uncertain_transfer_bytes,
-    usage.reserved_transfer_bytes,
-    usage.held_bytes,
-    usage.reserved_retention_bytes,
-    usage.reserved_execution_bytes,
-    usage.peak_retention_bytes,
-    usage.reserved_attempts.to_int64(),
-    usage.live_reservations.to_int64(),
-    usage.live_delegations.to_int64(),
-  ]
+  @resources.ledger_limits_usage_values(ledger)
 }
 
 ///|

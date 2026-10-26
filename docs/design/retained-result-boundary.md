@@ -979,6 +979,25 @@ Common admission, encoding, conversion and completion tests belong to the MoonBi
 three-target checks. These component checks do not substitute for standard
 Host, native acquisition, real DuckDB or end-to-end performance acceptance.
 
+
+For the fixed numeric Values preparation, the original initial reservation
+also funds construction of the selected Local module before an execution Run
+exists. Installation supplies the same immutable family composition, constructor
+and selected retained-output mode. Domain inventories count provider policy and
+callback bodies, module and registry controls, selected physical sequence views,
+IO policy carriers and their construction scratch. Shared representation tariffs
+and checked composition convert those units; they do not issue another budget.
+The factory's returned array coexists with the module snapshot while private
+constructor and eligibility calls can reuse a peak only after returning.
+
+The same preparation owner retains the configured module, checked sequences and
+compiled artifact. Completion releases construction workspace only after the
+constructor returns; adoption hands those originals and their reservation to the
+existing managed Run. A synchronous construction fence refuses reentrant cleanup
+or completion. The JavaScript scope clears only that fence after raw callback
+exceptions unwind, leaving partial originals and funding for existing cleanup.
+It does not acknowledge physical stop, settle a reservation or refund work.
+
 ## Complete accounting history at a backed-child boundary
 
 A successful backed-child report records whether the complete owned
@@ -995,3 +1014,33 @@ live counts; absent final usage remains distinct from a reported zero value.
 This comparison neither replaces the physical owner's stop acknowledgement nor
 requires cumulative planning, attempts, transfer or retention peak to become
 zero. Those spent facts remain separate from the original live occupancy.
+
+The Core diagnostic JSON writer is generated from that same record declaration.
+It preserves the Native diagnostic's numeric decimal lexemes, including exact
+Int64 text; it is not `ToJson(Int64)` and is not a lossless JavaScript Number
+transport or an admission codec. Consumers use the mechanically projected field
+inventory instead of maintaining another complete list.
+
+The pending-resource observation clears only the Core-owned spent planning,
+attempt, transferred-byte and historical-peak facts before typed equality with
+the initial usage value. Other nonzero counters remain pending, including
+zero-byte live tokens and unresolved transfer. The existing generator projects
+those cleared fields for diagnostic consumers; a future counter fails closed
+unless its spent meaning is deliberately added by the same Core owner. This
+observation supplies neither a physical stop acknowledgement nor the original
+census/serial/quantity proof needed for restoration.
+
+Managed Run observation uses the same Core declarations to generate a complete
+limits-and-usage snapshot. The original Run getter delegates to that projection;
+it does not maintain a separate field order. The distinct `Accounting` bridge
+capability identifies this declaration-order layout. An absent capability leaves
+optional observation unavailable, rather than interpreting the old same-length
+layout, filling missing counters with zero, or falling back to the old getter.
+
+The observation adapter derives membership and primitive widths from the same
+generated descriptor. Its only field-name aliases preserve existing public
+attribute spellings. It copies closed own-DATA array values into exact decimal
+attributes and refuses holes, accessors, extra own fields and out-of-range
+scalars. This presentation neither admits a report nor changes the original
+Run, Ledger, cancellation or retirement lifetime. Snapshot allocation and
+observation storage remain subject to their existing owners and limits.

@@ -4,10 +4,10 @@ test "fixed projector controls precede all input-sized quote construction" {
   assert_true(
     physical_equal(original, closed_values_projection_scratch_units()),
   )
-  assert_eq(original.record_headers, 14204L)
-  assert_eq(original.reference_slots, 4264L)
-  assert_eq(original.scalar_words, 30666L)
+  assert_eq(original.record_headers, 14239L)
+  assert_eq(original.reference_slots, 4277L)
+  assert_eq(original.scalar_words, 30731L)
   assert_eq(original.owned_utf16_units, 0L)
   assert_eq(original.owned_wire_bytes, 0L)
-  assert_eq(@execution.preparation_representation_cost(original), Some(506704L))
+  assert_eq(@execution.preparation_representation_cost(original), Some(507888L))
 }

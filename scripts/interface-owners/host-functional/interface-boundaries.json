@@ -12000,7 +12000,7 @@
     {
       "module": "adapters/host-node/acquired-effect-sources.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "335a847c8ef3e20468cb78707da7a236801a67094523cc9baf902615dec294c5",
+      "sha256": "6fce7aa380a1f21c00754c7578644d631ee69623197d9b6988290652b2dcbaba",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -12099,7 +12099,8 @@
             "fragment",
             "ordered",
             "queryTimePreparation",
-            "requestIdentity"
+            "requestIdentity",
+            "managedPlan"
           ],
           "async": false
         }
@@ -12333,6 +12334,7 @@
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
+        "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
         "./installed-source.mjs",
         "./original-query-preparation.mjs"
@@ -19529,7 +19531,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -19648,7 +19650,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -34125,7 +34127,7 @@
               },
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
-                "anchor": "pub fn installed_managed_run_usage("
+                "anchor": "pub fn installed_managed_run_accounting("
               }
             ],
             "identity": [
@@ -34289,7 +34291,7 @@
               },
               {
                 "path": "adapters/host-common/observation.mjs",
-                "anchor": "const snapshot = Object.freeze({'actql.resource.scope': 'managed-run-ledger',"
+                "anchor": "const snapshot = {'actql.resource.scope': 'managed-run-ledger'};"
               }
             ],
             "extension": [
@@ -34315,7 +34317,7 @@
               },
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
-                "anchor": "/// values, not a measurement of process memory or physical cleanup."
+                "anchor": "/// These are managed accounting values, not a measurement of process memory"
               }
             ],
             "verification": [
@@ -49968,7 +49970,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3cb2146c6ae18fa93633a069908d6da4a698c057345c7a609890679be5d3a1e5",
+      "sha256": "4464c9d9e69aac4d7b6cbb5668d974340b3310cab25602d3bfb33560c9ab3b8d",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -50193,7 +50195,8 @@
             "runtimeUrl",
             "baseEnvironmentWire",
             "resolveSecret",
-            "connectorTable"
+            "connectorTable",
+            "installationServices"
           ],
           "async": true
         },
@@ -50843,6 +50846,7 @@
         "./installed-connectors.mjs",
         "./installed-duckdb-source.mjs",
         "./installed-host-cleanup.mjs",
+        "./installed-host-services.mjs",
         "./installed-source-limits.mjs",
         "./local-account-config.mjs",
         "./source-alias-publication.mjs",
@@ -59123,7 +59127,7 @@
     },
     {
       "module": "adapters/host-node/node-source-managed-installation.mjs",
-      "sha256": "e902c57ee556b7ee22a86ba00d02e5d2a12a2a631101385a80fbd567feb2b00c",
+      "sha256": "09d49cc6bd7ddeb7a6fc7e1973969ea3963419ce5517f9ab60411952ae8f8168",
       "exports": [
         "assertManagedComputeInstallationCurrent",
         "assertManagedComputePreparationCurrent",
@@ -76258,7 +76262,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "ad5891d7141b1816ef3707ca064197249d04bb0cc7c6a58aed0ea3362c3b53ac",
+      "sha256": "083255f115796479e5697c18b1629286935c0839406c41917021c34059e8630e",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -76336,7 +76340,8 @@
             "purpose",
             "model",
             "effectful",
-            "content"
+            "content",
+            "operationPlan"
           ],
           "async": false
         },
@@ -76555,10 +76560,24 @@
           "async": false
         },
         {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectRun/init:prepareEffectRun",
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectModelPlanRun/init:prepareEffectModelPlanRun",
           "parameters": [
-            "prepared"
+            "prepared",
+            "operationPlan"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectPlanRun/init:prepareEffectPlanRun",
+          "parameters": [
+            "prepared",
+            "operationPlan"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectRun/init:prepareEffectRun",
+          "parameters": [],
           "async": false
         },
         {
@@ -76745,7 +76764,7 @@
         "../../packages/sdk/internal/private-source-preparation.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
-        "./closed-values-preparation-adapter.mjs",
+        "../local-node/closed-values-preparation-adapter.mjs",
         "./ordinary-node-resource-runtime.cjs",
         "./source-profile-json.mjs",
         "node:fs/promises"
@@ -77472,6 +77491,115 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "test('typed retained chain and commit consume original contracts without numeric limit relay'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:prepareEffectModelPlanRun/init:prepareEffectModelPlanRun",
+            "prepareOrdinaryManagedInstallation/view/init:prepareEffectPlanRun/init:prepareEffectPlanRun"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "fail('ForeignInstalledModelPreparation')"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "fail('ForeignInstalledModelPreparation')"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
               }
             ]
           }
@@ -81231,7 +81359,7 @@
     },
     {
       "module": "adapters/local-node/closed-values-preparation-adapter.mjs",
-      "sha256": "00ba7043961c6cee3e1ed7defa263f57744dd7de40a5259e068923f1c9825368",
+      "sha256": "046411b0dd2bff9ab2f21266ad6fca5feccf1b33a406960ea5963499d0f23186",
       "exports": [
         "beginClosedValuesInput",
         "bindClosedValuesSnapshot",
@@ -81284,6 +81412,14 @@
           "async": false
         },
         {
+          "name": "closedValuesPreparationAvailable/own/own",
+          "parameters": [
+            "object",
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "commonInt/commonInt",
           "parameters": [
             "value"
@@ -81319,8 +81455,9 @@
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
-        "./closed-values-own-data-scan.mjs",
-        "./ordinary-node-resource-runtime.cjs"
+        "../host-node/closed-values-own-data-scan.mjs",
+        "../host-node/ordinary-node-resource-runtime.cjs",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -81445,6 +81582,107 @@
               {
                 "path": "adapters/host-node/preparation-capacity-refusal.test.mjs",
                 "anchor": "prepared initial cleanup requires its fixed retirement callback and preserves retry ownership"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "closedValuesPreparationAvailable/own/own"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function closedValuesPreparationAvailable"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original ModuleBody preparation mode"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function closedValuesPreparationAvailable"
+              },
+              {
+                "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
+                "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function closedValuesPreparationAvailable"
+              },
+              {
+                "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
+                "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function closedValuesPreparationAvailable"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original ModuleBody preparation mode"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function closedValuesPreparationAvailable"
+              },
+              {
+                "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
+                "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function closedValuesPreparationAvailable"
+              },
+              {
+                "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
+                "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous capability snapshot neither starts work nor issues cancellation."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original ModuleBody preparation mode"
+              },
+              {
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function closedValuesPreparationAvailable"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original ModuleBody preparation mode"
+              },
+              {
+                "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
+                "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
+                "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original ModuleBody preparation mode"
               }
             ]
           }
@@ -82330,7 +82568,7 @@
     {
       "module": "adapters/host-node/installed-managed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fd5f873f42d1dc25d452112754b9df77c9fb9686f95d9841a9b55511d1d22dcc",
+      "sha256": "7d96082d8108c422fb64b3a699752455a7d39ca6215618b814bdd9fdb5f5d3bb",
       "role": "physical-io",
       "owner": "Existing Host Source/Compute Run and installed Source acquisition Owners",
       "exports": [
@@ -82491,12 +82729,13 @@
     {
       "module": "adapters/host-node/ledger-contract.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f906b1af11dc97c032ca8173dba58d435d4facb6df4f71f7e5be2e9dbc6cc2bd",
+      "sha256": "23bdb836dbb0b1b9f93762785b3cc2dff875b1b48f5a0faea641bd4afac9e493",
       "role": "common-semantics",
       "owner": "Existing Core LedgerLimits/LedgerUsage record definitions; generated immutable transport layout only",
       "exports": [
         "ledgerLimitsFields",
-        "ledgerUsageFields"
+        "ledgerUsageFields",
+        "ledgerUsageSpentFields"
       ],
       "operations": [],
       "imports": [],
@@ -82509,7 +82748,8 @@
           ],
           "exports": [
             "ledgerLimitsFields",
-            "ledgerUsageFields"
+            "ledgerUsageFields",
+            "ledgerUsageSpentFields"
           ],
           "attributes": {
             "responsibility": [
@@ -82524,6 +82764,18 @@
               {
                 "path": "adapters/host-node/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
             "inputsOutputs": [
@@ -82538,6 +82790,18 @@
               {
                 "path": "adapters/host-node/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
             "identity": [
@@ -82552,6 +82816,18 @@
               {
                 "path": "adapters/host-node/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
             "ownership": [
@@ -82566,6 +82842,18 @@
               {
                 "path": "adapters/host-node/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
             "synchronization": [
@@ -82580,6 +82868,18 @@
               {
                 "path": "adapters/host-node/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
             "failure": [
@@ -82594,6 +82894,18 @@
               {
                 "path": "adapters/host-node/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
             "cancellation": [
@@ -82608,6 +82920,18 @@
               {
                 "path": "adapters/host-node/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
             "resources": [
@@ -82622,6 +82946,18 @@
               {
                 "path": "adapters/host-node/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
             "extension": [
@@ -82636,6 +82972,18 @@
               {
                 "path": "adapters/host-node/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
             "verification": [
@@ -82650,12 +82998,28 @@
               {
                 "path": "scripts/generate-ledger-transport-contract.test.mjs",
                 "anchor": "test('actual Core owns the complete current limits and thirteen-field usage contract'"
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.test.mjs",
+                "anchor": "test('diagnostic writer and spent projection follow the same Core owner without a parallel field list'"
               }
             ]
           }
         }
       ],
-      "referenceQualification": "Mechanical projection of actual Core record fields/types. No allocation, debit, physical acknowledgement or resource authority is issued by this layout."
+      "referenceQualification": "Mechanical projection of actual Core record fields/types. No allocation, debit, physical acknowledgement or resource authority is issued by this layout. The spent-field DATA projection is mechanically selected from the same Core pending-resource predicate; it is not a physical-stop or pristine-ledger proof."
     },
     {
       "module": "adapters/host-common/source-response-custody.mjs",
@@ -82766,6 +83130,954 @@
               {
                 "path": "adapters/host-common/source-response-custody.test.mjs",
                 "anchor": "test('a rejected custody borrow preserves"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/installed-credential-source-reader.mjs",
+      "sha256": "82d23d01b6c99054e795ee06207f1c03040479a6134eb9be48d4b759d23e992b",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "C — existing standard Host Source/Effect service originals",
+      "exports": [
+        "createInstalledCredentialSourceReader",
+        "installedJsonSourceReaderLimitNames",
+        "installedJsonSourceReaderProfileLimitNames"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledCredentialSourceReader",
+          "parameters": [
+            "capacity",
+            "originalSite",
+            "createReader",
+            "readPages",
+            "assertCurrent",
+            "maxResponses"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#2",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/init:requestStop",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/responseCustody/init:retain/init:retain",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/verify/verify",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownMethod/ownMethod",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledCredentialSourceReader",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/check/check",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/cleanup",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:observe/init:observe",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read/init:read#2",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/init:requestStop",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:retry/init:retry",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/responseCustody/init:retain/init:retain",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/verify/verify",
+            "createInstalledCredentialSourceReader/init:retire/init:retire",
+            "fail/fail",
+            "ownMethod/ownMethod"
+          ],
+          "exports": [
+            "createInstalledCredentialSourceReader",
+            "installedJsonSourceReaderLimitNames",
+            "installedJsonSourceReaderProfileLimitNames"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "export function createInstalledCredentialSourceReader"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "export function createInstalledCredentialSourceReader"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "same pending Source read cannot retire through stop or a copied factory"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "export function createInstalledCredentialSourceReader"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "same pending Source read cannot retire through stop or a copied factory"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "export function createInstalledCredentialSourceReader"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "export function createInstalledCredentialSourceReader"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "same pending Source read cannot retire through stop or a copied factory"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "if (readPending || stopPending || escapedResponseGraph) return false;"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "same pending Source read cannot retire through stop or a copied factory"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "if (readPending || stopPending || escapedResponseGraph) return false;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "export function createInstalledCredentialSourceReader"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "export function createInstalledCredentialSourceReader"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "same pending Source read cannot retire through stop or a copied factory"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "same pending Source read cannot retire through stop or a copied factory"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/installed-effect-managed-run.mjs",
+      "sha256": "1579102c910d242eaa6502ab6284feda6fec201af7c2ea93d0928cbbfe0e96f4",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "C — existing standard Host Source/Effect service originals",
+      "exports": [
+        "finishInstalledEffectModelScope",
+        "prepareInstalledEffectManagedPlanRun",
+        "readInstalledEffectManagedPlanRun"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "finishInstalledEffectModelScope",
+          "parameters": [
+            "run",
+            "originalRunCleanupComplete",
+            "checked"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlanRun",
+          "parameters": [
+            "runs",
+            "liveRuns",
+            "runtime",
+            "manager",
+            "prepared",
+            "request",
+            "selection",
+            "facts",
+            "inputs",
+            "sourceProfile",
+            "model",
+            "assertCurrent",
+            "checked"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#4",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlanRun/same/same",
+          "parameters": [
+            "run"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlanRun/same/same/same",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInstalledEffectManagedPlanRun",
+          "parameters": [
+            "runs",
+            "liveRuns",
+            "runtime",
+            "prepared",
+            "request",
+            "assertCurrent",
+            "checked"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "finishInstalledEffectModelScope",
+            "prepareInstalledEffectManagedPlanRun",
+            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun",
+            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#2",
+            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#3",
+            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#4",
+            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#5",
+            "prepareInstalledEffectManagedPlanRun/same/same",
+            "prepareInstalledEffectManagedPlanRun/same/same/same",
+            "readInstalledEffectManagedPlanRun"
+          ],
+          "exports": [
+            "finishInstalledEffectModelScope",
+            "prepareInstalledEffectManagedPlanRun",
+            "readInstalledEffectManagedPlanRun"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "export function prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "export function prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "export function prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "export function prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "export function prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "if (finished !== true) fail('InstalledEffectModelScopeCleanupPending')"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "if (finished !== true) fail('InstalledEffectModelScopeCleanupPending')"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "export function prepareInstalledEffectManagedPlanRun"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "export function prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "partial Model begin retains its same admission and never reissues or falls back"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/installed-host-services.mjs",
+      "sha256": "607afe29963ec6e0ca7edd47030c5ce21f4b6c4c440b774f6b66a3d52ddadaca",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "C — existing standard Host Source/Effect service originals",
+      "exports": [
+        "captureInstalledSourceServices",
+        "createInstalledHostServices",
+        "retainInstalledHostServiceInstallation"
+      ],
+      "operations": [
+        {
+          "name": "captureInstalledSourceServices",
+          "parameters": [
+            "receiver",
+            "unavailable"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureInstalledSourceServices/invokeInstalledSourceService",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureInstalledSourceServices/refuse/refuse",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices",
+          "parameters": [
+            "root",
+            "principalId",
+            "moon",
+            "assertCurrent",
+            "receiver"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:createSourceReader/init:createSourceReader",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:createSourceReader/init:createSourceReader/init:createSourceReader",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:openRowSite/init:openRowSite",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:openRowSite/init:openRowSite/init:openRowSite",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/capacity/capacity",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#4",
+          "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#6",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/limits/limits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/value/value",
+          "parameters": [
+            "name",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostServiceInstallation",
+          "parameters": [
+            "services",
+            "installation",
+            "runtimeBundleCid"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "./installed-credential-source-reader.mjs",
+        "./installed-row-source.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledHostServices",
+            "createInstalledHostServices/current/current",
+            "createInstalledHostServices/services/init:createSourceReader/init:createSourceReader",
+            "createInstalledHostServices/services/init:createSourceReader/init:createSourceReader/init:createSourceReader",
+            "createInstalledHostServices/services/init:openRowSite/init:openRowSite",
+            "createInstalledHostServices/services/init:openRowSite/init:openRowSite/init:openRowSite",
+            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation",
+            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/capacity/capacity",
+            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation",
+            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#2",
+            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#3",
+            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#4",
+            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#5",
+            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#6",
+            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/limits/limits",
+            "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile",
+            "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile",
+            "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile#2",
+            "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile#3",
+            "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/value/value",
+            "fail/fail",
+            "retainInstalledHostServiceInstallation"
+          ],
+          "exports": [
+            "createInstalledHostServices",
+            "retainInstalledHostServiceInstallation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function createInstalledHostServices"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function createInstalledHostServices"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function createInstalledHostServices"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function createInstalledHostServices"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function createInstalledHostServices"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "fail('ForeignInstalledSourceReaderSelection')"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "fail('ForeignInstalledSourceReaderSelection')"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function createInstalledHostServices"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function createInstalledHostServices"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "captureInstalledSourceServices",
+            "captureInstalledSourceServices/invokeInstalledSourceService",
+            "captureInstalledSourceServices/refuse/refuse"
+          ],
+          "exports": [
+            "captureInstalledSourceServices"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function captureInstalledSourceServices"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Capturing the installed Source service"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service snapshot captures four original methods and receiver before metadata await"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "return Reflect.apply(methods[name], receiver, args)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service snapshot captures four original methods and receiver before metadata await"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "methods[name] = field.value"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Capturing the installed Source service"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service invoker preserves exact Promise failure and cleanup carrier without wrapping"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service snapshot captures four original methods and receiver before metadata await"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "Object.getOwnPropertyDescriptor(receiver, name)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "const refuse = () =>"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service snapshot rejects missing inherited accessor and proxy methods without callbacks"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service invoker preserves exact Promise failure and cleanup carrier without wrapping"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service invoker preserves exact Promise failure and cleanup carrier without wrapping"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Capturing the installed Source service"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Capturing the installed Source service"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "Object.create(null)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "typeof name !== 'string' || !Object.hasOwn(methods, name)"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service snapshot rejects missing inherited accessor and proxy methods without callbacks"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service snapshot captures four original methods and receiver before metadata await"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service snapshot rejects missing inherited accessor and proxy methods without callbacks"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service invoker preserves exact Promise failure and cleanup carrier without wrapping"
               }
             ]
           }

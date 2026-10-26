@@ -246,7 +246,7 @@
     {
       "module": "adapters/host-common/observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f8f1e59a9bc4686734c41c36477ba9ae65bf9d9d184d0adc5a976c6af72e59db",
+      "sha256": "6f58b2511c56727c460ecac01d466bf0a247257bdf52eea13ffc40ac1f5644da",
       "exports": [
         "captureManagedRunObservation",
         "createHostObservationConnection",
@@ -263,7 +263,14 @@
         {
           "name": "<anonymous>",
           "parameters": [
-            "name"
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "<anonymous>/<anonymous>",
+          "parameters": [
+            "field"
           ],
           "async": false
         },
@@ -276,6 +283,13 @@
         },
         {
           "name": "<anonymous>#3",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "<anonymous>#4",
           "parameters": [
             "name"
           ],
@@ -603,30 +617,6 @@
           "async": false
         },
         {
-          "name": "managedRunResources/fields/fields",
-          "parameters": [
-            "names",
-            "offset",
-            "kind"
-          ],
-          "async": false
-        },
-        {
-          "name": "managedRunResources/fields/fields/fields",
-          "parameters": [
-            "name",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "managedRunResources/managedRunResources",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "observationTraceParent",
           "parameters": [
             "headers"
@@ -650,16 +640,23 @@
           "async": false
         },
         {
-          "name": "resourceAttribute/resourceAttribute",
+          "name": "resourceFields/resourceFields",
           "parameters": [
-            "name"
+            "field"
           ],
           "async": false
         },
         {
-          "name": "resourceAttribute/resourceAttribute/resourceAttribute",
+          "name": "resourceFields/resourceFields#2",
           "parameters": [
-            "letter"
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "resourceFields/resourceFields#3",
+          "parameters": [
+            "field"
           ],
           "async": false
         },
@@ -843,17 +840,17 @@
           "operations": [
             "<anonymous>",
             "<anonymous>#2",
+            "<anonymous>#3",
+            "<anonymous>/<anonymous>",
             "captureManagedRunObservation",
             "installHostObservation/projection/init:captureManagedRun/init:captureManagedRun",
             "installHostObservation/projection/init:captureManagedRun/init:captureManagedRun/init:captureManagedRun",
             "installHostObservation/projection/init:captureManagedRun/init:captureManagedRun/init:captureManagedRun/init:captureManagedRun",
             "installHostObservation/projection/projection#4",
             "managedRunResources",
-            "managedRunResources/fields/fields",
-            "managedRunResources/fields/fields/fields",
-            "managedRunResources/managedRunResources",
-            "resourceAttribute/resourceAttribute",
-            "resourceAttribute/resourceAttribute/resourceAttribute"
+            "resourceFields/resourceFields",
+            "resourceFields/resourceFields#2",
+            "resourceFields/resourceFields#3"
           ],
           "exports": [
             "captureManagedRunObservation"
@@ -876,7 +873,7 @@
               },
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
-                "anchor": "pub fn installed_managed_run_usage("
+                "anchor": "pub fn installed_managed_run_accounting("
               }
             ],
             "identity": [
@@ -936,7 +933,7 @@
               },
               {
                 "path": "adapters/host-common/observation.mjs",
-                "anchor": "const snapshot = Object.freeze({'actql.resource.scope': 'managed-run-ledger',"
+                "anchor": "const snapshot = {'actql.resource.scope': 'managed-run-ledger'};"
               }
             ],
             "extension": [
@@ -946,7 +943,7 @@
               },
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
-                "anchor": "/// values, not a measurement of process memory or physical cleanup."
+                "anchor": "/// These are managed accounting values, not a measurement of process memory"
               }
             ],
             "verification": [
@@ -963,7 +960,7 @@
         },
         {
           "operations": [
-            "<anonymous>#3",
+            "<anonymous>#4",
             "accumulateSelectedRows",
             "installHostObservation/flushSelectedRows/flushSelectedRows",
             "bindSelectedRequestRows"
@@ -1319,6 +1316,7 @@
         }
       ],
       "imports": [
+        "../host-node/ledger-contract.generated.mjs",
         "node:async_hooks",
         "node:crypto"
       ],

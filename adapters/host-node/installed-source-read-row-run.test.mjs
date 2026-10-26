@@ -25,7 +25,7 @@ function fixture() {
   };
   const options = {moon, acquisition, nonce: 'original', ledger, originalRead,
     capacity: {transferBytes: 100n, executionBytes: 200n}};
-  return {moon, calls, options};
+  return {moon, calls, options, run};
 }
 
 test('original Source read checks the same Run Ledger before starting and retires only after capture cleanup', () => {
@@ -58,4 +58,26 @@ test('Source-only scope cannot replace a missing Run Ledger or rescue an unavail
   delete f.moon.clientProgramInstalledSourceReadCheckLedger;
   assert.throws(() => startInstalledRowRun(f.options), {code: 'InstalledSourceReadUnavailable'});
   assert.deepEqual(f.calls, []);
+});
+
+test('planned provider rows start through the same original Source read and Ledger', () => {
+  const f = fixture(), provider = {};
+  f.moon.clientProgramInstalledSourceReadStartProviderRows = (read, acquisition, capacity,
+    nonce, stopped, transfer, execution) => {
+    f.calls.push('provider');
+    assert.equal(read, f.options.originalRead); assert.equal(acquisition, f.options.acquisition);
+    assert.equal(capacity, provider); assert.equal(nonce, 'original'); assert.equal(stopped({}), false);
+    assert.equal(transfer, 100n); assert.equal(execution, 200n); return ok(f.run);
+  };
+  f.moon.clientProgramRowSourceBorrowResponses = () => assert.fail('no reader prepared');
+  f.moon.clientProgramRowSourceBindResponseCleanup = () => assert.fail('no reader prepared');
+  f.moon.clientProgramRowSourceStartProviderAccounted = () => assert.fail('no independent provider parent');
+  const session = startInstalledRowRun({...f.options, capacity: {...f.options.capacity, provider}});
+  assert.deepEqual(f.calls, ['check', 'provider']);
+  session.close();
+  assert.deepEqual(f.calls, ['check', 'provider', 'close', 'cleanup', 'retire']);
+  f.moon.clientProgramInstalledSourceReadCheckLedger = () => ({$tag: 0, _0: 'same foreign Ledger'});
+  assert.throws(() => startInstalledRowRun({...f.options, capacity: {...f.options.capacity, provider}}),
+    {code: 'MoonBitHostFailure'});
+  assert.deepEqual(f.calls, ['check', 'provider', 'close', 'cleanup', 'retire']);
 });

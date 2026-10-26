@@ -3,6 +3,7 @@
 // event-loop turn and can overlap an active public operation.
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {randomUUID, createHash} from 'node:crypto';
+import {ledgerLimitsFields, ledgerUsageFields} from '../host-node/ledger-contract.generated.mjs';
 
 export const observationVersion = 'actql-observation/0.1';
 export const observationLimits = Object.freeze({
@@ -30,17 +31,28 @@ const attributeNames = ['actql.operation', 'actql.event', 'actql.observation.ver
   'http.response.status_code', 'error.type', 'service.name', 'service.version',
   'deployment.environment.name'];
 const mandatoryAttributes = ['actql.operation', 'actql.event', 'actql.observation.version'];
-const resourceLimitNames = Object.freeze(['planningWork', 'attempts', 'holdings',
-  'transferBytes', 'retainedBytes', 'executionBytes']);
-const resourceUsageNames = Object.freeze(['planning', 'attempts', 'holdings',
-  'transferred', 'uncertain', 'reservedTransfer', 'heldBytes', 'reservedRetention',
-  'reservedExecution', 'peakRetention', 'reservedAttempts', 'liveReservations', 'liveDelegations']);
+// These are presentation-only public spellings. Field membership, primitive
+// width and private snapshot order belong to the actual Core declaration.
+const resourceUsageAttributeAliases = Object.freeze({
+  planning_work: 'planning', transferred_bytes: 'transferred',
+  uncertain_transfer_bytes: 'uncertain', reserved_transfer_bytes: 'reserved_transfer',
+  reserved_retention_bytes: 'reserved_retention', reserved_execution_bytes: 'reserved_execution',
+  peak_retention_bytes: 'peak_retention',
+});
+const resourceFields = Object.freeze([
+  ...ledgerLimitsFields.map(field => Object.freeze({...field,
+    attribute: `actql.resource.limit.${field.name}`})),
+  ...ledgerUsageFields.map(field => Object.freeze({...field,
+    attribute: `actql.resource.usage.${Object.hasOwn(resourceUsageAttributeAliases, field.name)
+      ? resourceUsageAttributeAliases[field.name] : field.name}`})),
+].map(field => Object.freeze({...field, maximum: (1n << BigInt(field.bits - 1)) - 1n})));
+if (new Set(resourceFields.map(field => field.attribute)).size !== resourceFields.length ||
+    Object.keys(resourceUsageAttributeAliases).some(name => !ledgerUsageFields.some(field => field.name === name))) {
+  throw new TypeError('InvalidManagedResourceObservationPresentation');
+}
 const managedResourceSnapshots = new WeakSet();
 const selectedRowSnapshots = new WeakMap();
-const resourceAttribute = name => name.replace(/[A-Z]/gu, letter => `_${letter.toLowerCase()}`);
-attributeNames.push('actql.resource.scope',
-  ...resourceLimitNames.map(name => `actql.resource.limit.${resourceAttribute(name)}`),
-  ...resourceUsageNames.map(name => `actql.resource.usage.${resourceAttribute(name)}`));
+attributeNames.push('actql.resource.scope', ...resourceFields.map(field => field.attribute));
 attributeNames.push(...['owner', 'selection', 'kind', 'returned', 'unrelated', 'coverage']
   .map(name => `actql.rows.${name}`));
 function bindSelectedRequestRows(detail, binding) {
@@ -112,19 +124,26 @@ function accumulateSelectedRows(context, detail, pendingLimit = 0) {
   return true;
 }
 function managedRunResources(values) {
-  if (!Array.isArray(values) || values.length !== 19) return undefined;
-  const captured = values.slice();
-  if (!captured.every(value => typeof value === 'bigint' && value >= 0n &&
-      value <= 9223372036854775807n)) return undefined;
-  const fields = (names, offset, kind) => Object.fromEntries(names.map((name, index) =>
-    [`actql.resource.${kind}.${resourceAttribute(name)}`, captured[offset + index].toString()]));
-  // Exact decimal scalars from the same Core Ledger. These are neither
-  // whole-runtime allocation measurements nor physical cleanup receipts.
-  const snapshot = Object.freeze({'actql.resource.scope': 'managed-run-ledger',
-    ...fields(resourceLimitNames, 0, 'limit'), ...fields(resourceUsageNames, 6, 'usage')});
+  if (!Array.isArray(values)) return undefined;
+  const length = Object.getOwnPropertyDescriptor(values, 'length');
+  if (length?.value !== resourceFields.length ||
+      Reflect.ownKeys(values).length !== resourceFields.length + 1) return undefined;
+  const snapshot = {'actql.resource.scope': 'managed-run-ledger'};
+  for (let index = 0; index < resourceFields.length; index++) {
+    const descriptor = Object.getOwnPropertyDescriptor(values, String(index));
+    if (!descriptor || !Object.hasOwn(descriptor, 'value')) return undefined;
+    const value = descriptor.value, field = resourceFields[index];
+    if (typeof value !== 'bigint' || value < 0n || value > field.maximum) return undefined;
+    snapshot[field.attribute] = value.toString();
+  }
+  // Exact copied decimal scalars from the same Core Ledger. The distinct
+  // producer capability fixes this declaration-order layout; no old same-size
+  // layout is guessed. This never supplies admission or a physical-stop ACK.
+  Object.freeze(snapshot);
   managedResourceSnapshots.add(snapshot);
   return snapshot;
 }
+
 function selection(value, names, defaults) {
   if (value === undefined) return defaults;
   if (!value || typeof value !== 'object' || Array.isArray(value) ||
