@@ -894,7 +894,7 @@ for (const mode of ['success', 'cancel-during-export', 'cancel-during-export-pre
       } else {
         let execution;
         await assert.rejects(run(), error => {
-          assert.equal(error.code, 'CapturedRunPublicationFailed');
+          assert.equal(error.code, 'CapturedRunExecutionFailed');
           execution = error.execution;
           return true;
         });
@@ -1237,7 +1237,7 @@ for (const {name, family, mode, cancelDispatch} of [
       await run();
       assert.fail(`Unexpected publication: ${inspect(observations().receiptTrace)}`);
     }, error => {
-      assert.equal(error.code, 'CapturedRunPublicationFailed', error.message);
+      assert.equal(error.code, 'CapturedRunExecutionFailed', error.message);
       execution = error.execution;
       return true;
     });
@@ -1348,7 +1348,7 @@ for (const {name, work, workspace, failure} of [
       } else {
         let execution;
         await assert.rejects(run(), error => {
-          assert.equal(error.code, 'CapturedRunPublicationFailed');
+          assert.equal(error.code, 'CapturedRunExecutionFailed');
           execution = error.execution;
           return true;
         });
@@ -1377,7 +1377,7 @@ for (const {name: mode} of [
     async ({run, plan, publication, observations, permitCleanup}) => {
       let execution;
       await assert.rejects(run(), error => {
-        assert.equal(error.code, 'CapturedRunPublicationFailed');
+        assert.equal(error.code, 'CapturedRunExecutionFailed');
         execution = error.execution;
         return true;
       });
@@ -1569,7 +1569,7 @@ for (const {name, work, workspace, failure} of [
       } else {
         let execution;
         await assert.rejects(run(), error => {
-          assert.equal(error.code, 'CapturedRunPublicationFailed');
+          assert.equal(error.code, 'CapturedRunExecutionFailed');
           execution = error.execution;
           return true;
         });
@@ -1604,7 +1604,7 @@ for (const {name, mode} of [
     async ({run, plan, publication, captured, observations, permitCleanup}) => {
       let execution;
       await assert.rejects(run(), error => {
-        assert.equal(error.code, 'CapturedRunPublicationFailed');
+        assert.equal(error.code, 'CapturedRunExecutionFailed');
         execution = error.execution;
         return true;
       });
