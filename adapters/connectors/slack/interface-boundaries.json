@@ -326,7 +326,7 @@
     },
     {
       "module": "adapters/connectors/slack/host/installed-slack-source.mjs",
-      "sha256": "d758547666b0deba5704277dd5372642034fa67a1f22028827350802bce6992c",
+      "sha256": "7a8da2fef5c2ae9b8886bd26f2e2f44f7925f225f23bf0abc3db9ac0b2bec06e",
       "exports": [
         "INSTALLED_SLACK_SITE_VERSION",
         "INSTALLED_SLACK_SOURCE_VERSION",
@@ -388,7 +388,10 @@
           "name": "installedSlackSourceIdentityParts",
           "parameters": [
             "profile",
-            "providerProfile"
+            "providerProfile",
+            "read",
+            "_installation",
+            "context"
           ],
           "async": true
         },
@@ -403,7 +406,8 @@
             "baseEnvironmentWire",
             "runtimeBundleCid",
             "resolveSecret",
-            "readerCapacity"
+            "readerCapacity",
+            "configurationReader"
           ],
           "async": true
         },
@@ -496,9 +500,16 @@
         {
           "name": "readInputs",
           "parameters": [
-            "profile"
+            "profile",
+            "configurationReader",
+            "readJson"
           ],
           "async": true
+        },
+        {
+          "name": "readInputs/reads/reads",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "sha/sha",
@@ -571,8 +582,6 @@
             "checkSite/checkSite",
             "cid/cid",
             "fail/fail",
-            "installedSlackSourceIdentityParts",
-            "loadInstalledSlackSource",
             "loadInstalledSlackSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledSlackSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledSlackSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
@@ -585,7 +594,6 @@
             "loadInstalledSlackSource/target/target",
             "loadInstalledSlackSource/views/views",
             "positive/positive",
-            "readInputs",
             "sha/sha",
             "snapshot",
             "snapshot/snapshot",
@@ -862,6 +870,476 @@
               {
                 "path": "adapters/connectors/slack/test/installed-slack-messages.test.mjs",
                 "anchor": "test('installed Slack channels Account permission cannot substitute"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installedSlackSourceIdentityParts",
+            "loadInstalledSlackSource",
+            "readInputs"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed users Source"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Channels Source"
+              },
+              {
+                "path": "src/connectors/slack/catalog/channels.mbt",
+                "anchor": "pub fn project_slack_channel_list("
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "export async function loadInstalledSlackSource("
+              },
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "export function createSlackUserSourceReaderFactory("
+              },
+              {
+                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "anchor": "export function createSlackChannelListReader("
+              },
+              {
+                "path": "adapters/connectors/slack/host/channel-source-reader.mjs",
+                "anchor": "export function createSlackChannelSourceReaderFactory("
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "const views="
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "workspaceBytesCid:sha(Buffer.from(installed.workspaceId))"
+              },
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "invocationBindingsMatch(authorization.scope,initial.scope)"
+              },
+              {
+                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "anchor": "invocationBindingsMatch(authorization.scope,context.scope)"
+              },
+              {
+                "path": "adapters/connectors/slack/host/channel-source-reader.mjs",
+                "anchor": "initial.scope.dispatchRequestCid!==dispatchRequestCid"
+              },
+              {
+                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "anchor": "slackWorkspaceIdentityMatches(identity,workspaceId)"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed users Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "const callbacks=methods(options,"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Channels Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/channel-source-reader.mjs",
+                "anchor": "const callbacks=methods(options,"
+              },
+              {
+                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "anchor": "const readers = new WeakMap();"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "signal.throwIfAborted();const decision=await invoke('verifyRead');"
+              },
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "const result=await readResult;"
+              },
+              {
+                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "anchor": "await verify(SLACK_CHANNEL_LIST_OPERATION);"
+              },
+              {
+                "path": "adapters/connectors/slack/host/channel-source-reader.mjs",
+                "anchor": "const result=await readResult;"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "fail('SlackReaderCapacityUnavailable')"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-source.test.mjs",
+                "anchor": "test('installed Slack lost original reply"
+              },
+              {
+                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "anchor": "export class SlackChannelListReadFailure"
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "fail('SlackReaderCapacityUnavailable')"
+              },
+              {
+                "path": "adapters/connectors/slack/test/channel-list-read.test.mjs",
+                "anchor": "test('Slack channel duplicate keys"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "stop.abort(reason);"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-source.test.mjs",
+                "anchor": "test('installed Slack stop during original resolver"
+              },
+              {
+                "path": "adapters/connectors/slack/host/channel-source-reader.mjs",
+                "anchor": "stop.abort(reason);"
+              },
+              {
+                "path": "adapters/connectors/slack/test/channel-list-read.test.mjs",
+                "anchor": "test('Slack channel current or stop"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed users Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "BigInt(limits.maxTotalResponseBytes)>"
+              },
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "cleanupConfirmed:false"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Channels Source"
+              },
+              {
+                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "anchor": "maxTotalResponseBytes - bytes"
+              },
+              {
+                "path": "adapters/connectors/slack/host/channel-source-reader.mjs",
+                "anchor": "cleanupConfirmed:false"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed users Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "readPages(){fail('InstalledSlackLegacyReaderUnavailable');}"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Channels Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "messages:SLACK_MESSAGE_HISTORY_OPERATION},physicalTarget:target,"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-source.test.mjs",
+                "anchor": "test('installed Slack actual text Source"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-source.test.mjs",
+                "anchor": "test('ordinary installed Slack entrance"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-source.test.mjs",
+                "anchor": "test('installed Slack adapter snapshots original callbacks"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-source.test.mjs",
+                "anchor": "test('installed Slack original workspace observation"
+              },
+              {
+                "path": "adapters/connectors/slack/test/channel-list-read.test.mjs",
+                "anchor": "test('Slack channels actual SQL/AQL"
+              },
+              {
+                "path": "adapters/connectors/slack/test/channel-list-read.test.mjs",
+                "anchor": "test('Slack channel count preserves"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-channels.test.mjs",
+                "anchor": "test('installed Slack channels original Source"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-channels.test.mjs",
+                "anchor": "test('installed Slack channel Account denial"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-messages.test.mjs",
+                "anchor": "test('installed Slack messages uses original messages Account decisions"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-messages.test.mjs",
+                "anchor": "test('installed Slack channels Account permission cannot substitute"
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              },
+              {
+                "path": "adapters/connectors/notion/test/source-configuration-reader.test.mjs",
+                "anchor": "test('installed Source configuration preserves same pending read failure without cleanup or fallback'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "readInputs/reads/reads"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "anchor": "test('configuration reader selection refuses proxies accessors and incomplete originals without invoking them'"
               }
             ]
           }

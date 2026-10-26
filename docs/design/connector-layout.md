@@ -429,3 +429,26 @@ source qualifications.
   actual installed Sites, a shared admitted account configuration and original
   Set recovery without resending the applied member. Routing refusals, singular
   recovery and bounded index capture have separate focused consumers.
+
+### Original configuration readers
+
+Notion and Slack retain supplied configuration readers before awaiting reads.
+Their installation identity consumes the existing JSON read port. When the
+installer supplies a configuration reader, both own data methods and their
+original receiver are captured before the first JSON read; the selected text
+reader receives the unchanged profile CA bound. Accessor-backed or incomplete
+readers refuse before reading. Omitted readers retain the existing bounded
+direct reads.
+
+The original pending read error and cleanup handle propagate unchanged. These
+adapters do not retry or retire the installer’s reader. Original PEM validation,
+ASCII bytes, workspace bytes and binding hashes remain separate from reader
+selection, as do Source admission, current authorization and physical cleanup.
+
+The existing configuration-reader owner selects original methods for connectors.
+`captureConfigurationReaders` captures own JSON/text data methods and their
+receiver without opening a file, acquiring permission or owning cleanup. It
+rejects proxy/accessor/incomplete readers through the connector's original
+refusal callback; a returning callback still refuses. Connector adapters retain
+their error identity, profile validation, CA bounds and byte/hash semantics.
+This shared selection does not replace currentness or resource admission.

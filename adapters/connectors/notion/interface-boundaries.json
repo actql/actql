@@ -1776,7 +1776,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/installed-notion-source.mjs",
-      "sha256": "61a02fb7d604363420aaed0a3f3ce01e745a4c1ee0e7af8245d2b96d3c8bc7a3",
+      "sha256": "3c19a106d85dcaf4d955074d480918e2b47b733d351ef16d1aa81ff72dee1862",
       "exports": [
         "INSTALLED_NOTION_SITE_VERSION",
         "INSTALLED_NOTION_SOURCE_VERSION",
@@ -1846,7 +1846,10 @@
           "name": "installedNotionSourceIdentityParts",
           "parameters": [
             "profile",
-            "providerProfile"
+            "providerProfile",
+            "read",
+            "_installation",
+            "context"
           ],
           "async": true
         },
@@ -1861,7 +1864,8 @@
             "baseEnvironmentWire",
             "runtimeBundleCid",
             "resolveSecret",
-            "readerCapacity"
+            "readerCapacity",
+            "configurationReader"
           ],
           "async": true
         },
@@ -1956,7 +1960,9 @@
         {
           "name": "readInputs",
           "parameters": [
-            "profile"
+            "profile",
+            "configurationReader",
+            "readJson"
           ],
           "async": true
         },
@@ -1965,6 +1971,11 @@
           "parameters": [
             "name"
           ],
+          "async": false
+        },
+        {
+          "name": "readInputs/reads/reads",
+          "parameters": [],
           "async": false
         },
         {
@@ -2011,8 +2022,6 @@
             "cid/cid",
             "closed/closed",
             "fail/fail",
-            "installedNotionSourceIdentityParts",
-            "loadInstalledNotionSource",
             "loadInstalledNotionSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledNotionSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledNotionSource/init:readPages/init:readPages",
@@ -2026,7 +2035,6 @@
             "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
             "originalReaderFactory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
             "positive/positive",
-            "readInputs",
             "readInputs/binding/binding",
             "sha/sha",
             "text/text"
@@ -2132,7 +2140,7 @@
               },
               {
                 "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "const pem=await readBoundedConfigurationText"
+                "anchor": "const pem=await reads.readText"
               },
               {
                 "path": "docs/design/notion-user-reader.md",
@@ -2177,6 +2185,352 @@
               {
                 "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
                 "anchor": "installed Notion optional TLS authority is bounded original PEM before native transport"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installedNotionSourceIdentityParts",
+            "loadInstalledNotionSource",
+            "readInputs"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "## Installed user Source preparation"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "export function checkInstalledNotionSourceProfile(profile)"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "export async function loadInstalledNotionSource("
+              },
+              {
+                "path": "src/connectors/notion/catalog/users.mbt",
+                "anchor": "pub fn notion_user_list_facts_wire()"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "originalStringsCid:sha(JSON.stringify("
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "const admitsApprovalTarget="
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "runtimeBundleCid,...binding,site:siteProfile"
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "The original Catalog schema and `id` candidate-key declaration enter the same"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "function originalReaderFactory("
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "The wrapper retains original options, capacity/preparer receiver, child,"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "const original=await options.authorizationFor(0);"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "current:async operation=>"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "lastResult=await child.read();"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "fail('NotionReaderCapacityUnavailable')"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "originalFailure=cause;throw cause;"
+              },
+              {
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "anchor": "installed Notion lost original reply keeps same recovery journal Unknown and reservation without resend"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "signal.throwIfAborted();"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "stop.abort(reason);child?.requestStop(reason);closeTransport();"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "const limitKeys="
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "const pem=await reads.readText"
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "Neither public configuration numbers nor page/transfer ceilings issue"
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "Those overlap the complete user reader inventory above and the original RowRun"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "There is no ordinary `readPages` fallback, second parser,"
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "This factory does not narrow the full public Notion target to users."
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "cleanupConfirmed:false"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "anchor": "installed Notion actual SQL and AQL retain original multi-page users and the same pending capture"
+              },
+              {
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "anchor": "ordinary installed Notion entrance selects the real factory and refuses missing normal supply"
+              },
+              {
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "anchor": "installed Notion copied preparation or absent original Ledger cannot dispatch users"
+              },
+              {
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "anchor": "installed Notion actual Account denial refuses preparation before a Credential use or HTTP"
+              },
+              {
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "anchor": "installed Notion optional TLS authority is bounded original PEM before native transport"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
+              },
+              {
+                "path": "adapters/connectors/notion/test/source-configuration-reader.test.mjs",
+                "anchor": "test('installed Source configuration preserves same pending read failure without cleanup or fallback'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "readInputs/reads/reads"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "anchor": "test('configuration reader selection refuses proxies accessors and incomplete originals without invoking them'"
               }
             ]
           }
