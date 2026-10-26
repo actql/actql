@@ -86,3 +86,23 @@ test "scalar snapshot actual indexed cursor admission fits canonical retained bo
   @identity.emit_value(v, writer)
   assert_eq(@encode.finish(writer), wire)
 }
+
+///|
+test "scalar snapshot consumes canonical construction units without repricing" {
+  for units in [0, 1, 3, 9, 65536] {
+    let extent = @canonical.nfc_lf_construction_extent(units).unwrap()
+    let actual = scalar_snapshot_name_normalization_layout(units).unwrap()
+    assert_eq(actual.record_headers, extent.record_headers)
+    assert_eq(actual.reference_slots, extent.reference_slots)
+    assert_eq(actual.scalar_words, extent.scalar_words)
+    assert_eq(actual.owned_utf16_units, extent.owned_utf16_units)
+    assert_eq(actual.owned_wire_bytes, 0L)
+    // Independent original Local inventory: this migration changes its owner,
+    // not the pre-existing reservation or its limits.
+    assert_eq(actual.record_headers, 100L)
+    assert_eq(actual.reference_slots, 123L)
+    assert_eq(actual.scalar_words, 528L + 35L * units.to_int64())
+    assert_eq(actual.owned_utf16_units, 40L * units.to_int64() + 2L)
+  }
+  assert_true(scalar_snapshot_name_normalization_layout(-1) is None)
+}
