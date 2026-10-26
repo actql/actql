@@ -6,19 +6,11 @@ fn[P, C, R] backed_original_child_ready(
   runtime : R,
 ) -> Bool {
   guard backed_live_projection_original(projection, runtime) is Ok(access) &&
-    access.ticket is Some(ticket) &&
-    ticket.logical is Some(logical) else {
+    access.ticket is Some(ticket) else {
     return false
   }
   backed_execution_live_state(projection, runtime) == Ok(LiveOpen) &&
-  !ticket.live_usage_reported &&
-  logical.planning == 0 &&
-  logical.attempts == 0 &&
-  logical.holdings == 0 &&
-  logical.transferred == 0L &&
-  logical.uncertain == 0L &&
-  ticket.peak_retention == 0L &&
-  ticket.final_usage is None
+  backed_child_usage_unreported(ticket)
 }
 
 ///|
