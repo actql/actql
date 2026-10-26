@@ -149,3 +149,26 @@ reservation, with no remaining holding or delegation. Retired records and
 consumed planning/attempt/transfer history do not count as current occupancy;
 retirement never resets or refunds that cumulative history. This is accounting
 correspondence, still separate from physical stop and reader cleanup witnesses.
+
+
+## Typed final Effect preparation
+
+An Effect preparation's completed body is its original
+`ClientInstalledEffectManagedPlan`, including the checked Effect, request,
+contracts, acquisitions and generated sequences. It is never cast to the
+pure `PreparedClientProgram` body. The existing initial admission is checked
+for its original purpose, input and immutable Ledger limits before cleanup
+custody transfers. A deficient final Plan envelope leaves the same initial
+owner available for retirement; no second imported business child is started.
+
+The Run retains a closed Pure/EffectPlan case and uses one generic retirement
+procedure. The selected dispatch borrows its original body before opening its
+Host; pending siblings keep the original preparation reservation charged after
+the Run severs its heavy aliases. New borrows are fenced before those aliases
+are cut. Source-read and physical-operation cleanup still precede Run cleanup.
+
+The initial inventory must include the typed custody case, generic retirement
+record, admission and Run holders and each simultaneous operation/dispatch
+borrow. This connection does not turn a numeric final Plan quote into complete
+initial constructor funding, enable an unfunded Model/Content family, or
+acknowledge physical stop from alias severance.

@@ -22,6 +22,31 @@ pub fn[I] start_node_preparation_admission(
 }
 
 ///|
+/// Read the immutable limits of this exact started input admission before a
+/// checked plan is transferred. No Ledger, new grant, purpose conversion or
+/// second imported child is exposed. The later adoption rechecks currentness.
+pub fn[I] node_source_compute_preparation_limits(
+  owner : NodePreparationAdmission[I],
+  input : I,
+) -> Result[LedgerLimits, ImportedChildLedgerIssue] {
+  if owner.transitioning {
+    return Err(Unknown)
+  }
+  guard owner.admission is Some(admission) else { return Err(AlreadyConsumed) }
+  match check_node_source_compute_run_preparation(admission, input) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard admission.ledger is Some(ledger) else { return Err(Unavailable) }
+  owner.transitioning = true
+  let outcome = check_node_managed_run_admission(admission, ledger).map(_ => {
+    ledger_limits(ledger)
+  })
+  owner.transitioning = false
+  outcome
+}
+
+///|
 /// Install the original census before allocating the first preparation token.
 /// The fixed initial supplier funds bootstrap controls and their bounded slot
 /// inventories. Starting the imported child remains the separate one-use call;

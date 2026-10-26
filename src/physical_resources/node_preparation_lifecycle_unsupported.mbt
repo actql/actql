@@ -14,6 +14,16 @@ pub fn[I] start_node_preparation_admission(
 }
 
 ///|
+pub fn[I] node_source_compute_preparation_limits(
+  owner : NodePreparationAdmission[I],
+  _input : I,
+) -> Result[LedgerLimits, ImportedChildLedgerIssue] {
+  match owner {
+
+  }
+}
+
+///|
 pub fn[I] begin_node_preparation_inventory(
   owner : NodePreparationAdmission[I],
   _input : I,
