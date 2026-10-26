@@ -237,21 +237,52 @@ fn combine_installed_mock_model_run_requirements(
   // allocation and failures, and each acquired child keeps its own cleanup.
   let read_retained = selected.mapping.logical.max_live_value_bytes
   let read_execution = selected.identity.wire.max_bytes.to_int64()
-  let extra = [
-    model.planning_work.to_int64(),
-    model.attempts.to_int64(),
-    model.holdings.to_int64(),
-    model.transfer_bytes,
-    model.retained_bytes + read_retained * 2L,
-    model.execution_bytes + read_execution * 2L,
-  ]
-  for index in 0..<6 {
-    let maximum = if index < 3 { 2147483647L } else { 9223372036854775807L }
-    if extra[index] < 0L || base[index] > maximum - extra[index] {
-      return Err(InsufficientCapacity)
-    }
-    base[index] += extra[index]
+  // Domain multiplicity is the existing bootstrap/read pair. The common
+  // inventory checks multiplication BEFORE either intermediate can wrap.
+  guard base.length() == 6 &&
+    base[0] >= 0L &&
+    base[0] <= 2147483647L &&
+    base[1] >= 0L &&
+    base[1] <= 2147483647L &&
+    base[2] >= 0L &&
+    base[2] <= 2147483647L &&
+    @execution.execution_capacity_inventory_add(
+      model.retained_bytes,
+      QuotedBytes,
+      read_retained,
+      2,
+    )
+    is Some(retained_bytes) &&
+    @execution.execution_capacity_inventory_add(
+      model.execution_bytes,
+      QuotedBytes,
+      read_execution,
+      2,
+    )
+    is Some(execution_bytes) &&
+    @resources.add_ledger_limits(
+      {
+        planning_work: base[0].to_int(),
+        attempts: base[1].to_int(),
+        holdings: base[2].to_int(),
+        transfer_bytes: base[3],
+        retained_bytes: base[4],
+        execution_bytes: base[5],
+      },
+      { ..model, retained_bytes, execution_bytes, },
+    )
+    is Some(combined) else {
+    return Err(InsufficientCapacity)
   }
+  // Commit the private six-number projection only after the complete typed
+  // composition succeeds. Failed arithmetic cannot leave a partially changed
+  // vector for the existing consumer or its diagnostic path.
+  base[0] = combined.planning_work.to_int64()
+  base[1] = combined.attempts.to_int64()
+  base[2] = combined.holdings.to_int64()
+  base[3] = combined.transfer_bytes
+  base[4] = combined.retained_bytes
+  base[5] = combined.execution_bytes
   // The private tuple also carries the selected reservation/census bounds;
   // JS never reaches into compiler-owned Limits fields or invents a second
   // numeric profile. Bootstrap, read and Model remain separate same-Run tokens.

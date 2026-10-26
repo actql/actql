@@ -195,6 +195,17 @@ coexistence. `execution_relation.compose_preparation_representation` owns their
 checked five-unit composition under the same tariff. Composition preserves
 occurrences; it cannot infer aliases or release a previous owner. Phase drivers
 reserve the result through their original `PreparationCapacity`.
+Ledger limits are a different typed composition. `physical_resources` owns
+`add_ledger_limits`: all six original dimensions must be nonnegative and fit
+before their sums are formed. Retention and execution limits remain independent;
+this DATA operation neither chooses a policy nor creates or debits a Ledger.
+The installed Model requirement projection uses the common checked inventory
+fold for its existing two simultaneous bootstrap/read holdings, then adds the
+selected Model and Run limits through that owner. Only a successful complete
+composition updates the private Run projection. A refused contribution leaves
+that projection unchanged. Its original read reservations and operation/retention
+census remain separate; numerical composition is not their physical funding.
+
 The common `PreparationExecutionInventory` also composes retained/workspace
 representations, value-node extents and existing byte quotes. Its execution
 capacity includes retained state alongside workspace; that projection is not
