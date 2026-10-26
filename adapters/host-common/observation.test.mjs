@@ -462,7 +462,7 @@ test('managed usage retains one original reader and operation correlation across
   const observer = installHostObservation(connection, {journal: {observationStorage: () => ({
     consume(value) {charges.push(value); return {accepted: true};},
   })}});
-  const values = [7n, 2n, 3n, 64n, 128n, 256n, 1n, 2n, 3n, 4n, 0n, 0n, 8n, 0n, 0n, 16n, 0n, 2n, 1n];
+  const values = [7n, 2n, 3n, 64n, 128n, 256n, 1n, 2n, 0n, 3n, 2n, 1n, 4n, 0n, 0n, 8n, 0n, 0n, 16n];
   let reads = 0, complete;
   await observer.run('read', trace, () => {
     complete = captureManagedRunObservation(observer, ref, () => {reads++; return values;});
@@ -806,4 +806,59 @@ test('excluding required metadata suppresses a record instead of emitting a misl
   await observer.close();
   assert.equal(records.length, 0);
   assert.equal(observer.status().loss.requiredAttributeExcluded, 2);
+});
+
+
+async function accountingRecords(value) {
+  const records=[];
+  const observer=installHostObservation(createHostObservationConnection({deliver:record=>records.push(record)}),{
+    journal:{observationStorage:()=>({consume:()=>({accepted:true})})},
+  });
+  await observer.run('read',trace,()=>captureManagedRunObservation(observer,ref,()=>value)());
+  await observer.close();
+  return {records:records.filter(record=>record.event==='resources_observed'),loss:observer.status().loss};
+}
+
+test('managed accounting maps every canonical Core field to its unchanged public attribute',async()=>{
+  const {records,loss}=await accountingRecords([
+    31n,32n,33n,9007199254740993n,35n,36n,
+    41n,42n,43n,44n,45n,46n,9007199254740995n,48n,49n,50n,51n,52n,9223372036854775807n,
+  ]);
+  assert.equal(records.length,1);assert.deepEqual(loss,{});
+  const actual=Object.fromEntries(Object.entries(records[0].attributes).filter(([key])=>key.startsWith('actql.resource.')));
+  assert.deepEqual(actual,{
+    'actql.resource.scope':'managed-run-ledger',
+    'actql.resource.limit.planning_work':'31','actql.resource.limit.attempts':'32',
+    'actql.resource.limit.holdings':'33','actql.resource.limit.transfer_bytes':'9007199254740993',
+    'actql.resource.limit.retained_bytes':'35','actql.resource.limit.execution_bytes':'36',
+    'actql.resource.usage.planning':'41','actql.resource.usage.attempts':'42',
+    'actql.resource.usage.reserved_attempts':'43','actql.resource.usage.holdings':'44',
+    'actql.resource.usage.live_reservations':'45','actql.resource.usage.live_delegations':'46',
+    'actql.resource.usage.transferred':'9007199254740995','actql.resource.usage.uncertain':'48',
+    'actql.resource.usage.reserved_transfer':'49','actql.resource.usage.held_bytes':'50',
+    'actql.resource.usage.reserved_retention':'51','actql.resource.usage.reserved_execution':'52',
+    'actql.resource.usage.peak_retention':'9223372036854775807',
+  });
+});
+
+test('managed accounting derives each primitive refusal from Core width without zero fill',async()=>{
+  for(const [index,value]of[[0,2147483648n],[8,2147483648n],[10,2147483648n],
+    [11,2147483648n],[3,9223372036854775808n],[12,9223372036854775808n],[18,9223372036854775808n]]){
+    const values=Array(19).fill(0n);values[index]=value;
+    const {records,loss}=await accountingRecords(values);
+    assert.equal(records.length,0);assert.equal(loss.resourceUnavailable,1);
+  }
+});
+
+test('managed accounting refuses holes accessors and extra own metadata without invoking getters',async()=>{
+  let reads=0;
+  const accessor=Array(19).fill(0n);
+  Object.defineProperty(accessor,8,{get(){reads++;return 0n;},enumerable:true,configurable:true});
+  const hole=Array(19).fill(0n);delete hole[10];
+  const extra=Array(19).fill(0n);extra.not_a_ledger_counter=0n;
+  for(const values of[accessor,hole,extra]){
+    const {records,loss}=await accountingRecords(values);
+    assert.equal(records.length,0);assert.equal(loss.resourceUnavailable,1);
+  }
+  assert.equal(reads,0);
 });

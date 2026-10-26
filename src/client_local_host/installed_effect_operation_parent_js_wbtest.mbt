@@ -995,3 +995,149 @@ test "pure staged preparation retains its original dispatch and same generic ret
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
 }
+
+///|
+// Actual fixed purpose/parent ports, with no physical Model/Source supplier.
+extern "js" fn effect_model_parent_test_original(
+  loader : PublicationTestLoader,
+  plan : ClientInstalledEffectManagedPlan,
+  quote : FixedArray[Int64],
+) -> @resources.OriginalNodeManagedRunReference =
+  #|(loader,plan,quote) => loader('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs').retainOrdinaryManagedRun(plan,{planningWork:Number(quote[0]),attempts:Number(quote[1]),holdings:Number(quote[2]),transferBytes:quote[3],retainedBytes:quote[4],executionBytes:quote[5]},()=>{},()=>false,'local-mock-model')
+
+///|
+fn effect_model_parent_test_admission(
+  plan : ClientInstalledEffectManagedPlan,
+  quote : Array[Int64],
+) -> @resources.NodeManagedRunAdmission[ClientInstalledEffectManagedPlan] {
+  let original = effect_model_parent_test_original(
+    publication_test_loader(publication_test_url()),
+    plan,
+    FixedArray::from_array(quote),
+  )
+  @resources.prepare_node_local_mock_model_run_admission(original, plan).unwrap()
+}
+
+///|
+test "planned Model begins same original Scope before children and retains pending read cleanup" {
+  let (prepared, request, contracts, model) = effect_model_plan_inputs()
+  let calls = Ref(0)
+  let plan = effect_model_plan_fixture(
+    prepared, request, contracts, model, calls,
+  )
+  let admission = effect_model_parent_test_admission(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  assert_true(
+    begin_prepared_installed_effect_managed_run(
+      admission, prepared, request, plan,
+    )
+    is Err(Unsupported),
+  )
+  let (run, scope) = begin_prepared_installed_effect_mock_model_managed_run(
+    admission, prepared, request, plan,
+  ).unwrap()
+  assert_eq(calls.val, 1)
+  assert_true(
+    physical_equal(installed_effect_managed_operation_plan(run).unwrap(), plan),
+  )
+  assert_true(
+    @publication_host.client_model_read_scope_live(
+      scope,
+      model.compiled,
+      model.definition,
+      model.graph,
+    ),
+  )
+  let ledger = prepare_installed_effect_managed_run_ledger(
+    run,
+    prepared,
+    request,
+    [],
+    [],
+    [],
+    contracts,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
+  assert_true(
+    physical_equal(require_installed_managed_run(run).unwrap(), ledger),
+  )
+  let read = @publication_host.prepare_client_model_read(scope, 100L, 200L).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 600L)
+  assert_true(retire_installed_managed_run(run) is Err(Resource(Unavailable)))
+  assert_true(
+    @publication_host.settle_client_model_read(read, false)
+    is Err(Resource(@resources.CleanupPending)),
+  )
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 600L)
+  @publication_host.settle_client_model_read(read, true).unwrap()
+  retire_installed_managed_run(run).unwrap()
+  assert_true(
+    !@publication_host.client_model_read_scope_live(
+      scope,
+      model.compiled,
+      model.definition,
+      model.graph,
+    ),
+  )
+  assert_true(
+    begin_prepared_installed_effect_mock_model_managed_run(
+      admission, prepared, request, plan,
+    )
+    is Err(Resource(AlreadyConsumed)),
+  )
+  assert_eq(calls.val, 1)
+}
+
+///|
+test "planned Model refuses wrong purpose foreign original and short envelope with original cleanup" {
+  let (prepared, request, contracts, model) = effect_model_plan_inputs()
+  let calls = Ref(0)
+  let plan = effect_model_plan_fixture(
+    prepared, request, contracts, model, calls,
+  )
+  let wrong = effect_parent_test_admission(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  assert_true(
+    begin_prepared_installed_effect_mock_model_managed_run(
+      wrong, prepared, request, plan,
+    )
+    is Err(Resource(Unavailable)),
+  )
+  @resources.cleanup_node_managed_run_admission(wrong).unwrap()
+  let foreign = effect_model_plan_fixture(
+    prepared, request, contracts, model, calls,
+  )
+  let admitted = effect_model_parent_test_admission(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  assert_true(
+    begin_prepared_installed_effect_mock_model_managed_run(
+      admitted, prepared, request, foreign,
+    )
+    is Err(Resource(ForeignOriginal)),
+  )
+  let (run, _) = begin_prepared_installed_effect_mock_model_managed_run(
+    admitted, prepared, request, plan,
+  ).unwrap()
+  retire_installed_managed_run(run).unwrap()
+  for field in [0, 1, 2, 3, 4, 5] {
+    let quote = prepared_installed_effect_managed_requirements(plan)
+    quote[field] -= 1L
+    let short = effect_model_parent_test_admission(plan, quote)
+    assert_true(
+      begin_prepared_installed_effect_mock_model_managed_run(
+        short, prepared, request, plan,
+      )
+      is Err(InsufficientCapacity),
+    )
+    @resources.cleanup_node_managed_run_admission(short).unwrap()
+  }
+  assert_eq(calls.val, 2)
+}

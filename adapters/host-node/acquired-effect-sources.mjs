@@ -1,11 +1,12 @@
 // Select the bounded checked acquisitions from an inert installation inventory.
 // This owns no provider work, authorization or continuation identity.
 import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {installedSourceFor} from './installed-source.mjs';
 import {prepareOriginalSourceQuery} from './original-query-preparation.mjs';
 
 export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile,
-  registry, values, fragment, ordered, queryTimePreparation, requestIdentity}) {
+  registry, values, fragment, ordered, queryTimePreparation, requestIdentity, managedPlan}) {
   const count = moon.clientProgramEffectAcquisitionCount(preparedEffect);
   if (![0, 1, 2].includes(count)) {
     throw new TypeError('UnsupportedEffectSourceCount');
@@ -13,7 +14,9 @@ export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile
   const selected = [];
   const owners = new Set();
   for (let task = 0; task < count; task++) {
-    const requirement = queryTimePreparation === undefined
+    const requirement = managedPlan !== undefined
+      ? runtimeField(checked(moon.clientProgramInstalledEffectManagedPlanSource(managedPlan, task)), 1)
+      : queryTimePreparation === undefined
       ? checked(moon.clientProgramEffectPrepareLocalQueryRequirement(
         preparedEffect, task, 0, registry, values, fragment, ordered))
       : prepareOriginalSourceQuery({moon, preparedEffect, stage: task, input: 0,

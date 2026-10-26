@@ -24,11 +24,13 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     checked(moon.clientProgramInstalledKeyedSourceReadCheckLedger(originalKeyedRead, ledger));
   }
   if (originalRead !== undefined) {
-    if (ledger === undefined || keyed || reportCapacity !== undefined || providerCapacity !== undefined) {
+    if (ledger === undefined || keyed || reportCapacity !== undefined) {
       fail('InstalledSourceRunLedgerRequired');
     }
     if (['clientProgramInstalledSourceReadCheckLedger',
-      'clientProgramInstalledSourceReadStartRows', 'clientProgramInstalledSourceReadRetire']
+      providerCapacity === undefined ? 'clientProgramInstalledSourceReadStartRows'
+        : 'clientProgramInstalledSourceReadStartProviderRows',
+      'clientProgramInstalledSourceReadRetire']
       .some(name => typeof moon[name] !== 'function')) fail('InstalledSourceReadUnavailable');
     // The Source-only child's limits cannot stand in for the original Run.
     // Check actual nominal accounting before any RowRun or physical read.
@@ -37,7 +39,8 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   if (providerCapacity !== undefined) {
     if (keyed || reportCapacity !== undefined) fail('InstalledProviderSourceProgramMismatch');
     if (ledger === undefined) fail('InstalledProviderSourceLedgerRequired');
-    if (['clientProgramRowSourceStartProviderAccounted',
+    if ([originalRead === undefined ? 'clientProgramRowSourceStartProviderAccounted'
+      : 'clientProgramInstalledSourceReadStartProviderRows',
       'clientProgramRowSourceBorrowResponses', 'clientProgramRowSourceBindResponseCleanup']
       .some(name => typeof moon[name] !== 'function')) fail('InstalledProviderSourceUnavailable');
   }
@@ -63,6 +66,10 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     ? moon.clientProgramRowSourceStartListingAccounted(acquisition,
       reportCapacity, nonce, attempt => settled.has(attempt), ledger,
       capacity.transferBytes, capacity.executionBytes)
+    : providerCapacity !== undefined && originalRead !== undefined
+    ? moon.clientProgramInstalledSourceReadStartProviderRows(originalRead, acquisition,
+      providerCapacity, nonce, attempt => settled.has(attempt),
+      capacity.transferBytes, capacity.executionBytes)
     : providerCapacity !== undefined
     ? moon.clientProgramRowSourceStartProviderAccounted(acquisition,
       providerCapacity, nonce, attempt => settled.has(attempt), ledger,
@@ -79,7 +86,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   let closed = false;
   let readerPrepared = false, readerStarted = false, readerReadPending = false;
   let readerStopRequested = false;
-  let reader, readerRead, readerStop, readerObserve;
+  let reader, readerRead, readerStop, readerObserve, readerRetry;
   let readerStopPending = false, readerStopFailure;
   const readerRetired = () => {
     if (readerObserve === undefined || readerReadPending || readerStopPending) return false;
@@ -88,10 +95,12 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     return Reflect.apply(readerObserve, reader, [])?.cleanupConfirmed === true;
   };
   const stopReader = () => {
-    if (readerStopRequested || readerStop === undefined) return;
+    if (readerStop === undefined || readerStopPending) return;
+    const retrying = readerStopRequested;
+    if (retrying && readerRetry === undefined) return;
     readerStopRequested = true;
     try {
-      const stopping = Reflect.apply(readerStop, reader, []);
+      const stopping = Reflect.apply(retrying ? readerRetry : readerStop, reader, []);
       if (stopping !== undefined) {
         // A pending stop/cancel request is not retirement. Handle its original
         // rejection without blocking cleanup forever or issuing another stop.
@@ -112,7 +121,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     if (originalRead !== undefined) checked(moon.clientProgramInstalledSourceReadRetire(originalRead));
     if (originalKeyedRead !== undefined) checked(moon.clientProgramInstalledKeyedSourceReadRetire(originalKeyedRead));
     closed = true;
-    reader = readerRead = readerStop = readerObserve = undefined;
+    reader = readerRead = readerStop = readerObserve = readerRetry = undefined;
     if (readerStopFailure !== undefined) throw readerStopFailure;
   };
 
@@ -139,9 +148,11 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     readerRead = reader?.read;
     readerStop = reader?.requestStop;
     readerObserve = reader?.observe;
+    readerRetry = reader?.retry;
     if ([readerRead, readerStop, readerObserve].some(method => typeof method !== 'function')) {
       fail('InvalidInstalledSourceReader');
     }
+    if (readerRetry !== undefined && typeof readerRetry !== 'function') fail('InvalidInstalledSourceReader');
     // Methods and receiver are captured once before the first physical read.
     readerReadPending = true;
     try {

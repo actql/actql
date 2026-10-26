@@ -100,6 +100,16 @@ fn closed_values_execution_plan_controls_layout() -> ClosedValuesExecutionPlanCo
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
+  // The import/export guard constructors each materialize their complete
+  // scalar validation Array (15 and10 entries). Their wrapper/backing pairs
+  // and25scalar slots are not bounded by the eight length<=one arrays above.
+  let io_validation : @execution.PreparationRepresentationUnits = {
+    record_headers: 4L,
+    reference_slots: 2L,
+    scalar_words: 29L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
   // Original GeneratedSequence before immutable selection; two old sequence
   // limits/ExpressionLimits pairs; old full-cache backing(cap8).
   let replaced : @execution.PreparationRepresentationUnits = {
@@ -154,8 +164,8 @@ fn closed_values_execution_plan_controls_layout() -> ClosedValuesExecutionPlanCo
   // Two old policy-record inventories cover original -> width-specialized ->
   // scalar-wire-specialized immutable copies. Shared schemas/rows are excluded.
   guard @execution.compose_preparation_representation([
-      records, records, wiring, positions, fragments, arguments, replaced, quote,
-      outcomes, controls,
+      records, records, wiring, positions, fragments, arguments, io_validation, replaced,
+      quote, outcomes, controls,
     ])
     is Some(temporary) else {
     return None

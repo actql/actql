@@ -12,6 +12,8 @@ pub fn advance_json_parse(JsonParse, Int) -> Result[JsonParsePoll, JsonParseCont
 
 pub fn cancel_json_parse(JsonParse) -> Unit
 
+pub fn json_literal_construction_extent(Int, Int, Int) -> JsonLiteralConstructionExtent?
+
 pub fn parse_json(String, ParseLimits, source_path? : String) -> Result[Node, ParseError]
 
 pub fn parse_json_bytes(Bytes, ParseLimits, source_path? : String) -> Result[Node, ParseError]
@@ -56,6 +58,13 @@ pub(all) struct Field {
   key_span : @source_span.Span
   value : Node
 } derive(@debug.Debug)
+
+pub(all) struct JsonLiteralConstructionExtent {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+} derive(Eq, @debug.Debug)
 
 type JsonParse
 

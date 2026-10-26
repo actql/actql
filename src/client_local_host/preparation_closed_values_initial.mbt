@@ -17,6 +17,7 @@ struct ClientClosedValuesPreparation[I] {
   mut header_fields : Int
   mut header_rows : Int
   mut retiring : Bool
+  mut module_constructing : Bool
   mut text_checked : Bool
   mut scan_complete : Bool
   mut document : String?
@@ -127,7 +128,8 @@ fn closed_values_initial_control_units(
   // The staged compilation slot exists before artifact construction.
   // One extra reference borrows the immutable selected-backend unit recipe.
   let driver_refs = 5L + 15L + 12L + 3L * 10L + 2L + 1L + 1L
-  let driver_words = 5L + 10L + 12L + 3L * 5L + 1L
+  // One synchronous module-constructor latch remains on this original owner.
+  let driver_words = 5L + 10L + 12L + 3L * 5L + 1L + 1L
   // Six actual fixed live roles, not a historical issuance limit: manager,
   // registry handler/dispatch, Node admission, Run, configured Host. The Host
   // covers transitive outputs/readers until real drain, not one borrow/output.
@@ -289,6 +291,7 @@ pub fn[I] begin_closed_values_preparation(
     header_fields: 0,
     header_rows: 0,
     retiring: false,
+    module_constructing: false,
     text_checked: false,
     scan_complete: false,
     document: None,
@@ -417,7 +420,7 @@ pub fn[I] abort_closed_values_preparation_after_cleanup(
   guard owner.original is Some(original) && physical_equal(original, owner) else {
     return Err(ForeignOriginal)
   }
-  if owner.adopted {
+  if owner.adopted || owner.module_constructing {
     return Err(WrongPhase)
   }
   if owner.work is Some(work) {

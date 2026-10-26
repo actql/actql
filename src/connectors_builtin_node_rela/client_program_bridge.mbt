@@ -2896,11 +2896,11 @@ pub fn client_program_open_source_free_local_retained_host(
 ///|
 /// Observe managed accounting on the same live nominal Run. This does not
 /// admit work, report/stop the child or acknowledge physical cleanup.
-#export_name("clientProgramInstalledManagedRunUsage")
-pub fn client_program_installed_managed_run_usage(
+#export_name("clientProgramInstalledManagedRunAccounting")
+pub fn client_program_installed_managed_run_accounting(
   value : @client_local_host.ClientInstalledManagedRun,
 ) -> Result[Array[Int64], @client_local_host.ClientInstalledManagedRunIssue] {
-  @client_local_host.installed_managed_run_usage(value)
+  @client_local_host.installed_managed_run_accounting(value)
 }
 
 ///|

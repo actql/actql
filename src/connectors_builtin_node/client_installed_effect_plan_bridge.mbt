@@ -78,9 +78,6 @@ pub fn client_program_installed_effect_managed_plan_prepare(
   selected_operations : Array[
     @client_local_host.ClientInstalledEffectOperationDemand,
   ],
-  provider_factory : (@execution.ExecutionCapacity) -> Array[
-    @local.ManagedProvider,
-  ],
 ) -> Result[
   @client_local_host.ClientInstalledEffectManagedPlan,
   @client_local_host.ClientInstalledManagedRunIssue,
@@ -98,7 +95,7 @@ pub fn client_program_installed_effect_managed_plan_prepare(
     fragment_body,
     ordered_body,
     selected_operations,
-    provider_factory~,
+    provider_factory=installed_client_family_providers,
   )
 }
 
@@ -120,9 +117,6 @@ pub fn client_program_installed_effect_managed_plan_prepare_at_query_time(
   selected_operations : Array[
     @client_local_host.ClientInstalledEffectOperationDemand,
   ],
-  provider_factory : (@execution.ExecutionCapacity) -> Array[
-    @local.ManagedProvider,
-  ],
 ) -> Result[
   @client_local_host.ClientInstalledEffectManagedPlan,
   @client_local_host.ClientInstalledManagedRunIssue,
@@ -141,7 +135,7 @@ pub fn client_program_installed_effect_managed_plan_prepare_at_query_time(
     ordered_body,
     selected_operations,
     query_time=Some(query_time),
-    provider_factory~,
+    provider_factory=installed_client_family_providers,
   )
 }
 
@@ -274,9 +268,6 @@ pub fn client_program_installed_effect_managed_provider_plan_prepare(
   selected_operations : Array[
     @client_local_host.ClientInstalledEffectOperationDemand,
   ],
-  provider_factory : (@execution.ExecutionCapacity) -> Array[
-    @local.ManagedProvider,
-  ],
 ) -> Result[
   @client_local_host.ClientInstalledEffectManagedPlan,
   @client_local_host.ClientInstalledManagedRunIssue,
@@ -295,7 +286,7 @@ pub fn client_program_installed_effect_managed_provider_plan_prepare(
     ordered_body,
     selected_operations,
     source_providers=Some(providers),
-    provider_factory~,
+    provider_factory=installed_client_family_providers,
   )
 }
 
@@ -318,9 +309,6 @@ pub fn client_program_installed_effect_managed_provider_plan_prepare_at_query_ti
   selected_operations : Array[
     @client_local_host.ClientInstalledEffectOperationDemand,
   ],
-  provider_factory : (@execution.ExecutionCapacity) -> Array[
-    @local.ManagedProvider,
-  ],
 ) -> Result[
   @client_local_host.ClientInstalledEffectManagedPlan,
   @client_local_host.ClientInstalledManagedRunIssue,
@@ -340,7 +328,7 @@ pub fn client_program_installed_effect_managed_provider_plan_prepare_at_query_ti
     selected_operations,
     query_time=Some(query_time),
     source_providers=Some(providers),
-    provider_factory~,
+    provider_factory=installed_client_family_providers,
   )
 }
 
