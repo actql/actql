@@ -1,20 +1,37 @@
 ///|
 /// Existing semantic and sequence engines, one original preparation owner.
 /// The fixed adapter calls completion only AFTER this constructor call returns.
-pub fn[I] prepare_closed_values_body(
+pub fn[I] prepare_closed_values_module_body(
   owner : ClientClosedValuesPreparation[I],
   environment : @checked.CheckEnvironment,
   publication_environment : @source_publication.PreparedPublishedQueryEnvironment,
   contracts : ClientInstalledSequenceContracts,
   manifests : @publication_host.ClientCompilationManifests,
+  retained_output~ : Bool,
+  provider_factory~ : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
+  family_retained~ : @execution.PreparationRepresentationUnits,
+  family_array~ : @execution.PreparationRepresentationUnits,
+  family_temporary~ : @execution.PreparationRepresentationUnits,
 ) -> Result[Unit, ClientClosedValuesPreparationIssue] {
   guard owner.original is Some(original) &&
     physical_equal(original, owner) &&
     owner.input is Some(input) else {
     return Err(ForeignOriginal)
   }
-  if owner.retiring || owner.prepared is Some(_) || owner.work is Some(_) {
+  if owner.retiring ||
+    owner.prepared is Some(_) ||
+    owner.work is Some(_) ||
+    owner.module_constructing {
     return Err(WrongPhase)
+  }
+  // This latch covers grow/current callbacks as well as the actual factory.
+  // It releases only synchronous construction occupancy, never the reservation.
+  // Returned failures keep this same partial owner for its existing cleanup.
+  owner.module_constructing = true
+  defer {
+    owner.module_constructing = false
   }
   if owner.program is None {
     match parse_closed_values_document(owner) {
@@ -35,6 +52,7 @@ pub fn[I] prepare_closed_values_body(
     Ok(value) => value
   }
   let catalog_work = @checked.source_catalog_usage(catalog).work
+  let module = closed_values_module_construction_layout(retained_output)
   guard closed_values_context_phase_layout(
       facts,
       shape.fields,
@@ -56,12 +74,16 @@ pub fn[I] prepare_closed_values_body(
     is Some(proof) &&
     closed_values_compilation_layout(facts, shape.fields, shape.rows)
     is Some(compilation) &&
+    closed_values_module_construction_execution(family_array, family_temporary)
+    is Some(module_execution) &&
     @execution.compose_preparation_representation([
       context.retained,
       compiler.retained,
       plan.retained,
       proof.retained,
       compilation.retained,
+      module.retained,
+      family_retained,
     ])
     is Some(retained_units) &&
     @execution.compose_preparation_representation([
@@ -83,11 +105,10 @@ pub fn[I] prepare_closed_values_body(
   // Semantic and installed-plan constructors return before compilation starts.
   // Their returned original payloads remain in R. Only their private scratch
   // lifetimes are disjoint; this is a phase peak, not a second allowance.
-  let execution_add = if semantic_execution > compilation_execution {
-    semantic_execution
-  } else {
-    compilation_execution
-  }
+  let execution_add = Int64::max(
+    module_execution,
+    Int64::max(semantic_execution, compilation_execution),
+  )
   // parse_closed_values_document has returned. Program/Cursor/shared source
   // dependencies remain in cumulative R; parser/shape/private containers do
   // not escape that call. Preserve the previous E debit, not cumulative work.
@@ -151,20 +172,21 @@ pub fn[I] prepare_closed_values_body(
   }
   owner.prepared = Some(prepared)
   let installed = contracts.original
-  // This existing fixed supplier still retains its raw sequence preparation.
-  // Actual module construction cannot move here until the complete constructor
-  // overlap, selected output mode and factory have their original funding.
+  // The complete constructor overlap was admitted above on this SAME initial
+  // reservation. The original selected factory is invoked once here; the
+  // configured module and its actual IO envelopes survive in source_free.
   let source_free = match
-    source_free_installed_managed_preparation_owned(
-      Pure(prepared),
+    prepare_installed_managed_source_free_with_contracts(
+      prepared,
       contracts,
       installed.values_body,
       installed.fragment_body,
       installed.ordered_body,
-      false,
+      retained_output~,
+      provider_factory~,
     ) {
-    Some(value) => value
-    None => return Err(Installed(Unsupported))
+    Ok(value) => value
+    Err(issue) => return Err(Installed(issue))
   }
   owner.source_free = Some(source_free)
   let artifact = match

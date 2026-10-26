@@ -205,22 +205,32 @@ pub fn client_program_bind_closed_values_document(
 }
 
 ///|
-#export_name("clientProgramPrepareClosedValuesBody")
-pub fn client_program_prepare_closed_values_body(
+#export_name("clientProgramPrepareClosedValuesModuleBody")
+pub fn client_program_prepare_closed_values_module_body(
   owner : @client_local_host.ClientClosedValuesPreparation[
     ClientLocalPreparationInputOriginal,
   ],
   environment : @program_check.CheckEnvironment,
   publication_environment : @source_publication.PreparedPublishedQueryEnvironment,
   contracts : @client_local_host.ClientInstalledSequenceContracts,
+  retained_output : Bool,
 ) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue] {
   // Cold compiler admission belongs to installed initialization, never to a
   // query borrowing an original under a per-request compilation quotation.
   guard client_generated_manifest_admission.val is Some(Ok(manifests)) else {
     return Err(Policy)
   }
-  @client_local_host.prepare_closed_values_body(
-    owner, environment, publication_environment, contracts, manifests,
+  @client_local_host.prepare_closed_values_module_body(
+    owner,
+    environment,
+    publication_environment,
+    contracts,
+    manifests,
+    retained_output~,
+    provider_factory=installed_client_family_providers,
+    family_retained=installed_client_family_construction_retained,
+    family_array=installed_client_family_construction_array,
+    family_temporary=installed_client_family_construction_temporary,
   )
 }
 

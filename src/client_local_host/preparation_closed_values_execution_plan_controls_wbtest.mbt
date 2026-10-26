@@ -8,12 +8,12 @@ test "one Values installed execution plan retains controls without copying sourc
     @execution.preparation_representation_cost(layout.retained),
     Some(3152L),
   )
-  assert_eq(layout.temporary.record_headers, 224L)
-  assert_eq(layout.temporary.reference_slots, 385L)
-  assert_eq(layout.temporary.scalar_words, 520L)
+  assert_eq(layout.temporary.record_headers, 228L)
+  assert_eq(layout.temporary.reference_slots, 387L)
+  assert_eq(layout.temporary.scalar_words, 549L)
   assert_eq(
     @execution.preparation_representation_cost(layout.temporary),
-    Some(10824L),
+    Some(11136L),
   )
   assert_eq(layout.retained.owned_utf16_units, 0L)
   assert_eq(layout.retained.owned_wire_bytes, 0L)

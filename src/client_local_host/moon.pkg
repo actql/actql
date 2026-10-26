@@ -47,6 +47,8 @@ import {
 
 options(
   targets: {
+    "preparation_closed_values_module_wbtest.mbt": [ "js" ],
+    "preparation_closed_values_module_fault_wbtest.mbt": [ "js" ],
     "preparation_publication_custody_wbtest.mbt": [ "js" ],
     "preparation_publication_snapshot_wbtest.mbt": [ "js" ],
     "preparation_publication_start_custody_wbtest.mbt": [ "js" ],

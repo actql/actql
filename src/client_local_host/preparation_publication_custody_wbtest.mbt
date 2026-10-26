@@ -64,6 +64,7 @@ fn publication_custody_fixture(
     header_fields: 0,
     header_rows: 0,
     retiring: false,
+    module_constructing: false,
     text_checked: false,
     scan_complete: false,
     document: None,
