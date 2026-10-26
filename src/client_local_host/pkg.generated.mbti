@@ -321,9 +321,9 @@ pub fn open_captured_local_host(@run_publication_host.PreparedClientProgram, @ex
 
 pub fn open_captured_local_host_on_ledger(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @physical_resources.Ledger, ClientInstalledSequenceContracts, String, String?, String?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
-pub fn open_captured_local_retained_host(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, ClientInstalledSequenceContracts, String, Int64, Int64, Int64, Int64, fragment_body? : String?, ordered_body? : String?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
+pub fn open_captured_local_retained_host(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, ClientInstalledSequenceContracts, String, Int64, Int64, Int64, Int64, fragment_body? : String?, ordered_body? : String?, requirements? : ClientLocalRequirements?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
-pub fn open_captured_local_retained_host_on_ledger(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @physical_resources.Ledger, ClientInstalledSequenceContracts, String, String?, String?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
+pub fn open_captured_local_retained_host_on_ledger(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @physical_resources.Ledger, ClientInstalledSequenceContracts, String, String?, String?, requirements? : ClientLocalRequirements?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
 pub fn open_client_keyed_local_host(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientKeyedLookupInput, @physical_resources.Ledger, ClientInstalledSequenceContracts, String, String?, String?, retained_output? : Bool, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
@@ -337,11 +337,13 @@ pub fn open_multi_captured_local_retained_host(@run_publication_host.PreparedCli
 
 pub fn open_source_free_local_host(@run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, Int64, Int64, Int64, Int64, fragment_body? : String?, ordered_body? : String?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
-pub fn open_source_free_local_retained_host(@run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, Int64, Int64, Int64, Int64, requirements? : ClientLocalSourceFreeRequirements?, fragment_body? : String?, ordered_body? : String?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
+pub fn open_source_free_local_retained_host(@run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, Int64, Int64, Int64, Int64, requirements? : ClientLocalRequirements?, fragment_body? : String?, ordered_body? : String?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
-pub fn open_source_free_local_retained_host_on_ledger(@run_publication_host.PreparedClientProgram, @physical_resources.Ledger, ClientInstalledSequenceContracts, String, String?, String?, requirements? : ClientLocalSourceFreeRequirements?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
+pub fn open_source_free_local_retained_host_on_ledger(@run_publication_host.PreparedClientProgram, @physical_resources.Ledger, ClientInstalledSequenceContracts, String, String?, String?, requirements? : ClientLocalRequirements?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
 pub fn[I] parse_closed_values_document(ClientClosedValuesPreparation[I]) -> Result[Unit, ClientClosedValuesPreparationIssue]
+
+pub fn prepare_captured_local_requirements(@run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, String?, String?) -> ClientLocalRequirements?
 
 pub fn prepare_client_acquired_serialization_prefix(@run_publication_host.PreparedClientProgram, Int, Int, ClientInstalledSequenceContracts, String, String?, String?) -> @execution_relation.GeneratedSequence?
 
@@ -443,7 +445,7 @@ pub fn prepare_serialization_captured_ledger(@run_publication_host.PreparedClien
 
 pub fn prepare_single_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, ClientInstalledCaptureCapacity, Int64, Int64, ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
 
-pub fn prepare_source_free_local_requirements(@run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, String?, String?) -> ClientLocalSourceFreeRequirements?
+pub fn prepare_source_free_local_requirements(@run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, String?, String?) -> ClientLocalRequirements?
 
 pub fn prepared_installed_effect_managed_capture_children(ClientInstalledEffectManagedPlan) -> Int
 
@@ -712,14 +714,14 @@ pub(all) enum ClientLocalQueryIssue {
   Requirement(@run_publication_host.ClientQueryRequirementIssue)
 }
 
-type ClientLocalResourcePolicy
+type ClientLocalRequirements
+pub fn ClientLocalRequirements::matches(Self, @run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, String?, String?) -> Bool
+pub fn ClientLocalRequirements::maximum_limits(Self) -> @physical_resources.LedgerLimits
+pub fn ClientLocalRequirements::publication_limits(Self, @run_publication_host.PreparedClientProgram, Int) -> (@execution_relation.RetainedRowDecodeLimits, @run_publication_host.PublicationOutputExportLimits)?
+pub fn ClientLocalRequirements::simultaneous_limits(Self) -> @physical_resources.LedgerLimits?
+pub fn ClientLocalRequirements::wasm_publication_limits(Self, @run_publication_host.PreparedClientProgram) -> @run_publication_host.PublicationOutputExportLimits?
 
-type ClientLocalSourceFreeRequirements
-pub fn ClientLocalSourceFreeRequirements::matches(Self, @run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, String?, String?) -> Bool
-pub fn ClientLocalSourceFreeRequirements::maximum_limits(Self) -> @physical_resources.LedgerLimits
-pub fn ClientLocalSourceFreeRequirements::publication_limits(Self, @run_publication_host.PreparedClientProgram, Int) -> (@execution_relation.RetainedRowDecodeLimits, @run_publication_host.PublicationOutputExportLimits)?
-pub fn ClientLocalSourceFreeRequirements::simultaneous_limits(Self) -> @physical_resources.LedgerLimits?
-pub fn ClientLocalSourceFreeRequirements::wasm_publication_limits(Self, @run_publication_host.PreparedClientProgram) -> @run_publication_host.PublicationOutputExportLimits?
+type ClientLocalResourcePolicy
 
 pub(all) enum ClientOriginalKeyedChildIssue {
   Lookup(@run_publication_host.ClientKeyedRequestIssue)

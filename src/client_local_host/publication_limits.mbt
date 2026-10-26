@@ -110,8 +110,8 @@ fn client_node_publication_limits(
 /// Native publication projects the same checked execution plan retained by
 /// its requirements owner. Decoder, schema and Store guards remain distinct
 /// from the plan's value, Result and wire dimensions.
-pub fn ClientLocalSourceFreeRequirements::publication_limits(
-  self : ClientLocalSourceFreeRequirements,
+pub fn ClientLocalRequirements::publication_limits(
+  self : ClientLocalRequirements,
   prepared : @publication_host.PreparedClientProgram,
   max_payload_bytes : Int,
 ) -> (

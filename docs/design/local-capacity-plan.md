@@ -454,3 +454,20 @@ projection for that profile requires the actual configured Host original and
 funding for any prolonged representation lifetime. Copying an equal quote,
 borrowing an unused VM extent, or making captured inputs Unsupported cannot
 supply those obligations; source-free originals cannot substitute for them.
+
+
+## Captured Local publication original
+
+`ClientLocalRequirements` retains the checked preparation, selected sequence
+owners and the same capacity/publication plan for source-free and single
+captured-Source Relation computation. Each constructor checks its exact prefix;
+a Source cannot become source-free by carrying this data. The captured original
+quotes only its Compute tail and configured import/output holdings. Acquisition
+and the captured reader remain charged to their existing owner and Ledger.
+
+The configured Local Compute holder retains this original through Wasm/Python
+publication. Publication projects its original checked rows/schema/wire through
+the independent formatter guards; it does not reconstruct a capacity plan after
+execution. A foreign preparation or changed installed input refuses before
+opening another Run. Reading the projection does not reserve or refund capacity,
+authorize a start, or acknowledge the captured reader's physical retirement.

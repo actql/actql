@@ -1,7 +1,7 @@
 ///|
 fn publication_requirements(
   prepared : @publication_host.PreparedClientProgram,
-) -> @client_local_host.ClientLocalSourceFreeRequirements raise {
+) -> @client_local_host.ClientLocalRequirements raise {
   @client_local_host.prepare_source_free_local_requirements(
     prepared,
     native_values_installed_contracts(),

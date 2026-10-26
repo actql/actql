@@ -71,7 +71,7 @@ test "source-free preparation refuses two competing retained originals" {
       ordered_body=assets.ordered,
       retained_output=true,
       acquisition_ledger=Some(ledger),
-      source_free_requirements=Some(requirements),
+      requirements=Some(requirements),
       source_free_preparation=Some(preparation),
     )
     is None,

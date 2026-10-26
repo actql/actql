@@ -18,7 +18,7 @@ priv struct LocalCommandBusinessPreparation {
   intent : @run_host.ClientSubmittedIntent
   preparation : @local_host.NativeClientSubmittedPreparation
   prepared : @run_host.PreparedClientProgram
-  requirements : @local_values.ClientLocalSourceFreeRequirements
+  requirements : @local_values.ClientLocalRequirements
   installed_contracts : @local_values.ClientInstalledSequenceContracts
 }
 

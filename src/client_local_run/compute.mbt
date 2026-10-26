@@ -10,8 +10,8 @@ pub struct LocalComputeHost {
 
 ///|
 enum LocalComputePublication {
-  SourceFree(@local.ClientLocalSourceFreeRequirements)
-  CapturedSource
+  SourceFree(@local.ClientLocalRequirements)
+  CapturedSource(@local.ClientLocalRequirements)
 }
 
 ///|
@@ -89,6 +89,16 @@ pub fn configure_captured_source_local_compute_on_ledger(
   if !captured_source_profile(plan.prepared) {
     return Err(UnsupportedCapability)
   }
+  guard @local.prepare_captured_local_requirements(
+      plan.prepared,
+      installed_contracts,
+      values_body,
+      fragment_body,
+      ordered_body,
+    )
+    is Some(original) else {
+    return Err(Configuration)
+  }
   guard @local.open_captured_local_retained_host_on_ledger(
       plan.prepared,
       source,
@@ -97,13 +107,14 @@ pub fn configure_captured_source_local_compute_on_ledger(
       values_body,
       fragment_body,
       ordered_body,
+      requirements=Some(original),
     )
     is Some(setup) else {
     return Err(Configuration)
   }
   let run = @driver.dispatch_driver_run(@builtin.configured_host_driver(setup))
   @strategy.require_captured_task_activation(run)
-  Ok({ plan, setup, publication: CapturedSource, })
+  Ok({ plan, setup, publication: CapturedSource(original), })
 }
 
 ///|
@@ -150,7 +161,13 @@ fn configure_local_compute(
         SourceFree(original),
       )
     }
-    Some(source) =>
+    Some(source) => {
+      guard @local.prepare_captured_local_requirements(
+          prepared, installed_contracts, values_body, fragment_body, ordered_body,
+        )
+        is Some(original) else {
+        return Err(Configuration)
+      }
       (
         @local.open_captured_local_retained_host(
           prepared,
@@ -163,9 +180,11 @@ fn configure_local_compute(
           0L,
           fragment_body~,
           ordered_body~,
+          requirements=Some(original),
         ),
-        CapturedSource,
+        CapturedSource(original),
       )
+    }
   }
   let (opened, publication) = selected
   guard opened is Some(setup) else { return Err(Configuration) }
@@ -183,7 +202,8 @@ pub fn local_compute_wasm_publication_limits(
 ) -> @host.PublicationOutputExportLimits? {
   match host.publication {
     SourceFree(original) => original.wasm_publication_limits(host.plan.prepared)
-    CapturedSource => Some(@local.client_wasm_result_export_profile())
+    CapturedSource(original) =>
+      original.wasm_publication_limits(host.plan.prepared)
   }
 }
 
