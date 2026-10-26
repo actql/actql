@@ -590,6 +590,8 @@ pub fn completion_preparation_sequence(CompletionPreparation) -> @lowering_relat
 
 pub fn completion_preparation_terminal_step(CompletionPreparation) -> Int
 
+pub fn compose_preparation_representation(Array[PreparationRepresentationUnits]) -> PreparationRepresentationUnits?
+
 pub fn constrain_generated_aggregate_output(GeneratedSequence, Int, String, AggregateOutputUnit, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
 pub fn constrain_generated_analytic_envelope(GeneratedSequence, Int, Int64, Int64, Int64, Int64, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
@@ -1041,6 +1043,8 @@ pub fn pivot_execution_supported(@lowering_relation.PreparedPivot) -> Bool
 pub fn pivot_execution_supported_with_numeric(@lowering_relation.PreparedPivot) -> Bool
 
 pub fn predicate_expression_remaining(PredicateExpressionExecution) -> Int
+
+pub fn preparation_execution_capacity(PreparationExecutionInventory) -> ExecutionCapacity?
 
 pub fn preparation_representation_cost(PreparationRepresentationUnits) -> Int64?
 
@@ -2531,6 +2535,15 @@ type PredicateExpressionExecution
 pub(all) enum PredicateExpressionPoll {
   PredicateExpressionContinue
   PredicateExpressionComplete(Bool)
+}
+
+pub(all) struct PreparationExecutionInventory {
+  retained : PreparationRepresentationUnits
+  workspace : PreparationRepresentationUnits
+  retained_nodes : Int64
+  workspace_nodes : Int64
+  retained_bytes : Int64
+  workspace_bytes : Int64
 }
 
 pub(all) struct PreparationRepresentationUnits {

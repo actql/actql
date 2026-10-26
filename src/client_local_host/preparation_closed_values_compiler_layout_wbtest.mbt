@@ -179,7 +179,7 @@ test "closed Values complete compiler phase composes original shape and failure 
   assert_true(
     @execution.preparation_representation_cost(phase.failure).unwrap() > 0L,
   )
-  let total = closed_values_sum_layouts([
+  let total = @execution.compose_preparation_representation([
     phase.retained,
     phase.temporary,
     phase.failure,
@@ -209,7 +209,7 @@ test "closed Values complete compiler phase composes original shape and failure 
     owned_wire_bytes: 0L,
   }
   assert_true(
-    closed_values_sum_layouts([
+    @execution.compose_preparation_representation([
       { ..zero, owned_wire_bytes: 9223372036854775807L, },
       { ..zero, owned_wire_bytes: 1L, },
     ])
@@ -249,7 +249,11 @@ test "closed Values actual acceptance fixture dimensions have quantitative phase
   )
   assert_eq(
     @execution.preparation_representation_cost(
-      closed_values_sum_layouts([wide.retained, wide.temporary, wide.failure]).unwrap(),
+      @execution.compose_preparation_representation([
+        wide.retained,
+        wide.temporary,
+        wide.failure,
+      ]).unwrap(),
     ),
     Some(2087964L),
   )

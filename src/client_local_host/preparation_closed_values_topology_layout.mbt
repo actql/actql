@@ -87,7 +87,7 @@ fn closed_values_topology_layout() -> ClosedValuesTopologyLayout? {
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       retained, view, view, view, view, view, map4, map4, map4, map4, map4, known,
       empty, controls, proof,
     ])

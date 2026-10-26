@@ -82,7 +82,9 @@ fn closed_values_policy_writer_layout() -> @execution.PreparationRepresentationU
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  closed_values_sum_layouts([capacity, text, lookup, emit, decoded])
+  @execution.compose_preparation_representation([
+    capacity, text, lookup, emit, decoded,
+  ])
 }
 
 ///|
@@ -105,7 +107,7 @@ fn closed_values_operation_writer_layout(
     closed_values_writer_layout(0, 0, 3, 0, 0) is Some(byte_hashes) else {
     return None
   }
-  closed_values_sum_layouts([metadata, values, byte_hashes])
+  @execution.compose_preparation_representation([metadata, values, byte_hashes])
 }
 
 ///|
@@ -140,5 +142,7 @@ fn closed_values_identity_writer_layout(
     closed_values_writer_layout(1, 1, 1, 0, 0) is Some(declarations) else {
     return None
   }
-  closed_values_sum_layouts([stage, program, definitions, values, declarations])
+  @execution.compose_preparation_representation([
+    stage, program, definitions, values, declarations,
+  ])
 }

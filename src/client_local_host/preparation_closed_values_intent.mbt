@@ -260,11 +260,11 @@ fn closed_values_intent_inventories(
   // Caller prices shared+JS and shared+Core using the SAME tariff, then reserves
   // their scalar maximum before either phase. Never componentwise-max units,
   // which would mix one phase's String peak with another's container peak.
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       maps, js_arrays, js_controls, rendered, sort, controls,
     ])
     is Some(js_temporary) &&
-    closed_values_sum_layouts([
+    @execution.compose_preparation_representation([
       source.source_retained,
       source.source_growth_peak,
       source.key_admission_peak,

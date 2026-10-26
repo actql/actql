@@ -82,10 +82,16 @@ test "intent layout gives finite original numeric matrix phase envelope" {
     ).unwrap()
     let retained = @execution.preparation_representation_cost(quote.retained).unwrap()
     let js = @execution.preparation_representation_cost(
-      closed_values_sum_layouts([quote.shared_temporary, quote.js_temporary]).unwrap(),
+      @execution.compose_preparation_representation([
+        quote.shared_temporary,
+        quote.js_temporary,
+      ]).unwrap(),
     ).unwrap()
     let core = @execution.preparation_representation_cost(
-      closed_values_sum_layouts([quote.shared_temporary, quote.core_temporary]).unwrap(),
+      @execution.compose_preparation_representation([
+        quote.shared_temporary,
+        quote.core_temporary,
+      ]).unwrap(),
     ).unwrap()
     let temporary = Int64::max(js, core)
     assert_true(retained > 0L && temporary > retained)
@@ -117,10 +123,16 @@ test "intent phase quote keeps 100k original rows without retaining completed ro
     closed_values_intent_source_facts(input).unwrap(),
   )
   let js = @execution.preparation_representation_cost(
-    closed_values_sum_layouts([q.shared_temporary, q.js_temporary]).unwrap(),
+    @execution.compose_preparation_representation([
+      q.shared_temporary,
+      q.js_temporary,
+    ]).unwrap(),
   ).unwrap()
   let core = @execution.preparation_representation_cost(
-    closed_values_sum_layouts([q.shared_temporary, q.core_temporary]).unwrap(),
+    @execution.compose_preparation_representation([
+      q.shared_temporary,
+      q.core_temporary,
+    ]).unwrap(),
   ).unwrap()
   println("intent100k js=\{js} core=\{core} peak=\{Int64::max(js,core)}")
   assert_eq(js, 379324440L)

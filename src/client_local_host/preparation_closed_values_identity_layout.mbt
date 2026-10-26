@@ -40,7 +40,7 @@ fn closed_values_identity_fixed_layout() -> @execution.PreparationRepresentation
   let one = closed_values_map_constructor_layout(1).unwrap()
   let stage = closed_values_map_constructor_layout(4).unwrap()
   let result = closed_values_map_constructor_layout(2).unwrap()
-  closed_values_sum_layouts([
+  @execution.compose_preparation_representation([
     records, arrays, empty, empty, empty, empty, empty, empty, empty, empty, empty,
     empty, empty, one, stage, result,
   ])
@@ -72,7 +72,7 @@ fn closed_values_identity_preparation_layout(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  closed_values_sum_layouts([walk, walk, paths, segments])
+  @execution.compose_preparation_representation([walk, walk, paths, segments])
 }
 
 ///|
@@ -106,7 +106,9 @@ fn closed_values_identity_emitter_layout(
     return None
   }
   // Two original emitter owners, never max(Stage,Steps).
-  closed_values_sum_layouts([arrays, payload, sort, arrays, payload, sort])
+  @execution.compose_preparation_representation([
+    arrays, payload, sort, arrays, payload, sort,
+  ])
 }
 
 ///|
@@ -140,7 +142,9 @@ fn closed_values_identity_layout(
     owned_utf16_units: 497L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([fixed, preparation, emission, cid_strings])
+  guard @execution.compose_preparation_representation([
+      fixed, preparation, emission, cid_strings,
+    ])
     is Some(_) else {
     return None
   }

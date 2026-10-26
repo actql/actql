@@ -260,7 +260,7 @@ test "shared preparation execution fold prices original inventories with one che
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  let inventory : PreparationExecutionInventory = {
+  let inventory : @execution.PreparationExecutionInventory = {
     retained: {
       record_headers: 1L,
       reference_slots: 2L,
@@ -274,11 +274,11 @@ test "shared preparation execution fold prices original inventories with one che
     retained_bytes: 7L,
     workspace_bytes: 11L,
   }
-  let capacity = preparation_execution_capacity(inventory).unwrap()
+  let capacity = @execution.preparation_execution_capacity(inventory).unwrap()
   assert_eq(@execution.execution_capacity_retained_bytes(capacity), 588L)
   assert_eq(@execution.execution_capacity_execution_bytes(capacity), 1383L)
   let max = 9223372036854775807L
-  let exact : PreparationExecutionInventory = {
+  let exact : @execution.PreparationExecutionInventory = {
     retained: zero,
     workspace: zero,
     retained_nodes: 0L,
@@ -286,11 +286,12 @@ test "shared preparation execution fold prices original inventories with one che
     retained_bytes: max,
     workspace_bytes: 0L,
   }
-  let maximum = preparation_execution_capacity(exact).unwrap()
+  let maximum = @execution.preparation_execution_capacity(exact).unwrap()
   assert_eq(@execution.execution_capacity_retained_bytes(maximum), max)
   assert_eq(@execution.execution_capacity_execution_bytes(maximum), max)
   assert_true(
-    preparation_execution_capacity({ ..exact, workspace_bytes: 1L, }) is None,
+    @execution.preparation_execution_capacity({ ..exact, workspace_bytes: 1L, })
+    is None,
   )
   for
     changed in [
@@ -303,6 +304,6 @@ test "shared preparation execution fold prices original inventories with one che
       { ..inventory, retained: { ..zero, reference_slots: max, }, },
       { ..inventory, workspace: { ..zero, owned_utf16_units: max, }, },
     ] {
-    assert_true(preparation_execution_capacity(changed) is None)
+    assert_true(@execution.preparation_execution_capacity(changed) is None)
   }
 }

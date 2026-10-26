@@ -226,8 +226,17 @@ fn closed_values_compilation_metadata_layout(
       return None
     }
     for _ in 0..<count {
-      guard closed_values_sum_layouts([retained, parsed.value, wire]) is Some(r) &&
-        closed_values_sum_layouts([temporary, parsed.temporary, writers])
+      guard @execution.compose_preparation_representation([
+          retained,
+          parsed.value,
+          wire,
+        ])
+        is Some(r) &&
+        @execution.compose_preparation_representation([
+          temporary,
+          parsed.temporary,
+          writers,
+        ])
         is Some(t) else {
         return None
       }
@@ -317,9 +326,11 @@ fn closed_values_compilation_metadata_layout(
     compilation_small_witness_emitter_layout() is Some(witness_scopes) else {
     return None
   }
-  guard closed_values_sum_layouts([retained, records, arrays, maps, cids])
+  guard @execution.compose_preparation_representation([
+      retained, records, arrays, maps, cids,
+    ])
     is Some(r) &&
-    closed_values_sum_layouts([
+    @execution.compose_preparation_representation([
       temporary, number_writers, contract_emission, validation_records, validation_arrays,
       flat_records, flat_arrays, concatenations, canonical_scopes, witness_scopes,
     ])

@@ -93,7 +93,9 @@ fn closed_values_unit_publication_payload_layout(
   // emit_cursor sorts three objects in witness, one in proof; all scopes are
   // bounded by the root's nine fields. Sum scopes rather than assume early GC.
   guard closed_values_sort_scratch_layout(9) is Some(sort) else { return None }
-  closed_values_sum_layouts([records, arrays, maps, text, sort, sort, sort])
+  @execution.compose_preparation_representation([
+    records, arrays, maps, text, sort, sort, sort,
+  ])
 }
 
 ///|
@@ -123,7 +125,7 @@ fn closed_values_unit_publication_writer_layout() -> @execution.PreparationRepre
     owned_utf16_units: 2L * (228L + 568L),
     owned_wire_bytes: 0L,
   }
-  closed_values_sum_layouts([
+  @execution.compose_preparation_representation([
     hash, hash, hash, hash, hash, hash, hash, hash, hash, hash, hash, hash, hash,
     hash, hash, hash, hash, buffers,
   ])
@@ -159,7 +161,7 @@ fn closed_values_unit_publication_layout(
     is Some(decoded_documents) else {
     return None
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       decoded_documents,
       proof.retained,
       proof.parser_temporary,
@@ -174,7 +176,9 @@ fn closed_values_unit_publication_layout(
   guard closed_values_unit_publication_writer_layout() is Some(writers) else {
     return None
   }
-  guard closed_values_sum_layouts([payload, source_admission, writers])
+  guard @execution.compose_preparation_representation([
+      payload, source_admission, writers,
+    ])
     is Some(_) else {
     return None
   }

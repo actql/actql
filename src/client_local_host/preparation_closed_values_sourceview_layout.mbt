@@ -22,5 +22,5 @@ fn closed_values_empty_sourceview_layout() -> @execution.PreparationRepresentati
   // Include copied arrays/maps and their growth rather than equality-dedup.
   let arrays = closed_values_program_arrays(33L, 28L, true)
   let maps = closed_values_program_maps(21L, 14L, true)
-  closed_values_sum_layouts([records, arrays, maps])
+  @execution.compose_preparation_representation([records, arrays, maps])
 }

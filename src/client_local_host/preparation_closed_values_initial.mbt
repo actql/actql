@@ -577,7 +577,7 @@ pub fn[I] reserve_closed_values_snapshot(
   guard closed_values_snapshot_inventories(facts, consent_refs)
     is Some(snapshot) &&
     closed_values_intent_inventories(facts) is Some(intent) &&
-    closed_values_sum_layouts([
+    @execution.compose_preparation_representation([
       closed_values_initial_control_units(owner.module_containers),
       snapshot.retained_host_share,
       snapshot.document,
@@ -592,9 +592,15 @@ pub fn[I] reserve_closed_values_snapshot(
     ])
     is Some(retained_units) &&
     @execution.preparation_representation_cost(retained_units) is Some(retained) &&
-    closed_values_sum_layouts([intent.shared_temporary, intent.js_temporary])
+    @execution.compose_preparation_representation([
+      intent.shared_temporary,
+      intent.js_temporary,
+    ])
     is Some(js_units) &&
-    closed_values_sum_layouts([intent.shared_temporary, intent.core_temporary])
+    @execution.compose_preparation_representation([
+      intent.shared_temporary,
+      intent.core_temporary,
+    ])
     is Some(core_units) &&
     @execution.preparation_representation_cost(js_units) is Some(js_execution) &&
     @execution.preparation_representation_cost(core_units)

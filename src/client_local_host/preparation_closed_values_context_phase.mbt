@@ -35,7 +35,7 @@ fn closed_values_context_fixed_source(
   })
   // Conservatively preserve the complete private parsed tree too; shared
   // String dependencies occur only in source_retained, not indexed_additional.
-  closed_values_sum_layouts([
+  @execution.compose_preparation_representation([
     owner.source_retained,
     owner.indexed_additional,
     owner.source_growth_peak,
@@ -78,7 +78,7 @@ fn closed_values_context_core_layout(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       originals,
       normalization.retained,
       {
@@ -109,7 +109,7 @@ fn closed_values_context_core_layout(
   // Conservative first implementation keeps scaffold construction versions,
   // policy parse trees and scratch live in retained until phase retirement.
   // Actual reconciliation may narrow, never retroactively finance construction.
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       capacity_source,
       text_source,
       normalization.temporary,
@@ -186,7 +186,7 @@ fn closed_values_context_components_layout(
   // owners. Borrowed installed catalog/schema and compiler Values/ResultPort
   // are NOT counted here. Unit-publication payload is its replacement Unit,
   // distinct from the initial Unit record owned by the compiler component.
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       core.retained,
       identity.fixed,
       identity.cid_strings,
@@ -205,7 +205,7 @@ fn closed_values_context_components_layout(
     is Some(retained) else {
     return None
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       core.temporary,
       identity.preparation,
       identity.emission,
