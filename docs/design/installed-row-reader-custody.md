@@ -338,3 +338,24 @@ preparation and before exposing capacity. Retirement cannot install a new
 association or turn a copied Run into the original. These checks create no
 Root, Ledger, read grant, capacity or replacement cleanup responsibility;
 physical retirement and pending cleanup remain with their original owners.
+
+## Original provider Source in an Effect Plan
+
+The existing checked Effect Plan can retain one original provider execution
+capacity per original Source declaration. The optional array must correspond
+to all declarations; omission retains the original non-provider path. Common
+constructs the original acquisition once and includes its provider retention,
+execution and transport in the same checked Plan. The existing simultaneous
+peak and overflow rules apply before the parent is admitted.
+
+The planned Source handoff returns that same read, requirement, acquisition and
+capture capacity. Its original managed parent retains the read before attach
+or current checking can fail. Ledger preparation accepts only the exact
+planned capture and its original provider/acquisition pair; equal capacities
+or a second declaration cannot select another parent. Per-provider handoff
+controls and sequential workspace are included in the original Plan inventory.
+
+This typed handoff issues no Account decision, Credential grant or physical
+read. Original request authority, current checks, pending cleanup and capture
+retirement remain required at the consuming Host. Model and Content families
+retain their separate complete demand and original-holder requirements.
