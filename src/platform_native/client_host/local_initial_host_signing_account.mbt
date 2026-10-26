@@ -36,6 +36,10 @@ pub fn NativeLocalHostConnection::acquire_initial_host_signing_account(
     !physical_equal(self, installed.host) {
     return Err(SigningUnavailable)
   }
+  if original.signing_subject is Some(subject) &&
+    subject != (principal, connection, resource) {
+    return Err(SigningUnavailable)
+  }
   let authority_scope_cid = match
     self.authority_scope_cid(principal, connection, self.epoch.crypto) {
     Ok(value) => value
@@ -204,4 +208,27 @@ fn local_initial_host_signing_grant_original_locked(
     scope.run_definition_cid,
   )
   .map(_ => retained)
+}
+
+///|
+/// Restore only the actor tuple authenticated by this same original initial
+/// installation. Missing legacy metadata never discovers or installs a role.
+/// The existing Account Sign and physical/key/current checks still decide use.
+pub fn NativeLocalHostConnection::restore_initial_host_signing_account(
+  self : NativeLocalHostConnection,
+  installed : NativeLocalInstalledEffectReviewer,
+) -> Result[
+  NativeLocalInitialHostSigningAccount,
+  NativeLocalSigningAccountIssue,
+] {
+  let original = match self.restore_initial_host_signing_original() {
+    Ok(value) => value
+    Err(_) => return Err(SigningUnavailable)
+  }
+  guard original.signing_subject is Some((principal, connection, resource)) else {
+    return Err(SigningUnavailable)
+  }
+  self.acquire_initial_host_signing_account(
+    original, installed, principal, connection, resource,
+  )
 }

@@ -7,6 +7,7 @@ fn initial_reviewer_fixture(
   name : String,
   host_wire? : String = "{\"version\":\"actql-host/0.1\"}",
   account? : String = initial_reviewer_account,
+  host_signing_subject? : (String, String, String)? = None,
 ) -> (NativeLocalHostConnection, String) {
   let top = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let parent = @filesystem.open_private_root(top).unwrap()
@@ -31,7 +32,9 @@ fn initial_reviewer_fixture(
     crypto,
     configuration_files=["host.json"],
   ).unwrap()
-  let material = session.create_initial_signing_material(crypto).unwrap()
+  let material = session
+    .create_initial_signing_material(crypto, host_signing_subject~)
+    .unwrap()
   let host = session
     .open_journal_with_initial_signing_material(
       material,

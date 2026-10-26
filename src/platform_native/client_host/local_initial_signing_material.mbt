@@ -9,6 +9,7 @@ struct NativeLocalInitialSigningMaterial {
   projection : @filesystem.PrivateFileProjection
   public_key_pem : String
   host_attestation : NativeLocalInitialSigningFile
+  host_signing_subject : (String, String, String)?
 }
 
 ///|
@@ -90,6 +91,7 @@ fn NativeLocalAdoptionSession::initial_signing_refusal(
 pub fn NativeLocalAdoptionSession::create_initial_signing_material(
   self : NativeLocalAdoptionSession,
   crypto : @crypto.Library,
+  host_signing_subject? : (String, String, String)? = None,
 ) -> Result[NativeLocalInitialSigningMaterial, NativeLocalInitialSigningFailure] {
   if self.initial_signing_failure.val is Some(failure) {
     return Err(failure)
@@ -100,6 +102,10 @@ pub fn NativeLocalAdoptionSession::create_initial_signing_material(
   }
   if !self.initial_signing_eligible.val {
     return Err(initial_signing_unavailable(AmbiguousInitialization))
+  }
+  if host_signing_subject is Some(subject) &&
+    !initial_host_signing_subject_valid(subject) {
+    return Err(initial_signing_unavailable(InvalidInput))
   }
   self.initial_signing_eligible.val = false
   for
@@ -137,6 +143,7 @@ pub fn NativeLocalAdoptionSession::create_initial_signing_material(
     projection: reviewer.projection,
     public_key_pem: reviewer.public_key_pem,
     host_attestation: host,
+    host_signing_subject,
   })
 }
 

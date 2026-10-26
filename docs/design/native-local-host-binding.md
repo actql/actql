@@ -680,6 +680,35 @@ It samples the actual current commit time after verification, so historical
 is separate from a resume claim, Effect execution, provider outcome and their
 cleanup responsibilities.
 
+### Installed initial Host signing subject
+
+An explicit Native operator configuration may select
+`native.local.initial_host_signing` with exactly `principal`, `connection` and
+`resource`. Each is a nonempty, NUL-free string of at most 256 code units. The
+CLI forwards this DATA only to its explicitly selected fresh signing
+initialization. Ordinary adoption and cold reopen never update that choice.
+Selecting these names does not add an Account entry or grant Sign.
+
+The same exclusive initialization captures this subject with the first intent,
+issuer, policy and independent Host public-key identity. Its authenticated
+packet occupies a closed alternative in the existing initialization control
+row. The existing 2048-byte payload and 8192-byte control bounds remain; no
+additional selected file, key, permission issuer or physical Owner is created.
+Reviewer key/payload semantics and their original wire remain unchanged.
+
+The installed signing-account reader restores only that stored subject, then
+uses the existing current Account Sign and physical/key/configuration gates.
+A changed stored subject cannot be replaced by actor arguments supplied later.
+Legacy/raw or paired-key controls without subject metadata remain readable but
+cannot discover or backfill an installed Host signing account. The prior
+explicit trusted-assembly API remains distinct; it supplies no fallback for the
+installed reader. Initializers cannot regenerate keys or select another subject
+for an existing or partial Store.
+
+The original approval scope, Reviewer authentication, Checkpoint and actual
+Resolution/Effect application remain independent. This installation connection
+does not make a Checkpoint selector or a saved reference an approval source.
+
 ### Initial signing payload DATA
 
 The original initial-signing installation payload has a typed DATA codec in
