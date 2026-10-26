@@ -12,8 +12,12 @@ priv struct ClientManagedPreparationRetirement[P] {
 /// A closed typed choice on the same Run cleanup field. Both cases use the
 /// same generic retirement below; no second cleanup engine or resource owner.
 priv enum ClientManagedPreparationCustody {
-  PurePreparation(ClientManagedPreparationRetirement[@publication_host.PreparedClientProgram])
-  EffectPlanPreparation(ClientManagedPreparationRetirement[ClientInstalledEffectManagedPlan])
+  PurePreparation(
+    ClientManagedPreparationRetirement[@publication_host.PreparedClientProgram]
+  )
+  EffectPlanPreparation(
+    ClientManagedPreparationRetirement[ClientInstalledEffectManagedPlan]
+  )
 }
 
 ///|
@@ -69,11 +73,9 @@ pub fn[I] begin_preparation_owned_installed_managed_run(
   }
   let value = new_installed_managed_run(admission, prepared, request, ledger)
   value.source_free_preparation = Some(original)
-  value.preparation_retirement = Some(PurePreparation({
-    retirement,
-    admission,
-    holder: Some(holder),
-  }))
+  value.preparation_retirement = Some(
+    PurePreparation({ retirement, admission, holder: Some(holder), }),
+  )
   Ok(value)
 }
 
@@ -116,14 +118,14 @@ pub fn[I] begin_preparation_owned_installed_effect_managed_run(
     Ok(value) => value
   }
   let value = new_installed_managed_run_owned(
-    PlannedEffectManaged(admission, plan), request, ledger,
+    PlannedEffectManaged(admission, plan),
+    request,
+    ledger,
   )
   value.source_free_preparation = plan.source_free
-  value.preparation_retirement = Some(EffectPlanPreparation({
-    retirement,
-    admission,
-    holder: Some(holder),
-  }))
+  value.preparation_retirement = Some(
+    EffectPlanPreparation({ retirement, admission, holder: Some(holder), }),
+  )
   Ok(value)
 }
 
@@ -202,8 +204,10 @@ pub fn installed_preparation_payload_severed(
     return false
   }
   match retirement {
-    PurePreparation(original) => preparation_retirement_payload_severed(original, ledger)
-    EffectPlanPreparation(original) => preparation_retirement_payload_severed(original, ledger)
+    PurePreparation(original) =>
+      preparation_retirement_payload_severed(original, ledger)
+    EffectPlanPreparation(original) =>
+      preparation_retirement_payload_severed(original, ledger)
   }
 }
 
@@ -213,5 +217,6 @@ fn[P] preparation_retirement_payload_severed(
   ledger : @resources.Ledger,
 ) -> Bool {
   original.holder is None &&
-  @resources.check_node_preparation_cleanup_original(original.admission, ledger) is Ok(_)
+  @resources.check_node_preparation_cleanup_original(original.admission, ledger)
+  is Ok(_)
 }

@@ -18,7 +18,9 @@ pub fn borrow_installed_managed_dispatch_preparation(
     Ok(_) => ()
   }
   guard value.preparation_retirement is Some(custody) else { return Ok(None) }
-  guard custody is PurePreparation(original) else { return Err(ForeignOriginal) }
+  guard custody is PurePreparation(original) else {
+    return Err(ForeignOriginal)
+  }
   guard original.holder is Some(holder) &&
     @resources.preparation_body_borrow_value(holder) is Some(body) &&
     physical_equal(body, prepared) &&
@@ -53,8 +55,10 @@ pub fn installed_managed_preparation_usage_isolated(
     return false
   }
   match retirement {
-    PurePreparation(original) => @resources.node_preparation_usage_isolated(original.admission, ledger)
-    EffectPlanPreparation(original) => @resources.node_preparation_usage_isolated(original.admission, ledger)
+    PurePreparation(original) =>
+      @resources.node_preparation_usage_isolated(original.admission, ledger)
+    EffectPlanPreparation(original) =>
+      @resources.node_preparation_usage_isolated(original.admission, ledger)
   }
 }
 
@@ -71,7 +75,8 @@ pub fn borrow_installed_effect_dispatch_preparation(
   ClientInstalledManagedRunIssue,
 ] {
   guard value.preparation is Some(PlannedEffectManaged(_, original)) &&
-    physical_equal(original, plan) && physical_equal(value.request, request) else {
+    physical_equal(original, plan) &&
+    physical_equal(value.request, request) else {
     return Err(ForeignOriginal)
   }
   match require_installed_managed_run(value) {
@@ -88,7 +93,8 @@ pub fn borrow_installed_effect_dispatch_preparation(
   }
   match @resources.borrow_preparation_body_sibling(holder) {
     Ok(borrowed) => Ok(Some(borrowed))
-    Err(@resources.PreparationCapacityIssue::Resource(issue)) => Err(Ledger(issue))
+    Err(@resources.PreparationCapacityIssue::Resource(issue)) =>
+      Err(Ledger(issue))
     Err(_) => Err(CleanupPending)
   }
 }

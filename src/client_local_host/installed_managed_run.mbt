@@ -1066,8 +1066,10 @@ pub fn retire_installed_managed_run(
   }
   if value.preparation_retirement is Some(original) {
     return match original {
-      PurePreparation(original) => retire_preparation_owned_installed_run(value, original)
-      EffectPlanPreparation(original) => retire_preparation_owned_installed_run(value, original)
+      PurePreparation(original) =>
+        retire_preparation_owned_installed_run(value, original)
+      EffectPlanPreparation(original) =>
+        retire_preparation_owned_installed_run(value, original)
     }
   }
   // Use the original admission's complete cleanup path too. It retains an
