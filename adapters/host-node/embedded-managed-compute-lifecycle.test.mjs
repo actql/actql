@@ -711,3 +711,51 @@ test('unprepared single Source retains its existing accounting constructor and a
   prepared, {}, value => value);
   assert.strictEqual(result.ledger, ledger);
 });
+
+test('reused Source admission refuses retirement replacement and original failure from its captured current check', async t => {
+  const observations = [];
+  for (const kind of ['closed', 'replacement', 'failure']) {
+    const p = managedRunPorts(), prepared = {}, request = {}, original = {}, replacement = {};
+    const marker = new Error('OriginalReusedSourceCurrentFailure');
+    let f, armed = false, prepares = 0, begins = 0;
+    p.runtime.clientProgramInstalledManagedSourceFreeBegin = () => assert.fail('No Source-empty coercion');
+    p.runtime.clientProgramInstalledManagedRunBegin = (admission, value, identity) => {
+      assert.strictEqual(admission, p.admission);
+      assert.strictEqual(value, prepared); assert.strictEqual(identity, request);
+      begins++; return p.value;
+    };
+    // Capture this exact callback before first begin; only its next check reenters.
+    p.runtime.clientProgramInstalledManagedRunCheck = function(value, program, identity) {
+      assert.strictEqual(this, p.runtime); assert.strictEqual(value, p.value);
+      assert.strictEqual(program, prepared); assert.strictEqual(identity, request);
+      if (!armed) return;
+      const run = f.record.computeRuns.get(prepared);
+      if (kind === 'closed') run.closed = true;
+      if (kind === 'replacement') run.value = replacement;
+      if (kind === 'failure') run.failure = marker;
+    };
+    const manager = {prepareRun(value) {
+      assert.strictEqual(value, prepared); prepares++; return original;
+    }, close: () => ({pending: false})};
+    f = lifecycle({runtime: p.runtime, factory: async () => manager});
+    const profile = f.preparation.bindManagedSources(p.runtime, {
+      managedCaptureCapacity() {}, async prepare() {return {};}, ledgerCapacity() {return {};},
+    });
+    await f.preparation.prepareManagedCompute();
+    assert.strictEqual(f.preparation.prepareManagedSourceRun(p.runtime, prepared, request, profile), p.value);
+    armed = true;
+    let returned, failure, threw = false;
+    try {returned = f.preparation.prepareManagedSourceRun(p.runtime, prepared, request, profile);}
+    catch (cause) {threw = true; failure = cause;}
+    assert.equal(prepares, 1); assert.equal(begins, 1, 'Refusal cannot issue another admission');
+    observations.push({kind, refused: threw && failure instanceof Error &&
+      (kind !== 'failure' || failure === marker),
+      returned: threw ? 'none' : returned === p.value ? 'original' : returned === replacement ? 'replacement' : 'other',
+      markerRecorded: f.record.computeRuns.get(prepared)?.failure === marker,
+      prepares, begins});
+  }
+  t.diagnostic(`source-reuse-current ${JSON.stringify(observations)}`);
+  assert.deepEqual(observations.map(({kind, refused, prepares, begins}) =>
+    ({kind, refused, prepares, begins})), ['closed', 'replacement', 'failure'].map(kind =>
+    ({kind, refused: true, prepares: 1, begins: 1})));
+});
