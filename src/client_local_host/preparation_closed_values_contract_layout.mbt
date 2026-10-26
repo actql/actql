@@ -5,8 +5,8 @@
 /// pinned operation/catalog closure must be checked by the original driver;
 /// these constants do not admit an arbitrary caller-supplied contract graph.
 priv struct ClosedValuesContractLayout {
-  retained : PreparationRepresentationUnits
-  temporary : PreparationRepresentationUnits
+  retained : @execution.PreparationRepresentationUnits
+  temporary : @execution.PreparationRepresentationUnits
 }
 
 ///|
@@ -19,7 +19,7 @@ fn closed_values_contract_layout() -> ClosedValuesContractLayout? {
   // (CoreContractBody, CatalogGrammar/ExpressionContractBody, Inherited).
   // Charge all three even where actual zero-payload variants are inline.
   // Payload CIDs and dependency pointers borrow pinned static strings.
-  let retained : PreparationRepresentationUnits = {
+  let retained : @execution.PreparationRepresentationUnits = {
     record_headers: 160L,
     reference_slots: 268L,
     scalar_words: 223L,
@@ -33,7 +33,7 @@ fn closed_values_contract_layout() -> ClosedValuesContractLayout? {
   // Eight adjacency maps share22 entries, not eight copies of22. Each map
   // capacity <=8+4*n at the pinned13/16 threshold, so sum capacity <=152.
   // Aggregate map formula: (3K+4E,2K+2capacity+6E,5K+6E).
-  let adjacency_maps : PreparationRepresentationUnits = {
+  let adjacency_maps : @execution.PreparationRepresentationUnits = {
     record_headers: 112L,
     reference_slots: 452L,
     scalar_words: 172L,
@@ -42,7 +42,7 @@ fn closed_values_contract_layout() -> ClosedValuesContractLayout? {
   }
   // Eight Dependencies records+target arrays. Sum append capacity <=8K+2E
   // =108, including conservative spare slots for all eight owners.
-  let adjacency : PreparationRepresentationUnits = {
+  let adjacency : @execution.PreparationRepresentationUnits = {
     record_headers: 24L,
     reference_slots: 132L,
     scalar_words: 16L,
@@ -51,7 +51,7 @@ fn closed_values_contract_layout() -> ClosedValuesContractLayout? {
   }
   // Old backings for roots,bodies,stage-targets and eight adjacency targets:
   //11 headers, no larger than16+32+32+108 retained reference backing slots.
-  let growth : PreparationRepresentationUnits = {
+  let growth : @execution.PreparationRepresentationUnits = {
     record_headers: 11L,
     reference_slots: 188L,
     scalar_words: 0L,
@@ -61,7 +61,7 @@ fn closed_values_contract_layout() -> ClosedValuesContractLayout? {
   // Builder(1,6,4), CoreContractLimits+hash limits(2,0,7), stage temporary
   // Dependencies+stage array(3,11,2), source/incoming limits(2,0,6), and
   // semantic-rule/local-snapshot inline arrays(4,8,4).
-  let controls : PreparationRepresentationUnits = {
+  let controls : @execution.PreparationRepresentationUnits = {
     record_headers: 12L,
     reference_slots: 25L,
     scalar_words: 23L,
@@ -72,7 +72,7 @@ fn closed_values_contract_layout() -> ClosedValuesContractLayout? {
   // and mapped catalog dependency records/Options/closure plus nested enums,
   // the active seen/dependency get Options, and outer Result/Stop carriers.
   // No recursion or per-edge retained stack exists in either while traversal.
-  let edge : PreparationRepresentationUnits = {
+  let edge : @execution.PreparationRepresentationUnits = {
     record_headers: 12L,
     reference_slots: 16L,
     scalar_words: 20L,
@@ -82,7 +82,7 @@ fn closed_values_contract_layout() -> ClosedValuesContractLayout? {
   // Quote construction: ten unit records including the sum, two Map helper
   // Some results, sum/output Some, output record, nine-slot sum array/backing,
   // and current checked-arithmetic carriers: envelope22H,23R,58W.
-  let proof : PreparationRepresentationUnits = {
+  let proof : @execution.PreparationRepresentationUnits = {
     record_headers: 22L,
     reference_slots: 23L,
     scalar_words: 58L,

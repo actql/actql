@@ -62,7 +62,14 @@ inventory; a small payload does not remove those objects.
 The common typed conversion and checked fold belongs to
 [`capacity_inventory.mbt`](../../src/execution_relation/capacity_inventory.mbt).
 Domains supply objects, units, multiplicities and overlap; they do not repeat
-its tariffs or arithmetic. Value nodes, cursor roots, decoded text, canonical
+its tariffs or arithmetic. The existing preparation representation units and
+16/8/8/2/1 logical tariff are also defined in `execution_relation`; Local
+domains retain only their object inventories. Header/reference/word storage,
+UTF16 code units and owned wire remain distinct from the larger value-node
+and decode/wire envelopes. The same positive-factor checked count operation
+is called directly by layout construction, with no compatibility wrapper.
+
+Value nodes, cursor roots, decoded text, canonical
 wire and already-quoted bytes remain distinct inputs. A cursor reference does
 not stand for another copy of its value tree. Retained-alongside-execution
 composition counts that actual overlap; quoted independent dimensions do not

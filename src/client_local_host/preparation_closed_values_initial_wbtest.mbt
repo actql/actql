@@ -12,11 +12,15 @@ test "closed Values initial recipe has one owned control tariff and combined exa
   assert_eq(
     execution,
     416L +
-    preparation_representation_cost(closed_values_projection_scratch_units()).unwrap(),
+    @execution.preparation_representation_cost(
+      closed_values_projection_scratch_units(),
+    ).unwrap(),
   )
   assert_eq(
     retained,
-    preparation_representation_cost(closed_values_initial_control_units()).unwrap(),
+    @execution.preparation_representation_cost(
+      closed_values_initial_control_units(),
+    ).unwrap(),
   )
   let limits = client_local_preparation_initial_limits(policy).unwrap()
   for allowance in [execution - 1L, execution] {

@@ -412,6 +412,8 @@ pub fn carrier_managed_producer_read_same(CarrierManagedProducerRead, CarrierMan
 
 pub fn charge_admitted_input_external_work(AdmittedInput, Int) -> Bool
 
+pub fn checked_preparation_add_product(Int64, Int64, Int64) -> Int64?
+
 pub fn cleanup_admitted_input_row(AdmittedOutputRowCursor) -> Bool
 
 pub fn cleanup_admitted_output_preparation(AdmittedOutputPreparation) -> Result[Bool, @bounded_execution.Issue]
@@ -1039,6 +1041,8 @@ pub fn pivot_execution_supported(@lowering_relation.PreparedPivot) -> Bool
 pub fn pivot_execution_supported_with_numeric(@lowering_relation.PreparedPivot) -> Bool
 
 pub fn predicate_expression_remaining(PredicateExpressionExecution) -> Int
+
+pub fn preparation_representation_cost(PreparationRepresentationUnits) -> Int64?
 
 pub fn prepare_admitted_input(@lowering_relation.BoundPrepared, Int, Int, ValueLimits) -> Result[AdmittedInput, CaptureIssue]
 
@@ -2526,6 +2530,14 @@ pub(all) enum PredicateExpressionPoll {
   PredicateExpressionContinue
   PredicateExpressionComplete(Bool)
 }
+
+pub(all) struct PreparationRepresentationUnits {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+  owned_wire_bytes : Int64
+} derive(Eq)
 
 type PreparedInferRows
 

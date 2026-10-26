@@ -444,7 +444,7 @@ pub fn prepare_installed_effect_managed_plan(
   // the full per-Source overlap until that Source's original preparation ends.
   // Existing generated sequences and acquisition bodies remain charged by
   // their original Compute/capture components, not decoded/copied here.
-  let controls = preparation_representation_cost({
+  let controls = @execution.preparation_representation_cost({
     record_headers: 16L +
     5L * members +
     sources +
@@ -478,7 +478,7 @@ pub fn prepare_installed_effect_managed_plan(
   // temporary summed ExecutionCapacity and returned Some add 3H,2R,4W once,
   // not once per selected Source. Retained provider pairs are counted above.
   let provider_scratch = if provider_sources > 0 { 1L } else { 0L }
-  let temporary = preparation_representation_cost({
+  let temporary = @execution.preparation_representation_cost({
     record_headers: 21L +
     workspace.row_bounds.to_int64() +
     2L * time_holder +

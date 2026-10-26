@@ -2,8 +2,8 @@
 /// Finite metadata emitted by the one-Values/full-Result compilation recipe.
 /// These are constructor facts, not an admission grant or a second compiler.
 priv struct ClosedValuesCompilationMetadataLayout {
-  retained : PreparationRepresentationUnits
-  temporary : PreparationRepresentationUnits
+  retained : @execution.PreparationRepresentationUnits
+  temporary : @execution.PreparationRepresentationUnits
   graph_extra : ClosedValuesLexicalFacts
   material_extra : ClosedValuesLexicalFacts
   plan_extra : ClosedValuesLexicalFacts
@@ -168,7 +168,7 @@ fn closed_values_compilation_metadata_layout(
   if fields < 1 || name_units < 0 {
     return None
   }
-  let zero : PreparationRepresentationUnits = {
+  let zero : @execution.PreparationRepresentationUnits = {
     record_headers: 0L,
     reference_slots: 0L,
     scalar_words: 0L,
@@ -206,7 +206,7 @@ fn closed_values_compilation_metadata_layout(
     // A parsed projection is deliberately retained even for the row/Result
     // identities which only keep wire/CID. It dominates those smaller records;
     // constructor carriers themselves are included in the named packet below.
-    let wire : PreparationRepresentationUnits = {
+    let wire : @execution.PreparationRepresentationUnits = {
       record_headers: 2L,
       reference_slots: 0L,
       scalar_words: 0L,
@@ -261,7 +261,7 @@ fn closed_values_compilation_metadata_layout(
     is Some(number_writers) else {
     return None
   }
-  let cids : PreparationRepresentationUnits = {
+  let cids : @execution.PreparationRepresentationUnits = {
     record_headers: 2L * f,
     reference_slots: 0L,
     scalar_words: 0L,
@@ -296,7 +296,7 @@ fn closed_values_compilation_metadata_layout(
     compilation_metadata_facts(11, fields, name_units) is Some(compiled) else {
     return None
   }
-  let concatenations : PreparationRepresentationUnits = {
+  let concatenations : @execution.PreparationRepresentationUnits = {
     record_headers: 61L,
     reference_slots: 0L,
     scalar_words: 0L,
@@ -373,26 +373,45 @@ fn closed_values_compilation_metadata_layout(
 
 ///|
 fn compilation_metadata_repeat_units(
-  value : PreparationRepresentationUnits,
+  value : @execution.PreparationRepresentationUnits,
   count : Int64,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if count < 0L {
     return None
   }
-  guard preparation_cost_add(0L, value.record_headers, count) is Some(h) &&
-    preparation_cost_add(0L, value.reference_slots, count) is Some(r) &&
-    preparation_cost_add(0L, value.scalar_words, count) is Some(w) &&
-    preparation_cost_add(0L, value.owned_utf16_units, count) is Some(t) &&
-    preparation_cost_add(0L, value.owned_wire_bytes, count) is Some(b) else {
+  guard @execution.checked_preparation_add_product(
+      0L,
+      value.record_headers,
+      count,
+    )
+    is Some(h) &&
+    @execution.checked_preparation_add_product(0L, value.reference_slots, count)
+    is Some(r) &&
+    @execution.checked_preparation_add_product(0L, value.scalar_words, count)
+    is Some(w) &&
+    @execution.checked_preparation_add_product(
+      0L,
+      value.owned_utf16_units,
+      count,
+    )
+    is Some(t) &&
+    @execution.checked_preparation_add_product(
+      0L,
+      value.owned_wire_bytes,
+      count,
+    )
+    is Some(b) else {
     return None
   }
-  let units : PreparationRepresentationUnits = {
+  let units : @execution.PreparationRepresentationUnits = {
     record_headers: h,
     reference_slots: r,
     scalar_words: w,
     owned_utf16_units: t,
     owned_wire_bytes: b,
   }
-  guard preparation_representation_cost(units) is Some(_) else { return None }
+  guard @execution.preparation_representation_cost(units) is Some(_) else {
+    return None
+  }
   Some(units)
 }

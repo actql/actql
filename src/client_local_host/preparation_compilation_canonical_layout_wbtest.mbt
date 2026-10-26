@@ -23,7 +23,7 @@ fn compilation_canonical_fixture(
   let containers = actual.arrays + actual.objects
   // Same selected layout, but use actually allocated backing capacity rather
   // than the preconstruction append upper. Text remains a shared source owner.
-  let measured : PreparationRepresentationUnits = {
+  let measured : @execution.PreparationRepresentationUnits = {
     record_headers: actual.nodes + 3L * containers + s.fields.to_int64(),
     reference_slots: actual.nodes +
     2L * containers +
@@ -35,8 +35,8 @@ fn compilation_canonical_fixture(
     owned_wire_bytes: 0L,
   }
   assert_true(
-    preparation_representation_cost(quote.tree).unwrap() >=
-    preparation_representation_cost(measured).unwrap(),
+    @execution.preparation_representation_cost(quote.tree).unwrap() >=
+    @execution.preparation_representation_cost(measured).unwrap(),
   )
 }
 
@@ -90,8 +90,8 @@ test "compilation canonical quote rejects invalid shapes and bounds sort ancestr
     largest_object: 100,
   }).unwrap()
   assert_true(
-    preparation_representation_cost(wide.temporary).unwrap() >
-    preparation_representation_cost(
+    @execution.preparation_representation_cost(wide.temporary).unwrap() >
+    @execution.preparation_representation_cost(
       compilation_canonical_layout(small).unwrap().temporary,
     ).unwrap(),
   )
@@ -118,7 +118,7 @@ test "compilation canonical duplicate map ownership follows active ancestors not
   // Same retained tree; only private duplicate maps and sort width differ.
   assert_true(narrow.tree == wide.tree)
   assert_true(
-    preparation_representation_cost(narrow.temporary).unwrap() <
-    preparation_representation_cost(wide.temporary).unwrap(),
+    @execution.preparation_representation_cost(narrow.temporary).unwrap() <
+    @execution.preparation_representation_cost(wide.temporary).unwrap(),
   )
 }

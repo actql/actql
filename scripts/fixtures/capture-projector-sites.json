@@ -24,8 +24,8 @@
       "record_sites": 13,
       "some_sites": 8,
       "array_sites": 1,
-      "source_sha256": "983868ff74fefa50d87d52f166ce8a431a65a7a1da162a3ee198c03f26f02bff",
-      "body_sha256": "9e66d95d88e6b1fe72e0aaabe64e52c35fae543ec1a0e436c56b65f95e7a39a7"
+      "source_sha256": "cb406ef44e3a2b98de8ab76a068bcad37d7ab4d415f11e06ec41c013072cafc5",
+      "body_sha256": "64a506aa0cb8ee0983c3876c992a8d6a70ca8f9264cd16e405fb8dd766077205"
     },
     {
       "path": "src/encode_core/hash_writer_construction_inventory.mbt",
@@ -44,7 +44,7 @@
       "record_sites": 4,
       "some_sites": 2,
       "array_sites": 0,
-      "source_sha256": "a91bfd4ed4e24765348ab7e271b3221fe770d8eb4b3d96d38282338a6f23f4f3",
+      "source_sha256": "ba8b73b5bc4192e2dfbcff901375edf1b3dec75c78f6a55eff3f4c5448e05139",
       "body_sha256": "d222c4291c3fc3df6965f7a6861023e224d0815f96c083464ecd40fb066f242f"
     },
     {
@@ -54,28 +54,28 @@
       "record_sites": 9,
       "some_sites": 7,
       "array_sites": 0,
-      "source_sha256": "a91bfd4ed4e24765348ab7e271b3221fe770d8eb4b3d96d38282338a6f23f4f3",
-      "body_sha256": "7194fe9d76ea6acc58b978dfb6f4d6d69352c7e0561d33dfd20f55d46fe71712"
+      "source_sha256": "ba8b73b5bc4192e2dfbcff901375edf1b3dec75c78f6a55eff3f4c5448e05139",
+      "body_sha256": "49e72d4160c436a3eb9f3ab5b92a66237951bc16e684fd4e277d188ff5d39325"
     },
     {
-      "path": "src/client_local_host/preparation_representation_cost.mbt",
+      "path": "src/execution_relation/preparation_representation.mbt",
       "function": "preparation_representation_cost",
       "multiplicity": 2,
       "record_sites": 5,
       "some_sites": 4,
       "array_sites": 0,
-      "source_sha256": "bc08e3b8a74344d9ea2d6a7f6805eac6950921a8b3cd6083ab62a38526c737ab",
-      "body_sha256": "4d349d9616e7e67a38c1d36b459ffbf0c4dcf96dd439588a7050fabcc4a984cb"
+      "source_sha256": "7809659d13002f683782bf0059b615ae4970989ffdc410fafae31ba910dcb415",
+      "body_sha256": "4f093e52c0babbce295194a97e4ee9665f07226aa4308b925473bee0d9762408"
     },
     {
-      "path": "src/client_local_host/preparation_representation_cost.mbt",
-      "function": "preparation_cost_add",
+      "path": "src/execution_relation/preparation_representation.mbt",
+      "function": "checked_preparation_add_product",
       "multiplicity": 45,
       "record_sites": 3,
       "some_sites": 1,
       "array_sites": 0,
-      "source_sha256": "bc08e3b8a74344d9ea2d6a7f6805eac6950921a8b3cd6083ab62a38526c737ab",
-      "body_sha256": "c57ba3d46a65a949508054ce9bb3945ee7c4da2e3849a5638d2f005288a2ca89"
+      "source_sha256": "7809659d13002f683782bf0059b615ae4970989ffdc410fafae31ba910dcb415",
+      "body_sha256": "52affc5ce905781c335ad554019ac09c319b64c66c5922279c699fe0d137c39f"
     }
   ],
   "weighted_sites": {

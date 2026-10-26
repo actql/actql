@@ -4,10 +4,10 @@
 /// combines this with the independently owned source/index, writer/hash and
 /// failure-carrier components before opening the original preparation phase.
 struct ClosedValuesIdentityLayout {
-  fixed : PreparationRepresentationUnits
-  preparation : PreparationRepresentationUnits
-  emission : PreparationRepresentationUnits
-  cid_strings : PreparationRepresentationUnits
+  fixed : @execution.PreparationRepresentationUnits
+  preparation : @execution.PreparationRepresentationUnits
+  emission : @execution.PreparationRepresentationUnits
+  cid_strings : @execution.PreparationRepresentationUnits
 } derive(Eq)
 
 ///|
@@ -18,8 +18,8 @@ struct ClosedValuesIdentityLayout {
 /// Eleven empty Maps plus identifier Map1, and two distinct ObjectView Maps
 /// (Stage4, Result declaration2), are separate owners. No identity-by-content
 /// discount applies. The two Stage literal name-loop Arrays5/3 are additional.
-fn closed_values_identity_fixed_layout() -> PreparationRepresentationUnits? {
-  let records : PreparationRepresentationUnits = {
+fn closed_values_identity_fixed_layout() -> @execution.PreparationRepresentationUnits? {
+  let records : @execution.PreparationRepresentationUnits = {
     record_headers: 33L + 2L + 5L,
     reference_slots: 129L + 4L + 10L,
     scalar_words: 129L,
@@ -29,7 +29,7 @@ fn closed_values_identity_fixed_layout() -> PreparationRepresentationUnits? {
   // Array wrappers/backing and old backing during growth; five copied export/
   // source-field tuples are included in records above. Literal loop Arrays
   // never grow and have eight occupied slots between them.
-  let arrays : PreparationRepresentationUnits = {
+  let arrays : @execution.PreparationRepresentationUnits = {
     record_headers: 3L * 36L + 4L,
     reference_slots: 36L + 16L * 36L + 2L + 8L,
     scalar_words: 2L * 38L,
@@ -56,7 +56,7 @@ fn closed_values_identity_preparation_layout(
   nodes : Int,
   fields : Int,
   depth : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   guard closed_values_walk_storage_layout(nodes, fields) is Some(walk) else {
     return None
   }
@@ -65,7 +65,7 @@ fn closed_values_identity_preparation_layout(
     return None
   }
   let paths = closed_values_program_arrays(3L, 3L * d, true)
-  let segments : PreparationRepresentationUnits = {
+  let segments : @execution.PreparationRepresentationUnits = {
     record_headers: 3L * d,
     reference_slots: 3L * d,
     scalar_words: 6L * d,
@@ -88,14 +88,14 @@ fn closed_values_identity_emitter_layout(
   nodes : Int,
   fields : Int,
   depth : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if nodes <= 0 || fields < 0 || fields > nodes || depth < 0 || depth > nodes {
     return None
   }
   let n = nodes.to_int64()
   let d = depth.to_int64() + 2L
   let arrays = closed_values_program_arrays(d + 1L, n + d, true)
-  let payload : PreparationRepresentationUnits = {
+  let payload : @execution.PreparationRepresentationUnits = {
     record_headers: d + 2L * n,
     reference_slots: d + 4L * n,
     scalar_words: 3L * d + n,
@@ -133,7 +133,7 @@ fn closed_values_identity_layout(
     is Some(emission) else {
     return None
   }
-  let cid_strings : PreparationRepresentationUnits = {
+  let cid_strings : @execution.PreparationRepresentationUnits = {
     record_headers: 7L,
     reference_slots: 0L,
     scalar_words: 0L,

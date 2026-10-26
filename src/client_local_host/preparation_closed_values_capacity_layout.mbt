@@ -3,8 +3,8 @@
 /// metadata only: graph-control, Unit publication, resolution-index copies and
 /// encode/hash writer workspaces have distinct owners in the Context plan.
 priv struct ClosedValuesOperationCapacityLayout {
-  retained : PreparationRepresentationUnits
-  temporary : PreparationRepresentationUnits
+  retained : @execution.PreparationRepresentationUnits
+  temporary : @execution.PreparationRepresentationUnits
 }
 
 ///|
@@ -43,7 +43,7 @@ fn closed_values_capacity_metadata_facts(
 fn closed_values_capacity_record_packet(
   count : Int64,
   fields : Int64,
-) -> PreparationRepresentationUnits {
+) -> @execution.PreparationRepresentationUnits {
   {
     record_headers: count,
     reference_slots: fields,
@@ -121,7 +121,7 @@ fn closed_values_operation_capacity_layout(
   // row supplied witnesses/decoded candidates/selection/copy(4),
   // recursive empty fields/pending frame(2). Sum30; actual empty Arrays use
   // less. Copied backing overlap is included as two cap-eight backings.
-  let arrays : PreparationRepresentationUnits = {
+  let arrays : @execution.PreparationRepresentationUnits = {
     record_headers: 90L,
     reference_slots: 30L * 17L,
     scalar_words: 60L,
@@ -138,7 +138,7 @@ fn closed_values_operation_capacity_layout(
   // Seven newly constructed CIDs; subjects and intermediate concatenations
   // (three checked-step:0, wire prefix/full, rows prefix/full), two placeholder
   // zero-digest/CID pairs. Parsed strings are separately owned below.
-  let strings : PreparationRepresentationUnits = {
+  let strings : @execution.PreparationRepresentationUnits = {
     record_headers: 18L,
     reference_slots: 0L,
     scalar_words: 0L,
@@ -155,7 +155,7 @@ fn closed_values_operation_capacity_layout(
   let mut retained = closed_values_sum_layouts([
     records, arrays, carriers, strings, empty_map,
   ]).unwrap()
-  let mut temporary : PreparationRepresentationUnits = {
+  let mut temporary : @execution.PreparationRepresentationUnits = {
     // selected Bool array plus old backing, one Read frame and per-cell
     // borrowed CheckedValue tuple/Result; no per-cell retained allocation.
     record_headers: 9L,
@@ -205,7 +205,7 @@ fn closed_values_operation_capacity_layout(
     // The two generic walks above additionally own their Cursor/tuple stacks.
     // Numeric formatting is the shared encode/hash writer component; decoded
     // wire UTF16 is the explicit wire packet below, not borrowed/free text.
-    let views : PreparationRepresentationUnits = {
+    let views : @execution.PreparationRepresentationUnits = {
       record_headers: 16L * n,
       reference_slots: 24L * n,
       scalar_words: 20L * n,
@@ -217,7 +217,7 @@ fn closed_values_operation_capacity_layout(
     // same_cursor is iterative and its pending pairs are in the walk packet.
     // Each live emit frame has Cursor/writer/view/keys/current child and
     // loop/omit state. This is dynamic recursion, not fixed VM baseline.
-    let frames : PreparationRepresentationUnits = {
+    let frames : @execution.PreparationRepresentationUnits = {
       record_headers: 2L * (facts.depth_upper.to_int64() + 1L),
       reference_slots: 10L * (facts.depth_upper.to_int64() + 1L),
       scalar_words: 6L * (facts.depth_upper.to_int64() + 1L),
@@ -233,7 +233,7 @@ fn closed_values_operation_capacity_layout(
     // Owned serialized Bytes plus separately decoded ASCII document. The
     // common Node byte-decode recipe owns String/BytesView/subarray/result
     // controls; material writer String backing remains the writer's owner.
-    let wire : PreparationRepresentationUnits = {
+    let wire : @execution.PreparationRepresentationUnits = {
       record_headers: 1L,
       reference_slots: 0L,
       scalar_words: 1L,
@@ -251,8 +251,8 @@ fn closed_values_operation_capacity_layout(
   // A whole payload packet remains live beside the retained final packet;
   // this does not charge fixed VM call frames or duplicate graph-control.
   temporary = closed_values_sum_layouts([temporary, records, carriers, arrays]).unwrap()
-  guard preparation_representation_cost(retained) is Some(_) &&
-    preparation_representation_cost(temporary) is Some(_) else {
+  guard @execution.preparation_representation_cost(retained) is Some(_) &&
+    @execution.preparation_representation_cost(temporary) is Some(_) else {
     return None
   }
   Some({ retained, temporary, })

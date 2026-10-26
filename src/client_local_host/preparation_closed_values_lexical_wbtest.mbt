@@ -78,11 +78,15 @@ test "closed Values source phases keep shared spans and sequential scratch disti
   let text = "{\"a\":[1,2,3],\"b\":\"value\"}"
   let facts = closed_values_lexical_facts(text, text.length()).unwrap()
   let inventories = closed_values_source_inventories(facts)
-  let source = preparation_representation_cost(inventories.source_retained).unwrap()
-  let shared = preparation_representation_cost(
+  let source = @execution.preparation_representation_cost(
+    inventories.source_retained,
+  ).unwrap()
+  let shared = @execution.preparation_representation_cost(
     inventories.source_shared_dependencies,
   ).unwrap()
-  let indexed = preparation_representation_cost(inventories.indexed_additional).unwrap()
+  let indexed = @execution.preparation_representation_cost(
+    inventories.indexed_additional,
+  ).unwrap()
   assert_true(source > shared)
   assert_true(indexed > 0L)
   assert_eq(inventories.indexed_additional.owned_utf16_units, 0L)
@@ -91,15 +95,17 @@ test "closed Values source phases keep shared spans and sequential scratch disti
     inventories.source_retained.owned_utf16_units,
   )
   assert_true(
-    preparation_representation_cost(inventories.key_admission_peak).unwrap() >
+    @execution.preparation_representation_cost(inventories.key_admission_peak).unwrap() >
     0L,
   )
   assert_true(
-    preparation_representation_cost(inventories.parser_controls_peak).unwrap() >
+    @execution.preparation_representation_cost(inventories.parser_controls_peak).unwrap() >
     0L,
   )
   assert_true(
-    preparation_representation_cost(inventories.decoder_controls_peak).unwrap() >
+    @execution.preparation_representation_cost(
+      inventories.decoder_controls_peak,
+    ).unwrap() >
     0L,
   )
 }

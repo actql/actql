@@ -51,9 +51,9 @@ test "closed Values literal layout rejects invalid dimensions and tariff overflo
 ///|
 test "closed Values lower and DAG owner components retain borrowed rows only once" {
   let lower = closed_values_lower_retained_layout()
-  assert_eq(preparation_representation_cost(lower), Some(1000L))
+  assert_eq(@execution.preparation_representation_cost(lower), Some(1000L))
   let graph = closed_values_dag_retained_layout()
-  assert_eq(preparation_representation_cost(graph), Some(1456L))
+  assert_eq(@execution.preparation_representation_cost(graph), Some(1456L))
   assert_eq(graph.owned_utf16_units, 0L)
   assert_eq(graph.owned_wire_bytes, 0L)
   // Changing row dimensions changes literal owners, not the borrowing
@@ -61,8 +61,8 @@ test "closed Values lower and DAG owner components retain borrowed rows only onc
   let one = closed_values_literal_layout(1, 1).unwrap().retained
   let many = closed_values_literal_layout(1, 100).unwrap().retained
   assert_true(
-    preparation_representation_cost(many).unwrap() >
-    preparation_representation_cost(one).unwrap(),
+    @execution.preparation_representation_cost(many).unwrap() >
+    @execution.preparation_representation_cost(one).unwrap(),
   )
   assert_eq(lower.owned_utf16_units, 8L)
 }
@@ -84,7 +84,7 @@ test "closed Values pipeline accounts separately for copied carrier field wrappe
 ///|
 test "closed Values checker wrapper tables have one stage and no operation limits" {
   let wrappers = closed_values_program_wrappers_layout()
-  assert_eq(preparation_representation_cost(wrappers), Some(2488L))
+  assert_eq(@execution.preparation_representation_cost(wrappers), Some(2488L))
   assert_eq(wrappers.owned_utf16_units, 0L)
   assert_eq(wrappers.owned_wire_bytes, 0L)
 }
@@ -109,7 +109,7 @@ test "closed Values map and traversal components include growth coexistence" {
 ///|
 test "closed Values numeric admission scratch is one original cell transition" {
   let scratch = closed_values_numeric_admission_scratch_layout()
-  assert_eq(preparation_representation_cost(scratch), Some(648L))
+  assert_eq(@execution.preparation_representation_cost(scratch), Some(648L))
   assert_eq(scratch.owned_wire_bytes, 0L)
   assert_eq(scratch.owned_utf16_units, 0L)
 }
@@ -132,8 +132,8 @@ test "closed Values caller scratch funds wide object key maps and backing overla
   assert_eq(wide.scalar_words, 3892L)
   let narrow = closed_values_values_caller_scratch_layout(1, 0).unwrap()
   assert_true(
-    preparation_representation_cost(wide).unwrap() >
-    preparation_representation_cost(narrow).unwrap(),
+    @execution.preparation_representation_cost(wide).unwrap() >
+    @execution.preparation_representation_cost(narrow).unwrap(),
   )
   assert_true(closed_values_values_caller_scratch_layout(0, 1) is None)
 }
@@ -171,21 +171,25 @@ test "closed Values Result projection accounts for independent schema and carrie
 ///|
 test "closed Values complete compiler phase composes original shape and failure ownership" {
   let phase = closed_values_compiler_phase_layout(100, 99, 21000, 8, 10).unwrap()
-  let cost = preparation_representation_cost(phase.retained).unwrap()
+  let cost = @execution.preparation_representation_cost(phase.retained).unwrap()
   assert_true(cost > 1500000L)
-  assert_true(preparation_representation_cost(phase.temporary).unwrap() > 0L)
-  assert_true(preparation_representation_cost(phase.failure).unwrap() > 0L)
+  assert_true(
+    @execution.preparation_representation_cost(phase.temporary).unwrap() > 0L,
+  )
+  assert_true(
+    @execution.preparation_representation_cost(phase.failure).unwrap() > 0L,
+  )
   let total = closed_values_sum_layouts([
     phase.retained,
     phase.temporary,
     phase.failure,
   ]).unwrap()
   assert_eq(
-    preparation_representation_cost(total),
+    @execution.preparation_representation_cost(total),
     Some(
       cost +
-      preparation_representation_cost(phase.temporary).unwrap() +
-      preparation_representation_cost(phase.failure).unwrap(),
+      @execution.preparation_representation_cost(phase.temporary).unwrap() +
+      @execution.preparation_representation_cost(phase.failure).unwrap(),
     ),
   )
   assert_true(closed_values_compiler_phase_layout(100, 99, 9899, 8, 10) is None)
@@ -197,7 +201,7 @@ test "closed Values complete compiler phase composes original shape and failure 
     )
     is None,
   )
-  let zero : PreparationRepresentationUnits = {
+  let zero : @execution.PreparationRepresentationUnits = {
     record_headers: 0L,
     reference_slots: 0L,
     scalar_words: 0L,
@@ -218,15 +222,33 @@ test "closed Values actual acceptance fixture dimensions have quantitative phase
   // Independent original JSON lexical counts: 304 bytes (1x1) and 98,034
   // bytes (100x99), including object keys; both have longest token23/depth8.
   let one = closed_values_compiler_phase_layout(1, 1, 51, 23, 8).unwrap()
-  assert_eq(preparation_representation_cost(one.retained), Some(15368L))
-  assert_eq(preparation_representation_cost(one.temporary), Some(39620L))
-  assert_eq(preparation_representation_cost(one.failure), Some(3200L))
-  let wide = closed_values_compiler_phase_layout(100, 99, 20640, 23, 8).unwrap()
-  assert_eq(preparation_representation_cost(wide.retained), Some(1623800L))
-  assert_eq(preparation_representation_cost(wide.temporary), Some(460964L))
-  assert_eq(preparation_representation_cost(wide.failure), Some(3200L))
   assert_eq(
-    preparation_representation_cost(
+    @execution.preparation_representation_cost(one.retained),
+    Some(15368L),
+  )
+  assert_eq(
+    @execution.preparation_representation_cost(one.temporary),
+    Some(39620L),
+  )
+  assert_eq(
+    @execution.preparation_representation_cost(one.failure),
+    Some(3200L),
+  )
+  let wide = closed_values_compiler_phase_layout(100, 99, 20640, 23, 8).unwrap()
+  assert_eq(
+    @execution.preparation_representation_cost(wide.retained),
+    Some(1623800L),
+  )
+  assert_eq(
+    @execution.preparation_representation_cost(wide.temporary),
+    Some(460964L),
+  )
+  assert_eq(
+    @execution.preparation_representation_cost(wide.failure),
+    Some(3200L),
+  )
+  assert_eq(
+    @execution.preparation_representation_cost(
       closed_values_sum_layouts([wide.retained, wide.temporary, wide.failure]).unwrap(),
     ),
     Some(2087964L),
@@ -239,9 +261,9 @@ test "guarded walk reuses constructor tariff while generic unproved inventory re
   assert_eq(wide.record_headers, 516L)
   assert_eq(wide.reference_slots, 1525L)
   assert_eq(wide.scalar_words, 516L)
-  assert_eq(preparation_representation_cost(wide), Some(24584L))
+  assert_eq(@execution.preparation_representation_cost(wide), Some(24584L))
   let generic = closed_values_walk_storage_layout(20640, 100).unwrap()
-  assert_eq(preparation_representation_cost(generic), Some(3002304L))
+  assert_eq(@execution.preparation_representation_cost(generic), Some(3002304L))
   assert_true(closed_values_guarded_walk_storage_layout(2147483647, 0) is None)
   for f in [1, 2, 7, 8, 9, 31, 100] {
     for r in [0, 1, 2, 8, 99] {
