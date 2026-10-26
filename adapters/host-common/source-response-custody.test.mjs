@@ -84,3 +84,24 @@ test('every non-Unit result refuses including resolved Unit promises and scalar 
   await assert.rejects(retain({}), cause => cause === original);
   assert.equal(joined, 1, 'the exact invalid thenable still completes its borrowed work');
 });
+
+test('a rejected custody borrow preserves its original Unknown outcome and pending cleanup carrier', async () => {
+  const borrow = deferred(), cleanupHandle = {status: () => ({pending: true})};
+  const original = Object.assign(new Error('original retained response failure'), {
+    code: 'OriginalResponseCustodyFailure', outcome: 'unknown', cleanupPending: true, cleanupHandle,
+  });
+  let invalidCalls = 0;
+  const retain = captureSourceResponseCustody(Object.freeze({retain() {return borrow.promise;}}),
+    () => {invalidCalls++; return failure();});
+  const pending = retain({});
+  const checked = assert.rejects(pending, cause => {
+    assert.strictEqual(cause, original);
+    assert.strictEqual(cause.cleanupHandle, cleanupHandle);
+    assert.equal(cause.outcome, 'unknown');
+    assert.equal(cause.cleanupPending, true);
+    return true;
+  });
+  borrow.reject(original);
+  await checked;
+  assert.equal(invalidCalls, 0, 'an original rejected borrow is already a failure, never a replacement error');
+});
