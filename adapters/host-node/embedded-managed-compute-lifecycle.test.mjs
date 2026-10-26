@@ -759,3 +759,34 @@ test('reused Source admission refuses retirement replacement and original failur
     ({kind, refused, prepares, begins})), ['closed', 'replacement', 'failure'].map(kind =>
     ({kind, refused: true, prepares: 1, begins: 1})));
 });
+
+test('reused Source retains same-map membership and the original Host current failure', async () => {
+  for (const kind of ['map', 'live', 'request', 'host', 'failure-priority']) {
+    const p = managedRunPorts(), prepared = {}, request = {}, original = {};
+    const marker = new Error('OriginalHostCurrentFailure');
+    let f, armed = false, currentFails = false, prepares = 0, begins = 0;
+    p.runtime.clientProgramInstalledManagedRunBegin = () => {begins++; return p.value;};
+    p.runtime.clientProgramInstalledManagedRunCheck = () => {
+      if (!armed) return;
+      const run = f.record.computeRuns.get(prepared);
+      if (kind === 'map') f.record.computeRuns = new WeakMap([[prepared, {...run}]]);
+      if (kind === 'live') f.record.computeLiveRuns.delete(run);
+      if (kind === 'request') run.request = {};
+      if (kind === 'host') currentFails = true;
+      if (kind === 'failure-priority') {run.failure = marker; run.value = {};}
+    };
+    const manager = {prepareRun() {prepares++; return original;}, close: () => ({pending: false})};
+    f = lifecycle({runtime: p.runtime, factory: async () => manager,
+      current() {if (currentFails) throw marker;}});
+    const profile = f.preparation.bindManagedSources(p.runtime, {
+      managedCaptureCapacity() {}, async prepare() {return {};}, ledgerCapacity() {return {};},
+    });
+    await f.preparation.prepareManagedCompute();
+    assert.strictEqual(f.preparation.prepareManagedSourceRun(p.runtime, prepared, request, profile), p.value);
+    armed = true;
+    assert.throws(() => f.preparation.prepareManagedSourceRun(p.runtime, prepared, request, profile),
+      error => ['host', 'failure-priority'].includes(kind) ? error === marker :
+        error?.code === 'ForeignInstalledComputeRun');
+    assert.equal(prepares, 1); assert.equal(begins, 1);
+  }
+});
