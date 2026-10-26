@@ -24139,7 +24139,7 @@
     {
       "module": "src/physical_strategy/retained_task_projection.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "b72d4be834ff4bfc686577f4ca0722d86d27095cbe626bd67109b71d981ff8ed",
+      "sha256": "986988fac0261e056dad475da18e3bfc3075a9210e630782f7fb4044bdf3564a",
       "role": "common-semantics",
       "owner": "Existing original retained-task projection and checked graph Owner; no preparation, capture or admission issuer",
       "exports": [],

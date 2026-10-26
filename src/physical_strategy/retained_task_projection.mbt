@@ -174,7 +174,9 @@ pub fn open_retained_effect_task_dag(
 ///|
 /// The same checked view used by the retained-task opener. Borrowing this
 /// immutable graph creates no capture, module, Run or execution authority.
-pub fn retained_task_projection_graph(value : RetainedTaskProjection) -> CheckedDAG {
+pub fn retained_task_projection_graph(
+  value : RetainedTaskProjection,
+) -> CheckedDAG {
   value.graph
 }
 
