@@ -1,3 +1,4 @@
+import {publicationOriginalFixture} from '../../../../host-node/fixtures/local-publication-original.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {mkdtemp, readFile, rm} from 'node:fs/promises';
@@ -670,6 +671,7 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
     const host = createNodeHostEntry(() => observedMoon, installStrategyContributions);
     const runtime = runtimeCore(observedMoon);
     const options = {moon, control: runtime.publicationControl,
+      publicationOriginal: captured ? undefined : publicationOriginalFixture(moon, prepared),
       preparedProgram: prepared, authorityScopeCid: cid('a'),
       namespaceId: route.publicationNamespace ?? 'local',
       storeAuthorityCid: cid('c'), now: () => captured

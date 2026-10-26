@@ -1245,28 +1245,27 @@ fn check_program_finding(
         _ => ()
       }
     }
-    if issue.kind is Vector(WrongCarrier(actual_kind)) &&
+    if issue.kind is Vector(WrongCarrier(expected_kind, actual_kind)) &&
       issue.path.length() == 5 &&
       issue.path[0] is Key("stages") &&
       issue.path[1] is Index(_) &&
       issue.path[2] is Key("steps") &&
       issue.path[3] is Index(_) &&
-      issue.path[4] is Key(operation) {
-      // The original failed vector operation owns this selector. Its closed
-      // input law identifies the expected carrier; no source search or second
-      // check is performed. Other vector paths retain the generic finding.
-      let expected = match operation {
-        "to_vectors" => Some("relation")
-        "score_vectors" | "normalize_vectors" => Some("vectors")
-        _ => None
+      issue.path[4] is Key(_) {
+      // Both closed facts come from the original checker judgment. The path
+      // only preserves the existing disclosure/location boundary, never the
+      // input law. Branch-local and alternative-carrier issues stay generic.
+      let name = (kind : @carrier.Kind) => {
+        match kind {
+          RelationKind => "relation"
+          GraphKind => "graph"
+          EventsKind => "events"
+          VectorsKind => "vectors"
+        }
       }
-      let actual = match actual_kind {
-        RelationKind => "relation"
-        GraphKind => "graph"
-        EventsKind => "events"
-        VectorsKind => "vectors"
-      }
-      if expected is Some(expected) && expected != actual {
+      let expected = name(expected_kind)
+      let actual = name(actual_kind)
+      if expected != actual {
         return CarrierViolation(expected, actual)
       }
       // This generated structural path is not an authored source location.

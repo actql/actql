@@ -192,7 +192,15 @@ pub fn check_pool_vectors(
     }
     let members = match input {
       @carrier.VectorValue(v) => v
-      _ => @checking.fail(source, WrongCarrier(@carrier.kind(input)))
+      @carrier.Opaque(VectorsKind) =>
+        @checking.fail(source, IncompletePoolInput)
+      // This is the Vectors branch, not the complete Relation-or-Vectors pool
+      // input law. Keep its original scope with the typed required/actual facts.
+      _ =>
+        @checking.fail(
+          source,
+          WrongPoolCarrier(VectorsKind, @carrier.kind(input)),
+        )
     }
     let root = @checking.decoded(@decode.open_object(source))
     let vector = @carrier.vector_components(members)

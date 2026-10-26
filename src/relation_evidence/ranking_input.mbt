@@ -163,7 +163,16 @@ pub fn check_ranking_shape(
     }
     let rows = match input.carrier {
       @carrier.Relation(r) => r
-      _ => @checking.fail(source, WrongCarrier(@carrier.kind(input.carrier)))
+      @carrier.Opaque(RelationKind) =>
+        @checking.fail(source, IncompleteRankingInput)
+      _ =>
+        @checking.fail(
+          source,
+          WrongRelationCarrier(
+            @carrier.RelationKind,
+            @carrier.kind(input.carrier),
+          ),
+        )
     }
     let schema = match @carrier.complete_schema(rows) {
       Some(s) => s

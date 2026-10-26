@@ -255,3 +255,101 @@ test('a failed request keeps cleanup ownership and separate Hosts do not share c
   assert.equal(right.usage().reserved_execution_bytes, 200n);
   assert.equal((await b.request({command: 'echo', value: 2})).value, 2);
 });
+
+
+test('actual child Core usage crosses worker IPC and parent Core with thirteen exact fields', async t => {
+  // Logical transfer accounting only: no giant buffer or file is allocated.
+  const exact = 9007199254740993n;
+  const child = {...childLimits(), transfer_bytes: exact};
+  const host = await createManagedProcessHost({...child, attempts: 3});
+  const channel = await host.start(delegatedConfiguration(), {...capacity, childLimits: child});
+  t.after(() => channel.close());
+  await channel.request({command: 'read-exact'});
+  assert.deepEqual(host.usage(), {
+    planning_work: 0, attempts: 2, reserved_attempts: 0, holdings: 0,
+    live_reservations: 2, live_delegations: 1,
+    transferred_bytes: exact, uncertain_transfer_bytes: 0n, reserved_transfer_bytes: 0n,
+    held_bytes: 0n, reserved_retention_bytes: 100n, reserved_execution_bytes: 200n,
+    peak_retention_bytes: 100n,
+  });
+  await channel.close();
+  assert.deepEqual(host.usage(), {
+    planning_work: 0, attempts: 2, reserved_attempts: 0, holdings: 0,
+    live_reservations: 0, live_delegations: 0,
+    transferred_bytes: exact, uncertain_transfer_bytes: 0n, reserved_transfer_bytes: 0n,
+    held_bytes: 0n, reserved_retention_bytes: 0n, reserved_execution_bytes: 0n,
+    peak_retention_bytes: 100n,
+  });
+});
+
+test('actual worker cannot downgrade Core usage to a legacy ten-field report', async () => {
+  const host = await createManagedProcessHost({...childLimits(), attempts: 3});
+  const channel = await host.start(delegatedConfiguration(), delegatedCapacity());
+  try { await assert.rejects(channel.request({command: 'legacy-report'})); }
+  finally { await channel.close(); }
+  assert.equal(channel.cleanupHandle.status().pending, false);
+  assert.equal(host.usage().attempts, 3); // Missing final accounting remains Unknown.
+  assert.equal(host.usage().live_reservations, 0);
+  assert.equal(host.usage().live_delegations, 0);
+});
+
+
+test('actual bridge reservation and delegation preserve original Start and settlement transitions', async () => {
+  const runtime = await import('../../_build/js/release/build/process_host_bridge/process_host_bridge.js');
+  const {checked} = await import('../host-common/runtime-result.mjs');
+  for (const delegated of [false, true]) {
+    const original = checked(runtime.processLedgerCreate({...childLimits(), attempts: 4}));
+    const foreign = checked(runtime.processLedgerCreate({...childLimits(), attempts: 4}));
+    const ticket = delegated
+      ? checked(runtime.processDelegate(original, childLimits(), 100n, 200n))
+      : checked(runtime.processReserve(original, 100n, 200n));
+    const enter = delegated ? runtime.processDelegationStarted : runtime.processStarted;
+    const reserved = runtime.processLedgerUsage(original);
+    assert.equal(reserved.attempts, 0);
+    assert.equal(reserved.reserved_attempts, 1);
+    assert.throws(() => checked(enter(foreign, ticket)));
+    assert.deepEqual(runtime.processLedgerUsage(original), reserved);
+    checked(enter(original, ticket));
+    const started = runtime.processLedgerUsage(original);
+    assert.equal(started.attempts, 1);
+    assert.equal(started.reserved_attempts, 0);
+    checked(enter(original, ticket));
+    assert.deepEqual(runtime.processLedgerUsage(original), started);
+    if (delegated) {
+      const unused = checked(runtime.processLedgerCreate(childLimits()));
+      checked(runtime.processDelegationStopped(original, ticket, runtime.processLedgerUsage(unused)));
+    } else checked(runtime.processStopped(original, ticket));
+    const stopped = runtime.processLedgerUsage(original);
+    assert.equal(stopped.attempts, 1);
+    assert.equal(stopped.live_reservations, 0);
+    assert.equal(stopped.live_delegations, 0);
+    assert.equal(stopped.reserved_retention_bytes, 0n);
+    assert.equal(stopped.reserved_execution_bytes, 0n);
+    assert.throws(() => checked(enter(original, ticket)));
+    assert.deepEqual(runtime.processLedgerUsage(original), stopped);
+  }
+});
+
+test('actual failed physical spawn keeps its attempted provisioning debit and releases occupancy', async () => {
+  for (const delegated of [false, true]) {
+    const host = await createManagedProcessHost({...childLimits(), attempts: 3});
+    const before = host.usage();
+    await assert.rejects(host.start(delegatedConfiguration(),
+      delegated ? delegatedCapacity() : capacity, AbortSignal.abort()));
+    assert.deepEqual(host.usage(), before);
+    let failure;
+    try {
+      await host.start({...delegatedConfiguration(), runtime: new URL('file:///actql-missing-physical-runtime')},
+        delegated ? delegatedCapacity() : capacity);
+    } catch (error) { failure = error; }
+    assert.equal(failure.code, 'ExecutionSpawnFailure');
+    await failure.cleanupHandle.retry();
+    assert.equal(failure.cleanupHandle.status().pending, false);
+    assert.equal(host.usage().attempts, delegated ? 3 : 1);
+    assert.equal(host.usage().reserved_attempts, 0);
+    assert.equal(host.usage().live_reservations, 0);
+    assert.equal(host.usage().live_delegations, 0);
+    assert.equal(host.usage().reserved_retention_bytes, 0n);
+    assert.equal(host.usage().reserved_execution_bytes, 0n);
+  }
+});

@@ -60133,7 +60133,7 @@
     {
       "module": "adapters/host-node/process-accounting.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "833f2fd341026dfa17f872a77f907a54a663a05e46fc2258777621bc6b388662",
+      "sha256": "1e5379526facc16f70598f88e7067b5a328030a5e1f7b16373f8876b91e7656c",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
       "exports": [
@@ -60142,16 +60142,30 @@
         "emptyProcessUsage",
         "encodeProcessLimits",
         "encodeProcessUsage",
-        "snapshotProcessLimits"
+        "snapshotProcessLimits",
+        "snapshotProcessUsage"
       ],
       "operations": [
         {
           "name": "copy",
           "parameters": [
             "value",
-            "bytes",
-            "wire",
-            "fields"
+            "fields",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "copy/copy",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "copy/copy/copy",
+          "parameters": [
+            "field"
           ],
           "async": false
         },
@@ -60177,14 +60191,8 @@
         {
           "name": "emptyProcessUsage/emptyProcessUsage/emptyProcessUsage",
           "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "emptyProcessUsage/emptyProcessUsage/emptyProcessUsage#2",
-          "parameters": [
-            "key"
+            "name",
+            "bits"
           ],
           "async": false
         },
@@ -60223,6 +60231,13 @@
             "value"
           ],
           "async": false
+        },
+        {
+          "name": "snapshotProcessUsage/snapshotProcessUsage",
+          "parameters": [
+            "value"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -60234,12 +60249,14 @@
             "decodeProcessUsage/decodeProcessUsage",
             "emptyProcessUsage/emptyProcessUsage",
             "emptyProcessUsage/emptyProcessUsage/emptyProcessUsage",
-            "emptyProcessUsage/emptyProcessUsage/emptyProcessUsage#2",
             "encode/encode",
             "encode/encode/encode",
             "encodeProcessLimits/encodeProcessLimits",
             "encodeProcessUsage/encodeProcessUsage",
-            "snapshotProcessLimits/snapshotProcessLimits"
+            "snapshotProcessLimits/snapshotProcessLimits",
+            "copy/copy",
+            "copy/copy/copy",
+            "snapshotProcessUsage/snapshotProcessUsage"
           ],
           "exports": [
             "decodeProcessLimits",
@@ -60247,31 +60264,32 @@
             "emptyProcessUsage",
             "encodeProcessLimits",
             "encodeProcessUsage",
-            "snapshotProcessLimits"
+            "snapshotProcessLimits",
+            "snapshotProcessUsage"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "adapters/host-node/process-accounting.mjs",
-                "anchor": "export const snapshotProcessLimits = value => copy(value, limitBytes, false);"
+                "anchor": "export const snapshotProcessLimits = value => copy(value, ledgerLimitsFields, false);"
               },
               {
                 "path": "docs/design/local-provider-work-accounting.md",
                 "anchor": "# Local provider work accounting"
               },
               {
-                "path": "src/physical_resources/pkg.generated.mbti",
-                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub(all) struct LedgerUsage {"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/process-accounting.mjs",
-                "anchor": "export const snapshotProcessLimits = value => copy(value, limitBytes, false);"
+                "anchor": "export const snapshotProcessLimits = value => copy(value, ledgerLimitsFields, false);"
               },
               {
-                "path": "src/physical_resources/pkg.generated.mbti",
-                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub(all) struct LedgerUsage {"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -60288,14 +60306,14 @@
                 "anchor": "### Acquisition and realization resource scopes"
               },
               {
-                "path": "src/physical_resources/pkg.generated.mbti",
-                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub(all) struct LedgerUsage {"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/process-accounting.mjs",
-                "anchor": "const limitBytes = ['transfer_bytes', 'retained_bytes', 'execution_bytes'];"
+                "anchor": "export const snapshotProcessLimits = value => copy(value, ledgerLimitsFields, false);"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -60316,8 +60334,8 @@
                 "anchor": "# Local provider work accounting"
               },
               {
-                "path": "src/physical_resources/pkg.generated.mbti",
-                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub(all) struct LedgerUsage {"
               }
             ],
             "failure": [
@@ -60330,14 +60348,14 @@
                 "anchor": "### Acquisition and realization resource scopes"
               },
               {
-                "path": "src/physical_resources/pkg.generated.mbti",
-                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub(all) struct LedgerUsage {"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/process-accounting.mjs",
-                "anchor": "export const snapshotProcessLimits = value => copy(value, limitBytes, false);"
+                "anchor": "export const snapshotProcessLimits = value => copy(value, ledgerLimitsFields, false);"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -60354,8 +60372,8 @@
                 "anchor": "// here. The common MoonBit ledger enforces cumulative relationships and limits."
               },
               {
-                "path": "src/physical_resources/pkg.generated.mbti",
-                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub(all) struct LedgerUsage {"
               },
               {
                 "path": "docs/design/local-provider-work-accounting.md",
@@ -60382,8 +60400,8 @@
                 "anchor": "test('private accounting snapshots exact bounded primitives without narrowing Int64 values', () => {"
               },
               {
-                "path": "src/physical_resources/pkg.generated.mbti",
-                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub(all) struct LedgerUsage {"
               },
               {
                 "path": "adapters/host-node/process-accounting.test.mjs",
@@ -60394,7 +60412,9 @@
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
-      "imports": [],
+      "imports": [
+        "./ledger-contract.generated.mjs"
+      ],
       "compilerFields": [],
       "unresolvedSyntax": []
     },
@@ -82320,6 +82340,175 @@
         }
       ],
       "referenceQualification": "Source contract references only; component ports are not ordinary runtime, backing, permission or cleanup ACK evidence."
+    },
+    {
+      "module": "adapters/host-node/ledger-contract.generated.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "f906b1af11dc97c032ca8173dba58d435d4facb6df4f71f7e5be2e9dbc6cc2bd",
+      "role": "common-semantics",
+      "owner": "Existing Core LedgerLimits/LedgerUsage record definitions; generated immutable transport layout only",
+      "exports": [
+        "ledgerLimitsFields",
+        "ledgerUsageFields"
+      ],
+      "operations": [],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "ledgerLimitsFields",
+            "ledgerUsageFields"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub(all) struct LedgerUsage {"
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectCoreLedger(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageFields = Object.freeze("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub(all) struct LedgerUsage {"
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectCoreLedger(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageFields = Object.freeze("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub(all) struct LedgerUsage {"
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectCoreLedger(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageFields = Object.freeze("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub(all) struct LedgerUsage {"
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectCoreLedger(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageFields = Object.freeze("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub(all) struct LedgerUsage {"
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectCoreLedger(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageFields = Object.freeze("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub(all) struct LedgerUsage {"
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectCoreLedger(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageFields = Object.freeze("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub(all) struct LedgerUsage {"
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectCoreLedger(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageFields = Object.freeze("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub(all) struct LedgerUsage {"
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectCoreLedger(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageFields = Object.freeze("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub(all) struct LedgerUsage {"
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectCoreLedger(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageFields = Object.freeze("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/ledger.mbt",
+                "anchor": "pub(all) struct LedgerUsage {"
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectCoreLedger(source) {"
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.test.mjs",
+                "anchor": "test('actual Core owns the complete current limits and thirteen-field usage contract'"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Mechanical projection of actual Core record fields/types. No allocation, debit, physical acknowledgement or resource authority is issued by this layout."
     }
   ],
   "generated": [],

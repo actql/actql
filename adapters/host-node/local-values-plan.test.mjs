@@ -1,3 +1,4 @@
+import {publicationOriginalFixture} from './fixtures/local-publication-original.mjs';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
@@ -158,7 +159,7 @@ test('source-free task profile issues through the compiled Run owner',
     const preparedProgram = prepare({kind: 'aql', input: {
       text: document, format: 'json'}, parameters: null});
     const control = runtimeCore(runtime).publicationControl;
-    const plan = sourceFreeTaskPlan({moon: runtime, control,
+    const plan = sourceFreeTaskPlan({moon: runtime, control, publicationOriginal: publicationOriginalFixture(runtime, preparedProgram),
       preparedProgram, authorityScopeCid: cid('a'), namespaceId: 'local',
       storeAuthorityCid: cid('c'),
       now: () => '2026-09-27T00:00:00.000Z'});
@@ -220,6 +221,7 @@ for (const kind of ['values', 'tasks']) {
       prepare.assertOwned(preparedProgram);
       const control = runtimeCore(moon).publicationControl;
       const plan = (acquired ? acquiredTaskRunAdmission : sourceFreeValuesPlan)({
+        publicationOriginal: acquired ? undefined : publicationOriginalFixture(moon, preparedProgram),
         moon, control, preparedProgram, authorityScopeCid: cid('a'),
         namespaceId: 'local', storeAuthorityCid: cid('c'),
         now: () => '2026-09-27T00:00:00.000Z',

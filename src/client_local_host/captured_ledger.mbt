@@ -4,8 +4,13 @@ fn client_local_general_value_nodes() -> Int {
 }
 
 ///|
+fn client_local_default_row_profile() -> Int {
+  100
+}
+
+///|
 fn client_local_execution_limits(
-  max_rows? : Int = 100,
+  max_rows? : Int = client_local_default_row_profile(),
   scalar_sequences? : Array[@execution.GeneratedSequence]? = None,
   scalar_inventory? : ClientLocalSchemaProofInventory? = None,
   scalar_demand? : ClientLocalScalarDemand? = None,
@@ -77,7 +82,8 @@ fn client_local_sequence_capacity(
   task_count : Int,
   capacity_plan? : ClientLocalCapacityPlan? = None,
   retained_inputs? : Array[Int]? = None,
-  max_rows? : Int = 100,
+  max_rows? : Int = client_local_default_row_profile(),
+  retained_output? : Bool = true,
 ) -> (@resources.LedgerLimits, Int64, Int64)? {
   client_local_sequence_capacity_original(
     sequences,
@@ -85,6 +91,7 @@ fn client_local_sequence_capacity(
     capacity_plan~,
     retained_inputs~,
     max_rows~,
+    retained_output~,
   ).map(value => {
     (value.limits, value.provider_retained, value.provider_execution)
   })
@@ -96,7 +103,8 @@ fn client_local_sequence_capacity_original(
   task_count : Int,
   capacity_plan? : ClientLocalCapacityPlan? = None,
   retained_inputs? : Array[Int]? = None,
-  max_rows? : Int = 100,
+  max_rows? : Int = client_local_default_row_profile(),
+  retained_output? : Bool = true,
   include_simultaneous? : Bool = false,
   simultaneous_graph? : @strategy.CheckedDAG? = None,
 ) -> ClientLocalSequenceCapacity? {
@@ -179,9 +187,16 @@ fn client_local_sequence_capacity_original(
       return None
     }
     let import_limits = plan.imports
+    // Input custody and metadata exist on both runtime paths. Only the
+    // configured retained-output path also constructs the export backing.
+    let export_capacity = if retained_output {
+      @local.local_export_retention_capacity(plan.exports)
+    } else {
+      Some(0L)
+    }
     guard @local.local_import_retention_capacity(import_limits)
       is Some(import_bytes) &&
-      @local.local_export_retention_capacity(plan.exports) is Some(export_bytes) &&
+      export_capacity is Some(export_bytes) &&
       client_local_store_inventory(
         inputs,
         retained_bytes + plan.metadata_retained_bytes,

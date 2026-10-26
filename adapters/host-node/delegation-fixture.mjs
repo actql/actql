@@ -16,6 +16,21 @@ serveManagedExecution(async (request, signal, context) => {
     reservations.push(reservation);
     return {allocated: true};
   }
+  if (request.command === 'read-exact') {
+    const bytes = context.resourceLimits.transfer_bytes;
+    const reservation = checked(runtime.processReadReserve(ledger, bytes, 1n));
+    reservations.push(reservation);
+    checked(runtime.processStarted(ledger, reservation));
+    checked(runtime.processReadCharge(ledger, reservation, bytes));
+    return null;
+  }
+  if (request.command === 'legacy-report') {
+    reportTransform = value => {
+      const {reserved_attempts, live_reservations, live_delegations, ...legacy} = value;
+      return legacy;
+    };
+    return null;
+  }
   if (request.command === 'crash') process.exit(9);
   if (request.command === 'invalid-report') {
     reportTransform = value => ({...value, attempts: context.resourceLimits.attempts + 1});

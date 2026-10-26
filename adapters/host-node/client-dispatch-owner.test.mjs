@@ -1,3 +1,4 @@
+import {publicationOriginalFixture} from './fixtures/local-publication-original.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {execFileSync} from 'node:child_process';
@@ -820,7 +821,7 @@ async function preflightDispatchFixture(t, {
     {kind: 'program', input: JSON.parse(document), parameters: null});
   const authorityScopeCid = `sha256:${'a'.repeat(64)}`;
   const namespaceId = 'preflight-custody';
-  const plan = sourceFreeValuesPlan({moon: runtime, control, preparedProgram,
+  const plan = sourceFreeValuesPlan({moon: runtime, control, preparedProgram, publicationOriginal: publicationOriginalFixture(runtime,preparedProgram),
     authorityScopeCid, namespaceId, storeAuthorityCid: `sha256:${'7'.repeat(64)}`,
     now: () => '2026-10-09T00:00:00.000Z'});
   const ref = {namespaceId, authorityScopeCid, runDefinitionCid: plan.runDefinition.identity};

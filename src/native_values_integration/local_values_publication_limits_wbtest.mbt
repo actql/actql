@@ -1,27 +1,45 @@
 ///|
-test "Local Values publication preserves the existing finite transport and value bounds" {
-  let prepared = local_values_guard_prepared()
-  let (row, output) = @client_local_host.client_local_values_publication_limits(
-    prepared, 536870912,
+fn publication_requirements(
+  prepared : @publication_host.PreparedClientProgram,
+) -> @client_local_host.ClientLocalSourceFreeRequirements raise {
+  @client_local_host.prepare_source_free_local_requirements(
+    prepared,
+    native_values_installed_contracts(),
+    @identity.stringify_value(registered_values(), 100000, 10000, 100),
+    Some(@identity.stringify_value(registered_fragment(), 100000, 10000, 100)),
+    None,
   ).unwrap()
-  // Independent expectations from the existing Local execution envelope.
+}
+
+///|
+test "Local Values publication retains original checked plan and separate decoder guards" {
+  let prepared = local_values_guard_prepared()
+  let original = publication_requirements(prepared)
+  let (row, output) = original.publication_limits(prepared, 536870912).unwrap()
+  // Independent one-row/one-Number-column envelope; quote, execution and
+  // publication retain the same original checked requirements. One projection
+  // field, matched reference and source-column lookup cost three mapping units;
+  // one row container and one Number are two nodes, plus three wire wrappers.
   assert_eq(row.max_bytes, 65536)
   assert_eq(row.max_nodes, 10000)
   assert_eq(row.max_depth, 64)
   assert_eq(row.max_text_bytes, 65536)
-  assert_eq(output.max_rows, 100)
-  assert_eq(output.max_result_fields, 100)
-  assert_eq(output.max_result_mapping_work, 10000)
+  assert_eq(output.max_rows, 1)
+  assert_eq(output.max_result_fields, 1)
+  assert_eq(output.max_result_mapping_work, 3)
+  assert_eq(output.max_result_order_work, 1)
+  // Preserve Native's independent complete-publication validation guard;
+  // one row's index storage is not a receipt/Manifest traversal allowance.
   assert_eq(output.max_result_workspace_entries, 10000)
-  assert_eq(output.values.max_nodes, 20000)
-  assert_eq(output.values.max_text_bytes, 500000)
+  assert_eq(output.values.max_nodes, 2)
+  assert_eq(output.values.max_text_bytes, 1)
   assert_eq(output.values.max_depth, 100)
   assert_eq(output.values.max_work, 20000000)
   for wire in [output.logical_wire, output.payload_wire] {
-    assert_eq(wire.max_columns, 100)
+    assert_eq(wire.max_columns, 1)
     assert_eq(wire.max_order_work, 1000000)
-    assert_eq(wire.max_bytes, 1000000)
-    assert_eq(wire.max_nodes, 100000)
+    assert_eq(wire.max_bytes, 68)
+    assert_eq(wire.max_nodes, 5)
     assert_eq(wire.max_depth, 64)
   }
   assert_eq(output.schema.max_bytes, 65536)
@@ -31,22 +49,19 @@ test "Local Values publication preserves the existing finite transport and value
 ///|
 test "Local Values publication intersects a smaller installed Store ceiling" {
   let prepared = local_values_guard_prepared()
-  let (_, output) = @client_local_host.client_local_values_publication_limits(
-    prepared, 17,
-  ).unwrap()
+  let original = publication_requirements(prepared)
+  let (_, output) = original.publication_limits(prepared, 17).unwrap()
   assert_eq(output.logical_wire.max_bytes, 17)
   assert_eq(output.payload_wire.max_bytes, 17)
   assert_eq(output.schema.max_bytes, 17)
   assert_eq(output.max_batch_bytes, 17)
-  assert_eq(output.max_rows, 100)
+  assert_eq(output.max_rows, 1)
   assert_eq(output.values.max_work, 20000000)
+  assert_true(
+    original.publication_limits(local_values_guard_prepared(), 17) is None,
+  )
   for invalid in [0, -1] {
-    assert_true(
-      @client_local_host.client_local_values_publication_limits(
-        prepared, invalid,
-      )
-      is None,
-    )
+    assert_true(original.publication_limits(prepared, invalid) is None)
   }
 }
 

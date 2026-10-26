@@ -49,7 +49,7 @@ test "Content workspace reserves overlapping byte proof and cursor allowances in
   // Existing payload/logical export allowances: 1651 + 1717. Additional
   // identity/recheck/mapper/schema roots: 34 * 256; schema text: 17 * 8.
   assert_eq(@execution.execution_capacity_execution_bytes(workspace), 37816L)
-  let combined = add_client_serialization_workspace_capacity(
+  let combined = @execution.add_execution_capacity(
     @execution.execution_capacity(1L, 2L).unwrap(),
     workspace,
   ).unwrap()
@@ -90,7 +90,5 @@ test "Content workspace refuses invalid ceilings and capacity overflow" {
   )
   let workspace = client_serialization_workspace_capacity(limits).unwrap()
   let maximum = @execution.execution_capacity(0L, 9223372036854775807L).unwrap()
-  assert_true(
-    add_client_serialization_workspace_capacity(maximum, workspace) is None,
-  )
+  assert_true(@execution.add_execution_capacity(maximum, workspace) is None)
 }

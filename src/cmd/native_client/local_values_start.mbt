@@ -1,4 +1,17 @@
 ///|
+// Preserve the original pre-Start refusal for an empty publication allowance.
+// This validates configuration only; the live work supplies all plan bounds.
+fn local_values_publication_payload_limit(
+  run : LocalRunInstallation,
+) -> Int raise ClientStop {
+  let bytes = run.result_payload_bytes.to_int()
+  if bytes < 1 {
+    stop("LocalValuesPublicationLimit")
+  }
+  bytes
+}
+
+///|
 // A source-free Run retains its installed Result Policy before its first-start
 // claim, whether or not a separate read installation is enabled. Missing
 // originals on an already started Run are not backfilled by this caller.
@@ -73,10 +86,7 @@ fn local_execute_publish_values(
   let installed = run.source_free.unwrap_or_else(() => {
     stop("LocalValuesInstallationRequired")
   })
-  let (row_limits, limits) = @local_values.client_local_values_publication_limits(
-    prepared,
-    run.result_payload_bytes.to_int(),
-  ).unwrap_or_else(() => stop("LocalValuesPublicationLimit"))
+  let payload_limit = local_values_publication_payload_limit(run)
   let work = match
     host.open_values_work(
       crypto,
@@ -103,6 +113,9 @@ fn local_execute_publish_values(
   }
   let reply = {
     errdefer (if !work.close() { stop("LocalValuesCleanupPending") })
+    let (row_limits, limits) = work
+      .publication_limits(payload_limit)
+      .unwrap_or_else(() => stop("LocalValuesPublicationLimit"))
     let (_, _) = work
       .publication_invocation(65536, 8192, 64)
       .unwrap_or_else(() => stop("LocalValuesPublicationEvidenceUnavailable"))

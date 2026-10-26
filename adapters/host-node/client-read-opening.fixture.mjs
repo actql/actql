@@ -1,3 +1,4 @@
+import {publicationOriginalFixture} from './fixtures/local-publication-original.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 // Real checked Program, physical Run, publication Store and Delivery custody.
 // The injected fault loses only attempt admission's reply, never retries it.
@@ -161,7 +162,7 @@ export async function openReadOpeningFixture(directory, loss,
       let plan;
       const admitted = await journal.admitOrLookupDefinition(identity, {...scope, submission, lookupExpiresAt: '2099-01-01T00:00:00.000Z', issueDefinition() {
         counts.definitions++;
-        plan = sourceFreeValuesPlan({moon, control, preparedProgram, ...scope, storeAuthorityCid: cid('7'), now});
+        plan = sourceFreeValuesPlan({moon, control, preparedProgram, publicationOriginal: publicationOriginalFixture(moon, preparedProgram), ...scope, storeAuthorityCid: cid('7'), now});
         const evidence = sourceFreeValuesAdmissionEvidence(plan);
         return evidence === undefined ? plan.runDefinition : {
           runDefinition: plan.runDefinition, runAdmissionEvidence: evidence};

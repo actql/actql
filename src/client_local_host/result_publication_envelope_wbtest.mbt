@@ -1,4 +1,23 @@
 ///|
+fn publication_plan_fixture(
+  prepared : @publication_host.PreparedClientProgram,
+) -> ClientInstalledManagedSourceFreePreparation {
+  let assets = @publication_host.client_local_product_assets()
+  prepare_installed_managed_source_free_with_contracts(
+    prepared,
+    prepare_installed_sequence_contracts(
+      assets.registry,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    ).unwrap(),
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+}
+
+///|
 fn result_envelope_fixture() -> @publication_host.PreparedClientProgram {
   let assets = @publication_host.client_local_product_assets()
   let environment = @publication_host.admit_client_check_environment(
@@ -50,10 +69,15 @@ test "result envelope derives row workspace and rejects representation overflow"
 test "result publication limits reuse the checked graph envelope and payload cap" {
   let prepared = result_envelope_fixture()
   let graph = @publication_host.prepared_client_graph(prepared)
-  let rows = @publication_host.prepared_client_values_max_rows(prepared)
+  // Empty original Values has the checked one-row floor, not the identity profile.
+  let rows = 1
   let envelope = client_local_result_envelope(graph, rows).unwrap()
-  let limits = client_node_values_publication_limits(prepared, 4096).unwrap()
-  assert_eq(limits.max_rows, 10000)
+  let limits = prepared_installed_managed_publication_limits(
+    publication_plan_fixture(prepared),
+    prepared,
+    4096,
+  ).unwrap()
+  assert_eq(limits.max_rows, 1)
   assert_eq(limits.values.max_depth, 64)
   assert_eq(limits.values.max_work, 1000000)
   assert_eq(limits.values.max_nodes, 1000000)
@@ -66,7 +90,7 @@ test "result publication limits reuse the checked graph envelope and payload cap
   assert_eq(limits.logical_wire.max_nodes, 1000003)
   assert_eq(limits.logical_wire.max_depth, 66)
   assert_eq(limits.schema.max_fields, envelope.fields)
-  assert_eq(limits.schema.max_bytes, 100000)
+  assert_eq(limits.schema.max_bytes, 79)
   assert_eq(limits.schema.max_nodes, 10000)
   assert_eq(limits.schema.max_depth, 64)
   assert_eq(limits.max_batch_bytes, 65536)
@@ -79,7 +103,14 @@ test "result publication limits reuse the checked graph envelope and payload cap
   assert_eq(limits.payload_wire.max_bytes, 4096)
   assert_eq(limits.logical_wire.max_bytes, 4096)
   assert_true(limits.schema.max_fields >= limits.max_result_fields)
-  assert_true(client_node_values_publication_limits(prepared, 0) is None)
+  assert_true(
+    prepared_installed_managed_publication_limits(
+      publication_plan_fixture(prepared),
+      prepared,
+      0,
+    )
+    is None,
+  )
 }
 
 ///|
@@ -204,8 +235,12 @@ test "publication projection borrows the original plan before admission and reje
     original.capacity_plan.admitted_rows,
   )
   assert_eq(
-    client_node_values_publication_limits(prepared, 4096).unwrap().schema.max_bytes,
-    100000,
+    prepared_installed_managed_publication_limits(
+      publication_plan_fixture(prepared),
+      prepared,
+      4096,
+    ).unwrap().schema.max_bytes,
+    79,
   )
 }
 

@@ -28,7 +28,7 @@ export function interfaceGenerationFreshness(root) {
   checkCredentialScopeBinding(root);
   checkInstallationPreparationBinding(root);
   checkInstallationPreparationBridge(root);
-  const generators = ['generate-client-host-wire.mjs', 'generate-client-publication-wire.mjs',
+  const generators = ['generate-ledger-transport-contract.mjs', 'generate-client-host-wire.mjs', 'generate-client-publication-wire.mjs',
     'generate-interactive-run-control-wire.mjs', 'generate-python-client-wire.mjs',
     'expression-fragment-registration.mjs', 'lowering-registry-vectors.mjs', 'native-cli-default-assets.mjs',
     'catalog-body-dependencies.mjs', 'check-stage-semantics.mjs', 'mock-churn-risk-catalogue.mjs',

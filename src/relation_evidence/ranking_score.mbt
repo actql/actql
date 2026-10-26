@@ -33,7 +33,13 @@ pub fn declare_ranking_score(
     let contract = read_score_contract(source)
     let rows = match input {
       @carrier.Relation(r) => r
-      _ => @checking.fail(source, WrongCarrier(@carrier.kind(input)))
+      @carrier.Opaque(RelationKind) =>
+        @checking.fail(source, IncompleteRankingInput)
+      _ =>
+        @checking.fail(
+          source,
+          WrongRelationCarrier(@carrier.RelationKind, @carrier.kind(input)),
+        )
     }
     @checking.spend(b, source, 1)
     @checking.charge(b, source, @row.reference_name(field))
@@ -122,8 +128,14 @@ pub fn declare_ranking_scores(
       nodes: limits.max_nodes,
       text: limits.max_text_bytes,
     }
+    if input is @carrier.Opaque(RelationKind) {
+      @checking.fail(source, IncompleteRankingInput)
+    }
     guard input is @carrier.Relation(_) else {
-      @checking.fail(source, WrongCarrier(@carrier.kind(input)))
+      @checking.fail(
+        source,
+        WrongRelationCarrier(@carrier.RelationKind, @carrier.kind(input)),
+      )
     }
     // Preflight the complete map; each declaration's admission is a separate
     // bounded pass whose usage is also returned to the caller.

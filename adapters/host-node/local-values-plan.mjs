@@ -43,12 +43,10 @@ export const localOutputLimits = Object.freeze({
 // Project the common checked policy; no adapter-specific row/field formula.
 export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal) {
   let values;
-  if (publicationOriginal === undefined) {
-    values = moon.clientProgramLocalPublicationLimits(preparedProgram, localOutputLimits.maxWireBytes);
-  } else if (publicationOriginal.kind === 'preparation') {
+  if (publicationOriginal?.kind === 'preparation') {
     values = moon.clientProgramPreparedLocalPublicationLimits(publicationOriginal.value,
       preparedProgram, localOutputLimits.maxWireBytes);
-  } else if (publicationOriginal.kind === 'installed_run') {
+  } else if (publicationOriginal?.kind === 'installed_run') {
     values = moon.clientProgramInstalledManagedPublicationLimits(publicationOriginal.value,
       preparedProgram, localOutputLimits.maxWireBytes);
   } else {

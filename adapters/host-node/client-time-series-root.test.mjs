@@ -1,3 +1,4 @@
+import {publicationOriginalFixture} from './fixtures/local-publication-original.mjs';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
@@ -53,7 +54,7 @@ for (const name of ['json', 'empty-json', 'parameters-json']) {
     const view = await service(request);
     assert.equal(view.observation, 'static');
     assert.equal(view.provider_io, 0);
-    const plan = sourceFreeTaskPlan({moon, control, preparedProgram: prepared,
+    const plan = sourceFreeTaskPlan({moon, control, preparedProgram: prepared, publicationOriginal: publicationOriginalFixture(moon, prepared),
       authorityScopeCid: cid('a'), namespaceId: 'time-series-root',
       storeAuthorityCid: cid('b'), now: () => '2026-10-14T00:00:00.000Z'});
     assert.equal(plan.results.length, 1);

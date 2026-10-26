@@ -105,16 +105,6 @@ test "source-free requirements keep maximum allowances separate and execute the 
   let maximum = quote.maximum_limits()
   assert_eq(maximum.retained_bytes, 200000000L)
   assert_eq(maximum.execution_bytes, 536870912L)
-  assert_eq(
-    source_free_local_ledger_limits(
-      prepared,
-      asset_contracts,
-      assets.values,
-      Some(assets.fragment),
-      assets.ordered,
-    ),
-    Some(maximum),
-  )
   let required = quote.simultaneous_limits().unwrap()
   assert_true(required.retained_bytes > 0L)
   assert_true(required.retained_bytes < maximum.retained_bytes)
@@ -322,4 +312,44 @@ test "source-free SQL chain quotes its installed provider and rejects one byte s
   )
   assert_eq(@resources.ledger_usage(short).attempts, 0)
   assert_eq(@resources.ledger_usage(short).reserved_execution_bytes, 0L)
+}
+
+///|
+test "Wasm publication retains its phase guards and the exact original checked row plan" {
+  let prepared = source_free_requirements_prepared()
+  let assets = @publication_host.client_local_product_assets()
+  let contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let original = prepare_source_free_local_requirements(
+    prepared,
+    contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let projection = original.wasm_publication_limits(prepared).unwrap()
+  // Independent two-row, one Number field named id: the conservative scalar
+  // wire is 30 + 2 * (3 + 6 * 2 + 29); the canonical schema is 41 bytes.
+  assert_eq(projection.max_rows, 2)
+  assert_eq(projection.max_result_fields, 1)
+  assert_eq(projection.max_result_mapping_work, 3)
+  assert_eq(projection.max_result_order_work, 2)
+  assert_eq(projection.max_result_workspace_entries, 100)
+  assert_eq(projection.payload_wire.max_bytes, 118)
+  assert_eq(projection.logical_wire.max_bytes, 118)
+  assert_eq(projection.schema.max_bytes, 41)
+  // These are independent Wasm formatter guards, not Node's profile or the
+  // evaluator's value-node demand and not a new resource grant.
+  assert_eq(projection.values.max_nodes, 10000)
+  assert_eq(projection.values.max_text_bytes, 65536)
+  assert_eq(projection.values.max_work, 100000)
+  assert_eq(projection.payload_wire.max_nodes, 100000)
+  assert_true(
+    original.wasm_publication_limits(source_free_requirements_prepared())
+    is None,
+  )
 }
