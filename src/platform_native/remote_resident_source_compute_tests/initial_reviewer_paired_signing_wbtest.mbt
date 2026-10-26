@@ -57,17 +57,30 @@ fn paired_initial_reviewer_fixture() -> PairedInitialReviewerFixture raise {
     Err(_) => fail("paired Reviewer original Host adoption refused")
   }
   let material = session.create_initial_signing_material(crypto).unwrap()
-  let host = session
-    .open_journal_with_initial_signing_material(
+  // The initializer takes an epoch duration, not a wall-clock timestamp.
+  // Keep actual clock reads at the existing issue/current operations below.
+  let submission_ttl_ms = 60000.0
+  let host = match
+    session.open_journal_with_initial_signing_material(
       material,
       @host.client_local_default_signing_bootstrap_policy(),
       sqlite,
       crypto,
-      @env.now().to_double(),
+      submission_ttl_ms,
       8,
       8388608L,
-    )
-    .unwrap()
+    ) {
+    Ok(value) => value
+    Err(@client.InvalidInput) =>
+      fail("paired Reviewer Host journal options refused")
+    Err(@client.CustodyLost) =>
+      fail("paired Reviewer Host journal custody lost")
+    Err(@client.TransactionUnknown) =>
+      fail("paired Reviewer Host journal transaction unknown")
+    Err(@client.DatabasePending(_, _)) =>
+      fail("paired Reviewer Host journal has pending database custody")
+    Err(_) => fail("paired Reviewer Host journal initialization refused")
+  }
   { host, crypto, binding: None, restored: false, }
 }
 
@@ -166,6 +179,18 @@ fn paired_initial_reviewer_signing(
 
 ///|
 test "adopted initial Reviewer signs and restores the same real paired Checkpoint candidate" {
+  // Refuse stale authored Environment bindings before generating keys or any
+  // Host/Submission state. The actual Source caller admits this same original.
+  assert_true(
+    @host.admit_client_check_environment(
+      resident_effect_source_environment,
+      "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    )
+    is Some(_),
+    msg="paired Reviewer original Source Environment refused",
+  )
   let fixture = paired_initial_reviewer_fixture()
   native_local_effect_capture_acceptance(true, initial_reviewer=Some(fixture))
   assert_true(fixture.restored)

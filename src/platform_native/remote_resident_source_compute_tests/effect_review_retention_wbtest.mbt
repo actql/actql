@@ -491,9 +491,44 @@ fn retained_effect_review_retention_store(
       ])
       is Err(@client.Journal(@client.Checkpoint(@client.InvalidMaterial))),
     )
-    let waiting = work
-      .wait_review_checkpoint(retention, revision, binding, [])
-      .unwrap()
+    let waiting = match
+      work.wait_review_checkpoint(retention, revision, binding, []) {
+      Ok(value) => value
+      Err(@client.Original(_)) =>
+        fail("original Review waiting refused by Work current")
+      Err(@client.Retention(_)) =>
+        fail("original Review waiting refused by retained Checkpoint")
+      Err(@client.Journal(@client.Checkpoint(issue))) => {
+        let reason = match issue {
+          @client.InvalidMaterial => "InvalidMaterial"
+          @client.StaleRevision => "StaleRevision"
+          @client.ConflictingResolution => "ConflictingResolution"
+          @client.Expired => "Expired"
+          @client.NeedsOriginalContinuation => "NeedsOriginalContinuation"
+          @client.State(issue) => "State: " + @debug.to_string(issue)
+          @client.Signature(_) => "Signature"
+          @client.Resume(_) => "Resume"
+          @client.Ledger(_) => "Ledger"
+          @client.EffectBinding(@host.Checkpoint(issue)) =>
+            "EffectCheckpoint: " + @debug.to_string(issue)
+          @client.EffectBinding(_) => "EffectBinding"
+        }
+        fail("original Review waiting Checkpoint refused: " + reason)
+      }
+      Err(@client.Journal(@client.CapacityExceeded)) =>
+        fail("original Review waiting journal capacity exceeded")
+      Err(@client.Journal(@client.AuthorizationDenied)) =>
+        fail("original Review waiting journal authorization denied")
+      Err(@client.Journal(@client.CustodyLost)) =>
+        fail("original Review waiting journal custody lost")
+      Err(@client.Journal(@client.Fenced)) =>
+        fail("original Review waiting journal fenced")
+      Err(@client.Journal(@client.TransactionUnknown)) =>
+        fail("original Review waiting transaction unknown")
+      Err(@client.Journal(@client.Physical(_))) =>
+        fail("original Review waiting journal physical failure")
+      Err(@client.Journal(_)) => fail("original Review waiting journal refused")
+    }
     assert_eq(@client.native_client_run_record_revision(waiting), revision + 1L)
     let state = @client.native_client_run_checkpoint_state(waiting).unwrap()
     assert_eq(state.run_id, "original-local-effect-source-run")
