@@ -7,7 +7,10 @@ import {issueStoredGeneratedContent, retainGeneratedContentEvidence,
 export function installEffectContentFamily({moon, control, publications, bodies,
   prepared, plan, store, principalId, ownerPrincipal, now, authorize, signal,
   namespaceId, authorityScopeCid, storeAuthorityCid, installedBinding,
-  referenceLimits, completionLimits, outputLimits, faultInjection, restored}) {
+  referenceLimits, completionLimits, outputLimits, faultInjection, restored, retainCleanup}) {
+  if (retainCleanup !== undefined && typeof retainCleanup !== 'function') {
+    throw new TypeError('InvalidInstalledContentCleanupRetention');
+  }
   if (principalId !== ownerPrincipal || store.storeAuthorityCid !== storeAuthorityCid) {
     throw new TypeError('InvalidInstalledContentFamily');
   }
@@ -59,14 +62,6 @@ export function installEffectContentFamily({moon, control, publications, bodies,
     stopped: () => flight === undefined,
     cleanup: () => cleaned,
   });
-  const provider = control.effectFamily(prepared, plan.serializationGraph, bodies,
-    {generation: generationLimits, reference: referenceLimits, contract: contractLimits,
-      output, identitySlots: 4 * output.maxWireNodes + 8 * output.maxColumns}, port,
-    step => {
-      if (active !== undefined) return false;
-      active = step;
-      return true;
-    }, restored?.completion);
   const releaseTemporary = async () => {
     if (physical?.prepared.status().pending === true) await physical.prepared.release();
     if (physical?.prepared.status().pending === true) return false;
@@ -118,6 +113,19 @@ export function installEffectContentFamily({moon, control, publications, bodies,
     cleaned = true;
     return true;
   };
+  // The existing parent retains this family's actual cleanup before the
+  // fallible provider constructor. A thrown constructor cannot erase its duty.
+  const cleanupOwner = Object.freeze({close: cleanup, cleanup,
+    cleanupPending: () => !cleaned});
+  retainCleanup?.(cleanupOwner);
+  const provider = control.effectFamily(prepared, plan.serializationGraph, bodies,
+    {generation: generationLimits, reference: referenceLimits, contract: contractLimits,
+      output, identitySlots: 4 * output.maxWireNodes + 8 * output.maxColumns}, port,
+    step => {
+      if (active !== undefined) return false;
+      active = step;
+      return true;
+    }, restored?.completion);
   return Object.freeze({provider,
     prepareLedger(sourceCapacity, additionalProviders = []) {
       if (!Array.isArray(additionalProviders)) throw new TypeError('Invalid Content family providers');
@@ -218,7 +226,6 @@ export function installEffectContentFamily({moon, control, publications, bodies,
           if (selectedForContent(binding) !== original) throw new Error('OriginalEffectContentUnavailable');
         }});
     },
-    close: cleanup, cleanup,
-    cleanupPending: () => !cleaned,
+    ...cleanupOwner,
   });
 }
