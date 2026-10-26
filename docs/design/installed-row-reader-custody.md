@@ -339,6 +339,13 @@ association or turn a copied Run into the original. These checks create no
 Root, Ledger, read grant, capacity or replacement cleanup responsibility;
 physical retirement and pending cleanup remain with their original owners.
 
+The reused admission entry applies the same fence to its captured check. It
+pins the existing Run value, propagates its original recorded failure, checks
+the same installation again, and verifies the same Map entry and live-record
+membership before returning that value. Reentry cannot substitute another
+request, manager, profile or value, or cause another admission. A Host-current
+failure remains that original failure rather than becoming a successful reuse.
+
 ## Original provider Source in an Effect Plan
 
 The existing checked Effect Plan can retain one original provider execution
