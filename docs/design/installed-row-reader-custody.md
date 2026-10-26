@@ -322,3 +322,19 @@ text and restored Catalogs cannot enter this live-only receiver.
   current-state changes, response mutation, physical response loss, rejection
   and synchronous receiver failures. Component correspondence does not imply
   an installed publication or a funded normal metadata preparation.
+
+## Managed Source parent current callbacks
+
+The installed Host associates each managed Source preparation with the same
+original checked Program, runtime, selected Source profile and managed Run.
+The imported current callback can synchronously retire or replace that Run.
+The Host therefore captures its original parent and rechecks the private Run
+association, parent identity, closed state and recorded failure immediately
+after the callback, before entering Source preparation or capacity lookup.
+A newly recorded original failure is propagated without calling the provider.
+
+The existing Source wrapper still rechecks the same association after awaited
+preparation and before exposing capacity. Retirement cannot install a new
+association or turn a copied Run into the original. These checks create no
+Root, Ledger, read grant, capacity or replacement cleanup responsibility;
+physical retirement and pending cleanup remain with their original owners.
