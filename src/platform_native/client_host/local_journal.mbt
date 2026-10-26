@@ -12,6 +12,7 @@ struct NativeLocalHostConnection {
   ownership : @filesystem.NativeFileOwnership
   mut worker_provisioning_attempt : NativeLocalWorkerProvisioningAttempt?
   mut reviewer_signing_attempt : NativeLocalInitialResolutionSigning?
+  mut host_attestation_signing_attempt : NativeLocalInitialHostAttestationSigning?
   mut packaged_runtime : NativeLocalRuntimeBinding?
   mut closed : Bool
   mut database_closed : Bool
@@ -245,6 +246,7 @@ fn NativeLocalAdoptionSession::bind_journal(
     packaged_runtime: None,
     worker_provisioning_attempt: None,
     reviewer_signing_attempt: None,
+    host_attestation_signing_attempt: None,
   }
   match connected.check_binding_sqlite_fence() {
     Ok(_) => ()
@@ -358,6 +360,12 @@ pub fn NativeLocalHostConnection::close(
     match original.close_checked() {
       Err(issue) => return Err(Crypto(issue))
       Ok(_) => self.reviewer_signing_attempt = None
+    }
+  }
+  if self.host_attestation_signing_attempt is Some(original) {
+    match original.close_checked() {
+      Err(issue) => return Err(Crypto(issue))
+      Ok(_) => self.host_attestation_signing_attempt = None
     }
   }
   match self.close_journal_database() {

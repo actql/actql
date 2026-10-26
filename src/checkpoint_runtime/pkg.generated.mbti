@@ -126,6 +126,7 @@ pub struct AdmittedResolution {
   attestation_preimage : String
   // private fields
 }
+pub fn AdmittedResolution::prepared_wire(Self, WireLimits) -> Result[String, ResolutionIssue]
 
 pub struct AttestedEffectResolution {
   resolution : VerifiedResolution

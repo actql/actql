@@ -633,6 +633,53 @@ wires and overlapping bounded decoder/encoding workspace remain part of the
 caller's actual resource supply. Wrapper framing/proof authentication alone
 does not establish Host attestation, common approval evidence, commit or resume.
 
+### Initial Host attestation operation
+
+The initial Host key has a distinct same-Host Account view. Trusted installation
+assembly explicitly selects its principal, connection and resource, and the
+actual Account must allow that exact tuple's `sign` operation before and after
+original key/configuration checks. Client RunRead and Reviewer Resolve remain
+separate duties; neither supplies Host Sign. An absent installation tuple does
+not discover a default actor or resource. The original initial control, paired
+Reviewer key, physical Host key generation and selected Host file remain bound
+to the same adopted Host.
+
+Core exposes the complete immutable unsigned verified-wrapper wire from its
+already admitted Resolution. The Host admits the exact authenticated Reviewer
+candidate and evidence at one trusted first `verified_at`, then commits that
+complete wire together with the finite original Host-purpose grant. Its small
+HMAC issue metadata binds the selected Sign resource and first issue sample;
+the existing 2048-byte issue packet bound is unchanged. The complete wrapper
+occupies a distinct immutable preparation row in the existing signing-candidate
+namespace and is counted in the same 64 KiB per-Run grant bucket. Inventory
+requires every such row and rejects orphan, missing or changed rows.
+
+Only after that preparation transaction returns does the same Host prepare its
+physical signing child. A separate confirmed transaction claims the fixed
+original use. Reopening reads the first sample and full wrapper before selecting another
+issue instant, re-admits through Core at that same instant and compares complete
+wire/preimage/key/request/subject correspondence. It never repairs absent use
+or preparation rows, renews expiry, changes the attempt or selects another key.
+Reviewer-only Credential storage entries stay Reviewer-only; distinct initial
+Host entries enforce the Host purpose with the same finite claim, history,
+clock, revocation and outcome checks.
+
+Actual Host signing consumes that original key and exact attestation preimage.
+The complete signed wrapper, authenticated signature packet and Succeeded
+outcome commit atomically. Claimed, Unknown or failed history cannot sign again;
+Succeeded alone supplies neither signature bytes nor permission to return them.
+Current Client/Reviewer/Host Sign, exact row/key/paired-subject checks and the
+live original use surround signing and disclosure. The retained child must
+explicitly close before Host database/Root closure; partial cleanup remains on
+that same receiver.
+
+The resulting original wrapper reaches the existing Native embedded-Reviewer
+and independent Host-signature verifiers, then the original Resolution owner.
+It samples the actual current commit time after verification, so historical
+`verified_at` cannot extend an open Checkpoint deadline. Resolution admission
+is separate from a resume claim, Effect execution, provider outcome and their
+cleanup responsibilities.
+
 ### Initial signing payload DATA
 
 The original initial-signing installation payload has a typed DATA codec in

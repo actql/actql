@@ -8,6 +8,7 @@ fn append_local_owned_grant_original_locked(
   original : NativeLocalGrantOriginal,
   current : () -> Result[Unit, NativeClientRunJournalIssue],
   target? : NativeLocalPreparationOriginalTarget? = None,
+  host_prepared? : String? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   if (original.grant is PreparationGrant(_)) != (target is Some(_)) {
     return Err(ChangedIntent)
@@ -92,6 +93,26 @@ fn append_local_owned_grant_original_locked(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let prepared_packet = match host_prepared {
+    None => None
+    Some(wire) =>
+      match local_initial_host_prepared_body(grant_host, original, wire) {
+        Ok(value) => Some(value)
+        Err(issue) => return Err(issue)
+      }
+  }
+  // Every initial Host grant has one complete immutable preparation, even
+  // before use. Other grant purposes cannot acquire a prepared-wrapper row.
+  let initial_host = match original.grant {
+    SigningGrant(grant) =>
+      original.initial_issue is Some(_) &&
+      @credential.local_signing_credential_grant_scope(grant).purpose ==
+      @credential.HostAttestation
+    _ => false
+  }
+  if initial_host != (prepared_packet is Some(_)) {
+    return Err(ChangedIntent)
+  }
   let target_packet = match target {
     Some(value) =>
       match local_preparation_target_record(grant_host, original, value) {
@@ -113,6 +134,13 @@ fn append_local_owned_grant_original_locked(
           Err(issue) => return Err(Physical(issue))
         }
       }
+      if prepared_packet is Some(body) {
+        match local_initial_host_prepared_locked(grant_host, original) {
+          Ok(saved) if saved == body => ()
+          Ok(_) => return Err(ChangedIntent)
+          Err(issue) => return Err(issue)
+        }
+      }
       return current()
     }
     Ok(_) => return Err(ChangedIntent)
@@ -120,7 +148,8 @@ fn append_local_owned_grant_original_locked(
     Err(issue) => return Err(Physical(issue))
   }
   let appended_bytes = packet.length() +
-    target_packet.map(body => body.length()).unwrap_or(0)
+    target_packet.map(body => body.length()).unwrap_or(0) +
+    prepared_packet.map(body => body.length()).unwrap_or(0)
   if entries >= 64 || appended_bytes > 65536 - bytes {
     return Err(CapacityExceeded)
   }
@@ -141,6 +170,18 @@ fn append_local_owned_grant_original_locked(
         "client_local_preparation_target_originals", key, body,
       ) {
       Ok(_) => ()
+      Err(issue) => return Err(Physical(issue))
+    }
+  }
+  if prepared_packet is Some(body) {
+    match
+      grant_host.database.insert(
+        "client_local_signing_candidate_originals",
+        local_initial_host_prepared_key(original),
+        body,
+      ) {
+      Ok(0L) => ()
+      Ok(_) => return Err(CustodyLost)
       Err(issue) => return Err(Physical(issue))
     }
   }

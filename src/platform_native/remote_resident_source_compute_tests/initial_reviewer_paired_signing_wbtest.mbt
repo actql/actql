@@ -9,10 +9,14 @@ priv struct PairedInitialReviewerFixture {
   crypto : @signature.Library
   mut binding : @client.NativeLocalEffectReviewerBinding?
   mut restored : Bool
+  attest_host : Bool
+  mut host_applied : Bool
 }
 
 ///|
-fn paired_initial_reviewer_fixture() -> PairedInitialReviewerFixture raise {
+fn paired_initial_reviewer_fixture(
+  attest_host? : Bool = false,
+) -> PairedInitialReviewerFixture raise {
   let top = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let name = "paired-initial-reviewer-" + @env.now().to_string()
   let parent = @filesystem.open_private_root(top).unwrap()
@@ -20,6 +24,14 @@ fn paired_initial_reviewer_fixture() -> PairedInitialReviewerFixture raise {
   let source = parent.open_child(name).unwrap()
   let account =
     #|{"version":"actql-execution-account-config/0.1","account_id":"operator","entries":[{"entry_id":"independent-resolve","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["run"]},"operation":{"any_of":["resolve"]},"exclusions":[]},{"entry_id":"original-read","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["run"]},"operation":{"any_of":["read"]},"exclusions":[]},{"entry_id":"original-submit","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["run"]},"operation":{"any_of":["submit"]},"exclusions":[]}]}
+  let account = if attest_host {
+    account.replace_all(
+      old="\"entries\":[",
+      new="\"entries\":[{\"entry_id\":\"host-attestation-sign\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"host-machine\"]},\"connection\":{\"any_of\":[\"host-cli\"]},\"resource\":{\"any_of\":[\"key/initial-host-attestation\"]},\"operation\":{\"any_of\":[\"sign\"]},\"exclusions\":[]},",
+    )
+  } else {
+    account
+  }
   // Account wire order is part of its existing admission contract.
   assert_true(@authorization.admit_account_configuration_json(account) is Ok(_))
   for
@@ -81,7 +93,14 @@ fn paired_initial_reviewer_fixture() -> PairedInitialReviewerFixture raise {
       fail("paired Reviewer Host journal has pending database custody")
     Err(_) => fail("paired Reviewer Host journal initialization refused")
   }
-  { host, crypto, binding: None, restored: false, }
+  {
+    host,
+    crypto,
+    binding: None,
+    restored: false,
+    attest_host,
+    host_applied: false,
+  }
 }
 
 ///|
@@ -131,6 +150,12 @@ fn paired_initial_reviewer_signing(
       old="@DEFINITION@",
       new=checkpoint.checkpoint.run_definition_cid().unwrap(),
     )
+  let unsigned = if fixture.attest_host {
+    let now = @values.epoch_milliseconds_timestamp(@env.now().to_int64()).unwrap()
+    unsigned.replace_all(old="2026-10-10T00:00:00.000Z", new=now)
+  } else {
+    unsigned
+  }
   let limits : @checkpoint.WireLimits = {
     max_wire_bytes: 262144,
     max_nodes: 10000,
@@ -170,6 +195,90 @@ fn paired_initial_reviewer_signing(
     binding.restore_initial_resolution_candidate("missing-paired-operation")
     is Err(_),
   )
+  if fixture.attest_host {
+    let authenticated = binding.authenticate_resolution(wire, limits).unwrap()
+    let host_key = host.restore_initial_host_signing_original().unwrap()
+    // Actual Read/Resolve authority must not become Host Sign permission.
+    assert_true(
+      host.acquire_initial_host_signing_account(
+        host_key, installed, "operator", "cli", "key/initial-host-attestation",
+      )
+      is Err(_),
+    )
+    let account = host
+      .acquire_initial_host_signing_account(
+        host_key, installed, "host-machine", "host-cli", "key/initial-host-attestation",
+      )
+      .unwrap()
+    assert_true(
+      host.acquire_initial_host_signing_account(
+        host_key, installed, "host-machine", "host-cli", "key/different",
+      )
+      is Err(_),
+    )
+    let prepared = authenticated
+      .prepare_initial_host_attestation(
+        account, materials, "paired-initial-host-attestation",
+      )
+      .unwrap()
+    let host_signing = prepared.prepare_signing().unwrap()
+    let verified = host_signing.sign_once().unwrap()
+    assert_true(host_signing.sign_once() is Err(_))
+    assert_eq(host_signing.original_verified_resolution().unwrap(), verified)
+    host_signing.close_checked().unwrap()
+    // Same original operation restores its original verification instant and
+    // complete wrapper, without another physical signature or clock refresh.
+    let restored = authenticated
+      .prepare_initial_host_attestation(
+        account, materials, "paired-initial-host-attestation",
+      )
+      .unwrap()
+      .prepare_signing()
+      .unwrap()
+    assert_eq(restored.sign_once().unwrap(), verified)
+    let applied = match restored.admit_original_resolution() {
+      Ok(value) => value
+      Err(@client.HostAttestationJournal(@client.Checkpoint(issue))) => {
+        let reason = match issue {
+          @client.Expired => "Expired"
+          @client.InvalidMaterial => "InvalidMaterial"
+          @client.StaleRevision => "StaleRevision"
+          @client.ConflictingResolution => "ConflictingResolution"
+          @client.NeedsOriginalContinuation => "NeedsOriginalContinuation"
+          @client.Signature(_) => "Signature"
+          @client.State(_) => "State"
+          @client.Resume(_) => "Resume"
+          @client.Ledger(_) => "Ledger"
+          @client.EffectBinding(_) => "EffectBinding"
+        }
+        fail("initial Host Resolution admission Checkpoint: " + reason)
+      }
+      Err(@client.HostAttestationJournal(@client.AuthorizationDenied)) =>
+        fail("initial Host Resolution admission current authority denied")
+      Err(@client.HostAttestationJournal(_)) =>
+        fail("initial Host Resolution admission Journal custody")
+      Err(@client.HostAttestationReviewer(_)) =>
+        fail("initial Host embedded Reviewer authentication")
+      Err(@client.HostAttestationBody(issue)) =>
+        fail("initial Host wrapper body: " + @debug.to_string(issue))
+      Err(@client.HostAttestationUnavailable) =>
+        fail("initial Host original signature/current unavailable")
+      Err(@client.HostAttestationAccount(_)) =>
+        fail("initial Host explicit Account Sign unavailable")
+      Err(@client.HostAttestationProof(_)) =>
+        fail("initial Host paired proof current unavailable")
+      Err(@client.HostAttestationPhysical(_)) =>
+        fail("initial Host physical key current unavailable")
+      Err(@client.HostAttestationCredential(_)) =>
+        fail("initial Host original use unavailable")
+    }
+    assert_eq(
+      @client.native_client_run_checkpoint_state(applied).unwrap().status,
+      @publication.Cancelled,
+    )
+    restored.close_checked().unwrap()
+    fixture.host_applied = true
+  }
   signing.close_checked().unwrap()
   // This immutable result was verified against the actual original key and
   // paired scope. It is still neither Host attestation nor applied resolution.

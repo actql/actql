@@ -508,7 +508,15 @@ fn native_local_effect_capture_acceptance(
     local_client_effect_source_materials(allowed, definition, request),
     configuration,
     name,
-    () => "2026-10-10T00:00:01.000Z",
+    () => {
+      if initial_reviewer is Some(fixture) && fixture.attest_host {
+        @values.epoch_milliseconds_timestamp(@env.now().to_int64()).unwrap_or(
+          "",
+        )
+      } else {
+        "2026-10-10T00:00:01.000Z"
+      }
+    },
     () => authorized,
     observe=event => {
       match event {

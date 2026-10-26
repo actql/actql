@@ -9,7 +9,8 @@
 /// choose another ID after a missing/lost response. Generic grant/use APIs,
 /// max_uses and previously saved HTTP/Signing records remain unchanged.
 /// No key, signature, issuer, authorization Bool or HTTP client is involved.
-pub fn claim_native_local_original_signing_use_in_transaction(
+fn claim_local_original_signing_use_for_purpose(
+  purpose : @credential.LocalSigningPurpose,
   database : @sqlite.Database,
   grant : @credential.LocalSigningCredentialGrant,
   scope : @credential.LocalSigningCredentialScope,
@@ -18,7 +19,7 @@ pub fn claim_native_local_original_signing_use_in_transaction(
   @credential.LocalSigningCredentialUse,
   NativeCredentialResourceIssue,
 ] {
-  if scope.purpose != @credential.ReviewerProof ||
+  if scope.purpose != purpose ||
     owned_grant_matches_scope(SigningGrant(grant), SigningScope(scope)) is None {
     return Err(Credential(@credential.CredentialGrantInactive))
   }
@@ -89,4 +90,44 @@ pub fn claim_native_local_original_signing_use_in_transaction(
     Ok(_) => Ok(original)
     Err(issue) => Err(issue)
   }
+}
+
+///|
+/// Original Reviewer-only entry; Host purpose remains unavailable here.
+pub fn claim_native_local_original_signing_use_in_transaction(
+  database : @sqlite.Database,
+  grant : @credential.LocalSigningCredentialGrant,
+  scope : @credential.LocalSigningCredentialScope,
+  observed_now_ms : Int64,
+) -> Result[
+  @credential.LocalSigningCredentialUse,
+  NativeCredentialResourceIssue,
+] {
+  claim_local_original_signing_use_for_purpose(
+    @credential.ReviewerProof,
+    database,
+    grant,
+    scope,
+    observed_now_ms,
+  )
+}
+
+///|
+/// Explicit initial Host entry. The actual Host must authenticate its staged full wrapper, current Sign account, original key and paired subject before/after this storage phase.
+pub fn claim_native_local_initial_host_signing_use_in_transaction(
+  database : @sqlite.Database,
+  grant : @credential.LocalSigningCredentialGrant,
+  scope : @credential.LocalSigningCredentialScope,
+  observed_now_ms : Int64,
+) -> Result[
+  @credential.LocalSigningCredentialUse,
+  NativeCredentialResourceIssue,
+] {
+  claim_local_original_signing_use_for_purpose(
+    @credential.HostAttestation,
+    database,
+    grant,
+    scope,
+    observed_now_ms,
+  )
 }

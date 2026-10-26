@@ -8,7 +8,8 @@
 /// existing trusted-clock lower bound may advance, in the caller's active TX;
 /// Err must roll back that same transaction. Original first-issue metadata is
 /// never resampled or changed. Metadata-only history readers remain read-only.
-pub fn check_native_local_original_signing_use_in_transaction(
+fn check_local_original_signing_use_for_purpose(
+  purpose : @credential.LocalSigningPurpose,
   database : @sqlite.Database,
   grant : @credential.LocalSigningCredentialGrant,
   original_use : @credential.LocalSigningCredentialUse,
@@ -27,14 +28,14 @@ pub fn check_native_local_original_signing_use_in_transaction(
       )
     Err(issue) => return Err(Journal(issue))
   }
-  if scope.purpose != @credential.ReviewerProof ||
+  if scope.purpose != purpose ||
     @credential.local_signing_credential_grant_scope(grant) != scope {
     return Err(Credential(@credential.CredentialGrantInactive))
   }
   // Missing/corrupt/orphan history is observed before any clock write. Equal
   // public metadata cannot create its missing durable original or a new use.
   let history = match
-    prepare_native_local_original_signing_history_candidate(database, grant) {
+    local_original_signing_history_for_purpose(purpose, database, grant) {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
@@ -81,4 +82,42 @@ pub fn check_native_local_original_signing_use_in_transaction(
       )
     Err(issue) => Err(Journal(issue))
   }
+}
+
+///|
+/// Original Reviewer-only entry; Host purpose remains unavailable here.
+pub fn check_native_local_original_signing_use_in_transaction(
+  database : @sqlite.Database,
+  grant : @credential.LocalSigningCredentialGrant,
+  original_use : @credential.LocalSigningCredentialUse,
+  scope : @credential.LocalSigningCredentialScope,
+  observed_now_ms : Int64,
+) -> Result[Unit, NativeCredentialResourceIssue] {
+  check_local_original_signing_use_for_purpose(
+    @credential.ReviewerProof,
+    database,
+    grant,
+    original_use,
+    scope,
+    observed_now_ms,
+  )
+}
+
+///|
+/// Explicit initial Host entry. The actual Host must authenticate its staged full wrapper, current Sign account, original key and paired subject before/after this storage phase.
+pub fn check_native_local_initial_host_signing_use_in_transaction(
+  database : @sqlite.Database,
+  grant : @credential.LocalSigningCredentialGrant,
+  original_use : @credential.LocalSigningCredentialUse,
+  scope : @credential.LocalSigningCredentialScope,
+  observed_now_ms : Int64,
+) -> Result[Unit, NativeCredentialResourceIssue] {
+  check_local_original_signing_use_for_purpose(
+    @credential.HostAttestation,
+    database,
+    grant,
+    original_use,
+    scope,
+    observed_now_ms,
+  )
 }

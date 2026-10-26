@@ -32,7 +32,11 @@ pub fn call_native_local_credential_resource_guarded_request_at_path(NativeCrede
 
 pub fn call_native_local_preparation_credential_resource_guarded_request_at_path(NativeCredentialResourceService, @remote_credential.LocalPreparationCredentialGrant, String, @remote_credential.LocalPreparationCredentialScope, String, () -> Bool) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue]
 
+pub fn check_native_local_initial_host_signing_use_in_transaction(@sqlite.Database, @remote_credential.LocalSigningCredentialGrant, @remote_credential.LocalSigningCredentialUse, @remote_credential.LocalSigningCredentialScope, Int64) -> Result[Unit, NativeCredentialResourceIssue]
+
 pub fn check_native_local_original_signing_use_in_transaction(@sqlite.Database, @remote_credential.LocalSigningCredentialGrant, @remote_credential.LocalSigningCredentialUse, @remote_credential.LocalSigningCredentialScope, Int64) -> Result[Unit, NativeCredentialResourceIssue]
+
+pub fn claim_native_local_initial_host_signing_use_in_transaction(@sqlite.Database, @remote_credential.LocalSigningCredentialGrant, @remote_credential.LocalSigningCredentialScope, Int64) -> Result[@remote_credential.LocalSigningCredentialUse, NativeCredentialResourceIssue]
 
 pub fn claim_native_local_original_signing_use_in_transaction(@sqlite.Database, @remote_credential.LocalSigningCredentialGrant, @remote_credential.LocalSigningCredentialScope, Int64) -> Result[@remote_credential.LocalSigningCredentialUse, NativeCredentialResourceIssue]
 
@@ -50,6 +54,8 @@ pub fn native_local_signing_key_selection_allows_kind(NativeLocalSigningKeySelec
 
 pub fn native_local_signing_key_selection_projection(NativeLocalSigningKeySelection) -> (Bool, @remote_credential.LocalSigningPurpose, String, String, String, String, String, String)
 
+pub fn prepare_native_local_initial_host_signing_history_candidate(@sqlite.Database, @remote_credential.LocalSigningCredentialGrant) -> Result[NativeLocalSigningHistoryCandidate, NativeCredentialResourceIssue]
+
 pub fn prepare_native_local_original_signing_history_candidate(@sqlite.Database, @remote_credential.LocalSigningCredentialGrant) -> Result[NativeLocalSigningHistoryCandidate, NativeCredentialResourceIssue]
 
 pub fn prepare_native_local_signing_history_candidate(@sqlite.Database, @remote_credential.LocalSigningCredentialGrant, String) -> Result[NativeLocalSigningHistoryCandidate, NativeCredentialResourceIssue]
@@ -61,6 +67,8 @@ pub fn query_native_local_credential_use(NativeCredentialResourceService, @remot
 pub fn query_native_local_preparation_credential_use(NativeCredentialResourceService, @remote_credential.LocalPreparationCredentialGrant, String, @remote_credential.LocalPreparationCredentialScope) -> Result[NativeCredentialUseStatus, NativeCredentialResourceIssue]
 
 pub fn query_native_local_preparation_raw_observation(NativeCredentialResourceService, @remote_credential.LocalPreparationCredentialGrant, String, @remote_credential.LocalPreparationCredentialScope, () -> Bool) -> Result[NativeLocalPreparationRawRecovery, NativeCredentialResourceIssue]
+
+pub fn record_native_local_initial_host_signing_outcome_in_transaction(@sqlite.Database, @remote_credential.LocalSigningCredentialGrant, @remote_credential.LocalSigningCredentialUse, NativeLocalSigningHistoryOutcome) -> Result[NativeLocalSigningHistoryCandidate, NativeCredentialResourceIssue]
 
 pub fn record_native_local_original_signing_outcome_in_transaction(@sqlite.Database, @remote_credential.LocalSigningCredentialGrant, @remote_credential.LocalSigningCredentialUse, NativeLocalSigningHistoryOutcome) -> Result[NativeLocalSigningHistoryCandidate, NativeCredentialResourceIssue]
 

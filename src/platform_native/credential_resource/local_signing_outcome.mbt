@@ -8,7 +8,8 @@
 /// never begins/commits one, samples a clock, claims another ordinal, signs or
 /// repairs an absent/corrupt use. The same transaction must also retain the
 /// Host's authenticated signature original before success can be returned.
-pub fn record_native_local_original_signing_outcome_in_transaction(
+fn record_local_original_signing_outcome_for_purpose(
+  purpose : @credential.LocalSigningPurpose,
   database : @sqlite.Database,
   grant : @credential.LocalSigningCredentialGrant,
   original_use : @credential.LocalSigningCredentialUse,
@@ -33,7 +34,7 @@ pub fn record_native_local_original_signing_outcome_in_transaction(
     Claimed => return Err(InvalidConfiguration)
   }
   let candidate = match
-    prepare_native_local_original_signing_history_candidate(database, grant) {
+    local_original_signing_history_for_purpose(purpose, database, grant) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -63,7 +64,7 @@ pub fn record_native_local_original_signing_outcome_in_transaction(
   // Same exact readmission after the write. Unknown/Failed cannot be changed
   // to Succeeded by another call, and an existing outcome is never overwritten.
   let retained = match
-    prepare_native_local_original_signing_history_candidate(database, grant) {
+    local_original_signing_history_for_purpose(purpose, database, grant) {
     Ok(value) if value.observed_outcome == outcome => value
     Ok(_) => return Err(Journal(@sqlite.Collision))
     Err(issue) => return Err(issue)
@@ -81,4 +82,38 @@ pub fn record_native_local_original_signing_outcome_in_transaction(
       )
     Err(issue) => Err(Journal(issue))
   }
+}
+
+///|
+/// Original Reviewer-only entry; Host purpose remains unavailable here.
+pub fn record_native_local_original_signing_outcome_in_transaction(
+  database : @sqlite.Database,
+  grant : @credential.LocalSigningCredentialGrant,
+  original_use : @credential.LocalSigningCredentialUse,
+  outcome : NativeLocalSigningHistoryOutcome,
+) -> Result[NativeLocalSigningHistoryCandidate, NativeCredentialResourceIssue] {
+  record_local_original_signing_outcome_for_purpose(
+    @credential.ReviewerProof,
+    database,
+    grant,
+    original_use,
+    outcome,
+  )
+}
+
+///|
+/// Explicit initial Host entry. The actual Host must authenticate its staged full wrapper, current Sign account, original key and paired subject before/after this storage phase.
+pub fn record_native_local_initial_host_signing_outcome_in_transaction(
+  database : @sqlite.Database,
+  grant : @credential.LocalSigningCredentialGrant,
+  original_use : @credential.LocalSigningCredentialUse,
+  outcome : NativeLocalSigningHistoryOutcome,
+) -> Result[NativeLocalSigningHistoryCandidate, NativeCredentialResourceIssue] {
+  record_local_original_signing_outcome_for_purpose(
+    @credential.HostAttestation,
+    database,
+    grant,
+    original_use,
+    outcome,
+  )
 }

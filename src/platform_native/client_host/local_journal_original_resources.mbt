@@ -360,6 +360,7 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
     packaged_runtime: None,
     worker_provisioning_attempt: None,
     reviewer_signing_attempt: None,
+    host_attestation_signing_attempt: None,
   }
   match original.check_opened_journal_originals(connected) {
     Err(issue) => return Err(issue)

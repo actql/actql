@@ -45,6 +45,21 @@ fn retained_effect_review_retention_store(
     max_nodes: 10000,
     max_depth: 64,
   }
+  let initial_host = initial_reviewer is Some((fixture, _)) &&
+    fixture.attest_host
+  let now = @env.now().to_int64()
+  let created_at = if initial_host {
+    @values.epoch_milliseconds_timestamp(now).unwrap()
+  } else {
+    "2026-10-10T00:00:00.000Z"
+  }
+  let expires_at = if initial_host {
+    // Same one-day interval as the original Oct10 -> Oct11 fixture. Only
+    // this new actual-time Host case moves the dates, not its finite window.
+    @values.epoch_milliseconds_timestamp(now + 86400000L).unwrap()
+  } else {
+    "2026-10-11T00:00:00.000Z"
+  }
   // Test charges are explicit; they are not a production layout declaration.
   let computation_capacity : @resident.ResidentEffectComputationCapacity = {
     contract_bytes: 1048576L,
@@ -56,8 +71,8 @@ fn retained_effect_review_retention_store(
   let prepare = (material, secret, bounds) => {
     consumer.prepare_effect_review_retention(
       material, inputs, result, invocation, preview, captured, wire, authoring_cid,
-      authority, crypto, secret, "native-original-review-retention", "2026-10-10T00:00:00.000Z",
-      "2026-10-11T00:00:00.000Z", bounds,
+      authority, crypto, secret, "native-original-review-retention", created_at,
+      expires_at, bounds,
     )
   }
   println("native-original-review: preparing review retention")
@@ -77,8 +92,8 @@ fn retained_effect_review_retention_store(
     Some(work) => {
       let retained = work
         .prepare_retention(
-          crypto, key, "native-original-review-retention", "2026-10-10T00:00:00.000Z",
-          "2026-10-11T00:00:00.000Z", limits,
+          crypto, key, "native-original-review-retention", created_at, expires_at,
+          limits,
         )
         .unwrap()
       assert_true(
@@ -86,16 +101,16 @@ fn retained_effect_review_retention_store(
           retained,
           work
           .prepare_retention(
-            crypto, key, "native-original-review-retention", "2026-10-10T00:00:00.000Z",
-            "2026-10-11T00:00:00.000Z", limits,
+            crypto, key, "native-original-review-retention", created_at, expires_at,
+            limits,
           )
           .unwrap(),
         ),
       )
       assert_true(
         work.prepare_retention(
-          crypto, key, "native-original-review-retention", "2026-10-10T00:00:00.000Z",
-          "2026-10-12T00:00:00.000Z", limits,
+          crypto, key, "native-original-review-retention", created_at, "2026-10-12T00:00:00.000Z",
+          limits,
         )
         is Err(Unavailable),
       )
@@ -589,7 +604,11 @@ fn retained_effect_review_retention_store(
     }
     // Discharge this test's actual review obligation before exercising custody
     // cleanup below. No fixture receipt replaces the signed common rejection.
-    native_local_effect_reject_review(journal, request, persisted.artifact)
+    if initial_host {
+      assert_true(initial_reviewer.unwrap().0.host_applied)
+    } else {
+      native_local_effect_reject_review(journal, request, persisted.artifact)
+    }
     // Historical read authority does not require another execution grant and
     // cannot undo rejection or acquire another Provider-send capability.
     let (rejected_checkpoint, rejected_wire) = work
@@ -822,8 +841,8 @@ fn retained_effect_review_retention_store(
         crypto,
         key,
         checkpoint_id: "native-original-review-retention",
-        created_at: "2026-10-10T00:00:00.000Z",
-        expires_at: "2026-10-11T00:00:00.000Z",
+        created_at,
+        expires_at,
         limits,
         report_url: @env.get_env_var(
           "ACTQL_TEST_EFFECT_REVIEW_REPORT_FIXTURE_URL",

@@ -376,6 +376,17 @@ fn NativeLocalHostConnection::local_grant_custody(
     let reservation = local_original_grant_reservation_scope(original)
     let (entries, bytes) = runs.get(reservation).unwrap_or((0, 0))
     let mut result_bytes = 0
+    if original.grant is SigningGrant(grant) &&
+      original.initial_issue is Some(_) &&
+      @credential.local_signing_credential_grant_scope(grant).purpose ==
+      @credential.HostAttestation {
+      let prepared = match local_initial_host_prepared_locked(self, original) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      result_bytes += prepared.length()
+      signing_candidates += 1
+    }
     match
       self.database.read(
         "client_local_signing_result_originals",
@@ -388,10 +399,7 @@ fn NativeLocalHostConnection::local_grant_custody(
           return Err(CustodyLost)
         }
         let history = match
-          @credential_resource.prepare_native_local_original_signing_history_candidate(
-            self.database,
-            grant,
-          ) {
+          local_initial_signing_original_history_locked(self, original) {
           Ok(value) if value.observed_outcome() ==
             @credential_resource.Succeeded => value
           _ => return Err(CustodyLost)
@@ -405,7 +413,7 @@ fn NativeLocalHostConnection::local_grant_custody(
           Ok(value) => value
           Err(issue) => return Err(issue)
         }
-        result_bytes = result.body.length() +
+        result_bytes += result.body.length() +
           candidate.map(wire => @utf8.encode(wire).length()).unwrap_or(0)
         signing_results += 1
         if candidate is Some(_) {

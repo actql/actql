@@ -131,6 +131,8 @@ fn store_local_initial_resolution_signature_locked(
   use : @credential.LocalSigningCredentialUse,
   signature : String,
   prepared? : @checkpoint.PreparedResolutionProof? = None,
+  attested? : @checkpoint.AdmittedResolution? = None,
+  attested_limits? : @checkpoint.WireLimits = native_checkpoint_limits(),
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   if !host.journal.transaction_active || host.journal.fenced {
     return Err(Fenced)
@@ -158,6 +160,38 @@ fn store_local_initial_resolution_signature_locked(
         return Err(CapacityExceeded)
       }
       Some(bytes)
+    }
+  }
+  let candidate = match attested {
+    None => candidate
+    Some(admitted) => {
+      if prepared is Some(_) ||
+        original.initial_issue is None ||
+        scope.purpose != @credential.HostAttestation ||
+        scope.preimage != admitted.attestation_preimage ||
+        scope.checkpoint_cid != admitted.checkpoint_cid {
+        return Err(ChangedIntent)
+      }
+      let original_body = match
+        local_initial_host_prepared_locked(host, original) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      if admitted.prepared_wire(attested_limits) !=
+        Ok(@utf8.decode(original_body) catch { _ => return Err(CustodyLost) }) {
+        return Err(ChangedIntent)
+      }
+      let verified = match
+        @checkpoint.seal_verified_resolution(
+          admitted,
+          scope.key_id,
+          signature,
+          attested_limits,
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(Encoding)
+      }
+      Some(@utf8.encode(verified.wire))
     }
   }
   let candidate_cid = match candidate {
@@ -224,13 +258,22 @@ fn store_local_initial_resolution_signature_locked(
     Ok(_) => return Err(CustodyLost)
     Err(issue) => return Err(Physical(issue))
   }
-  match
+  let outcome = if scope.purpose == @credential.HostAttestation {
+    @credential_resource.record_native_local_initial_host_signing_outcome_in_transaction(
+      host.database,
+      grant,
+      use,
+      @credential_resource.Succeeded,
+    )
+  } else {
     @credential_resource.record_native_local_original_signing_outcome_in_transaction(
       host.database,
       grant,
       use,
       @credential_resource.Succeeded,
-    ) {
+    )
+  }
+  match outcome {
     Err(_) => return Err(CustodyLost)
     Ok(_) => ()
   }
