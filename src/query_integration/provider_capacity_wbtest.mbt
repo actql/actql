@@ -80,9 +80,12 @@ test "provider envelope missing and one short refuse before any original attempt
     assert_eq(@resources.ledger_usage(short), original)
   }
   let run = provider_capacity_start(acquisition, ledger, "provider-exact")
-  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+  assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 1)
   // No original reader has been borrowed or admitted: no physical debt exists.
   @row_host.close_accounted_row_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+  assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 0)
   assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
 }
 

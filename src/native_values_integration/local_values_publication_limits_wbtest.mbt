@@ -78,7 +78,7 @@ test "CLI supported SELECT text reaches the original Local Values Owner without 
     assert_eq(@publication_host.prepared_client_result_count(prepared), 1)
     let setup = @client_local_host.open_source_free_local_retained_host(
       prepared,
-      @identity.stringify_value(registered_body(), 100000, 10000, 100),
+      native_values_installed_contracts(),
       @identity.stringify_value(registered_values(), 100000, 10000, 100),
       1L,
       0L,

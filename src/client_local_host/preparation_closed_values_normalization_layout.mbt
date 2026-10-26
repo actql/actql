@@ -2,7 +2,7 @@
 /// Fixed Common empty journal constructor dependency. No output sampling and no
 /// grant. Caller proves one Values producer, no parameters/completions/sorts.
 /// Original graph/catalog and immutable protocol schema are borrowed owners.
-struct ClosedValuesNormalizationLayout {
+priv struct ClosedValuesNormalizationLayout {
   retained : PreparationRepresentationUnits
   temporary : PreparationRepresentationUnits
 }

@@ -55,7 +55,12 @@ test "Model prepared capacity: every masked row remains prepared before dispatch
       active.state.requests[1].request.inputs[0].1.value is @admitted.Null,
     )
     assert_eq(sends.val, 0)
-    assert_eq(@resources.ledger_usage(active.state.ledger).attempts, eligible)
+    // Preparation reserves eligible slots but has not dispatched an attempt.
+    assert_eq(@resources.ledger_usage(active.state.ledger).attempts, 0)
+    assert_eq(
+      @resources.ledger_usage(active.state.ledger).reserved_attempts,
+      eligible,
+    )
     assert_eq(
       model_execution_resource_usage(active).reserved_retention_bytes,
       100L + eligible.to_int64() * attempt_bytes,
@@ -69,5 +74,7 @@ test "Model prepared capacity: every masked row remains prepared before dispatch
     assert_eq(active.state.requests.capacity(), 0)
     assert_true(@relation.cleanup_prepared_infer_rows(rows))
     assert_eq(sends.val, 0)
+    assert_eq(@resources.ledger_usage(active.state.ledger).attempts, 0)
+    assert_eq(@resources.ledger_usage(active.state.ledger).reserved_attempts, 0)
   }
 }

@@ -22,13 +22,25 @@ function sourceTokens(source) {
 // PolicyWireStop. Observation scope is a copied-metadata default, never a
 // connector selector. Match the complete tokenized statement, not the file or
 // every occurrence of a label.
+// Fixed intrinsic captures name a Node filesystem operation, not a Connector.
+// Include the original descriptor/object bindings in the exact statement match;
+// changing a callee/object/property or adding a selector remains a violation.
 const measurementChecks = new Map([
-  ['src/physical_strategy/operational_conditions.mbt', `
+  ['adapters/host-node/client-request-journal.mjs', `
+    const facilityDescriptor = Object.getOwnPropertyDescriptor;
+    const facilityRealpath = realpathSync;
+    const facilityNativeRealpath = facilityDescriptor(facilityRealpath, 'native')?.value;
+  `],
+  ['adapters/host-common/sqlite-format-inspection.mjs', `
+    const originalRealpath = realpathSync;
+    const originalNativeRealpath = Object.getOwnPropertyDescriptor(originalRealpath, 'native')?.value;
+  `],
+  ['src/physical_strategy_host/operational_conditions.mbt', `
     if value.host != "native" || value.concurrency != 1 || value.input_rows < 1 ||
       !["off", "metadata-only", "evidence-enabled"].contains(value.capture_mode) ||
       !["fresh", "resident"].contains(value.realization) { raise PolicyWireStop }
   `],
-  ['src/physical_strategy/operational_estimates.mbt', `
+  ['src/physical_strategy_host/operational_estimates.mbt', `
     if !["off", "metadata-only", "evidence-enabled"].contains(
         policy_wire_text(conditions, "captureMode"),
       ) || !["fresh", "resident"].contains(
@@ -83,8 +95,8 @@ export const isConnectorTestFixture = path => /(?:^|\/)fixtures\//u.test(path) |
 export function checkConnectorDispatchBoundary(root) {
   const connectors = readdirSync(join(root, 'src/connectors'), {withFileTypes: true})
     .filter(entry => entry.isDirectory()).map(entry => entry.name);
-  const roots = ['src/connector_sdk', 'src/query_planning', 'src/physical_host',
-    'src/physical_strategy', 'src/physical_resources', 'src/physical_cost', 'adapters/host-node',
+  const roots = ['src/connector_sdk', 'src/query_planning', 'src/physical_host', 'src/physical_host_dispatch',
+    'src/physical_strategy', 'src/physical_strategy_host', 'src/physical_resources', 'src/physical_cost', 'adapters/host-node',
     'adapters/host-common',
     'scripts/templates'];
   const failures = [];

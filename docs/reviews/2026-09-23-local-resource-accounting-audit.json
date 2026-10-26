@@ -605,6 +605,16 @@
       "family": "SGA",
       "operation": "mean_graphs",
       "path": "entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "reach",
+      "path": "entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "shortest_path",
+      "path": "entrypoint"
     }
   ],
   "required_facets": [

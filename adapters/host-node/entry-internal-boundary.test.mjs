@@ -1,3 +1,4 @@
+import {checked} from '../host-common/runtime-result.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
@@ -17,9 +18,11 @@ function capturedValues() {
     read('../../packages/sdk/fixtures/values.json'), 'json', environment);
   assert.ok(prepared);
   const contract = JSON.parse(read('../../spec/contracts/actql-aoa.json'));
+  const values = JSON.stringify(contract.execution_contracts['REL.values']);
+  const installedContracts = checked(moon.clientPrepareInstalledSequenceContracts(
+    read('../../spec/dependencies/aoa-pipeline-registry.json'), values, undefined, undefined));
   const setup = moon.clientProgramOpenSourceFreeLocalHost(prepared,
-    read('../../spec/dependencies/aoa-pipeline-registry.json'),
-    JSON.stringify(contract.execution_contracts['REL.values']), 1n, 0n, 0n, 0n);
+    installedContracts, values, 1n, 0n, 0n, 0n);
   assert.ok(setup);
   return setup;
 }

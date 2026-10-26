@@ -2,8 +2,7 @@
 test "Native original Catalog close reopen and pending cleanup retain the same reservation" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY") is Some(path) &&
     native_payload_fixture("original-catalog", 65536L)
-    is Some((store, authority, library)) &&
-    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) else {
+    is Some((store, authority, library, root)) else {
     if @env.get_env_var("ACTQL_REQUIRE_NATIVE_EFFECT_CATALOG_TESTS") ==
       Some("1") {
       abort(

@@ -57,81 +57,6 @@ fn NativeClientRunJournal::submitted_name_control(
 }
 
 ///|
-// Startup only, inside the original Journal transaction. Existing missing
-// name custody stays unavailable; it cannot trigger initialization on restore.
-fn NativeClientRunJournal::audit_submitted_names(
-  self : NativeClientRunJournal,
-  authority : NativeClientEpochAuthority,
-  reads? : NativeClientJournalReadAccess? = None,
-) -> Result[Unit, NativeClientRunJournalIssue] {
-  if !physical_equal(self.database, authority.database) {
-    return Err(InvalidSubmission)
-  }
-  let count = match self.submitted_name_control(reads~) {
-    Ok((value, _)) => value
-    Err(issue) => return Err(issue)
-  }
-  if read_client_submission_name_census(self.database, reads) !=
-    count.to_int64() {
-    return Err(CustodyLost)
-  }
-  // The namespace contains exactly the two original singleton coordinates.
-  let mut control_cursor = ""
-  for expected in ["issued", "retained"] {
-    match
-      scan_client_journal_value(
-        self.database,
-        "client_submission_name_custody",
-        control_cursor,
-        reads,
-      ) {
-      Ok(row) if row.key == expected => control_cursor = row.key
-      Err(issue) => return Err(Physical(issue))
-      _ => return Err(CustodyLost)
-    }
-  }
-  match
-    scan_client_journal_value(
-      self.database,
-      "client_submission_name_custody",
-      control_cursor,
-      reads,
-    ) {
-    Err(@sqlite.NotFound) => ()
-    Err(issue) => return Err(Physical(issue))
-    _ => return Err(CustodyLost)
-  }
-  let mut cursor = ""
-  let mut observed = 0
-  while true {
-    let row = match
-      scan_client_journal_value(
-        self.database,
-        "client_submission_names",
-        cursor,
-        reads,
-      ) {
-      Ok(value) => value
-      Err(@sqlite.NotFound) => break
-      Err(issue) => return Err(Physical(issue))
-    }
-    observed = observed + 1
-    if observed > count {
-      return Err(CustodyLost)
-    }
-    match self.authenticated_name_row(authority, row.key, row.body, reads~) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-    cursor = row.key
-  }
-  if observed != count {
-    return Err(CustodyLost)
-  }
-  Ok(())
-}
-
-///|
 // Opening an existing installation checks fixed name-extension control only.
 // An individual lookup authenticates its selected name and original binding.
 fn NativeClientRunJournal::inspect_submitted_name_control(
@@ -156,43 +81,6 @@ fn NativeClientRunJournal::inspect_submitted_name_control(
       } else {
         Err(CustodyLost)
       }
-    Err(issue) => Err(Physical(issue))
-  }
-}
-
-///|
-// Optional historical absence is not permission to initialize this extension.
-// The original reference-only journal can still restore without name support.
-fn NativeClientRunJournal::inspect_submitted_name_startup(
-  self : NativeClientRunJournal,
-  authority : NativeClientEpochAuthority,
-  reads? : NativeClientJournalReadAccess? = None,
-) -> Result[Unit, NativeClientRunJournalIssue] {
-  match
-    read_client_journal_value(
-      self.database,
-      "client_submission_name_custody",
-      "issued",
-      reads,
-    ) {
-    Ok(_) => self.audit_submitted_names(authority, reads~)
-    Err(@sqlite.NotFound) => {
-      for
-        namespace_id in [
-          "client_submission_name_custody", "client_submission_names",
-        ] {
-        match
-          scan_client_journal_value(self.database, namespace_id, "", reads) {
-          Err(@sqlite.NotFound) => ()
-          Err(issue) => return Err(Physical(issue))
-          _ => return Err(CustodyLost)
-        }
-      }
-      if read_client_submission_name_schema(self.database, reads) != 0 {
-        return Err(CustodyLost)
-      }
-      Ok(())
-    }
     Err(issue) => Err(Physical(issue))
   }
 }

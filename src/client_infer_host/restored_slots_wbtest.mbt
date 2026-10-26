@@ -95,7 +95,7 @@ fn restored_slots_start(
   start_restored_slot_replay(
     prepared,
     2,
-    infer_fixture_registry,
+    infer_fixture_installed_contracts(),
     infer_fixture_values,
     read,
     limits,

@@ -218,3 +218,53 @@ test "Catalog bounded diagnostic refusal retains original failure without a seco
   assert_eq(checks.val, 0)
   assert_true(original.issue() is @bounded_files.InvalidLimit)
 }
+
+///|
+/// The private read seam forwards actual opaque failure, never only its Issue.
+/// A callback return is not a stop/cleanup acknowledgement or a send grant.
+fn holder_catalog_file_read(
+  failure : Ref[@bounded_files.NativeBoundedTextFailure?],
+  current : () -> Bool,
+  read : () -> Result[String, @bounded_files.NativeBoundedTextFailure],
+) -> String? {
+  guard failure.val is None && current() else { return None }
+  match read() {
+    Ok(text) => if current() { Some(text) } else { None }
+    Err(original) => {
+      failure.val = Some(original)
+      None
+    }
+  }
+}
+
+///|
+/// Forward the exact immutable installer selection to the original physical
+/// read. This binds a private diagnostic extent, never a Source/Provider grant.
+fn holder_catalog_file_read_with_ceiling(
+  failure : Ref[@bounded_files.NativeBoundedTextFailure?],
+  current : () -> Bool,
+  diagnostic_ceiling : Int,
+  read : (Int) -> Result[String, @bounded_files.NativeBoundedTextFailure],
+) -> String? {
+  if diagnostic_ceiling <= 0 {
+    return None
+  }
+  holder_catalog_file_read(failure, current, () => read(diagnostic_ceiling))
+}
+
+///|
+/// Re-observe only the same opaque filesystem Owner. Unknown reply keeps the
+/// original carrier; a second pass cannot reopen or replace its Reader/Root.
+fn retry_holder_catalog_file_failure(
+  failure : Ref[@bounded_files.NativeBoundedTextFailure?],
+  close : (@bounded_files.NativeBoundedTextFailure) -> Result[
+    Unit,
+    @filesystem.NativeFilesystemIssue,
+  ],
+) -> Bool {
+  if failure.val is Some(original) {
+    guard close(original) is Ok(_) else { return false }
+    failure.val = None
+  }
+  true
+}

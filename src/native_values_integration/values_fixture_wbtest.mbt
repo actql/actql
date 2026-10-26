@@ -102,7 +102,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   )
   let setup = @client_local_host.open_source_free_local_host(
     prepared,
-    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    native_values_installed_contracts(),
     @identity.stringify_value(registered_values(), 100000, 10000, 100),
     1L,
     0L,
@@ -123,7 +123,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   )
   let limited_setup = @client_local_host.open_source_free_local_host(
     prepared,
-    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    native_values_installed_contracts(),
     @identity.stringify_value(registered_values(), 100000, 10000, 100),
     1L,
     0L,
@@ -397,7 +397,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     admission,
     definition,
     input_binding,
-    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    native_values_installed_contracts(),
     @identity.stringify_value(registered_values(), 100000, 10000, 100),
     1L,
     0L,
@@ -863,7 +863,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   ).unwrap()
   let computed_setup = @client_local_host.open_source_free_local_host(
     computed_prepared,
-    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    native_values_installed_contracts(),
     @identity.stringify_value(registered_values(), 100000, 10000, 100),
     1L,
     0L,

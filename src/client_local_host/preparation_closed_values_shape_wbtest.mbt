@@ -15,14 +15,18 @@ test "closed Values shape proof is bound to original indexed input and exact fin
   let shape = closed_values_shape(original, 1000).unwrap()
   assert_eq(shape.fields, 1)
   assert_eq(shape.rows, 2)
-  assert_eq(shape.cells, 2)
+  assert_eq(shape._observed_cells, 2)
   assert_true(
     closed_values_shape_work(shape.fields, shape.rows).unwrap() >=
-    shape.inspection_work,
+    shape._observed_inspection_work,
   )
   assert_true(physical_equal(shape.original, original))
-  assert_true(closed_values_shape(original, shape.inspection_work) is Some(_))
-  assert_true(closed_values_shape(original, shape.inspection_work - 1) is None)
+  assert_true(
+    closed_values_shape(original, shape._observed_inspection_work) is Some(_),
+  )
+  assert_true(
+    closed_values_shape(original, shape._observed_inspection_work - 1) is None,
+  )
   assert_true(@syntax.finish_program_input(original) is Ok(_))
   for
     bad in [
@@ -82,12 +86,14 @@ test "closed Values original 100 by 99 input crosses byte cap with derived parse
   let shape = closed_values_shape(original, text.length()).unwrap()
   assert_eq(shape.fields, 100)
   assert_eq(shape.rows, 99)
-  assert_eq(shape.cells, 9900)
+  assert_eq(shape._observed_cells, 9900)
   assert_true(
     closed_values_shape_work(shape.fields, shape.rows).unwrap() >=
-    shape.inspection_work,
+    shape._observed_inspection_work,
   )
-  assert_true(closed_values_shape(original, shape.inspection_work - 1) is None)
+  assert_true(
+    closed_values_shape(original, shape._observed_inspection_work - 1) is None,
+  )
   let parsed = @syntax.finish_program_input(original).unwrap()
   let program_inventory = closed_values_program_inventories(shape)
   let actual = @syntax.program_representation_extent(parsed, 2).unwrap()

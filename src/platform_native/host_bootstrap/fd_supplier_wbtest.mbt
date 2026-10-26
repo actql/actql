@@ -41,6 +41,10 @@ test "failed borrowed FD keeps the original reserved partial carrier" {
     is Err(Unavailable),
   )
   assert_true(supplier.acquire_fd(original, 2147483647) is Err(AlreadyConsumed))
+  let foreign = { identity: 12, }
+  assert_true(host.try_close(foreign) is Err(ForeignOriginal))
+  assert_false(host.closed)
+  assert_eq(host.usage().reserved_execution_bytes, bytes)
   host.try_close(original).unwrap()
   assert_eq(host.usage().reserved_execution_bytes, 0L)
   assert_eq(host.usage().attempts, 1)

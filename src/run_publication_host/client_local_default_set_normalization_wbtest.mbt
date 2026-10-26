@@ -8,7 +8,7 @@ let local_default_set_expected_journal : String =
 fn local_default_set_normalization(
   owner : PreparedClientProgram,
 ) -> ClientLocalNormalization raise {
-  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
+  let proof = _issue_prepared_client_legacy_local_normalization(owner).unwrap()
   guard proof.audit is CompletionFree(inventory) else {
     fail("original default SET inventory expected")
   }
@@ -139,7 +139,7 @@ test "actual Append executes both original Default rows without Number conversio
 ///|
 test "Default with SET retains actual Sort completion and rejects an empty journal" {
   let original = local_default_set_rows(true)
-  let proof = issue_prepared_client_legacy_local_normalization(original).unwrap()
+  let proof = _issue_prepared_client_legacy_local_normalization(original).unwrap()
   guard proof.audit is SortCompletion(inventory) else {
     fail("actual completed SET Sort expected")
   }

@@ -67,14 +67,14 @@ test "public explicit CAST NULL query retains its original checked operation bef
 test "public explicit CAST NULL original can issue Local normalization without rewriting the query" {
   let original = local_explicit_cast_original()
   assert_true(
-    issue_prepared_client_legacy_local_normalization(original) is Ok(_),
+    _issue_prepared_client_legacy_local_normalization(original) is Ok(_),
   )
 }
 
 ///|
 test "explicit CAST normalization retains the exact closed catalog and original owner" {
   let owner = local_explicit_cast_original()
-  let issued = issue_prepared_client_legacy_local_normalization(owner).unwrap()
+  let issued = _issue_prepared_client_legacy_local_normalization(owner).unwrap()
   let expected =
     #|{"entries":[],"journal_cid":"sha256:de7192df9afefaf5006eb57bb62783ae5a7cab8dcb75b5b1cd507799a715efb4","rule_catalog_cid":"sha256:538424f689566bf75ba8e9e20241aad4bea6acdeccf301216bcd3dc64036ad49","version":"actql-normalization-journal/0.1"}
   let evidence = prepared_client_local_normalization_evidence(owner, issued).unwrap()
@@ -109,7 +109,7 @@ test "explicit CAST with original supplied Parameters uses its own exact alterna
     Some("{\"id\":\"exact supplied text\"}"),
     text="SELECT CAST(@id AS STRING) AS id",
   )
-  let issued = issue_prepared_client_legacy_local_normalization(owner).unwrap()
+  let issued = _issue_prepared_client_legacy_local_normalization(owner).unwrap()
   let expected =
     #|{"entries":[],"journal_cid":"sha256:3a120cf122225eaf427d4f3223cf0b3019f9d30251524186e56711c0bd0f5ab2","rule_catalog_cid":"sha256:0eebf603b459361c55386c3863c0fc6e3928cdae2def8aeca899272b3ecade47","version":"actql-normalization-journal/0.1"}
   assert_eq(
@@ -139,7 +139,7 @@ test "explicit CAST does not waive actual completion or uninstalled relation ope
     text="SELECT CAST(CASE WHEN TRUE THEN 'yes' END AS STRING) AS value",
   )
   assert_true(
-    issue_prepared_client_legacy_local_normalization(implicit_else)
+    _issue_prepared_client_legacy_local_normalization(implicit_else)
     is Err(Inventory(CompletionObserved)),
   )
   assert_true(implicit_else.local_normalization is None)
@@ -160,7 +160,7 @@ test "explicit CAST does not waive actual completion or uninstalled relation ope
     ),
   )
   assert_true(
-    issue_prepared_client_legacy_local_normalization(unsupported)
+    _issue_prepared_client_legacy_local_normalization(unsupported)
     is Err(Inventory(ProfileNotInstalled)),
   )
   assert_true(unsupported.local_normalization is None)
@@ -169,7 +169,9 @@ test "explicit CAST does not waive actual completion or uninstalled relation ope
 ///|
 test "the unchanged public CAST query evaluates its original Number Unicode and NULL cells" {
   let original = local_explicit_cast_original()
-  let normalization = issue_prepared_client_legacy_local_normalization(original).unwrap()
+  let normalization = _issue_prepared_client_legacy_local_normalization(
+    original,
+  ).unwrap()
   assert_true(
     prepared_client_local_normalization_evidence(original, normalization)
     is Ok(_),

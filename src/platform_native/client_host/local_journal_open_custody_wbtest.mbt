@@ -158,13 +158,13 @@ fn journal_open_lost_adoption(
   name : String,
 ) -> NativeLocalAdoptionSession raise {
   let host = local_journal_test_connection(name)
-  let namespace = @utf8.encode("client_local_adoption")
+  let run_namespace = @utf8.encode("client_local_adoption")
   let key = @utf8.encode("adoption")
   assert_true(
     submitted_test_remove_record(
       host.database,
-      namespace,
-      namespace.length(),
+      run_namespace,
+      run_namespace.length(),
       key,
       key.length(),
     ),

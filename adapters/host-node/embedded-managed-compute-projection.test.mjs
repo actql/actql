@@ -22,9 +22,18 @@ function fixture() {
   let current = true;
   const calls = [];
   const limits = [7n, 2n, 3n, 0n, 32n, 64n];
-  const contractAdmission = {};
+  const contractAdmission = {}, compilationManifests = {};
+  const installationCalls = [];
   const moon = {
-    clientPrepareInstalledSequenceContracts: () => contractAdmission,
+    clientPrepareInstalledCompilationManifests() {
+      assert.strictEqual(this, moon); installationCalls.push('manifests');
+      return compilationManifests;
+    },
+    clientPrepareInstalledSequenceContracts() {
+      assert.strictEqual(this, moon); installationCalls.push('contracts');
+      assert.equal(installationCalls.at(-2), 'manifests');
+      return contractAdmission;
+    },
     clientProgramInstalledManagedRunRequirements(...args) {calls.push(['requirements', args]); return limits;},
     clientSubmittedIntent(wire, ...bounds) {calls.push(['intent', wire, bounds]); return wire;},
     clientSubmittedIntentCid(intent) {calls.push(['cid', intent]); return 'sha256:' + 'a'.repeat(64);},
@@ -58,7 +67,7 @@ function fixture() {
     canonicalValueJson(value, options) {assert.deepEqual(options, {dataKeys: true}); return JSON.stringify(value);},
     clientOperationError: code => Object.assign(new Error(code), {code}),
   };
-  return {prepared, request, raw, originals, moon, calls, limits, ports, assets, contractAdmission,
+  return {prepared, request, raw, originals, moon, calls, limits, ports, assets, contractAdmission, compilationManifests, installationCalls,
     stop: () => {current = false;},
     requirements: () => actual('readManagedComputeRunRequirements', ports),
     intent: () => actual('managedComputeSubmittedIntentCid', ports)};
@@ -84,6 +93,8 @@ test('installed managed contract strings are projected once across distinct Host
   f.stop();
   assert.throws(() => read(f.originals, second), /CurrentRefused/);
   assert.equal(f.calls.length, 3, 'Static strings cannot supply current Run admission');
+  assert.deepEqual(f.installationCalls, ['manifests', 'contracts'],
+    'Fixed installation admission is retained, not repeated for each Run quote');
 });
 
 test('installed contract projection is immutable and cannot cross Host control originals', () => {
@@ -189,7 +200,7 @@ test('malformed or overflowing requirement observations are refused', () => {
 
 function preparedRunFixture() {
   const f = fixture(), original = {}, run = {runtime: f.moon, prepared: f.prepared, request: f.request, closed: false};
-  f.originals.installation.computeRuns = new Map([[f.prepared, run]]);
+  f.originals.installation.computeRuns = new WeakMap([[f.prepared, run]]);
   f.moon.clientProgramInstalledManagedRunIssueIsUnsupported = () => false;
   f.moon.clientProgramPrepareInstalledManagedSourceFreeWithContracts = (...args) => {
     f.calls.push(['prepare', args]); return original;
@@ -311,7 +322,6 @@ test('Unsupported after Resource or a retained failure never issues a new pure r
 
 test('installed Source demand retains actual checked occurrence capacities before the same Resource admission', () => {
   const f = fixture(), requirements = [{}, {}], capacities = [{}, {}], seen = [];
-  f.moon.clientPrepareInstalledCompilationManifests = () => {};
   const adapters = capacities.map((capacity, index) => ({managedCaptureCapacity(requirement) {
     assert.strictEqual(requirement, requirements[index]); seen.push(index);
     return {capacity, transferBytes: BigInt(index + 5), executionBytes: BigInt(index + 9)};
@@ -343,4 +353,14 @@ test('installed Source demand retains actual checked occurrence capacities befor
   run.sourceProfile = {...profile};
   assert.throws(() => read(f.originals, f.prepared), {code: 'NodeManagedRunRuntimeUnavailable'});
   assert.deepEqual(seen, [0, 1]);
+});
+
+
+test('fixed compilation manifest refusal cannot publish a sequence original or quote', () => {
+  const f = fixture(), failure = new Error('OriginalCompilationManifestsRefused');
+  f.moon.clientPrepareInstalledCompilationManifests = () => {throw failure;};
+  f.moon.clientPrepareInstalledSequenceContracts = () => assert.fail('No sequence admission after failed manifests');
+  assert.throws(() => f.requirements()(f.originals, f.prepared), error => error === failure);
+  assert.equal(f.originals.installation.sequenceContractOriginal, undefined);
+  assert.equal(f.calls.length, 0);
 });

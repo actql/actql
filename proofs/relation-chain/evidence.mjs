@@ -116,6 +116,51 @@ export const bindings = () => reviewed.map(scope => ({ ...clone(scope),
   premises: [...premises], residual: [...promptResidual],
 }));
 
+// Lexical masking preserves offsets while refusing unterminated source. This
+// scanner does not interpret predicates: the finite witness below still names
+// each exact checked operation and guarded handoff.
+function executableMoonSource(source) {
+  let out = '', index = 0;
+  const blank = text => text.replace(/[^\n]/gu, ' ');
+  while (index < source.length) {
+    const start = index;
+    if (source.startsWith('//', index) || source.startsWith('#|', index) || source.startsWith('$|', index)) {
+      const end = source.indexOf('\n', index); index = end < 0 ? source.length : end;
+      out += blank(source.slice(start, index));
+    } else if (source.startsWith('/*', index)) {
+      let depth = 1; index += 2;
+      while (index < source.length && depth) {
+        if (source.startsWith('/*', index)) { depth++; index += 2; }
+        else if (source.startsWith('*/', index)) { depth--; index += 2; }
+        else index++;
+      }
+      if (depth) throw new Error('Unterminated current checked input cursor route comment');
+      out += blank(source.slice(start, index));
+    } else if (source[index] === '"' || source[index] === "'") {
+      const quote = source[index++]; let closed = false;
+      while (index < source.length) {
+        if (source[index] === '\\') { index += 2; continue; }
+        if (source[index++] === quote) { closed = true; break; }
+      }
+      if (!closed) throw new Error('Unterminated current checked input cursor route literal');
+      out += blank(source.slice(start, index));
+    } else out += source[index++];
+  }
+  return out;
+}
+
+function checkedInputFunction(source, name) {
+  const matches = [...source.matchAll(new RegExp(`\\bfn\\s+${name}\\s*\\(`, 'gu'))];
+  if (matches.length !== 1) throw new Error(`Missing current checked input cursor route: ${name}`);
+  const start = source.indexOf('{', matches[0].index); let depth = 0;
+  if (start < 0) throw new Error(`Missing current checked input cursor route: ${name} body`);
+  for (let index = start; index < source.length; index++) {
+    if (source[index] === '{') depth++;
+    if (source[index] === '}' && --depth === 0) return source.slice(start, index + 1).replace(/\s+/gu, '');
+  }
+  throw new Error(`Unterminated current checked input cursor route: ${name}`);
+}
+
 export function checkBindings(root, requested, {read = path => readFileSync(join(root, path), 'utf8')} = {}) {
   if (!requested.length) throw new Error('Missing chain bindings');
   for (const binding of requested) {
@@ -140,14 +185,29 @@ export function checkBindings(root, requested, {read = path => readFileSync(join
   // The existing metadata owner now carries this binding; do not accept a
   // symbol elsewhere as evidence that the actual receiver/port/output match.
   const input = read('src/connectors/local/relation_chain_input_preparation.mbt');
-  const compact = input.replace(/\s+/gu, '');
+  const executable = executableMoonSource(input);
+  const compact = executable.replace(/\s+/gu, '');
   for (const route of [
     '@execution.bind_completed_operation_input(cursor.owner,cursor.step,cursor.port,cursor.owner,output,)',
-    '@execution.start_prepare_producer_read(cursor.owner,bound,cursor.max_entries,cursor.max_value_bytes,)',
+    '@execution.start_prepare_producer_read(cursor.owner,bound,@execution.producer_read_demand_entries(demand),@execution.producer_read_demand_name_bytes(demand),)',
     '@execution.advance_prepare_producer_read(read)',
     'cursor.selected.push(RelationInput(read))',
     '@execution.cancel_prepare_producer_read(read)',
   ]) if (!compact.includes(route)) throw new Error(`Missing current checked input cursor route: ${route}`);
+  // Each actual checked receiver/port binding must issue its own demand before
+  // the same bound input is prepared. A matching call in the other path does
+  // not justify a stale or caller-sized read in this one.
+  for (const [name, port, bindingFailure, demandFailure] of [
+    ['advance_relation_chain_inputs', 'cursor.port', 'returnErr(@connector.Execution(@execution.InputSet))',
+      'returnErr(@connector.Execution(@execution.InputLimit))'],
+    ['relation_chain_inputs_are_small', 'port', 'returntrue', 'returntrue'],
+  ]) {
+    const body = checkedInputFunction(executable, name);
+    const route = `letbound=match@execution.bind_completed_operation_input(cursor.owner,cursor.step,${port},cursor.owner,output,){Ok(bound)=>boundErr(_)=>${bindingFailure}}` +
+      `guard@execution.bound_producer_read_demand(cursor.owner,bound)isSome(demand)else{${demandFailure}}` +
+      'letread=match@execution.start_prepare_producer_read(cursor.owner,bound,@execution.producer_read_demand_entries(demand),@execution.producer_read_demand_name_bytes(demand),)';
+    if (!body.includes(route)) throw new Error(`Missing current checked input cursor route: ${name} admitted demand`);
+  }
   if (!compact.includes('cursor.completed.get(position)isSome(Some(output))') ||
       !compact.includes('@execution.generated_sequence_step_index_at(cursor.sequence,position)==Some(producer)')) {
     throw new Error('Missing exact predecessor completion selection');

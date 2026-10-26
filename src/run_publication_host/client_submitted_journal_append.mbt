@@ -80,7 +80,7 @@ pub fn client_submitted_journal_usage(
     return Err(CustodyLost)
   }
   let mut bytes = 0L
-  for unit in text[prefix.length():].to_string() {
+  for unit in text[prefix.length():].to_owned() {
     let digit = unit.to_int() - 48
     if digit < 0 || digit > 9 || bytes > 67108864L {
       return Err(CustodyLost)

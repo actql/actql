@@ -57,7 +57,10 @@ export async function createManagedProcessHost(limits) {
       };
       let channel;
       try {
-        channel = await startManagedExecution(prepared, signal);
+        channel = await startManagedExecution(prepared, signal, () => {
+          if (delegation) checked(runtime.processDelegationStarted(ledger, delegation));
+          else checked(runtime.processStarted(ledger, reservation));
+        });
       } catch (error) {
         if (error?.cleanupHandle) error.cleanupHandle = track(error.cleanupHandle);
         else {

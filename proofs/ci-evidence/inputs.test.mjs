@@ -5,7 +5,7 @@ import {readCatalog, compareCatalogs} from './actions.mjs';
 import {actionInputs, compareInputs, packageImports, sharedFiles, mutationSnapshotExtras, mutationPackages, mutationSourceInputs, pipelineInventoryBoundary, hash} from './inputs.mjs';
 import {mutationContracts} from './mutation-inventory.mjs';
 import {reviewedPackageConfiguration, reviewedPackageConfigurations, packageConfigurationReview,
-  packageConfigurationReviewFor, foreignLibraryConfigurationReview} from './package-configurations.mjs';
+  packageConfigurationReviewFor, foreignLibraryConfigurationReview, currentPackageConfigurationReviewFor} from './package-configurations.mjs';
 
 const catalog = readCatalog();
 const runtime = {profile: 'controlled-test-runtime', components: {node: '1'.repeat(64)}, unresolved: []};
@@ -207,7 +207,8 @@ test('the exact JS foreign library binds imports and source bytes under its sepa
   assert(unreviewed.unresolved.includes(`Unreviewed package configuration: ${path}`));
   assert.deepEqual(unreviewed.inputs.packageConfigurations, []);
   const request = {path, digest: hash(source), target: 'js', toolchainDigest: packageConfigurationReview.toolchainDigest};
-  assert.equal(packageConfigurationReviewFor(request), foreignLibraryConfigurationReview);
+  assert.deepEqual(packageConfigurationReviewFor(request), currentPackageConfigurationReviewFor(request));
+  assert.equal(packageConfigurationReviewFor(request).rule, foreignLibraryConfigurationReview.rule);
   for (const wrong of [{...request, target: 'native'}, {...request, target: 'wasm'},
     {...request, toolchainDigest: 'f'.repeat(64)}, {...request, path: 'src/other/moon.pkg'},
     {...request, digest: 'f'.repeat(64)}]) assert.equal(packageConfigurationReviewFor(wrong), null);

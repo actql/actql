@@ -107,7 +107,7 @@ test "legacy unary Timestamp journal keeps its exact original catalog and wire" 
   let original = local_explicit_cast_original(
     text="SELECT TRY_TIMESTAMP('2000-02-29T00:00:00.123456789Z') AS value",
   )
-  let legacy = issue_prepared_client_legacy_local_normalization(original).unwrap()
+  let legacy = _issue_prepared_client_legacy_local_normalization(original).unwrap()
   let evidence = prepared_client_local_normalization_evidence(original, legacy).unwrap()
   assert_eq(
     @publication.run_evidence_value_json(evidence),

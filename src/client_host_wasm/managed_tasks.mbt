@@ -34,7 +34,6 @@ fn stored_producer(
 }
 
 ///|
-#export_name("actql_task_reserve")
 pub fn reserve_managed_task(
   nonce : Int64,
   compute : Int,
@@ -81,7 +80,6 @@ pub fn reserve_managed_task(
 }
 
 ///|
-#export_name("actql_task_start")
 pub fn start_managed_task(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.tasks.get(handle) is Some(record) &&
@@ -167,7 +165,6 @@ pub fn start_managed_task(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_task_started")
 pub fn managed_task_started(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.tasks.get(handle) is Some(record) else {
@@ -192,7 +189,6 @@ pub fn managed_task_started(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Advance the existing provider within the caller's finite quantum. No
 /// expression evaluation, work accounting or async stop decision is duplicated.
-#export_name("actql_task_advance")
 pub fn advance_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.tasks.get(handle) is Some(record) &&
@@ -228,7 +224,6 @@ pub fn advance_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
 }
 
 ///|
-#export_name("actql_task_progress")
 pub fn managed_task_progress(nonce : Int64, handle : Int, field : Int) -> Int64 {
   guard selected(nonce) is Some(value) &&
     value.tasks.get(handle) is Some(record) &&
@@ -246,7 +241,6 @@ pub fn managed_task_progress(nonce : Int64, handle : Int, field : Int) -> Int64 
 }
 
 ///|
-#export_name("actql_task_close")
 pub fn close_managed_task(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.tasks.get(handle) is Some(record) else {
@@ -288,7 +282,6 @@ pub fn close_managed_task(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Feed only the selected original Core Source/completed producer. Python
 /// supplies neither rows nor identity, and each append is attempted once.
-#export_name("actql_task_feed")
 pub fn feed_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.tasks.get(handle) is Some(record) &&
@@ -366,7 +359,6 @@ pub fn feed_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
 }
 
 ///|
-#export_name("actql_task_prepare_finalization")
 pub fn prepare_managed_task_finalization(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.tasks.get(handle) is Some(record) &&
@@ -404,7 +396,6 @@ pub fn prepare_managed_task_finalization(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_task_advance_finalization")
 pub fn advance_managed_task_finalization(
   nonce : Int64,
   handle : Int,
@@ -441,7 +432,6 @@ pub fn advance_managed_task_finalization(
 }
 
 ///|
-#export_name("actql_task_complete")
 pub fn complete_managed_task(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.tasks.get(handle) is Some(record) &&
@@ -482,7 +472,6 @@ pub fn complete_managed_task(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_task_inputs_ready")
 pub fn managed_task_inputs_ready(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.tasks.get(handle) is Some(record) &&
@@ -505,7 +494,6 @@ pub fn managed_task_inputs_ready(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Retained typed failure projection for the trusted physical Host. These
 /// private categories neither publish diagnostics nor authorize re-execution.
-#export_name("actql_task_issue")
 pub fn managed_task_issue(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.tasks.get(handle) is Some(record) else {
@@ -557,7 +545,6 @@ pub fn managed_task_issue(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Read one existing Owner assessment, without rerunning search or dispatch.
 /// Int64 quantities retain exact declared capacities and current reservations.
-#export_name("actql_task_assessment")
 pub fn managed_task_assessment(
   nonce : Int64,
   handle : Int,
@@ -600,7 +587,6 @@ pub fn managed_task_assessment(
 ///|
 /// Explicit end comes from the original CapturedDAG's completed task facts,
 /// never from a missing handle, transport error or Python scheduling decision.
-#export_name("actql_task_reserve_next_sdk")
 pub fn reserve_next_sdk_task(
   nonce : Int64,
   compute : Int,

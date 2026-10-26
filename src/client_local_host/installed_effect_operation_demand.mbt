@@ -81,6 +81,8 @@ pub fn prepare_installed_effect_operation_demand(
 /// and actual managed-parent constructor. The original Node service separately
 /// binds its runtime/installation and retains this plan before fallible start.
 /// This plan creates no second Resource owner and carries no current Allow.
+// `_observed_*` fields retain exact bound observations for white-box tests;
+// production consumes the admitted totals, not these diagnostic projections.
 struct ClientInstalledEffectManagedPlan {
   prepared : @publication_host.PreparedClientEffectComputation
   request : @publication_host.ClientRequestIdentity
@@ -103,7 +105,7 @@ struct ClientInstalledEffectManagedPlan {
   provider_execution_bytes : Int64
   rows : Int
   held_children : Int
-  compute_limits : @resources.LedgerLimits
+  _observed_compute_limits : @resources.LedgerLimits
   limits : @resources.LedgerLimits
 }
 
@@ -485,7 +487,7 @@ pub fn prepare_installed_effect_managed_plan(
     provider_execution_bytes: local_capacity.provider_execution,
     rows,
     held_children: held_children.to_int(),
-    compute_limits,
+    _observed_compute_limits: compute_limits,
     limits,
   })
 }

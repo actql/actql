@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
 import {mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
@@ -44,5 +45,51 @@ test('a new Owner field and an omitted generated comparison fail freshness indep
     assert.throws(() => checkCredentialScopeBinding(scratch, added), /CredentialScopeBindingStale/u);
     writeFileSync(path, renderCredentialScopeBinding(owner).replace("  'namespaceId',\n", ''));
     assert.throws(() => checkCredentialScopeBinding(scratch, owner), /CredentialScopeBindingStale/u);
+  } finally { rmSync(scratch, {recursive: true, force: true}); }
+});
+
+
+const cli = 'scripts/generate-credential-scope-binding.mjs';
+const cliInputs = [cli, 'src/remote_credential/credential.mbt',
+  'src/remote_credential/installation_preparation_subject.mbt',
+  'src/remote_credential/installation_preparation_grant.mbt', credentialScopeBindingPath,
+  'adapters/host-common/installation-preparation-fields.generated.mjs',
+  'src/connectors_builtin_node/client_installation_preparation_fields.generated.mbt'];
+
+test('actual prepack freshness CLI preserves machine stdout and reports its diagnostic on stderr', () => {
+  const before = cliInputs.map(path => readFileSync(join(root, path), 'utf8'));
+  const result = spawnSync(process.execPath, [join(root, cli), '--check'], {
+    cwd: join(root, 'packages/local-node'), encoding: 'utf8', timeout: 30000,
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.signal, null);
+  assert.equal(result.stdout, '', 'npm pack --json owns stdout');
+  assert.match(result.stderr, /^Credential invocation fields match the existing Owner$/mu);
+  assert.deepEqual(cliInputs.map(path => readFileSync(join(root, path), 'utf8')), before,
+    'The actual --check command must remain read-only');
+});
+
+test('actual stale freshness CLI remains nonzero and cannot emit success or rewrite its binding', () => {
+  const scratch = mkdtempSync(join(tmpdir(), 'credential-scope-cli-'));
+  try {
+    for (const path of cliInputs) {
+      const target = join(scratch, path);
+      mkdirSync(dirname(target), {recursive: true});
+      writeFileSync(target, readFileSync(join(root, path)));
+    }
+    const target = join(scratch, credentialScopeBindingPath);
+    const original = readFileSync(target, 'utf8');
+    const stale = original.replace("  'namespaceId',\n", '');
+    assert.notEqual(stale, original, 'The independent mutation must remove its subject field');
+    writeFileSync(target, stale);
+    const result = spawnSync(process.execPath, [join(scratch, cli), '--check'], {
+      cwd: scratch, encoding: 'utf8', timeout: 30000,
+    });
+    assert.notEqual(result.status, 0);
+    assert.equal(result.signal, null);
+    assert.equal(result.stdout, '');
+    assert.match(result.stderr, /CredentialScopeBindingStale/u);
+    assert.doesNotMatch(result.stderr, /Credential invocation fields match/u);
+    assert.equal(readFileSync(target, 'utf8'), stale);
   } finally { rmSync(scratch, {recursive: true, force: true}); }
 });

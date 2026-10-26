@@ -169,7 +169,10 @@ fn original_mock_fixture(
       prepared_program,
     ).unwrap()
     let prefix = @input.prepare_client_composed_infer_prefix(
-      prepared_program, occurrence, infer_fixture_registry, infer_fixture_values,
+      prepared_program,
+      occurrence,
+      infer_fixture_installed_contracts(),
+      infer_fixture_values,
     ).unwrap()
     start_original_composed(
       occurrence,
@@ -188,8 +191,20 @@ fn original_mock_fixture(
     )
   } else {
     original_funded_start_from_read(
-      prepared_program, 2, infer_fixture_registry, infer_fixture_values, provider,
-      original_limits, compiled, definition, plan, read, 7L, 5L, 100L, 5L,
+      prepared_program,
+      2,
+      infer_fixture_installed_contracts(),
+      infer_fixture_values,
+      provider,
+      original_limits,
+      compiled,
+      definition,
+      plan,
+      read,
+      7L,
+      5L,
+      100L,
+      5L,
     )
   }
   let active = match attempted {
@@ -393,7 +408,12 @@ test "actual original mock uses same Run entry typed enum output and child-first
     @admitted.element_at(fields, 1) is Some(("risk", @admitted.Text("low"))),
   )
   assert_eq(@model.retire_original_model_mock(installation), Ok(false))
-  assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts)
+  assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts + 1)
+  assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 0)
+  assert_eq(
+    @resources.ledger_usage(ledger).uncertain_transfer_bytes,
+    before.uncertain_transfer_bytes,
+  )
   assert_true(cleanup(active).unwrap())
   assert_eq(@model.retire_original_model_mock(installation), Ok(true))
   assert_true(@environment.retire_model_mock_profile(profile))

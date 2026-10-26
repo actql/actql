@@ -66,7 +66,7 @@ test "original read scope reaches Model through the same configured Ledger" {
   let active = original_funded_start_from_read(
     prepared,
     2,
-    infer_fixture_registry,
+    infer_fixture_installed_contracts(),
     infer_fixture_values,
     original_funded_start_provider(calls),
     limits,

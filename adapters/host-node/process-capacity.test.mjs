@@ -48,7 +48,9 @@ test('unknown exit consumes unreported delegated quotas without refunding provis
   await channel.cleanupHandle.whenStopped();
   assert.equal(host.usage().attempts, 3);
   assert.equal(host.usage().planning_work, 5);
-  assert.equal(host.usage().holdings, 2);
+  // Domain stop releases its live holding slots, not independent Store files.
+  // No retained allocation was created by this worker's allocate operation.
+  assert.equal(host.usage().holdings, 0);
   assert.equal(host.usage().transferred_bytes, 0n);
   assert.equal(host.usage().uncertain_transfer_bytes, 20n);
   assert.equal(host.usage().reserved_execution_bytes, 0n);

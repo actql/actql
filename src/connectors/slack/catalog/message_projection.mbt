@@ -11,8 +11,8 @@ pub(all) struct SlackMessageProjectionLimits {
 // prefix and the first checked row for each key. It is not a complete workspace
 // inventory, current Source authority, reservation or physical cleanup ACK.
 pub struct SlackMessageProjection {
-  priv history : SlackMessageHistory
-  priv replies : Array[SlackMessageReplies]
+  priv _history : SlackMessageHistory
+  priv _replies : Array[SlackMessageReplies]
   priv rows : Array[Array[@admitted.CheckedValue]]
 }
 
@@ -327,7 +327,7 @@ pub fn coalesce_slack_message_originals(
       }
     }
   }
-  Ok({ history, replies: replies.copy(), rows, })
+  Ok({ _history: history, _replies: replies.copy(), rows, })
 }
 
 ///|

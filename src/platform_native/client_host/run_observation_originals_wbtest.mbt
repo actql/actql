@@ -135,3 +135,14 @@ test "original Run evidence admission refuses current denial and orphan backfill
   )
   database.close_checked().unwrap()
 }
+
+///|
+fn read_native_run_observation_originals(
+  wire : String,
+  definition : @publication.PublicationContract,
+  program_cid? : String? = None,
+) -> Result[@host.ClientRunObservationOriginals, NativeClientRunJournalIssue] {
+  read_native_stored_run_observation(wire, definition, program_cid).map(value => {
+    value.observation
+  })
+}

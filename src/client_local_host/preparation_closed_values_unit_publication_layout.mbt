@@ -4,7 +4,7 @@
 /// Generic call/result/failure carriers belong the scaffold owner. This value
 /// includes the generated proof/witness source/index and writer components;
 /// none of these facts independently grants resource or publication authority.
-struct ClosedValuesUnitPublicationLayout {
+priv struct ClosedValuesUnitPublicationLayout {
   payload : PreparationRepresentationUnits
   source_admission : PreparationRepresentationUnits
   writers : PreparationRepresentationUnits

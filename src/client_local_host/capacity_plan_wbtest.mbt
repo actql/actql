@@ -1,4 +1,23 @@
 ///|
+/// Canonical finite Number/Boolean rows only. The pinned binary64 formatter
+/// emits at most 25 ASCII bytes (the negative fixed-notation -6 exponent case).
+/// Decimal, strings, references and nested values never enter this proof.
+fn client_local_scalar_wire_bytes(
+  sequences : Array[@execution.GeneratedSequence],
+  max_rows : Int,
+) -> Int? {
+  match client_local_schema_proof_inventory(sequences) {
+    Some(inventory) =>
+      client_local_scalar_wire_byte_bound(
+        inventory.fields,
+        inventory.names,
+        max_rows,
+      )
+    None => None
+  }
+}
+
+///|
 test "capacity plan quote funds metadata and narrows only scalar wire" {
   let assets = @publication_host.client_local_product_assets()
   let environment = @publication_host.admit_client_check_environment(
@@ -61,8 +80,8 @@ test "capacity plan quote funds metadata and narrows only scalar wire" {
       assets.ordered,
     ).unwrap()
     let max_rows = @publication_host.prepared_client_values_max_rows(prepared)
-    let nodes = client_local_scalar_nodes(sequences, max_rows).unwrap()
-    let (values, execution, measurement) = client_local_execution_limits(
+    client_local_scalar_nodes(sequences, max_rows).unwrap() |> ignore
+    let (_, execution, measurement) = client_local_execution_limits(
       max_rows~,
       scalar_sequences=Some(sequences),
     )
@@ -330,24 +349,24 @@ test "capacity plan derives task inventory from charged graph work beyond thirty
     )
     assert_true(client_local_capacity_plan_matches(plan, sequences, 100))
     assert_false(client_local_capacity_plan_matches(plan, sequences, 99))
-    assert_true(inventory.owner_count < tasks)
-    assert_true(inventory.work_used > 0)
+    assert_true(inventory._observed_owner_count < tasks)
+    assert_true(inventory._observed_work_used > 0)
     assert_true(
       client_local_schema_proof_inventory(
         sequences,
-        max_work=inventory.work_used,
+        max_work=inventory._observed_work_used,
       )
       is Some(_),
     )
     assert_true(
       client_local_schema_proof_inventory(
         sequences,
-        max_work=inventory.work_used - 1,
+        max_work=inventory._observed_work_used - 1,
       )
       is None,
     )
     println(
-      "PROOF_INVENTORY tasks=\{tasks} original_owners=\{inventory.owner_count} work=\{inventory.work_used}",
+      "PROOF_INVENTORY tasks=\{tasks} original_owners=\{inventory._observed_owner_count} work=\{inventory._observed_work_used}",
     )
 
     let admitted = source_free_installed_managed_preparation_owned(

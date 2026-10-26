@@ -1,9 +1,7 @@
 ///|
-// Installer-private input to the existing profile, never a resource issuer.
-// Each optional term needs its original Native source/holding correspondence;
-// absence remains incomplete. Node coefficients and observed fixture peaks
-// cannot supply these terms. The actual Host/domain constructors still admit
-// and retain the original backing independently.
+// Installer-private finite selections, never a resource issuer or a complete
+// demand model. Actual Host/domain constructors still admit and retain the
+// same physical backing independently; arithmetic cannot replace that original.
 priv struct LocalCommandNativeStorageBounds {
   source : String
   max_snapshot_bytes : Int64
@@ -11,17 +9,9 @@ priv struct LocalCommandNativeStorageBounds {
   read_selection : LocalCommandReadStorageSelection
   platform_selection : LocalCommandPlatformStorageSelection
   sqlite_domain_selection : LocalCommandSqliteDomainStorageSelection
-  // Full retained Runtime/configuration/Journal/Common managed graphs,
-  // including copies, decoding, callbacks and escaped diagnostics.
-  // Demand selection only; never a residual facility capacity.
-  managed_read_execution_bytes : Int64?
-  // Mapped images and loader/pthread/TLS/OS/stack holdings outside component heaps.
-  // Numerical demand selection only. A selected OS service original has no
-  // byte-credit equivalent and must not fill this field with zero or a scalar.
+  // The selected OS service original has no byte-credit equivalent. Reject
+  // any numerical substitute, including zero, rather than infer demand.
   loader_platform_execution_bytes : Int64?
-  // Original Read-backed native buffers/receivers and cleanup-only carriers.
-  // Includes inspection's five retained strings and transient path/IO overlap.
-  native_read_execution_bytes : Int64?
   // An explicit selection, never inferred from remaining heap capacity.
   sqlite_heap_selection : LocalCommandSqliteHeapSelection?
   // SQLite domain's original context, Library/DB receivers and managed aliases
@@ -33,10 +23,9 @@ priv struct LocalCommandNativeStorageBounds {
 }
 
 ///|
-// Neither branch issues the original. The same trusted initial entry remains
+// This selection issues no original. The same trusted initial entry remains
 // mandatory; the OS facility is a closed operational lifetime, not a byte pool.
 priv enum LocalCommandPlatformStorageSelection {
-  CommandPlatformDemand
   CommandPlatformInitialOsFacility
 }
 
@@ -45,52 +34,27 @@ priv enum LocalCommandPlatformStorageSelection {
 // candidate for the same physical Read's occupied-page ceiling, never residual
 // managed/native demand or a general business Read allowance.
 priv enum LocalCommandReadStorageSelection {
-  CommandReadDemand
   CommandReadFiniteFacility(Int64)
 }
 
 ///|
-priv enum LocalCommandReadPayloadRequirement {
-  CommandReadDemandPayload(Int64)
-  CommandReadNecessaryPayload(Int64)
-}
-
-///|
-// Both branches require the same actual backed heap before first SQLite use.
+// The same actual backed heap remains mandatory before first SQLite use.
 // Facility capacity may exhaust; it is not an all-input demand guarantee.
 priv enum LocalCommandSqliteDomainStorageSelection {
-  CommandSqliteDomainDemand
   CommandSqliteDomainFiniteFacility(Int64)
 }
 
 ///|
-priv enum LocalCommandSqliteDomainPayloadRequirement {
-  CommandSqliteDomainDemandPayload(Int64)
-  CommandSqliteDomainNecessaryPayload(Int64)
-}
-
-///|
 priv enum LocalCommandSqliteHeapSelection {
-  SqliteDemandBound(Int64)
   SqliteFiniteFacility
-}
-
-///|
-priv enum LocalCommandSqlitePayloadRequirement {
-  SqliteDemandPayload(Int64)
-  SqliteNecessaryPayload(Int64)
 }
 
 ///|
 priv enum LocalCommandNativeStorageIssue {
   NativeStorageInvalidInput
   NativeStorageOverflow
-  NativeStorageManagedMissing
-  NativeStoragePlatformMissing
   NativeStoragePlatformUnadmitted
-  NativeStorageReadMissing
   NativeStorageSqliteHeapMissing
-  NativeStorageSqliteExternalMissing
   NativeStorageControlMissing
   NativeStorageInsufficient
   NativeStorageSqliteDomainMissing
@@ -107,18 +71,8 @@ priv struct LocalCommandNativeStorageQuote {
   source : String
   snapshot_bytes : Int64
   records : Int
-  wal_frames : Int64
-  wal_regions : Int64
-  sqlite_payload_requirement : LocalCommandSqlitePayloadRequirement
-  sqlite_execution_bytes : Int64
-  sqlite_domain_payload_requirement : LocalCommandSqliteDomainPayloadRequirement
   sqlite_domain_facility_ceiling : Int64?
-  read_execution_bytes : Int64
-  read_payload_requirement : LocalCommandReadPayloadRequirement
   read_facility_ceiling : Int64?
-  platform_selection : LocalCommandPlatformStorageSelection
-  platform_required_bytes : Int64?
-  shared_control_bytes : Int64
 }
 
 ///|
@@ -258,6 +212,74 @@ fn native_storage_wal_regions(
 }
 
 ///|
+// Necessary simultaneous Journal payload only, not complete SQLite demand.
+// The actual finite quote uses these same MEMSYS5/WAL calculations before its
+// physical domain provider can admit anything.
+fn native_storage_journal_necessary_payload(
+  regions : Int64,
+) -> Result[Int64, LocalCommandNativeStorageIssue] {
+  if regions <= 0L || regions > 9223372036854775807L / 32768L {
+    return Err(NativeStorageInvalidInput)
+  }
+  let result_body = match native_storage_mem5_block(131072L) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let result_key = match native_storage_mem5_block(512L) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let result_copies = match native_storage_sum([result_body, result_key]) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let array = match native_storage_mem5_block(8L * regions) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let recovery = match native_storage_mem5_block(65536L + 24L + 32768L) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  native_storage_sum([regions * 32768L, array, array, recovery, result_copies])
+}
+
+///|
+// Check necessary finite Read coexistence and independent original reservations.
+// A successful numeric check is not a physical Read, complete demand, or grant.
+fn native_storage_finite_read_bytes(
+  profile : LocalCommandPreparationProfile,
+  crypto_extent : Int64,
+  inspection : Int64,
+) -> Result[Int64, LocalCommandNativeStorageIssue] {
+  let CommandReadFiniteFacility(bytes) = profile.native_storage.read_selection
+  let page = native_storage_page_bytes()
+  if bytes <= 0L || page <= 0L || bytes % page != 0L {
+    return Err(NativeStorageInvalidInput)
+  }
+  let minimum = match native_storage_sum([crypto_extent, inspection]) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if bytes < minimum || bytes > profile.read_budget.read_execution {
+    return Err(NativeStorageInsufficient)
+  }
+  let reserved = match
+    native_storage_sum([
+      profile.read_budget.bootstrap_execution,
+      profile.read_budget.workspace_execution,
+      profile.read_budget.read_execution,
+    ]) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if reserved > profile.read_domain_limits.execution_bytes {
+    return Err(NativeStorageInsufficient)
+  }
+  Ok(bytes)
+}
+
+///|
 fn quote_local_command_native_storage(
   profile : LocalCommandPreparationProfile,
 ) -> Result[LocalCommandNativeStorageQuote, LocalCommandNativeStorageIssue] {
@@ -272,92 +294,21 @@ fn quote_local_command_native_storage(
     profile.sqlite_heap_bytes > 2147483647L {
     return Err(NativeStorageInvalidInput)
   }
-  let (frames, regions) = match
+  let (_, regions) = match
     native_storage_wal_regions(bounds.max_snapshot_bytes) {
-    Err(issue) => return Err(issue)
     Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  // Preserve the original demand branch's missing-term refusal order.
-  let managed_demand = match bounds.read_selection {
-    CommandReadDemand => {
-      guard bounds.managed_read_execution_bytes is Some(managed) && managed > 0L else {
-        return Err(NativeStorageManagedMissing)
-      }
-      Some(managed)
-    }
-    CommandReadFiniteFacility(_) => None
+  let CommandPlatformInitialOsFacility = bounds.platform_selection
+  if bounds.loader_platform_execution_bytes is Some(_) {
+    return Err(NativeStorageInvalidInput)
   }
-  let platform = match bounds.platform_selection {
-    CommandPlatformDemand => {
-      guard bounds.loader_platform_execution_bytes is Some(bytes) && bytes > 0L else {
-        return Err(NativeStoragePlatformMissing)
-      }
-      Some(bytes)
-    }
-    CommandPlatformInitialOsFacility => {
-      if bounds.loader_platform_execution_bytes is Some(_) {
-        return Err(NativeStorageInvalidInput)
-      }
-      None
-    }
-  }
-  let read_demand = match bounds.read_selection {
-    CommandReadDemand => {
-      guard bounds.native_read_execution_bytes is Some(native) && native > 0L else {
-        return Err(NativeStorageReadMissing)
-      }
-      Some((managed_demand.unwrap(), native))
-    }
-    CommandReadFiniteFacility(_) => None
-  }
-  guard bounds.sqlite_heap_selection is Some(selection) else {
+  guard bounds.sqlite_heap_selection is Some(SqliteFiniteFacility) else {
     return Err(NativeStorageSqliteHeapMissing)
   }
-  // The original Journal admits 131072-byte bodies and 512-byte scan keys.
-  // sqlite_stub.c allocates BOTH retained result copies before finalizing the
-  // same statement. They use this same MEMSYS5 heap, not Read or a new credit.
-  // In the demand branch these are a subset of the derived other-heap bound.
-  // In the facility branch they remain necessary simultaneous payload only;
-  // VM/cache/schema/fragmentation can still exhaust the same finite heap.
-  let result_body = match native_storage_mem5_block(131072L) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let result_key = match native_storage_mem5_block(512L) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let result_copies = match native_storage_sum([result_body, result_key]) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let other = match selection {
-    SqliteDemandBound(bytes) => {
-      if bytes <= 0L {
-        return Err(NativeStorageSqliteHeapMissing)
-      }
-      if bytes < result_copies {
-        return Err(NativeStorageInsufficient)
-      }
-      bytes
-    }
-    SqliteFiniteFacility => result_copies
-  }
-  let sqlite_external_demand = match bounds.sqlite_domain_selection {
-    CommandSqliteDomainDemand => {
-      guard bounds.sqlite_external_execution_bytes is Some(external) &&
-        external > 0L else {
-        return Err(NativeStorageSqliteExternalMissing)
-      }
-      Some(external)
-    }
-    CommandSqliteDomainFiniteFacility(_) => {
-      // Capacity cannot fill the old external-demand field with a residual.
-      if bounds.sqlite_external_execution_bytes is Some(_) {
-        return Err(NativeStorageInvalidInput)
-      }
-      None
-    }
+  // Capacity cannot fill an external-demand field with residual bytes.
+  if bounds.sqlite_external_execution_bytes is Some(_) {
+    return Err(NativeStorageInvalidInput)
   }
   guard bounds.shared_control_bytes is Some(control) && control > 0L else {
     return Err(NativeStorageControlMissing)
@@ -367,152 +318,53 @@ fn quote_local_command_native_storage(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if read_demand is Some((_, native)) && native < inspection {
-    return Err(NativeStorageInsufficient)
-  }
-  let array = match native_storage_mem5_block(8L * regions) {
-    Err(issue) => return Err(issue)
+  let payload = match native_storage_journal_necessary_payload(regions) {
     Ok(value) => value
-  }
-  // Recovery buffer uses the largest legal page. Both pointer-array copies
-  // coexist during realloc; the old array is not an acknowledged free credit.
-  let recovery = match native_storage_mem5_block(65536L + 24L + 32768L) {
     Err(issue) => return Err(issue)
-    Ok(value) => value
-  }
-  // The facility branch checks only mandatory coexistence here. It neither
-  // subtracts WAL from H nor fills an unknown demand with residual capacity.
-  // Descriptor/VM/cache/result allocations must remain in the same heap with
-  // no allocator fallback, enlargement or fresh reopen on exhaustion.
-  // Inspection FDs remain separate Read children with their own cleanup ACKs.
-  let payload = match
-    native_storage_sum([regions * 32768L, array, array, recovery, other]) {
-    Err(issue) => return Err(issue)
-    Ok(value) => value
   }
   if payload > profile.sqlite_heap_bytes / 17L * 16L {
     return Err(NativeStorageInsufficient)
-  }
-  // Index/cache/statement/FD storage is already inside this configured heap.
-  // Add the heap exactly once to the SQLite domain, never to both domains.
-  let sqlite_extent = match
-    native_storage_page_round(
-      profile.sqlite_heap_bytes,
-      native_storage_page_bytes(),
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(value) => value
   }
   let crypto_extent = match
     native_storage_page_round(
       profile.crypto_heap_bytes,
       native_storage_page_bytes(),
     ) {
-    Err(issue) => return Err(issue)
     Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  let (sqlite, sqlite_requirement, sqlite_ceiling) = match
-    bounds.sqlite_domain_selection {
-    CommandSqliteDomainDemand => {
-      let bytes = match
-        native_storage_sum([sqlite_extent, sqlite_external_demand.unwrap()]) {
-        Err(issue) => return Err(issue)
-        Ok(value) => value
-      }
-      (bytes, CommandSqliteDomainDemandPayload(bytes), None)
-    }
-    CommandSqliteDomainFiniteFacility(bytes) => {
-      let page = native_storage_page_bytes()
-      if bytes <= 0L || page <= 0L || bytes % page != 0L {
-        return Err(NativeStorageInvalidInput)
-      }
-      // The physical Owner computes actual control/context/receiver layouts
-      // and the maximum of pre-bind path text versus post-bind heap coexistence.
-      // This TOTAL already includes the heap: never add it a second time.
-      guard @local_sqlite.command_domain_necessary_bytes(
-          profile.sqlite_domain_bytes,
-          profile.sqlite_heap_bytes,
-        )
-        is Some(minimum) &&
-        minimum > 0L else {
-        return Err(NativeStorageSqliteDomainMissing)
-      }
-      if bytes < minimum {
-        return Err(NativeStorageInsufficient)
-      }
-      (bytes, CommandSqliteDomainNecessaryPayload(minimum), Some(bytes))
-    }
+  let CommandSqliteDomainFiniteFacility(sqlite) = bounds.sqlite_domain_selection
+  let page = native_storage_page_bytes()
+  if sqlite <= 0L || page <= 0L || sqlite % page != 0L {
+    return Err(NativeStorageInvalidInput)
   }
-  // The one Crypto heap serves both original Libraries, all hooked OpenSSL
-  // allocations, realloc overlap and cleanup. Native buffers remain separate.
-  let (read, read_requirement, read_ceiling) = match bounds.read_selection {
-    CommandReadDemand => {
-      guard read_demand is Some((managed, native)) else {
-        return Err(NativeStorageReadMissing)
-      }
-      let bytes = match native_storage_sum([crypto_extent, managed, native]) {
-        Err(issue) => return Err(issue)
-        Ok(value) => value
-      }
-      (bytes, CommandReadDemandPayload(bytes), None)
-    }
-    CommandReadFiniteFacility(bytes) => {
-      let page = native_storage_page_bytes()
-      if bytes <= 0L || page <= 0L || bytes % page != 0L {
-        return Err(NativeStorageInvalidInput)
-      }
-      let minimum = match native_storage_sum([crypto_extent, inspection]) {
-        Err(issue) => return Err(issue)
-        Ok(value) => value
-      }
-      // This is necessary coexistence, not a complete managed/native demand
-      // estimate. Crypto's contained heap is not charged a second time.
-      if bytes < minimum || bytes > profile.read_budget.read_execution {
-        return Err(NativeStorageInsufficient)
-      }
-      // Generic original bootstrap/workspace/read reservations remain separate.
-      // No claim is enlarged or weakened to make the facility selection fit.
-      let reserved = match
-        native_storage_sum([
-          profile.read_budget.bootstrap_execution,
-          profile.read_budget.workspace_execution,
-          profile.read_budget.read_execution,
-        ]) {
-        Err(issue) => return Err(issue)
-        Ok(value) => value
-      }
-      if reserved > profile.read_domain_limits.execution_bytes {
-        return Err(NativeStorageInsufficient)
-      }
-      (bytes, CommandReadNecessaryPayload(minimum), Some(bytes))
-    }
+  // The original physical provider includes actual control/context/receiver
+  // layouts. Never supply a dummy minimum for an unselected/unsupported binary.
+  guard @local_sqlite.command_domain_necessary_bytes(
+      profile.sqlite_domain_bytes,
+      profile.sqlite_heap_bytes,
+    )
+    is Some(minimum) &&
+    minimum > 0L else {
+    return Err(NativeStorageSqliteDomainMissing)
   }
-  if read > profile.consumer_execution_bytes ||
-    read > profile.read_domain_limits.execution_bytes ||
-    sqlite > profile.sqlite_domain_limits.execution_bytes ||
-    sqlite > profile.sqlite_domain_bytes ||
-    control > profile.control_bytes {
+  if sqlite < minimum {
+    return Err(NativeStorageInsufficient)
+  }
+  let read = match
+    native_storage_finite_read_bytes(profile, crypto_extent, inspection) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !native_storage_finite_ceilings_cover(profile, read, sqlite, control) {
     return Err(NativeStorageInsufficient)
   }
   Ok({
     source: bounds.source,
     snapshot_bytes: bounds.max_snapshot_bytes,
     records: bounds.max_records,
-    wal_frames: frames,
-    wal_regions: regions,
-    sqlite_payload_requirement: match selection {
-      SqliteDemandBound(_) => SqliteDemandPayload(payload)
-      SqliteFiniteFacility => SqliteNecessaryPayload(payload)
-    },
-    sqlite_execution_bytes: sqlite,
-    sqlite_domain_payload_requirement: sqlite_requirement,
-    sqlite_domain_facility_ceiling: sqlite_ceiling,
-    read_execution_bytes: read,
-    read_payload_requirement: read_requirement,
-    read_facility_ceiling: read_ceiling,
-    platform_selection: bounds.platform_selection,
-    platform_required_bytes: platform,
-    shared_control_bytes: control,
+    sqlite_domain_facility_ceiling: Some(sqlite),
+    read_facility_ceiling: Some(read),
   })
 }
 
@@ -523,11 +375,32 @@ fn LocalCommandNativeStorageQuote::covers_journal(
   records : Int,
   snapshot_bytes : Int64,
 ) -> Bool {
-  source == self.source &&
+  native_storage_journal_bounds_cover(
+    self.source,
+    self.records,
+    self.snapshot_bytes,
+    source,
+    records,
+    snapshot_bytes,
+  )
+}
+
+///|
+// Pure subset check used by the actual captured quote; these scalar operands
+// cannot manufacture a quote, physical original, or permission.
+fn native_storage_journal_bounds_cover(
+  original_source : String,
+  original_records : Int,
+  original_snapshot_bytes : Int64,
+  source : String,
+  records : Int,
+  snapshot_bytes : Int64,
+) -> Bool {
+  source == original_source &&
   records >= 1 &&
-  records <= self.records &&
+  records <= original_records &&
   snapshot_bytes > 0L &&
-  snapshot_bytes <= self.snapshot_bytes
+  snapshot_bytes <= original_snapshot_bytes
 }
 
 ///|
@@ -547,4 +420,20 @@ fn require_native_command_platform_original() -> Result[
   } else {
     Err(NativeStoragePlatformUnadmitted)
   }
+}
+
+///|
+// The final numeric subset predicate used by the actual finite quote, after its
+// real physical-provider guard. This does not issue or acknowledge an original.
+fn native_storage_finite_ceilings_cover(
+  profile : LocalCommandPreparationProfile,
+  read : Int64,
+  sqlite : Int64,
+  control : Int64,
+) -> Bool {
+  read <= profile.consumer_execution_bytes &&
+  read <= profile.read_domain_limits.execution_bytes &&
+  sqlite <= profile.sqlite_domain_limits.execution_bytes &&
+  sqlite <= profile.sqlite_domain_bytes &&
+  control <= profile.control_bytes
 }

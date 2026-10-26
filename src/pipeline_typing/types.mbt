@@ -90,6 +90,7 @@ pub struct CheckedStep {
   operation : CheckedOperation
   output : @carrier.Carrier
   connections : Connections
+  filter_refinement : @evidence.RefinedFilter?
   window : WindowEvidence?
 }
 

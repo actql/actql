@@ -126,11 +126,28 @@ pub fn synchronous_compute_available(compute : SynchronousCompute) -> Bool {
 /// asynchronous resource lifetime is permitted by this realization contract.
 pub fn execute_synchronous_compute(
   compute : SynchronousCompute,
+  enter? : () -> Bool = () => true,
 ) -> Result[@execution.CompletedOutput, SynchronousComputeFailure] {
   if !synchronous_compute_available(compute) {
     return Err(Compute(NotSelected))
   }
   compute.started = true
+  for input in compute.candidate.request.inputs {
+    if !@execution.fixed_relation_read_available(input) {
+      return Err(Compute(InputUnavailable))
+    }
+  }
+  // The owning Host accounts the reserved original at this boundary, after
+  // input refusal but before any implementation call. This hook grants no
+  // authority and cannot replace the selected owner or input checks above.
+  if !enter() {
+    return Err(Compute(NotSelected))
+  }
+  // Accounting can reenter an imported currentness owner. A refusal or
+  // revocation cannot become execution merely because its attempt was spent.
+  if !compute.candidate.registration.owner.live {
+    return Err(Compute(NotSelected))
+  }
   for input in compute.candidate.request.inputs {
     if !@execution.fixed_relation_read_available(input) {
       return Err(Compute(InputUnavailable))

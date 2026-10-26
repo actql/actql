@@ -40,11 +40,7 @@ fn sequence_demand_fixture(
     row += ",\"x\{field}\":1"
   }
   let cells = ("{" + row + "},").repeat(rows)
-  let body = if rows == 0 {
-    ""
-  } else {
-    cells.substring(start=0, end=cells.length() - 1).to_string()
-  }
+  let body = if rows == 0 { "" } else { cells[:cells.length() - 1].to_owned() }
   let first = "{\"values\":{\"schema\":{" +
     schema +
     "},\"rows\":[" +

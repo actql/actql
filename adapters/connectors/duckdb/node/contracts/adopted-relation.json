@@ -1,6 +1,6 @@
 {
   "source_revision": "9edb5a65db8b822b8629cfa4913fb1097fb99945",
-  "registry_cid": "sha256:0ff18ae5087aa79d90acdf8fe25ce7534dec0b0687c2f350894ce0c960f9f505",
+  "registry_cid": "sha256:f6f017a119e5a24f0c36a64cd7f2b4fd67ea533679945098375d854af644f642",
   "values_cid": "sha256:96c7925a693801dcb3bce9f3e2da9b4fd9ed39e517af90cbac0e1adbee5ad2ae",
   "fragment_cid": "sha256:3d647ebc2757e8be9bf5944e32d73771147f3cac893f6c705430310cd03a3f48",
   "graph_cid": "sha256:0979999a64bb47f7fcb0d113c0bbcab592ad0a268b548a8776f8fac4fd6f6d84",
@@ -508,7 +508,7 @@
       "execution_contract": {
         "file": "spec/contracts/actql-aoa.json",
         "pointer": "/execution_contracts/TEA.calendar.series",
-        "cid": "sha256:040129c2ff63394a6b4804daf3a7c0641e2bdae4b524389d3c8c362e7e4dc13f"
+        "cid": "sha256:8070a5fa9b6177df0d407b474a2b34aff2ecde9cf9c5b726191f7bd908a4dc83"
       }
     }
   },

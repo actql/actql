@@ -4,7 +4,7 @@
 fn local_set_normalization(
   owner : PreparedClientProgram,
 ) -> ClientLocalNormalization raise {
-  let proof = match issue_prepared_client_legacy_local_normalization(owner) {
+  let proof = match _issue_prepared_client_legacy_local_normalization(owner) {
     Ok(proof) => proof
     Err(Inventory(issue)) => {
       let writer = @encode.writer(1000000, 100000, 100)
@@ -107,7 +107,7 @@ test "set evidence never admits an equal foreign preparation or predecessor jour
   let implicit = local_explicit_cast_original(
     text="SELECT CASE WHEN TRUE THEN 1 END AS n UNION ALL SELECT 2 AS n",
   )
-  match issue_prepared_client_legacy_local_normalization(implicit) {
+  match _issue_prepared_client_legacy_local_normalization(implicit) {
     Err(Inventory(CompletionObserved)) => ()
     Err(Inventory(issue)) => {
       let writer = @encode.writer(1000000, 100000, 100)
@@ -166,7 +166,7 @@ test "Set followed by actual Sort completion retains its nonempty original journ
   let document =
     #|{"version":"actql/0.1","id":"local.set-sort","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"k":{"type":"number","nullable":false},"n":{"type":"number","nullable":false}},"rows":[{"n":1,"k":3},{"n":2,"k":1},{"n":1,"k":2}]},"as":"left"},{"values":{"schema":{"k":{"type":"number","nullable":false},"n":{"type":"number","nullable":false}},"rows":[]},"as":"right"},{"from":"left","except":{"with":"right","duplicates":"distinct"}},{"sort":[{"field":"n","dir":"asc","nulls":"last"}],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["n","k"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
   let owner = local_group_original_document(document)
-  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
+  let proof = _issue_prepared_client_legacy_local_normalization(owner).unwrap()
   guard proof.audit is SortCompletion(inventory) else {
     fail("original Set Sort completion expected")
   }

@@ -6,7 +6,7 @@ import {
   "actql/actql/platform_native/remote_resident_host" @resident,
   "actql/actql/run_publication_host" @host,
   "actql/actql/run_publication" @publication,
-  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/canonical_json" @canonical,
   "actql/actql/source_value" @source,
   "actql/actql/value_admission" @values,

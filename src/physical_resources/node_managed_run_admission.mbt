@@ -6,23 +6,23 @@ priv enum NodeManagedRunPurpose {
   SourceCompute
   LocalMockModel
   LocalContent
-}
+} derive(Eq)
 
 ///|
-pub struct NodeManagedRunAdmission[P] {
-  priv mut original : NodeManagedRunAdmission[P]?
-  priv mut prepared : P?
-  priv mut preparation_holder : PreparationBodyBorrow[P]?
-  priv purpose : NodeManagedRunPurpose
-  priv child : ImportedChildLedger
-  priv abort_unpublished : () -> Result[Unit, ImportedChildLedgerIssue]
-  priv mut attempted : Bool
-  priv mut cleaned : Bool
-  priv mut ledger : Ledger?
+struct NodeManagedRunAdmission[P] {
+  mut original : NodeManagedRunAdmission[P]?
+  mut prepared : P?
+  mut preparation_holder : PreparationBodyBorrow[P]?
+  purpose : NodeManagedRunPurpose
+  child : ImportedChildLedger
+  abort_unpublished : () -> Result[Unit, ImportedChildLedgerIssue]
+  mut attempted : Bool
+  mut cleaned : Bool
+  mut ledger : Ledger?
   // Resident even when absent. The selected same-Run envelope includes this
   // early custody before any read-scope constructor or ordinary child token.
-  priv mut read_bootstrap_attempted : Bool
-  priv mut read_bootstrap : CapacityReservation?
+  mut read_bootstrap_attempted : Bool
+  mut read_bootstrap : CapacityReservation?
 }
 
 ///|
@@ -347,7 +347,7 @@ pub fn[P] check_node_local_mock_model_run_preparation(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if value.purpose is LocalMockModel {
+  if value.purpose == LocalMockModel {
     Ok(())
   } else {
     Err(Unavailable)
@@ -383,7 +383,7 @@ pub fn[P] check_node_local_content_run_preparation(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if value.purpose is LocalContent {
+  if value.purpose == LocalContent {
     Ok(())
   } else {
     Err(Unavailable)

@@ -2,7 +2,6 @@
 /// Validate the same original Sealed payload responsibility against a binding
 /// borrowed from the original Done commit view. This reads no physical Store,
 /// issues no publication/output, and never acknowledges or starts an operation.
-#export_name("actql_publication_commit_export_validate_payload_binding")
 pub fn validate_publication_commit_payload_binding(
   nonce : Int64,
   publication : Int,

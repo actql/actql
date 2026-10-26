@@ -146,6 +146,12 @@ test "initial issue storage commits original expiry and exact first use then rea
     bound=Some(20000L),
   ).unwrap()
   let fresh = first is InitialStorageClaim(_, _)
+  guard first is InitialStorageClaim(_, claimed_use) else {
+    fail("expected original claim")
+  }
+  let claimed_use_cid = @credential.local_signing_credential_use_cid(
+    claimed_use,
+  )
   let original = initial_issue_storage_original(first)
   guard original.grant is SigningGrant(grant) else { fail("expected Signing") }
   let limits = @credential.local_signing_credential_grant_limits(grant)
@@ -167,6 +173,14 @@ test "initial issue storage commits original expiry and exact first use then rea
     bound=Some(20000L),
   ).unwrap()
   let history_only = second is InitialStorageHistory(_, _)
+  guard second is InitialStorageHistory(_, historical) else {
+    fail("expected original history")
+  }
+  assert_eq(
+    @credential.local_signing_credential_use_cid(historical.original_use()),
+    claimed_use_cid,
+  )
+  assert_eq(historical.grant_cid(), local_original_grant_cid(original.grant))
   let cid_exact = local_original_grant_cid(
       initial_issue_storage_original(second).grant,
     ) ==
@@ -236,7 +250,9 @@ test "initial issue existing operation with missing use refuses without resampli
       samples.val += 1
       999999L
     })
-    is Err(InitialStorageCredential(_))
+    is Err(
+      InitialStorageCredential(@credential_resource.Journal(@sqlite.NotFound))
+    )
   let count = host.database
     .read("client_local_grant_custody", "issued")
     .unwrap().revision

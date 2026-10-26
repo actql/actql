@@ -2,7 +2,7 @@
 /// One scalar captured snapshot from the ORIGINAL result-schema/row bound.
 /// No post-emission measurement grants capacity. Final canonical rows are
 /// borrowed by later capture; no second source parse is priced there.
-struct ScalarSnapshotLayout {
+priv struct ScalarSnapshotLayout {
   retained : PreparationRepresentationUnits
   temporary : PreparationRepresentationUnits
 }

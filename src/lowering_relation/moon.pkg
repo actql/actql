@@ -4,6 +4,7 @@ import {
   "actql/actql/pipeline_check_context" @context,
   "actql/actql/check_environment" @environment,
   "actql/actql/text_time_policy" @text_policy,
+  "actql/actql/text_time_bounds" @text_bounds,
   "actql/actql/parameter_references" @parameter_refs,
   "actql/actql/infer_typing" @infer,
   "actql/actql/pipeline_typing" @pipeline,

@@ -4,11 +4,22 @@ import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { hash } from './inventory.mjs';
-import { providerConstructionBound, inspectProviderConstruction } from './capacity/parent-control/provider-construction.mjs';
+import { retainedProviderConstructionBound as providerConstructionBound, inspectProviderConstruction as inspectConstruction } from './capacity/parent-control/provider-construction.mjs';
 import {constructionSourceReview, reviewedFunction, selectedFactoryOutsideAccepts,
   managedBeforePausePolls, selectedBeforeInputOnly, selectedBeforeReviewedLifecycle, providerBeforeReviewedCleanup,
   selectedBeforeBoundaryDispatch, generatedBeforeBoundaryExclusions} from './capacity/parent-control/provider-construction-source-review.mjs';
-const read = path => readFileSync(new URL(`../../${path}`, import.meta.url));
+import {retainedConstructionRead} from './capacity/parent-control/provider-construction-adopted-review.mjs';
+// These retained historical laws validate their exact reconstructed source, not
+// current Native records. Current source admission is tested independently.
+const reconstructedRead = retainedConstructionRead(path => readFileSync(new URL(`../../${path}`, import.meta.url)));
+// Boundary-specific laws below refer to the independently pinned final Graph
+// variant, not the older generated premise in the Calendar reverse-delta proof.
+const read = path => path === 'src/execution_relation/generated_sequence.mbt'
+  ? execFileSync('git', ['--no-replace-objects', 'show',
+    `2bff752cb0eef171aa8f7ba614b301e052b7dff3:${path}`],
+    {cwd: fileURLToPath(new URL('../../', import.meta.url))})
+  : reconstructedRead(path);
+const inspectProviderConstruction = (facts, read, target) => inspectConstruction(facts, read, target, {retained: true});
 // Synthetic admission tests, separate from the archived real native reader.
 const fact = () => ({ kind: 'provider construction observation', providers: 11,
   records: 11, arraySlots: 11, callbacks: 30, defaultArrays: 1, indexedBytes: 1504,
@@ -69,7 +80,7 @@ test('input-only support changes only the exact acceptance and execution branche
       /reviewed representation delta/u);
   }
 });
-test('current lifecycle review changes only cleanup completion and detached built-in eligibility', () => {
+test('retained historical lifecycle review changes only cleanup completion and detached built-in eligibility', () => {
   const path = 'src/connectors/local/selected_relation_provider.mbt';
   const source = read(path).toString();
   const previous = historical(path, constructionSourceReview.lifecycleReview.previousRevision).toString();
@@ -307,7 +318,7 @@ pub fn generated_traversal_ceilings(
     /Changed provider representation premise src\/execution_relation\/generated_sequence\.mbt/);
 });
 
-test('current wrappers and selected construction outside accepts equal the original bodies', () => {
+test('retained historical wrappers and selected construction outside accepts equal the original bodies', () => {
   const managedPath = 'src/connectors/local/managed_provider.mbt';
   const managed = read(managedPath).toString(), original = historical(managedPath).toString();
   for (const name of Object.keys(constructionSourceReview.wrapperDigests)) {
@@ -321,7 +332,7 @@ test('current wrappers and selected construction outside accepts equal the origi
   assert.equal(providerConstructionBound(read).sourceReview.completeParentUpper, false);
 });
 
-test('current Graph variants are only reviewed row-kernel exclusions, without factory changes', () => {
+test('retained historical Graph variants are only reviewed row-kernel exclusions, without factory changes', () => {
   const path = 'src/execution_relation/generated_sequence.mbt';
   for (const variant of constructionSourceReview.generatedVariants) {
     const source = historical(path, variant.revision);
@@ -333,7 +344,7 @@ test('current Graph variants are only reviewed row-kernel exclusions, without fa
   }
 });
 
-test('current construction does not accept a historical pin as a current-source fallback', () => {
+test('retained historical construction does not accept a historical pin as a current-source fallback', () => {
   const path = 'src/connectors/local/selected_relation_provider.mbt';
   const original = historical(path);
   assert.throws(() => providerConstructionBound(p => p === path ? original : read(p)),

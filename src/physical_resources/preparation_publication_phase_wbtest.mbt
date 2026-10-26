@@ -78,8 +78,8 @@ test "publication phase latches reentry and rejects stopped original growth" {
   complete_preparation_capacity(owner, input, body, 30L, 0L).unwrap()
   transfer_preparation_capacity_to_run(owner, input, body, ledger).unwrap()
   let holder = borrow_preparation_capacity(owner).unwrap()
-  let mode = Ref::new(1)
-  let observed = Ref::new(0)
+  let mode = Ref(1)
+  let observed = Ref(0)
   ledger.imported_child = Some({
     nonce: 1L,
     admit: _ => 0,
@@ -157,7 +157,7 @@ test "publication phase cannot construct after callback cuts last original borro
   )
   transfer_preparation_capacity_to_run(owner, input, body, ledger).unwrap()
   let holder = borrow_preparation_capacity(owner).unwrap()
-  let armed = Ref::new(true)
+  let armed = Ref(true)
   ledger.imported_child = Some({
     nonce: 1L,
     admit: _ => 0,

@@ -1,22 +1,24 @@
 ///|
 test "Both preparation carriers select only the supplied exact public Run operation" {
-  let local = command().parse(argv=["--mode", "local", "run", "program.aql"])
+  let local_command = command().parse(argv=[
+    "--mode", "local", "run", "program.aql",
+  ])
   assert_true(
     local_command_preparation_operation_selected(
-      local,
+      local_command,
       local_run_original_operation(),
       true,
     ),
   )
   assert_false(
     local_command_preparation_operation_selected(
-      local,
+      local_command,
       local_run_original_operation(),
       false,
     ),
   )
   assert_false(
-    local_command_preparation_operation_selected(local, "result", true),
+    local_command_preparation_operation_selected(local_command, "result", true),
   )
   let private = command().parse(argv=[
     "--mode", "local", "start", "--program-file", "program.sql", "--submission-ref-file",
@@ -31,15 +33,19 @@ test "Both preparation carriers select only the supplied exact public Run operat
   )
   for operation in ["check", "explain", "adopt"] {
     assert_true(
-      local_command_preparation_operation_selected(local, operation, false),
+      local_command_preparation_operation_selected(
+        local_command, operation, false,
+      ),
     )
   }
 }
 
 ///|
 test "Selected public Run chooses its operational preparation before any physical acquisition" {
-  let local = command().parse(argv=["--mode", "local", "run", "program.aql"])
-  assert_true(local_command_preparation_selected(local))
+  let local_command = command().parse(argv=[
+    "--mode", "local", "run", "program.aql",
+  ])
+  assert_true(local_command_preparation_selected(local_command))
   assert_true(command_preparation_invocation.val is None)
   let remote = command().parse(argv=["--mode", "remote", "run", "program.aql"])
   assert_false(local_command_preparation_selected(remote))
@@ -52,11 +58,11 @@ test "Selected public Run chooses its operational preparation before any physica
 
 ///|
 test "Selected public Run refuses an unsupplied explicit legacy configuration before acquisition" {
-  let local = command().parse(argv=[
+  let local_command = command().parse(argv=[
     "--mode", "local", "--config-file", "operator.json", "run", "program.aql",
   ])
   let issue = try {
-    prepare_native_command_invocation(local)
+    prepare_native_command_invocation(local_command)
     "unexpected success"
   } catch {
     ClientStop(message) => message

@@ -15,6 +15,14 @@ import {
   "moonbitlang/core/encoding/utf8",
 }
 
+import {
+  "moonbitlang/core/debug",
+} for "wbtest"
+
+import {
+  "moonbitlang/core/debug",
+} for "test"
+
 formatter(
   ignore: [
     "json_profile_identity.generated_wbtest.mbt",

@@ -17,7 +17,6 @@ priv struct InitialCryptoProfile {
 ///|
 priv enum InitialCryptoIssue {
   InvalidProfile
-  BackingUnavailable(Int)
   Host(@initial_bootstrap.NativeBootstrapIssue)
   Domain(@initial_bootstrap.NativeBackedExecutionIssue)
   Component(@initial_arena.InstalledArenaCryptoIssue)
@@ -495,7 +494,6 @@ fn local_initial_crypto_profile(
 fn initial_crypto_issue_message(issue : InitialCryptoIssue) -> String {
   match issue {
     InvalidProfile => "InvalidProfile"
-    BackingUnavailable(code) => "Backing(" + code.to_string() + ")"
     Host(issue) => "Host(" + @debug.to_string(issue) + ")"
     Domain(issue) => "Domain(" + @debug.to_string(issue) + ")"
     Component(@initial_arena.Domain(issue)) =>
@@ -503,7 +501,10 @@ fn initial_crypto_issue_message(issue : InitialCryptoIssue) -> String {
     Component(@initial_arena.Signature(issue)) =>
       "ComponentSignature(" + @debug.to_string(issue) + ")"
     Signature(issue) => "Signature(" + @debug.to_string(issue) + ")"
-    Filesystem(_) => "Filesystem"
+    Filesystem(issue) =>
+      "Filesystem(" +
+      command_preparation_cleanup_cause(CommandFilesystemCleanup(issue)) +
+      ")"
     Unavailable => "Unavailable"
   }
 }

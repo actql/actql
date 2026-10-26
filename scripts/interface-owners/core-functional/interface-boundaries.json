@@ -9264,7 +9264,7 @@
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               }
             ],
@@ -9276,23 +9276,23 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -9302,7 +9302,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
@@ -11618,7 +11618,7 @@
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               }
             ],
@@ -11630,23 +11630,23 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -11656,7 +11656,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
@@ -12262,7 +12262,7 @@
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               }
             ],
@@ -12274,23 +12274,23 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -12300,7 +12300,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
@@ -12434,7 +12434,7 @@
                 "anchor": "prepareOriginalMockRun(prepared, plan) {"
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "openSourceFreeHost(registry, values, fragment, ordered, providers) {"
               },
               {
@@ -12464,7 +12464,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "model.hostAttempted = true;"
               }
             ],
@@ -12500,11 +12500,11 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "openSourceFreeHost(registry, values, fragment, ordered, providers) {"
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (run.effectful || run.retired || model.closed || !model.taken || model.hostAttempted ||"
               }
             ],
@@ -15235,7 +15235,7 @@
                 "anchor": "# Serial physical strategy execution"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15245,7 +15245,7 @@
                 "anchor": "export function localStrategyContribution(moon, setup, checked, configuration) {"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15255,7 +15255,7 @@
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15275,7 +15275,7 @@
                 "anchor": "const yieldToHost = () => new Promise(resolve =>\n  typeof setImmediate === 'function' ? setImmediate(resolve) : setTimeout(resolve, 0));"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15305,7 +15305,7 @@
                 "anchor": "const managedWorkQuantum = 256;"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15325,7 +15325,7 @@
                 "anchor": "test('Local contribution admits, reads, executes and completes before exposing its close operation', async () => {"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ]
@@ -15563,7 +15563,7 @@
                 "anchor": "# Serial physical strategy execution"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15573,7 +15573,7 @@
                 "anchor": "export function numericStrategyContribution(moon, setup, checked) {"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15583,7 +15583,7 @@
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15603,7 +15603,7 @@
                 "anchor": "export function numericStrategyContribution(moon, setup, checked) {"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15633,7 +15633,7 @@
                 "anchor": "const managedSiteCapacity = value => Array.isArray(value)"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15653,7 +15653,7 @@
                 "anchor": "test('scoped Host observes asynchronous close failures even after recovery succeeds', async () => {"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ]
@@ -15893,7 +15893,7 @@
               },
               {
                 "path": "src/connectors_workers/pkg.generated.mbti",
-                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
+                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host_dispatch.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
               }
             ],
             "inputsOutputs": [
@@ -15903,7 +15903,7 @@
               },
               {
                 "path": "src/connectors_workers/pkg.generated.mbti",
-                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
+                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host_dispatch.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
               },
               {
                 "path": "packages/run-host-core/workers-finite.d.ts",
@@ -15917,7 +15917,7 @@
               },
               {
                 "path": "src/connectors_workers/pkg.generated.mbti",
-                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
+                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host_dispatch.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
               }
             ],
             "ownership": [
@@ -15937,7 +15937,7 @@
               },
               {
                 "path": "src/connectors_workers/pkg.generated.mbti",
-                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
+                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host_dispatch.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
               }
             ],
             "failure": [
@@ -15967,7 +15967,7 @@
               },
               {
                 "path": "src/connectors_workers/pkg.generated.mbti",
-                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
+                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host_dispatch.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
               },
               {
                 "path": "src/execution_relation/sequence_runtime_fragments.mbt",
@@ -15991,7 +15991,7 @@
               },
               {
                 "path": "src/connectors_workers/pkg.generated.mbti",
-                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
+                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host_dispatch.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
               },
               {
                 "path": "packages/run-host-core/workers-finite-expression.test.mjs",
@@ -23737,12 +23737,16 @@
     {
       "module": "src/physical_resources/imported_child_ledger.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "4fd3cd661ec666fa70dd50916d79db42ce77cf66a145ed03abddd702eccf6a63",
+      "sha256": "978a20c7daa13156ca0d28256c49f9529ee223da6af846905bf8a73a498378b6",
       "exports": [],
       "operations": [
         {
           "name": "check_imported_child_admission",
           "declaration": "check_imported_child_admission ( ledger : Ledger ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "check_imported_child_admission_current",
+          "declaration": "check_imported_child_admission_current ( ledger : Ledger , ) - > Result [ Unit , LedgerIssue ]"
         },
         {
           "name": "check_imported_child_ledger",
@@ -23829,7 +23833,8 @@
             "start_imported_child_ledger",
             "stop_imported_child_ledger",
             "take_imported_child_ledger",
-            "take_imported_original_child_ledger"
+            "take_imported_original_child_ledger",
+            "check_imported_child_admission_current"
           ],
           "exports": [],
           "attributes": {
@@ -23837,6 +23842,10 @@
               {
                 "path": "src/client_local_host/installed_source_read.mbt",
                 "anchor": "/// Consumer of an already issued original Resource child, never a capacity"
+              },
+              {
+                "path": "src/physical_resources/imported_child_ledger.mbt",
+                "anchor": "// Inspect the result of the existing current fence without calling it twice."
               }
             ],
             "inputsOutputs": [
@@ -23907,6 +23916,14 @@
               {
                 "path": "src/physical_resources/imported_original_correspondence_wbtest.mbt",
                 "anchor": "test \"original imported child check is read-only and refuses copied or fresh views\""
+              },
+              {
+                "path": "src/physical_resources/node_preparation_cleanup_wbtest.mbt",
+                "anchor": "test \"stopping original preparation permits cleanup but never new admission\""
+              },
+              {
+                "path": "src/physical_resources/node_preparation_cleanup_wbtest.mbt",
+                "anchor": "test \"unavailable original preparation remains retained and cannot authorize cleanup cut\""
               }
             ]
           }

@@ -145,7 +145,7 @@ test "accepted call inventory preserves typed key order and explicit zero keys" 
     let active = start(
       prepared,
       2,
-      infer_fixture_registry,
+      infer_fixture_installed_contracts(),
       infer_fixture_values,
       provider,
       @publication_host.client_infer_plan_graph_request_cid(plan),
@@ -187,7 +187,7 @@ test "restored execution retains the same formal call without another dispatch" 
   let replay = start_restored_replay(
     prepared,
     2,
-    infer_fixture_registry,
+    infer_fixture_installed_contracts(),
     infer_fixture_values,
     saved,
     standard_limits(),

@@ -260,7 +260,6 @@ fn produce_submission_append(
 }
 
 ///|
-#export_name("actql_submission_validate_append")
 pub fn validate_submission_append(
   nonce : Int64,
   handle : Int,

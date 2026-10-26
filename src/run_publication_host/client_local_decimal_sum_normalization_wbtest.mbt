@@ -7,7 +7,7 @@ let local_decimal_sum_public_sql : String = "WITH amounts AS (\n  SELECT CAST('1
 fn local_decimal_sum_normalization(
   owner : PreparedClientProgram,
 ) -> ClientLocalNormalization raise {
-  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
+  let proof = _issue_prepared_client_legacy_local_normalization(owner).unwrap()
   assert_eq(
     local_normalization_catalog_cid(proof.audit),
     "sha256:58cc11cad4aac1d83ccb051ebe2c6cec97ffdff6de9133bdd881d6446b90d409",
@@ -33,7 +33,7 @@ test "public Decimal SUM keeps the original SQL set and Group owners" {
   let original = local_explicit_cast_original(text=local_decimal_sum_public_sql)
   ignore(local_decimal_sum_normalization(original))
   let count = local_explicit_cast_original(text="SELECT COUNT(*) AS n")
-  let old = issue_prepared_client_legacy_local_normalization(count).unwrap()
+  let old = _issue_prepared_client_legacy_local_normalization(count).unwrap()
   assert_eq(local_normalization_catalog_cid(old.audit), local_group_catalog_cid)
 }
 
@@ -97,7 +97,7 @@ test "Decimal sum retains real candidate-key Sort completion and refuses empty e
   let document =
     #|{"version":"actql/0.1","id":"local.decimal-sum-sort","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"key":{"type":"string","nullable":false},"amount":{"type":"decimal","nullable":false,"precision":4,"scale":2}},"rows":[{"key":"b","amount":"1.00"},{"key":"a","amount":"1.00"}]},"as":"input"},{"group":{"by":["key"],"aggregates":{"n":{"fn":"sum","field":"amount"}}}},{"sort":[{"field":"n","dir":"asc","nulls":"last"}],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["key","n"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
   let owner = local_group_original_document(document)
-  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
+  let proof = _issue_prepared_client_legacy_local_normalization(owner).unwrap()
   guard proof.audit is SortCompletion(inventory) else {
     fail("actual Sort completion must survive exact-sum audit")
   }

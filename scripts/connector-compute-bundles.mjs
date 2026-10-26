@@ -16,7 +16,7 @@ export function generateComputeAssembly(entries, {buildInputs} = {}) {
   const names = new Set();
   const dependencies = new Map([
     ['actql/actql/connector_sdk', 'connector'],
-    ['actql/actql/physical_host', 'host'],
+    ['actql/actql/physical_host_dispatch', 'host'],
     ['actql/actql/execution_relation', 'execution'],
   ]);
   const alias = path => {

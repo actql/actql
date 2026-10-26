@@ -22,13 +22,13 @@ const noDependency = (name, forbidden) => assertProductionBoundary(name, manifes
 // Check architectural edges, not a complete list of today's neutral helpers.
 // Test and whitebox composition never establish a production dependency.
 for (const name of ['connector_sdk', 'execution_relation', 'execution_site',
-  'physical_host', 'physical_strategy', 'remote_site_completion',
+  'physical_host', 'physical_host_dispatch', 'physical_strategy', 'physical_strategy_host', 'remote_site_completion',
   'remote_site_protocol', 'remote_transfer', 'run_publication']) {
   test(`common production closure is connector-free: ${name}`, () => {
     noDependency(name, concreteDependencies);
   });
 }
-for (const name of ['physical_strategy', 'physical_host', 'execution_query']) {
+for (const name of ['physical_strategy', 'physical_strategy_host', 'physical_host', 'physical_host_dispatch', 'execution_query']) {
   test(`common public surface owns no concrete execution payload: ${name}`, () => {
     noDependency(name, /^query_planning$/u);
     noPublic(name, /DuckDB|duckdb|query_planning|connectors\//u);
@@ -36,7 +36,7 @@ for (const name of ['physical_strategy', 'physical_host', 'execution_query']) {
 }
 
 test('captured DAG consumes obligations without operation-template dependencies', () => {
-  assertProductionImports('physical_strategy', manifest('physical_strategy'),
+  assertProductionImports('physical_strategy_host', manifest('physical_strategy_host'),
     /^(?:relation_join_shape|capacity_graph_preflight)$/u);
 });
 
@@ -55,7 +55,7 @@ test('reference Compute author cannot reserve the physical ledger or expose exec
 });
 
 test('linear cost schedules and Site control have no strategy or implementation dependencies', () => {
-  const forbidden = /^(?:connectors\/|duckdb_|physical_(?:host|strategy|resources)$|execution_(?:query|relation)$|query_)/u;
+  const forbidden = /^(?:connectors\/|duckdb_|physical_(?:host(?:_dispatch)?|strategy(?:_host)?|resources)$|execution_(?:query|relation)$|query_)/u;
   for (const name of ['physical_cost', 'execution_site']) noDependency(name, forbidden);
   opaque('physical_cost', ['RateSchedule']);
   noPublic('physical_cost', /DuckDB|LocalDispatch|connectors\//u);
@@ -72,7 +72,7 @@ test('portable runtime bundle signatures and activation expose common transactio
 test('DuckDB acquisition and transport remain independent of Compute composition and Local', () => {
   for (const name of ['connectors/duckdb/host', 'connectors/duckdb/host_node']) {
     noDependency(name, name.endsWith('/host')
-      ? /^(?:duckdb_host|connectors_builtin|physical_host)$|^connectors\/(?:local|reference_compute)(?:\/|$)/u
+      ? /^(?:duckdb_host|connectors_builtin|physical_host(?:_dispatch)?)$|^connectors\/(?:local|reference_compute)(?:\/|$)/u
       : /^(?:duckdb_host|connectors_builtin)$|^connectors\/(?:local|reference_compute)(?:\/|$)/u);
   }
   assert.ok(imports('connectors/duckdb/host').includes('connectors/duckdb/acquisition'));
@@ -89,11 +89,11 @@ test('concrete SQL compilation belongs to the DuckDB adapter, not the compositio
     assert.ok(imports(name).includes('connectors/duckdb/adapter'));
   }
   noPublic('connectors_builtin_node', /pub fn (?:compute_host_sql|resident_import_sql)\(/u);
-  noPublic('physical_strategy', /pub fn (?:captured_resident_query|captured_resident_cleanup_sql|resident_read_view_sql|resident_inputs_view_sql)\b/u);
+  noPublic('physical_strategy_host', /pub fn (?:captured_resident_query|captured_resident_cleanup_sql|resident_read_view_sql|resident_inputs_view_sql)\b/u);
 });
 
 test('Connector SDK exposes opaque author contracts rather than concrete execution or planning', () => {
-  noDependency('connector_sdk', /^(?:connectors\/|duckdb_|query_planning$|physical_strategy$)/u);
+  noDependency('connector_sdk', /^(?:connectors\/|duckdb_|query_planning$|physical_strategy(?:_host)?$)/u);
   noPublic('connector_sdk', /DuckDB|NativeQueryIssue|query_planning/u);
   opaque('connector_sdk', ['CapabilityRegistry', 'CapabilityRegistration',
     'FixedComputeRequest', 'FixedComputeCandidate', 'CapabilityImplementations',
@@ -134,17 +134,17 @@ test('query comparison and canonical materials have no concrete acquisition owne
 });
 
 test('physical ledger is opaque and independent of algebra, strategy and Connector owners', () => {
-  const forbidden = /^(?:connectors\/|duckdb_|connector_sdk$|physical_(?:strategy|host|cost)$|execution_|query_|pipeline_|lowering_|relation_|graph_|vector_|sourceview_)/u;
+  const forbidden = /^(?:connectors\/|duckdb_|connector_sdk$|physical_(?:strategy(?:_host)?|host(?:_dispatch)?|cost)$|execution_|query_|pipeline_|lowering_|relation_|graph_|vector_|sourceview_)/u;
   noDependency('physical_resources', forbidden);
   assertProductionImports('physical_resources public API', api('physical_resources'), forbidden);
-  assert.ok(imports('physical_strategy').includes('physical_resources'));
+  assert.ok(imports('physical_strategy_host').includes('physical_resources'));
   opaque('physical_resources', ['Ledger', 'Reservation', 'Holding',
     'SharedCapacity', 'SharedAllocation', 'SharedBorrow']);
 });
 
 test('execution lifecycle uses opaque preparations and completions, not backend attempts or hooks', () => {
-  const strategy = api('physical_strategy');
-  opaque('physical_strategy', ['TaskExecution']);
+  const strategy = api('physical_strategy_host');
+  opaque('physical_strategy_host', ['TaskExecution']);
   for (const name of ['charge_task_execution_transfer', 'settle_task_execution',
     'complete_materializing_task_execution', 'close_task_execution']) {
     assert.match(publicFunction(strategy, name), /TaskExecution/u);
@@ -155,18 +155,18 @@ test('execution lifecycle uses opaque preparations and completions, not backend 
   const synchronous = publicFunction(strategy, 'execute_captured_synchronous_task');
   assert.match(synchronous, /SynchronousCompute/u);
   assert.doesNotMatch(synchronous, /GeneratedSequence|SequenceExecutionLimits|Local/u);
-  noPublic('physical_strategy', /CapturedDuckDBTask|DuckDBComputeAttempt|TaskPublication|pub fn (?:start_captured_execution|complete_task_execution|publish_task_completion|execute_captured_local_task|charge_captured_duckdb_transfer|settle_captured_duckdb_native|complete_captured_duckdb_task|close_captured_duckdb_task)\b/u);
+  noPublic('physical_strategy_host', /CapturedDuckDBTask|DuckDBComputeAttempt|TaskPublication|pub fn (?:start_captured_execution|complete_task_execution|publish_task_completion|execute_captured_local_task|charge_captured_duckdb_transfer|settle_captured_duckdb_native|complete_captured_duckdb_task|close_captured_duckdb_task)\b/u);
 });
 
 test('prepared dispatch is opaque and provider-neutral', () => {
-  opaque('physical_host', ['DispatchDriver', 'DispatchTicket', 'DispatchWork', 'PreparedTaskDispatch']);
-  noPublic('physical_host', /DuckDB|Native|SQL|connectors\//u);
+  opaque('physical_host_dispatch', ['DispatchDriver', 'DispatchTicket', 'DispatchWork', 'PreparedTaskDispatch']);
+  noPublic('physical_host_dispatch', /DuckDB|Native|SQL|connectors\//u);
   noPublic('connectors/duckdb/standard_host', /pub fn execute_local_dispatch\b/u);
 });
 
 test('Local candidate construction and bounded sequence configuration remain Connector-owned', () => {
   opaque('connectors/local', ['LocalComputeModule']);
-  for (const name of ['physical_host', 'connector_sdk', 'connectors/duckdb/compute',
+  for (const name of ['physical_host', 'physical_host_dispatch', 'connector_sdk', 'connectors/duckdb/compute',
     'connectors/duckdb/driver', 'connectors/reference_compute', 'connectors/reference_compute/driver']) {
     noPublic(name, /\bGeneratedSequence\b/u);
   }
@@ -176,7 +176,7 @@ test('concrete capacity, configuration, compiled requests and resident payloads 
   const compute = api('connectors/duckdb/compute');
   for (const name of ['duckdb_task_retention_capacity', 'duckdb_task_scratch_capacity']) {
     publicFunction(compute, name);
-    noPublic('physical_strategy', new RegExp(`pub fn ${name}\\b`, 'u'));
+    noPublic('physical_strategy_host', new RegExp(`pub fn ${name}\\b`, 'u'));
   }
   opaque('connectors/duckdb/compute', ['DuckDBDispatchPreparation', 'DuckDBSelectedCompute',
     'DuckDBResidentOutput', 'DuckDBResidentRead']);
@@ -210,4 +210,16 @@ test('adopted filesystem-free contract fixtures match the ordinary authoritative
   // Its read-only mode verifies complete generated artifacts against normative
   // inputs. Do not hand-parse private function bodies or invent another oracle.
   await import('./lowering-registry-vectors.mjs');
+});
+
+
+test('portable checked graph and estimates never acquire live Host custody', () => {
+  const forbidden = /^(?:physical_resources|physical_strategy_host|physical_host_dispatch)$/u;
+  for (const name of ['physical_strategy', 'physical_host']) {
+    noDependency(name, forbidden);
+    assertProductionImports(name + ' public API', api(name), forbidden);
+  }
+  for (const name of ['physical_strategy_host', 'physical_host_dispatch']) {
+    noDependency(name, concreteDependencies);
+  }
 });

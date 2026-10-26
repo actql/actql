@@ -17,8 +17,8 @@ const canonical = v => Array.isArray(v) ? `[${v.map(canonical)}]`
     : JSON.stringify(v);
 const cid = v => 'sha256:' + createHash('sha256').update(canonical(v)).digest('hex');
 const currentCid =
-  'sha256:38df5e7d680450fc90f7d6ec4617c384a013f8645916db2208462099100bf33a';
-const contractCid = 'sha256:beeb158446c54c0f581cb865f99e0031acb1f87925077dcc2119838716e818b7';
+  'sha256:f6f017a119e5a24f0c36a64cd7f2b4fd67ea533679945098375d854af644f642';
+const contractCid = 'sha256:3d647ebc2757e8be9bf5944e32d73771147f3cac893f6c705430310cd03a3f48';
 
 function resolve(body, selected, owner = aoa, expr = expressions) {
   assert.equal(cid(body), selected, 'RegistryCidMismatch');
@@ -132,22 +132,31 @@ const predecessor = JSON.parse(predecessorBytes);
 test('registered closure changes only the stale expression dependency and containing identities', () => {
   assert.equal(predecessor.source, '6f6ebe8a6e4fc4d642614c4753ccf6e8587f3ebf');
   const before = predecessor.bodies;
+  // The next retained transition pins this registration's exact successor.
+  const successor = JSON.parse(gunzipSync(readFileSync(
+    'scripts/fixtures/try-timestamp-unary/predecessor.json.gz'))).bodies;
+  const introducedExpressions = successor['spec/contracts/actql-expressions.json'];
+  assert.equal(cid(introducedExpressions), 'sha256:6ab2396dc413fa604854f6586ec957203ccf23392c52f254dfd7b3c0c6dcbe7f');
   assert.equal(cid(before.aoa), 'sha256:aace4d39f4f3f214158027007d7bfd27ded49f29f0aac55ca022b48bb0ddc5f0');
   assert.equal(cid(before.pipelineRegistry), 'sha256:26915f8a20a27b9e37c1e9760fe2526c460b63bf2f1957fa1af858b18051271c');
-  assert.equal(before.aoa.expression_contract_cid, cid(expressions));
+  assert.equal(before.aoa.expression_contract_cid, cid(introducedExpressions));
   assert.equal(before.aoa.execution_contracts[op].dependencies.expression_contract.cid,
     'sha256:6ccd3d3e87cf65610f96b81ce3a11844f1d12a6bee3166df66726a3c11e571f8');
-  assert.throws(() => checkRegistration(before.aoa, expressions, before.pipelineRegistry));
+  assert.throws(() => checkRegistration(before.aoa, introducedExpressions, before.pipelineRegistry));
   const expected = structuredClone(before);
-  expected.aoa.execution_contracts[op].dependencies.expression_contract.cid = cid(expressions);
+  expected.aoa.execution_contracts[op].dependencies.expression_contract.cid = cid(introducedExpressions);
   const selected = cid(expected.aoa.execution_contracts[op]);
   expected.aoa.target_registry_requirements[op].execution_contract.cid = selected;
   expected.pipelineRegistry[op].execution_contract.cid = selected;
   expected.aoa.pipeline_registry_cid = cid(expected.pipelineRegistry);
-  assert.deepEqual(aoa, expected.aoa);
-  assert.deepEqual(registry, expected.pipelineRegistry);
-  assert.deepEqual(read('spec/contracts/actql-check-environment.json'), before.checkEnvironment);
-  assert.deepEqual(read('spec/manifests/actql-grammar-0.1.json'), before.grammarManifest);
+  assert.deepEqual(successor['spec/contracts/actql-aoa.json'], expected.aoa);
+  assert.deepEqual(successor['spec/dependencies/aoa-pipeline-registry.json'], expected.pipelineRegistry);
+  assert.equal(cid(before.checkEnvironment), 'sha256:b351198c3319e349f87c650694e8cc9b3a443598eac3097992d445eadaafee23');
+  // Unrelated later query grammar adoption does not rewrite this retained preimage.
+  assert.equal(cid(before.grammarManifest), 'sha256:f17b415abfe5464164adb96b0adbd62874002a9e1728604b3804b98f20ae5e17');
+  const updated = structuredClone(before);
+  registerExpressionFragment(updated.aoa, introducedExpressions, updated.pipelineRegistry);
+  assert.deepEqual(updated, expected);
 });
 
 test('containing expression writer uses the same closed registration updater', () => {

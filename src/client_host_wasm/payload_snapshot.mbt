@@ -2,7 +2,6 @@
 /// Fresh trusted physical facts do not advance the original Sealed record.
 /// The Host retains the original reader/reservation and fences them again
 /// before Store commit; this bridge provides no publisher or durable ACK.
-#export_name("actql_payload_record_validate_snapshot")
 pub fn validate_payload_record_snapshot(
   nonce : Int64,
   handle : Int,

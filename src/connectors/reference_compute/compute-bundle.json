@@ -18,6 +18,6 @@
   "configure": "configure_numeric_compute",
   "registration": "numeric_contribution_registration",
   "contribution": "numeric_compute_contribution",
-  "dispatch_error": {"package": "actql/actql/physical_strategy", "type": "RunIssue"},
-  "estimate_error": {"package": "actql/actql/physical_strategy", "type": "RunIssue"}
+  "dispatch_error": {"package": "actql/actql/physical_strategy_host", "type": "RunIssue"},
+  "estimate_error": {"package": "actql/actql/physical_strategy_host", "type": "RunIssue"}
 }

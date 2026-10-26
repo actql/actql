@@ -33,7 +33,7 @@ fn current_graph_relation_program(variant : String) -> String {
     "{\"match_nodes\":{\"definition\":\"N\",\"label\":\"Node\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\",\"id\",\"node_name\"]},\"as\":\"projected\"}"
   }
   let result_fields = if variant == "current_degree" {
-    "\"node\",\"degree\""
+    "\"node_id\",\"degree\""
   } else if variant == "current_bounds" {
     "\"kind\",\"node_id\",\"actual\",\"max\""
   } else if variant == "current_components_weak" ||
@@ -47,7 +47,7 @@ fn current_graph_relation_program(variant : String) -> String {
     "\"id\",\"node_name\""
   }
   let first_fields = if variant == "current_degree" {
-    "\"node\",\"degree\""
+    "\"node_id\",\"degree\""
   } else if variant == "current_bounds" {
     "\"kind\",\"actual\""
   } else if variant == "current_components_weak" ||
