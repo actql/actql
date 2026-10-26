@@ -15,6 +15,7 @@ import {installNodeClientProgramPreparation} from '../../../../host-node/client-
 import {createNodeHostEntry} from '../../../../host-node/entry.mjs';
 import {installStrategyContributions} from '../../../../connectors-builtin/strategy.generated.mjs';
 import {checked} from '../../../../host-common/runtime-result.mjs';
+import {runtimeField} from '../../../../host-common/compiler-binding.generated.mjs';
 import {sourceFreeTaskPlan, acquiredTaskRunAdmission,
   acquiredTaskPublicationPlan} from '../../../../host-node/local-values-plan.mjs';
 import {authorizeLocalDatabase} from '../session.mjs';
@@ -353,76 +354,72 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
           return () => assert.fail('blocking publication validation');
         }
         if (route.observePublicationValidation &&
-            ['strategyEffectFreeChainCheckAdvance',
-              'strategyEffectFreeCommitCheckAdvance'].includes(property)) {
-          return preparation => {
-            const result = target[property](preparation,
-              ['suffix-check', 'capture-inventory', 'result-lookup']
-                .includes(route.cancelValidationPhase) ? 1 : 32);
-            const chain = property === 'strategyEffectFreeChainCheckAdvance';
-            const phase = chain
-              ? target.strategyEffectFreeChainCheckFixturePhase(preparation)
-              : target.strategyEffectFreeCommitCheckFixturePhase(preparation);
-            route.validationPolls = (route.validationPolls ?? 0) + 1;
-            (route.validationPhases ??= new Set()).add(phase);
-            if (phase === 'root-check') {
-              route.rootPolls = (route.rootPolls ?? 0) + 1;
-              assert.equal(result, 0);
-            }
-            if (phase === 'receipt-check') {
-              route.receiptPolls = (route.receiptPolls ?? 0) + 1;
-              assert.equal(result, 0);
-            }
-            if (chain && phase === 'suffix-check') {
-              route.suffixPolls = (route.suffixPolls ?? 0) + 1;
-              assert.equal(result, 0);
-            }
-            if (chain && phase === 'capture-inventory') {
-              route.captureInventoryPolls = (route.captureInventoryPolls ?? 0) + 1;
-              assert.equal(result, 0);
-            }
-            if (chain && phase === 'result-lookup') {
-              route.resultLookupPolls = (route.resultLookupPolls ?? 0) + 1;
-              assert.equal(result, 0);
-            }
-            if (!chain) {
-              route.commitPolls = (route.commitPolls ?? 0) + 1;
-              if (phase === 'result-evidence') {
-                route.resultEvidencePolls = (route.resultEvidencePolls ?? 0) + 1;
-                assert.equal(result, 0);
-              }
-              if (phase === 'bindings') {
-                route.bindingPolls = (route.bindingPolls ?? 0) + 1;
-                assert.equal(result, 0);
-              }
-              if (phase === 'namespace-check') {
-                route.namespacePolls = (route.namespacePolls ?? 0) + 1;
-                assert.equal(result, 0);
-              }
-            }
-            assert.equal(completedDispatches, 3);
-            if (chain && mode === 'cancel-during-publication-validation' &&
-                !scheduled && phase === route.cancelValidationPhase &&
-                route.validationPolls > 1 &&
-                (phase !== 'suffix-check' || route.suffixPolls >= 3) &&
-                (phase !== 'capture-inventory' || route.captureInventoryPolls >= 3) &&
-                (phase !== 'result-lookup' || route.resultLookupPolls >= 2)) {
-              assert.equal(result, 0);
-              assert.ok(route.validationPolls > 1);
+            property === 'strategyBeginEffectFreeChainCheckRetained') {
+          const original = Reflect.get(target, property, receiver);
+          return (...args) => {
+            const preparation = Reflect.apply(original, target, args);
+            route.retainedChainStarts = (route.retainedChainStarts ?? 0) + 1;
+            assert.equal(target.strategyEffectFreeChainCheckFixturePhase(preparation), 'done',
+              'the same retained original must not repeat computation checking');
+            if (route.cancelValidationPhase === 'before-retained-check') {
               scheduled = true;
-              setTimeout(() => cancellation.abort(), 0);
+              cancellation.abort();
+            }
+            return preparation;
+          };
+        }
+        if (route.observePublicationValidation &&
+            property === 'strategyEffectFreeChainCheckAdvance') {
+          return preparation => {
+            const result = target[property](preparation, 1);
+            route.validationPolls = (route.validationPolls ?? 0) + 1;
+            assert.equal(result, 1, 'the original computation proof is already complete');
+            assert.equal(completedDispatches, 3);
+            if (route.cancelValidationPhase === 'after-retained-check') {
+              scheduled = true;
+              cancellation.abort();
             }
             return result;
           };
         }
         if (route.observePublicationValidation &&
-            ['strategyEffectFreeChainCheckCancel',
-              'strategyEffectFreeCommitCheckCancel'].includes(property)) {
+            property === 'strategyEffectFreeChainCheckCancel') {
           return preparation => {
             target[property](preparation);
             route.validationCancels = (route.validationCancels ?? 0) + 1;
             assert.equal(preparation.live, 0);
             assert.equal(preparation.inputs, undefined);
+          };
+        }
+        if (route.observePublicationValidation &&
+            property === 'clientStoreAdvanceOriginalValidation') {
+          return validation => {
+            const state = validation.state;
+            assert.ok(state);
+            const checker = runtimeField(state, 0);
+            const result = target[property](validation, 1);
+            const complete = runtimeField(checked(result), 0);
+            assert.equal(typeof complete, 'boolean');
+            route.commitPolls = (route.commitPolls ?? 0) + 1;
+            const phase = target.strategyEffectFreeCommitCheckFixturePhase(checker);
+            (route.commitPhases ??= new Set()).add(phase);
+            for (const [name, label] of [['resultEvidencePolls', 'result-evidence'],
+              ['bindingPolls', 'bindings'], ['namespacePolls', 'namespace-check']]) {
+              if (phase === label) route[name] = (route[name] ?? 0) + 1;
+            }
+            if (!complete) {
+              assert.strictEqual(validation.state, state);
+              assert.strictEqual(runtimeField(validation.state, 0), checker);
+            }
+            return result;
+          };
+        }
+        if (route.observePublicationValidation &&
+            property === 'clientStoreCancelOriginalValidation') {
+          return validation => {
+            target[property](validation);
+            route.storeValidationRetirements = (route.storeValidationRetirements ?? 0) + 1;
+            assert.equal(validation.state, undefined);
           };
         }
         if (route.observeCapturePreparation &&
@@ -435,13 +432,14 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
           return preparation => {
             const before = target.strategyCapturedRunFixturePhase(preparation);
             const result = target[property](preparation,
-              route.cancelCapturePhase === 'snapshot-inventory' &&
-                before === 'snapshot-inventory' ? 1 : 32);
+              ['snapshot-inventory', 'root-check'].includes(route.cancelCapturePhase) &&
+                before === route.cancelCapturePhase ? 1 : 32);
             const complete = checked(result);
             const phase = target.strategyCapturedRunFixturePhase(preparation);
             route.capturePolls = (route.capturePolls ?? 0) + 1;
             (route.capturePhases ??= new Set()).add(phase);
-            if (phase === 'root-check') {
+            route.capturePhases.add(before);
+            if (before === 'root-check' || phase === 'root-check') {
               route.captureRootPolls = (route.captureRootPolls ?? 0) + 1;
               assert.equal(complete, false);
             }
@@ -451,12 +449,14 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
             }
             assert.equal(completedDispatches, 3);
             if (mode === 'cancel-during-captured-run' && !scheduled &&
-                phase === route.cancelCapturePhase && route.capturePolls > 1 &&
+                (phase === route.cancelCapturePhase || before === route.cancelCapturePhase) &&
+                route.capturePolls > 1 &&
                 (phase !== 'snapshot-inventory' || route.captureSnapshotPolls >= 3)) {
               assert.equal(complete, false);
               assert.ok(route.capturePolls > 1);
               scheduled = true;
-              setTimeout(() => cancellation.abort(), 0);
+              if (route.cancelCapturePhase === 'root-check') cancellation.abort();
+              else setTimeout(() => cancellation.abort(), 0);
             }
             return result;
           };
@@ -464,8 +464,12 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
         if (route.observeCapturePreparation &&
             property === 'strategyCapturedRunCancel') {
           return preparation => {
+            const completed = target.strategyCapturedRunFixturePhase(preparation) === 'retained';
             target[property](preparation);
-            route.captureCancels = (route.captureCancels ?? 0) + 1;
+            // Completed managed-view retirement is separate from cancellation;
+            // Store, Compute and physical acknowledgements remain with their Owners.
+            const counter = completed ? 'captureRetirements' : 'captureCancels';
+            route[counter] = (route[counter] ?? 0) + 1;
             assert.equal(target.strategyCapturedRunFixturePhase(preparation), 'closed');
             assert.equal(preparation.live, 0);
             assert.equal(preparation.inputs, undefined);
@@ -1049,6 +1053,7 @@ for (const phase of ['success', 'root-check', 'snapshot-inventory', 'context-che
         assert.ok(route.capturePhases.has('rows-check'));
         await assertPublishedRows(publication, plan, owner.execution, [second, first]);
         assert.equal(route.captureCancels ?? 0, 0);
+        assert.equal(route.captureRetirements, 1);
       } else {
         await assert.rejects(run(), error => {
           assert.equal(error.code, 'CapturedRunPublicationFailed');
@@ -1074,9 +1079,11 @@ for (const phase of ['success', 'root-check', 'snapshot-inventory', 'context-che
   });
 }
 
-for (const phase of ['success', 'receipt-check', 'context-check', 'capture-inventory',
-  'result-lookup', 'rows-check', 'suffix-check']) {
-  test(`retained publication validation yields before commit: ${phase}`, async () => {
+// Independent received/copy/tighter evidence still traverses every aggregate
+// boundary in captured_run_issuance_test.mbt. This ordinary same-original path
+// instead proves proof reuse and the before/after-completion cancellation fence.
+for (const phase of ['success', 'before-retained-check', 'after-retained-check']) {
+  test(`retained publication preserves original validation ownership: ${phase}`, async () => {
     const first = {id: 1, note: `${'é'.repeat(257)}e\u0301\r\n😀`};
     const second = {id: 2, note: null};
     const document = JSON.parse(program([first, second], 'true'));
@@ -1095,18 +1102,15 @@ for (const phase of ['success', 'receipt-check', 'context-check', 'capture-inven
       if (mode === 'success') {
         const owner = await run();
         assert.equal(owner.status, 'published');
+        assert.equal(route.retainedChainStarts, 1);
+        assert.equal(route.validationPolls, 1);
+        assert.equal(route.validationCancels, 1);
+        assert.ok(route.commitPolls > 1, 'the original Store checker must actually yield');
+        assert.ok(route.resultEvidencePolls > 1);
+        assert.ok(route.bindingPolls > 1);
+        assert.ok(route.namespacePolls > 1);
+        assert.equal(route.storeValidationRetirements, 1);
         await assertPublishedRows(publication, plan, owner.execution, [second, first]);
-        assert.ok(route.commitPolls > 1);
-        assert.ok(route.rootPolls > 1,
-          'publication root validation must yield before context checks');
-        assert.ok(route.receiptPolls > 1,
-          'embedded receipt validation must yield before context checks');
-        assert.ok(route.resultEvidencePolls > 1,
-          'Result dependency resolution must yield within commit validation');
-        assert.ok(route.bindingPolls > 1,
-          'durable binding validation must yield within commit validation');
-        assert.ok(route.namespacePolls > 1,
-          'long namespace comparison must yield within commit validation');
         assert.equal(route.attemptCreates, 1);
       } else {
         await assert.rejects(run(), error => {
@@ -1115,6 +1119,8 @@ for (const phase of ['success', 'receipt-check', 'context-check', 'capture-inven
           assert.deepEqual(error.execution.completed.map(task => task.task), [0, 1, 2]);
           return true;
         });
+        assert.equal(route.retainedChainStarts, 1);
+        assert.equal(route.validationPolls ?? 0, phase === 'before-retained-check' ? 0 : 1);
         assert.equal(route.validationCancels, 1);
         assert.equal(route.commitPolls ?? 0, 0);
         assert.equal(route.contractWrites ?? 0, 0);
@@ -1126,15 +1132,6 @@ for (const phase of ['success', 'receipt-check', 'context-check', 'capture-inven
           runDefinitionCid: plan.runDefinition.identity,
         }, () => true), /PublicationLookupDenied/);
       }
-      if (phase !== 'receipt-check') assert.ok(route.validationPhases.has('context-check'));
-      if (phase === 'success' || phase === 'rows-check') {
-        assert.ok(route.validationPhases.has('rows-check'));
-      }
-      assert.ok(route.validationPhases.has('receipt-check'));
-      if (phase === 'suffix-check') assert.ok(route.suffixPolls >= 3);
-      if (phase === 'capture-inventory') assert.ok(route.captureInventoryPolls >= 3);
-      if (phase === 'result-lookup') assert.ok(route.resultLookupPolls >= 2);
-      assert.ok(route.validationPolls > 1);
       assert.equal(observations().dispatches, 3);
       assert.equal(observations().completedDispatches, 3);
     }, mode, undefined, undefined, false, route);
