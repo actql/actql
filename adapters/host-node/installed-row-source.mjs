@@ -1287,7 +1287,7 @@ export async function createInstalledRowSource({moon, declaration,
 
   async function prepare({preparedProgram, preparedEffect, registry, values,
     fragment, ordered, sourceAccess: access = sourceAccess,
-    queryTimePreparation, requestIdentity,
+    queryTimePreparation, requestIdentity, managedRun,
     occurrence = {stage: 0, input: 0, task: 0}}) {
     if ((preparedProgram === undefined) === (preparedEffect === undefined)) {
       fail('InvalidInstalledSourcePreparation');
@@ -1301,9 +1301,21 @@ export async function createInstalledRowSource({moon, declaration,
     occurrence = Object.freeze({...occurrence});
     const effectful = preparedEffect !== undefined;
     const checkedOwner = preparedEffect ?? preparedProgram;
-    const {requirement} = prepareOriginalSourceQuery({moon,
+    let planned;
+    if (effectful) {
+      if (managedRun === undefined || originalReader === undefined ||
+          typeof moon.clientProgramInstalledEffectManagedSourceRead !== 'function') {
+        fail('InstalledEffectPlanUnavailable');
+      }
+      // The admitted parent already owns this acquisition/capacity. Do not
+      // prepare another equal requirement or attach a replacement acquisition.
+      checked(moon.clientProgramInstalledEffectManagedRunCheck(managedRun, checkedOwner, requestIdentity));
+      planned = checked(moon.clientProgramInstalledEffectManagedSourceRead(managedRun, declaration, occurrence.task));
+    }
+    const requirement = planned === undefined ? prepareOriginalSourceQuery({moon,
       preparedProgram, preparedEffect, stage: occurrence.stage, input: occurrence.input,
-      registry, values, fragment, ordered, queryTimePreparation, requestIdentity});
+      registry, values, fragment, ordered, queryTimePreparation, requestIdentity}).requirement
+      : runtimeField(planned, 1);
     const facts = checked(
       moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
     if (!Array.isArray(facts) || facts.length !== 6 ||
@@ -1346,9 +1358,10 @@ export async function createInstalledRowSource({moon, declaration,
     // The actual installation retains the imported child before returning
     // this same opaque read. A failure below remains with that original
     // supplier; no local scalar/fallback Ledger or cleanup ACK is created.
-    const originalRead = prepareSourceRead === undefined ? undefined :
-      prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement, occurrence}));
-    if (prepareSourceRead !== undefined) {
+    const originalRead = planned !== undefined ? runtimeField(planned, 0)
+      : prepareSourceRead === undefined ? undefined :
+        prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement, occurrence}));
+    if (originalRead !== undefined) {
       if (originalRead === undefined || nodeTypes.isPromise(originalRead)) fail('InstalledSourceReadUnavailable');
       checked(moon.clientProgramInstalledSourceReadCheckCurrent(originalRead));
       checked(effectful
@@ -1358,26 +1371,27 @@ export async function createInstalledRowSource({moon, declaration,
     // An installed provider may select its existing pure typed preparer. It
     // must return this exact requirement/declaration's original acquisition;
     // this is neither an I/O callback nor permission to replace a checked Run.
-    const acquisition = prepareAcquisition === undefined
+    const acquisition = planned !== undefined ? runtimeField(planned, 2) : prepareAcquisition === undefined
       ? checked(moon.clientProgramRowSourcePrepareAcquisition(
         declaration, requirement, queryContract, evidenceContract, listingPolicy))
       : prepareAcquisition(Object.freeze({declaration, requirement,
         queryContract, evidenceContract}));
-    if (prepareAcquisition !== undefined) {
+    if (planned === undefined && prepareAcquisition !== undefined) {
       checked(moon.clientProgramRowSourceCheckOriginalAcquisition(
         acquisition, declaration, requirement));
     }
-    if (originalRead !== undefined) checked(moon.clientProgramInstalledSourceReadAttachAcquisition(
+    if (planned === undefined && originalRead !== undefined) checked(moon.clientProgramInstalledSourceReadAttachAcquisition(
       originalRead, declaration, requirement, acquisition, occurrence.stage, occurrence.input));
-    const providerCaptureCapacity = originalReader === undefined ? undefined :
-      moon.clientProgramInstalledProviderRowCaptureCapacity(acquisition, originalReader.capacity);
+    const providerCaptureCapacity = planned !== undefined ? runtimeField(planned, 3)
+      : originalReader === undefined ? undefined :
+        moon.clientProgramInstalledProviderRowCaptureCapacity(acquisition, originalReader.capacity);
     if (originalReader !== undefined && providerCaptureCapacity === undefined) {
       fail('InstalledSourceCapacityUnavailable');
     }
     if (directReadIdentity === undefined) await authorizePreparation();
     preparations.set(prepared, Object.freeze({checkedOwner, effectful,
       requirement, resource, access, acquisition,
-      occurrence, physicalBindingCid, providerCaptureCapacity, originalRead}));
+      occurrence, physicalBindingCid, providerCaptureCapacity, originalRead, managedRun}));
     ordinaryRecoveryBinding(prepared);
     return prepared;
   }
@@ -1994,10 +2008,11 @@ export async function createInstalledRowSource({moon, declaration,
         dispatchRequestCid, maxUses: limits.maxPages});
       // Preserve a selected driver's original grant/attempt order. The
       // ordinary JSON/listing path keeps its existing post-begin issuance.
-      // A local original read has no credential to issue. It retains the
-      // independently current Account decision and original child; neither is
-      // turned into a synthetic Site grant or a public read permission.
-      const credentialRead = owner.originalRead === undefined;
+      // A local original read has no credential to issue. A managed provider
+      // read adds Resource custody only: it still needs the same Site grant
+      // and current Account decision, never permission from its Run identity.
+      const credentialRead = owner.originalRead === undefined ||
+        owner.managedRun !== undefined && originalReader !== undefined;
       let grant = credentialRead && grantBeforeBegin ? issueGrant() : undefined;
       checked(pageLimits === undefined
         ? moon.clientProgramRowSourceBegin(run, limits.maxPageBytes,
@@ -2085,6 +2100,7 @@ export async function createInstalledRowSource({moon, declaration,
       if (capacity === undefined) fail('InstalledSourceCapacityUnavailable');
       return Object.freeze({
         capacity,
+        ...(owner.managedRun === undefined ? {} : {managedRun: owner.managedRun}),
         transferBytes: maxTransferBytes,
         executionBytes: BigInt(limits.maxPageBytes),
       });
