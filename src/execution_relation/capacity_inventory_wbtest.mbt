@@ -100,3 +100,34 @@ test "capacity inventory rejects invalid counts and checked Int64 overflow" {
     0L,
   )
 }
+
+///|
+test "incremental capacity inventory preserves prior usage and exact byte boundaries" {
+  let maximum = 9223372036854775807L
+  assert_eq(execution_capacity_inventory_add(7L, QuotedBytes, 3L, 4), Some(19L))
+  assert_eq(
+    execution_capacity_inventory_add(7L, ValueNodeSlots, 2L, 3),
+    Some(1543L),
+  )
+  assert_eq(
+    execution_capacity_inventory_add(maximum, QuotedBytes, 0L, 1),
+    Some(maximum),
+  )
+  assert_eq(
+    execution_capacity_inventory_add(maximum, ValueNodeSlots, maximum, 0),
+    Some(maximum),
+  )
+  assert_eq(
+    execution_capacity_inventory_add(maximum - 6L, QuotedBytes, 3L, 2),
+    Some(maximum),
+  )
+  assert_true(
+    execution_capacity_inventory_add(maximum - 5L, QuotedBytes, 3L, 2) is None,
+  )
+  assert_true(execution_capacity_inventory_add(-1L, QuotedBytes, 0L, 0) is None)
+  assert_true(execution_capacity_inventory_add(0L, QuotedBytes, -1L, 0) is None)
+  assert_true(execution_capacity_inventory_add(0L, QuotedBytes, 0L, -1) is None)
+  assert_true(
+    execution_capacity_inventory_add(0L, ValueNodeSlots, maximum, 1) is None,
+  )
+}

@@ -654,6 +654,8 @@ pub fn execution_capacity_execution_bytes(ExecutionCapacity) -> Int64
 
 pub fn execution_capacity_inventory(Array[ExecutionCapacityItem], Array[ExecutionCapacityItem], ExecutionCapacityOverlap) -> ExecutionCapacity?
 
+pub fn execution_capacity_inventory_add(Int64, ExecutionCapacityUnit, Int64, Int) -> Int64?
+
 pub fn execution_capacity_inventory_bytes(Array[ExecutionCapacityItem]) -> Int64?
 
 pub fn execution_capacity_node_bytes() -> Int64

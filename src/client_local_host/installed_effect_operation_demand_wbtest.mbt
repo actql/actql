@@ -585,7 +585,12 @@ test "Effect demand refuses invalid and overflowing extents without raising a bo
     is Err(Unsupported),
   )
   assert_eq(
-    installed_effect_add_extent(9223372036854775807L, 1L, 0L),
+    @execution.execution_capacity_inventory_add(
+      9223372036854775807L,
+      QuotedBytes,
+      0L,
+      1,
+    ),
     Some(9223372036854775807L),
   )
 }
