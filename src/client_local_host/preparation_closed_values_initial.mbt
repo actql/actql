@@ -1,4 +1,11 @@
 ///|
+// Immutable one-task representation recipe belongs to the installed runtime,
+// not to request-owned payload, policy, authority or a prepared Program cache.
+let closed_values_selection_container_units : @execution.PreparationRepresentationUnits = @local.local_module_selection_container_inventory(
+  1,
+).unwrap()
+
+///|
 /// Original Node-only preparation driver. No dimensions supplied by JavaScript
 /// are a resource grant. The fixed selected supplier and nominal policy must
 /// agree before this owner can begin; the unstarted admission is retained by
@@ -167,6 +174,11 @@ fn closed_values_initial_control_units() -> @execution.PreparationRepresentation
   let holder_headers = 6L * 12L + 4L + 2L + 1L + 1L
   let holder_refs = 6L * 17L + 10L + 1L + 3L + 1L
   let holder_words = 6L * 6L + 7L + 1L
+  // This fixed supplier admits one numeric Values task. Its two retained
+  // selection containers are constructed later, while this SAME preparation
+  // reservation still funds the Run/Host. Their borrowed provider/capacity
+  // bodies remain with their independent owners, never copied into this bill.
+  let selection = closed_values_selection_container_units
   {
     record_headers: js_headers +
     import_headers +
@@ -175,7 +187,8 @@ fn closed_values_initial_control_units() -> @execution.PreparationRepresentation
     holder_headers +
     run_headers +
     diagnostic_headers +
-    adopted_js_headers,
+    adopted_js_headers +
+    selection.record_headers,
     reference_slots: js_refs +
     import_refs +
     ledger_refs +
@@ -183,7 +196,8 @@ fn closed_values_initial_control_units() -> @execution.PreparationRepresentation
     holder_refs +
     run_refs +
     diagnostic_refs +
-    adopted_js_refs,
+    adopted_js_refs +
+    selection.reference_slots,
     scalar_words: js_words +
     import_words +
     ledger_words +
@@ -191,7 +205,8 @@ fn closed_values_initial_control_units() -> @execution.PreparationRepresentation
     holder_words +
     run_words +
     diagnostic_words +
-    adopted_js_words,
+    adopted_js_words +
+    selection.scalar_words,
     owned_utf16_units: 80L,
     owned_wire_bytes: 0L,
   }

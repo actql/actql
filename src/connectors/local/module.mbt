@@ -15,6 +15,30 @@ struct LocalComputeModule {
 }
 
 ///|
+/// Owned storage for the two original-slot selection arrays and their two
+/// references in LocalComputeModule. The original input/provider arrays are
+/// separate owners; provider closures, capacity values and their payloads are
+/// not priced again here. This quotes containers, not execution backing.
+/// These exact-length arrays never append or grow during slot selection.
+pub fn local_module_selection_container_inventory(
+  slots : Int,
+) -> @execution.PreparationRepresentationUnits? {
+  guard @execution.checked_preparation_add_product(4L, slots.to_int64(), 2L)
+    is Some(references) else {
+    return None
+  }
+  Some({
+    // Each Array has one record and one exact-length backing. Two module
+    // fields and two backing references coexist with both arrays' slots.
+    record_headers: 4L,
+    reference_slots: references,
+    scalar_words: 4L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
 pub(all) enum LocalModuleIssue {
   Candidate(@connector.FixedComputeIssue)
   NotSelected

@@ -216,3 +216,15 @@ The selected Local input/output and Native retained-output policies are sealed
 before quotation; later estimates and strategy/current checks still use the
 actual Run. This does not supply Native Source/database physical backing or
 fund initial constructor controls from execution buffer limits.
+
+
+## Retained selection container ownership
+
+The two retained Local selection arrays have a domain-owned container
+inventory: exact slot storage, both array/backing pairs and the module's
+references. It uses the common representation units and price without adding
+a tariff or copying the referenced provider/capacity bodies. The one-task
+closed Values supplier includes those containers in its original initial
+reservation before construction. This container inventory does not cover the
+providers' closure/kernel construction, capacity payload ownership or other
+module controls; those remain separate simultaneous demands.
