@@ -171,7 +171,7 @@ export function admitNativeOwnerObservations(observations, taskHoldings, selecte
   assert.deepEqual(beforeClose, {...owners.at(-4), boundary: 'before-close'},
     'NativeHoldingLostBeforeClose');
   assert.equal(afterClose.attempts, beforeClose.attempts);
-  assert.equal(afterClose.holdings, beforeClose.holdings);
+  assert.equal(afterClose.holdings, 0, 'NativeOwnerHoldingCleanupPending');
   for (const field of liveCapacity) assert.equal(afterClose[field], 0,
     `NativeOwnerClosePending:${field}`);
   assert.deepEqual(owners.at(-1), {...afterClose, boundary: 'duplicate-close'},
@@ -191,6 +191,6 @@ export function admitNativeOwnerObservations(observations, taskHoldings, selecte
     observerMicroseconds: observerMicroseconds.reduce((sum, value) => sum + value, 0),
     plannerObserverMicroseconds: observations.plannerObserverTime.reduce((sum, item) => sum + item.value, 0),
     plannerObserverWork: observations.plannerObserverWork.reduce((sum, item) => sum + item.value, 0),
-    accounting: 'cumulative owner counters, sealed holding bytes, live reservations',
+    accounting: 'spent attempt counters, live holdings, sealed holding bytes and live reservations',
     timing: 'enclosing elapsed boundaries; nested task/observer intervals are not additive'});
 }

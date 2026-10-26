@@ -12,6 +12,7 @@ import {admitNativePhysicalPhases, nativePreparationObservations} from './native
 import {nativeResidentEstimateArguments} from './native-resident-estimates.mjs';
 import {registeredLocalEligibility} from './candidate-eligibility.mjs';
 import {workloads} from './fixtures.mjs';
+import {admitNativeDiagnosticLedgerUsage} from './native-ledger-usage.mjs';
 import {productAcquisitionMetadata} from
   '../../adapters/connectors/duckdb/node/bench/equivalent-acquisition-metadata.mjs';
 
@@ -166,17 +167,7 @@ export function admitNativeDirectProduct(fixture, invocation, execution, {cleanu
     assert(Number.isSafeInteger(record[key]) && record[key] >= 0,
       `InvalidNativeProductInterval:${key}`);
   }
-  for (const key of ['planning_work', 'attempts', 'holdings',
-    'transferred_bytes', 'uncertain_transfer_bytes',
-    'reserved_transfer_bytes', 'held_bytes', 'reserved_retention_bytes',
-    'reserved_execution_bytes', 'peak_retention_bytes']) {
-    assert(Number.isSafeInteger(record.usage?.[key]) && record.usage[key] >= 0,
-      `InvalidNativeProductLedger:${key}`);
-  }
-  for (const key of ['uncertain_transfer_bytes', 'reserved_transfer_bytes',
-    'held_bytes', 'reserved_retention_bytes', 'reserved_execution_bytes']) {
-    assert.equal(record.usage[key], 0, `NativeProductCleanupPending:${key}`);
-  }
+  admitNativeDiagnosticLedgerUsage(record.usage);
   for (const key of ['guard_work', 'guard_bytes', 'guard_nodes',
     'comparison_work', 'comparison_bytes', 'comparison_nodes',
     'comparison_rows']) {

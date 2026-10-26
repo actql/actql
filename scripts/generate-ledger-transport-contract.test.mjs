@@ -4,10 +4,11 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import test from 'node:test';
-import {projectCoreLedger, renderLedgerTransportContract} from './generate-ledger-transport-contract.mjs';
+import {projectCoreLedger, renderLedgerTransportContract, projectLedgerUsageSpentFields, renderLedgerUsageDiagnostic} from './generate-ledger-transport-contract.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 
-const core = readFileSync(new URL('../src/physical_resources/ledger.mbt', import.meta.url), 'utf8');
+const core = readFileSync(new URL('../src/physical_resources/ledger.mbt', import.meta.url), 'utf8') + '\n' +
+  readFileSync(new URL('../src/physical_resources/ledger_usage_pending.mbt', import.meta.url), 'utf8');
 
 test('actual Core owns the complete current limits and thirteen-field usage contract', () => {
   const contract = projectCoreLedger(core);
@@ -52,4 +53,26 @@ test('unknown duplicate or missing Core declarations cannot silently produce a t
     core.replace('pub(all) struct LedgerUsage', 'priv struct LedgerUsage'),
     core + '\npub(all) struct LedgerUsage {\n future : Int\n}\n',
   ]) assert.throws(() => projectCoreLedger(changed), /Core ledger/u);
+});
+
+
+test('diagnostic writer and spent projection follow the same Core owner without a parallel field list', () => {
+  assert.equal(renderLedgerUsageDiagnostic(core), readFileSync(
+    new URL('../src/physical_resources/ledger_usage_diagnostic.generated.mbt', import.meta.url), 'utf8'));
+  assert.deepEqual(projectLedgerUsageSpentFields(core), [
+    'planning_work', 'attempts', 'transferred_bytes', 'peak_retention_bytes',
+  ]);
+  const changed = core.replace('pub(all) struct LedgerUsage {', 'pub(all) struct LedgerUsage {\n  future_count : Int');
+  assert.match(renderLedgerUsageDiagnostic(changed), /usage\.future_count\.to_string\(\)/u);
+  assert.match(renderLedgerUsageDiagnostic(changed), /future_count/u);
+  assert(!projectLedgerUsageSpentFields(changed).includes('future_count'));
+});
+
+test('an unknown or changed Core pending rule cannot silently produce a spent-field whitelist', () => {
+  for (const changed of [
+    core.replace('pending != initial_ledger_usage', 'true'),
+    core.replace('    transferred_bytes: 0L,\n    peak_retention_bytes: 0L,', '    transferred_bytes: 0,\n    peak_retention_bytes: 0L,'),
+    core.replace('    peak_retention_bytes: 0L,\n  }\n  pending', '    absent_count: 0,\n  }\n  pending'),
+    core + core.slice(core.indexOf('pub fn ledger_usage_has_pending_resources')),
+  ]) assert.throws(() => projectLedgerUsageSpentFields(changed), /Core ledger/u);
 });

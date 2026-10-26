@@ -87,7 +87,7 @@ export function admitNativeEquivalentPair({fixture, native, equivalent,
   assert.equal(native.record.usage.attempts,
     native.ownerCorrespondence.attempts.reduce((sum, item) =>
       sum + item.physicalAttempts, 0));
-  assert.equal(native.record.usage.holdings, rows.length);
+  assert.equal(native.record.usage.holdings, 0, 'NativeEquivalentHoldingCleanupPending');
   released(native.record.usage, 'native');
   released(equivalent.releasedRetentionLedger, 'independent-retention');
   released(equivalent.releasedExecutionLedger, 'independent-execution');

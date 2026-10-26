@@ -1779,11 +1779,9 @@ fn main {
   @host.close_native_acquisition_runtime(acquisition)
   @strategy.stop_captured_dag(captured)
   let usage = @resources.ledger_usage(ledger)
-  if usage.uncertain_transfer_bytes != 0L ||
-    usage.reserved_transfer_bytes != 0L ||
-    usage.held_bytes != 0L ||
-    usage.reserved_retention_bytes != 0L ||
-    usage.reserved_execution_bytes != 0L {
+  // This is accounting DATA after the original physical close path above,
+  // never another physical stop acknowledgement. Spent work remains spent.
+  if @resources.ledger_usage_has_pending_resources(usage) {
     abort("native strategy ledger has unresolved capacity")
   }
   let cleanup_us = @bench.monotonic_clock_end(cleanup_start).to_int64()
@@ -1801,27 +1799,9 @@ fn main {
     execution_us.to_string() +
     ",\"cleanup_us\":" +
     cleanup_us.to_string() +
-    ",\"usage\":{\"planning_work\":" +
-    usage.planning_work.to_string() +
-    ",\"attempts\":" +
-    usage.attempts.to_string() +
-    ",\"holdings\":" +
-    usage.holdings.to_string() +
-    ",\"transferred_bytes\":" +
-    usage.transferred_bytes.to_string() +
-    ",\"uncertain_transfer_bytes\":" +
-    usage.uncertain_transfer_bytes.to_string() +
-    ",\"reserved_transfer_bytes\":" +
-    usage.reserved_transfer_bytes.to_string() +
-    ",\"held_bytes\":" +
-    usage.held_bytes.to_string() +
-    ",\"reserved_retention_bytes\":" +
-    usage.reserved_retention_bytes.to_string() +
-    ",\"reserved_execution_bytes\":" +
-    usage.reserved_execution_bytes.to_string() +
-    ",\"peak_retention_bytes\":" +
-    usage.peak_retention_bytes.to_string() +
-    "},\"acquisition_evidence\":" +
+    ",\"usage\":" +
+    @resources.ledger_usage_diagnostic_json(usage) +
+    ",\"acquisition_evidence\":" +
     acquisition_evidence +
     ",\"acquisition\":{\"guard_work\":" +
     guard_work.to_string() +

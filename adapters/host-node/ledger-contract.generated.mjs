@@ -24,3 +24,5 @@ export const ledgerUsageFields = Object.freeze([
   Object.freeze({"name":"reserved_execution_bytes","bits":64}),
   Object.freeze({"name":"peak_retention_bytes","bits":64}),
 ]);
+// The cleared fields of the actual Core pending-resource predicate.
+export const ledgerUsageSpentFields = Object.freeze(["planning_work","attempts","transferred_bytes","peak_retention_bytes"]);
