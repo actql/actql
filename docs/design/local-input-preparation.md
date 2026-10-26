@@ -139,3 +139,13 @@ bootstrap remains charged until the Run's original cleanup retires every child;
 no other capacity is treated as spare or ignored by the isolation guard. This
 common handoff does not supply the installation's physical backing, family
 constructor inventory, Model authorization or a cleanup acknowledgement.
+
+
+Preparation isolation counts live identities as well as bytes. Only its own
+reservation, plus its exact recorded bootstrap when present, may remain live.
+Zero-byte reservations, holdings and delegations still prevent isolation. When
+an original census exists, its live token set must be precisely that preparation
+reservation, with no remaining holding or delegation. Retired records and
+consumed planning/attempt/transfer history do not count as current occupancy;
+retirement never resets or refunds that cumulative history. This is accounting
+correspondence, still separate from physical stop and reader cleanup witnesses.

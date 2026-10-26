@@ -472,7 +472,22 @@ fn[I, P] preparation_capacity_usage_isolated(
       (bootstrap.reservation.retention, bootstrap.reservation.execution)
     }
   }
+  // Zero-byte children still occupy original identities. Byte equality alone
+  // cannot prove that this preparation (and its exact bootstrap) is isolated.
+  if ledger.original_inventory is Some(inventory) {
+    if inventory.reservations.length() != 1 ||
+      !physical_equal(inventory.reservations[0], token) ||
+      !inventory.holdings.is_empty() ||
+      !inventory.delegations.is_empty() {
+      return false
+    }
+  }
+  let expected_reservations = if bootstrap is Some(_) { 2 } else { 1 }
   let usage = ledger.usage
+  usage.live_reservations == expected_reservations &&
+  usage.live_delegations == 0 &&
+  usage.holdings == 0 &&
+  usage.reserved_attempts == 0 &&
   usage.reserved_retention_bytes >= token.retention &&
   usage.reserved_execution_bytes >= token.execution &&
   usage.held_bytes == 0L &&

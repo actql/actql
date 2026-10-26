@@ -338,7 +338,7 @@ test "preparation census and bootstrap transfer with the same original child and
   assert_eq(ledger.next_capacity_serial, Some(-3))
   assert_eq(ledger_usage(ledger).attempts, 0)
   assert_true(node_preparation_usage_isolated(run, ledger))
-  let other = reserve_capacity(ledger, 1L, 0L).unwrap()
+  let other = reserve_capacity(ledger, 0L, 0L).unwrap()
   assert_false(node_preparation_usage_isolated(run, ledger))
   settle_capacity(ledger, other).unwrap()
   assert_true(node_preparation_usage_isolated(run, ledger))
@@ -461,4 +461,103 @@ test "preparation adoption rechecks original census closing after its final curr
   assert_true(retire_preparation_capacity(capacity).unwrap())
   cleanup_node_preparation_admission(initial).unwrap()
   assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
+}
+
+///|
+fn zero_byte_preparation_isolation_fixture(
+  census : Bool,
+) -> (NodeManagedRunAdmission[Array[Int]], Ledger, PreparationRetirement) {
+  let input = [1]
+  let body = [2]
+  let initial = prepare_node_preparation_original(
+    preparation_adoption_child(),
+    input,
+    () => Ok(()),
+  )
+  let ledger = start_node_preparation_admission(initial).unwrap()
+  if census {
+    begin_node_preparation_inventory(initial, input, 10L, 10L, 8, 2, 2).unwrap()
+    |> ignore
+  }
+  let capacity : PreparationCapacity[Array[Int], Array[Int]] = reserve_preparation_capacity(
+    ledger,
+    input,
+    40L,
+    60L,
+    max_borrowers=1,
+  ).unwrap()
+  complete_preparation_capacity(capacity, input, body, 30L, 0L).unwrap()
+  let (run, _, retirement) = adopt_node_preparation_admission(
+    initial, input, capacity, body,
+  ).unwrap()
+  (run, ledger, retirement)
+}
+
+///|
+test "zero-byte isolation retains a real holding after its reservation closes without refunding spent work" {
+  for census in [false, true] {
+    let (run, ledger, retirement) = zero_byte_preparation_isolation_fixture(
+      census,
+    )
+    charge_planning(ledger, 1).unwrap()
+    let before = ledger_usage(ledger)
+    let operation = reserve_attempt(ledger, 0L, 0L, 0L).unwrap()
+    consume_reserved_attempt(ledger, operation).unwrap()
+    let holding = retain_allocation(ledger, operation, 0L).unwrap()
+    settle_reservation(ledger, operation).unwrap()
+    let held = ledger_usage(ledger)
+    assert_eq(held.live_reservations, before.live_reservations)
+    assert_eq(held.reserved_retention_bytes, before.reserved_retention_bytes)
+    assert_eq(held.reserved_execution_bytes, before.reserved_execution_bytes)
+    assert_eq(held.held_bytes, 0L)
+    assert_eq(held.holdings, 1)
+    assert_false(node_preparation_usage_isolated(run, ledger))
+    release_allocation(ledger, holding).unwrap()
+    assert_true(node_preparation_usage_isolated(run, ledger))
+    assert_eq(ledger_usage(ledger).planning_work, 1)
+    assert_eq(ledger_usage(ledger).attempts, 1)
+    assert_false(retire_transferred_preparation(retirement).unwrap())
+    release_node_preparation_holder(run).unwrap() |> ignore
+    cleanup_node_managed_run_admission(run).unwrap()
+    assert_eq(ledger_usage(ledger).planning_work, 1)
+    assert_eq(ledger_usage(ledger).attempts, 1)
+  }
+}
+
+///|
+test "zero-byte isolation retains an actual delegated child until settlement with cumulative attempt preserved" {
+  for census in [false, true] {
+    let (run, ledger, retirement) = zero_byte_preparation_isolation_fixture(
+      census,
+    )
+    let before = ledger_usage(ledger)
+    let limits : LedgerLimits = {
+      planning_work: 0,
+      attempts: 0,
+      holdings: 0,
+      transfer_bytes: 0L,
+      retained_bytes: 0L,
+      execution_bytes: 0L,
+    }
+    let delegated = reserve_execution_delegation(ledger, limits, 0L, 0L).unwrap()
+    consume_execution_delegation_attempt(ledger, delegated).unwrap()
+    let live = ledger_usage(ledger)
+    assert_eq(live.reserved_retention_bytes, before.reserved_retention_bytes)
+    assert_eq(live.reserved_execution_bytes, before.reserved_execution_bytes)
+    assert_eq(live.reserved_attempts, 0)
+    assert_eq(live.live_delegations, 1)
+    assert_false(node_preparation_usage_isolated(run, ledger))
+    settle_execution_delegation(
+      ledger,
+      delegated,
+      Some(ledger_usage(create_ledger(limits).unwrap())),
+    ).unwrap()
+    assert_true(node_preparation_usage_isolated(run, ledger))
+    assert_eq(ledger_usage(ledger).attempts, 1)
+    assert_false(retire_transferred_preparation(retirement).unwrap())
+    release_node_preparation_holder(run).unwrap() |> ignore
+    cleanup_node_managed_run_admission(run).unwrap()
+    assert_eq(ledger_usage(ledger).attempts, 1)
+    assert_eq(ledger_usage(ledger).live_delegations, 0)
+  }
 }
