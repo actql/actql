@@ -16,9 +16,6 @@ export function captureSourceResponseCustody(holder, invalid) {
     if (returned === undefined) return;
     // A non-Unit callback may still own an in-flight response borrow. Join
     // that exact result before refusing; never turn its result into an ACK.
-    return Promise.resolve(returned).then(
-      () => {throw invalid();},
-      () => {throw invalid();},
-    );
+    return Promise.resolve(returned).then(() => {throw invalid();});
   };
 }

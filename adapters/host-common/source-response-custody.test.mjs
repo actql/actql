@@ -51,7 +51,7 @@ test('a synchronous original retain throw stays primary without return validatio
 
 test('non-Unit response custody stays joined until its exact returned borrow settles then refuses', async () => {
   for (const rejected of [false, true]) {
-    const borrow = deferred(), original = failure(), response = {};
+    const borrow = deferred(), original = failure(), rejection = new Error('original rejected borrow'), response = {};
     let invalidCalls = 0, settled = false;
     const holder = Object.freeze({retain(value) {
       assert.strictEqual(this, holder); assert.strictEqual(value, response);
@@ -59,14 +59,15 @@ test('non-Unit response custody stays joined until its exact returned borrow set
     }});
     const retain = captureSourceResponseCustody(holder, () => {invalidCalls++; return original;});
     const pending = retain(response);
-    const rejectedReturn = assert.rejects(pending, cause => cause === original).then(() => {settled = true;});
+    const rejectedReturn = assert.rejects(pending, cause => cause === (rejected ? rejection : original))
+      .then(() => {settled = true;});
     await Promise.resolve();
     assert.equal(settled, false);
     assert.equal(invalidCalls, 0, 'a pending borrow cannot be discarded by a protocol refusal');
-    if (rejected) borrow.reject(new Error('invalid callback return rejection'));
+    if (rejected) borrow.reject(rejection);
     else borrow.resolve(undefined);
     await rejectedReturn;
-    assert.equal(invalidCalls, 1);
+    assert.equal(invalidCalls, rejected ? 0 : 1);
   }
 });
 
