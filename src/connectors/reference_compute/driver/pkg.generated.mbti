@@ -49,6 +49,8 @@ pub fn[T] start_numeric_managed_dispatch(NumericManagedDispatchConfiguration[T])
 
 pub fn start_numeric_managed_dispatch_node(NumericManagedDispatchConfiguration[Int]) -> Result[NumericManagedDispatchOperations[Int], @reference_compute.PlanIssue]
 
+pub fn validate_numeric_contribution_binding(NumericComputeContribution, @physical_host_dispatch.DispatchDriver, @connector_sdk.CapabilityRegistry) -> Result[Unit, @physical_strategy_host.RunIssue]
+
 // Errors
 
 // Types and methods

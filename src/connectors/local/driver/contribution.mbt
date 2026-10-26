@@ -54,3 +54,15 @@ pub fn[E] local_compute_contribution(
     },
   }
 }
+
+///|
+pub fn validate_local_dispatch_binding(
+  installed : LocalDispatchModule,
+  driver : @host.DispatchDriver,
+  registry : @connector.CapabilityRegistry,
+) -> Result[Unit, LocalDispatchIssue] {
+  @host.validate_dispatch_channel_binding(installed.channel, driver, registry).map_err(_ => {
+      Configuration(ForeignPreparation)
+    },
+  )
+}
