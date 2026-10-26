@@ -50,11 +50,15 @@ pub fn admit_effect_row_outcome_receipt_from_response(EffectPreviewIdentity, Int
 
 pub fn admit_effect_saved_response_evidence(Array[String], String, Bytes, Int, Int) -> Result[EffectSavedResponseEvidence, EffectRowOutcomeIssue]
 
+pub fn admit_effect_set_apply_receipt_evidence(EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[EffectSetApplyReceiptEvidence, EffectSetApplyReceiptBindingIssue]
+
 pub fn admit_effect_set_apply_receipt_references(EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[PublicationContract, EffectSetApplyReceiptBindingIssue]
 
 pub fn admit_effectful_final_receipt_references(PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], String, Int, Int, Int) -> Result[PublicationContract, EffectfulFinalReferenceIssue]
 
 pub fn admit_effectful_final_run_evidence_chain(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], String, Int, Int, Int) -> Result[PublicationContract, EffectfulFinalChainIssue]
+
+pub fn admit_effectful_final_run_evidence_with_outcomes(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], String, Int, Int, Int) -> Result[(PublicationContract, EffectSetApplyReceiptEvidence), EffectfulFinalChainIssue]
 
 pub fn admit_hashed_effect_dependency_body(String, String, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]
 
@@ -411,6 +415,10 @@ pub fn effect_row_outcome_receipt_dispatch_identity(PublicationContract) -> Stri
 pub fn effect_row_outcome_receipt_row_identity(PublicationContract) -> String?
 
 pub fn effect_row_outcome_receipt_terminal_state(PublicationContract) -> String?
+
+pub fn effect_set_apply_receipt_all_unattempted(EffectSetApplyReceiptEvidence) -> Bool
+
+pub fn effect_set_apply_receipt_disposition(EffectSetApplyReceiptEvidence) -> Int
 
 pub fn effect_set_receipt_run_disposition(EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[Int, EffectSetApplyReceiptBindingIssue]
 
@@ -1567,6 +1575,10 @@ pub(all) enum EffectSetApplyReceiptBindingIssue {
   MemberStateMismatch(Int)
   SetStatusMismatch
 } derive(@debug.Debug)
+
+pub struct EffectSetApplyReceiptEvidence {
+  // private fields
+}
 
 pub(all) enum EffectSetApplyReceiptIssuanceIssue {
   InvalidInventory
