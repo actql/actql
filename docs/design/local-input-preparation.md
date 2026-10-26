@@ -150,3 +150,27 @@ backing lifetimes. Growth and the final `to_string` copy do not coexist. Both
 recipes fit the declared logical bound, including preceding NFC and first
 LF-pass text during the second LF pass. This is a constructor inventory, not
 allocator/RSS, physical backend supply or complete preparation funding evidence.
+
+
+## Structural Program container owner
+
+The syntax owner supplies the retained shallow Program container inventory from
+its existing bounded structural construction facts. It owns the Program/Stage
+records, original import variants, public export tuples, array spare capacity
+and name-index maps. The same record projection supplies their coexistence with
+constructor scratch, so the Local adapter does not repeat their field layout.
+Shared preparation representation rules still perform byte conversion and
+composition. These facts issue no execution, physical allocation or permission.
+
+The fixed Closed Values shape consumes that same owner for its established
+one-Stage/no-import/one-export envelope, preserving the original quote. General
+structural facts can include multiple Stages, imports and Results without
+pretending that their Source body is a numeric Values document. The bounded
+inspection remains with the original indexed source; it is not another parser
+or semantic checker.
+
+This inventory excludes source/index backing, normalized identifier text,
+temporary object views, inspection/diagnostic controls and semantic
+checking/lowering/module construction. Those actual simultaneous owners must
+be supplied before a generic preparation driver can claim complete funding.
+The existing narrow constructor scratch proof stays scoped to Closed Values.

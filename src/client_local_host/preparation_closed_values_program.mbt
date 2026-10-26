@@ -78,25 +78,36 @@ fn closed_values_program_units_add(
 fn closed_values_program_inventories(
   _shape : ClosedValuesShape,
 ) -> ClosedValuesProgramInventories {
-  // Program:5 references. Stage:9 references + inline Initial tag. Export
-  // tuple:3 references. Stage's elements-created Cursor:2 refs + index.
-  let records : PreparationRepresentationUnits = {
-    record_headers: 4L,
-    reference_slots: 19L,
-    scalar_words: 2L,
+  // This exact shape proof establishes the original one-Stage envelope:
+  // no input imports, one Result and one public export. The generic syntax
+  // owner prices its actual shallow containers; source/name/scratch owners
+  // below stay independent. No general Source is narrowed to Values facts.
+  let extent = @syntax.program_container_construction_extent({
+    stage_records: 1,
+    import_tuple_bound: 0L,
+    export_tuples: 1,
+    name_index_entries: 1L,
+    retained_array_capacity_bound: 54L,
+    retained_map_capacity_bound: 28L,
+    inspection_work: 0,
+  }).unwrap()
+  let retained : PreparationRepresentationUnits = {
+    record_headers: extent.record_headers,
+    reference_slots: extent.reference_slots,
+    scalar_words: extent.scalar_words,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  // Program stages/exports and Stage imports/results/table_inputs/effects:
-  // six arrays and three occupied slots in total. Three name-index Maps,
-  // with only the Result Map occupied.
-  let retained = closed_values_program_units_add(
-    records,
-    closed_values_program_units_add(
-      closed_values_program_arrays(6L, 3L, false),
-      closed_values_program_maps(3L, 1L, false),
-    ),
-  )
+  // These same record owners also coexist through the decoder's temporary
+  // container peak. Their original shallow fields remain separate from the
+  // generic retained total, which already includes retained arrays/maps.
+  let records : PreparationRepresentationUnits = {
+    record_headers: extent.shallow_record_headers,
+    reference_slots: extent.shallow_reference_slots,
+    scalar_words: extent.shallow_scalar_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
   // Conservative sum of ALL container constructions in decode_envelope,
   // including those that actually occur sequentially. Six ObjectViews open
   // root(4), Stage(4), inputs(0), exports(1), export(1), from(2). The Stage's
