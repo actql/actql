@@ -125,6 +125,8 @@ quoted_identifier_character = '""' | ? any Unicode scalar except U+0022 QUOTATIO
    IN BETWEEN LIKE CASE WHEN THEN ELSE END CAST AS. Cast target names are
    contextual. Backslash is ordinary. Values/names obey ActQL normalization.
    Minus applied to a number token through grouping yields a signed literal;
-   negative zero and non-finite numbers are rejected. Other minus is negate.
+   signed zero normalizes to positive zero; non-finite numbers are rejected.
+   Canonical JSON Numbers and Parameters still reject negative zero.
+   Other minus is negate.
    Type checking, static signature constraints and Effect selector restrictions
    apply after decoding; syntax acceptance alone does not authorize execution. *)

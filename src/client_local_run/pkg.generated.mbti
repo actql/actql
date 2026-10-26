@@ -82,6 +82,8 @@ pub fn local_compute_producers(LocalComputeHost) -> Array[Int]
 
 pub fn local_compute_run(LocalComputeHost) -> @physical_strategy_host.CapturedDAG
 
+pub fn local_compute_wasm_publication_limits(LocalComputeHost) -> @run_publication_host.PublicationOutputExportLimits?
+
 pub fn local_native_source_configuration(LocalNativeSourceConfiguration) -> @host.NativeHostConfiguration
 
 pub fn local_native_source_requirement(LocalNativeSourceConfiguration) -> @query_planning.QueryRequirement
@@ -274,6 +276,7 @@ pub fn validate_local_sdk_saved_payload_record(LocalSDKReadSource, @execution_au
 pub struct LocalComputeHost {
   plan : LocalRunPlan
   setup : @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
+  publication : LocalComputePublication
 }
 
 pub(all) enum LocalComputeIssue {
@@ -288,6 +291,8 @@ pub(all) enum LocalComputeIssue {
   Start(LocalRunIssue)
   StartNotPermitted
 }
+
+type LocalComputePublication
 
 pub struct LocalComputeStart {
   host : LocalComputeHost

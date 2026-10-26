@@ -1,43 +1,4 @@
 ///|
-/// Quote the existing single-task retained Values constructor before acquiring
-/// its physical supplier. These are Resource admission limits, not backing,
-/// permission, a Run, or a claim that every input fits the selected facility.
-pub fn single_source_free_local_ledger_limits(
-  prepared : @publication_host.PreparedClientProgram,
-  installed_contracts : ClientInstalledSequenceContracts,
-  values_body : String,
-  fragment_body : String?,
-  ordered_body : String?,
-) -> @resources.LedgerLimits? {
-  if @strategy.graph_task_count(
-      @publication_host.prepared_client_graph(prepared),
-    ) !=
-    1 {
-    return None
-  }
-  source_free_local_ledger_limits(
-    prepared, installed_contracts, values_body, fragment_body, ordered_body,
-  )
-}
-
-///|
-/// Quote all original source-free tasks and every retained input port using
-/// the same installed Local provider/import/export inventory as the actual
-/// retained Host. This neither flattens the graph nor creates a Ledger or a
-/// physical supply original. The single-task entry above keeps its old scope.
-pub fn source_free_local_ledger_limits(
-  prepared : @publication_host.PreparedClientProgram,
-  installed_contracts : ClientInstalledSequenceContracts,
-  values_body : String,
-  fragment_body : String?,
-  ordered_body : String?,
-) -> @resources.LedgerLimits? {
-  prepare_source_free_local_requirements_original(
-    prepared, installed_contracts, values_body, fragment_body, ordered_body, false,
-  ).map(value => value.capacity.limits)
-}
-
-///|
 // Pure checked-plan data. This retains no Host, Account decision, Ledger or
 // physical allocation and cannot issue any of those originals.
 struct ClientLocalSourceFreeRequirements {
@@ -61,20 +22,6 @@ pub fn prepare_source_free_local_requirements(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
-) -> ClientLocalSourceFreeRequirements? {
-  prepare_source_free_local_requirements_original(
-    prepared, installed_contracts, values_body, fragment_body, ordered_body, true,
-  )
-}
-
-///|
-fn prepare_source_free_local_requirements_original(
-  prepared : @publication_host.PreparedClientProgram,
-  installed_contracts : ClientInstalledSequenceContracts,
-  values_body : String,
-  fragment_body : String?,
-  ordered_body : String?,
-  include_simultaneous : Bool,
 ) -> ClientLocalSourceFreeRequirements? {
   let graph = @publication_host.prepared_client_graph(prepared)
   let count = @strategy.graph_task_count(graph)
@@ -131,7 +78,7 @@ fn prepare_source_free_local_requirements_original(
     capacity_plan=Some(capacity_plan),
     retained_inputs=Some(inputs),
     max_rows=@publication_host.prepared_client_values_max_rows(prepared),
-    include_simultaneous~,
+    include_simultaneous=true,
     simultaneous_graph=Some(graph),
   ).map(capacity => {
     prepared,

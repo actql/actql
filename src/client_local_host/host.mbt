@@ -108,6 +108,7 @@ pub fn open_source_free_local_retained_host(
   per_row_ms : Int64,
   per_wire_byte_ms : Int64,
   per_pair_ms : Int64,
+  requirements? : ClientLocalSourceFreeRequirements? = None,
   fragment_body? : String? = None,
   ordered_body? : String? = None,
   provider_factory? : (@execution.ExecutionCapacity) -> Array[
@@ -127,6 +128,7 @@ pub fn open_source_free_local_retained_host(
     ordered_body~,
     provider_factory~,
     retained_output=true,
+    source_free_requirements=requirements,
   )
 }
 
@@ -350,7 +352,6 @@ fn open_checked_local_host(
         source is Some(_) ||
         !captured_sources.is_empty() ||
         opened_run is Some(_) ||
-        acquisition_ledger is None ||
         !retained_output {
         return None
       }

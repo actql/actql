@@ -107,6 +107,25 @@ test "parameter queries retain binding obligations and use only declaration dime
 }
 
 ///|
+test "vector checker retains independently required and actual carrier facts" {
+  let cases : Array[(@vector_typing.Operation, @carrier.Kind, @carrier.Kind)] = [
+    (ToVectors, RelationKind, VectorsKind),
+    (NormalizeVectors, VectorsKind, RelationKind),
+    (ScoreVectors, VectorsKind, GraphKind),
+  ]
+  for (operation, expected, actual) in cases {
+    let issue = @vector_typing.check(
+      operation,
+      cursor("{}"),
+      @carrier.unknown_carrier(actual),
+      None,
+      limits(),
+    ).unwrap_err()
+    assert_eq(issue.kind, WrongCarrier(expected, actual))
+  }
+}
+
+///|
 fn vectors(
   extra_score? : Bool = false,
   open? : Bool = false,
@@ -184,7 +203,7 @@ test "normalization preserves carrier knowledge without claiming evaluated value
       None,
       limits(),
     )
-    is Err({ kind: WrongCarrier(GraphKind), .. }),
+    is Err({ kind: WrongCarrier(VectorsKind, GraphKind), .. }),
   )
 }
 

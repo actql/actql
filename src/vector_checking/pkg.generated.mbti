@@ -57,7 +57,11 @@ pub(all) enum IssueKind {
   BudgetExceeded
   InvalidBody
   Decode(@decode_core.IssueKind)
-  WrongCarrier(@carrier_contract.Kind)
+  WrongCarrier(@carrier_contract.Kind, @carrier_contract.Kind)
+  WrongRelationCarrier(@carrier_contract.Kind, @carrier_contract.Kind)
+  WrongCarrierAlternatives(@carrier_contract.Kind, @carrier_contract.Kind, @carrier_contract.Kind)
+  WrongPoolCarrier(@carrier_contract.Kind, @carrier_contract.Kind)
+  IncompletePoolInput
   InvalidQuery
   UnknownParameter(String)
   IncompatibleParameter(String)

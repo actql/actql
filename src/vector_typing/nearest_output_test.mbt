@@ -35,7 +35,12 @@ test "opaque vector sides preserve unknown identity contracts and deferred dimen
       @carrier.unknown_carrier(GraphKind),
       limits(),
     )
-    is Err({ kind: WrongCarrier(GraphKind), .. }),
+    is Err(
+      {
+        kind: WrongCarrierAlternatives(RelationKind, VectorsKind, GraphKind),
+        ..
+      }
+    ),
   )
 }
 

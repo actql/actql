@@ -187,6 +187,6 @@ test "lexical role errors retain their source slot and never invent missing type
       lexical_rows(false),
       limits(),
     )
-    is Err({ kind: WrongCarrier(VectorsKind), .. }),
+    is Err({ kind: WrongRelationCarrier(RelationKind, VectorsKind), .. }),
   )
 }

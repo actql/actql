@@ -1,4 +1,103 @@
 ///|
+test "managed ledger preparation retains its first capacity original through open and retirement" {
+  let prepared = single_source_free_capacity_prepared()
+  let assets = @publication_host.client_local_product_assets()
+  let installed = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  // This explicit ordinary Root fixture supplies its original admission;
+  // neither preparation nor reading its plan creates physical backing.
+  let quote = installed_managed_run_requirements(
+    prepared,
+    [],
+    "{}",
+    "{}",
+    [],
+    [],
+    installed,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let reference = capture_parent_original(
+    publication_test_loader(publication_test_url()),
+    prepared,
+    FixedArray::from_array(quote),
+  )
+  let admission = @resources.prepare_node_managed_run_admission(
+    reference, prepared,
+  ).unwrap()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "first-capacity-original",
+  ).unwrap()
+  let run = begin_installed_managed_run(admission, prepared, request).unwrap()
+  assert_true(run.source_free_preparation is None)
+  let ledger = prepare_installed_managed_run_ledger(
+    run,
+    prepared,
+    request,
+    [],
+    [],
+    [],
+    installed,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  guard run.source_free_preparation is Some(first) else {
+    fail("the first checked plan must survive its Ledger projection")
+  }
+  let sequences = first.sequences
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    physical_equal(
+      prepare_installed_managed_run_ledger(
+        run,
+        prepared,
+        request,
+        [],
+        [],
+        [],
+        installed,
+        assets.values,
+        Some(assets.fragment),
+        assets.ordered,
+      ).unwrap(),
+      ledger,
+    ),
+  )
+  assert_true(physical_equal(run.source_free_preparation.unwrap(), first))
+  let setup = open_installed_managed_source_free_host(
+      run,
+      prepared,
+      request,
+      installed,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+      true,
+    )
+    .unwrap()
+    .unwrap()
+  assert_true(physical_equal(run.source_free_preparation.unwrap(), first))
+  assert_true(physical_equal(first.sequences, sequences))
+  assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts)
+  let execution = execute_source_free_local_tasks_guarded(setup, 64, 100000, () => {
+    true
+  }).unwrap()
+  assert_eq(execution.rows().unwrap(), ["{\"id\":1}", "{\"id\":2}"])
+  assert_true(execution.close())
+  retire_installed_managed_run(run).unwrap()
+  assert_true(run.source_free_preparation is None)
+  assert_true(require_installed_managed_run(run) is Err(Retired))
+}
+
+///|
 test "managed source-free preparation retains the quoted original sequences and scalar limits" {
   let prepared = source_free_tasks_original_union()
   let assets = @publication_host.client_local_product_assets()

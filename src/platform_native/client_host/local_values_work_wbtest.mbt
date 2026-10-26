@@ -227,13 +227,15 @@ test "Native Local Values retains the supplied Ledger and never replaces an exha
     )
     journal.bind_run(request, prepared, compiled, definition, true).unwrap()
     |> ignore
-    let quoted = @local.single_source_free_local_ledger_limits(
-      prepared,
-      installed,
-      assets.values,
-      Some(assets.fragment),
-      assets.ordered,
-    ).unwrap()
+    let quoted = @local.prepare_source_free_local_requirements(
+        prepared,
+        installed,
+        assets.values,
+        Some(assets.fragment),
+        assets.ordered,
+      )
+      .unwrap()
+      .maximum_limits()
     let limits = if supplied {
       quoted
     } else {

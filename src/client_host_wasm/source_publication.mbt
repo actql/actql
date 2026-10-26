@@ -158,7 +158,9 @@ pub fn prepare_source_publication(
     required_int32(object, "max_workspace_slots") is Some(max_workspace_slots) else {
     return -31
   }
-  let limits = result_export_limits()
+  guard @local_run.local_compute_wasm_publication_limits(host) is Some(limits) else {
+    return -4
+  }
   record.pending = true
   let preparation = @local_run.prepare_local_source_publication(
     configuration,

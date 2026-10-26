@@ -26,6 +26,29 @@ fn pool_input(nullable : Bool) -> @carrier.Carrier {
 }
 
 ///|
+test "pool branch distinguishes an unavailable payload from an incompatible carrier kind" {
+  let source = cursor(
+    "{\"by\":[\"group\"],\"method\":\"mean\",\"output_id\":\"group_id\"}",
+  )
+  assert_true(
+    @vector_typing.check_pool_vectors(
+      source,
+      @carrier.unknown_carrier(VectorsKind),
+      limits(),
+    )
+    is Err({ kind: IncompletePoolInput, .. }),
+  )
+  assert_true(
+    @vector_typing.check_pool_vectors(
+      source,
+      @carrier.unknown_carrier(GraphKind),
+      limits(),
+    )
+    is Err({ kind: WrongPoolCarrier(VectorsKind, GraphKind), .. }),
+  )
+}
+
+///|
 test "pool Vectors retains grouping values and aliases without physical ID substitution" {
   let input = pool_input(false)
   for reduction in ["mean", "sum", "max"] {

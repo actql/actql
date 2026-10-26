@@ -1,3 +1,4 @@
+import {publicationOriginalFixture} from './fixtures/local-publication-original.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
@@ -22,7 +23,7 @@ const environment = moon.clientProgramCheckEnvironment(environmentWire.trimEnd()
 const control = runtimeCore(moon).publicationControl;
 const scope = {namespaceId: 'values-capacity', authorityScopeCid: cid('a')};
 const request = {kind: 'program', input: program, parameters: null};
-const planFor = preparedProgram => sourceFreeValuesPlan({moon, control, preparedProgram,
+const planFor = preparedProgram => sourceFreeValuesPlan({moon, control, preparedProgram, publicationOriginal: publicationOriginalFixture(moon, preparedProgram),
   ...scope, storeAuthorityCid: cid('7'), now: () => '2026-10-07T00:00:00.000Z'});
 
 test('Embedded Local captures Values row selection once alongside the Host policy snapshot', async () => {

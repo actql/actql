@@ -97,7 +97,7 @@ test "ClosedValues identity writer specialization leaves actual identities and s
   assert_eq(@publication_host.prepared_client_identity(prepared), before)
   assert_eq(
     before.program_definition_cid,
-    "sha256:26334bc3b274becef9457799e919c5433306ce1f8324bb81ff4aae0604635ce5",
+    "sha256:b67e5088e1001970a65a6280b36608e842ba61a7ec528154f7d7a84f9619c809",
   )
   assert_eq(
     before.parameter_values_cid,
@@ -105,13 +105,13 @@ test "ClosedValues identity writer specialization leaves actual identities and s
   )
   assert_eq(
     @publication_host.prepared_client_program_semantics_cid(prepared),
-    "sha256:fcaa7dcc999a2dff2b225caffc85e72987c1d4fd68f8250edd9100442e11d147",
+    "sha256:9440165a0fdabb112deb1d78295b0f614a0e2031190954e331f0db156869eef3",
   )
   assert_eq(
     @publication_host.emit_prepared_client_program_semantics(
       prepared, 10000, 20, 5,
     ).unwrap(),
-    "{\"actql_version\":\"actql/0.1\",\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:b5701b2178a3b2e624d0fbfbda877d0117c367e42a855161e26e0d2e133f1c2c\",\"parameter_references\":[],\"parameters\":{},\"program_template\":{\"exports\":{\"r\":{\"from\":{\"result\":\"r\",\"stage\":\"s\"}}},\"stages\":[{\"after\":\"initial\",\"id\":\"s\",\"imports\":{},\"stage_semantics_cid\":\"sha256:114e89f94b5307288c47bf3612847f871da69dc4da4b48b5a13548fd707f4d93\"}]},\"version\":\"actql-program-semantics/0.1\"}",
+    "{\"actql_version\":\"actql/0.1\",\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:2849a6667980fc51ed51a04879470a97068fd08e358d784262602a09b22dacda\",\"parameter_references\":[],\"parameters\":{},\"program_template\":{\"exports\":{\"r\":{\"from\":{\"result\":\"r\",\"stage\":\"s\"}}},\"stages\":[{\"after\":\"initial\",\"id\":\"s\",\"imports\":{},\"stage_semantics_cid\":\"sha256:1ebe6c2ecd7a0e29bd72cd07131ba24b4e33313baeecbb4f303ea3e48204751f\"}]},\"version\":\"actql-program-semantics/0.1\"}",
   )
   assert_true(
     @publication_host.emit_prepared_client_program_semantics(
@@ -129,7 +129,7 @@ test "ClosedValues identity writer specialization leaves actual identities and s
     @publication_host.emit_prepared_client_program_definition(
       prepared, 10000, 4, 1,
     ).unwrap(),
-    "{\"id\":\"identity-writer\",\"program_semantics_cid\":\"sha256:fcaa7dcc999a2dff2b225caffc85e72987c1d4fd68f8250edd9100442e11d147\",\"version\":\"actql-program-definition/0.1\"}",
+    "{\"id\":\"identity-writer\",\"program_semantics_cid\":\"sha256:9440165a0fdabb112deb1d78295b0f614a0e2031190954e331f0db156869eef3\",\"version\":\"actql-program-definition/0.1\"}",
   )
   assert_true(
     @publication_host.emit_prepared_client_program_definition(
@@ -145,7 +145,7 @@ test "ClosedValues identity writer specialization leaves actual identities and s
       facts.node_upper + 8,
       facts.depth_upper + 1,
     ).unwrap(),
-    "{\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:b5701b2178a3b2e624d0fbfbda877d0117c367e42a855161e26e0d2e133f1c2c\",\"local_body\":{\"effects\":{},\"inputs\":{},\"results\":{\"r\":{\"fields\":[\"x\"],\"from\":\"v\"}},\"steps\":[{\"as\":\"v\",\"values\":{\"rows\":[{\"x\":1}],\"schema\":{\"x\":{\"nullable\":false,\"type\":\"number\"}}}}]},\"parameter_references\":[],\"parameters\":{},\"version\":\"actql-stage-semantics/0.1\"}",
+    "{\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:2849a6667980fc51ed51a04879470a97068fd08e358d784262602a09b22dacda\",\"local_body\":{\"effects\":{},\"inputs\":{},\"results\":{\"r\":{\"fields\":[\"x\"],\"from\":\"v\"}},\"steps\":[{\"as\":\"v\",\"values\":{\"rows\":[{\"x\":1}],\"schema\":{\"x\":{\"nullable\":false,\"type\":\"number\"}}}}]},\"parameter_references\":[],\"parameters\":{},\"version\":\"actql-stage-semantics/0.1\"}",
   )
   let identity = @checked.source_identity(
     @strategy.graph_program(@publication_host.prepared_client_graph(prepared)),
@@ -153,7 +153,7 @@ test "ClosedValues identity writer specialization leaves actual identities and s
   let local_layout = @context.program_identity_stage_at(identity, 0).unwrap()
   assert_eq(
     @context.stage_identity_definition_cid(local_layout),
-    "sha256:2c32b3113d7b194a94b4374cd23d82145892b010b139f8fd6292452fc8a82a4d",
+    "sha256:fdc662ca6c096ba489cc0190539298237ec07823dad9664b3b26753afebf8bcb",
   )
   assert_eq(
     @context.stage_identity_parameter_values_cid(local_layout),

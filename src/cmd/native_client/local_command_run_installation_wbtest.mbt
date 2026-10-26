@@ -66,3 +66,22 @@ test "command Run installation refuses an invalid initial policy original" {
   }
   assert_eq(issue, "InvalidLocalResultRetentionPolicy")
 }
+
+///|
+test "Values publication keeps the empty payload refusal before opening work" {
+  let original = local_command_run_installation_original(
+    "run.json", command_run_installation_fixture,
+  )
+  let selected = original.select("run.json", original.body).unwrap()
+  assert_eq(local_values_publication_payload_limit(selected), 65536)
+  // A zero Store allocation is legal configuration DATA, but it cannot
+  // publish a Values Result. Preserve the previous pre-Start refusal.
+  let empty = { ..selected, result_payload_bytes: 0L, }
+  let issue = try {
+    ignore(local_values_publication_payload_limit(empty))
+    "unexpected success"
+  } catch {
+    ClientStop(issue) => issue
+  }
+  assert_eq(issue, "LocalValuesPublicationLimit")
+}

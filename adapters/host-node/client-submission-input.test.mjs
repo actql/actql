@@ -1,3 +1,4 @@
+import {publicationOriginalFixture} from './fixtures/local-publication-original.mjs';
 // Actual preparation, checked Run issuance and SQLite acceptance, without
 // physical dispatch. Reply loss never supplies evidence of nonacceptance.
 import assert from 'node:assert/strict';
@@ -120,7 +121,7 @@ async function fixture(t, entrance, loss, {checkingEnvironment = environment, pu
         lookupExpiresAt: '2099-01-01T00:00:00.000Z',
         issueDefinition: () => {
           issues++;
-          return sourceFreeValuesPlan({moon, control, preparedProgram,
+          return sourceFreeValuesPlan({moon, control, preparedProgram, publicationOriginal: publicationOriginalFixture(moon, preparedProgram),
             ...scope, storeAuthorityCid: cid('7'),
             now: () => '2026-10-04T00:00:00.000Z'}).runDefinition;
         },

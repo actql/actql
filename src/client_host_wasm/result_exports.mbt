@@ -22,6 +22,7 @@ priv struct StoredResultExport {
 ///|
 priv enum StoredResultExportIssue {
   Material
+  Capacity
   Bridge(@execution.ManagedProducerBridgeIssue)
   Transform(@host.CapturedClientResultTransformationIssue)
   Export(@host.PublicationOutputExportIssue)
@@ -34,48 +35,11 @@ fn result_export_issue_code(issue : StoredResultExportIssue) -> Int {
   // have scalar projections; public reasons still require disclosure checks.
   match issue {
     Material => -32
+    Capacity => -4
     Bridge(issue) => if issue is Closed { -5 } else { -32 }
     Transform(issue) => if issue is ForeignSelection { -2 } else { -32 }
     Export(issue) => if issue is InvalidState { -33 } else { -32 }
     Buffer(issue) => issue_code(issue)
-  }
-}
-
-///|
-fn result_export_limits() -> @host.PublicationOutputExportLimits {
-  {
-    max_result_fields: 100,
-    max_result_mapping_work: 100000,
-    max_result_order_work: 1000000,
-    max_result_workspace_entries: 100000,
-    max_rows: 100000,
-    values: {
-      max_nodes: 10000,
-      max_text_bytes: 65536,
-      max_depth: 64,
-      max_work: 100000,
-    },
-    payload_wire: {
-      max_columns: 100,
-      max_order_work: 1000000,
-      max_bytes: 1000000,
-      max_nodes: 100000,
-      max_depth: 64,
-    },
-    logical_wire: {
-      max_columns: 100,
-      max_order_work: 1000000,
-      max_bytes: 1000000,
-      max_nodes: 100000,
-      max_depth: 64,
-    },
-    schema: {
-      max_fields: 100,
-      max_bytes: 65536,
-      max_nodes: 10000,
-      max_depth: 64,
-    },
-    max_batch_bytes: 65536,
   }
 }
 
@@ -308,7 +272,11 @@ pub fn start_result_export(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.result_exports.get(handle) is Some(record) &&
     value.tasks.get(record.task)
-    is Some({ completed: Some(completed), operations: Some(operations), .. }) else {
+    is Some(
+      { completed: Some(completed), operations: Some(operations), compute, .. }
+    ) &&
+    value.computes.get(compute)
+    is Some({ host: Some(host), closing: false, .. }) else {
     return -2
   }
   if value.closing || record.closing {
@@ -323,9 +291,12 @@ pub fn start_result_export(nonce : Int64, handle : Int) -> Int {
   if record.invoked {
     return -33
   }
+  guard @local_run.local_compute_wasm_publication_limits(host) is Some(limits) else {
+    record.issue = Some(Capacity)
+    return -4
+  }
   record.invoked = true
   record.pending = true
-  let limits = result_export_limits()
   match (operations.material)() {
     None => record.issue = Some(Material)
     Some(material) =>
@@ -378,6 +349,10 @@ pub fn feed_result_export(nonce : Int64, handle : Int, quantum : Int) -> Int {
   if record.preparation is Some(_) {
     return 0
   }
+  guard @local_run.local_compute_wasm_publication_limits(host) is Some(limits) else {
+    record.issue = Some(Capacity)
+    return -4
+  }
   let count = @execution.managed_completed_output_row_count(completed)
   for _ in 0..<quantum {
     record.pending = true
@@ -392,7 +367,7 @@ pub fn feed_result_export(nonce : Int64, handle : Int, quantum : Int) -> Int {
               completed,
               bridge,
               output,
-              result_export_limits(),
+              limits,
               max_pins=value.workspace_slots,
             ) {
             Ok(preparation) => record.preparation = Some(preparation)

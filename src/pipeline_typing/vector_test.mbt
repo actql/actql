@@ -179,5 +179,5 @@ test "vector pipeline preserves query diagnostics and rejects wrong carriers" {
     None,
     limits(),
   ).unwrap_err()
-  assert_true(wrong.kind is Vector(WrongCarrier(EventsKind)))
+  assert_true(wrong.kind is Vector(WrongCarrier(VectorsKind, EventsKind)))
 }

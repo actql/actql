@@ -43,3 +43,25 @@ test('usage preserves reserved and live custody counts without admitting them as
     assert.throws(() => snapshotProcessLimits({...limits(), [field]: 0}), /InvalidProcessAccounting/);
   }
 });
+
+test('IPC accounting reads only captured own data and never invokes a caller getter', () => {
+  let reads = 0;
+  const accessor = {...limits()};
+  Object.defineProperty(accessor, 'attempts', {enumerable: true, get() { reads++; return 2; }});
+  assert.throws(() => snapshotProcessLimits(accessor), /InvalidProcessAccounting/);
+  assert.equal(reads, 0);
+  let gets = 0;
+  const original = limits();
+  const supplied = new Proxy(original, {get() { gets++; throw Error('CallerGetMustNotRun'); }});
+  assert.deepEqual(snapshotProcessLimits(supplied), original);
+  assert.equal(gets, 0);
+});
+
+test('IPC accounting rejects every extra own field including Symbols and nonenumerable data', () => {
+  const symbol = {...limits(), [Symbol('foreign authority')]: true};
+  const hidden = {...limits()};
+  Object.defineProperty(hidden, 'foreign', {value: true});
+  for (const supplied of [symbol, hidden]) {
+    assert.throws(() => snapshotProcessLimits(supplied), /InvalidProcessAccounting/);
+  }
+});

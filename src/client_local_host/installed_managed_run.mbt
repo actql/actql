@@ -124,23 +124,6 @@ fn installed_managed_owner_shape_supported(
 }
 
 ///|
-/// Quote source-free Local work from the same generated sequences, receiving
-/// ports and retained-output envelope as the existing installed Local Host.
-/// This is demand only; it neither constructs a Ledger nor supplies admission.
-fn source_free_installed_managed_limits_owned(
-  owner : ClientLocalSequenceOwner,
-  installed_contracts : ClientInstalledSequenceContracts,
-  values_body : String,
-  fragment_body : String?,
-  ordered_body : String?,
-  mock_model : Bool,
-) -> @resources.LedgerLimits? {
-  source_free_installed_managed_preparation_owned(
-    owner, installed_contracts, values_body, fragment_body, ordered_body, mock_model,
-  ).map(value => value.limits)
-}
-
-///|
 fn source_free_installed_managed_preparation_owned(
   owner : ClientLocalSequenceOwner,
   installed_contracts : ClientInstalledSequenceContracts,
@@ -434,12 +417,13 @@ fn installed_managed_run_requirements_owned(
       !transport_execution_bytes.is_empty() {
       return Err(Unsupported)
     }
-    guard source_free_installed_managed_limits_owned(
+    guard source_free_installed_managed_preparation_owned(
         owner, installed_contracts, values_body, fragment_body, ordered_body, mock_model,
       )
-      is Some(limits) else {
+      is Some(original) else {
       return Err(Unsupported)
     }
+    let limits = original.limits
     return Ok([
       limits.planning_work.to_int64(),
       limits.attempts.to_int64(),
@@ -882,15 +866,23 @@ fn prepare_installed_managed_run_ledger_owned(
         }
         Some(original.limits)
       }
-      None =>
-        source_free_installed_managed_limits_owned(
-          owner,
-          installed_contracts,
-          values_body,
-          fragment_body,
-          ordered_body,
-          installed_managed_owner_shape_supported(owner, true),
-        )
+      None => {
+        guard source_free_installed_managed_preparation_owned(
+            owner,
+            installed_contracts,
+            values_body,
+            fragment_body,
+            ordered_body,
+            installed_managed_owner_shape_supported(owner, true),
+          )
+          is Some(original) else {
+          return Err(Unsupported)
+        }
+        // Retain the first checked plan before projecting its limits. Host
+        // opening and publication borrow this original until Run retirement.
+        value.source_free_preparation = Some(original)
+        Some(original.limits)
+      }
     }
   } else {
     multi_captured_installed_limits_owned(
@@ -1003,22 +995,6 @@ fn open_installed_managed_source_free_host_original(
   match check_installed_managed_run(value, prepared, request) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
-  }
-  // Legacy callers also retain their first generated originals through this
-  // open. The normal prepared entry already supplies them from its quote.
-  if value.source_free_preparation is None {
-    guard source_free_installed_managed_preparation_owned(
-        Pure(prepared),
-        installed_contracts,
-        values_body,
-        fragment_body,
-        ordered_body,
-        installed_managed_run_shape_supported(prepared, true),
-      )
-      is Some(original) else {
-      return Err(Unsupported)
-    }
-    value.source_free_preparation = Some(original)
   }
   let ledger = match
     prepare_installed_managed_run_ledger(
@@ -1133,10 +1109,10 @@ pub fn prepared_installed_managed_publication_limits(
   guard value.owner is Pure(original) && physical_equal(original, prepared) else {
     return None
   }
-  client_node_values_publication_limits_with_plan(
+  client_node_publication_limits(
     prepared,
     max_payload_bytes,
-    Some(value.capacity_plan),
+    value.capacity_plan,
   )
 }
 
