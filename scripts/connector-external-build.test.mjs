@@ -45,7 +45,7 @@ function fixture(t) {
     'supported_targets = "js"\nimport { "actql/actql/physical_host_dispatch" @host, }\n');
   const manifest = {package: 'fixture/portable/driver', module: 'Contribution',
     configuration: 'Configuration', configure: 'configure', registration: 'registration',
-    contribution: 'contribution', dispatch: 'dispatch', completion_dispatch: 'complete_dispatch',
+    validate_binding: 'validate_binding', contribution: 'contribution', dispatch: 'dispatch', completion_dispatch: 'complete_dispatch',
     dispatch_result: 'Unit', dispatch_error: {package: 'actql/actql/physical_strategy_host', type: 'RunIssue'},
     estimate_error: {package: 'actql/actql/physical_strategy_host', type: 'RunIssue'},
     estimate_policy: null, resource_policy: null};
