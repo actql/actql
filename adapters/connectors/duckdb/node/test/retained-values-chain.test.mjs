@@ -180,11 +180,11 @@ function familyProgram(family, filter = 'id >= 1') {
 // Use the checked acquisition planner and real native capture. The
 // test installs Compute configuration directly; public Client dispatch mode
 // selection remains with its Host owner.
-async function openCapturedRetained(prepared, contracts, directory, rows, budgets,
+async function openCapturedRetained(prepared, contracts, installedContracts, directory, rows, budgets,
   fileInput = false) {
   const [registry, values, fragment, ordered] = contracts;
   const planned = moon.clientProgramPrepareLocalQueryRequirement(
-    prepared, 0, 0, registry, values, fragment, ordered);
+    prepared, 0, 0, installedContracts, values, fragment, ordered);
   assert.equal(planned?.$tag, 1, `captured requirement: ${inspect(planned, {depth: 8})}`);
   const requirement = checked(planned);
   const facts = checked(moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
@@ -242,7 +242,7 @@ async function openCapturedRetained(prepared, contracts, directory, rows, budget
       ? fixture.strategyFixtureCapturedRetainedSubset(prepared, source,
         registry, values, fragment, budgets.work, budgets.workspace)
       : moon.clientProgramOpenCapturedLocalRetainedHost(prepared,
-        source, registry, values, 1n, 0n, 0n, 0n, fragment, ordered);
+        source, installedContracts, values, 1n, 0n, 0n, 0n, fragment, ordered);
     assert.ok(setup, 'the product captured factory must install retained output');
     return {setup, capture, identity, logicalInput,
       checkedSource: {sourceRef, sourceContractCid, carrierSchemaContractCid,
@@ -320,16 +320,18 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
     }
     const contracts = await pinnedEngineContracts(root, ['registered_body',
       'registered_values', 'registered_fragment', 'registered_ordered']);
-    const [registry, values, fragment] = contracts;
+    const [registry, values, fragment, ordered] = contracts;
+    const installedContracts = checked(moon.clientPrepareInstalledSequenceContracts(
+      registry, values, fragment, ordered));
     if (captureRows) captured = await openCapturedRetained(prepared,
-      contracts, directory, captureRows, budgets, fileInput);
+      contracts, installedContracts, directory, captureRows, budgets, fileInput);
     // Boundary injection uses the same checked owner, installed provider and
     // retained driver. Ordinary success/fault cases use the product factory.
     const setup = captured?.setup ?? (budgets
       ? fixture.strategyFixtureSourceFreeRetainedSubset(prepared,
         registry, values, fragment, budgets.work, budgets.workspace)
       : moon.clientProgramOpenSourceFreeLocalRetainedHost(
-        prepared, registry, values, 1n, 0n, 0n, 0n, fragment, undefined));
+        prepared, installedContracts, values, 1n, 0n, 0n, 0n, fragment, undefined));
     assert.ok(setup, 'the checked retained factory must admit this chain');
     const first = captured ? 1 : 0;
     // Existing Relation chains remain one task. Carrier fixtures explicitly
