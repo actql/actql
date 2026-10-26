@@ -478,3 +478,18 @@ the independent formatter guards; it does not reconstruct a capacity plan after
 execution. A foreign preparation or changed installed input refuses before
 opening another Run. Reading the projection does not reserve or refund capacity,
 authorize a start, or acknowledge the captured reader's physical retirement.
+
+
+## Carrier provider inventory composition
+
+The installed Events, Vectors and Graph providers keep their domain-selected
+simultaneous storage generations and distinct private scratch. They express
+those existing byte quotes through the common checked inventory fold. Domain
+validation still requires each generation multiplicity to be positive; a
+zero-size generation does not waive that requirement. Retained and execution
+dimensions preserve the same original base envelope and error boundary.
+
+This composition is neither initial construction funding nor a tariff for
+provider closures, module controls or physical storage. Those independently
+live representations must be reserved by the original preparation owner
+before construction, and retired only through their actual borrowers.
