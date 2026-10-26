@@ -1,4 +1,5 @@
 import resources from '../host-node/ordinary-node-resource-runtime.cjs';
+import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeIsError,runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {probeClosedValuesOwnDataHeader,closedValuesOwnDataHeaderFields,
@@ -48,12 +49,19 @@ const phaseAdapter = (moon, token) => ({spendWork(amount) {
 }});
 
 export function closedValuesPreparationAvailable(context) {
-  const moon=context?.runtime;
-  return moon !== undefined && context.preparedEnvironment !== undefined &&
-    typeof moon.clientProgramPrepareClosedValuesBody === 'function' &&
-    typeof moon.clientProgramCompleteClosedValuesBody === 'function' &&
-    typeof moon.clientProgramAdoptClosedValuesPreparation === 'function' &&
-    typeof moon.clientProgramReserveClosedValuesSnapshot === 'function';
+  if(context===null || typeof context!=='object' || nodeTypes.isProxy(context)) return false;
+  const own = (object,name) => {
+    const field=Object.getOwnPropertyDescriptor(object,name);
+    return field!==undefined && Object.hasOwn(field,'value') ? field.value : undefined;
+  };
+  const moon=own(context,'runtime');
+  if(moon===null || typeof moon!=='object' || nodeTypes.isProxy(moon) ||
+      own(context,'preparedEnvironment')===undefined ||
+      typeof own(context,'retainedRelationOutput')!=='boolean') return false;
+  return typeof own(moon,'clientProgramPrepareClosedValuesModuleBody')==='function' &&
+    typeof own(moon,'clientProgramCompleteClosedValuesBody')==='function' &&
+    typeof own(moon,'clientProgramAdoptClosedValuesPreparation')==='function' &&
+    typeof own(moon,'clientProgramReserveClosedValuesSnapshot')==='function';
 }
 
 export function beginClosedValuesInput(state, input, receipt, connection, requirements, assertCurrent) {

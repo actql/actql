@@ -217,41 +217,46 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     assertCurrent: current,
     beforeSourceSnapshot(kind, input, options, originalConnection) {
       current();
+      // A selected funded context cannot fall back to an unfunded snapshot
+      // when its typed capability or installed output mode is unavailable.
+      // Resolve it before allocating a producer, including a throwing lookup.
+      const context = kind === 'program' && options === undefined && callbacks.preparationContext !== undefined
+        ? callbacks.preparationContext(originals) : undefined;
+      if (context !== undefined && !closedValuesPreparationAvailable(context)) {
+        fail('NodeLocalPreparationAdmissionUnavailable');
+      }
       if (producers.size === 32) fail('InstalledSourceProducerLimit');
       const receipt = Object.freeze({});
       const producer = {receipt, kind, body: undefined, request: undefined, finished: false, liveRuns: 0, snapshotPublication: undefined, preparation: undefined};
       receipts.set(receipt, producer); producers.add(producer);
       // One preparation protocol; the narrow shape adapter is staged until
       // every supported frontend has a construction proof for this owner.
-      if (kind === 'program' && options === undefined && callbacks.preparationContext !== undefined) {
-        const context = callbacks.preparationContext(originals);
-        if (closedValuesPreparationAvailable(context)) {
-          const state = {context, original: undefined, admission: undefined,
-            phase: undefined, prepared: undefined, holder: undefined, adopting: false};
-          producer.preparation = state;
-          try {
-            const required = callbacks.preparationRequirements(originals);
-            const accepted = beginClosedValuesInput(state, input, receipt, originalConnection, required, () => {
-              // Cleanup may continue while the manager is closing. Exact
-              // membership/current installation, not raw Prepared, is retained.
-              if (closed || receipts.get(receipt) !== producer || producer.preparation !== state) {
-                fail('ForeignInstalledSourceProducer');
-              }
-              callbacks.validator(originals);
-            });
-            if (!accepted) producer.preparation = undefined;
-          } catch (cause) {
-            producer.finished = true;
-            try {
-              cleanupClosedValuesInput(state);
-              producer.preparation = undefined; producers.delete(producer);
-            } catch (cleanupCause) {
-              throw Object.assign(new Error('NodeLocalPreparationCleanupPending', {cause}),
-                {code: 'NodeLocalPreparationCleanupPending', cleanupPending: true,
-                  cleanupCause});
+      if (context !== undefined) {
+        const state = {context, original: undefined, admission: undefined,
+          phase: undefined, prepared: undefined, holder: undefined, adopting: false};
+        producer.preparation = state;
+        try {
+          const required = callbacks.preparationRequirements(originals);
+          const accepted = beginClosedValuesInput(state, input, receipt, originalConnection, required, () => {
+            // Cleanup may continue while the manager is closing. Exact
+            // membership/current installation, not raw Prepared, is retained.
+            if (closed || receipts.get(receipt) !== producer || producer.preparation !== state) {
+              fail('ForeignInstalledSourceProducer');
             }
-            throw cause;
+            callbacks.validator(originals);
+          });
+          if (!accepted) fail('NodeLocalPreparationAdmissionUnavailable');
+        } catch (cause) {
+          producer.finished = true;
+          try {
+            cleanupClosedValuesInput(state);
+            producer.preparation = undefined; producers.delete(producer);
+          } catch (cleanupCause) {
+            throw Object.assign(new Error('NodeLocalPreparationCleanupPending', {cause}),
+              {code: 'NodeLocalPreparationCleanupPending', cleanupPending: true,
+                cleanupCause});
           }
+          throw cause;
         }
       }
       return receipt;
@@ -295,6 +300,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const producer = producerForRequest(request);
       const state = producer?.preparation;
       if (state === undefined) return undefined;
+      if (!closedValuesPreparationAvailable(state.context)) fail('NodeLocalPreparationAdmissionUnavailable');
       if (state.context.environment !== environment || state.phase === undefined || state.adopting) {
         fail('ForeignInstalledSourceProducer');
       }
@@ -302,8 +308,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (state.holder === undefined) {
         const contracts = originals.installation.sequenceContractOriginal;
         if (contracts === undefined || contracts.moon !== moon) fail('ForeignInstalledSourceProducer');
-        checkedPreparation(moon,moon.clientProgramPrepareClosedValuesBody(state.phase, environment,
-          state.context.preparedEnvironment, contracts.admission));
+        checkedPreparation(moon,moon.clientProgramPrepareClosedValuesModuleBody(state.phase, environment,
+          state.context.preparedEnvironment, contracts.admission, state.context.retainedRelationOutput));
         // Separate fixed call: semantic/plan constructor stacks have unwound
         // before the same reservation may drop their temporary peak.
         state.holder = checkedPreparation(moon,moon.clientProgramCompleteClosedValuesBody(state.phase));

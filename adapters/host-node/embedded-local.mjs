@@ -514,6 +514,11 @@ export function readLocalPreparationContext(originals) {
   if (context === undefined || context.runtime !== installation.projectRuntime ||
       context.control !== installation.initialControl ||
       installation.sequenceContractOriginal === undefined) return undefined;
+  const mode = Object.getOwnPropertyDescriptor(context, 'retainedRelationOutput');
+  if (mode === undefined || !Object.hasOwn(mode, 'value') || typeof mode.value !== 'boolean' ||
+      mode.value !== installation.retainedRelationOutput) {
+    throw clientOperationError('NodeLocalPreparationAdmissionUnavailable');
+  }
   return context;
 }
 
@@ -1572,7 +1577,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (preparation !== undefined) {
           originalInstallation.closedValuesPreparationContext = Object.freeze({runtime: moon,
             control: originalInstallation.initialControl, environment,
-            preparedEnvironment: sourceEnvironmentOriginal.preparedEnvironment});
+            preparedEnvironment: sourceEnvironmentOriginal.preparedEnvironment, retainedRelationOutput});
         }
       }
     }
