@@ -69,8 +69,12 @@ let closed_values_module_outer : @execution.PreparationRepresentationUnits = {
 // three typed lists4/10/2, their item records, arithmetic Some and quote folds:
 //41H19R92W. Other complete inner alternatives are default-provider construction
 //35H76R30W, IO validation4H2R29W, registry installation632B,
-// policy refinement1048B and input/output metadata736B. Their calls return
-// before the next begins. No represented value-node/row buffers are allocated.
+// policy refinement1048B and input/output metadata736B. Final configured
+// capacity projection adds at most9H14R20W=416B: the old raw record/limits,
+// two checked-add Some, capacity/tuple/Option carriers and returned Ok. Its
+// new limits/final source-free record use the retained slots; they are not
+// counted again as old temporary originals. These helpers return before the
+// next begins. No represented value-node/row buffers are allocated.
 let closed_values_module_private : @execution.PreparationRepresentationUnits = {
   record_headers: 41L,
   reference_slots: 19L,

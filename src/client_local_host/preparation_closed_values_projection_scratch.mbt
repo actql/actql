@@ -95,11 +95,13 @@
 ///10 checked-add Some(10H0R20W) and two literal slots(0H2R0W).
 /// Four complete tariffs plus two checked peak additions add22H0R44W.
 /// The Module/family recipe bodies are immutable installed DATA, not created
-/// by this request. Added fixed quote scratch32H2R64W is funded BEFORE grow.
+/// by this request. The synchronous scope adds two callback environments (2H10R1W), plus
+/// the portable deferred finalizer (1H1R0W). Added fixed quote/scope scratch
+///35H13R65W is funded BEFORE the constructor call and every later grow.
 let closed_values_projection_scratch_original : @execution.PreparationRepresentationUnits = {
-  record_headers: 4186L + 313L + 10L + 90L + 139L + 12L + 9454L + 32L,
-  reference_slots: 1584L + 363L + 55L + 112L + 2L + 2148L + 2L,
-  scalar_words: 9361L + 315L + 20L + 204L + 326L + 30L + 20410L + 64L,
+  record_headers: 4186L + 313L + 10L + 90L + 139L + 12L + 9454L + 35L,
+  reference_slots: 1584L + 363L + 55L + 112L + 2L + 2148L + 13L,
+  scalar_words: 9361L + 315L + 20L + 204L + 326L + 30L + 20410L + 65L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }

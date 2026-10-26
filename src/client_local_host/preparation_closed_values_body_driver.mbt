@@ -17,7 +17,7 @@ pub fn[I] prepare_closed_values_module_body(
 ) -> Result[Unit, ClientClosedValuesPreparationIssue] {
   guard owner.original is Some(original) &&
     physical_equal(original, owner) &&
-    owner.input is Some(input) else {
+    owner.input is Some(_) else {
     return Err(ForeignOriginal)
   }
   if owner.retiring ||
@@ -26,13 +26,45 @@ pub fn[I] prepare_closed_values_module_body(
     owner.module_constructing {
     return Err(WrongPhase)
   }
-  // This latch covers grow/current callbacks as well as the actual factory.
-  // It releases only synchronous construction occupancy, never the reservation.
-  // Returned failures keep this same partial owner for its existing cleanup.
+  // The backend scope clears only this synchronous latch after the exact
+  // constructor unwinds. Its JS implementation also handles raw callback
+  // exceptions; a typed defer alone cannot observe those foreign throws.
   owner.module_constructing = true
-  defer {
-    owner.module_constructing = false
-  }
+  closed_values_module_call(
+    () => {
+      construct_closed_values_module_body(
+        owner,
+        environment,
+        publication_environment,
+        contracts,
+        manifests,
+        retained_output~,
+        provider_factory~,
+        family_retained~,
+        family_array~,
+        family_temporary~,
+      )
+    },
+    () => owner.module_constructing = false,
+  )
+}
+
+///|
+fn[I] construct_closed_values_module_body(
+  owner : ClientClosedValuesPreparation[I],
+  environment : @checked.CheckEnvironment,
+  publication_environment : @source_publication.PreparedPublishedQueryEnvironment,
+  contracts : ClientInstalledSequenceContracts,
+  manifests : @publication_host.ClientCompilationManifests,
+  retained_output~ : Bool,
+  provider_factory~ : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
+  family_retained~ : @execution.PreparationRepresentationUnits,
+  family_array~ : @execution.PreparationRepresentationUnits,
+  family_temporary~ : @execution.PreparationRepresentationUnits,
+) -> Result[Unit, ClientClosedValuesPreparationIssue] {
+  guard owner.input is Some(input) else { return Err(ForeignOriginal) }
   if owner.program is None {
     match parse_closed_values_document(owner) {
       Err(issue) => return Err(issue)
@@ -52,7 +84,7 @@ pub fn[I] prepare_closed_values_module_body(
     Ok(value) => value
   }
   let catalog_work = @checked.source_catalog_usage(catalog).work
-  let module = closed_values_module_construction_layout(retained_output)
+  let module_layout = closed_values_module_construction_layout(retained_output)
   guard closed_values_context_phase_layout(
       facts,
       shape.fields,
@@ -82,7 +114,7 @@ pub fn[I] prepare_closed_values_module_body(
       plan.retained,
       proof.retained,
       compilation.retained,
-      module.retained,
+      module_layout.retained,
       family_retained,
     ])
     is Some(retained_units) &&
