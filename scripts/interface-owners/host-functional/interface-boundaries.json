@@ -19531,7 +19531,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -19650,7 +19650,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -82905,7 +82905,7 @@
       "sha256": "82d23d01b6c99054e795ee06207f1c03040479a6134eb9be48d4b759d23e992b",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -83154,7 +83154,7 @@
       "sha256": "1579102c910d242eaa6502ab6284feda6fec201af7c2ea93d0928cbbfe0e96f4",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "prepareInstalledEffectManagedPlanRun",
@@ -83393,15 +83393,37 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "7dc55a408e532cad86609765319cc4d0717933aec01b5a3b4018d2ae837a2ab0",
+      "sha256": "7c91d8d3073b2dcca5f1ca12b48ac2ce7ba4d269d07c38983a65a57d35d5b56f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
+        "captureInstalledSourceServices",
         "createInstalledHostServices",
         "retainInstalledHostServiceInstallation"
       ],
       "operations": [
+        {
+          "name": "captureInstalledSourceServices",
+          "parameters": [
+            "receiver",
+            "unavailable"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureInstalledSourceServices/invokeInstalledSourceService",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureInstalledSourceServices/refuse/refuse",
+          "parameters": [],
+          "async": false
+        },
         {
           "name": "createInstalledHostServices",
           "parameters": [
@@ -83618,8 +83640,8 @@
                 "anchor": "export function createInstalledHostServices"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
               }
             ],
             "identity": [
@@ -83628,8 +83650,8 @@
                 "anchor": "export function createInstalledHostServices"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
               }
             ],
             "ownership": [
@@ -83648,8 +83670,8 @@
                 "anchor": "export function createInstalledHostServices"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
               }
             ],
             "failure": [
@@ -83658,8 +83680,8 @@
                 "anchor": "fail('ForeignInstalledSourceReaderSelection')"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
               }
             ],
             "cancellation": [
@@ -83688,18 +83710,138 @@
                 "anchor": "export function createInstalledHostServices"
               },
               {
-                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
-                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
               },
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "captureInstalledSourceServices",
+            "captureInstalledSourceServices/invokeInstalledSourceService",
+            "captureInstalledSourceServices/refuse/refuse"
+          ],
+          "exports": [
+            "captureInstalledSourceServices"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function captureInstalledSourceServices"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Capturing the installed Source service"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service snapshot captures four original methods and receiver before metadata await"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "return Reflect.apply(methods[name], receiver, args)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service snapshot captures four original methods and receiver before metadata await"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "methods[name] = field.value"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Capturing the installed Source service"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service invoker preserves exact Promise failure and cleanup carrier without wrapping"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service snapshot captures four original methods and receiver before metadata await"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "Object.getOwnPropertyDescriptor(receiver, name)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "const refuse = () =>"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service snapshot rejects missing inherited accessor and proxy methods without callbacks"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service invoker preserves exact Promise failure and cleanup carrier without wrapping"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service invoker preserves exact Promise failure and cleanup carrier without wrapping"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Capturing the installed Source service"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Capturing the installed Source service"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "Object.create(null)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "typeof name !== 'string' || !Object.hasOwn(methods, name)"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service snapshot rejects missing inherited accessor and proxy methods without callbacks"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service snapshot captures four original methods and receiver before metadata await"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service snapshot rejects missing inherited accessor and proxy methods without callbacks"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-capture.test.mjs",
+                "anchor": "Source service invoker preserves exact Promise failure and cleanup carrier without wrapping"
               }
             ]
           }
