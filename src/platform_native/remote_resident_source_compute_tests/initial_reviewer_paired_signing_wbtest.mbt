@@ -68,7 +68,16 @@ fn paired_initial_reviewer_fixture(
       fail("paired Reviewer Account refused: " + @debug.to_string(issue))
     Err(_) => fail("paired Reviewer original Host adoption refused")
   }
-  let material = session.create_initial_signing_material(crypto).unwrap()
+  let material = session
+    .create_initial_signing_material(
+      crypto,
+      host_signing_subject=if attest_host {
+        Some(("host-machine", "host-cli", "key/initial-host-attestation"))
+      } else {
+        None
+      },
+    )
+    .unwrap()
   // The initializer takes an epoch duration, not a wall-clock timestamp.
   // Keep actual clock reads at the existing issue/current operations below.
   let submission_ttl_ms = 60000.0
@@ -205,11 +214,9 @@ fn paired_initial_reviewer_signing(
       )
       is Err(_),
     )
-    let account = host
-      .acquire_initial_host_signing_account(
-        host_key, installed, "host-machine", "host-cli", "key/initial-host-attestation",
-      )
-      .unwrap()
+    // The operational subject now comes only from the authenticated first
+    // installation; this caller supplies no actor tuple at signing time.
+    let account = host.restore_initial_host_signing_account(installed).unwrap()
     assert_true(
       host.acquire_initial_host_signing_account(
         host_key, installed, "host-machine", "host-cli", "key/different",

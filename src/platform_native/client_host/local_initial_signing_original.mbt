@@ -8,6 +8,7 @@ priv struct NativeLocalInitialSigningCapture {
   adoption : Bytes
   payload : Bytes
   host_payload : Bytes
+  host_signing_subject_payload : Bytes?
 }
 
 ///|
@@ -123,6 +124,24 @@ fn NativeLocalAdoptionSession::prepare_initial_signing_capture(
         purpose: "host_attestation",
       }).map_err(_ => Encoding),
     )
+    let host_signing_subject_payload = match material.host_signing_subject {
+      None => None
+      Some(subject) => {
+        let bytes = local_initial_signing_value(
+          initial_host_signing_subject_payload(
+            self.intent_cid,
+            issuer,
+            policy.cid(),
+            host_public.cid(),
+            subject,
+          ),
+        )
+        if bytes.length() > 2048 {
+          return Err(ConfigurationLimit)
+        }
+        Some(bytes)
+      }
+    }
     // Existing installation HMAC payload bound, not another capacity grant.
     if payload.length() > 2048 || host_payload.length() > 2048 {
       return Err(ConfigurationLimit)
@@ -134,6 +153,7 @@ fn NativeLocalAdoptionSession::prepare_initial_signing_capture(
       adoption,
       payload,
       host_payload,
+      host_signing_subject_payload,
     }
     local_initial_signing_value(captured.check_current(crypto, adoption))
     Ok(captured)
@@ -170,7 +190,12 @@ fn NativeLocalInitialSigningCapture::control_body(
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
   try {
     local_initial_signing_value(self.check_current(crypto, adoption))
-    if self.payload.length() > 2048 || self.host_payload.length() > 2048 {
+    if self.payload.length() > 2048 ||
+      self.host_payload.length() > 2048 ||
+      (
+        self.host_signing_subject_payload is Some(bytes) &&
+        bytes.length() > 2048
+      ) {
       return Err(ConfigurationLimit)
     }
     let packet = local_initial_signing_value(
@@ -191,11 +216,23 @@ fn NativeLocalInitialSigningCapture::control_body(
     )
     // Closed alternative in the same host control row. The legacy raw adoption
     // body, issued count, setting reservations and all existing rows are intact.
-    local_adoption_record([
+    let fields = [
       ("adoption_body", @base64.encode(adoption)),
       ("initial_signing_original", @base64.encode(packet)),
       ("initial_host_attestation_original", @base64.encode(host_packet)),
-    ])
+    ]
+    if self.host_signing_subject_payload is Some(payload) {
+      let packet = local_initial_signing_value(
+        local_installation_packet_in_transaction(
+          database,
+          crypto,
+          payload,
+          reads~,
+        ),
+      )
+      fields.push(("initial_host_signing_subject", @base64.encode(packet)))
+    }
+    local_adoption_record(fields)
   } catch {
     LocalInstallationAdoptionStop(issue) => Err(issue)
   }
@@ -208,10 +245,20 @@ fn local_initial_signing_control_header(
   match
     local_adoption_fields(body, [
       "adoption_body", "initial_signing_original", "initial_host_attestation_original",
+      "initial_host_signing_subject",
     ]) {
     Ok(value) => Ok(value)
     Err(_) =>
-      local_adoption_fields(body, ["adoption_body", "initial_signing_original"])
+      match
+        local_adoption_fields(body, [
+          "adoption_body", "initial_signing_original", "initial_host_attestation_original",
+        ]) {
+        Ok(value) => Ok(value)
+        Err(_) =>
+          local_adoption_fields(body, [
+            "adoption_body", "initial_signing_original",
+          ])
+      }
   }
 }
 
@@ -241,7 +288,7 @@ fn read_local_initial_signing_control(
         host, packet, "reviewer_proof", "local-signing-key.pem",
       ),
     )
-    if header.length() == 3 {
+    if header.length() >= 3 {
       let host_packet = @base64.decode(header[2]) catch {
         _ => return Err(CustodyLost)
       }
@@ -261,6 +308,14 @@ fn read_local_initial_signing_control(
         reviewer.policy.cid() == host_key.policy.cid() &&
         reviewer.issuer == host_key.issuer else {
         return Err(CustodyLost)
+      }
+      if header.length() == 4 {
+        guard local_initial_signing_value(
+            read_initial_host_signing_subject(host, body, host_key),
+          )
+          is Some(_) else {
+          return Err(CustodyLost)
+        }
       }
     }
     Ok(Some(reviewer))

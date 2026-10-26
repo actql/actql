@@ -8,6 +8,7 @@ struct NativeLocalInitialHostSigningOriginal {
   exported : Bytes
   public_key : @credential.LocalSigningPublicKey
   public_key_pem : String
+  signing_subject : (String, String, String)?
 }
 
 ///|
@@ -19,7 +20,7 @@ fn read_local_initial_host_signing_control(
     return Err(CustodyLost)
   }
   let header = match local_initial_signing_control_header(body) {
-    Ok(value) if value.length() == 3 => value
+    Ok(value) if value.length() >= 3 => value
     _ => return Err(CustodyLost)
   }
   let packet = @base64.decode(header[2]) catch { _ => return Err(CustodyLost) }
@@ -67,6 +68,11 @@ pub fn NativeLocalHostConnection::restore_initial_host_signing_original(
     exported: fields.exported,
     public_key: fields.public_key,
     public_key_pem: fields.public_key_pem,
+    signing_subject: match
+      read_initial_host_signing_subject(self, reviewer.control_body, fields) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    },
   }
   original.require_current().map(_ => original)
 }
@@ -87,9 +93,15 @@ pub fn NativeLocalInitialHostSigningOriginal::require_current(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let subject = match
+    read_initial_host_signing_subject(host, self.reviewer.control_body, fields) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   if fields.exported != self.exported ||
     fields.public_key_pem != self.public_key_pem ||
-    fields.public_key.cid() != self.public_key.cid() {
+    fields.public_key.cid() != self.public_key.cid() ||
+    subject != self.signing_subject {
     return Err(CustodyLost)
   }
   guard self.projection.export_original() is Ok(exported) &&

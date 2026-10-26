@@ -18,6 +18,7 @@ priv struct LocalHostSettings {
   read_file : String?
   run_policy_profile_file : String?
   reviewer_file : String?
+  initial_host_signing : (String, String, String)?
 }
 
 ///|
@@ -59,7 +60,7 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     "account_id", "principal", "connection", "state_parent", "state_name", "managed_root",
     "sqlite_library", "signature_library", "submission_ttl_ms", "journal_record_limit",
     "journal_snapshot_bytes", "installation_files", "source_file", "run_file", "read_file",
-    "reviewer_file", "run_policy_profile_file",
+    "reviewer_file", "run_policy_profile_file", "initial_host_signing",
   ]).unwrap_or_else(() => stop("InvalidLocalHostConfiguration"))
   let number = fn(key : String) -> Int64 raise ClientStop {
     guard @decode.lookup(fields, key) is Some(value) &&
@@ -94,6 +95,24 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
       installation_files.push(name)
     }
   }
+  let initial_host_signing = match
+    @decode.lookup(fields, "initial_host_signing") {
+    None => None
+    Some(value) => {
+      let selected = @decode.closed_object(value, [
+        "principal", "connection", "resource",
+      ]).unwrap_or_else(() => stop("InvalidInitialHostSigningSelection"))
+      let principal = local_settings_text(selected, "principal")
+      let connection = local_settings_text(selected, "connection")
+      let resource = local_settings_text(selected, "resource")
+      for text in [principal, connection, resource] {
+        if text.length() > 256 || text.contains("\u{0}") {
+          stop("InvalidInitialHostSigningSelection")
+        }
+      }
+      Some((principal, connection, resource))
+    }
+  }
   let settings : LocalHostSettings = {
     account_file: local_settings_text(root, "account_config"),
     account_id: local_settings_text(fields, "account_id"),
@@ -108,6 +127,7 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     record_limit: records.to_int(),
     snapshot_bytes: snapshot,
     installation_files,
+    initial_host_signing,
     run_policy_profile_file: match
       @decode.lookup(fields, "run_policy_profile_file") {
       None => None
@@ -424,6 +444,7 @@ fn execute_native_local_adoption(
       ttl_ms: settings.ttl_ms,
       max_records: settings.record_limit,
       max_snapshot_bytes: settings.snapshot_bytes,
+      initial_host_signing: settings.initial_host_signing,
     }) {
     Ok(value) => value
     Err(DatabasePending(database, issue)) => {
