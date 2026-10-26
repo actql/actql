@@ -1556,3 +1556,28 @@ actual checked member and installation before selecting its typed extents.
 Missing complete supply is not an empty inventory or permission to use a
 Compute-only quote. Preserving previously supported Model and Content callers
 requires their original scopes and providers in the same admitted plan.
+
+
+## Installed JSON Source service originals
+
+The standard installed Host retains one service association between each
+original connector installation and its selected runtime. Before opening a
+Site, the Source loader supplies that same service object and installation to
+the connector. Codec policy DATA and the typed reader representation describe
+rejection and construction bounds; they do not admit a Run, authorize a read,
+or fund other connector-specific constructor graphs.
+
+The common Credential reader borrows the original Site's bound credential,
+transport, read authorization and current check. Each exact received response
+enters the reader's custody before accounting or projection. A pending read,
+response alias, provider child or credential binding prevents retirement. A
+later cleanup attempt calls only the same captured reader retry method; it
+cannot replace a physical close acknowledgement or issue another request.
+
+The generic Row Source exposes its capture representation through the existing
+original acquisition and typed provider-capacity association. Managed Run
+binding preserves that selection. A planned provider read starts through the
+same original Source read and parent Ledger, while Credential authorization
+remains independently required. Copied installation DATA, changed runtime
+identity, changed policy selection and stale current checks cannot substitute
+for any of these originals.

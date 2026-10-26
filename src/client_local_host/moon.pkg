@@ -31,6 +31,7 @@ import {
   "actql/actql/bounded_execution" @bounded,
   "actql/actql/query_planning" @planning,
   "actql/actql/sourceview_resolution" @sourceviews,
+  "actql/actql/source_value" @source,
   "actql/actql/connectors/duckdb/acquisition" @duckdb_query,
   "actql/actql/connectors/duckdb/host" @duckdb_host,
   "actql/actql/client_row_source_host" @row_source_host,
@@ -40,7 +41,6 @@ import {
 import {
   "actql/actql/local_veca_provider" @nearest_provider,
   "actql/actql/source_frontend" @frontend,
-  "actql/actql/source_value" @source,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
 } for "wbtest"

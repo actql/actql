@@ -1,3 +1,4 @@
+import {createInstalledHostServices} from './installed-host-services.mjs';
 import {checkedPreparation} from '../local-node/closed-values-preparation-adapter.mjs';
 import {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
 import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
@@ -1092,12 +1093,15 @@ async function openInstalledHost(originalInstallation, preparation) {
   }
   function assertProjectRuntime() {
     if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
-    if (installedProjectOriginalsForRuntime(project, moon) !== projectOriginal) {
+    if (project !== undefined &&
+        installedProjectOriginalsForRuntime(project, moon) !== projectOriginal) {
       throw clientOperationError('ForeignInstalledProjectOriginal');
     }
     if (modelRuntimeView !== undefined) assertNewModelRuntime();
   }
   if (modelRuntimeView !== undefined) assertModelRuntime();
+  const installationServices = createInstalledHostServices({root, principalId, moon,
+    assertCurrent: assertProjectRuntime});
   const control = runtimeCore(moon).publicationControl;
   async function releaseLocalSigningRecovery(recovered) {
     // Recovery acquired real prepared-schema owners. Signing only borrows the
@@ -1383,7 +1387,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     } else {
       sourceProfile = await loadInstalledSources(selectedSourcePaths,
         {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
-          resolveSecret: resolveSourceSecret, connectorTable});
+          resolveSecret: resolveSourceSecret, connectorTable, installationServices});
       if (preparation !== undefined) sourceProfile = preparation.bindManagedSources(moon, sourceProfile);
     }
     if (!mockSourceInstallation) {
