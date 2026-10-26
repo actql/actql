@@ -4,9 +4,9 @@
 // `_observed_*` fields retain exact bound observations for white-box tests;
 // production consumes the admitted totals, not these diagnostic projections.
 priv struct ClosedValuesContextPhaseLayout {
-  retained : PreparationRepresentationUnits
-  temporary : PreparationRepresentationUnits
-  _observed_failure : PreparationRepresentationUnits
+  retained : @execution.PreparationRepresentationUnits
+  temporary : @execution.PreparationRepresentationUnits
+  _observed_failure : @execution.PreparationRepresentationUnits
 }
 
 ///|
@@ -20,7 +20,7 @@ fn closed_values_context_fixed_source(
   text : Int,
   longest : Int,
   depth : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   let owner = closed_values_source_inventories({
     input_bytes: bytes,
     node_upper: nodes,
@@ -71,7 +71,7 @@ fn closed_values_context_core_layout(
   }
   // Required catalog wrapper1H4R2W; eligibility projection1H3W. Interpreted
   // catalog and installed Environment remain exact borrowed Root originals.
-  let originals : PreparationRepresentationUnits = {
+  let originals : @execution.PreparationRepresentationUnits = {
     record_headers: 2L,
     reference_slots: 4L,
     scalar_words: 5L,

@@ -2,7 +2,7 @@
 test "managed cleanup inventory uses central tariff once per physical output" {
   assert_eq(client_local_cleanup_retained_bytes(), 368L)
   assert_eq(
-    preparation_representation_cost(managed_cleanup_control_units),
+    @execution.preparation_representation_cost(managed_cleanup_control_units),
     Some(368L),
   )
   assert_eq(managed_cleanup_control_units.owned_utf16_units, 0L)

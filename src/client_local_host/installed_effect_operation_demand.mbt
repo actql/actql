@@ -423,7 +423,7 @@ pub fn prepare_installed_effect_managed_plan(
   // original caller-owned sample/Run backing is borrowed, not copied here.
   // Existing generated sequences and acquisition bodies remain charged by
   // their original Compute/capture components, not decoded/copied here.
-  let controls = preparation_representation_cost({
+  let controls = @execution.preparation_representation_cost({
     record_headers: 16L + 5L * members + sources + time_holder,
     reference_slots: 26L +
     members +
@@ -444,7 +444,7 @@ pub fn prepare_installed_effect_managed_plan(
   // scalar words. Only actual retained Some row bounds own extra carriers.
   // These peaks are recorded by the SAME traversal, including refusal paths;
   // neither work counts nor a failed proof allocate hypothetical backing.
-  let temporary = preparation_representation_cost({
+  let temporary = @execution.preparation_representation_cost({
     record_headers: 21L + workspace.row_bounds.to_int64() + 2L * time_holder,
     reference_slots: 12L + owner_slots + row_slots + 3L * time_holder,
     scalar_words: 40L +

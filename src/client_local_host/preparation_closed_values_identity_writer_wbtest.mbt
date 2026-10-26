@@ -16,10 +16,13 @@ test "ClosedValues identity writer specialization removes six source-sized copie
     depth_upper: 8,
   }
   let quote = closed_values_context_components_layout(facts, 100, 99).unwrap()
-  assert_eq(preparation_representation_cost(quote.retained).unwrap(), 898703L)
+  assert_eq(
+    @execution.preparation_representation_cost(quote.retained).unwrap(),
+    898703L,
+  )
   // Prior temporary47987835 - six unnecessary full-source scopes27759200.
   assert_eq(
-    preparation_representation_cost(quote.temporary).unwrap(),
+    @execution.preparation_representation_cost(quote.temporary).unwrap(),
     20228635L,
   )
 }
@@ -45,7 +48,7 @@ test "ClosedValues identity writer specialization preserves width monotonicity a
       names.join(",") +
       "]}}}],\"results\":{\"r\":{\"from\":{\"stage\":\"s\",\"result\":\"r\"}}}}"
     let facts = closed_values_lexical_facts(document, document.length()).unwrap()
-    let priced = preparation_representation_cost(
+    let priced = @execution.preparation_representation_cost(
       closed_values_identity_writer_layout(facts.node_upper, facts.depth_upper).unwrap(),
     ).unwrap()
     assert_true(priced > previous)
@@ -53,13 +56,16 @@ test "ClosedValues identity writer specialization preserves width monotonicity a
   }
   let small = closed_values_identity_writer_layout(40, 7).unwrap()
   let large = closed_values_identity_writer_layout(20640, 8).unwrap()
-  let smaller = preparation_representation_cost(small).unwrap()
-  let larger = preparation_representation_cost(large).unwrap()
+  let smaller = @execution.preparation_representation_cost(small).unwrap()
+  let larger = @execution.preparation_representation_cost(large).unwrap()
   assert_true(larger > smaller)
   assert_eq(larger, 4682398L)
   // Every scope remains summed; no early retirement or peak-max substitution.
   let stage = closed_values_writer_layout(20648, 9, 1, 0, 0).unwrap()
-  assert_eq(larger - preparation_representation_cost(stage).unwrap(), 47884L)
+  assert_eq(
+    larger - @execution.preparation_representation_cost(stage).unwrap(),
+    47884L,
+  )
   for nodes in [0, -1, 2147483640] {
     assert_true(closed_values_identity_writer_layout(nodes, 8) is None)
   }

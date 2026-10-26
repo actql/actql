@@ -134,8 +134,8 @@ pub fn[I] prepare_program_capture(
       bytes, nodes, depth, results, fields, max_fields, model_count,
     )
     is Some(layout) &&
-    preparation_representation_cost(layout.retained) is Some(r) &&
-    preparation_representation_cost(layout.temporary) is Some(e) else {
+    @execution.preparation_representation_cost(layout.retained) is Some(r) &&
+    @execution.preparation_representation_cost(layout.temporary) is Some(e) else {
     return Err(Policy)
   }
   if r > 9223372036854775807L - array_retained ||

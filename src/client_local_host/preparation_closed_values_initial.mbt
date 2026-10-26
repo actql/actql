@@ -68,7 +68,7 @@ pub(all) enum ClientClosedValuesPreparationIssue {
 /// The selected installation's existing bootstrap recipe covers construction
 /// before the child exists; this exact projection is then held on that same
 /// child's Ledger, never converted into a second 512 MiB pool.
-fn closed_values_initial_control_units() -> PreparationRepresentationUnits {
+fn closed_values_initial_control_units() -> @execution.PreparationRepresentationUnits {
   // JS: producer + empty receipt; preparation link; empty Resource original;
   // Resource state; six-slot quota Array; weak identity control+entry; ports;
   // six allocated closures with at most state/original captures; SDK wrapper.
@@ -199,11 +199,15 @@ pub fn client_closed_values_initial_control_capacity(
   policy : ClientLocalResourcePolicy,
 ) -> (Int64, Int64)? {
   guard client_local_preparation_initial_limits(policy) is Some(limits) &&
-    preparation_representation_cost(closed_values_initial_control_units())
+    @execution.preparation_representation_cost(
+      closed_values_initial_control_units(),
+    )
     is Some(retained) &&
     preparation_node_own_data_scan_cost() is Some(scan) &&
     preparation_node_own_data_header_cost() is Some(header) &&
-    preparation_representation_cost(closed_values_projection_scratch_units())
+    @execution.preparation_representation_cost(
+      closed_values_projection_scratch_units(),
+    )
     is Some(projection) else {
     return None
   }
@@ -462,7 +466,7 @@ pub fn[I] begin_closed_values_text_check(
     quoted_utf16_units <= 2147483647 - scan_work &&
     client_closed_values_initial_control_capacity(owner.policy)
     is Some((retained, base_execution)) &&
-    preparation_representation_cost({
+    @execution.preparation_representation_cost({
       record_headers: 1L,
       reference_slots: 0L,
       scalar_words: 13L,
@@ -563,14 +567,15 @@ pub fn[I] reserve_closed_values_snapshot(
       },
     ])
     is Some(retained_units) &&
-    preparation_representation_cost(retained_units) is Some(retained) &&
+    @execution.preparation_representation_cost(retained_units) is Some(retained) &&
     closed_values_sum_layouts([intent.shared_temporary, intent.js_temporary])
     is Some(js_units) &&
     closed_values_sum_layouts([intent.shared_temporary, intent.core_temporary])
     is Some(core_units) &&
-    preparation_representation_cost(js_units) is Some(js_execution) &&
-    preparation_representation_cost(core_units) is Some(core_execution) &&
-    preparation_representation_cost(snapshot.temporary)
+    @execution.preparation_representation_cost(js_units) is Some(js_execution) &&
+    @execution.preparation_representation_cost(core_units)
+    is Some(core_execution) &&
+    @execution.preparation_representation_cost(snapshot.temporary)
     is Some(snapshot_execution) &&
     client_closed_values_initial_control_capacity(owner.policy)
     is Some((_, controls)) else {

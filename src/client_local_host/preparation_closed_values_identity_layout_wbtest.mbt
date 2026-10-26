@@ -3,7 +3,10 @@ test "identity component keeps seven distinct CID owners and borrowed source tex
   let value = closed_values_identity_layout(40, 4, 8).unwrap()
   assert_eq(value.cid_strings.record_headers, 7L)
   assert_eq(value.cid_strings.owned_utf16_units, 497L)
-  assert_eq(preparation_representation_cost(value.cid_strings), Some(1106L))
+  assert_eq(
+    @execution.preparation_representation_cost(value.cid_strings),
+    Some(1106L),
+  )
   assert_eq(value.fixed.owned_utf16_units, 0L)
   assert_eq(value.preparation.owned_utf16_units, 0L)
   assert_eq(value.emission.owned_wire_bytes, 0L)
@@ -15,17 +18,17 @@ test "identity source traversal and simultaneous emitter frames grow with origin
   let large = closed_values_identity_layout(11000, 100, 8).unwrap()
   assert_true(small.fixed == large.fixed)
   assert_true(
-    preparation_representation_cost(large.preparation).unwrap() >
-    preparation_representation_cost(small.preparation).unwrap(),
+    @execution.preparation_representation_cost(large.preparation).unwrap() >
+    @execution.preparation_representation_cost(small.preparation).unwrap(),
   )
   assert_true(
-    preparation_representation_cost(large.emission).unwrap() >
-    preparation_representation_cost(small.emission).unwrap(),
+    @execution.preparation_representation_cost(large.emission).unwrap() >
+    @execution.preparation_representation_cost(small.emission).unwrap(),
   )
   let deep = closed_values_identity_layout(40, 4, 9).unwrap()
   assert_true(
-    preparation_representation_cost(deep.emission).unwrap() >
-    preparation_representation_cost(small.emission).unwrap(),
+    @execution.preparation_representation_cost(deep.emission).unwrap() >
+    @execution.preparation_representation_cost(small.emission).unwrap(),
   )
   let total = closed_values_sum_layouts([
     small.fixed,
@@ -33,13 +36,13 @@ test "identity source traversal and simultaneous emitter frames grow with origin
     small.emission,
     small.cid_strings,
   ]).unwrap()
-  let cost = preparation_representation_cost(total).unwrap()
+  let cost = @execution.preparation_representation_cost(total).unwrap()
   assert_eq(
     cost,
-    preparation_representation_cost(small.fixed).unwrap() +
-    preparation_representation_cost(small.preparation).unwrap() +
-    preparation_representation_cost(small.emission).unwrap() +
-    preparation_representation_cost(small.cid_strings).unwrap(),
+    @execution.preparation_representation_cost(small.fixed).unwrap() +
+    @execution.preparation_representation_cost(small.preparation).unwrap() +
+    @execution.preparation_representation_cost(small.emission).unwrap() +
+    @execution.preparation_representation_cost(small.cid_strings).unwrap(),
   )
 }
 
@@ -57,5 +60,7 @@ test "identity component refuses contradictory source extents" {
     assert_true(closed_values_identity_layout(nodes, fields, depth) is None)
   }
   let edge = closed_values_identity_layout(2147483647, 2147483647, 2147483647).unwrap()
-  assert_true(preparation_representation_cost(edge.emission) is Some(_))
+  assert_true(
+    @execution.preparation_representation_cost(edge.emission) is Some(_),
+  )
 }

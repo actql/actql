@@ -91,7 +91,7 @@
 /// Sum=(9454,2148,20410),331728 logical bytes. All loops have fixed13-family,
 ///23-repetition or<=13-element bounds; no F/R-sized quote collection exists.
 /// The source guard pins helper bodies and this table's cardinalities.
-let closed_values_projection_scratch_original : PreparationRepresentationUnits = {
+let closed_values_projection_scratch_original : @execution.PreparationRepresentationUnits = {
   record_headers: 4186L + 313L + 10L + 90L + 139L + 12L + 9454L,
   reference_slots: 1584L + 363L + 55L + 112L + 2L + 2148L,
   scalar_words: 9361L + 315L + 20L + 204L + 326L + 30L + 20410L,
@@ -100,6 +100,6 @@ let closed_values_projection_scratch_original : PreparationRepresentationUnits =
 }
 
 ///|
-fn closed_values_projection_scratch_units() -> PreparationRepresentationUnits {
+fn closed_values_projection_scratch_units() -> @execution.PreparationRepresentationUnits {
   closed_values_projection_scratch_original
 }

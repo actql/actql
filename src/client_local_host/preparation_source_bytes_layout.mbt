@@ -13,18 +13,20 @@
 fn closed_values_js_bytes_document_layout(
   total_utf16 : Int64,
   calls : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if calls < 0 || total_utf16 < 0L || (calls == 0 && total_utf16 != 0L) {
     return None
   }
   let count = calls.to_int64()
-  let units : PreparationRepresentationUnits = {
+  let units : @execution.PreparationRepresentationUnits = {
     record_headers: 5L * count,
     reference_slots: 3L * count,
     scalar_words: 6L * count,
     owned_utf16_units: total_utf16,
     owned_wire_bytes: 0L,
   }
-  guard preparation_representation_cost(units) is Some(_) else { return None }
+  guard @execution.preparation_representation_cost(units) is Some(_) else {
+    return None
+  }
   Some(units)
 }

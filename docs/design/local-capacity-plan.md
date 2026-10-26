@@ -354,3 +354,20 @@ representation and value-node tariffs; the execution peak includes both. A
 domain must not repeat that arithmetic, introduce another tariff or turn its
 static declaration into an admission. The original checked plan and Ledger
 still determine whether the quoted inventory can actually be funded.
+
+
+## Shared preparation units
+
+The common typed conversion and checked fold belongs to
+`execution_relation/capacity_inventory.mbt`. Domains supply their objects,
+units, multiplicities and simultaneous lifetimes; they do not repeat tariffs
+or checked arithmetic. Preparation headers, references, scalar words, UTF16
+code units and owned wire bytes use the same original 16/8/8/2/1 logical
+representation policy in `execution_relation/preparation_representation.mbt`.
+The larger value-node/decode/wire allowances remain distinct units.
+
+Local consumers retain their original domain counts and use these shared
+units directly. The original preparation execution composition is available
+to production callers and its whitebox tests consume that same definition.
+This data projection neither reserves construction backing nor grants a Run,
+execution permission, physical cleanup acknowledgement or unused capacity.
