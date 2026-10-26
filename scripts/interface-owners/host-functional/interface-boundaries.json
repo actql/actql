@@ -82709,55 +82709,55 @@
             "responsibility": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "# Standard Source response custody callback"
+                "anchor": "## Standard Source response custody callback"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "# Standard Source response custody callback"
+                "anchor": "## Standard Source response custody callback"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "# Standard Source response custody callback"
+                "anchor": "## Standard Source response custody callback"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "# Standard Source response custody callback"
+                "anchor": "## Standard Source response custody callback"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "# Standard Source response custody callback"
+                "anchor": "## Standard Source response custody callback"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "# Standard Source response custody callback"
+                "anchor": "## Standard Source response custody callback"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "# Standard Source response custody callback"
+                "anchor": "## Standard Source response custody callback"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "# Standard Source response custody callback"
+                "anchor": "## Standard Source response custody callback"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "# Standard Source response custody callback"
+                "anchor": "## Standard Source response custody callback"
               }
             ],
             "verification": [

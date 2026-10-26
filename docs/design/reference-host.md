@@ -1506,7 +1506,7 @@ resume/current gates retain their original positions. This holder retains no
 Account decision, dispatch permission or acknowledgement. Pending children keep
 their original callbacks through cleanup; no unconditional completion finally
 invalidates the same continuation. Journal closure still refuses later probes.
-# Standard Source response custody callback
+## Standard Source response custody callback
 
 The standard reader supplies one frozen object with exactly one own DATA
 method, `retain(response)`. A consumer captures that original method and
