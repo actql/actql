@@ -1529,3 +1529,30 @@ the consumer's supplied error factory.
 This helper performs no I/O, permission, charge, outcome classification or
 cleanup. Selecting the callback supplies no capacity or retirement ACK, and
 joining an invalid return does not settle its owner's physical duties.
+
+## Installed Effect operation definition DATA
+
+The existing `createInstalledRowEffect` constructor can retain an optional
+`managedPlanDefinition` from the same installed provider. For the current Mock
+UPDATE and Local files COMMAND profiles, this is a frozen own-DATA object with
+exactly `kind`, `memberOperations` and `rowOperations`. Both arrays and their
+`{role, operation}` entries are frozen. Mock declares the ordered target-read
+and write roles; Local COMMAND declares only its write role. The constructor
+retains the original descriptor and rejects proxies, accessors, iterators,
+mutable objects and incompatible role order before its first I/O await.
+Omission preserves the existing constructor contract for other profiles.
+
+These names select declared operation roles, not a physical-call census,
+capacity, a grant or an admitted plan. The existing Mapping, Command, driver,
+Site, collection issuer and Source preparations remain their same originals.
+A cached before/version observation can be reused only under its existing
+exact-description/current rules; the descriptor never authorizes a new read,
+replaces the captured observation or supplies evidence of a physical stop.
+
+The standard service owns `prepareManagedPlan`, full retained capture and
+material inventory, framework phase occurrences, initial admission, the same
+Run parent and later current/cleanup boundaries. It must bind this DATA to the
+actual checked member and installation before selecting its typed extents.
+Missing complete supply is not an empty inventory or permission to use a
+Compute-only quote. Preserving previously supported Model and Content callers
+requires their original scopes and providers in the same admitted plan.
