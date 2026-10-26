@@ -19,6 +19,30 @@ pub fn generate_relation_row_declaration(
   limits : RowDeclarationLimits,
   classifications? : Array[@environment.DataClassification]? = None,
 ) -> Result[RowDeclaration, RowHostIssue] {
+  generate_relation_row_declaration_with_resource_identities(
+    connector_id,
+    connector_registration,
+    connector_version,
+    views,
+    limits,
+    classifications,
+    None,
+  )
+}
+
+///|
+// The original public constructor has no additional identity input. Saved
+// relation specifications may carry the existing static SourceView contract;
+// it is admitted under the same cumulative declaration bounds, never authority.
+fn generate_relation_row_declaration_with_resource_identities(
+  connector_id : String,
+  connector_registration : String,
+  connector_version : String,
+  views : Array[RowRelationViewSpec],
+  limits : RowDeclarationLimits,
+  classifications : Array[@environment.DataClassification]?,
+  resource_identity_wires : Array[String?]?,
+) -> Result[RowDeclaration, RowHostIssue] {
   if limits.max_bytes < 1 ||
     limits.max_nodes < 1 ||
     limits.max_depth < 1 ||
@@ -26,13 +50,18 @@ pub fn generate_relation_row_declaration(
     views.length() > limits.max_views {
     return Err(InvalidSpecification)
   }
+  if resource_identity_wires is Some(values) &&
+    values.length() != views.length() {
+    return Err(InvalidSpecification)
+  }
   let specs = []
   let bodies = []
   let requests = []
+  let resource_identities = []
   let mut bytes = limits.max_bytes
   let mut nodes = limits.max_nodes
   let mut work = limits.max_nodes
-  for view in views {
+  for view_index, view in views {
     if @publication.validate_result_schema_wire(
         view.schema_cid,
         view.schema_wire,
@@ -96,6 +125,32 @@ pub fn generate_relation_row_declaration(
     nodes -= usage.nodes
     work -= used_work
     bytes -= measured
+    let identity_wire = match resource_identity_wires {
+      Some(values) => values[view_index]
+      None => None
+    }
+    match identity_wire {
+      None => resource_identities.push(None)
+      Some(wire) => {
+        let (body, used_bytes, used_nodes, identity_work) = match
+          relation_resource_identity_body(
+            wire,
+            view.resource_kind,
+            schema,
+            bytes,
+            nodes,
+            limits.max_depth,
+            work,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        bytes -= used_bytes
+        nodes -= used_nodes
+        work -= identity_work
+        resource_identities.push(Some(body))
+      }
+    }
     let request_bodies = []
     for
       index, wire in [
@@ -220,6 +275,7 @@ pub fn generate_relation_row_declaration(
     Some(bodies),
     Some(requests),
     classifications,
+    Some(resource_identities),
     limits,
   ).map_err(issue => Declaration(issue))
 }
@@ -267,10 +323,11 @@ pub fn restore_relation_row_declaration(
   }
   let specs = []
   let classifications : Array[@environment.DataClassification] = []
+  let resource_identities = []
   for view in views {
     guard view is Object(entries) &&
       entries.length() >= 4 &&
-      entries.length() <= 8 &&
+      entries.length() <= 9 &&
       spec_text(view, "resource") is Some(resource) &&
       spec_text(view, "resource_kind") is Some(resource_kind) &&
       spec_text(view, "schema_wire") is Some(schema_wire) &&
@@ -280,7 +337,7 @@ pub fn restore_relation_row_declaration(
     for name in entries.keys() {
       if ![
           "resource", "resource_kind", "schema_wire", "schema_cid", "request_schema_wire",
-          "facts_wire", "acquisition_wire", "data_classification",
+          "facts_wire", "acquisition_wire", "data_classification", "resource_identity_wire",
         ].contains(name) {
         return Err(InvalidSpecification)
       }
@@ -294,6 +351,11 @@ pub fn restore_relation_row_declaration(
       _ => return Err(InvalidSpecification)
     }
     classifications.push(classification)
+    match entries.get("resource_identity_wire") {
+      None => resource_identities.push(None)
+      Some(String(wire)) => resource_identities.push(Some(wire))
+      _ => return Err(InvalidSpecification)
+    }
     let optional = []
     for name in ["request_schema_wire", "facts_wire", "acquisition_wire"] {
       match entries.get(name) {
@@ -313,13 +375,14 @@ pub fn restore_relation_row_declaration(
     })
   }
   let declaration = match
-    generate_relation_row_declaration(
+    generate_relation_row_declaration_with_resource_identities(
       connector_id,
       connector_registration,
       connector_version,
       specs,
       limits,
-      classifications=Some(classifications),
+      Some(classifications),
+      Some(resource_identities),
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
