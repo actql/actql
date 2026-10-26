@@ -2359,7 +2359,7 @@ pub fn client_program_prepare_captured_source_identity_scan(@execution_query.Cap
 
 pub fn client_program_prepare_chain_validation(@client_local_host.ClientProgramCapture[ClientLocalPreparationInputOriginal], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Result[@client_local_host.ClientProgramValidation[ClientLocalPreparationInputOriginal], @client_local_host.ClientProgramValidationIssue]
 
-pub fn client_program_prepare_closed_values_body(@client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal], @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, @client_local_host.ClientInstalledSequenceContracts) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue]
+pub fn client_program_prepare_closed_values_module_body(@client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal], @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, @client_local_host.ClientInstalledSequenceContracts, Bool) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue]
 
 pub fn client_program_prepare_closed_values_submitted_intent(@client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal], String) -> Result[String, @client_local_host.ClientClosedValuesPreparationIssue]
 

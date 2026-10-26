@@ -405,7 +405,7 @@ pub fn prepare_client_retained_content_output(@run_publication_host.ClientSerial
 
 pub fn prepare_client_serialization_prefix(@run_publication_host.PreparedClientProgram, Int, Int, ClientInstalledSequenceContracts, String, String?, String?) -> @execution_relation.GeneratedSequence?
 
-pub fn[I] prepare_closed_values_body(ClientClosedValuesPreparation[I], @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, ClientInstalledSequenceContracts, @run_publication_host.ClientCompilationManifests) -> Result[Unit, ClientClosedValuesPreparationIssue]
+pub fn[I] prepare_closed_values_module_body(ClientClosedValuesPreparation[I], @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, ClientInstalledSequenceContracts, @run_publication_host.ClientCompilationManifests, retained_output~ : Bool, provider_factory~ : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider], family_retained~ : @execution_relation.PreparationRepresentationUnits, family_array~ : @execution_relation.PreparationRepresentationUnits, family_temporary~ : @execution_relation.PreparationRepresentationUnits) -> Result[Unit, ClientClosedValuesPreparationIssue]
 
 pub fn[I] prepare_closed_values_submitted_intent(ClientClosedValuesPreparation[I], String) -> Result[String, ClientClosedValuesPreparationIssue]
 
