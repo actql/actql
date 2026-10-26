@@ -995,3 +995,18 @@ live counts; absent final usage remains distinct from a reported zero value.
 This comparison neither replaces the physical owner's stop acknowledgement nor
 requires cumulative planning, attempts, transfer or retention peak to become
 zero. Those spent facts remain separate from the original live occupancy.
+
+The Core diagnostic JSON writer is generated from that same record declaration.
+It preserves the Native diagnostic's numeric decimal lexemes, including exact
+Int64 text; it is not `ToJson(Int64)` and is not a lossless JavaScript Number
+transport or an admission codec. Consumers use the mechanically projected field
+inventory instead of maintaining another complete list.
+
+The pending-resource observation clears only the Core-owned spent planning,
+attempt, transferred-byte and historical-peak facts before typed equality with
+the initial usage value. Other nonzero counters remain pending, including
+zero-byte live tokens and unresolved transfer. The existing generator projects
+those cleared fields for diagnostic consumers; a future counter fails closed
+unless its spent meaning is deliberately added by the same Core owner. This
+observation supplies neither a physical stop acknowledgement nor the original
+census/serial/quantity proof needed for restoration.
