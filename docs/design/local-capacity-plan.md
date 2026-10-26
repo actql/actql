@@ -376,6 +376,28 @@ static declaration into an admission. The original checked plan and Ledger
 still determine whether the quoted inventory can actually be funded.
 
 
+## Runtime configuration consumes the original plan
+
+The shared Local runtime constructor requires the same checked capacity plan
+that supplied its sequence and transport inventory. It checks the original
+graph, captured Compute offset and sequence owners before constructing any
+provider. A graph-less quote or an equal independently checked graph cannot
+replace that plan. Execution, measurement, imports, exports, metadata and
+dispatcher bounds are projections of this original; missing plans do not
+select defaults or reconstruct those configurations.
+
+Input custody and metadata are included for both retained-output and
+nonretained runtime paths. Export backing is included only when that same
+caller configures retained output. Omitting the export does not omit real
+input occurrences, invent a cleanup acknowledgement or change the execution
+profile.
+
+The Pure/Node admitted-row boundary and the installed Effect execution-row
+boundary remain distinct projections of the same plan. Configuration does not
+spend an attempt or issue backing. The existing Run, parent Ledger, provider
+and physical cleanup owners retain those obligations. Stopping a rejected
+configuration does not assert physical cleanup or refund consumed work.
+
 ## Wasm publication views
 
 The existing Wasm `LocalComputeHost` retains the exact source-free requirements

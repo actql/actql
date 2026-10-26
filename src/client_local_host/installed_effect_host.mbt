@@ -139,13 +139,10 @@ fn open_installed_effect_managed_host_original(
   let host = configure_client_local_run(
     run,
     graph,
-    plan.compute_sequences,
+    configuration,
     first,
     @strategy.graph_task_count(graph),
-    configuration.execution.rows.max_rows,
-    configuration.values,
-    configuration.execution,
-    configuration.measurement,
+    ExecutionRows,
     plan.provider_retained_bytes,
     plan.provider_execution_bytes,
     true,
@@ -154,7 +151,6 @@ fn open_installed_effect_managed_host_original(
     0L,
     0L,
     provider_factory,
-    capacity_plan=Some(configuration),
   )
   match require_installed_managed_run(owner) {
     Err(issue) => {
