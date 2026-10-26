@@ -790,3 +790,17 @@ test('reused Source retains same-map membership and the original Host current fa
     assert.equal(prepares, 1); assert.equal(begins, 1);
   }
 });
+
+
+test('managed accounting refuses old Usage capability before any sample', () => {
+  const runtime = {}, f = lifecycle({factory() {}, runtime});
+  const prepared = {}, value = {}, original = {namespaceId:'n',authorityScopeCid:'a',runDefinitionCid:'r'};
+  let oldReads = 0;
+  runtime.clientProgramInstalledManagedRunUsage = () => {oldReads++; return Array(19).fill(0n);};
+  f.record.computeRuns = new Map([[prepared,{runtime,prepared,value,closed:false}]]);
+  f.preparation.bindManagedComputeRunObservation(prepared,original);
+  const read = f.preparation.managedComputeUsageReader(original);
+  assert.equal(typeof read,'function');
+  assert.equal(read(),undefined,'An older same-size layout cannot be interpreted by the new capability');
+  assert.equal(oldReads,0,'No legacy fallback or speculative second sample');
+});
