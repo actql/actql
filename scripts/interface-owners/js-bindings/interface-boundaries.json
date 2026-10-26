@@ -15415,7 +15415,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "11dac27a4ebd4af2f0a1bbf7095bc957d1c472c30f25213338efbabb92cfc16d",
+      "sha256": "97e4fcbdae899ed955fbec149c294a1f9e3d66fcac61f21bc37c4eab56d111ce",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -22455,12 +22455,29 @@
             "value"
           ],
           "async": false
+        },
+        {
+          "name": "usageKeys/usageKeys",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "usageKeys/usageKeys/usageKeys",
+          "parameters": [
+            "_",
+            "letter"
+          ],
+          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
-            "<module>"
+            "<module>",
+            "usageKeys/usageKeys",
+            "usageKeys/usageKeys/usageKeys"
           ],
           "exports": [],
           "attributes": {
@@ -26680,6 +26697,7 @@
       ],
       "imports": [
         "../../packages/client-wire/index.mjs",
+        "../host-node/ledger-contract.generated.mjs",
         "./compiler-binding.generated.mjs",
         "./installation-preparation-metadata.mjs",
         "./local-signing-metadata.mjs",

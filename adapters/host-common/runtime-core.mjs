@@ -4,14 +4,15 @@ import {createLocalSigningMetadata} from './local-signing-metadata.mjs';
 import {createInstallationPreparationMetadata} from './installation-preparation-metadata.mjs';
 import {publicationAction} from './publication-action.mjs';
 import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
+import {ledgerUsageFields} from '../host-node/ledger-contract.generated.mjs';
 import {
   resultOutputLimitFields,
   validOutputLimits,
   validResultOutputLimits,
 } from './result-output-limits.mjs';
 
-const usageKeys = ['planningWork', 'attempts', 'holdings', 'transferredBytes',
-  'reservedTransferBytes', 'heldBytes', 'reservedRetentionBytes', 'reservedExecutionBytes'];
+const usageKeys = Object.freeze(ledgerUsageFields.map(({name}) =>
+  name.replace(/_([a-z])/gu, (_, letter) => letter.toUpperCase())));
 const tuplePair = value => Array.isArray(value)
   ? value
   : value !== null && typeof value === 'object'
@@ -6869,8 +6870,14 @@ export function runtimeCore(moon) {
     preparationUsageIsolated: (value, holder) =>
       typeof moon.clientProgramPreparationBorrowUsageIsolated === 'function' &&
       moon.clientProgramPreparationBorrowUsageIsolated(holder, moon.strategyHostRun(value)) === true,
-    usage: value => Object.freeze(Object.fromEntries(
-      moon.strategyHostUsage(value).map((count, index) => [usageKeys[index], count]),
-    )),
+    usage: value => {
+      const counts = moon.strategyHostUsage(value);
+      if (!Array.isArray(counts) || counts.length !== usageKeys.length) {
+        throw new TypeError('InvalidStrategyLedgerUsage');
+      }
+      return Object.freeze(Object.fromEntries(
+        counts.map((count, index) => [usageKeys[index], count]),
+      ));
+    },
   });
 }

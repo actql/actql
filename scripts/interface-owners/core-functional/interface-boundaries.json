@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "11dac27a4ebd4af2f0a1bbf7095bc957d1c472c30f25213338efbabb92cfc16d",
+      "sha256": "97e4fcbdae899ed955fbec149c294a1f9e3d66fcac61f21bc37c4eab56d111ce",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -7209,6 +7209,21 @@
             "value"
           ],
           "async": false
+        },
+        {
+          "name": "usageKeys/usageKeys",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "usageKeys/usageKeys/usageKeys",
+          "parameters": [
+            "_",
+            "letter"
+          ],
+          "async": false
         }
       ],
       "owner": "Existing opaque domain controls; dispatch to original Core Owners only",
@@ -7978,7 +7993,9 @@
             "tuplePair/tuplePair",
             "publicationControl/captureContractLimits/captureContractLimits",
             "publicationControl/init:admitOriginal/init:admitOriginal",
-            "publicationControl/init:retireCapturedComputation/init:retireCapturedComputation"
+            "publicationControl/init:retireCapturedComputation/init:retireCapturedComputation",
+            "usageKeys/usageKeys",
+            "usageKeys/usageKeys/usageKeys"
           ],
           "exports": [
             "contentCaptureControl",
@@ -9820,6 +9837,7 @@
       ],
       "imports": [
         "../../packages/client-wire/index.mjs",
+        "../host-node/ledger-contract.generated.mjs",
         "./compiler-binding.generated.mjs",
         "./installation-preparation-metadata.mjs",
         "./local-signing-metadata.mjs",
