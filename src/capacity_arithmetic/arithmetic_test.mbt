@@ -65,3 +65,60 @@ test "capacity multiplication uses exact quotient boundaries" {
   assert_eq(multiply(largest, one), Ok(largest))
   assert_eq(multiply(largest, largest), Err(Overflow))
 }
+
+///|
+test "preparation count products retain full Int64 boundaries without saturation" {
+  let maximum = 9223372036854775807L
+  for coefficient in [1L, 2L, 3L, 8L, 16L, 127L, 65536L, maximum] {
+    for total in [0L, 1L, maximum - 1L, maximum] {
+      let count = (maximum - total) / coefficient
+      assert_eq(
+        checked_nonnegative_add_product(total, count, coefficient),
+        Some(total + count * coefficient),
+      )
+      if count < maximum {
+        assert_true(
+          checked_nonnegative_add_product(total, count + 1L, coefficient)
+          is None,
+        )
+      }
+    }
+  }
+  assert_eq(checked_nonnegative_add_product(maximum, 0L, 16L), Some(maximum))
+  assert_eq(
+    checked_nonnegative_add_product(maximum - 16L, 1L, 16L),
+    Some(maximum),
+  )
+  assert_true(checked_nonnegative_add_product(maximum - 15L, 1L, 16L) is None)
+  for
+    (total, count, coefficient) in [
+      (-1L, 0L, 1L),
+      (0L, -1L, 1L),
+      (0L, 0L, 0L),
+      (0L, 1L, -1L),
+      (-9223372036854775807L - 1L, 0L, 1L),
+    ] {
+    assert_true(
+      checked_nonnegative_add_product(total, count, coefficient) is None,
+    )
+  }
+}
+
+///|
+test "preparation Int64 counts cannot promote a language safe-integer bound" {
+  let safe_maximum = 9007199254740991L
+  assert_eq(
+    checked_nonnegative_add_product(safe_maximum, 1L, 1L),
+    Some(9007199254740992L),
+  )
+  assert_eq(read(9007199254740992L), Err(InvalidValue))
+  assert_eq(
+    checked_nonnegative_add_product(0L, safe_maximum, 2L),
+    Some(18014398509481982L),
+  )
+  assert_eq(
+    multiply(read(safe_maximum).unwrap(), read(2L).unwrap()),
+    Err(Overflow),
+  )
+  assert_eq(value(read(safe_maximum).unwrap()), safe_maximum)
+}

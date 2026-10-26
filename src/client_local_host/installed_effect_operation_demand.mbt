@@ -137,13 +137,17 @@ fn installed_effect_add_extent(
   count : Int64,
   bytes : Int64,
 ) -> Int64? {
-  if total < 0L ||
-    count < 0L ||
-    bytes < 0L ||
-    (bytes > 0L && count > (9223372036854775807L - total) / bytes) {
-    None
+  // A selected domain can have no additional bytes while retaining its
+  // original nonnegative count. The common positive-coefficient operation
+  // deliberately refuses zero, so preserve this existing case explicitly.
+  if bytes == 0L {
+    if total < 0L || count < 0L {
+      None
+    } else {
+      Some(total)
+    }
   } else {
-    Some(total + count * bytes)
+    @preparation_counts.checked_nonnegative_add_product(total, count, bytes)
   }
 }
 

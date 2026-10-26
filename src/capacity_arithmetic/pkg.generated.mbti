@@ -8,6 +8,8 @@ import {
 // Values
 pub fn add(Value, Value) -> Result[Value, Issue]
 
+pub fn checked_nonnegative_add_product(Int64, Int64, Int64) -> Int64?
+
 pub fn clamp(Value?, Value) -> Value
 
 pub fn minimum(Value, Value) -> Value

@@ -93,11 +93,7 @@ fn preparation_representation_cost(
 
 ///|
 fn preparation_cost_add(total : Int64, count : Int64, price : Int64) -> Int64? {
-  if count < 0L || price <= 0L || count > (9223372036854775807L - total) / price {
-    None
-  } else {
-    Some(total + count * price)
-  }
+  @preparation_counts.checked_nonnegative_add_product(total, count, price)
 }
 
 ///|
