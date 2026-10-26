@@ -160,3 +160,77 @@ test('DuckDB quotes its actual pending capture and physical transport without se
   assert.throws(() => adapter.managedCaptureCapacity({}), /InstalledSourceProgramMismatch/);
   assert.deepEqual(calls, ['pending', 'typed-capacity']);
 });
+
+function hostManagedSources(onCheck = () => {}) {
+  let method;
+  visit(ast, node => {
+    if (node.type === 'Property' && node.method && node.key.name === 'bindManagedSources') method = node;
+  });
+  assert(method);
+  const runtime = {}, checkedProgram = {}, parent = {}, request = {}, preparedSource = {};
+  const record = {computeRuns: new WeakMap()}, originalInstallation = {};
+  let preparations = 0, capacities = 0;
+  const provider = {
+    managedCaptureCapacity() {},
+    async prepare(facts) {
+      assert.strictEqual(this, provider); assert.strictEqual(facts.preparedProgram, checkedProgram);
+      preparations++; return preparedSource;
+    },
+    ledgerCapacity(value) {
+      assert.strictEqual(this, provider); assert.strictEqual(value, preparedSource);
+      capacities++; return {capacity: 'original-capacity'};
+    },
+  };
+  const bind = new Function('moon', 'record', 'originalInstallation', 'bindInstalledManagedSources', `
+    const clientOperationError=code=>Object.assign(new Error(code),{code});
+    const checked=value=>value;
+    return {${source.slice(method.start, method.end)}}.bindManagedSources;
+  `)(runtime, record, originalInstallation, bindInstalledManagedSources);
+  const selected = bind(runtime, provider);
+  const run = {runtime, prepared: checkedProgram, sourceProfile: selected, request, value: parent,
+    check(value, program, input) {
+      assert.strictEqual(this, runtime); assert.strictEqual(value, parent);
+      assert.strictEqual(program, checkedProgram); assert.strictEqual(input, request);
+      onCheck({record, run, checkedProgram});
+    }};
+  record.computeRuns.set(checkedProgram, run);
+  return {selected, checkedProgram, parent, preparedSource, run,
+    counts: () => ({preparations, capacities})};
+}
+
+test('Host Source current callback cannot retire or replace its original parent before preparation', async () => {
+  const changes = [
+    ({run}) => {run.closed = true;},
+    ({record, checkedProgram}) => {record.computeRuns.delete(checkedProgram);},
+    ({record, run, checkedProgram}) => {record.computeRuns.set(checkedProgram, {...run});},
+    ({run}) => {run.value = {};},
+    ({run}) => {run.runtime = {};},
+    ({run}) => {run.prepared = {};},
+    ({run}) => {run.sourceProfile = {};},
+  ];
+  for (const change of changes) {
+    const original = hostManagedSources(change);
+    await assert.rejects(original.selected.prepare({preparedProgram: original.checkedProgram}),
+      {code: 'ForeignInstalledSourcePreparation'});
+    assert.deepEqual(original.counts(), {preparations: 0, capacities: 0});
+  }
+});
+
+test('Host Source capacity lookup rechecks the original parent after its current callback', async () => {
+  let retire = false;
+  const original = hostManagedSources(({run}) => {if (retire) run.closed = true;});
+  const prepared = await original.selected.prepare({preparedProgram: original.checkedProgram});
+  assert.strictEqual(prepared, original.preparedSource);
+  assert.strictEqual(original.selected.ledgerCapacity(prepared).managedRun, original.parent);
+  assert.deepEqual(original.counts(), {preparations: 1, capacities: 1});
+  retire = true;
+  assert.throws(() => original.selected.ledgerCapacity(prepared), {code: 'ForeignInstalledSourcePreparation'});
+  assert.deepEqual(original.counts(), {preparations: 1, capacities: 1});
+});
+
+test('Host Source current callback preserves the original newly recorded failure before preparation', async () => {
+  const failure = new Error('OriginalCurrentFailure');
+  const original = hostManagedSources(({run}) => {run.failure = failure;});
+  await assert.rejects(original.selected.prepare({preparedProgram: original.checkedProgram}), error => error === failure);
+  assert.deepEqual(original.counts(), {preparations: 0, capacities: 0});
+});
