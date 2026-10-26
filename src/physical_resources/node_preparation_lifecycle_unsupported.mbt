@@ -14,6 +14,21 @@ pub fn[I] start_node_preparation_admission(
 }
 
 ///|
+pub fn[I] begin_node_preparation_inventory(
+  owner : NodePreparationAdmission[I],
+  _input : I,
+  _retained_bytes : Int64,
+  _execution_bytes : Int64,
+  _max_reservations : Int,
+  _max_holdings : Int,
+  _max_delegations : Int,
+) -> Result[OriginalLedgerIdentity, ImportedChildLedgerIssue] {
+  match owner {
+
+  }
+}
+
+///|
 pub fn[I, P] adopt_node_preparation_admission(
   owner : NodePreparationAdmission[I],
   _input : I,

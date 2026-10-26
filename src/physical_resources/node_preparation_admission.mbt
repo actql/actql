@@ -42,5 +42,5 @@ pub fn[P] node_preparation_usage_isolated(
     admission.preparation_holder is Some(holder) else {
     return false
   }
-  preparation_body_usage_isolated(holder, ledger)
+  (holder.isolated_usage_original)(ledger, admission.read_bootstrap)
 }
