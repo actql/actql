@@ -2431,7 +2431,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -2441,7 +2441,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -2451,7 +2451,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -2461,7 +2461,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -2471,7 +2471,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -2481,7 +2481,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -2491,7 +2491,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -2501,7 +2501,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -2511,7 +2511,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -2521,7 +2521,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
