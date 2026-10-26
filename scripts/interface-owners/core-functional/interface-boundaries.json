@@ -24170,7 +24170,7 @@
         },
         {
           "name": "retained_task_projection_graph",
-          "declaration": "retained_task_projection_graph ( value : RetainedTaskProjection ) - > CheckedDAG"
+          "declaration": "retained_task_projection_graph ( value : RetainedTaskProjection , ) - > CheckedDAG"
         },
         {
           "name": "retained_task_projection_matches_output",
