@@ -4842,7 +4842,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "ebc74840041f70b3cf732fb2464b9fa997c8bec2fe0d7637c6a44d88ca92cbf8",
+      "sha256": "605e3560943f191adc7e97937a9989232eb603e516f3370c6e1a3ef3609c306c",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -8812,7 +8812,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -9225,7 +9225,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -9885,6 +9885,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "if (runtimeIsError(result) && moon.clientProgramInstalledManagedRunIssueIsUnsupported("
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('reused Source retains same-map membership and the original Host current failure'"
               }
             ],
             "cancellation": [
@@ -9997,6 +10001,10 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
                 "anchor": "Unsupported after Resource or a retained failure never issues a new pure refusal"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('reused Source admission refuses retirement replacement and original failure from its captured current check'"
               }
             ]
           }
@@ -12104,7 +12112,7 @@
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A — existing Host preparation input boundary",
+      "owner": "A \u2014 existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -13655,7 +13663,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -13761,7 +13769,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
