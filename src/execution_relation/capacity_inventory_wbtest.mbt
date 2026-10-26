@@ -131,3 +131,21 @@ test "incremental capacity inventory preserves prior usage and exact byte bounda
     execution_capacity_inventory_add(0L, ValueNodeSlots, maximum, 1) is None,
   )
 }
+
+///|
+test "shared representation counts retain positive factors and checked full Int64 products" {
+  let maximum = 9223372036854775807L
+  assert_eq(checked_preparation_add_product(7L, 3L, 4L), Some(19L))
+  assert_eq(checked_preparation_add_product(maximum, 0L, 1L), Some(maximum))
+  assert_eq(checked_preparation_add_product(0L, maximum, 1L), Some(maximum))
+  assert_eq(
+    checked_preparation_add_product(maximum - 6L, 2L, 3L),
+    Some(maximum),
+  )
+  assert_true(checked_preparation_add_product(maximum - 5L, 2L, 3L) is None)
+  assert_true(checked_preparation_add_product(0L, maximum, 2L) is None)
+  assert_true(checked_preparation_add_product(-1L, 0L, 1L) is None)
+  assert_true(checked_preparation_add_product(0L, -1L, 1L) is None)
+  assert_true(checked_preparation_add_product(0L, 0L, 0L) is None)
+  assert_true(checked_preparation_add_product(0L, 0L, -1L) is None)
+}

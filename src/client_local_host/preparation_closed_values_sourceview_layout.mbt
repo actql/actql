@@ -4,13 +4,13 @@
 /// SourceViews and SchemaSnapshots, no carrier facts/pushdown, no parameters,
 /// one Stage and one Values Result. Zero declared inputs alone is insufficient.
 /// Common call/result/failure carriers belong the separate scaffold component.
-fn closed_values_empty_sourceview_layout() -> PreparationRepresentationUnits? {
+fn closed_values_empty_sourceview_layout() -> @execution.PreparationRepresentationUnits? {
   // Nineteen named families in the source-backed inventory; attach_pipeline_inputs
   // is constructed twice. Includes stage_source_refs (not program_references).
   // Forty-eight records include the one Some(position): 73 refs,71 words.
   // Six allocated map/makei closures retain at most four original references
   // each (owner, source, limits, budget); no copied source text is introduced.
-  let records : PreparationRepresentationUnits = {
+  let records : @execution.PreparationRepresentationUnits = {
     record_headers: 48L + 6L,
     reference_slots: 73L + 24L,
     scalar_words: 71L,

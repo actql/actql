@@ -384,8 +384,8 @@ test "publication capture handle failed payload growth retains owned plan until 
   assert_true(
     reserve_publication_constructor(
       value,
-      preparation_representation_cost(layout.retained).unwrap(),
-      preparation_representation_cost(layout.temporary).unwrap(),
+      @execution.preparation_representation_cost(layout.retained).unwrap(),
+      @execution.preparation_representation_cost(layout.temporary).unwrap(),
     )
     is Err(
       Capacity(

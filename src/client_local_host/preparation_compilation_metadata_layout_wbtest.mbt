@@ -6,8 +6,8 @@ test "metadata compiler facts remain independent of authored row count" {
   assert_eq(one.max_witnesses, 3)
   assert_true(hundred.max_nodes > one.max_nodes)
   assert_true(
-    preparation_representation_cost(hundred.retained).unwrap() >
-    preparation_representation_cost(one.retained).unwrap(),
+    @execution.preparation_representation_cost(hundred.retained).unwrap() >
+    @execution.preparation_representation_cost(one.retained).unwrap(),
   )
   assert_eq(one.plan_extra.node_upper, hundred.plan_extra.node_upper)
   assert_eq(one.plan_extra.input_bytes, hundred.plan_extra.input_bytes)
@@ -174,8 +174,8 @@ test "shared checked contract serializer packet follows actual scope multiplicit
   let one = compilation_number_contract_emitter_layout().unwrap()
   let two = compilation_metadata_repeat_units(one, 2L).unwrap()
   assert_eq(
-    preparation_representation_cost(two).unwrap(),
-    2L * preparation_representation_cost(one).unwrap(),
+    @execution.preparation_representation_cost(two).unwrap(),
+    2L * @execution.preparation_representation_cost(one).unwrap(),
   )
   assert_true(compilation_metadata_repeat_units(one, -1L) is None)
   assert_true(
@@ -188,14 +188,14 @@ test "small metadata serializer scopes use shared depth and witness dependencies
   let shallow = compilation_canonical_emitter_layout(2).unwrap()
   let deep = compilation_canonical_emitter_layout(8).unwrap()
   assert_true(
-    preparation_representation_cost(deep).unwrap() >
-    preparation_representation_cost(shallow).unwrap(),
+    @execution.preparation_representation_cost(deep).unwrap() >
+    @execution.preparation_representation_cost(shallow).unwrap(),
   )
   let witness = compilation_small_witness_emitter_layout().unwrap()
-  assert_true(preparation_representation_cost(witness).unwrap() > 0L)
+  assert_true(@execution.preparation_representation_cost(witness).unwrap() > 0L)
   let quote = closed_values_compilation_metadata_layout(100, 8).unwrap()
   assert_true(
-    preparation_representation_cost(quote.temporary).unwrap() >
-    preparation_representation_cost(witness).unwrap(),
+    @execution.preparation_representation_cost(quote.temporary).unwrap() >
+    @execution.preparation_representation_cost(witness).unwrap(),
   )
 }

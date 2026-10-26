@@ -19,14 +19,14 @@ test "provider Source Plan retains the original reader capacity in its complete 
       ordinary.execution_bytes + provider_execution,
     )
     let plain = effect_operation_source_plan_fixture()
-    let retained_controls = preparation_representation_cost({
+    let retained_controls = @execution.preparation_representation_cost({
       record_headers: 3L,
       reference_slots: 7L,
       scalar_words: 1L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     }).unwrap()
-    let scratch_controls = preparation_representation_cost({
+    let scratch_controls = @execution.preparation_representation_cost({
       record_headers: 3L,
       reference_slots: 2L,
       scalar_words: 4L,

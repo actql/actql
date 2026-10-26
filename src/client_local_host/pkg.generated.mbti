@@ -900,8 +900,6 @@ pub(all) enum LocalValuesResultExportIssue {
   Export(@run_publication_host.PublicationOutputExportIssue)
 }
 
-type PreparationRepresentationUnits derive(Eq)
-
 // Type aliases
 
 // Traits

@@ -72,9 +72,11 @@ pub fn[I] prepare_closed_values_body(
       proof.temporary,
     ])
     is Some(temporary_units) &&
-    preparation_representation_cost(retained_units) is Some(retained_add) &&
-    preparation_representation_cost(temporary_units) is Some(semantic_execution) &&
-    preparation_representation_cost(compilation.temporary)
+    @execution.preparation_representation_cost(retained_units)
+    is Some(retained_add) &&
+    @execution.preparation_representation_cost(temporary_units)
+    is Some(semantic_execution) &&
+    @execution.preparation_representation_cost(compilation.temporary)
     is Some(compilation_execution) else {
     return Err(Policy)
   }

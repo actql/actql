@@ -20,8 +20,8 @@ test "closed Values plan schema envelope uses actual Number schema emitter" {
   let small = closed_values_plan_proof_layout(1, 1).unwrap()
   let large = closed_values_plan_proof_layout(100, 23).unwrap()
   assert_true(
-    preparation_representation_cost(large.temporary).unwrap() >
-    preparation_representation_cost(small.temporary).unwrap(),
+    @execution.preparation_representation_cost(large.temporary).unwrap() >
+    @execution.preparation_representation_cost(small.temporary).unwrap(),
   )
   assert_true(small.retained == large.retained)
   assert_true(closed_values_plan_proof_layout(2147483647, 1) is None)
