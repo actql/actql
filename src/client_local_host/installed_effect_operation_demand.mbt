@@ -81,6 +81,8 @@ pub fn prepare_installed_effect_operation_demand(
 /// and actual managed-parent constructor. The original Node service separately
 /// binds its runtime/installation and retains this plan before fallible start.
 /// This plan creates no second Resource owner and carries no current Allow.
+// `_observed_*` fields retain exact bound observations for white-box tests;
+// production consumes the admitted totals, not these diagnostic projections.
 struct ClientInstalledEffectManagedPlan {
   prepared : @publication_host.PreparedClientEffectComputation
   request : @publication_host.ClientRequestIdentity
@@ -99,11 +101,10 @@ struct ClientInstalledEffectManagedPlan {
   sequences : Array[@execution.GeneratedSequence]
   compute_sequences : Array[@execution.GeneratedSequence]
   capacity_plan : ClientLocalCapacityPlan
-  provider_retained_bytes : Int64
-  provider_execution_bytes : Int64
+  configuration : ClientPreparedLocalConfiguration
   rows : Int
   held_children : Int
-  compute_limits : @resources.LedgerLimits
+  _observed_compute_limits : @resources.LedgerLimits
   limits : @resources.LedgerLimits
 }
 
@@ -129,22 +130,6 @@ fn installed_effect_plan_matches(
 ) -> Bool {
   physical_equal(plan.prepared, prepared) &&
   physical_equal(plan.request, request)
-}
-
-///|
-fn installed_effect_add_extent(
-  total : Int64,
-  count : Int64,
-  bytes : Int64,
-) -> Int64? {
-  if total < 0L ||
-    count < 0L ||
-    bytes < 0L ||
-    (bytes > 0L && count > (9223372036854775807L - total) / bytes) {
-    None
-  } else {
-    Some(total + count * bytes)
-  }
 }
 
 ///|
@@ -178,6 +163,9 @@ pub fn prepare_installed_effect_managed_plan(
   fragment_body : String?,
   ordered_body : String?,
   selected_operations : Array[ClientInstalledEffectOperationDemand],
+  provider_factory~ : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
   source_providers? : Array[@execution.ExecutionCapacity]? = None,
 ) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
@@ -322,14 +310,35 @@ pub fn prepare_installed_effect_managed_plan(
       (tail, configuration, capacity)
     }
   }
+  let configuration = match
+    prepare_client_local_configuration(
+      graph,
+      capacity_plan,
+      ExecutionRows,
+      local_capacity.provider_retained,
+      local_capacity.provider_execution,
+      true,
+      provider_factory,
+    ) {
+    Some(value) => value
+    None => return Err(Unsupported)
+  }
+  let actual_local_capacity = match
+    client_prepared_local_configuration_capacity(
+      configuration,
+      local_capacity.limits,
+    ) {
+    Some(value) => value
+    None => return Err(Unsupported)
+  }
   let compute_limits = match source_free {
-    Some(original) => {
+    Some(_) => {
       if !declarations.is_empty() ||
         !transport_bytes.is_empty() ||
         !transport_execution_bytes.is_empty() {
         return Err(Unsupported)
       }
-      original.limits
+      actual_local_capacity.limits
     }
     None => {
       if @strategy.graph_captured_prefix(graph) == 0 {
@@ -341,7 +350,7 @@ pub fn prepare_installed_effect_managed_plan(
           transport_bytes,
           transport_execution_bytes,
           sequences,
-          local_capacity=Some(local_capacity),
+          local_capacity=Some(actual_local_capacity),
         )
         is Some(limits) else {
         return Err(Unsupported)
@@ -399,10 +408,11 @@ pub fn prepare_installed_effect_managed_plan(
           }
           attempts += count
         }
-        guard installed_effect_add_extent(
+        guard @execution.execution_capacity_inventory_add(
             transfer,
-            count,
+            QuotedBytes,
             extent.transfer_bytes,
+            multiplicity,
           )
           is Some(next) else {
           return Err(Unsupported)
@@ -410,11 +420,23 @@ pub fn prepare_installed_effect_managed_plan(
         transfer = next
         let r = @execution.execution_capacity_retained_bytes(extent.capacity)
         let e = @execution.execution_capacity_execution_bytes(extent.capacity)
-        guard installed_effect_add_extent(retained, count, r) is Some(next) else {
+        guard @execution.execution_capacity_inventory_add(
+            retained,
+            QuotedBytes,
+            r,
+            multiplicity,
+          )
+          is Some(next) else {
           return Err(Unsupported)
         }
         retained = next
-        guard installed_effect_add_extent(execution, count, e) is Some(next) else {
+        guard @execution.execution_capacity_inventory_add(
+            execution,
+            QuotedBytes,
+            e,
+            multiplicity,
+          )
+          is Some(next) else {
           return Err(Unsupported)
         }
         execution = next
@@ -445,7 +467,7 @@ pub fn prepare_installed_effect_managed_plan(
   // the full per-Source overlap until that Source's original preparation ends.
   // Existing generated sequences and acquisition bodies remain charged by
   // their original Compute/capture components, not decoded/copied here.
-  let controls = preparation_representation_cost({
+  let controls = @execution.preparation_representation_cost({
     record_headers: 16L +
     5L * members +
     sources +
@@ -479,7 +501,7 @@ pub fn prepare_installed_effect_managed_plan(
   // temporary summed ExecutionCapacity and returned Some add 3H,2R,4W once,
   // not once per selected Source. Retained provider pairs are counted above.
   let provider_scratch = if provider_sources > 0 { 1L } else { 0L }
-  let temporary = preparation_representation_cost({
+  let temporary = @execution.preparation_representation_cost({
     record_headers: 21L +
     workspace.row_bounds.to_int64() +
     2L * time_holder +
@@ -526,11 +548,10 @@ pub fn prepare_installed_effect_managed_plan(
     sequences,
     compute_sequences,
     capacity_plan,
-    provider_retained_bytes: local_capacity.provider_retained,
-    provider_execution_bytes: local_capacity.provider_execution,
+    configuration,
     rows,
     held_children: held_children.to_int(),
-    compute_limits,
+    _observed_compute_limits: compute_limits,
     limits,
   })
 }

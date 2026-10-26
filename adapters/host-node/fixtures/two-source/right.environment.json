@@ -7,8 +7,8 @@
       "source_view_contract_cid": "sha256:3e9acc1b4279fc56faba3fd1fd060d15305bb0c2f3e4e1bd2de827e4991e6246",
       "read_mode": "snapshot",
       "capability_contract_cids": [
-        "sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a293989f8a3b",
-        "sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a"
+        "sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d",
+        "sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929"
       ]
     }
   ],
@@ -300,5 +300,5 @@
     }
   ],
   "version": "actql-check-environment/0.1",
-  "evidence_bundle_cid": "sha256:c89ae8aa91fba72c411ea94353fee78d840e9d312c287a08d61e1fed0eef0004"
+  "evidence_bundle_cid": "sha256:5430c416b45d740f3d882a91dd4a782c65f0216b97d0441aef56ed381040275c"
 }

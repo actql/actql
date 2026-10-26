@@ -2,10 +2,12 @@
 test "ClosedValues context fixed normalization composes source and writers" {
   let small = closed_values_normalization_layout(4).unwrap()
   let large = closed_values_normalization_layout(100).unwrap()
-  assert_true(preparation_representation_cost(small.retained).unwrap() > 0L)
   assert_true(
-    preparation_representation_cost(large.temporary).unwrap() >=
-    preparation_representation_cost(small.temporary).unwrap(),
+    @execution.preparation_representation_cost(small.retained).unwrap() > 0L,
+  )
+  assert_true(
+    @execution.preparation_representation_cost(large.temporary).unwrap() >=
+    @execution.preparation_representation_cost(small.temporary).unwrap(),
   )
   assert_true(closed_values_normalization_layout(-1) is None)
   let source = closed_values_context_fixed_source(
@@ -30,13 +32,15 @@ test "ClosedValues context core finite source owners and writer growth" {
     depth_upper: 7,
   }
   let core = closed_values_context_core_layout(facts).unwrap()
-  assert_true(preparation_representation_cost(core.retained).unwrap() > 0L)
-  assert_true(core.failure == core.temporary)
+  assert_true(
+    @execution.preparation_representation_cost(core.retained).unwrap() > 0L,
+  )
+  assert_true(core._observed_failure == core.temporary)
   let one = closed_values_operation_writer_layout(1, 1).unwrap()
   let many = closed_values_operation_writer_layout(100, 99).unwrap()
   assert_true(
-    preparation_representation_cost(many).unwrap() >
-    preparation_representation_cost(one).unwrap(),
+    @execution.preparation_representation_cost(many).unwrap() >
+    @execution.preparation_representation_cost(one).unwrap(),
   )
   assert_true(
     closed_values_operation_writer_layout(2147483647, 2147483647) is None,
@@ -76,8 +80,8 @@ test "ClosedValues context aggregate prices all finite families" {
     "context original bytes=\{facts.input_bytes} nodes=\{facts.node_upper} depth=\{facts.depth_upper}",
   )
   let quote = closed_values_context_components_layout(facts, 100, 99).unwrap()
-  let retained = preparation_representation_cost(quote.retained).unwrap()
-  let temporary = preparation_representation_cost(quote.temporary).unwrap()
+  let retained = @execution.preparation_representation_cost(quote.retained).unwrap()
+  let temporary = @execution.preparation_representation_cost(quote.temporary).unwrap()
   assert_true(retained > 0L && temporary > 0L)
   // Fixed original fixture: prior families855187 plus parsed witness source
   // envelope43516. This must stay under R after temporary phase completion.

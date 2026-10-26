@@ -56,7 +56,7 @@ fn original_observation_test_start(
   let active = start_original_model_preparation(
     prepared,
     2,
-    infer_fixture_registry,
+    infer_fixture_installed_contracts(),
     infer_fixture_values,
     original_funded_start_provider(Ref(0)),
     limits,

@@ -71,7 +71,7 @@ export function actionBindingOutputs(root) {
 export const strategyAction = Object.freeze({
 ` + resolved.filter(({boundary}) => boundary.family === 'strategy').map(({boundary,rows}) =>
     `  ${boundary.kind}: actionNames(Object.freeze(${JSON.stringify(rows.map(row => row.name))}), ${JSON.stringify(boundary.error)}),\n`).join('') + '});\n';
-  const aliases = {run_publication:'publication',execution_site:'site',physical_strategy:'strategy'};
+  const aliases = {run_publication:'publication',execution_site:'site',physical_strategy_host:'strategy'};
   const cases = resolved.filter(({boundary}) => boundary.kind !== 'resultAccess').flatMap(({boundary,rows}) => {
     const owner = aliases[boundary.source.split('/')[1]];
     return rows.map(row => `  rows.push([${[boundary.family,boundary.kind,row.variant,row.name].map(JSON.stringify).join(', ')}, @${owner}.${boundary.projection}(@${owner}.${row.variant}).to_string()])\n`);

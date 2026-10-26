@@ -17,8 +17,8 @@ test "preparation currentness reentry cannot bypass borrower slots or settle twi
     max_borrowers=1,
   ).unwrap()
   complete_preparation_capacity(owner, input, [2], 30L, 0L).unwrap()
-  let mode = Ref::new(1)
-  let observations = Ref::new(0)
+  let mode = Ref(1)
+  let observations = Ref(0)
   let origin : ImportedChildLedgerOrigin = {
     nonce: 1L,
     admit: _ => 0,

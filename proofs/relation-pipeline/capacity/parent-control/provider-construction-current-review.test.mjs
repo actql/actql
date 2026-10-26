@@ -8,6 +8,7 @@ import {providerConstructionBound} from './provider-construction.mjs';
 import {checkConstructionSourceReview} from './provider-construction-source-review.mjs';
 import {currentConstructionReview, historicalConstructionSource}
   from './provider-construction-current-review.mjs';
+import {beforeAdoptedConstructionSource} from './provider-construction-adopted-review.mjs';
 
 const root = fileURLToPath(new URL('../../../../', import.meta.url));
 const directory = 'proofs/relation-pipeline/capacity/parent-control/';
@@ -21,7 +22,7 @@ test('current constructor admission retains the conditional envelope and all his
   const bound = providerConstructionBound(read);
   assert.equal(bound.providerCount, 11);
   assert.equal(bound.callbackCount, 44);
-  assert.equal(bound.bytes, 2344);
+  assert.equal(bound.bytes, 2432);
   assert.equal(bound.completeConstructorByteCorrespondence, false);
   assert.equal(bound.completeParentUpper, false);
   assert.equal(bound.completePipelineUpper, false);
@@ -33,7 +34,7 @@ test('current constructor admission retains the conditional envelope and all his
     const gitBytes = execFileSync('git', ['--no-replace-objects', 'show',
       `${entry.previousRevision}:${entry.path}`], {cwd: root});
     assert.equal(hash(gitBytes), entry.previousSha256);
-    assert.equal(historicalConstructionSource(read(entry.path).toString(), entry), gitBytes.toString());
+    assert.equal(historicalConstructionSource(beforeAdoptedConstructionSource(read(entry.path).toString(), entry.path), entry), gitBytes.toString());
   }
 });
 
@@ -68,7 +69,7 @@ for (const [name, path, before, after] of [
     const changed = original.replace(before, after);
     assert.notEqual(changed, original);
     assert.throws(() => providerConstructionBound(file => file === path ? changed : read(file)),
-      /Unreviewed current constructor source/);
+      /Unreviewed adopted constructor source/);
   });
 }
 
@@ -83,7 +84,7 @@ for (const path of ['provider-construction.json', 'provider-construction-source-
 
 test('literal reversal refuses omitted or changed historical preimages', () => {
   const entry = currentConstructionReview.sources[0];
-  const source = read(entry.path).toString();
+  const source = beforeAdoptedConstructionSource(read(entry.path).toString(), entry.path);
   assert.throws(() => historicalConstructionSource(source, {...entry, hunks: entry.hunks.slice(1)}),
     /Changed historical constructor preimage/);
   const hunks = structuredClone(entry.hunks);
@@ -94,7 +95,7 @@ test('literal reversal refuses omitted or changed historical preimages', () => {
 
 test('literal reversal refuses duplicate current occurrences even with a substituted input digest', () => {
   const entry = currentConstructionReview.sources[0];
-  const source = read(entry.path).toString() + entry.hunks[0].after;
+  const source = beforeAdoptedConstructionSource(read(entry.path).toString(), entry.path) + entry.hunks[0].after;
   assert.throws(() => historicalConstructionSource(source, {...entry, currentSha256: hash(source)}),
     /Changed reviewed constructor delta/);
 });

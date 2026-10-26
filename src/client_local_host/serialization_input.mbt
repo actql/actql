@@ -329,7 +329,7 @@ fn start_serialization_prefix_provider(
   let capacity = match workspace {
     None => capacity
     Some(workspace) =>
-      match add_client_serialization_workspace_capacity(capacity, workspace) {
+      match @execution.add_execution_capacity(capacity, workspace) {
         Some(combined) => combined
         None => return Err(Unavailable)
       }

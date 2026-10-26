@@ -4,7 +4,7 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/platform_native/publication_store" @store,
   "actql/actql/publication_payload" @payload,
-  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/run_publication" @publication,
   "actql/actql/run_publication_host" @publication_host,
   "moonbitlang/core/encoding/utf8",

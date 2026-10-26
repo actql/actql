@@ -190,7 +190,8 @@ pub fn[I, P] transfer_preparation_capacity_to_run(
     }
     Ok(_) => ()
   }
-  if ledger.imported_child is Some(origin) && origin.stopping {
+  if (ledger.imported_child is Some(origin) && origin.stopping) ||
+    (ledger.original_inventory is Some(inventory) && inventory.closing) {
     owner.phase = Ready
     return Err(Resource(ClosedReservation))
   }
@@ -368,7 +369,7 @@ struct PreparationBodyBorrow[P] {
     PreparationBodyBorrow[P],
     PreparationCapacityIssue,
   ]
-  isolated_usage_original : (Ledger) -> Bool
+  isolated_usage_original : (Ledger, CapacityReservation?) -> Bool
 }
 
 ///|
@@ -393,9 +394,9 @@ pub fn[I, P] borrow_preparation_body(
             borrow_preparation_body(value.owner)
           }
         },
-        isolated_usage_original: ledger => {
+        isolated_usage_original: (ledger, bootstrap) => {
           !value.returned &&
-          preparation_capacity_usage_isolated(value.owner, ledger)
+          preparation_capacity_usage_isolated(value.owner, ledger, bootstrap)
         },
       })
   }
@@ -439,6 +440,7 @@ pub fn[P] borrow_preparation_body_sibling(
 fn[I, P] preparation_capacity_usage_isolated(
   owner : PreparationCapacity[I, P],
   ledger : Ledger,
+  bootstrap : CapacityReservation?,
 ) -> Bool {
   if !physical_equal(owner.ledger, ledger) {
     return false
@@ -457,12 +459,42 @@ fn[I, P] preparation_capacity_usage_isolated(
     ledger.quantity_usage.uncertain != zero_quantities() {
     return false
   }
+  let (bootstrap_retention, bootstrap_execution) = match bootstrap {
+    None => (0L, 0L)
+    Some(bootstrap) => {
+      guard ledger.original_inventory is Some(inventory) &&
+        physical_equal(inventory.bootstrap, bootstrap) &&
+        physical_equal(bootstrap.reservation.owner, ledger) &&
+        capacity_reservation_open(bootstrap) &&
+        !bootstrap.reservation.cleanup_pending else {
+        return false
+      }
+      (bootstrap.reservation.retention, bootstrap.reservation.execution)
+    }
+  }
+  // Zero-byte children still occupy original identities. Byte equality alone
+  // cannot prove that this preparation (and its exact bootstrap) is isolated.
+  if ledger.original_inventory is Some(inventory) {
+    if inventory.reservations.length() != 1 ||
+      !physical_equal(inventory.reservations[0], token) ||
+      !inventory.holdings.is_empty() ||
+      !inventory.delegations.is_empty() {
+      return false
+    }
+  }
+  let expected_reservations = if bootstrap is Some(_) { 2 } else { 1 }
   let usage = ledger.usage
+  usage.live_reservations == expected_reservations &&
+  usage.live_delegations == 0 &&
+  usage.holdings == 0 &&
+  usage.reserved_attempts == 0 &&
+  usage.reserved_retention_bytes >= token.retention &&
+  usage.reserved_execution_bytes >= token.execution &&
   usage.held_bytes == 0L &&
   usage.reserved_transfer_bytes == 0L &&
   usage.uncertain_transfer_bytes == 0L &&
-  usage.reserved_retention_bytes == token.retention &&
-  usage.reserved_execution_bytes == token.execution &&
+  usage.reserved_retention_bytes - token.retention == bootstrap_retention &&
+  usage.reserved_execution_bytes - token.execution == bootstrap_execution &&
   ledger.delegated_planning == 0 &&
   ledger.delegated_attempts == 0 &&
   ledger.delegated_holdings == 0
@@ -476,7 +508,7 @@ pub fn[P] preparation_body_usage_isolated(
   value : PreparationBodyBorrow[P],
   ledger : Ledger,
 ) -> Bool {
-  (value.isolated_usage_original)(ledger)
+  (value.isolated_usage_original)(ledger, None)
 }
 
 ///|

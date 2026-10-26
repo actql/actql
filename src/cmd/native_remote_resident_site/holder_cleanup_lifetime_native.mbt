@@ -34,7 +34,7 @@ priv struct HolderCleanupCustody {
 ///|
 priv enum HolderOutputResourceClose {
   HolderOutputResourcesClosed
-  HolderOutputResourcesPending(HolderCleanupCustody)
+  HolderOutputResourcesPending
 }
 
 ///|
@@ -45,12 +45,6 @@ fn close_holder_output_resources(
 ) -> HolderOutputResourceClose {
   guard original.resources is Some(resources) else {
     return HolderOutputResourcesClosed
-  }
-  // A task-owned Catalog preparation may have survived an initialization
-  // refusal. Only its task cleanup detaches it; ordinary close is no substitute
-  // for the producer/Reader/stamp acknowledgements.
-  if resources.effect_catalog_files.val is Some(_) {
-    return HolderOutputResourcesPending(original)
   }
   guard advance_holder_cleanup_pass(resources, original.step, 5, (same, step) => {
     match step {
@@ -69,7 +63,7 @@ fn close_holder_output_resources(
       _ => same.control.close()
     }
   }) else {
-    return HolderOutputResourcesPending(original)
+    return HolderOutputResourcesPending
   }
   HolderOutputResourcesClosed
 }
@@ -78,8 +72,11 @@ fn close_holder_output_resources(
 /// Ordered caller progress, not a replacement cleanup Owner. Each step invokes
 /// the same original Owner. Successful close ACKs are never invoked twice.
 fn retry_holder_cleanup_custody(original : HolderCleanupCustody) -> Bool {
-  guard close_holder_output_resources(original) is HolderOutputResourcesClosed else {
-    return false
+  // The caller retains this same original custody across the call and retry.
+  // Pending is progress only; no duplicate outer owner is transferred here.
+  match close_holder_output_resources(original) {
+    HolderOutputResourcesClosed => ()
+    HolderOutputResourcesPending => return false
   }
   advance_holder_cleanup_pass(original, original.step, 9, (custody, step) => {
     match step {
@@ -124,19 +121,7 @@ fn holder_cleanup_caller_read_current(
     (None, Some(current)) if resources.effect_host_caller_ordinary => current()
     (None, None) =>
       match resources.effect_host_setup.val {
-        Some(scope) =>
-          (match scope.ordinary {
-            Some(_) =>
-              scope.profile is None &&
-              scope.caller_operation is None &&
-              scope.read_domain is None &&
-              scope.read_parent is None
-            None =>
-              scope.caller_operation is Some(operation) &&
-              @site.site_operation_available(operation)
-          }) &&
-          scope.current_binding is Some(current) &&
-          current()
+        Some(scope) => scope.current_binding is Some(current) && current()
         None => false
       }
     _ => false

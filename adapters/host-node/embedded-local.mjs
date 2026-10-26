@@ -1,4 +1,4 @@
-import {checkedPreparation} from './closed-values-preparation-adapter.mjs';
+import {checkedPreparation} from '../local-node/closed-values-preparation-adapter.mjs';
 import {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
 import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
 // Private selected-namespace DATA reader. Exporting this pure operation does
@@ -66,16 +66,16 @@ import {beginInitialControlInstallation, assertInitialControlInstallationCurrent
   readInitialControlInstallationAsset, readInitialControlInstallationInput}
   from './node-initial-control-installation.mjs';
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
-import {loadInstalledProjectMockAnswers} from './installed-project-mock-answers.mjs';
+import {loadInstalledProjectMockAnswers} from '../local-node/installed-project-mock-answers.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 import {prepareInstalledProjectMock, installPreparedProjectMockSources, installedMockRequestRealization}
-  from './installed-project-mock.mjs';
+  from '../local-node/installed-project-mock.mjs';
 import {prepareInstalledProjectLocalFiles, installPreparedProjectLocalFiles, LOCAL_FILES_DEFAULT_LIMITS}
   from '../connectors/local/host/installed-project-files.mjs';
 import {installPreparedProjectLocalFileEffects}
   from '../connectors/local/host/installed-project-file-effects.mjs';
 import {installPreparedProjectMockEffects, observeInstalledMockEffectResources}
-  from './installed-mock-row-effect.mjs';
+  from '../local-node/installed-mock-row-effect.mjs';
 import {installedRuntimeBundleCid} from './source-profile-json.mjs';
 import {initializeOrdinaryMockAccount} from './ordinary-mock-account.mjs';
 import {ordinaryHostJournalInstallation} from './ordinary-host-journal.mjs';
@@ -548,7 +548,9 @@ export function readManagedComputeRunRequirements(originals, checkedPrepared) {
       prepareInstalledSequenceContractOriginal(originals).admission,
       contracts.values, contracts.expression, contracts.ordered));
   } else if (run !== undefined) {
-    if (run.runtime !== moon || run.prepared !== checkedPrepared || run.closed ||
+    const retainedRelationOutput = originals.installation.retainedRelationOutput;
+    if (typeof retainedRelationOutput !== 'boolean' ||
+        run.runtime !== moon || run.prepared !== checkedPrepared || run.closed ||
         typeof moon.clientProgramPrepareInstalledManagedSourceFreeWithContracts !== 'function' ||
         typeof moon.clientProgramInstalledManagedRunIssueIsUnsupported !== 'function' ||
         typeof moon.clientProgramPreparedInstalledManagedSourceFreeRequirements !== 'function') {
@@ -564,7 +566,7 @@ export function readManagedComputeRunRequirements(originals, checkedPrepared) {
       }
       const result = moon.clientProgramPrepareInstalledManagedSourceFreeWithContracts(
         checkedPrepared, originalContracts.admission,
-        contracts.values, contracts.expression, contracts.ordered);
+        contracts.values, contracts.expression, contracts.ordered, retainedRelationOutput);
       // This exact pure Core preparation precedes Resource and business Run
       // admission. Only its typed Unsupported variant proves a refusal; no
       // arbitrary Host exception or missing journal record does so.
@@ -6048,7 +6050,8 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     inferEvidence: installation?.inferEvidence,
     hostCapacityPolicy: installation?.hostCapacityPolicy,
     hostLookupExecutionPolicy: installation?.hostLookupExecutionPolicy,
-    retainedRelationOutput: installation?.retainedRelationOutput,
+    retainedRelationOutput: installation?.retainedRelationOutput === undefined
+      ? false : installation.retainedRelationOutput,
     observation: installation?.observation,
     valuesMaxRows: installation?.valuesMaxRows});
   record.installation = originalInstallation;

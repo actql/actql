@@ -2,7 +2,7 @@
 test "Business candidate rejects parent control overlap and simultaneous allowance overflow before physical acquisition" {
   // Declaration validation only, not an adopted operational profile. These
   // cases cannot create a Host/domain or issue a business Ledger from DATA.
-  let profile = native_storage_arithmetic_profile()
+  let profile = native_storage_finite_arithmetic_profile()
   let logical : @initial_resources.LedgerLimits = {
     planning_work: 1,
     attempts: 1,
@@ -92,7 +92,7 @@ test "checked business requirements reduce acquisition without changing finite-f
 
 ///|
 test "saved Result selection preserves Read facilities without a Compute acquisition candidate" {
-  let static_profile = native_storage_arithmetic_profile()
+  let static_profile = native_storage_finite_arithmetic_profile()
   let parsed = command().parse(
     argv=["--mode", "local", "result", "original-run", "--result", "answer"],
     env=Map([]),
@@ -133,7 +133,7 @@ test "saved Result selection preserves Read facilities without a Compute acquisi
 
 ///|
 test "fresh Run selection retains its supported Compute maxima" {
-  let static_profile = native_storage_arithmetic_profile()
+  let static_profile = native_storage_finite_arithmetic_profile()
   let parsed = command().parse(
     argv=["--mode", "local", "run", "query.aql"],
     env=Map([]),

@@ -90,6 +90,11 @@ async function runFailure(reason, {failCleanupOnce = false} = {}) {
     await mkdir(duckdb, {recursive: true});
     await mkdir(store, {recursive: true});
     await mkdir(runtime, {recursive: true});
+    const common = join(base, 'adapters', 'host-common');
+    await mkdir(common, {recursive: true});
+    // Keep the real receipt poll's pinned compiler binding in this fixture.
+    await cp(join(root, 'adapters/host-common/compiler-binding.generated.mjs'),
+      join(common, 'compiler-binding.generated.mjs'));
     await writeFile(join(base, 'package.json'), '{"type":"module"}\n');
     await cp(join(root, 'adapters/connectors/duckdb/node/managed-strategy-compute.mjs'),
       join(duckdb, 'managed-strategy-compute.mjs'));

@@ -77,9 +77,9 @@ fn compilation_fragment_shape(
 /// synchronous constructor scratch phases. Retained child values are composed
 /// separately; this function is not permission to drop a live owner's holding.
 fn compilation_scratch_max(
-  a : PreparationRepresentationUnits,
-  b : PreparationRepresentationUnits,
-) -> PreparationRepresentationUnits {
+  a : @execution.PreparationRepresentationUnits,
+  b : @execution.PreparationRepresentationUnits,
+) -> @execution.PreparationRepresentationUnits {
   {
     record_headers: Int64::max(a.record_headers, b.record_headers),
     reference_slots: Int64::max(a.reference_slots, b.reference_slots),

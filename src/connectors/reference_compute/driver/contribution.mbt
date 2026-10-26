@@ -81,3 +81,16 @@ pub fn[E] numeric_compute_contribution(
     },
   }
 }
+
+///|
+pub fn validate_numeric_contribution_binding(
+  configured : NumericComputeContribution,
+  driver : @host.DispatchDriver,
+  registry : @connector.CapabilityRegistry,
+) -> Result[Unit, @strategy.RunIssue] {
+  @host.validate_dispatch_channel_binding(
+    configured.installed.channel,
+    driver,
+    registry,
+  ).map_err(_ => ForeignCandidate)
+}

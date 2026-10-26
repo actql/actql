@@ -218,3 +218,52 @@ test "generated row capability inspection rejects other prepared step kinds" {
   assert_true(select_generated_sequence_step(values_generated, -1) is None)
   assert_true(select_generated_sequence_step(values_generated, 1) is None)
 }
+
+///|
+test "retained sequence refinement preserves original contexts and does not upgrade an equal owner" {
+  let sequence = prepared_sequence(
+    row_owner(
+      ",{\"derive\":[{\"old\":\"a\"},{\"a\":\"old + 1\"},{\"total\":\"old + a\"}]},{\"filter\":\"total > 1\"},{\"select\":[\"total\",\"a\"]}",
+    ),
+  )
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [
+      ordered_sequence_fragment_context(sequence, 84L),
+      sequence_fragment_context(sequence, 2, 2L),
+    ],
+    ["select_3"],
+    100000,
+    10000,
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      retain_generated_sequence_refinement(generated, generated).unwrap(),
+      generated,
+    ),
+  )
+  let refined = { ..generated, join_ceilings: generated.join_ceilings.copy(), }
+  assert_true(
+    physical_equal(
+      retain_generated_sequence_refinement(generated, refined).unwrap(),
+      refined,
+    ),
+  )
+  let copied_contexts = { ..generated, contexts: generated.contexts.copy(), }
+  assert_true(
+    physical_equal(
+      generated_sequence_owner(copied_contexts),
+      generated_sequence_owner(generated),
+    ),
+  )
+  assert_true(
+    retain_generated_sequence_refinement(generated, copied_contexts) is None,
+  )
+  let wrong_result = { ..generated, retained_ids: ["derive_1"], }
+  assert_true(
+    retain_generated_sequence_refinement(generated, wrong_result) is None,
+  )
+  let selected = select_generated_sequence_step(generated, 1).unwrap()
+  assert_true(retain_generated_sequence_refinement(generated, selected) is None)
+}

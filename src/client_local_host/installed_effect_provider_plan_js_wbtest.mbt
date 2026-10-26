@@ -19,14 +19,14 @@ test "provider Source Plan retains the original reader capacity in its complete 
       ordinary.execution_bytes + provider_execution,
     )
     let plain = effect_operation_source_plan_fixture()
-    let retained_controls = preparation_representation_cost({
+    let retained_controls = @execution.preparation_representation_cost({
       record_headers: 3L,
       reference_slots: 7L,
       scalar_words: 1L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     }).unwrap()
-    let scratch_controls = preparation_representation_cost({
+    let scratch_controls = @execution.preparation_representation_cost({
       record_headers: 3L,
       reference_slots: 2L,
       scalar_words: 4L,
@@ -34,13 +34,13 @@ test "provider Source Plan retains the original reader capacity in its complete 
       owned_wire_bytes: 0L,
     }).unwrap()
     assert_eq(
-      plan.compute_limits.retained_bytes,
-      plain.compute_limits.retained_bytes + 1111L,
+      plan._observed_compute_limits.retained_bytes,
+      plain._observed_compute_limits.retained_bytes + 1111L,
     )
     assert_eq(
-      plan.compute_limits.execution_bytes,
+      plan._observed_compute_limits.execution_bytes,
       Int64::max(
-        plain.compute_limits.execution_bytes,
+        plain._observed_compute_limits.execution_bytes,
         capacity.execution_bytes + plan.transport_execution_bytes[0],
       ),
     )
@@ -52,8 +52,8 @@ test "provider Source Plan retains the original reader capacity in its complete 
       plan.limits.execution_bytes,
       plain.limits.execution_bytes +
       (
-        plan.compute_limits.execution_bytes -
-        plain.compute_limits.execution_bytes
+        plan._observed_compute_limits.execution_bytes -
+        plain._observed_compute_limits.execution_bytes
       ) +
       retained_controls +
       scratch_controls,

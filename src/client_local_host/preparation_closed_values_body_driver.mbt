@@ -72,9 +72,11 @@ pub fn[I] prepare_closed_values_body(
       proof.temporary,
     ])
     is Some(temporary_units) &&
-    preparation_representation_cost(retained_units) is Some(retained_add) &&
-    preparation_representation_cost(temporary_units) is Some(semantic_execution) &&
-    preparation_representation_cost(compilation.temporary)
+    @execution.preparation_representation_cost(retained_units)
+    is Some(retained_add) &&
+    @execution.preparation_representation_cost(temporary_units)
+    is Some(semantic_execution) &&
+    @execution.preparation_representation_cost(compilation.temporary)
     is Some(compilation_execution) else {
     return Err(Policy)
   }
@@ -89,7 +91,10 @@ pub fn[I] prepare_closed_values_body(
   // parse_closed_values_document has returned. Program/Cursor/shared source
   // dependencies remain in cumulative R; parser/shape/private containers do
   // not escape that call. Preserve the previous E debit, not cumulative work.
-  guard client_closed_values_initial_control_capacity(owner.policy)
+  guard client_closed_values_initial_control_capacity(
+      owner.policy,
+      module_containers=owner.module_containers,
+    )
     is Some((_, controls)) &&
     closed_values_execution_peak(owner.execution_quote, execution_add, controls)
     is Some(execution) else {
@@ -146,16 +151,20 @@ pub fn[I] prepare_closed_values_body(
   }
   owner.prepared = Some(prepared)
   let installed = contracts.original
+  // This existing fixed supplier still retains its raw sequence preparation.
+  // Actual module construction cannot move here until the complete constructor
+  // overlap, selected output mode and factory have their original funding.
   let source_free = match
-    prepare_installed_managed_source_free_with_contracts(
-      prepared,
+    source_free_installed_managed_preparation_owned(
+      Pure(prepared),
       contracts,
       installed.values_body,
       installed.fragment_body,
       installed.ordered_body,
+      false,
     ) {
-    Err(issue) => return Err(Installed(issue))
-    Ok(value) => value
+    Some(value) => value
+    None => return Err(Installed(Unsupported))
   }
   owner.source_free = Some(source_free)
   let artifact = match

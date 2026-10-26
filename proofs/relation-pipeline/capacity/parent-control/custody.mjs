@@ -190,7 +190,7 @@ export function auditCustody(receipt, target, mode, current, read) {
 
 // Reconstruct the reviewed product mutation independently of the report labels.
 export function auditCustodyMutations(records, current, read) {
-  const site = 'src/physical_strategy/task_execution.mbt';
+  const site = 'src/physical_strategy_host/task_execution.mbt';
   const code = read(site).toString();
   const variants = [
     { name: 'drop-installed-scratch-release-condition', mode: 'normal',

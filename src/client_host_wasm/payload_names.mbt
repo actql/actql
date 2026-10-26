@@ -10,7 +10,6 @@ priv struct StoredPayloadNames {
 }
 
 ///|
-#export_name("actql_payload_names_reserve")
 pub fn reserve_payload_names(
   nonce : Int64,
   parent : Int,
@@ -65,7 +64,6 @@ pub fn reserve_payload_names(
 }
 
 ///|
-#export_name("actql_payload_names_produce")
 pub fn produce_payload_names(
   nonce : Int64,
   handle : Int,
@@ -109,7 +107,6 @@ pub fn produce_payload_names(
 }
 
 ///|
-#export_name("actql_payload_names_validate")
 pub fn validate_payload_names(
   nonce : Int64,
   handle : Int,
@@ -137,7 +134,6 @@ pub fn validate_payload_names(
 }
 
 ///|
-#export_name("actql_payload_names_length")
 pub fn payload_names_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.payload_names.get(handle) is Some(child) else {
@@ -150,7 +146,6 @@ pub fn payload_names_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_payload_names_close")
 pub fn close_payload_names(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.payload_names.get(handle) is Some(child) else {

@@ -14,14 +14,21 @@ test "Calendar registration reaches original exact registry admission" {
     @identity.cid_value(candidate, 100000, 10000, 100),
     "sha256:e22e68346562f75943e37453469d40c378bfe6994b124977f73addc1c23e76b6",
   )
+  // The retained Calendar-introduction registry keeps its original identity,
+  // but later adopted contract dependencies make it unavailable for new runs.
+  assert_true(
+    admit_relation_registry(candidate, registered_values(), registry_limits())
+    is Err(UnsupportedRegistry),
+  )
   let accepted = admit_relation_registry(
-    candidate,
+    registered_body(),
     registered_values(),
     registry_limits(),
   ).unwrap()
+  // Independently hashed current normative pipeline registry.
   assert_eq(
     accepted.registry_cid,
-    "sha256:e22e68346562f75943e37453469d40c378bfe6994b124977f73addc1c23e76b6",
+    "sha256:f6f017a119e5a24f0c36a64cd7f2b4fd67ea533679945098375d854af644f642",
   )
 }
 

@@ -185,7 +185,6 @@ fn physical_journal_row(
 ///|
 /// Reserve the physical query/decoder holding before allocating/calling it.
 /// The original material's input borrow owns the Reference and checked rows.
-#export_name("actql_journal_reserve")
 pub fn reserve_journal_observation(
   nonce : Int64,
   material : Int,
@@ -243,7 +242,6 @@ pub fn reserve_journal_observation(
 ///|
 /// Core chooses each query and validates the same original saved snapshot.
 /// Completion here is inspection only; physical COMMIT/Store ACK is separate.
-#export_name("actql_journal_inspect")
 pub fn inspect_journal_observation(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.journal_observations.get(handle) is Some(child) &&
@@ -306,7 +304,6 @@ pub fn inspect_journal_observation(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_journal_revision")
 pub fn journal_observation_revision(
   nonce : Int64,
   handle : Int,
@@ -341,7 +338,6 @@ pub fn journal_observation_revision(
 ///|
 /// Produce the saved Owner admission under the original current/snapshot
 /// frame. Cached output still requires current validation on every read.
-#export_name("actql_journal_admission_length")
 pub fn journal_admission_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.journal_observations.get(handle) is Some(child) &&
@@ -384,7 +380,6 @@ pub fn journal_admission_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_journal_close")
 pub fn close_journal_observation(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.journal_observations.get(handle) is Some(child) else {

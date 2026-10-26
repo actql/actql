@@ -24,11 +24,18 @@ pub fn client_program_prepare_installed_managed_source_free_with_contracts(
   values : String,
   fragment : String?,
   ordered : String?,
+  retained_output : Bool,
 ) -> Result[
   @client_local_host.ClientInstalledManagedSourceFreePreparation,
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
   @client_local_host.prepare_installed_managed_source_free_with_contracts(
-    prepared, original, values, fragment, ordered,
+    prepared,
+    original,
+    values,
+    fragment,
+    ordered,
+    retained_output~,
+    provider_factory=installed_client_family_providers,
   )
 }

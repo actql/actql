@@ -83,6 +83,7 @@ pub fn load_current_component_with_custody(
   if heap_bytes < 4096L || heap_bytes > 2147483647L || diagnostic_ceiling <= 0 {
     return Err(RefusedBeforeAcquisition(InvalidLimit))
   }
+  ignore(command_member)
   Err(RefusedBeforeAcquisition(UnsupportedTarget))
 }
 

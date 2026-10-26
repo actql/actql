@@ -53,7 +53,6 @@ const unusedContractControl = Object.freeze({
 
 async function fixture(t) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-public-payload-'));
-  t.after(() => rm(directory, {recursive: true, force: true}));
   const store = await openLocalPublicationStore({
     directory,
     storeAuthorityCid: cid('a'),
@@ -63,7 +62,12 @@ async function fixture(t) {
     maxContractNodes: 1000,
     maxContractDepth: 64,
   }, unusedContractControl);
-  t.after(async () => { await store.close(); });
+  t.after(async () => {
+    // Node after hooks run in registration order. Retire the same Store owner
+    // before deleting its directory; failed cleanup must retain that original.
+    await store.close();
+    await rm(directory, {recursive: true, force: true});
+  });
   return store;
 }
 
@@ -164,7 +168,9 @@ test('Result evidence is issued before its durable payload becomes visible',
       },
       admitCompletedResultSnapshot(handle, supplied) {
         assert.deepEqual(handle, {});
-        assert.equal(supplied, publicationLimits);
+        // Result rows and their wrapper use the original output envelope,
+        // independently of small artifact/binding metadata contract bounds.
+        assert.equal(supplied, resultLimits);
         events.push('snapshot');
         return snapshot;
       },

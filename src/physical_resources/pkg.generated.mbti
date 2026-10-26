@@ -42,6 +42,8 @@ pub fn[P, C, R] backed_execution_live_limits(BackedExecutionLiveProjection[P, C,
 
 pub fn[P, C, R] backed_execution_live_state(BackedExecutionLiveProjection[P, C, R], R) -> Result[BackedExecutionLiveState, BackedExecutionIssue]
 
+pub fn[I] begin_node_preparation_inventory(NodePreparationAdmission[I], I, Int64, Int64, Int, Int, Int) -> Result[OriginalLedgerIdentity, ImportedChildLedgerIssue]
+
 pub fn begin_original_ledger_inventory(Ledger, CapacityReservation, Int, Int, Int) -> Result[OriginalLedgerIdentity, OriginalReadIssue]
 
 pub fn[T] begin_original_resource_invalidation(OriginalResourcePark[T], T) -> Result[OriginalResourceInvalidationRequest[T], OriginalReadIssue]
@@ -121,6 +123,8 @@ pub fn claim_model_io_access(ModelIoAccess, Ledger, Reservation, Int, Int) -> Re
 pub fn[T] claim_model_io_admission(ModelIoAdmission[T], T, OriginalLedgerIdentity, Reservation, Int, Int) -> Result[ModelIoTicket[T], ModelIoAdmissionIssue]
 
 pub fn[T] claim_model_io_for_owned_ledger(ModelIoAdmission[T], T, Ledger, Reservation, Int, Int) -> Result[ModelIoTicket[T], ModelIoAdmissionIssue]
+
+pub fn claim_original_ledger_run_binding(OriginalLedgerIdentity, Ledger) -> Result[Unit, OriginalReadIssue]
 
 pub fn[P] cleanup_node_managed_run_admission(NodeManagedRunAdmission[P]) -> Result[Unit, ImportedChildLedgerIssue]
 
@@ -213,6 +217,8 @@ pub fn model_io_access_within_limits(ModelIoAccess, Int, Int) -> Bool
 pub fn[T] model_io_admission_counts(ModelIoAdmission[T], T) -> (Int, Int)?
 
 pub fn[P] node_preparation_usage_isolated(NodeManagedRunAdmission[P], Ledger) -> Bool
+
+pub fn[I] node_source_compute_preparation_limits(NodePreparationAdmission[I], I) -> Result[LedgerLimits, ImportedChildLedgerIssue]
 
 pub fn observe_quantities(Ledger, Reservation, tokens? : Int64?, cost_units? : Int64?, duration_ms? : Int64?) -> Result[Unit, LedgerIssue]
 
@@ -721,9 +727,7 @@ pub struct ModelIoTicket[T] {
   mut active : Bool
 }
 
-pub struct NodeManagedRunAdmission[P] {
-  // private fields
-}
+type NodeManagedRunAdmission[P]
 
 type NodePreparationAdmission[I]
 

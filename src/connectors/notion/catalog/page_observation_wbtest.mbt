@@ -166,7 +166,7 @@ test "Notion page is bound to the exact requested id and rejects partial page re
 test "Notion page temporal conversion refuses unknown offsets precision loss and invalid dates" {
   for
     invalid in [
-      "2026-10-17T00:00:00-00:00", "2026-10-17T00:00:00.0001Z", "2026-02-29T00:00:00Z",
+      "2026-10-17T00:00:00-00:00", "2026-10-17T00:00:00.0000000001Z", "2026-02-29T00:00:00Z",
       "2026-10-17T00:00:00",
     ] {
     let wire = page_test_original().replace_all(
@@ -322,4 +322,23 @@ test "Notion page retained canonical time and every UTF8 property name remain bo
     })
     is Ok(_),
   )
+}
+
+///|
+test "Notion page preserves exact fractional instants and original version spelling" {
+  for
+    (original, expected) in [
+      ("2026-10-17T00:00:00.0001Z", "2026-10-17T00:00:00.0001Z"),
+      ("2026-10-17T09:00:00.000000001+09:00", "2026-10-17T00:00:00.000000001Z"),
+    ] {
+    let wire = page_test_original().replace_all(
+      old="2026-10-17T00:00:00.123000Z",
+      new=original,
+    )
+    let raw = @utf8.encode(wire)
+    let page = project_notion_page(raw, "p", page_test_limits()).unwrap()
+    assert_eq(page.last_edited_time, expected)
+    assert_eq(page.version, original)
+    assert_eq(notion_page_original_json(page, raw.length()), Ok(wire))
+  }
 }

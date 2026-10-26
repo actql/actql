@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {gunzipSync} from 'node:zlib';
 import {createHash} from 'node:crypto';
 import {updateSubstringContracts, substringLaw} from './substring-expression-contract.mjs';
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
@@ -45,8 +46,12 @@ test('substring owner rejects stale shape semantics profile membership and ident
 });
 
 test('substring preserves inherited fixed-arity semantics through the Content descriptor migration', () => {
-  const base=read('spec/dependencies/actql-text-time-base.json');
-  const current=read('spec/contracts/actql-expressions.json');
+  const retained=JSON.parse(gunzipSync(readFileSync(
+    'scripts/fixtures/native-local-scalar-reviewed-current.json.gz'))).bodies;
+  const base=retained['text-time'];
+  const current=retained.expression;
+  assert.equal(cid(read('spec/dependencies/actql-text-time-base.json')),
+    read('spec/contracts/actql-expressions.json').inherited_text_time_profile_cid);
   // The merged Content contract intentionally changes one embedded value
   // descriptor, not SUBSTRING's inherited interval or fixed arity. Project
   // exactly that reviewed change back and check the complete original pin.

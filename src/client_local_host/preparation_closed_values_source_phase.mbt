@@ -1,17 +1,17 @@
 ///|
 /// Complete source/index phase projection for the fixed ordinary Node JS
 /// constructor. Input document backing is a separate owner supplied by caller.
-struct ClosedValuesSourcePhaseLayout {
-  retained : PreparationRepresentationUnits
-  parser_temporary : PreparationRepresentationUnits
-  decoder_temporary : PreparationRepresentationUnits
+priv struct ClosedValuesSourcePhaseLayout {
+  retained : @execution.PreparationRepresentationUnits
+  parser_temporary : @execution.PreparationRepresentationUnits
+  decoder_temporary : @execution.PreparationRepresentationUnits
 }
 
 ///|
 fn closed_values_units_subtract(
-  left : PreparationRepresentationUnits,
-  right : PreparationRepresentationUnits,
-) -> PreparationRepresentationUnits? {
+  left : @execution.PreparationRepresentationUnits,
+  right : @execution.PreparationRepresentationUnits,
+) -> @execution.PreparationRepresentationUnits? {
   if right.record_headers < 0L ||
     right.reference_slots < 0L ||
     right.scalar_words < 0L ||

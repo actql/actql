@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 const path = 'src/connectors/local/selected_relation_provider.mbt';
 const suite = 'src/connectors/local/relation_chain_lifetime_wbtest.mbt';
 const clean = '  match cleanup_managed_provider(active) {\n    Ok(true) => {\n      // Output provenance retains exact identities, not the child execution.';
@@ -46,4 +47,35 @@ export function requireRetirementDetection(result, output, witness) {
   assert(lines.some(line => line.includes(`("${witness.test}") failed:`) &&
     line.includes(`${witness.suite}:${witness.line}:`) && line.includes('FAILED:')),
     'The intended ownership assertion did not fail');
+}
+
+// This finite census covers the complete normal fixture, not an extension of
+// the eight-case retirement theorem scope. See the independent census review.
+export const normalLifetimeCases = Object.freeze([
+  'bounded chains execute and charge an unconsumed checked branch',
+  'an unconsumed checked branch still fails before the terminal step',
+  'built-in chains reclaim each intermediate execution and preserve exact outputs',
+  'chain cancellation between reclaimed children does not start the next child',
+  'intermediate cleanup false and error preserve child custody until parent retry',
+  'cancelling pending intermediate cleanup preserves reclamation custody',
+  'audited prefix releases scratch before conservative child custody',
+  'Values and UNNEST chains reclaim scratch and preserve accepted output generations',
+  'Values and UNNEST cleanup failures retain child custody and retry exactly once',
+  'cancellation after reclaimed Values does not start UNNEST or publish unfinished output',
+  'an unaudited first child keeps the complete conservative suffix',
+]);
+export const normalLifetimeFixtureSha256 = '29063a10dcfae1325061f20f4211d1fcd8ef51e2b54d477300245852fd48427d';
+export function requireNormalLifetime(result, output, fixture) {
+  // The complete reviewed bytes make the title census unambiguous: comments,
+  // strings, unknown additions, and changes to assertions cannot be borrowed.
+  assert.equal(createHash('sha256').update(fixture).digest('hex'), normalLifetimeFixtureSha256,
+    'Normal lifetime fixture requires a new independent review');
+  assert.deepEqual([...fixture.matchAll(/^test "([^"\n]+)" \{/gmu)].map(match => match[1]), normalLifetimeCases,
+    'Normal lifetime fixture census changed');
+  assert(!result.error && !result.signal && result.status === 0, 'Normal lifetime execution did not succeed');
+  const summaries = [...output.matchAll(/Total tests: (\d+), passed: (\d+), failed: (\d+)\./gu)];
+  assert.equal(summaries.length, 1, 'Expected exactly one normal lifetime summary');
+  assert.deepEqual(summaries[0].slice(1).map(Number), [normalLifetimeCases.length, normalLifetimeCases.length, 0],
+    'Every reviewed normal lifetime case must pass');
+  return normalLifetimeCases.length;
 }

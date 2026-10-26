@@ -1,4 +1,5 @@
 import {runNativeQueryTests} from './native-query-coverage.mjs';
+import {nativeFilesystemTestRoot, nativePackageStoreRoot, nativePrivateHostFixture} from './native-private-host-fixture.mjs';
 import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
 import {
@@ -110,7 +111,7 @@ if (!['direct', 'store'].includes(applicationOutputRoute)) {
 await mkdir(scratchRoot, {recursive: true});
 const root = await mkdtemp(join(scratchRoot, 'native-http-'));
 const storeRoot = join(root, 'store');
-const filesystemTestRoot = join(root, 'filesystem-test');
+const filesystemTestRoot = nativeFilesystemTestRoot(root);
 const retainedTaskRoot = join(root, 'retained-task');
 const nativeTestDuckDBLibrary = process.env.ACTQL_TEST_DUCKDB_LIBRARY ?? join(
   fileURLToPath(new URL('../', import.meta.url)),
@@ -135,7 +136,6 @@ const standardRoot = join(root, 'standard');
 const transferStandardRoot = join(root, 'transfer-standard');
 const remotePublicationRoot = join(root, 'remote-publication');
 await mkdir(storeRoot, {recursive: true});
-await mkdir(filesystemTestRoot, {recursive: true});
 await mkdir(retainedTaskRoot, {recursive: true});
 await mkdir(multiBundleStoreRoot, {recursive: true});
 await mkdir(sqliteRoot, {recursive: true});
@@ -1184,6 +1184,8 @@ verification: try {
     ...process.env,
     ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
     ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
+    ACTQL_TEST_NATIVE_CRYPTO_MISSING_LIBRARY: join(root, 'missing-crypto-library'),
+    ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT: nativePackageStoreRoot(root),
     ACTQL_TEST_NATIVE_HTTP_URL: nativeHttpOrigin,
     ACTQL_TEST_NATIVE_EFFECT_CHECKPOINT_URL: effectCheckpointServer.origin,
     ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
@@ -1267,11 +1269,15 @@ verification: try {
       assert.equal(standardGateway.pending(), 0);
       continue;
     }
+    // Package tests are independent consumers, not successive recoveries of
+    // one Store. Keep retained files and capacity in their original namespace.
+    const packageStoreRoot = nativePackageStoreRoot(root);
     const child = spawn(moon, ['test', packagePath, '--target', 'native'], {
       cwd: new URL('../', import.meta.url),
       env: packagePath === 'src/platform_native/filesystem'
-        ? {...testEnvironment, ACTQL_TEST_NATIVE_STORE_ROOT: filesystemTestRoot}
-        : testEnvironment,
+        ? {...testEnvironment, ...nativePrivateHostFixture(root),
+          ACTQL_TEST_NATIVE_STORE_ROOT: filesystemTestRoot}
+        : {...testEnvironment, ACTQL_TEST_NATIVE_STORE_ROOT: packageStoreRoot},
       stdio: 'inherit',
     });
     const [code, signal] = await once(child, 'exit');

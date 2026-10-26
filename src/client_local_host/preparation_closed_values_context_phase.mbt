@@ -1,10 +1,12 @@
 ///|
 /// One semantic phase owner quote. Failure is an alternative peak, not a second
 /// concurrent arena. All components use the SAME representation tariff/Ledger.
-struct ClosedValuesContextPhaseLayout {
-  retained : PreparationRepresentationUnits
-  temporary : PreparationRepresentationUnits
-  failure : PreparationRepresentationUnits
+// `_observed_*` fields retain exact bound observations for white-box tests;
+// production consumes the admitted totals, not these diagnostic projections.
+priv struct ClosedValuesContextPhaseLayout {
+  retained : @execution.PreparationRepresentationUnits
+  temporary : @execution.PreparationRepresentationUnits
+  _observed_failure : @execution.PreparationRepresentationUnits
 }
 
 ///|
@@ -18,7 +20,7 @@ fn closed_values_context_fixed_source(
   text : Int,
   longest : Int,
   depth : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   let owner = closed_values_source_inventories({
     input_bytes: bytes,
     node_upper: nodes,
@@ -56,7 +58,7 @@ fn closed_values_context_core_layout(
   }
   let scaffold = @context.closed_values_context_scaffold_layout()
   guard @checked.closed_values_local_owner_layout(facts.depth_upper)
-    is Some(local) &&
+    is Some(local_layout) &&
     @environment.closed_values_policy_owner_layout(3) is Some(policy) &&
     closed_values_normalization_layout(facts.fields_upper)
     is Some(normalization) &&
@@ -69,7 +71,7 @@ fn closed_values_context_core_layout(
   }
   // Required catalog wrapper1H4R2W; eligibility projection1H3W. Interpreted
   // catalog and installed Environment remain exact borrowed Root originals.
-  let originals : PreparationRepresentationUnits = {
+  let originals : @execution.PreparationRepresentationUnits = {
     record_headers: 2L,
     reference_slots: 4L,
     scalar_words: 5L,
@@ -87,11 +89,11 @@ fn closed_values_context_core_layout(
         owned_wire_bytes: 0L,
       },
       {
-        record_headers: local.record_headers,
-        reference_slots: local.reference_slots,
-        scalar_words: local.scalar_words,
-        owned_utf16_units: local.owned_utf16_units,
-        owned_wire_bytes: local.owned_wire_bytes,
+        record_headers: local_layout.record_headers,
+        reference_slots: local_layout.reference_slots,
+        scalar_words: local_layout.scalar_words,
+        owned_utf16_units: local_layout.owned_utf16_units,
+        owned_wire_bytes: local_layout.owned_wire_bytes,
       },
       {
         record_headers: policy.record_headers,
@@ -116,7 +118,7 @@ fn closed_values_context_core_layout(
     is Some(temporary) else {
     return None
   }
-  Some({ retained, temporary, failure: temporary, })
+  Some({ retained, temporary, _observed_failure: temporary, })
 }
 
 ///|
@@ -222,5 +224,5 @@ fn closed_values_context_components_layout(
   }
   // Failure carriers and their original source reachability remain under this
   // same phase. Caller selects max(success,failure), not an independent pool.
-  Some({ retained, temporary, failure: temporary, })
+  Some({ retained, temporary, _observed_failure: temporary, })
 }

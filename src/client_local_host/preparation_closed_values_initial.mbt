@@ -8,6 +8,7 @@ struct ClientClosedValuesPreparation[I] {
   mut input : I?
   initial : @resources.NodePreparationAdmission[I]
   policy : ClientLocalResourcePolicy
+  module_containers : @execution.PreparationRepresentationUnits
   capacity : @resources.PreparationCapacity[
     I,
     @publication_host.PreparedClientProgram,
@@ -68,7 +69,9 @@ pub(all) enum ClientClosedValuesPreparationIssue {
 /// The selected installation's existing bootstrap recipe covers construction
 /// before the child exists; this exact projection is then held on that same
 /// child's Ledger, never converted into a second 512 MiB pool.
-fn closed_values_initial_control_units() -> PreparationRepresentationUnits {
+fn closed_values_initial_control_units(
+  module_containers : @execution.PreparationRepresentationUnits,
+) -> @execution.PreparationRepresentationUnits {
   // JS: producer + empty receipt; preparation link; empty Resource original;
   // Resource state; six-slot quota Array; weak identity control+entry; ports;
   // six allocated closures with at most state/original captures; SDK wrapper.
@@ -122,7 +125,8 @@ fn closed_values_initial_control_units() -> PreparationRepresentationUnits {
   // Ref cells, two closures, one record, active Some and returned Ok carrier.
   let driver_headers = 1L + 1L + 12L + 3L * 7L + 1L
   // The staged compilation slot exists before artifact construction.
-  let driver_refs = 5L + 15L + 12L + 3L * 10L + 2L + 1L
+  // One extra reference borrows the immutable selected-backend unit recipe.
+  let driver_refs = 5L + 15L + 12L + 3L * 10L + 2L + 1L + 1L
   let driver_words = 5L + 10L + 12L + 3L * 5L + 1L
   // Six actual fixed live roles, not a historical issuance limit: manager,
   // registry handler/dispatch, Node admission, Run, configured Host. The Host
@@ -156,12 +160,22 @@ fn closed_values_initial_control_units() -> PreparationRepresentationUnits {
   let adopted_js_headers = 10L + 1L
   let adopted_js_refs = 48L + 5L
   let adopted_js_words = 9L
-  let run_headers = 11L + 1L
-  let run_refs = 18L + 1L
-  let run_words = 14L + 1L
-  let holder_headers = 6L * 12L + 4L + 2L + 1L
-  let holder_refs = 6L * 17L + 10L + 1L + 3L
-  let holder_words = 6L * 6L + 7L
+  // The common prepared Local packet retains graph, original policy,
+  // registry, module and fixed capacity plus the retained-output flag.
+  let run_headers = 11L + 1L + 1L
+  let run_refs = 18L + 1L + 5L
+  let run_words = 14L + 1L + 1L
+  // The closed PurePreparation/EffectPlanPreparation custody choice adds one
+  // original wrapper header, one reference and its scalar variant tag. Both
+  // cases still use the same already counted retirement record and engine.
+  let holder_headers = 6L * 12L + 4L + 2L + 1L + 1L
+  let holder_refs = 6L * 17L + 10L + 1L + 3L + 1L
+  let holder_words = 6L * 6L + 7L + 1L
+  // Four snapshot/selection containers for this fixed numeric Values task.
+  // Their immutable recipe is supplied by the SAME installed Node/RelA
+  // package before initial admission; provider bodies/factory temporaries
+  // remain independent demands. No amount supplied by JS selects this recipe.
+  let containers = module_containers
   {
     record_headers: js_headers +
     import_headers +
@@ -170,7 +184,8 @@ fn closed_values_initial_control_units() -> PreparationRepresentationUnits {
     holder_headers +
     run_headers +
     diagnostic_headers +
-    adopted_js_headers,
+    adopted_js_headers +
+    containers.record_headers,
     reference_slots: js_refs +
     import_refs +
     ledger_refs +
@@ -178,7 +193,8 @@ fn closed_values_initial_control_units() -> PreparationRepresentationUnits {
     holder_refs +
     run_refs +
     diagnostic_refs +
-    adopted_js_refs,
+    adopted_js_refs +
+    containers.reference_slots,
     scalar_words: js_words +
     import_words +
     ledger_words +
@@ -186,9 +202,10 @@ fn closed_values_initial_control_units() -> PreparationRepresentationUnits {
     holder_words +
     run_words +
     diagnostic_words +
-    adopted_js_words,
-    owned_utf16_units: 80L,
-    owned_wire_bytes: 0L,
+    adopted_js_words +
+    containers.scalar_words,
+    owned_utf16_units: 80L + containers.owned_utf16_units,
+    owned_wire_bytes: containers.owned_wire_bytes,
   }
 }
 
@@ -197,13 +214,19 @@ fn closed_values_initial_control_units() -> PreparationRepresentationUnits {
 /// per-request JS controls; it does not itself allocate or create a Ledger.
 pub fn client_closed_values_initial_control_capacity(
   policy : ClientLocalResourcePolicy,
+  module_containers~ : @execution.PreparationRepresentationUnits,
 ) -> (Int64, Int64)? {
-  guard client_local_preparation_initial_limits(policy) is Some(limits) &&
-    preparation_representation_cost(closed_values_initial_control_units())
+  guard @execution.preparation_representation_cost(module_containers) is Some(_) &&
+    client_local_preparation_initial_limits(policy) is Some(limits) &&
+    @execution.preparation_representation_cost(
+      closed_values_initial_control_units(module_containers),
+    )
     is Some(retained) &&
     preparation_node_own_data_scan_cost() is Some(scan) &&
     preparation_node_own_data_header_cost() is Some(header) &&
-    preparation_representation_cost(closed_values_projection_scratch_units())
+    @execution.preparation_representation_cost(
+      closed_values_projection_scratch_units(),
+    )
     is Some(projection) else {
     return None
   }
@@ -221,12 +244,13 @@ pub fn[I] begin_closed_values_preparation(
   initial : @resources.NodePreparationAdmission[I],
   input : I,
   policy : ClientLocalResourcePolicy,
+  module_containers~ : @execution.PreparationRepresentationUnits,
 ) -> Result[
   ClientClosedValuesPreparation[I],
   ClientClosedValuesPreparationIssue,
 ] {
   guard client_local_preparation_initial_limits(policy) is Some(expected) &&
-    client_closed_values_initial_control_capacity(policy)
+    client_closed_values_initial_control_capacity(policy, module_containers~)
     is Some((retained, execution)) else {
     return Err(Policy)
   }
@@ -259,6 +283,7 @@ pub fn[I] begin_closed_values_preparation(
     input: Some(input),
     initial,
     policy,
+    module_containers,
     capacity,
     work: None,
     header_fields: 0,
@@ -460,9 +485,12 @@ pub fn[I] begin_closed_values_text_check(
     )
     is Some(scan_work) &&
     quoted_utf16_units <= 2147483647 - scan_work &&
-    client_closed_values_initial_control_capacity(owner.policy)
+    client_closed_values_initial_control_capacity(
+      owner.policy,
+      module_containers=owner.module_containers,
+    )
     is Some((retained, base_execution)) &&
-    preparation_representation_cost({
+    @execution.preparation_representation_cost({
       record_headers: 1L,
       reference_slots: 0L,
       scalar_words: 13L,
@@ -550,7 +578,7 @@ pub fn[I] reserve_closed_values_snapshot(
     is Some(snapshot) &&
     closed_values_intent_inventories(facts) is Some(intent) &&
     closed_values_sum_layouts([
-      closed_values_initial_control_units(),
+      closed_values_initial_control_units(owner.module_containers),
       snapshot.retained_host_share,
       snapshot.document,
       intent.retained,
@@ -563,16 +591,20 @@ pub fn[I] reserve_closed_values_snapshot(
       },
     ])
     is Some(retained_units) &&
-    preparation_representation_cost(retained_units) is Some(retained) &&
+    @execution.preparation_representation_cost(retained_units) is Some(retained) &&
     closed_values_sum_layouts([intent.shared_temporary, intent.js_temporary])
     is Some(js_units) &&
     closed_values_sum_layouts([intent.shared_temporary, intent.core_temporary])
     is Some(core_units) &&
-    preparation_representation_cost(js_units) is Some(js_execution) &&
-    preparation_representation_cost(core_units) is Some(core_execution) &&
-    preparation_representation_cost(snapshot.temporary)
+    @execution.preparation_representation_cost(js_units) is Some(js_execution) &&
+    @execution.preparation_representation_cost(core_units)
+    is Some(core_execution) &&
+    @execution.preparation_representation_cost(snapshot.temporary)
     is Some(snapshot_execution) &&
-    client_closed_values_initial_control_capacity(owner.policy)
+    client_closed_values_initial_control_capacity(
+      owner.policy,
+      module_containers=owner.module_containers,
+    )
     is Some((_, controls)) else {
     return Err(Policy)
   }

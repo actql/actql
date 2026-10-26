@@ -9,19 +9,19 @@ fn close_test_library() -> Library {
 ///|
 test "Signature explicit close stops every original Library alias and is idempotent" {
   let original = close_test_library()
-  let alias = original
+  let same_original = original
   assert_true(library_ready_ffi(original))
   original.require_current().unwrap()
-  alias.require_current().unwrap()
+  same_original.require_current().unwrap()
   original.close_checked().unwrap()
-  assert_false(library_ready_ffi(alias))
-  assert_eq(alias.require_current(), Err(InvalidInput))
-  assert_eq(alias.diagnostic_ceiling(), None)
-  assert_true(alias.random_bytes(32) is Err(_))
-  assert_true(alias.hmac_sha256(b"key", b"message") is Err(_))
-  assert_true(alias.sha256_hasher() is Err(_))
-  assert_true(alias.generate_ed25519_key_pair() is Err(_))
-  alias.close_checked().unwrap()
+  assert_false(library_ready_ffi(same_original))
+  assert_eq(same_original.require_current(), Err(InvalidInput))
+  assert_eq(same_original.diagnostic_ceiling(), None)
+  assert_true(same_original.random_bytes(32) is Err(_))
+  assert_true(same_original.hmac_sha256(b"key", b"message") is Err(_))
+  assert_true(same_original.sha256_hasher() is Err(_))
+  assert_true(same_original.generate_ed25519_key_pair() is Err(_))
+  same_original.close_checked().unwrap()
   original.close_checked().unwrap()
 }
 
@@ -54,16 +54,16 @@ test "Signature close retains the original dynamic handle until every EVP contex
 test "Signature digest completion retires its EVP context while escaped hash aliases remain inert" {
   let original = close_test_library()
   let hash = original.sha256_hasher().unwrap()
-  let alias = hash
+  let same_original = hash
   hash.update(b"abc").unwrap()
   assert_eq(
     hash.finish_hex().unwrap(),
     "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
   )
   original.close_checked().unwrap()
-  assert_true(alias.update(b"later") is Err(_))
-  assert_true(alias.finish_hex() is Err(_))
-  alias.close_checked().unwrap()
+  assert_true(same_original.update(b"later") is Err(_))
+  assert_true(same_original.finish_hex() is Err(_))
+  same_original.close_checked().unwrap()
   original.close_checked().unwrap()
 }
 

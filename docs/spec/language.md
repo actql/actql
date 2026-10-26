@@ -1114,8 +1114,9 @@ signed integer. Check these bounds before integer conversion, including the
 exclusive upper endpoint. Operand order MUST NOT affect this rule. Membership
 uses the original typed item domain, including each immediate list occurrence;
 an untyped empty list does not supply a domain. Conflicting typed peers remain
-incompatible, and existing literal-NULL refusal, null-safe comparison and
-nullable-value behavior remain unchanged.
+incompatible. Immediate literal NULL follows the independently typed peer
+context rules below; unresolved literal-NULL operands still require context.
+Null-safe comparison and nullable-value behavior remain unchanged.
 
 <!-- requirement-block: signed64-values.comparison-literal-normalization signed64-values.comparison-literal-no-raw-reinterpretation signed64-values.comparison-literal-no-nonliteral-conversion -->
 Comparison context MUST preserve the original Number literal body and its
@@ -11481,7 +11482,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:10f675260988c6e2c085ad762c37e64d1d47ea15a359b21d43acf5db5c733c7d
+../../spec/contracts/actql-aoa.json# sha256:fd7bf4ecc87ce648726899f77f7dff72940456bfcf26e2ee00ba9320b7309703
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11490,7 +11491,7 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:b5701b2178a3b2e624d0fbfbda877d0117c367e42a855161e26e0d2e133f1c2c
+../../spec/contracts/actql-expressions.json# sha256:2849a6667980fc51ed51a04879470a97068fd08e358d784262602a09b22dacda
 ../../spec/contracts/actql-expressions.json#/schemas/expression sha256:e848e1617d5a1f41684cb93f469c667020a9e6c4714c38399687fa7eeb99c550
 ../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:254378a85b9b89b65343a974cb69964cdf12fb433a037f37b0accdd1155c231c
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f

@@ -12,7 +12,7 @@ import {
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
-  "actql/actql/physical_strategy",
+  "actql/actql/physical_strategy_host",
   "actql/actql/platform_native/http_client",
   "actql/actql/platform_native/retained_task_file",
   "actql/actql/platform_native/trusted_clock",
@@ -21,7 +21,7 @@ import {
 }
 
 // Values
-pub fn admit_native_operational_estimate(@standard_host.StrategyHostDispatch, @physical_strategy.PolicyRequest, String, String, String, @trusted_clock.NativeTrustedClock) -> Result[@physical_strategy.OperationalEstimateSidecar, NativeStandardPolicyIssue]
+pub fn admit_native_operational_estimate(@standard_host.StrategyHostDispatch, @physical_strategy_host.PolicyRequest, String, String, String, @trusted_clock.NativeTrustedClock) -> Result[@physical_strategy_host.OperationalEstimateSidecar, NativeStandardPolicyIssue]
 
 pub fn bind_native_parameter(@native.Query, Int, @adapter.PhysicalParameter) -> Result[Unit, NativeParameterBindingIssue]
 
@@ -35,7 +35,7 @@ pub fn close_native_strategy_compute_run(NativeStrategyComputeRun, observe_phase
 
 pub fn close_native_strategy_compute_runtime(NativeStrategyComputeRuntime) -> Result[Bool, NativeStrategyComputeCleanupIssue]
 
-pub fn commit_native_local_policy_response(@standard_host.StrategyHostDispatch, @physical_strategy.PolicyRequest, String, String, @trusted_clock.NativeTrustedClock) -> Result[Unit, NativeStandardPolicyIssue]
+pub fn commit_native_local_policy_response(@standard_host.StrategyHostDispatch, @physical_strategy_host.PolicyRequest, String, String, @trusted_clock.NativeTrustedClock) -> Result[Unit, NativeStandardPolicyIssue]
 
 pub fn consult_native_standard_policy(NativeStandardPolicyConsultation) -> Result[Unit, NativeStandardPolicyIssue]
 
@@ -61,9 +61,9 @@ pub fn native_acquisition_runtime_source_capture(NativeAcquisitionRuntime) -> Re
 
 pub fn native_compute_runtime_output(NativeComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeComputeExecutionIssue]
 
-pub fn native_performance_candidate_snapshot(NativeStandardStrategyRun) -> @physical_strategy.PolicyCandidateSet?
+pub fn native_performance_candidate_snapshot(NativeStandardStrategyRun) -> @physical_strategy_host.PolicyCandidateSet?
 
-pub fn native_performance_conditions(NativeStandardStrategyRun) -> Result[@physical_strategy.OperationalEstimateConditions?, NativeStandardPolicyIssue]
+pub fn native_performance_conditions(NativeStandardStrategyRun) -> Result[@physical_strategy_host.OperationalEstimateConditions?, NativeStandardPolicyIssue]
 
 pub fn native_performance_decision_json(NativePerformanceDecision, max_bytes? : Int) -> Result[String, NativeStandardPolicyIssue]
 
@@ -103,11 +103,11 @@ pub fn prepare_native_performance_input(@standard_host.StrategyHostDispatch, @ex
 
 pub fn prepare_native_read_only_source_binding(@host.NativeHostConfiguration, String, Int64) -> Result[NativeReadOnlySourceBinding, NativeReadOnlySourceIssue]
 
-pub fn prepare_native_standard_policy_consultation(@standard_host.StrategyHostDispatch, @http_client.Client, @trusted_clock.NativeTrustedClock, String, String, String, String, String, Int64, Int, (@physical_strategy.PolicyRequest, @physical_strategy.PolicyCandidateSet) -> Bool) -> Result[NativeStandardPolicyConsultation?, NativeStandardPolicyIssue]
+pub fn prepare_native_standard_policy_consultation(@standard_host.StrategyHostDispatch, @http_client.Client, @trusted_clock.NativeTrustedClock, String, String, String, String, String, Int64, Int, (@physical_strategy_host.PolicyRequest, @physical_strategy_host.PolicyCandidateSet) -> Bool) -> Result[NativeStandardPolicyConsultation?, NativeStandardPolicyIssue]
 
 pub fn prepare_native_standard_strategy_performance_choice(NativeStandardStrategyRun) -> Result[Unit, NativeStandardStrategyRunIssue]
 
-pub fn rank_native_operational_estimate(@standard_host.StrategyHostDispatch, @physical_strategy.OperationalEstimateSidecar, Int, String, @trusted_clock.NativeTrustedClock, quantity? : String) -> Result[@physical_strategy.EmpiricalRanking, NativeStandardPolicyIssue]
+pub fn rank_native_operational_estimate(@standard_host.StrategyHostDispatch, @physical_strategy_host.OperationalEstimateSidecar, Int, String, @trusted_clock.NativeTrustedClock, quantity? : String) -> Result[@physical_strategy_host.EmpiricalRanking, NativeStandardPolicyIssue]
 
 pub fn read_native_standard_task_output(NativeStandardStrategyRun, Int, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, Int) -> Result[@execution_relation.CompletedOutput, NativeStandardRunPublicationIssue]
 
@@ -183,7 +183,7 @@ pub struct NativeLocalPerformanceProfile {
   original_revision : String
   creation_ms : Double?
   mut template : String?
-  mut header : @physical_strategy.OperationalProfileTemplateHeader?
+  mut header : @physical_strategy_host.OperationalProfileTemplateHeader?
   mut attempted : Bool
   mut failure : NativeStandardPolicyIssue?
   mut read_microseconds : Double
@@ -213,13 +213,13 @@ pub(all) struct NativePerformanceDecision {
   max_age_ms : Int64?
   mode : NativePerformanceMode
   objective : String
-  request : @physical_strategy.PolicyRequest
+  request : @physical_strategy_host.PolicyRequest
   profile_revision : String?
   reason : String
   selected_position : Int?
   offline_position : Int?
-  conditions : @physical_strategy.OperationalEstimateConditions?
-  references : Array[@physical_strategy.OperationalTimeReference]
+  conditions : @physical_strategy_host.OperationalEstimateConditions?
+  references : Array[@physical_strategy_host.OperationalTimeReference]
   profile_creation_ms : Double?
   profile_read_microseconds : Double
   consultation_microseconds : Double
@@ -271,9 +271,9 @@ pub struct NativeStandardPolicyConsultation {
   clock : @trusted_clock.NativeTrustedClock
   endpoint : String
   policy_id : String
-  request : @physical_strategy.PolicyRequest
-  candidates : @physical_strategy.PolicyCandidateSet
-  authorize_disclosure : (@physical_strategy.PolicyRequest, @physical_strategy.PolicyCandidateSet) -> Bool
+  request : @physical_strategy_host.PolicyRequest
+  candidates : @physical_strategy_host.PolicyCandidateSet
+  authorize_disclosure : (@physical_strategy_host.PolicyRequest, @physical_strategy_host.PolicyCandidateSet) -> Bool
   max_envelope_bytes : Int
   mut committed : Bool
 }
@@ -288,7 +288,7 @@ pub(all) enum NativeStandardPolicyIssue {
   Dispatch(@standard_host.DispatchIssue)
   Clock(@trusted_clock.NativeTrustedClockIssue)
   Transport(@http_client.NativeHttpIssue)
-  Wire(@physical_strategy.SearchIssue)
+  Wire(@physical_strategy_host.SearchIssue)
 }
 
 pub(all) struct NativeStandardResidentObservation {
@@ -380,7 +380,7 @@ pub(all) struct NativeStrategyComputeFailure {
 
 pub(all) enum NativeStrategyComputeIssue {
   Physical(NativeComputeExecutionIssue)
-  Strategy(@physical_strategy.RunIssue)
+  Strategy(@physical_strategy_host.RunIssue)
   Settlement(@physical_resources.LedgerIssue)
   MissingOutput
 }

@@ -13,7 +13,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {loadInstalledProjectConfiguration,retireInstalledProjectConfiguration}
   from './installed-project-configuration.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
-import {loadInstalledProjectMockAnswers} from './installed-project-mock-answers.mjs';
+import {loadInstalledProjectMockAnswers} from '../local-node/installed-project-mock-answers.mjs';
 
 assert.ok(process.env.ACTQL_TEST_ORIGINAL_MOCK_MODEL_RUNTIME,
   'Select the input-matching ordinary Common runtime');

@@ -18,10 +18,10 @@ pub(all) struct ClientClosedValuesInputEnvelope {
 }
 
 ///|
-struct ClosedValuesSnapshotInventories {
-  retained_host_share : PreparationRepresentationUnits
-  temporary : PreparationRepresentationUnits
-  document : PreparationRepresentationUnits
+priv struct ClosedValuesSnapshotInventories {
+  retained_host_share : @execution.PreparationRepresentationUnits
+  temporary : @execution.PreparationRepresentationUnits
+  document : @execution.PreparationRepresentationUnits
 }
 
 ///|
@@ -61,7 +61,7 @@ fn closed_values_snapshot_inventories(
   // Four arrays are stages/steps/rows/selected fields, so total occupied array
   // slots are exactly R+F+2, NOT the whole indexed tree's node count. Arrays
   // use wrapper/backing, <=8+2*children slots and length/capacity words.
-  let cloned_program : PreparationRepresentationUnits = {
+  let cloned_program : @execution.PreparationRepresentationUnits = {
     record_headers: o + 2L * a + q,
     reference_slots: 2L * f +
     9L * a +
@@ -73,7 +73,7 @@ fn closed_values_snapshot_inventories(
   // Valid selected SDK epoch is a SIX-field object, not a String. Main clone
   // adds4objects/15fields/23quotedStrings/445UTF16/2numbers/1null. The separately
   // cloned newSubmission reference adds2objects/8fields/13Strings/336UTF16/2nums.
-  let metadata_clones : PreparationRepresentationUnits = {
+  let metadata_clones : @execution.PreparationRepresentationUnits = {
     record_headers: 4L + 23L + 2L + 13L,
     reference_slots: 2L * 15L + 2L * 8L,
     scalar_words: 23L,
@@ -84,7 +84,7 @@ fn closed_values_snapshot_inventories(
   // spread options, body, context, lookup and shallow snapshot root. The last
   // root SHARES the cloned input: never charge a second Program tree for it.
   // Private caller-value publication receipt+body/snapshot binding:2h/2refs.
-  let controls : PreparationRepresentationUnits = {
+  let controls : @execution.PreparationRepresentationUnits = {
     record_headers: 2L + 2L + 2L + 1L + 1L + 1L + 1L + 1L + 2L + 9L,
     reference_slots: 4L + 1L + 5L + 4L + 2L + 8L + 2L + 16L,
     scalar_words: 0L,
@@ -98,7 +98,7 @@ fn closed_values_snapshot_inventories(
   // Main JSON String <=program upper+2786; newSubmission ref source <=2092.
   // Both are conservatively summed although their constructor scopes differ.
   // Later program-only stringify is a separate named document owner below.
-  let wire_strings : PreparationRepresentationUnits = {
+  let wire_strings : @execution.PreparationRepresentationUnits = {
     record_headers: 2L,
     reference_slots: 0L,
     scalar_words: 0L,
@@ -114,7 +114,7 @@ fn closed_values_snapshot_inventories(
     facts.rows.to_int64() + facts.fields.to_int64() + 24L,
     13L + consent_refs.to_int64(),
   )
-  let freeze_scratch : PreparationRepresentationUnits = {
+  let freeze_scratch : @execution.PreparationRepresentationUnits = {
     record_headers: 2L * 18L + 18L,
     reference_slots: 18L + first + second + 3L * 18L,
     scalar_words: 2L * 18L,
@@ -125,7 +125,7 @@ fn closed_values_snapshot_inventories(
     is Some(temporary) else {
     return None
   }
-  let document : PreparationRepresentationUnits = {
+  let document : @execution.PreparationRepresentationUnits = {
     record_headers: 1L,
     reference_slots: 0L,
     scalar_words: 0L,

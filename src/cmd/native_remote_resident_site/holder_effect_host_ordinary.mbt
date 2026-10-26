@@ -36,8 +36,7 @@ fn holder_effect_host_ordinary_limits(
 
 ///|
 /// Ordinary Host entry is sufficient to acquire bounded platform resources.
-/// No mapped Read or startup-history token is manufactured here. A selected
-/// explicit Read installation continues through the separate physical path.
+/// No mapped Read or startup-history token is manufactured here.
 fn prepare_holder_effect_host_ordinary_scope(
   site : @site.ExecutionSite,
   file_limit : Int64,
@@ -49,15 +48,9 @@ fn prepare_holder_effect_host_ordinary_scope(
   }
   Some({
     site,
-    profile: None,
-    ordinary: Some(limits),
+    ordinary: limits,
     preparation_binding: None,
     current_binding: None,
-    read_domain: None,
-    read_parent: None,
-    caller_operation: None,
-    operation: None,
-    holding: None,
     depth: 1,
     pending: None,
     cleanup: None,
@@ -69,31 +62,19 @@ fn prepare_holder_effect_host_ordinary_scope(
 fn holder_effect_host_scope_read_ceiling(
   scope : HolderEffectHostSetupScope,
 ) -> Int {
-  match scope.ordinary {
-    Some(limits) => limits.read_ceiling
-    None => scope.profile.unwrap().read_ceiling
-  }
+  scope.ordinary.read_ceiling
 }
 
 ///|
 fn holder_effect_host_scope_diagnostic_ceiling(
   scope : HolderEffectHostSetupScope,
 ) -> Int {
-  match scope.ordinary {
-    Some(limits) => limits.diagnostic_ceiling
-    None => scope.profile.unwrap().diagnostic_ceiling
-  }
+  scope.ordinary.diagnostic_ceiling
 }
 
 ///|
 fn holder_effect_host_scope_catalog_limits(
   scope : HolderEffectHostSetupScope,
 ) -> (Int64, @decode.Limits) {
-  match scope.ordinary {
-    Some(limits) => (limits.catalog_read_ceiling, limits.catalog_json_limits)
-    None => {
-      let profile = scope.profile.unwrap()
-      (profile.catalog_read_ceiling, profile.catalog_json_limits)
-    }
-  }
+  (scope.ordinary.catalog_read_ceiling, scope.ordinary.catalog_json_limits)
 }

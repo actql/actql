@@ -1,29 +1,20 @@
 ///|
-// A private assembly value, not another Run/normalization/cleanup Owner. All
-// members originate from the same first physical prepared computation.
+// Only actual CLI outcomes: an accepted original can be observed, or successful
+// preflight still lacks the installed authority supplier and must refuse.
+priv enum LocalEffectPreflightStatus {
+  AlreadyAccepted
+  AuthoritySupplierUnavailable
+}
+
+///|
+// The actual preflight consumes all four original compiler outputs in its
+// material and checked-Run bindings. This intermediate is not a future
+// dispatcher, normalization, cleanup Owner, or public authority supplier.
 priv struct LocalEffectFirstCompilation {
   request : @run_host.ClientRequestIdentity
   allowed : @run_host.ClientEffectAllowedRun
   definition : @publication.PublicationContract
   issued : @run_host.ClientEffectIssuedNormalizationMaterials
-  materials : @run_host.ClientEffectRunMaterials
-  bound : @run_host.PreparedClientEffectRun
-}
-
-///|
-// Private first-preparation assembly only. These are the same adopted Host,
-// selected finite binding, first clock and Retention used for compilation.
-// They are not an accepted Run, Allow cache or a physical work supplier.
-priv struct LocalEffectPreparedStart {
-  original : LocalEffectFirstCompilation
-  host : @local_host.NativeLocalHostConnection
-  crypto : @local_crypto.Library
-  principal : String
-  connection : String
-  run_file : String?
-  run : LocalRunInstallation
-  policy : @local_host.NativeLocalRunPolicyBinding?
-  issued_at : String
 }
 
 ///|
@@ -42,15 +33,6 @@ fn local_effect_request_identity(
     request_id,
     @run_host.source_free_caller_input_intent_cid(),
   ).unwrap_or_else(() => stop("LocalEffectRequestIdentityUnavailable"))
-}
-
-///|
-// Preserve the existing Open(issue, cleanup) variant intact. Converting this
-// error to a CLI string would lose the failed acquisition's retry handle.
-priv enum LocalEffectSourcePrefixIssue {
-  ForeignPreparation
-  Admission(@local_host.NativeClientSubmittedEffectMaterialsIssue)
-  Work(@local_host.NativeClientSourceWorkIssue)
 }
 
 ///|
@@ -120,23 +102,13 @@ fn local_effect_first_compilation(
     normalization,
     request=Some(request),
   ).unwrap_or_else(() => stop("LocalEffectOriginalMaterialsUnavailable"))
-  let materials = @run_host.bind_prepared_client_effect_original_materials(
-    allowed,
-    definition,
-    issued,
-    request=Some(request),
-  ).unwrap_or_else(() => stop("LocalEffectOriginalMaterialsUnavailable"))
-  // Retain the first nominal binding for the later dispatcher/capture join.
-  // Rebinding equal contract bytes would create another checked Run owner.
-  let bound = @run_host.bind_client_effect_compiled_run(
-    prepared, allowed, definition,
-  ).unwrap_or_else(() => stop("LocalEffectRunNotReady"))
-  { request, allowed, definition, issued, materials, bound, }
+  { request, allowed, definition, issued, }
 }
 
 ///|
-// None means only an authenticated retained acceptance requiring lookup. Every
-// unavailable/unsupported/refused condition raises; None is never a retry permit.
+// AlreadyAccepted means only authenticated retained acceptance requiring lookup.
+// AuthoritySupplierUnavailable records completed preflight, never admission or
+// a retry permit; other unsupported/refused conditions still raise.
 // Called by the actual CLI Effect preparation branch. It has no journal accept,
 // physical Source open, approval, grant issuance or Provider side effect.
 fn local_effect_prepare_start(
@@ -147,7 +119,7 @@ fn local_effect_prepare_start(
   reference : @local_host.NativeClientSubmissionReference,
   run : LocalRunInstallation,
   scope : String,
-) -> LocalEffectPreparedStart? raise ClientStop {
+) -> LocalEffectPreflightStatus raise ClientStop {
   local_effect_prepare_start_with_clocks(
     host,
     settings,
@@ -174,7 +146,7 @@ fn local_effect_prepare_start_with_clocks(
   scope : String,
   utc_now : () -> String,
   epoch_now : () -> Double,
-) -> LocalEffectPreparedStart? raise ClientStop {
+) -> LocalEffectPreflightStatus raise ClientStop {
   if !local_submit_allowed(host, settings, crypto, scope) {
     stop("LocalSubmissionAuthorizationDenied")
   }
@@ -199,7 +171,7 @@ fn local_effect_prepare_start_with_clocks(
           if !local_submit_allowed(host, settings, crypto, scope) {
             stop("LocalSubmissionAuthorizationDenied")
           }
-          return None
+          return AlreadyAccepted
         }
         Ok(Pending(retention, issued_at)) =>
           ({ ..installed, retention, }, issued_at)
@@ -223,12 +195,25 @@ fn local_effect_prepare_start_with_clocks(
     now,
     run_text(retention, "available_until"),
   )
+  // These same original bindings are consumed by the actual preflight, in
+  // material-before-checked-Run order. No future dispatcher carrier is returned.
+  let materials = @run_host.bind_prepared_client_effect_original_materials(
+    original.allowed,
+    original.definition,
+    original.issued,
+    request=Some(original.request),
+  ).unwrap_or_else(() => stop("LocalEffectOriginalMaterialsUnavailable"))
+  let bound = @run_host.bind_client_effect_compiled_run(
+    @run_host.client_effect_compilation_owner(original.allowed.compilation),
+    original.allowed,
+    original.definition,
+  ).unwrap_or_else(() => stop("LocalEffectRunNotReady"))
   // This existing Owner only checks the exact installed Values/normalization
   // profile. Its derived limits are not backing, a Ledger or a start permit.
   let values_supported = match run.source_free {
     Some(values) =>
       @local_values.client_effect_local_ledger_limits(
-        original.materials.prepared,
+        materials.prepared,
         values.installed_contracts,
         values.values_body,
         values.fragment_body,
@@ -240,145 +225,12 @@ fn local_effect_prepare_start_with_clocks(
   if original.request != request ||
     (
       !values_supported &&
-      !@source_owner.resident_effect_source_compute_shape_supported(
-        original.bound,
-      )
+      !@source_owner.resident_effect_source_compute_shape_supported(bound)
     ) {
     stop("LocalEffectSourceExecutionProfileNotSupported")
   }
   if !local_submit_allowed(host, settings, crypto, scope) {
     stop("LocalSubmissionAuthorizationDenied")
   }
-  Some({
-    original,
-    host,
-    crypto,
-    principal: settings.principal,
-    connection: settings.connection,
-    run_file: settings.run_file,
-    run,
-    policy,
-    issued_at: now,
-  })
-}
-
-///|
-// First acceptance delegates to the same selected finite Owner. An accepted
-// request is reconciled there before any candidate Policy/time is considered.
-// The caller must retain Unknown and never substitute another attempt.
-fn local_effect_accept_prepared_start(
-  start : LocalEffectPreparedStart,
-  reference : @local_host.NativeClientSubmissionReference,
-  preparation : @local_host.NativeClientSubmittedPreparation,
-  now : Double,
-) -> Result[
-  @local_host.NativeClientSubmittedIntentRecord,
-  @local_host.NativeClientSubmittedEffectMaterialsIssue,
-] {
-  let original = start.original
-  match start.policy {
-    Some(binding) =>
-      binding.accept_submitted_effect_values_run_policy(
-        reference,
-        preparation,
-        original.request,
-        original.allowed,
-        original.definition,
-        original.issued,
-        start.issued_at,
-        now,
-      )
-    None => {
-      // Select the existing original ResultPolicy only for the source-free
-      // shape. The accepting Owner repeats its own exact structural/current
-      // checks; this metadata selection issues no funding or permission.
-      let graph = @strategy.checked_effect_computation_graph(
-        @run_host.prepared_client_effect_computation_graph(
-          original.materials.prepared,
-        ),
-      )
-      let run_file = if @strategy.graph_source_free_inputs_complete(graph) &&
-        @strategy.graph_captured_prefix(graph) == 0 &&
-        @strategy.graph_task_count(graph) == 1 &&
-        @strategy.graph_task_input_count(graph, 0) == Some(0) &&
-        @run_host.prepared_client_effect_infer_occurrence(
-          original.materials.prepared,
-        )
-        is None {
-        start.run_file
-      } else {
-        None
-      }
-      start.host.accept_submitted_effect_material_original(
-        start.crypto,
-        start.principal,
-        start.connection,
-        reference,
-        preparation,
-        original.request,
-        original.allowed,
-        original.definition,
-        original.issued,
-        now,
-        source_free_run_file=run_file,
-      )
-    }
-  }
-}
-
-///|
-// The finite Source prefix for the forthcoming trusted Local supplier assembly.
-// The public CLI currently refuses before this seam, rather than accept an
-// unusable Run and discard live acquisition/cleanup responsibility. The caller
-// must retain both successful Work and failed-open cleanup handles.
-fn local_effect_source_prefix(
-  host : @local_host.NativeLocalHostConnection,
-  settings : LocalHostSettings,
-  crypto : @local_crypto.Library,
-  reference : @local_host.NativeClientSubmissionReference,
-  preparation : @local_host.NativeClientSubmittedPreparation,
-  start : LocalEffectPreparedStart,
-  configuration : @source_owner.ResidentSourceComputeConfiguration,
-  occurrence : String,
-) -> Result[
-  @local_host.NativeClientEffectSourceWork,
-  LocalEffectSourcePrefixIssue,
-] {
-  let original = start.original
-  guard physical_equal(start.host, host) &&
-    physical_equal(start.crypto, crypto) &&
-    start.principal == settings.principal &&
-    start.connection == settings.connection &&
-    @local_host.native_client_submitted_preparation(preparation)
-    is EffectComputation(prepared) &&
-    physical_equal(
-      prepared,
-      @run_host.client_effect_compilation_owner(original.allowed.compilation),
-    ) else {
-    return Err(ForeignPreparation)
-  }
-  match
-    local_effect_accept_prepared_start(
-      start,
-      reference,
-      preparation,
-      @env.now().to_double(),
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(Admission(issue))
-  }
-  host
-  .open_effect_source_work(
-    crypto,
-    settings.principal,
-    settings.connection,
-    original.request,
-    original.allowed,
-    original.definition,
-    original.materials,
-    configuration,
-    occurrence,
-    local_utc_now,
-  )
-  .map_err(issue => Work(issue))
+  AuthoritySupplierUnavailable
 }

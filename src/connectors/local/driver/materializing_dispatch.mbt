@@ -22,18 +22,19 @@ pub fn configure_local_retained_inputs(
 ) -> Result[Unit, LocalDispatchIssue] {
   if installed.policy_sealed ||
     installed.import_policy is Some(_) ||
-    @strategy.strategy_history_count(installed.run) != 0 ||
-    @local.local_import_retention_capacity(limits) is None ||
-    limits.row.max_bytes > 16777216 ||
-    limits.max_batch_bytes > 16777216 ||
-    limits.row.max_depth < 1 ||
-    limits.row.max_depth > 64 ||
-    (milliseconds is Some(value) && value < 0L) {
+    @strategy.strategy_history_count(installed.run) != 0 {
     return Err(Configuration(InvalidLimits))
   }
-  guard local_managed_metadata_limits(limits, metadata) is Some(selected) else {
+  guard local_retained_input_metadata(limits, milliseconds, metadata)
+    is Some(selected) else {
     return Err(Configuration(InvalidLimits))
   }
+  installed.preparation = local_dispatch_preparation_policies(
+    installed.preparation,
+    Some((limits, milliseconds)),
+    Some(selected),
+    installed.output_policy,
+  )
   installed.import_metadata = Some(selected)
   installed.import_policy = Some((limits, milliseconds))
   Ok(())
@@ -335,11 +336,10 @@ fn local_managed_metadata_limits(
 ///|
 /// One checked conversion for the offer and the actual retained holding.
 fn local_retained_with_metadata(base : Int64, metadata : Int64) -> Int64? {
-  if base < 0L || metadata < 0L || metadata > 9223372036854775807L - base {
-    None
-  } else {
-    Some(base + metadata)
-  }
+  @execution.execution_capacity_inventory_bytes([
+    { unit: QuotedBytes, count: base, copies: 1, },
+    { unit: QuotedBytes, count: metadata, copies: 1, },
+  ])
 }
 
 ///|

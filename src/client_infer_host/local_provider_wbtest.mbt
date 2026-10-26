@@ -1,4 +1,62 @@
 ///|
+test "Model capacity inventory keeps output text wire and measurement simultaneous" {
+  let prepared = fixture_prepared()
+  let occurrence = @publication_host.prepared_client_composed_infer_occurrence(
+    prepared,
+  ).unwrap()
+  let prefix = @input.prepare_client_composed_infer_prefix(
+    prepared,
+    occurrence,
+    infer_fixture_installed_contracts(),
+    infer_fixture_values,
+  ).unwrap()
+  let original = standard_limits()
+  // Independent inventory units only, not an operational Model profile or
+  // permission to run a provider with these synthetic byte allowances.
+  let limits : Limits = {
+    ..original,
+    model: {
+      ..original.model,
+      ledger: {
+        ..original.model.ledger,
+        retained_bytes: 7L,
+        execution_bytes: 11L,
+      },
+    },
+    output_values: {
+      ..original.output_values,
+      max_nodes: 2,
+      max_text_bytes: 3,
+    },
+    identity: {
+      ..original.identity,
+      logical_wire: { ..original.identity.logical_wire, max_bytes: 5, },
+    },
+    measurement: { ..original.measurement, max_nodes: 7, max_bytes: 11, },
+  }
+  let base = @relation.generated_sequence_capacity(
+    prefix,
+    limits.input,
+    limits.measurement,
+  ).unwrap()
+  let composed = composed_local_capacity(prefix, limits).unwrap()
+  // Seven quoted retained bytes + two nodes + three text bytes + five wire
+  // bytes: 583. They coexist with eleven quoted execution bytes, seven
+  // measurement nodes and eleven wire bytes: another 1891.
+  assert_eq(
+    @relation.execution_capacity_retained_bytes(composed) -
+    @relation.execution_capacity_retained_bytes(base),
+    583L,
+  )
+  assert_eq(
+    @relation.execution_capacity_execution_bytes(composed) -
+    @relation.execution_capacity_execution_bytes(base) -
+    @relation.execution_capacity_retained_bytes(base),
+    2474L,
+  )
+}
+
+///|
 fn exercise_original_local_infer_provider(retained_prefix : Bool) -> Unit raise {
   let source = infer_fixture_program
     .replace(
@@ -26,10 +84,16 @@ fn exercise_original_local_infer_provider(retained_prefix : Bool) -> Unit raise 
     prepared,
   ).unwrap()
   let prefix = @input.prepare_client_composed_infer_prefix(
-    prepared, occurrence, infer_fixture_registry, infer_fixture_values,
+    prepared,
+    occurrence,
+    infer_fixture_installed_contracts(),
+    infer_fixture_values,
   ).unwrap()
   let suffix = @input.prepare_client_composed_infer_suffix(
-    prepared, occurrence, infer_fixture_registry, infer_fixture_values,
+    prepared,
+    occurrence,
+    infer_fixture_installed_contracts(),
+    infer_fixture_values,
   ).unwrap()
   let contracts = @relation.admit_relation_registry(
     @canonical.from_json(
@@ -126,7 +190,10 @@ fn exercise_original_local_infer_provider(retained_prefix : Bool) -> Unit raise 
     foreign_prepared,
   ).unwrap()
   let foreign_suffix = @input.prepare_client_composed_infer_suffix(
-    foreign_prepared, foreign_occurrence, infer_fixture_registry, infer_fixture_values,
+    foreign_prepared,
+    foreign_occurrence,
+    infer_fixture_installed_contracts(),
+    infer_fixture_values,
   ).unwrap()
   let foreign = @relation.prepare_generated_sequence(
     contracts,
@@ -213,7 +280,7 @@ fn exercise_original_local_infer_provider(retained_prefix : Bool) -> Unit raise 
   if retained_prefix {
     let sequences = @input.prepare_client_local_sequences(
       prepared,
-      infer_fixture_registry,
+      infer_fixture_installed_contracts(),
       infer_fixture_values,
       None,
       None,
@@ -287,7 +354,10 @@ fn exercise_original_local_infer_provider(retained_prefix : Bool) -> Unit raise 
       ),
     )
     let foreign_prefix = @input.prepare_client_composed_infer_prefix(
-      foreign_prepared, foreign_occurrence, infer_fixture_registry, infer_fixture_values,
+      foreign_prepared,
+      foreign_occurrence,
+      infer_fixture_installed_contracts(),
+      infer_fixture_values,
     ).unwrap()
     let boundary = @publication_host.client_infer_occurrence_coordinates(
         occurrence,
@@ -333,7 +403,7 @@ fn exercise_original_local_infer_provider(retained_prefix : Bool) -> Unit raise 
     }
     let foreign_sequences = @input.prepare_client_local_sequences(
       foreign_prepared,
-      infer_fixture_registry,
+      infer_fixture_installed_contracts(),
       infer_fixture_values,
       None,
       None,
@@ -479,7 +549,7 @@ fn exercise_original_local_infer_provider(retained_prefix : Bool) -> Unit raise 
   if retained_prefix {
     let sequences = @input.prepare_client_local_sequences(
       prepared,
-      infer_fixture_registry,
+      infer_fixture_installed_contracts(),
       infer_fixture_values,
       None,
       None,

@@ -24,6 +24,8 @@ import {
 // Values
 pub fn acquire_prepared_infer_rows(PreparedInferRows) -> InferRowsUse?
 
+pub fn add_execution_capacity(ExecutionCapacity, ExecutionCapacity) -> ExecutionCapacity?
+
 pub fn admit_fragment_contract(RegisteredRelationContracts, @canonical_json.CanonicalValue, RegistryLimits) -> Result[FragmentContract, FragmentContractIssue]
 
 pub fn admit_managed_execution_profile(@canonical_json.CanonicalValue, RegistryLimits) -> Result[ManagedExecutionProfile, ManagedProfileIssue]
@@ -410,6 +412,8 @@ pub fn carrier_managed_producer_read_same(CarrierManagedProducerRead, CarrierMan
 
 pub fn charge_admitted_input_external_work(AdmittedInput, Int) -> Bool
 
+pub fn checked_preparation_add_product(Int64, Int64, Int64) -> Int64?
+
 pub fn cleanup_admitted_input_row(AdmittedOutputRowCursor) -> Bool
 
 pub fn cleanup_admitted_output_preparation(AdmittedOutputPreparation) -> Result[Bool, @bounded_execution.Issue]
@@ -649,6 +653,12 @@ pub fn execute_selected_relation_step(GeneratedSequence, ProducerRead, SequenceE
 pub fn execution_capacity(Int64, Int64) -> ExecutionCapacity?
 
 pub fn execution_capacity_execution_bytes(ExecutionCapacity) -> Int64
+
+pub fn execution_capacity_inventory(Array[ExecutionCapacityItem], Array[ExecutionCapacityItem], ExecutionCapacityOverlap) -> ExecutionCapacity?
+
+pub fn execution_capacity_inventory_add(Int64, ExecutionCapacityUnit, Int64, Int) -> Int64?
+
+pub fn execution_capacity_inventory_bytes(Array[ExecutionCapacityItem]) -> Int64?
 
 pub fn execution_capacity_node_bytes() -> Int64
 
@@ -1032,6 +1042,8 @@ pub fn pivot_execution_supported_with_numeric(@lowering_relation.PreparedPivot) 
 
 pub fn predicate_expression_remaining(PredicateExpressionExecution) -> Int
 
+pub fn preparation_representation_cost(PreparationRepresentationUnits) -> Int64?
+
 pub fn prepare_admitted_input(@lowering_relation.BoundPrepared, Int, Int, ValueLimits) -> Result[AdmittedInput, CaptureIssue]
 
 pub fn prepare_admitted_output(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits) -> Result[AdmittedOutput, CaptureIssue]
@@ -1271,6 +1283,8 @@ pub fn[T] retain_admitted_output_stream(AdmittedOutputStreamReceipt, T, () -> Bo
 pub fn retain_completed_segment_input(CompletedOutput, ProducerRead) -> CompletedOutput?
 
 pub fn retain_completion_evidence(CompletedOutput, Int, Int) -> Result[RetainedCompletionEvidence, RetainedCompletionEvidenceIssue]
+
+pub fn retain_generated_sequence_refinement(GeneratedSequence, GeneratedSequence) -> GeneratedSequence?
 
 pub fn[P, T] retain_managed_output(ManagedOutputRetentionPort[P, T], P) -> Result[ManagedRetainedOutput[T], ManagedOutputRetentionIssue]
 
@@ -1988,6 +2002,25 @@ pub struct ExecutionCapacity {
   execution_bytes : Int64
 }
 
+pub(all) struct ExecutionCapacityItem {
+  unit : ExecutionCapacityUnit
+  count : Int64
+  copies : Int
+}
+
+pub(all) enum ExecutionCapacityOverlap {
+  SeparateDimensions
+  RetainedAlongsideExecution
+}
+
+pub(all) enum ExecutionCapacityUnit {
+  ValueNodeSlots
+  CursorRootSlots
+  DecodedTextBytes
+  CanonicalWireBytes
+  QuotedBytes
+}
+
 type ExpressionExecution
 
 pub(all) enum ExpressionExecutionPoll {
@@ -2499,6 +2532,14 @@ pub(all) enum PredicateExpressionPoll {
   PredicateExpressionContinue
   PredicateExpressionComplete(Bool)
 }
+
+pub(all) struct PreparationRepresentationUnits {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+  owned_wire_bytes : Int64
+} derive(Eq)
 
 type PreparedInferRows
 

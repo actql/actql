@@ -19,8 +19,8 @@ for (const kind of ['values','source-free-tasks','acquired-tasks']) {
       captureOriginalClientRunPlan(actual,original,run,limits){captures++;
         assert.equal(actual,compiled);assert.equal(original,prepared);assert.equal(run,definition);
         assert.deepEqual(limits,{maxWireBytes:65536,maxNodes:4096,maxDepth:64});return ticket;}};
-    const moon={clientProgramValuesMaxRows:()=>100,clientProgramResultCount:()=>1,clientProgramDefinitionCid:()=>cid};
-    const options={moon,control,preparedProgram:prepared,authorityScopeCid:cid,
+    const moon={clientProgramPreparedLocalPublicationLimits:()=>Array(22).fill(1),clientProgramValuesMaxRows:()=>100,clientProgramResultCount:()=>1,clientProgramDefinitionCid:()=>cid};
+    const options={moon,control,preparedProgram:prepared,publicationOriginal:{kind:'preparation',value:{}},authorityScopeCid:cid,
       namespaceId:'local',storeAuthorityCid:cid,now:()=> '2026-10-12T00:00:00.000Z'};
     const make=kind==='values'?sourceFreeValuesPlan:kind==='source-free-tasks'?sourceFreeTaskPlan:acquiredTaskRunAdmission;
     const plan=make(options);assert.equal(sourceFreePlanOriginal(plan),ticket);
@@ -57,8 +57,8 @@ for(const kind of ['values','source-free-tasks','acquired-tasks']){
       seal(){return {identity:cid};},sealRunEvidence(){return {};},compiledRunResultTransformation(){return undefined;},
       captureOriginalClientRunPlan(){return ticket;},
     };
-    const moon={clientProgramValuesMaxRows:()=>100,clientProgramResultCount:()=>1,clientProgramDefinitionCid:()=>cid};
-    const options={moon,control,preparedProgram:prepared,requestIdentity:request,
+    const moon={clientProgramPreparedLocalPublicationLimits:()=>Array(22).fill(1),clientProgramValuesMaxRows:()=>100,clientProgramResultCount:()=>1,clientProgramDefinitionCid:()=>cid};
+    const options={moon,control,preparedProgram:prepared,publicationOriginal:{kind:'preparation',value:{}},requestIdentity:request,
       authorityScopeCid:cid,namespaceId:'local',storeAuthorityCid:cid,
       now:()=>new Date().toISOString()};
     const make=kind==='values'?sourceFreeValuesPlan:kind==='source-free-tasks'?sourceFreeTaskPlan:acquiredTaskRunAdmission;

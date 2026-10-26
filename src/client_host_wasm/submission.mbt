@@ -22,7 +22,6 @@ fn required_number(object : @decode.ObjectView, name : String) -> Double? {
 }
 
 ///|
-#export_name("actql_submission_reserve")
 pub fn reserve_submission_projection(
   nonce : Int64,
   configuration : Int,
@@ -91,7 +90,6 @@ pub fn reserve_submission_projection(
 }
 
 ///|
-#export_name("actql_submission_produce")
 pub fn produce_submission_projection(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) &&
@@ -201,7 +199,6 @@ pub fn produce_submission_projection(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_submission_length")
 pub fn submission_projection_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) else {
@@ -237,7 +234,6 @@ pub fn submission_projection_length(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Retire the consumed transport; the original reference/intent input borrow
 /// remains available to internal same-Store observation until full close.
-#export_name("actql_submission_retire_output")
 pub fn retire_submission_output(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) &&
@@ -263,7 +259,6 @@ pub fn retire_submission_output(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_submission_close")
 pub fn close_submission_projection(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) else {
@@ -304,7 +299,6 @@ pub fn close_submission_projection(nonce : Int64, handle : Int) -> Int {
 /// cannot run the pending=false continuation. These flags exclude a live call;
 /// they are not physical stop, transaction, buffer, or parent acknowledgments.
 /// Spend normal entry first, then retire only this saved parent's call latches.
-#export_name("actql_submission_begin_cleanup")
 pub fn begin_submission_cleanup(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(parent) &&

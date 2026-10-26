@@ -11,6 +11,7 @@ pub(all) struct DuckDBDispatchLimits {
 
 ///|
 struct DuckDBDispatchModule {
+  preparation : DuckDBDispatchPreparation
   run : @strategy.CapturedDAG
   registry : @connector.CapabilityRegistry
   registration : @connector.CapabilityRegistration
@@ -36,17 +37,39 @@ pub(all) enum DuckDBDispatchIssue {
 }
 
 ///|
-/// Bounded static compilation happens before offers. It consumes the existing
-/// Host planning allowance, but creates no DB, reads no source and starts no task.
-pub fn prepare_duckdb_dispatch_module(
-  driver : @host.DispatchDriver,
+/// Original static module inputs and results. Preparation charges its actual
+/// parent Ledger before compiling each selected task, without opening a Run,
+/// source, database, channel or physical attempt. Binding retains these same
+/// originals and never repeats the compiler work or its consumed planning.
+struct DuckDBDispatchPreparation {
+  graph : @strategy.CheckedDAG
+  ledger : @resources.Ledger
+  registry : @connector.CapabilityRegistry
+  registration : @connector.CapabilityRegistration
+  sequences : Array[@execution.CompletionPreparation]
+  limits : DuckDBDispatchLimits
+  rejections : Array[(String?, String?)]
+  retained_output : (Int64, Int64?)?
+}
+
+///|
+pub fn prepare_duckdb_dispatch_plan(
+  graph : @strategy.CheckedDAG,
+  ledger : @resources.Ledger,
   registry : @connector.CapabilityRegistry,
   registration : @connector.CapabilityRegistration,
   sequences : Array[@execution.CompletionPreparation],
   limits : DuckDBDispatchLimits,
-) -> Result[DuckDBDispatchModule, DuckDBDispatchIssue] {
-  let run = @host.dispatch_driver_run(driver)
-  let graph = @strategy.captured_dag_graph(run)
+  retained_output? : (Int64, Int64?)? = None,
+) -> Result[DuckDBDispatchPreparation, DuckDBDispatchIssue] {
+  if retained_output is Some((bytes, milliseconds)) &&
+    (
+      bytes <= 0L ||
+      bytes > 2147483647L ||
+      (milliseconds is Some(ms) && ms < 0L)
+    ) {
+    return Err(InvalidConfiguration)
+  }
   if sequences.length() != @strategy.graph_task_count(graph) - 1 ||
     limits.candidate_work < 1 ||
     limits.join_validation.max_rows < 0 ||
@@ -56,17 +79,14 @@ pub fn prepare_duckdb_dispatch_module(
     !@connector.capability_description(registration).fixed_compute {
     return Err(InvalidConfiguration)
   }
+  let original_sequences = sequences.copy()
   let rejections = []
-  for index, sequence in sequences {
+  for index, sequence in original_sequences {
     if !(@strategy.graph_task_owner(graph, index + 1) is Some(owner) &&
       physical_equal(owner, @execution.completion_preparation_owner(sequence))) {
       return Err(InvalidConfiguration)
     }
-    match
-      @resources.charge_planning(
-        @strategy.captured_dag_ledger(run),
-        limits.candidate_work,
-      ) {
+    match @resources.charge_planning(ledger, limits.candidate_work) {
       Ok(_) => ()
       Err(issue) => return Err(Run(Physical(issue)))
     }
@@ -91,24 +111,94 @@ pub fn prepare_duckdb_dispatch_module(
       )
     }
   }
+  Ok({
+    graph,
+    ledger,
+    registry,
+    registration,
+    sequences: original_sequences,
+    limits,
+    rejections,
+    retained_output,
+  })
+}
+
+///|
+pub fn bind_duckdb_dispatch_plan(
+  driver : @host.DispatchDriver,
+  original : DuckDBDispatchPreparation,
+) -> Result[DuckDBDispatchModule, DuckDBDispatchIssue] {
+  bind_duckdb_dispatch_original(driver, original, true)
+}
+
+///|
+fn bind_duckdb_dispatch_original(
+  driver : @host.DispatchDriver,
+  original : DuckDBDispatchPreparation,
+  policy_sealed : Bool,
+) -> Result[DuckDBDispatchModule, DuckDBDispatchIssue] {
+  let run = @host.dispatch_driver_run(driver)
+  if !physical_equal(@strategy.captured_dag_graph(run), original.graph) ||
+    !physical_equal(@strategy.captured_dag_ledger(run), original.ledger) {
+    return Err(ForeignSelection)
+  }
   let channel = match
-    @host.open_dispatch_channel(driver, registry, registration) {
+    @host.open_dispatch_channel(
+      driver,
+      original.registry,
+      original.registration,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Dispatch(issue))
   }
   Ok({
+    preparation: original,
     run,
-    registry,
-    registration,
-    sequences: sequences.copy(),
-    limits,
-    rejections,
+    registry: original.registry,
+    registration: original.registration,
+    sequences: original.sequences,
+    limits: original.limits,
+    rejections: original.rejections,
     channel,
     resident_estimates: [],
     estimate_configuration: None,
-    retained_output: None,
-    output_policy_sealed: false,
+    retained_output: original.retained_output,
+    output_policy_sealed: policy_sealed,
   })
+}
+
+///|
+/// Exact configuration DATA only, not a task, capacity grant or cleanup ACK.
+pub fn duckdb_dispatch_original_preparation(
+  installed : DuckDBDispatchModule,
+) -> DuckDBDispatchPreparation {
+  installed.preparation
+}
+
+///|
+/// Existing late-configuration caller until its preparation migrates. The
+/// static compiler and planning charge have only the original implementation.
+pub fn prepare_duckdb_dispatch_module(
+  driver : @host.DispatchDriver,
+  registry : @connector.CapabilityRegistry,
+  registration : @connector.CapabilityRegistration,
+  sequences : Array[@execution.CompletionPreparation],
+  limits : DuckDBDispatchLimits,
+) -> Result[DuckDBDispatchModule, DuckDBDispatchIssue] {
+  let run = @host.dispatch_driver_run(driver)
+  let original = match
+    prepare_duckdb_dispatch_plan(
+      @strategy.captured_dag_graph(run),
+      @strategy.captured_dag_ledger(run),
+      registry,
+      registration,
+      sequences,
+      limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  bind_duckdb_dispatch_original(driver, original, false)
 }
 
 ///|

@@ -197,16 +197,16 @@ test "Events record emission keeps independent control and workspace limits" {
   // A primitive Events append takes 6*width + 2*identities + 8 polls.
   // Text length 513 adds Read + ceil(513/64) - 1 = nine extra polls.
   // Watermark: 7 outer + 46 + 9 = 62. Fixed window: 13 + 40 + 9 = 62.
-  // Dedupe: 31 + 28 + 9 = 68. Session: 44 + 46 + 9 = 99.
+  // Dedupe: 31 + 28 + 9 = 68. Session: 46 + 46 + 9 = 101 (including two label polls).
   // Cursor 16+3*width+identities+3*depth, caller scratch, next row coexist.
   // Name position adds one reserved slot to each caller's emission scratch.
-  // Peaks: 65+8+8=81; 62+11+7=80; 56+10+5=71; 65+18+8=91.
+  // Peaks: 65+8+8=81; 62+11+7=80; 56+10+5=71; 65+20+8=93 (two retained occurrence-label slots).
   for
     (kind, work, slots, logical) in [
       (0, 62, 81, 28),
       (1, 62, 80, 24),
       (2, 68, 71, 16),
-      (3, 99, 91, 28),
+      (3, 101, 93, 28),
     ] {
     let producer = producer_owner(false)
     let source = emission_source(producer)

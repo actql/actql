@@ -93,7 +93,7 @@ fn fixture_start(
   start(
     prepared,
     2,
-    infer_fixture_registry,
+    infer_fixture_installed_contracts(),
     infer_fixture_values,
     provider,
     "sha256:" + "1".repeat(64),
@@ -298,7 +298,7 @@ fn fixture_array_start(
   start(
     fixture_array_prepared(),
     2,
-    infer_fixture_registry,
+    infer_fixture_installed_contracts(),
     infer_fixture_values,
     provider,
     "sha256:" + "1".repeat(64),
@@ -407,7 +407,8 @@ test "partial model reservations fail before calls and stay owned until cleanup"
   )
   let model = active.model.unwrap()
   let usage = @model.model_execution_resource_usage(model)
-  assert_eq(usage.attempts, 1)
+  assert_eq(usage.attempts, 0)
+  assert_eq(usage.reserved_attempts, 1)
   assert_eq(usage.reserved_transfer_bytes, 66536L)
   assert_eq(usage.reserved_retention_bytes, 66536L)
   assert_eq(calls.val, 0)
@@ -420,7 +421,8 @@ test "partial model reservations fail before calls and stay owned until cleanup"
   assert_eq(settled.reserved_transfer_bytes, 0L)
   assert_eq(settled.reserved_retention_bytes, 0L)
   assert_eq(settled.reserved_execution_bytes, 0L)
-  assert_eq(settled.attempts, 1)
+  assert_eq(settled.attempts, 0)
+  assert_eq(settled.reserved_attempts, 0)
   assert_eq(calls.val, 0)
 }
 
@@ -470,7 +472,8 @@ test "mapped request byte limits preflight every row before the first call" {
   assert_eq(late_calls.val, 0)
   assert_true(acquire_output(late) is None)
   let before = @model.model_execution_resource_usage(model)
-  assert_eq(before.attempts, 2)
+  assert_eq(before.attempts, 0)
+  assert_eq(before.reserved_attempts, 2)
   assert_eq(before.reserved_retention_bytes, 2L * (16L + 65536L))
   assert_true(cleanup(late).unwrap())
   assert_true(cleanup(late).unwrap())
@@ -479,7 +482,8 @@ test "mapped request byte limits preflight every row before the first call" {
   assert_eq(after.reserved_retention_bytes, 0L)
   assert_eq(after.reserved_execution_bytes, 0L)
   assert_eq(after.held_bytes, 0L)
-  assert_eq(after.attempts, 2)
+  assert_eq(after.attempts, 0)
+  assert_eq(after.reserved_attempts, 0)
   assert_eq(late_calls.val, 0)
 }
 
@@ -587,7 +591,8 @@ test "nested mapped input stops during request encoding with zero model calls" {
   assert_true(capture(active) is None)
   assert_true(acquire_output(active) is None)
   let before = @model.model_execution_resource_usage(model)
-  assert_eq(before.attempts, 1)
+  assert_eq(before.attempts, 0)
+  assert_eq(before.reserved_attempts, 1)
   assert_eq(before.reserved_retention_bytes, 131072L)
   assert_true(cleanup(active).unwrap())
   assert_true(cleanup(active).unwrap())
@@ -596,7 +601,8 @@ test "nested mapped input stops during request encoding with zero model calls" {
   assert_eq(after.reserved_retention_bytes, 0L)
   assert_eq(after.reserved_execution_bytes, 0L)
   assert_eq(after.held_bytes, 0L)
-  assert_eq(after.attempts, 1)
+  assert_eq(after.attempts, 0)
+  assert_eq(after.reserved_attempts, 0)
   assert_eq(calls.val, 0)
 }
 

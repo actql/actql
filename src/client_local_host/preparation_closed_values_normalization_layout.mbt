@@ -2,9 +2,9 @@
 /// Fixed Common empty journal constructor dependency. No output sampling and no
 /// grant. Caller proves one Values producer, no parameters/completions/sorts.
 /// Original graph/catalog and immutable protocol schema are borrowed owners.
-struct ClosedValuesNormalizationLayout {
-  retained : PreparationRepresentationUnits
-  temporary : PreparationRepresentationUnits
+priv struct ClosedValuesNormalizationLayout {
+  retained : @execution.PreparationRepresentationUnits
+  temporary : @execution.PreparationRepresentationUnits
 }
 
 ///|
@@ -37,7 +37,7 @@ fn closed_values_normalization_layout(
   }
   // Common inventory(4R1W), entries empty Array, Common variant, issued record,
   // owner Some. Evidence/tree/wire are the publication owner's retained vector.
-  let wrappers : PreparationRepresentationUnits = {
+  let wrappers : @execution.PreparationRepresentationUnits = {
     record_headers: 6L,
     reference_slots: 10L,
     scalar_words: 5L,
@@ -62,7 +62,7 @@ fn closed_values_normalization_layout(
   // MutArrayViews. Sort sizes3/4 use pinned small-array sort path, no runs/buffer.
   // Two live recursive from_source frames each four refs and two scalar locals.
   // Final child/field tuples are already in retained, not recreated here.
-  let admission : PreparationRepresentationUnits = {
+  let admission : @execution.PreparationRepresentationUnits = {
     record_headers: 4L + 1L + 5L + 2L + 2L,
     reference_slots: 6L + 6L + 2L + 8L,
     scalar_words: 3L + 3L + 4L + 4L,
@@ -72,7 +72,7 @@ fn closed_values_normalization_layout(
   // Two synchronous canonical emissions (hash then complete render). Each has
   // one Array plus old backing, at most two parent variants and cursor records,
   // two pop Some carriers. String cursor storage is in shared writer recipe.
-  let emit : PreparationRepresentationUnits = {
+  let emit : @execution.PreparationRepresentationUnits = {
     record_headers: 2L * (3L + 4L + 2L),
     reference_slots: 2L * (1L + 18L + 4L + 2L),
     scalar_words: 2L * (2L + 4L + 2L),
@@ -83,7 +83,7 @@ fn closed_values_normalization_layout(
   // expression SlotCollector+ExpressionSlots and Array; iterator tuple for one
   // unit; one stage/producer/step accessor Some each; final sort Some(Int).
   // Values has no general expression slots (expression_slots.mbt Values arm).
-  let audit : PreparationRepresentationUnits = {
+  let audit : @execution.PreparationRepresentationUnits = {
     record_headers: 1L + 1L + 1L + 1L + 2L + 2L + 1L + 3L + 1L,
     reference_slots: 3L + 1L + 1L + 3L + 1L + 2L + 3L,
     scalar_words: 1L + 2L + 1L + 3L + 2L + 3L + 2L,
@@ -94,7 +94,7 @@ fn closed_values_normalization_layout(
   // Hash recipe deliberately upper-bounds structural ownership of material
   // writers; add JS StringBuilder and old/new text explicitly for both.
   // Body String + its UTF8 copy coexist during issuance. Output239 is retained.
-  let writers : PreparationRepresentationUnits = {
+  let writers : @execution.PreparationRepresentationUnits = {
     record_headers: 3L * writer.record_headers + 2L * 4L + 2L,
     reference_slots: 3L * writer.reference_slots + 2L * 2L,
     scalar_words: 3L * writer.scalar_words + 2L,
@@ -104,7 +104,7 @@ fn closed_values_normalization_layout(
   // Result/failure issuance edges: parse, canonical conversion, shape1, hash,
   // append, shape2, stringify, body writer, audit, outer issuer. Sum10 packets,
   // each domain issue +result carrier; scalar/reference payload alternatives.
-  let carriers : PreparationRepresentationUnits = {
+  let carriers : @execution.PreparationRepresentationUnits = {
     record_headers: 20L,
     reference_slots: 20L,
     scalar_words: 40L,

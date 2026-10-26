@@ -4,10 +4,10 @@
 /// Generic call/result/failure carriers belong the scaffold owner. This value
 /// includes the generated proof/witness source/index and writer components;
 /// none of these facts independently grants resource or publication authority.
-struct ClosedValuesUnitPublicationLayout {
-  payload : PreparationRepresentationUnits
-  source_admission : PreparationRepresentationUnits
-  writers : PreparationRepresentationUnits
+priv struct ClosedValuesUnitPublicationLayout {
+  payload : @execution.PreparationRepresentationUnits
+  source_admission : @execution.PreparationRepresentationUnits
+  writers : @execution.PreparationRepresentationUnits
 }
 
 ///|
@@ -58,11 +58,11 @@ fn closed_values_unit_publication_source_facts(
 /// fields in both slot categories is conservative, not an actual charge.
 fn closed_values_unit_publication_payload_layout(
   result_name_utf16 : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if result_name_utf16 < 0 {
     return None
   }
-  let records : PreparationRepresentationUnits = {
+  let records : @execution.PreparationRepresentationUnits = {
     record_headers: 94L,
     reference_slots: 299L,
     scalar_words: 299L,
@@ -79,7 +79,7 @@ fn closed_values_unit_publication_payload_layout(
   // then prefixes76/86 and complete subjects91+2U /92+2U. Six retained CIDs
   // plus two verification CIDs71; hash digests are in the writer component.
   // Finished material Strings/Bytes228+568 coexist with their parsed owners.
-  let text : PreparationRepresentationUnits = {
+  let text : @execution.PreparationRepresentationUnits = {
     record_headers: 16L + 12L + 8L + 4L,
     reference_slots: 0L,
     scalar_words: 0L,
@@ -105,18 +105,18 @@ fn closed_values_unit_publication_payload_layout(
 /// contain unused SHA controls; this is explicit slack, not claimed actual use.
 /// Material output additionally owns TextOutput/StringBuilder and old/new
 /// UTF16 buffer backing. Final Strings/Bytes belong payload, not this buffer.
-fn closed_values_unit_publication_writer_layout() -> PreparationRepresentationUnits? {
+fn closed_values_unit_publication_writer_layout() -> @execution.PreparationRepresentationUnits? {
   guard @encode.hash_writer_construction_inventory(40, 4) is Some(v) else {
     return None
   }
-  let hash : PreparationRepresentationUnits = {
+  let hash : @execution.PreparationRepresentationUnits = {
     record_headers: v.record_headers,
     reference_slots: v.reference_slots,
     scalar_words: v.scalar_words,
     owned_utf16_units: v.owned_utf16_units,
     owned_wire_bytes: v.owned_wire_bytes,
   }
-  let buffers : PreparationRepresentationUnits = {
+  let buffers : @execution.PreparationRepresentationUnits = {
     record_headers: 4L,
     reference_slots: 4L,
     scalar_words: 2L,

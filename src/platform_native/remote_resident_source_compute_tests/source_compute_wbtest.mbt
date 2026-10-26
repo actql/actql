@@ -582,3 +582,28 @@ fn resident_compute_execute(
     }
   }
 }
+
+///|
+// Admit the original declared fixture bytes through the real sealed boundary.
+// No unchecked registry string or fabricated installed capability is accepted.
+fn resident_compute_installed_contracts() -> @local.ClientInstalledSequenceContracts {
+  @local.prepare_installed_sequence_contracts(
+    resident_effect_source_registry,
+    resident_effect_source_values,
+    Some(resident_effect_source_fragment),
+    None,
+  ).unwrap()
+}
+
+///|
+test "resident Compute installed contracts reject malformed original registry" {
+  assert_true(
+    @local.prepare_installed_sequence_contracts(
+      "{}",
+      resident_effect_source_values,
+      Some(resident_effect_source_fragment),
+      None,
+    )
+    is Err(@local.Unsupported),
+  )
+}

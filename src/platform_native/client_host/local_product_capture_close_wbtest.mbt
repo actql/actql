@@ -3,7 +3,7 @@
 // It does not establish a selected command Read or ordinary installed check.
 fn product_acquired_capture_for_close(
   name : String,
-) -> NativeLocalProductConfigurationCapture raise {
+) -> NativeLocalProductConfigurationCapture {
   let path = product_test_parent(name)
   let crypto = epoch_test_crypto()
   let session = begin_native_local_product_configuration(

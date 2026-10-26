@@ -2,9 +2,8 @@
 /// Exact emitted shape and conservative text bound of the existing single
 /// nonnullable Number Values pipeline. Names/id are borrowed checked owners;
 /// computing these bounds does not emit a second tree or authorize compilation.
-struct CompilationPipelineShape {
+priv struct CompilationPipelineShape {
   facts : ClosedValuesLexicalFacts
-  largest_object : Int
 }
 
 ///|
@@ -62,6 +61,5 @@ fn compilation_pipeline_shape(
       longest_atom_utf16: 25,
       depth_upper: 6,
     },
-    largest_object: Int::max(4, fields),
   })
 }

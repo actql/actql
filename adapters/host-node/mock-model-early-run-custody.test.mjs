@@ -5,7 +5,7 @@ import {parse} from 'acorn';
 
 // Execute the actual retained initialization functions with explicit ports.
 // This checks ordering/partial custody, not a Core issuer or physical grant.
-const source=readFileSync(new URL('./installed-project-mock.mjs',import.meta.url),'utf8');
+const source=readFileSync(new URL('../local-node/installed-project-mock.mjs',import.meta.url),'utf8');
 const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
 const outer=tree.body.find(node=>node.type==='ExportNamedDeclaration'&&
   node.declaration?.id?.name==='installPreparedProjectMockSources').declaration;
@@ -92,7 +92,7 @@ function fixture({afterFactoryFailure,readFailure,settleFailure,effectful=false,
     begin(){effectful?api.prepareManagedEffectMockModelRun(prepared,request,control,plan,selection,undefined,compilation)
       :api.prepareManagedMockModelRun(prepared,request,control,plan,selection);},
     attachSources(){
-      records.get(prepared).reads=[0,1].map(index=>({raw:{index},value:{index},closed:false,
+      records.get(prepared).reads=[0,1].map(index=>({source:index,raw:{index},value:{index},closed:false,
         close(){sourceCloseCalls[index]++;return{pending:!sourceReady[index]};}}));
     }};
 }
@@ -192,6 +192,7 @@ test('Mock close keeps both originals until Source and Model cleanup acknowledge
   preparation.retain();preparation.prepareRead();
   f.sourceReady[0]=false;
   await assert.rejects(f.close(),{message:'InstalledMockSourceCleanupPending'});
+  assert.deepEqual(f.sourceCloseCalls,[1,1]);
   assert.strictEqual(record.original,f.original);assert.strictEqual(model.scope,f.scope);
   assert.equal(f.calls.includes('settle-read'),false);
   assert.equal(f.calls.includes('retire-parent'),false);

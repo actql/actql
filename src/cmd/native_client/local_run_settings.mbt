@@ -127,7 +127,8 @@ fn local_run_installation(
 // Installed Compute contract bodies and Result Policy are configuration
 // originals selected by the adoption Owner. They confer no I/O or read grant.
 priv struct LocalValuesInstallation {
-  registry_body : String
+  // Exact original bytes retained for whitebox installation identity checks.
+  _observed_registry_body : String
   installed_contracts : @local_values.ClientInstalledSequenceContracts
   values_body : String
   fragment_body : String?
@@ -164,7 +165,7 @@ fn local_values_installation(
     registry_body, values_body, fragment_body, ordered_body,
   ).unwrap_or_else(() => stop("InvalidLocalValuesInstalledContracts"))
   {
-    registry_body,
+    _observed_registry_body: registry_body,
     installed_contracts,
     values_body,
     fragment_body,
@@ -189,7 +190,7 @@ fn local_current_values_installation(
   {
     ..original,
     installed_contracts,
-    registry_body: assets.registry,
+    _observed_registry_body: assets.registry,
     values_body: assets.values,
     fragment_body: Some(assets.fragment),
     ordered_body: assets.ordered,

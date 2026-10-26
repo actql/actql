@@ -1,12 +1,14 @@
 ///|
 /// A bounded optimization proof tied to the original parsed/indexed owner.
 /// This is not semantic admission. Ordinary checking remains authoritative.
-struct ClosedValuesShape {
+// `_observed_*` fields retain exact bound observations for white-box tests;
+// production consumes the admitted totals, not these diagnostic projections.
+priv struct ClosedValuesShape {
   original : @syntax.ParsedProgramInput
   fields : Int
   rows : Int
-  cells : Int
-  inspection_work : Int
+  _observed_cells : Int
+  _observed_inspection_work : Int
 }
 
 ///|
@@ -196,8 +198,8 @@ fn closed_values_shape(
     original,
     fields,
     rows,
-    cells: fields * rows,
-    inspection_work: max_work - remaining.val,
+    _observed_cells: fields * rows,
+    _observed_inspection_work: max_work - remaining.val,
   })
 }
 

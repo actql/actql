@@ -13,7 +13,7 @@ for (const pkg of ['node_host_conformance','connectors_builtin_node']) {
 const scratch = await createOwnedScratch({parent: tmpdir(),
   prefix: 'actql-node-no-duckdb-', label: 'Node dependency isolation'});
 const isolated = scratch.path;
-for (const path of ['adapters','scripts','package.json']) {
+for (const path of ['adapters','scripts','packages/client-wire','package.json']) {
   cpSync(join(root,path),join(isolated,path),{recursive:true,
     filter: path => basename(path) !== 'node_modules'});
 }

@@ -426,6 +426,20 @@ pub fn read_ranking_options(@decode_core.Cursor, @vector_checking.Limits) -> Res
 
 pub fn read_text_rank_options(@decode_core.Cursor, @vector_checking.Limits) -> Result[TextRankOptions, @vector_checking.Issue]
 
+pub fn refine_infer_filter(@decode_core.Cursor, Array[InferFilterNode], @relation_typing.CheckedOperation, FilterProofLimits) -> Result[FilterProofResult, FilterProofIssue]
+
+pub fn refined_filter_keys(KeySet?, RefinedFilter, TransferLimits) -> Result[KeySetTransfer, Issue]
+
+pub fn refined_filter_lineage_count(RefinedFilter) -> Int
+
+pub fn refined_filter_literals(LiteralDomains?, RefinedFilter, TransferLimits) -> Result[LiteralTransfer, Issue]
+
+pub fn refined_filter_original(RefinedFilter) -> @relation_typing.CheckedOperation
+
+pub fn refined_filter_output(RefinedFilter) -> @relation_schema.Schema
+
+pub fn refined_filter_ranking(RankingInput, RefinedFilter, @vector_checking.Limits) -> Result[RankingTransfer, @vector_checking.Issue]
+
 pub fn score_contract_domain(@vector_checking.ScoreContract) -> String
 
 pub fn score_contract_maximum(@vector_checking.ScoreContract) -> Double
@@ -544,11 +558,45 @@ type CheckedTextRank
 
 type DeclaredScore
 
+pub struct FilterProofIssue {
+  source : @decode_core.Cursor
+  kind : FilterProofIssueKind
+}
+
+pub(all) enum FilterProofIssueKind {
+  InvalidProofLimits
+  ProofBudgetExceeded
+  ForeignProofSource
+  ForeignProofInput
+}
+
+pub(all) struct FilterProofLimits {
+  max_work : Int
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+}
+
+pub struct FilterProofResult {
+  proof : RefinedFilter
+  work : Int
+  nodes : Int
+  text_bytes : Int
+}
+
 pub(all) enum GraphKeyOperation {
   MatchOperation(@graph_typing.CheckedMatch)
   TraverseOperation(@graph_typing.CheckedTraverse)
   ComponentsOperation(@graph_typing.CheckedComponents)
   DegreeOperation(@graph_typing.CheckedDegree)
+}
+
+pub(all) enum InferFilterNode {
+  Infer(CheckedInfer)
+  Unary(@relation_typing.CheckedOperation)
+  Join(@relation_join_shape.CheckedJoin)
+  Refined(RefinedFilter)
+  Other(@decode_core.Cursor, @relation_schema.Schema?)
 }
 
 pub struct InferInputBinding {
@@ -805,6 +853,8 @@ pub struct RankingTransfer {
   input : RankingInput
   usage : @vector_checking.Usage
 }
+
+type RefinedFilter
 
 pub(all) enum TextRankObligation {
   ValidateCompleteTextInputs

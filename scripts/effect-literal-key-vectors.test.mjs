@@ -18,7 +18,7 @@ test('current literal identities change only the reviewed expression dependency 
   const current = currentEffectLiteralKeyVectors(original);
   assert.deepEqual(original, saved, 'historical envelopes and CIDs are not rewritten');
   assert.equal(current[0].expected_definition_cid,
-    'sha256:14a65f453bf9e86dd48aa9b355cfb6401d6f0bfc5a716f65d8f3a53b1758a3e1');
+    'sha256:e0a35286124614d0647c8d07d4254c5e6811fc9c7a7e4e01964446b6344933ba');
   for (const [i, vector] of current.entries()) {
     assert.deepEqual(vector.payload, original.cases[i].payload);
     assert.deepEqual(vector.stage_envelope.local_body, original.cases[i].stage_envelope.local_body);

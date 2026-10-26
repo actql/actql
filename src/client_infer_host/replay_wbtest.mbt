@@ -24,7 +24,7 @@ fn replay_fixture_original() -> (
   let active = start(
     prepared,
     2,
-    infer_fixture_registry,
+    infer_fixture_installed_contracts(),
     infer_fixture_values,
     provider,
     @publication_host.client_infer_plan_graph_request_cid(plan),
@@ -46,7 +46,7 @@ test "reconstructed Infer replays only checked captures with independent custody
   let replay = start_replay(
     prepared,
     2,
-    infer_fixture_registry,
+    infer_fixture_installed_contracts(),
     infer_fixture_values,
     saved,
     standard_limits(),
@@ -85,7 +85,7 @@ test "reconstructed Infer replays only checked captures with independent custody
     start_replay(
       prepared,
       2,
-      infer_fixture_registry,
+      infer_fixture_installed_contracts(),
       infer_fixture_values,
       saved,
       standard_limits(),
@@ -108,7 +108,7 @@ test "replay work exact and one-short are charged without reserving model attemp
     let replay = start_replay(
       prepared,
       2,
-      infer_fixture_registry,
+      infer_fixture_installed_contracts(),
       infer_fixture_values,
       saved,
       limits,
@@ -144,7 +144,7 @@ test "changed completed input rejects replay without a provider alternative" {
     let replay = start_replay(
       prepared,
       2,
-      infer_fixture_registry,
+      infer_fixture_installed_contracts(),
       infer_fixture_values,
       saved,
       standard_limits(),
@@ -170,7 +170,7 @@ test "replay cancellation retains input and capture until stop and cleanup" {
     let replay = start_replay(
       prepared,
       2,
-      infer_fixture_registry,
+      infer_fixture_installed_contracts(),
       infer_fixture_values,
       saved,
       standard_limits(),

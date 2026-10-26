@@ -1,7 +1,7 @@
 ///|
 test "policy constructor inventory bounds all optional original scalar fields" {
   let inventory = policy_construction_inventory().unwrap()
-  let values : Map[String, Int64] = {}
+  let values : Map[String, Int64] = Map([])
   for field in fields {
     values[field] = 9007199254740991L
   }

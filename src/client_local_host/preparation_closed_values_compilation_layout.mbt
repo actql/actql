@@ -1,9 +1,9 @@
 ///|
 /// One funded compiler phase on the existing prepared owner. This component is
 /// Node JS only; its closed-builder String sharing is pinned to concat backend.
-struct ClosedValuesCompilationLayout {
-  retained : PreparationRepresentationUnits
-  temporary : PreparationRepresentationUnits
+priv struct ClosedValuesCompilationLayout {
+  retained : @execution.PreparationRepresentationUnits
+  temporary : @execution.PreparationRepresentationUnits
   max_wire_bytes : Int
   max_nodes : Int
   max_depth : Int
@@ -127,7 +127,7 @@ fn closed_values_compilation_layout(
     compilation_canonical_emitter_layout(depth) is Some(canonical_emitter) else {
     return None
   }
-  let wires : PreparationRepresentationUnits = {
+  let wires : @execution.PreparationRepresentationUnits = {
     record_headers: 6L,
     reference_slots: 0L,
     scalar_words: 0L,
@@ -140,7 +140,7 @@ fn closed_values_compilation_layout(
   // Exactly one live Number-cell read/emission packet. Sequential rows do not
   // retain Field/Some/Ok/ExpressionFrame owners. The bridge's borrowed artifact
   // relay adds one reference, not another compilation or character owner.
-  let cell : PreparationRepresentationUnits = {
+  let cell : @execution.PreparationRepresentationUnits = {
     record_headers: 12L,
     reference_slots: 13L,
     scalar_words: 12L,

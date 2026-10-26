@@ -1581,7 +1581,9 @@ fn main {
       stage +
       ": " +
       command_preparation_cleanup_kind(issue) +
-      observed,
+      observed +
+      " cause=" +
+      command_preparation_cleanup_cause(issue),
     )
   }
   if !crypto_closed {

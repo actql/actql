@@ -144,7 +144,7 @@ fn chain_evidence_provider(
     1,
     managed_providers=[family],
   ).unwrap()
-  @local_connector.local_module_managed_provider(implementation, sequence).unwrap()
+  @local_connector.local_module_managed_provider(implementation, 0, sequence).unwrap()
 }
 
 ///|

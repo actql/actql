@@ -110,7 +110,6 @@ fn publisher_authorize(
 }
 
 ///|
-#export_name("actql_publisher_reserve")
 pub fn reserve_publisher(
   nonce : Int64,
   parent : Int,
@@ -169,7 +168,6 @@ pub fn reserve_publisher(
 }
 
 ///|
-#export_name("actql_publisher_install")
 pub fn install_publisher(
   nonce : Int64,
   handle : Int,
@@ -243,7 +241,6 @@ pub fn install_publisher(
 ///|
 /// Authorization only. Even return_committed permission is not a durable
 /// Store acknowledgement, public Run admission, or execution/retry permission.
-#export_name("actql_publisher_authorize")
 pub fn authorize_publisher(
   nonce : Int64,
   handle : Int,
@@ -314,7 +311,6 @@ pub fn authorize_publisher(
 }
 
 ///|
-#export_name("actql_publisher_close")
 pub fn close_publisher(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.publishers.get(handle) is Some(child) else {

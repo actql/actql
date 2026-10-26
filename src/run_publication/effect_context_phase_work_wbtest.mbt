@@ -66,7 +66,7 @@ test "Effect context original phase work preserves independently assembled wire"
     assert_eq(preparation.live, 0)
     assert_true(preparation.inputs is None && preparation.writer is None)
     println(
-      "context length=\{length} body_bytes=\{body.length()} work=\{counts} peak=\{peak}",
+      "context length=\{length} body_bytes=\{body.length()} work=\{@debug.to_string(counts)} peak=\{peak}",
     )
   }
 }

@@ -1,23 +1,4 @@
 ///|
-/// Canonical finite Number/Boolean rows only. The pinned binary64 formatter
-/// emits at most 25 ASCII bytes (the negative fixed-notation -6 exponent case).
-/// Decimal, strings, references and nested values never enter this proof.
-fn client_local_scalar_wire_bytes(
-  sequences : Array[@execution.GeneratedSequence],
-  max_rows : Int,
-) -> Int? {
-  match client_local_schema_proof_inventory(sequences) {
-    Some(inventory) =>
-      client_local_scalar_wire_byte_bound(
-        inventory.fields,
-        inventory.names,
-        max_rows,
-      )
-    None => None
-  }
-}
-
-///|
 fn client_local_scalar_wire_byte_bound(
   fields : Int,
   names : Int,

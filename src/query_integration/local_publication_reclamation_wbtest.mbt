@@ -78,8 +78,19 @@ fn check_local_admission_retirement(partial_receipt : Bool) -> Unit raise {
   assert_true((operations.request_cancel)())
   assert_true((operations.execution_stopped)())
   (operations.settle)().unwrap()
-  assert_false((operations.cleanup_refresh)())
-  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, reserved)
+  if partial_receipt {
+    // The unfinished copy still owns its admission buffer and reservation.
+    assert_false((operations.cleanup_refresh)())
+    assert_eq(
+      @resources.ledger_usage(ledger).reserved_execution_bytes,
+      reserved,
+    )
+  } else {
+    // Ready means admission retirement completed, not receipt publication.
+    // Cancellation can now reclaim scratch without an invented pending phase.
+    assert_true((operations.cleanup_refresh)())
+    assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  }
   assert_false(@strategy.captured_task_completed(run, 1))
   assert_true(
     (operations.complete)(1, operations.storage_bytes, fn() { true }) is Err(_),

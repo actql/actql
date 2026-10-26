@@ -26,7 +26,7 @@ async function actualSync(path) {
   try { await handle.sync(); } finally { await handle.close(); }
 }
 
-test('semantic metadata retains physical quota in the owned lifetime instead of committing every preparation', async t => {
+test('semantic metadata durably brackets each original preparation within its owned quota lifetime', async t => {
   const directory=await mkdtemp(join(tmpdir(),'actql-semantic-quota-lifetime-'));
   let store,armed=false,commits=0;
   t.after(async()=>{armed=false;await store?.close();await rm(directory,{recursive:true});});
@@ -43,11 +43,11 @@ test('semantic metadata retains physical quota in the owned lifetime instead of 
       invocation_template_cid:cid('template-'+i),observation_set_cid:cid('observations-'+i)}),limits);
     originals.push(value);await store.putPublicationContract(value.name,value.wire);
   }
-  assert.equal(commits,1,'one dirty mark precedes all three physical batches, not a transaction per batch');
+  assert.equal(commits,7,'one quota dirty mark plus one durable stage and settlement per semantic preparation');
   assert.equal(store.status().objectCount,3);
   assert.equal(store.status().reservedObjects,0);
   await store.close();
-  assert.equal(commits,2,'one real atomic quota seal follows all original physical ACKs at close');
+  assert.equal(commits,8,'one real atomic quota seal follows all original preparation settlements at close');
   armed=false;
   const database=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'),{readOnly:true});
   try{
@@ -60,7 +60,7 @@ test('semantic metadata retains physical quota in the owned lifetime instead of 
   for(const value of originals)assert.equal((await store.readPublicationContract(value.identity,value.name)).wire,value.wire);
   assert.equal(store.status().objectCount,3);
   await store.close();
-  assert.equal(commits,2,'read-only opening, selected reads and close do not dirty or seal physical quota');
+  assert.equal(commits,8,'read-only opening, selected reads and close do not dirty or seal physical quota');
 });
 
 test('only an actually unsealed physical quota lifetime audits its bounded objects on reopen', async t => {
@@ -189,12 +189,13 @@ test('semantic metadata retains the same failed native close before publication 
   }
 });
 
-test('a lost original object-link reply is observed without a replacement allocation', async t => {
+test('a lost original object-link reply retires its unpublished generation before releasing capacity', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-semantic-link-reply-'));
   const store = await openLocalPublicationStore({...configuration(directory), maxObjects: 1}, control);
   t.after(async () => { await store.close(); await rm(directory, {recursive: true}); });
   const originalLink = fsPromises.link;
-  let lost = false;
+  const originalUnlink = fsPromises.unlink;
+  let lost = false, reclaimed = 0;
   fsPromises.link = async function(from, to) {
     const result = await Reflect.apply(originalLink, this, [from, to]);
     if (!lost && String(to).startsWith(join(directory, 'objects') + sep)) {
@@ -203,24 +204,35 @@ test('a lost original object-link reply is observed without a replacement alloca
     }
     return result;
   };
+  fsPromises.unlink = async function(path) {
+    if (String(path).startsWith(join(directory, 'objects') + sep)) {
+      assert.equal(store.status().objectCount, 1,
+        'the exact installed generation stays charged until its original unlink');
+      reclaimed++;
+    }
+    return Reflect.apply(originalUnlink, this, [path]);
+  };
   syncBuiltinESMExports();
   try {
     await assert.rejects(store.putPublicationContract(contract.name, contract.wire), {code: 'EIO'});
     assert.equal(lost, true);
-    assert.equal(store.status().objectCount, 1,
-      'the real completed allocation remains charged, not refunded after an unknown reply');
+    assert.equal(reclaimed, 1, 'cleanup retires the one original unpublished generation');
+    assert.deepEqual(await readdir(join(directory, 'objects')), []);
+    assert.equal(store.status().objectCount, 0,
+      'capacity is released only after physical cleanup acknowledges the original generation');
     assert.equal(store.status().reservedObjects, 0);
     assert.deepEqual(await readdir(join(directory, 'contracts')), []);
     const stored = await store.putPublicationContract(contract.name, contract.wire);
-    assert.equal(stored.physical.created, false);
+    assert.equal(stored.physical.created, true);
     assert.equal(store.status().objectCount, 1);
   } finally {
     fsPromises.link = originalLink;
+    fsPromises.unlink = originalUnlink;
     syncBuiltinESMExports();
   }
 });
 
-test('cold recovery preserves a completed original object before semantic visibility', async t => {
+test('cold recovery reclaims the completed unpublished original before a fresh allocation', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-semantic-cold-'));
   let store;
   t.after(async () => { await store?.close(); await rm(directory, {recursive: true}); });
@@ -250,10 +262,13 @@ test('cold recovery preserves a completed original object before semantic visibi
   assert.equal(child.signal, null);
   assert.equal(child.stdout, 'ORIGINAL_OBJECT_DURABLE');
   assert.deepEqual(await readdir(join(directory, 'contracts')), []);
+  assert.equal((await readdir(join(directory, 'objects'))).length, 1,
+    'the selected crash leaves the original physical allocation, not only a reservation');
   store = await openLocalPublicationStore(selected, control);
-  assert.equal(store.status().objectCount, 1);
+  assert.equal(store.status().objectCount, 0);
+  assert.deepEqual(await readdir(join(directory, 'objects')), []);
   assert.deepEqual(await readdir(join(directory, 'staging')), []);
   const stored = await store.putPublicationContract(contract.name, contract.wire);
-  assert.equal(stored.physical.created, false);
+  assert.equal(stored.physical.created, true);
   assert.equal(store.status().objectCount, 1);
 });

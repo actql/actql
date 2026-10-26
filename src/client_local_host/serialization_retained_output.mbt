@@ -77,7 +77,7 @@ fn client_retained_content_capacity() -> @execution.ExecutionCapacity? {
     client_content_completion_export_capacity() is Some(metadata) else {
     return None
   }
-  add_client_serialization_workspace_capacity(
+  @execution.add_execution_capacity(
     // Eight conservative fixed control slots cover the transient cumulative
     // counter, reporting closures, limited-value record and failure/result
     // branches. They do not retain another row or another physical owner.

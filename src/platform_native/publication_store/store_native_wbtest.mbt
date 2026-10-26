@@ -62,7 +62,7 @@ fn native_delivery_all(
 fn native_payload_fixture(
   label : String,
   capacity_bytes : Int64,
-) -> (Store, String, @sqlite.Library)? {
+) -> (Store, String, @sqlite.Library, String)? {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
     is Some(library_path) else {
     return None
@@ -73,8 +73,16 @@ fn native_payload_fixture(
   let token = label + "-" + @env.now().to_string()
   let authority = native_payload_cid(token + "-authority")
   let library = @sqlite.load_library(library_path).unwrap()
-  let store = open_store(library, root, authority, capacity_bytes, 8L, 65536L).unwrap()
-  Some((store, authority, library))
+  // Independent cases own independent durable capacity. Reopen tests retain
+  // this exact selected path instead of reopening the invocation parent.
+  let parent = @filesystem.open_root(root).unwrap()
+  parent.create_directory(token).unwrap() |> ignore
+  parent.close().unwrap()
+  let selected = root + "/" + token
+  let store = open_store(
+    library, selected, authority, capacity_bytes, 8L, 65536L,
+  ).unwrap()
+  Some((store, authority, library, selected))
 }
 
 ///|
@@ -107,7 +115,7 @@ test "native publication Store refuses old and unidentified roots without writes
 
 ///|
 test "native publication payload streams, verifies and reclaims exactly" {
-  guard native_payload_fixture("stream", 16L) is Some((store, authority, _)) else {
+  guard native_payload_fixture("stream", 16L) is Some((store, authority, _, _)) else {
     return
   }
   let request = native_payload_request(authority, @env.now().to_string(), 16L)
@@ -144,7 +152,7 @@ test "native publication payload streams, verifies and reclaims exactly" {
 ///|
 test "native publication payload survives restart and recovers cancellation" {
   guard native_payload_fixture("restart", 32L)
-    is Some((store, authority, library)) else {
+    is Some((store, authority, library, root)) else {
     return
   }
   let first_request = native_payload_request(
@@ -164,14 +172,7 @@ test "native publication payload survives restart and recovers cancellation" {
   cancelled.append(b"partial").unwrap()
   cancelled.cancel().unwrap()
   assert_true(store.close().unwrap())
-  let reopened = open_store(
-    library,
-    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap(),
-    authority,
-    32L,
-    8L,
-    65536L,
-  ).unwrap()
+  let reopened = open_store(library, root, authority, 32L, 8L, 65536L).unwrap()
   let recovery = reopened.recover().unwrap()
   assert_eq(recovery.retained, 1)
   assert_eq(recovery.reclaimed, 0)
@@ -190,7 +191,7 @@ test "native publication payload survives restart and recovers cancellation" {
 
 ///|
 test "native publication capacity rejects before payload allocation" {
-  guard native_payload_fixture("capacity", 8L) is Some((store, authority, _)) else {
+  guard native_payload_fixture("capacity", 8L) is Some((store, authority, _, _)) else {
     return
   }
   let first_request = native_payload_request(
@@ -215,17 +216,11 @@ test "native publication capacity rejects before payload allocation" {
 
 ///|
 test "native publication Store root has one live recovery owner" {
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
-    is Some(library_path) else {
-    return
-  }
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) else {
+  guard native_payload_fixture("shared-capacity", 8L)
+    is Some((first, authority, library, root)) else {
     return
   }
   let token = "shared-capacity-" + @env.now().to_string()
-  let authority = native_payload_cid(token + "-authority")
-  let library = @sqlite.load_library(library_path).unwrap()
-  let first = open_store(library, root, authority, 8L, 8L, 65536L).unwrap()
   let writer = first
     .begin_payload(native_payload_request(authority, token + "-a", 8L))
     .unwrap()
@@ -270,7 +265,7 @@ test "native publication Store enforces cross-process root ownership" {
 ///|
 test "native publication create conflict preserves the foreign staging allocation" {
   guard native_payload_fixture("foreign-staging", 64L)
-    is Some((store, authority, _)) else {
+    is Some((store, authority, _, _)) else {
     return
   }
   let request = native_payload_request(
@@ -294,7 +289,7 @@ test "native publication create conflict preserves the foreign staging allocatio
 ///|
 test "native publication seal conflict reclaims only its owned staging allocation" {
   guard native_payload_fixture("foreign-object", 64L)
-    is Some((store, authority, _)) else {
+    is Some((store, authority, _, _)) else {
     return
   }
   let request = native_payload_request(
@@ -319,7 +314,7 @@ test "native publication seal conflict reclaims only its owned staging allocatio
 ///|
 test "native publication retains failed writer cleanup for Store retry" {
   guard native_payload_fixture("writer-cleanup", 64L)
-    is Some((store, authority, _)) else {
+    is Some((store, authority, _, _)) else {
     return
   }
   let request = native_payload_request(
@@ -355,7 +350,7 @@ test "native publication retains failed writer cleanup for Store retry" {
 ///|
 test "native publication retries directory sync after payload unlink" {
   guard native_payload_fixture("reclaim-sync", 64L)
-    is Some((store, authority, _)) else {
+    is Some((store, authority, _, _)) else {
     return
   }
   let request = native_payload_request(
@@ -384,7 +379,8 @@ test "native publication retries directory sync after payload unlink" {
 
 ///|
 test "native publication delivers JSON JSONL and CSV without Node" {
-  guard native_payload_fixture("delivery", 1024L) is Some((store, authority, _)) else {
+  guard native_payload_fixture("delivery", 1024L)
+    is Some((store, authority, _, _)) else {
     return
   }
   let token = "delivery-" + @env.now().to_string()
@@ -430,7 +426,7 @@ test "native publication delivers JSON JSONL and CSV without Node" {
 ///|
 test "empty native JSONL still reaches an explicit delivery end" {
   guard native_payload_fixture("empty-delivery", 128L)
-    is Some((store, authority, _)) else {
+    is Some((store, authority, _, _)) else {
     return
   }
   let token = "empty-delivery-" + @env.now().to_string()
@@ -468,7 +464,7 @@ test "empty native JSONL still reaches an explicit delivery end" {
 ///|
 test "native delivery separates source reads from sink confirmation" {
   guard native_payload_fixture("confirmed-delivery", 128L)
-    is Some((store, authority, _)) else {
+    is Some((store, authority, _, _)) else {
     return
   }
   let token = "confirmed-delivery-" + @env.now().to_string()
@@ -526,7 +522,7 @@ test "native delivery separates source reads from sink confirmation" {
 ///|
 test "empty native delivery needs explicit sink finish confirmation" {
   guard native_payload_fixture("confirmed-empty", 128L)
-    is Some((store, authority, _)) else {
+    is Some((store, authority, _, _)) else {
     return
   }
   let token = "confirmed-empty-" + @env.now().to_string()
@@ -962,7 +958,7 @@ fn commit_native_fixture(
 ///|
 test "native publication commit is unique durable and restart-visible" {
   guard native_payload_fixture("publication-commit", 512L)
-    is Some((store, authority, library)) else {
+    is Some((store, authority, library, root)) else {
     return
   }
   let token = "publication-commit-" + @env.now().to_string()
@@ -1105,14 +1101,7 @@ test "native publication commit is unique durable and restart-visible" {
     is Err(PublicationCommitConflict),
   )
   assert_true(store.close().unwrap())
-  let reopened = open_store(
-    library,
-    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap(),
-    authority,
-    512L,
-    8L,
-    65536L,
-  ).unwrap()
+  let reopened = open_store(library, root, authority, 512L, 8L, 65536L).unwrap()
   let visible = reopened
     .inspect_committed_publication(
       "namespace_id",
@@ -1183,7 +1172,7 @@ test "native publication commit is unique durable and restart-visible" {
 ///|
 test "native trusted clock remains monotonic across restart" {
   guard native_payload_fixture("trusted-clock", 64L)
-    is Some((store, authority, library)) else {
+    is Some((store, authority, library, root)) else {
     return
   }
   let clock = native_payload_cid("trusted-clock-contract")
@@ -1200,14 +1189,7 @@ test "native trusted clock remains monotonic across restart" {
     "2026-09-20T01:00:00.001Z",
   )
   assert_true(store.close().unwrap())
-  let reopened = open_store(
-    library,
-    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap(),
-    authority,
-    64L,
-    8L,
-    65536L,
-  ).unwrap()
+  let reopened = open_store(library, root, authority, 64L, 8L, 65536L).unwrap()
   assert_true(
     reopened.observe_trusted_clock(clock, "2026-09-20T01:00:00.000Z")
     is Err(ClockRegression),
@@ -1222,7 +1204,7 @@ test "native trusted clock remains monotonic across restart" {
 ///|
 test "native formal delivery durably binds attempt receipt and success" {
   guard native_payload_fixture("formal-delivery", 256L)
-    is Some((store, authority, library)) else {
+    is Some((store, authority, library, root)) else {
     return
   }
   let token = "formal-delivery-" + @env.now().to_string()
@@ -1368,14 +1350,7 @@ test "native formal delivery durably binds attempt receipt and success" {
   assert_eq(durable_failure.state, "cancelled")
   assert_eq(durable_failure.confirmed_bytes, 1L)
   assert_true(store.close().unwrap())
-  let reopened = open_store(
-    library,
-    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap(),
-    authority,
-    256L,
-    8L,
-    65536L,
-  ).unwrap()
+  let reopened = open_store(library, root, authority, 256L, 8L, 65536L).unwrap()
   let durable_schema_wire = reopened
     .read_result_schema(info.result_schema_cid)
     .unwrap()
@@ -1414,7 +1389,7 @@ test "native formal delivery durably binds attempt receipt and success" {
 ///|
 test "native lookup keeps retained admission without a streaming record unresolved" {
   guard native_payload_fixture("partial-delivery-admission", 256L)
-    is Some((store, authority, _)) else {
+    is Some((store, authority, _, _)) else {
     abort("Native delivery lookup requires its actual SQLite Store")
   }
   let token = "partial-delivery-" + @env.now().to_string()
@@ -1496,7 +1471,7 @@ test "native lookup keeps retained admission without a streaming record unresolv
 ///|
 test "native delivery limit failure keeps its reader until explicit close" {
   guard native_payload_fixture("delivery-limit", 128L)
-    is Some((store, authority, _)) else {
+    is Some((store, authority, _, _)) else {
     return
   }
   let token = "delivery-limit-" + @env.now().to_string()
@@ -1600,7 +1575,7 @@ fn native_stopped_allocation(
 ///|
 test "native publication recovery reclaims an allocation stopped before or after its ownership is durable and leaves foreign staging" {
   guard native_payload_fixture("allocation-window", 4096L)
-    is Some((store, authority, _)) else {
+    is Some((store, authority, _, _)) else {
     return
   }
   // The root's capacity namespace is shared with the other tests' Stores,
@@ -1649,7 +1624,7 @@ test "native publication recovery reclaims an allocation stopped before or after
 ///|
 test "native publication allocation preparation failures reclaim the acquired area" {
   guard native_payload_fixture("allocation-failure", 4096L)
-    is Some((store, authority, _)) else {
+    is Some((store, authority, _, _)) else {
     return
   }
   let base = store.capacity_usage().unwrap()
@@ -1690,7 +1665,7 @@ test "native publication allocation preparation failures reclaim the acquired ar
 ///|
 test "native publication nonempty allocation keeps capacity and does not delete unrelated files" {
   guard native_payload_fixture("allocation-not-empty", 4096L)
-    is Some((store, authority, _)) else {
+    is Some((store, authority, _, _)) else {
     return
   }
   let base = store.capacity_usage().unwrap()
@@ -1750,7 +1725,7 @@ test "native publication nonempty allocation keeps capacity and does not delete 
 ///|
 test "native publication allocation creation sync failure retains its exact cleanup owner" {
   guard native_payload_fixture("allocation-create-sync", 4096L)
-    is Some((store, authority, _)) else {
+    is Some((store, authority, _, _)) else {
     return
   }
   let base = store.capacity_usage().unwrap()
@@ -1788,7 +1763,7 @@ extern "C" fn test_fail_created_directory_inspect(
 ///|
 test "native publication allocation without confirmed identity stays pending" {
   guard native_payload_fixture("allocation-inspect", 4096L)
-    is Some((store, authority, _)) else {
+    is Some((store, authority, _, _)) else {
     return
   }
   let base = store.capacity_usage().unwrap().reserved_bytes
@@ -1821,7 +1796,7 @@ test "native publication allocation without confirmed identity stays pending" {
 ///|
 test "native publication failed allocation ownership keeps cleanup and capacity until retry" {
   guard native_payload_fixture("allocation-owner-retry", 4096L)
-    is Some((store, authority, _)) else {
+    is Some((store, authority, _, _)) else {
     return
   }
   let base = store.capacity_usage().unwrap()
@@ -1873,10 +1848,9 @@ test "native publication failed allocation ownership keeps cleanup and capacity 
 ///|
 test "native publication allocation preparation cleanup survives sync failure and restart" {
   guard native_payload_fixture("allocation-failure-restart", 4096L)
-    is Some((initial, authority, library)) else {
+    is Some((initial, authority, library, root)) else {
     return
   }
-  let root = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
   let base = initial.capacity_usage().unwrap()
   let current = Ref(initial)
   for step in ["identity", "open", "writer"] {
@@ -1937,11 +1911,10 @@ test "native publication allocation preparation cleanup survives sync failure an
 ///|
 test "native publication recovery never takes what stands at an allocation name it did not create" {
   guard native_payload_fixture("allocation-foreign", 4096L)
-    is Some((initial, authority, library)) else {
+    is Some((initial, authority, library, root)) else {
     return
   }
   let current = Ref(initial)
-  let root = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
   let store = current.val
   let base = store.capacity_usage().unwrap().reserved_bytes
   // First a foreign file at the name; then a foreign directory holding a
@@ -2124,4 +2097,43 @@ test "Native original Store restoration reuses durable payload and exact databas
   restored.reclaim_payload(info.material_generation_cid).unwrap()
   assert_eq(restored.capacity_usage().unwrap().reserved_bytes, 0L)
   assert_true(restored.close().unwrap())
+}
+
+///|
+test "independent Native Store fixtures cannot consume another case retained capacity" {
+  guard native_payload_fixture("retained-fixture-capacity", 128L)
+    is Some((first, authority, library, original_root)) else {
+    return
+  }
+  let request = native_payload_request(authority, "retained-fixture", 128L)
+  let writer = first.begin_payload(request).unwrap()
+  writer.append(Bytes::new(128)).unwrap()
+  let retained = writer.seal().unwrap()
+  assert_eq(first.capacity_usage().unwrap().reserved_bytes, 128L)
+  assert_true(first.close().unwrap())
+  // Closing preserves the first case's durable allocation. Reusing that same
+  // root for an unrelated test cannot pretend the capacity became fresh.
+  let same = open_store(library, original_root, authority, 128L, 8L, 65536L).unwrap()
+  assert_true(
+    same.begin_payload(
+      native_payload_request(authority, "unrelated-on-shared", 64L),
+    )
+    is Err(Database(@sqlite.CapacityExceeded)),
+  )
+  guard native_payload_fixture("fresh-fixture-capacity", 128L)
+    is Some((fresh, fresh_authority, _, fresh_root)) else {
+    fail("second Native Store fixture unavailable")
+  }
+  assert_true(fresh_root != original_root)
+  assert_eq(fresh.capacity_usage().unwrap().reserved_bytes, 0L)
+  let independent = fresh
+    .begin_payload(
+      native_payload_request(fresh_authority, "independent-fresh", 64L),
+    )
+    .unwrap()
+  independent.cancel().unwrap()
+  assert_eq(same.capacity_usage().unwrap().reserved_bytes, 128L)
+  same.reclaim_payload(retained.material_generation_cid).unwrap()
+  assert_true(same.close().unwrap())
+  assert_true(fresh.close().unwrap())
 }

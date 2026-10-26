@@ -15,7 +15,6 @@ priv struct StoredNativeCommand {
 }
 
 ///|
-#export_name("actql_source_reserve_command")
 pub fn reserve_native_command(
   nonce : Int64,
   attempt : Int,
@@ -88,7 +87,6 @@ pub fn reserve_native_command(
 }
 
 ///|
-#export_name("actql_source_produce_command")
 pub fn produce_native_command(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.native_commands.get(handle) is Some(command) &&
@@ -171,7 +169,6 @@ pub fn produce_native_command(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_source_command_length")
 pub fn native_command_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.native_commands.get(handle)
@@ -182,7 +179,6 @@ pub fn native_command_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_source_close_command")
 pub fn close_native_command(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.native_commands.get(handle) is Some(command) else {

@@ -3399,7 +3399,7 @@
         }
       ],
       "exports": [],
-      "sha256": "96404de1d2402ab287680e4abf470fd642683872d8a91113c9a7a2c514d72bc1"
+      "sha256": "251bdafe11f7c6aa2edfdc4e6aa46170b2c0dd5e366187f76f7d86958984f5f5"
     },
     {
       "module": "src/connectors/gcs/catalog/object_projection.mbt",
@@ -4477,7 +4477,7 @@
     {
       "module": "src/connectors/gcs/catalog/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "b5242017e989150db84b9e52e825e2af76bfdcc144f86bc87a3884c07381993a",
+      "sha256": "ccf7632ac3099793982e5368e33836d0146a86fbd354fe99b8be334ae53bb6c1",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [
@@ -4528,6 +4528,7 @@
         "pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?",
         "pub fn object_mutation_response_matches(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Bool",
         "pub fn object_mutation_response_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int, Bytes, Int) -> Result[String, ObjectRequestIssue]",
+        "pub fn object_source_timestamp(String) -> String?",
         "pub fn object_upload_body_for(ObjectUploadBinding, ObjectUploadRequest) -> Result[Bytes, ObjectUploadIssue]",
         "pub fn object_upload_body_media_type(ObjectUploadRequest) -> String",
         "pub fn object_upload_catalog_json(String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
@@ -4752,6 +4753,10 @@
         {
           "name": "object_mutation_response_projection_json",
           "declaration": "pub fn object_mutation_response_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int, Bytes, Int) -> Result[String, ObjectRequestIssue]"
+        },
+        {
+          "name": "object_source_timestamp",
+          "declaration": "pub fn object_source_timestamp(String) -> String?"
         },
         {
           "name": "object_upload_body_for",
@@ -6106,6 +6111,74 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
                 "anchor": "retainedRequest = retainedBinding = undefined"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "object_source_timestamp"
+          ],
+          "exports": [
+            "pub fn object_source_timestamp(String) -> String?"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "// RFC 3339 provider text becomes the same UTC instant in the existing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "pub fn object_source_timestamp(text : String) -> String? {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "// exact Timestamp carrier. Preserve up to nine fractional digits without binary64,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "// rounding or a Host Date. The retained physical report is independent."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous bounded text projection; it issues no asynchronous original or callback."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "// An unrepresentable instant refuses."
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous value projection owns no pending physical operation; caller custody remains unchanged."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "if text.length() < 20 || text.length() > 35 {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/gcs/host_node/file_listing.mbt",
+                "anchor": "// This private ABI neither admits a file nor issues a Resource or read grant."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_exact_updated_wbtest.mbt",
+                "anchor": "assert_eq(object_source_timestamp(reported), Some(expected))"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_exact_updated_wbtest.mbt",
+                "anchor": "assert_eq(object_source_timestamp(invalid), None)"
               }
             ]
           }
@@ -8680,6 +8753,74 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "gcs_object_timestamp"
+          ],
+          "exports": [
+            "pub fn gcs_object_timestamp(String) -> String?"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "// RFC 3339 provider text becomes the same UTC instant in the existing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "pub fn object_source_timestamp(text : String) -> String? {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "// exact Timestamp carrier. Preserve up to nine fractional digits without binary64,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "// rounding or a Host Date. The retained physical report is independent."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous bounded text projection; it issues no asynchronous original or callback."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "// An unrepresentable instant refuses."
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous value projection owns no pending physical operation; caller custody remains unchanged."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_page.mbt",
+                "anchor": "if text.length() < 20 || text.length() > 35 {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/gcs/host_node/file_listing.mbt",
+                "anchor": "// This private ABI neither admits a file nor issues a Resource or read grant."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_exact_updated_wbtest.mbt",
+                "anchor": "assert_eq(object_source_timestamp(reported), Some(expected))"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_exact_updated_wbtest.mbt",
+                "anchor": "assert_eq(object_source_timestamp(invalid), None)"
+              }
+            ]
+          }
         }
       ],
       "exports": [
@@ -8728,6 +8869,7 @@
         "pub fn gcs_object_response_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int, Bytes, Int) -> Result[String, GcsFailure]",
         "pub fn gcs_object_restore_mutation_value(@catalog.ObjectMutationBinding, String, Int, Array[(String, String)], Bytes, String, Bytes, String, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
         "pub fn gcs_object_target_observation(@catalog.ObjectMutationBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectMetadata, GcsFailure]",
+        "pub fn gcs_object_timestamp(String) -> String?",
         "pub fn gcs_upload_binding(@catalog.ObjectCollectionBinding, String, Array[String], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectUploadBinding, @catalog.ObjectUploadIssue]",
         "pub fn gcs_upload_body(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest) -> Result[Bytes, @catalog.ObjectUploadIssue]",
         "pub fn gcs_upload_catalog_json(String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
@@ -8928,6 +9070,10 @@
           "declaration": "pub fn gcs_object_target_observation(@catalog.ObjectMutationBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectMetadata, GcsFailure]"
         },
         {
+          "name": "gcs_object_timestamp",
+          "declaration": "pub fn gcs_object_timestamp(String) -> String?"
+        },
+        {
           "name": "gcs_upload_binding",
           "declaration": "pub fn gcs_upload_binding(@catalog.ObjectCollectionBinding, String, Array[String], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectUploadBinding, @catalog.ObjectUploadIssue]"
         },
@@ -8992,7 +9138,7 @@
           "declaration": "pub fn gcs_upload_target_observation(@catalog.ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]"
         }
       ],
-      "sha256": "768c9e05bfef02556f22d6f166f61fb783bb2405ca78870d00616a3d962df3a6"
+      "sha256": "3506bcafbe99aa693e9abbc4a3c7f84f021e373daa730ec2c34c579f381b83b4"
     },
     {
       "module": "src/connectors/gcs/host_node/upload.mbt",

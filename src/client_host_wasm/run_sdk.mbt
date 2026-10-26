@@ -116,7 +116,6 @@ fn sdk_selected_original(
 ///|
 /// The actual same-Store selection and current Owner supply every original.
 /// No SDK profile/body/CID parameter can stand in for these observations.
-#export_name("actql_run_install_sdk_configuration")
 pub fn install_sdk_run_configuration(
   nonce : Int64,
   current_handle : Int,
@@ -219,7 +218,6 @@ pub fn install_sdk_run_configuration(
 ///|
 /// Lookup is mandatory before finite issuance. Saved-ready observations return
 /// code 2 without issuing a Policy or another Run; restore uses its own Owner.
-#export_name("actql_run_prepare_sdk")
 pub fn prepare_sdk_run(nonce : Int64, handle : Int, submission : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.runs.get(handle) is Some(record) &&

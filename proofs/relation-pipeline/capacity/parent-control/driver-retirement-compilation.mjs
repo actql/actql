@@ -109,10 +109,17 @@ function declarations(source) {
       const keyword=t.value==='priv'?ts[i+1]?.value:t.value;
       if (keyword==='let') {
         // The admitted fixture form has no initializer evaluation, calls or
-        // interpolation: only immutable, explicitly typed raw String lines.
+        // interpolation: only immutable, explicitly typed raw or quoted String literals.
         // Raw lines are omitted by the brace lexer, so their complete range
         // must be recorded explicitly rather than ending at the '=' token.
-        const literal=/^(?:priv[ \t]+)?let[ \t]+([A-Za-z_]\w*)[ \t]*:[ \t]*String[ \t]*=[ \t]*\r?\n(?:[ \t]*#\|[^\r\n]*(?:\r?\n|$))+/.exec(source.slice(t.begin));
+        const raw=/^(?:priv[ \t]+)?let[ \t]+([A-Za-z_]\w*)[ \t]*:[ \t]*String[ \t]*=[ \t]*\r?\n(?:[ \t]*#\|[^\r\n]*(?:\r?\n|$))+/.exec(source.slice(t.begin));
+        const quoted=/^(?:priv[ \t]+)?let[ \t]+([A-Za-z_]\w*)[ \t]*:[ \t]*String[ \t]*=[ \t]*("(?:[^"\\\r\n]|\\[^\r\n])*")[ \t]*(?:\r?\n|$)/.exec(source.slice(t.begin));
+        if (quoted) {
+          // JSON-style escapes are a conservative literal subset: MoonBit
+          // interpolation (\\{...}) and executable suffixes are not admitted.
+          assert.doesNotThrow(() => JSON.parse(quoted[2]), 'Unsupported helper quoted String escape');
+        }
+        const literal=raw??quoted;
         assert(literal,'Unsupported helper constant initializer');
         const end=t.begin+literal[0].length;
         starts.push({index:i,begin:t.begin,end,name:literal[1]});

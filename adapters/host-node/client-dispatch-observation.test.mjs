@@ -1,3 +1,4 @@
+import {publicationOriginalFixture} from './fixtures/local-publication-original.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
@@ -68,7 +69,7 @@ async function actualScalarFailureStop(t,managed,interleaveObservation=false){
   const request=moon.clientProgramRequestIdentity(preparedProgram,authorityScopeCid,
     'original-failed-compute',moon.clientProgramSourceFreeInputIntentCid());
   assert(request);
-  const plan=sourceFreeValuesPlan({moon,control,preparedProgram,authorityScopeCid,namespaceId,storeAuthorityCid,now});
+  const plan=sourceFreeValuesPlan({moon,control,preparedProgram,publicationOriginal:publicationOriginalFixture(moon,preparedProgram),authorityScopeCid,namespaceId,storeAuthorityCid,now});
   const journal=openClientRequestJournal(join(directory,'requests'));
   const accepted=journal.acceptDefinition(request,{namespaceId,runDefinition:plan.runDefinition,
     runAdmissionEvidence:sourceFreeValuesAdmissionEvidence(plan),resultNames:['main'],

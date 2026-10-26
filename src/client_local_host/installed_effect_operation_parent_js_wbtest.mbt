@@ -5,7 +5,7 @@
 extern "js" fn effect_parent_test_original(
   loader : PublicationTestLoader,
   plan : ClientInstalledEffectManagedPlan,
-  quote : Array[Int64],
+  quote : FixedArray[Int64],
   current : () -> Unit,
 ) -> @resources.OriginalNodeManagedRunReference =
   #|(loader,plan,quote,current) => loader('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs').retainOrdinaryManagedRun(plan,{planningWork:Number(quote[0]),attempts:Number(quote[1]),holdings:Number(quote[2]),transferBytes:quote[3],retainedBytes:quote[4],executionBytes:quote[5]},current,()=>false)
@@ -19,7 +19,7 @@ fn effect_parent_test_admission(
   let original = effect_parent_test_original(
     publication_test_loader(publication_test_url()),
     plan,
-    quote,
+    FixedArray::from_array(quote),
     current,
   )
   @resources.prepare_node_managed_run_admission(original, plan).unwrap()
@@ -191,14 +191,14 @@ test "same Effect parent retains pending operation budget and never refunds cons
     None,
   ).unwrap()
   // One explicit resource use/cleanup port; no real send or ACK is implied.
-  let use = @resources.reserve_attempt(ledger, 13L, 300L, 500L).unwrap()
-  @resources.consume_reserved_attempt(ledger, use).unwrap()
+  let reservation = @resources.reserve_attempt(ledger, 13L, 300L, 500L).unwrap()
+  @resources.consume_reserved_attempt(ledger, reservation).unwrap()
   assert_true(retire_installed_managed_run(run) is Err(Resource(Unavailable)))
   assert_true(
     physical_equal(installed_effect_managed_operation_plan(run).unwrap(), plan),
   )
   assert_eq(@resources.ledger_usage(ledger).attempts, 1)
-  @resources.settle_reservation(ledger, use).unwrap()
+  @resources.settle_reservation(ledger, reservation).unwrap()
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(ledger).attempts, 1)
   assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 0)
@@ -338,7 +338,12 @@ fn effect_parent_bound_run(
 ///|
 test "planned Effect Compute executes retained sequence on the original managed parent Ledger" {
   let (prepared, request, contracts) = effect_operation_plan_inputs()
-  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let factories = Ref(0)
+  let plan = effect_operation_plan_fixture(prepared, request, contracts, provider_factory=_ => {
+    factories.val += 1
+    []
+  })
+  assert_eq(factories.val, 1)
   let bound = effect_parent_bound_run(prepared)
   let admission = effect_parent_test_admission(
     plan,
@@ -355,6 +360,16 @@ test "planned Effect Compute executes retained sequence on the original managed 
     )
     .unwrap()
     .unwrap()
+  assert_eq(factories.val, 1)
+  let installed = @builtin.configured_local_module(
+    @builtin.configured_host_modules(host),
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      @local_driver.local_dispatch_original_preparation(installed).unwrap(),
+      plan.configuration.dispatch,
+    ),
+  )
   let dag = @strategy.captured_effect_run_dag(captured)
   assert_true(physical_equal(@strategy.captured_dag_ledger(dag), ledger))
   assert_true(
@@ -387,34 +402,36 @@ test "planned Effect Compute rejects foreign bound Run and fences same-parent ca
   let plan = effect_operation_plan_fixture(prepared, request, contracts)
   let bound = effect_parent_bound_run(prepared)
   let foreign = effect_parent_bound_run(installed_effect_managed_fixture())
-  let admission = effect_parent_test_admission(
-    plan,
-    prepared_installed_effect_managed_requirements(plan),
-  )
-  let owner = begin_prepared_installed_effect_managed_run(
-    admission, prepared, request, plan,
-  ).unwrap()
-  assert_true(
-    open_installed_effect_managed_host(owner, foreign, [])
-    is Err(ForeignOriginal),
-  )
-  assert_true(owner.source_free_captured is None)
   let called = Ref(0)
   let reentry_refused = Ref(false)
   let retirement_pending = Ref(false)
-  let (host, captured, _) = open_installed_effect_managed_host(
-      owner,
-      bound,
-      [],
-      provider_factory=_ => {
+  let armed = Ref(false)
+  let selected : Ref[ClientInstalledManagedRun?] = Ref(None)
+  let admission = effect_parent_test_admission(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+    current=() => {
+      if armed.val && selected.val is Some(owner) {
+        armed.val = false
         called.val += 1
         reentry_refused.val = open_installed_effect_managed_host(owner, bound, [])
           is Err(AlreadyBound)
         retirement_pending.val = retire_installed_managed_run(owner)
           is Err(CleanupPending)
-        []
-      },
-    )
+      }
+    },
+  )
+  let owner = begin_prepared_installed_effect_managed_run(
+    admission, prepared, request, plan,
+  ).unwrap()
+  selected.val = Some(owner)
+  assert_true(
+    open_installed_effect_managed_host(owner, foreign, [])
+    is Err(ForeignOriginal),
+  )
+  assert_true(owner.source_free_captured is None)
+  armed.val = true
+  let (host, captured, _) = open_installed_effect_managed_host(owner, bound, [])
     .unwrap()
     .unwrap()
   assert_eq(called.val, 1)
@@ -441,19 +458,27 @@ test "planned Effect callback current loss retains original DAG cleanup and star
   let plan = effect_operation_plan_fixture(prepared, request, contracts)
   let bound = effect_parent_bound_run(prepared)
   let available = Ref(true)
+  let selected : Ref[ClientInstalledManagedRun?] = Ref(None)
+  let armed = Ref(false)
   let admission = effect_parent_test_admission(
     plan,
     prepared_installed_effect_managed_requirements(plan),
-    current=() => effect_parent_test_require_current(available.val),
+    current=() => {
+      if armed.val &&
+        selected.val is Some(owner) &&
+        owner.source_free_captured is Some(_) {
+        available.val = false
+      }
+      effect_parent_test_require_current(available.val)
+    },
   )
   let owner = begin_prepared_installed_effect_managed_run(
     admission, prepared, request, plan,
   ).unwrap()
   let ledger = require_installed_managed_run(owner).unwrap()
-  let outcome = open_installed_effect_managed_host(owner, bound, [], provider_factory=_ => {
-    available.val = false
-    []
-  })
+  selected.val = Some(owner)
+  armed.val = true
+  let outcome = open_installed_effect_managed_host(owner, bound, [])
   assert_false(available.val)
   assert_true(outcome is Err(Resource(Unavailable)))
   assert_false(owner.source_free_opening)
@@ -624,6 +649,7 @@ test "temporal plan refuses an unbound context and copied request without a seco
       None,
       plan.operations,
       query_time=Some(unbound),
+      provider_factory=_ => [],
     )
     is Err(Unsupported),
   )
@@ -650,7 +676,322 @@ test "temporal plan refuses an unbound context and copied request without a seco
       None,
       plan.operations,
       query_time=Some(original),
+      provider_factory=_ => [],
     )
     is Err(Unsupported),
   )
+}
+
+///|
+extern "js" fn effect_preparation_test_original(
+  loader : PublicationTestLoader,
+  input : () -> Array[Int],
+  quote : FixedArray[Int64],
+) -> @resources.OriginalNodeManagedRunReference =
+  #|(loader,input,quote) => loader('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs').retainOrdinaryManagedRun(input(),{planningWork:Number(quote[0]),attempts:Number(quote[1]),holdings:Number(quote[2]),transferBytes:quote[3],retainedBytes:quote[4],executionBytes:quote[5]},()=>{},()=>false,'local-preparation')
+
+///|
+// This supplies actual original resource ports and a checked Effect plan, not
+// a physical initial-family backing recipe. Tiny fixture charges deliberately
+// prove transfer/borrow accounting only, not complete constructor funding.
+fn effect_preparation_test_capacity(
+  plan : ClientInstalledEffectManagedPlan,
+  quote : Array[Int64],
+  max_borrowers? : Int = 3,
+) -> (
+  Array[Int],
+  @resources.NodePreparationAdmission[Array[Int]],
+  @resources.Ledger,
+  @resources.PreparationCapacity[Array[Int], ClientInstalledEffectManagedPlan],
+) {
+  let input = [17]
+  let original = effect_preparation_test_original(
+    publication_test_loader(publication_test_url()),
+    () => input,
+    FixedArray::from_array(quote),
+  )
+  let initial = @resources.prepare_node_local_preparation_admission(
+    original, input,
+  ).unwrap()
+  let ledger = @resources.start_node_preparation_admission(initial).unwrap()
+  let capacity : @resources.PreparationCapacity[
+    Array[Int],
+    ClientInstalledEffectManagedPlan,
+  ] = @resources.reserve_preparation_capacity(
+    ledger,
+    input,
+    10L,
+    10L,
+    max_borrowers~,
+  ).unwrap()
+  @resources.complete_preparation_capacity(capacity, input, plan, 10L, 0L).unwrap()
+  (input, initial, ledger, capacity)
+}
+
+///|
+test "staged Effect plan adopts the one initial Ledger and retains its actual dispatch borrow" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  quote[4] += 10L
+  quote[5] += 10L
+  let (input, initial, ledger, capacity) = effect_preparation_test_capacity(
+    plan, quote,
+  )
+  let run = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  assert_true(
+    physical_equal(installed_effect_managed_operation_plan(run).unwrap(), plan),
+  )
+  assert_true(
+    physical_equal(require_installed_managed_run(run).unwrap(), ledger),
+  )
+  assert_true(
+    @resources.start_node_preparation_admission(initial)
+    is Err(@resources.AlreadyConsumed),
+  )
+  assert_true(
+    physical_equal(
+      prepare_installed_effect_managed_run_ledger(
+        run,
+        prepared,
+        request,
+        [],
+        [],
+        [],
+        contracts,
+        source_query_original_values,
+        Some(source_query_original_fragment),
+        None,
+      ).unwrap(),
+      ledger,
+    ),
+  )
+  let holder = borrow_installed_effect_dispatch_preparation(run, plan, request)
+    .unwrap()
+    .unwrap()
+  assert_true(
+    physical_equal(
+      @resources.preparation_body_borrow_value(holder).unwrap(),
+      plan,
+    ),
+  )
+  assert_true(
+    borrow_installed_effect_dispatch_preparation(run, plan, request)
+    is Err(CleanupPending),
+  )
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 10L)
+  assert_true(installed_preparation_payload_severed(run, request))
+  assert_true(
+    borrow_installed_effect_dispatch_preparation(run, plan, request) is Err(_),
+  )
+  assert_true(@resources.return_preparation_body_borrow(holder).unwrap())
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+}
+
+///|
+test "staged Effect plan refuses foreign original input plan and request before losing cleanup" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let copied_plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let copied_request = @publication_host.prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "effect-operation-plan",
+    "sha256:" + "b".repeat(64),
+  ).unwrap()
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  quote[4] += 10L
+  quote[5] += 10L
+  let (input, initial, ledger, capacity) = effect_preparation_test_capacity(
+    plan, quote,
+  )
+  assert_true(
+    begin_preparation_owned_installed_effect_managed_run(
+      initial,
+      [17],
+      capacity,
+      prepared,
+      request,
+      plan,
+    )
+    is Err(Resource(@resources.ForeignOriginal)),
+  )
+  assert_true(
+    begin_preparation_owned_installed_effect_managed_run(
+      initial, input, capacity, prepared, copied_request, plan,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    begin_preparation_owned_installed_effect_managed_run(
+      initial, input, capacity, prepared, request, copied_plan,
+    )
+    is Err(Resource(@resources.ForeignOriginal)),
+  )
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 10L)
+  let run = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  assert_true(
+    borrow_installed_effect_dispatch_preparation(run, copied_plan, request)
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    borrow_installed_effect_dispatch_preparation(run, plan, copied_request)
+    is Err(ForeignOriginal),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+}
+
+///|
+test "staged Effect plan one-short final limits and insufficient live borrower slots keep initial cleanup" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  for field in [4, 5] {
+    let quote = prepared_installed_effect_managed_requirements(plan)
+    quote[field] -= 1L
+    let (input, initial, ledger, capacity) = effect_preparation_test_capacity(
+      plan, quote,
+    )
+    assert_true(
+      begin_preparation_owned_installed_effect_managed_run(
+        initial, input, capacity, prepared, request, plan,
+      )
+      is Err(InsufficientCapacity),
+    )
+    assert_true(@resources.retire_preparation_capacity(capacity).unwrap())
+    @resources.cleanup_node_preparation_admission(initial).unwrap()
+    assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  }
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  let (input, initial, ledger, capacity) = effect_preparation_test_capacity(
+    plan,
+    quote,
+    max_borrowers=1,
+  )
+  assert_true(
+    begin_preparation_owned_installed_effect_managed_run(
+      initial, input, capacity, prepared, request, plan,
+    )
+    is Err(Resource(@resources.Unavailable)),
+  )
+  assert_true(@resources.retire_preparation_capacity(capacity).unwrap())
+  @resources.cleanup_node_preparation_admission(initial).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+}
+
+///|
+test "staged Source Effect keeps original captures and final plan on the initial Ledger" {
+  let plan = effect_operation_source_plan_fixture(
+    provider=Some(@execution.execution_capacity(17L, 19L).unwrap()),
+  )
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  quote[4] += 10L
+  quote[5] += 10L
+  let (input, initial, ledger, capacity) = effect_preparation_test_capacity(
+    plan, quote,
+  )
+  let run = begin_preparation_owned_installed_effect_managed_run(
+    initial,
+    input,
+    capacity,
+    plan.prepared,
+    plan.request,
+    plan,
+  ).unwrap()
+  let (read, _, _, capture) = begin_installed_effect_managed_source_read(
+    run,
+    plan.declarations[0],
+    0,
+  ).unwrap()
+  assert_true(physical_equal(capture, plan.captures[0]))
+  assert_true(
+    physical_equal(
+      prepare_installed_effect_managed_run_ledger(
+        run,
+        plan.prepared,
+        plan.request,
+        [capture],
+        plan.transport_bytes,
+        plan.transport_execution_bytes,
+        plan.installed_contracts,
+        plan.values_body,
+        plan.fragment_body,
+        plan.ordered_body,
+      ).unwrap(),
+      ledger,
+    ),
+  )
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  retire_installed_source_read(read).unwrap()
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+}
+
+///|
+test "pure staged preparation retains its original dispatch and same generic retirement" {
+  let prepared = single_source_free_capacity_prepared()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "pure-staged-retirement",
+  ).unwrap()
+  let assets = @publication_host.client_local_product_assets()
+  let contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let source_free = prepare_installed_managed_source_free_with_contracts(
+    prepared,
+    contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+    retained_output=true,
+    provider_factory=_ => [],
+  ).unwrap()
+  let input = [17]
+  let quote = prepared_installed_managed_source_free_requirements(source_free)
+  quote[4] += 10L
+  quote[5] += 10L
+  let original = effect_preparation_test_original(
+    publication_test_loader(publication_test_url()),
+    () => input,
+    FixedArray::from_array(quote),
+  )
+  let initial = @resources.prepare_node_local_preparation_admission(
+    original, input,
+  ).unwrap()
+  let ledger = @resources.start_node_preparation_admission(initial).unwrap()
+  let capacity : @resources.PreparationCapacity[
+    Array[Int],
+    @publication_host.PreparedClientProgram,
+  ] = @resources.reserve_preparation_capacity(
+    ledger,
+    input,
+    10L,
+    10L,
+    max_borrowers=3,
+  ).unwrap()
+  @resources.complete_preparation_capacity(capacity, input, prepared, 10L, 0L).unwrap()
+  let run = begin_preparation_owned_installed_managed_run(
+    initial, input, capacity, prepared, request, source_free,
+  ).unwrap()
+  let holder = borrow_installed_managed_dispatch_preparation(
+      run, prepared, request,
+    )
+    .unwrap()
+    .unwrap()
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  assert_true(@resources.return_preparation_body_borrow(holder).unwrap())
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
 }

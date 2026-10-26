@@ -3,8 +3,8 @@ fn raw_native_fixture(
   label : String,
 ) -> (Store, String, @sqlite.Library, @signature.Library, String)? {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY") is Some(path) &&
-    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) &&
-    native_payload_fixture(label, 65536L) is Some((store, authority, sqlite)) else {
+    native_payload_fixture(label, 65536L)
+    is Some((store, authority, sqlite, root)) else {
     if @env.get_env_var("ACTQL_REQUIRE_NATIVE_LOCAL_RAW_TESTS") == Some("1") {
       abort(
         "original raw tests require the actual isolated SQLite/crypto Store fixture",

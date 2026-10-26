@@ -9,5 +9,5 @@ test "fixed projector controls precede all input-sized quote construction" {
   assert_eq(original.scalar_words, 30666L)
   assert_eq(original.owned_utf16_units, 0L)
   assert_eq(original.owned_wire_bytes, 0L)
-  assert_eq(preparation_representation_cost(original), Some(506704L))
+  assert_eq(@execution.preparation_representation_cost(original), Some(506704L))
 }

@@ -13,9 +13,15 @@ test "closed Values graph control prices only the four original leaf graphs" {
   assert_eq(all.retained.record_headers, 179L)
   assert_eq(all.retained.reference_slots, 373L)
   assert_eq(all.retained.scalar_words, 276L)
-  assert_eq(preparation_representation_cost(all.retained), Some(8056L))
+  assert_eq(
+    @execution.preparation_representation_cost(all.retained),
+    Some(8056L),
+  )
   assert_eq(all.temporary.record_headers, 248L)
   assert_eq(all.temporary.reference_slots, 514L)
   assert_eq(all.temporary.scalar_words, 451L)
-  assert_eq(preparation_representation_cost(all.temporary), Some(11688L))
+  assert_eq(
+    @execution.preparation_representation_cost(all.temporary),
+    Some(11688L),
+  )
 }

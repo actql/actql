@@ -53,6 +53,17 @@ fn local_effect_prefix_fixture_original(
 test "CLI first Effect compilation retains original create profile and exact normalization journal" {
   let preparation = local_effect_prefix_fixture_preparation()
   let original = local_effect_prefix_fixture_original(preparation)
+  let materials = @run_host.bind_prepared_client_effect_original_materials(
+    original.allowed,
+    original.definition,
+    original.issued,
+    request=Some(original.request),
+  ).unwrap()
+  let bound = @run_host.bind_client_effect_compiled_run(
+    @run_host.client_effect_compilation_owner(original.allowed.compilation),
+    original.allowed,
+    original.definition,
+  ).unwrap()
   guard @local_host.native_client_submitted_preparation(preparation)
     is EffectComputation(prepared) else {
     fail("missing original preparation")
@@ -63,16 +74,16 @@ test "CLI first Effect compilation retains original create profile and exact nor
       @run_host.client_effect_compilation_owner(original.allowed.compilation),
     ),
   )
-  assert_eq(original.materials.request, Some(original.request))
+  assert_eq(materials.request, Some(original.request))
   assert_true(
     physical_equal(
-      @run_host.prepared_client_effect_run_computation(original.bound),
+      @run_host.prepared_client_effect_run_computation(bound),
       prepared,
     ),
   )
   assert_eq(
     @publication.run_evidence_value_json(
-      @run_host.restore_client_effect_run_normalization(original.materials).unwrap(),
+      @run_host.restore_client_effect_run_normalization(materials).unwrap(),
     ),
     "{\"entries\":[],\"journal_cid\":\"sha256:849788c9eede8ad674223eb06775c2dba2cf0ed1d02ceb0a5de6ccfeec2cb087\",\"rule_catalog_cid\":\"sha256:ea21a2a2ab522cbf960c5e97120648e351db7c127768101502210ed7d8fcfb38\",\"version\":\"actql-normalization-journal/0.1\"}",
   )
@@ -86,6 +97,17 @@ test "CLI first Effect binding remains the nominal owner through Local Values Co
   let original = local_effect_prefix_fixture_original(
     local_effect_prefix_fixture_preparation(),
   )
+  let materials = @run_host.bind_prepared_client_effect_original_materials(
+    original.allowed,
+    original.definition,
+    original.issued,
+    request=Some(original.request),
+  ).unwrap()
+  let bound = @run_host.bind_client_effect_compiled_run(
+    @run_host.client_effect_compilation_owner(original.allowed.compilation),
+    original.allowed,
+    original.definition,
+  ).unwrap()
   let registry = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_REGISTRY").unwrap()
   let values = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_VALUES").unwrap()
   let fragment = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_FRAGMENT")
@@ -96,15 +118,14 @@ test "CLI first Effect binding remains the nominal owner through Local Values Co
     None,
   ).unwrap()
   let capacity = @local_values.client_effect_local_ledger_limits(
-    original.materials.prepared,
+    materials.prepared,
     registry,
     values,
     fragment,
     None,
   ).unwrap()
   let captured = @run_host.open_prepared_source_free_client_effect_run(
-    original.bound,
-    capacity,
+    bound, capacity,
   ).unwrap()
   let dag = @strategy.captured_effect_run_dag(captured)
   defer {
@@ -114,7 +135,7 @@ test "CLI first Effect binding remains the nominal owner through Local Values Co
   }
   // Equal canonical inputs cannot replace this nominal first binding.
   let replacement = @run_host.bind_client_effect_compiled_run(
-    original.materials.prepared,
+    materials.prepared,
     original.allowed,
     original.definition,
   ).unwrap()
@@ -131,7 +152,7 @@ test "CLI first Effect binding remains the nominal owner through Local Values Co
   )
   assert_false(@strategy.captured_task_completed(dag, 0))
   let setup = @local_values.configure_source_free_effect_local_retained_host(
-    original.bound,
+    bound,
     captured,
     registry,
     values,
@@ -157,7 +178,7 @@ test "CLI first Effect binding remains the nominal owner through Local Values Co
       execution.completed_output(),
     ),
   )
-  assert_eq(original.materials.request, Some(original.request))
+  assert_eq(materials.request, Some(original.request))
 }
 
 ///|
@@ -165,6 +186,12 @@ test "CLI first Effect materials reject replacement physical compilation with id
   let original = local_effect_prefix_fixture_original(
     local_effect_prefix_fixture_preparation(),
   )
+  let materials = @run_host.bind_prepared_client_effect_original_materials(
+    original.allowed,
+    original.definition,
+    original.issued,
+    request=Some(original.request),
+  ).unwrap()
   let replacement = local_effect_prefix_fixture_original(
     local_effect_prefix_fixture_preparation(),
   )
@@ -183,10 +210,10 @@ test "CLI first Effect materials reject replacement physical compilation with id
     original.issued,
     request=Some(original.request),
   ).unwrap()
-  assert_true(physical_equal(same.compilation, original.materials.compilation))
+  assert_true(physical_equal(same.compilation, materials.compilation))
   assert_eq(
     @run_host.client_effect_normalization_materials_cid(same),
-    @run_host.client_effect_normalization_materials_cid(original.materials),
+    @run_host.client_effect_normalization_materials_cid(materials),
   )
 }
 
@@ -194,6 +221,12 @@ test "CLI first Effect materials reject replacement physical compilation with id
 test "CLI first Effect materials reject another original request without changing custody" {
   let preparation = local_effect_prefix_fixture_preparation()
   let original = local_effect_prefix_fixture_original(preparation)
+  let materials = @run_host.bind_prepared_client_effect_original_materials(
+    original.allowed,
+    original.definition,
+    original.issued,
+    request=Some(original.request),
+  ).unwrap()
   guard @local_host.native_client_submitted_preparation(preparation)
     is EffectComputation(prepared) else {
     fail("missing original preparation")
@@ -213,7 +246,7 @@ test "CLI first Effect materials reject another original request without changin
     )
     is Err(_),
   )
-  assert_eq(original.materials.request, Some(original.request))
+  assert_eq(materials.request, Some(original.request))
 }
 
 ///|
@@ -237,27 +270,30 @@ test "CLI first Effect compilation refuses invalid lifetime before journal accep
 }
 
 ///|
-test "CLI Source prefix caller preserves typed Work failure including cleanup custody" {
-  // Compile the real Native accept/open caller, not a mocked Source factory.
+test "Native Host Source Work retains its actual typed authorization refusal" {
+  // Compile the actual Host open method, not a future uninstalled CLI adapter.
   // No Host, physical Source or Provider is opened by this definition.
-  let caller : (
-    @local_host.NativeLocalHostConnection,
-    LocalHostSettings,
-    @local_crypto.Library,
-    @local_host.NativeClientSubmissionReference,
-    @local_host.NativeClientSubmittedPreparation,
-    LocalEffectPreparedStart,
-    @source_owner.ResidentSourceComputeConfiguration,
-    String,
-  ) -> Result[
-    @local_host.NativeClientEffectSourceWork,
-    LocalEffectSourcePrefixIssue,
-  ] = local_effect_source_prefix
+  let caller = fn(
+    host : @local_host.NativeLocalHostConnection,
+    crypto : @local_crypto.Library,
+    principal : String,
+    connection : String,
+    request : @run_host.ClientRequestIdentity,
+    allowed : @run_host.ClientEffectAllowedRun,
+    definition : @publication.PublicationContract,
+    materials : @run_host.ClientEffectRunMaterials,
+    configuration : @source_owner.ResidentSourceComputeConfiguration,
+    occurrence : String,
+    current_time : () -> String,
+  ) {
+    host.open_effect_source_work(
+      crypto, principal, connection, request, allowed, definition, materials, configuration,
+      occurrence, current_time,
+    )
+  }
   caller |> ignore
-  let issue = LocalEffectSourcePrefixIssue::Work(
-    @local_host.AuthorizationDenied,
-  )
-  assert_true(issue is Work(@local_host.AuthorizationDenied))
+  let issue = @local_host.NativeClientSourceWorkIssue::AuthorizationDenied
+  assert_true(issue is @local_host.AuthorizationDenied)
 }
 
 ///|
@@ -294,9 +330,15 @@ test "CLI first update compilation uses the distinct audited profile without cha
     @run_host.client_standard_effect_computation_limits(),
   ).unwrap()
   let original = local_effect_prefix_fixture_original(preparation)
+  let materials = @run_host.bind_prepared_client_effect_original_materials(
+    original.allowed,
+    original.definition,
+    original.issued,
+    request=Some(original.request),
+  ).unwrap()
   assert_eq(
     @publication.run_evidence_value_json(
-      @run_host.restore_client_effect_run_normalization(original.materials).unwrap(),
+      @run_host.restore_client_effect_run_normalization(materials).unwrap(),
     ),
     "{\"entries\":[],\"journal_cid\":\"sha256:e9f69915b6368e0c8e1669b010e57e65f633bd5a8d589d3b3575c2b043f4b44d\",\"rule_catalog_cid\":\"sha256:9ba6d5dff43cd54b0d61d6923fd4cb3143e1a5e238bad20b297133393d783468\",\"version\":\"actql-normalization-journal/0.1\"}",
   )

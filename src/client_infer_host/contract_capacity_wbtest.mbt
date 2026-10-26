@@ -43,7 +43,7 @@ fn contract_capacity_start(
   start(
     prepared,
     2,
-    infer_fixture_registry,
+    infer_fixture_installed_contracts(),
     infer_fixture_values,
     provider,
     @publication_host.client_infer_plan_graph_request_cid(plan),
@@ -81,7 +81,8 @@ test "selected model contract enforces exact and one-short physical capacities" 
     assert_true(acquire_capture(active) is None)
     let model = active.model.unwrap()
     let before = @model.model_execution_resource_usage(model)
-    assert_eq(before.attempts, 1)
+    assert_eq(before.attempts, 0)
+    assert_eq(before.reserved_attempts, 1)
     assert_eq(before.reserved_transfer_bytes, 66536L)
     assert_eq(before.uncertain_transfer_bytes, 0L)
     assert_true(cleanup(active).unwrap())
@@ -91,6 +92,8 @@ test "selected model contract enforces exact and one-short physical capacities" 
     assert_eq(after.reserved_retention_bytes, 0L)
     assert_eq(after.reserved_execution_bytes, 0L)
     assert_eq(after.uncertain_transfer_bytes, 0L)
+    assert_eq(after.attempts, 0)
+    assert_eq(after.reserved_attempts, 0)
     assert_eq(calls.val, 0)
   }
 }

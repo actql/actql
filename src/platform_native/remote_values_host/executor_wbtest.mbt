@@ -275,9 +275,26 @@ test "native Values task installation binds the checked Run before Compute" {
       max_retained_bytes: 100000L,
     },
   }
+  let assets = @host.client_local_product_assets()
+  let installed = @local.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
   let registered = install_native_remote_values_task_executor(
-    prepared, compilation, admission, definition, binding, "{}", "{}", 1L, 0L, 0L,
-    0L, limits,
+    prepared,
+    compilation,
+    admission,
+    definition,
+    binding,
+    installed,
+    assets.values,
+    1L,
+    0L,
+    0L,
+    0L,
+    limits,
   )
   assert_true(registered is Ok(_))
   assert_true(
@@ -287,8 +304,8 @@ test "native Values task installation binds the checked Run before Compute" {
       admission,
       definition,
       @remote.prepare_remote_input_binding("{\"source\":1}", 32).unwrap(),
-      "{}",
-      "{}",
+      installed,
+      assets.values,
       1L,
       0L,
       0L,
@@ -304,8 +321,8 @@ test "native Values task installation binds the checked Run before Compute" {
       admission,
       definition,
       binding,
-      "{}",
-      "{}",
+      installed,
+      assets.values,
       1L,
       0L,
       0L,

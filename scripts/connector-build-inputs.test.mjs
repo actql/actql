@@ -36,6 +36,7 @@ function fixture(t) {
   const compute = {
     package: 'example/numeric/driver', module: 'NumericModule', configuration: 'NumericSettings',
     configure: 'configure', registration: 'registration', contribution: 'contribution',
+    validate_binding: 'validate_binding',
     dispatch: 'dispatch', synchronous_dispatch: 'execute', dispatch_result: 'Unit',
     dispatch_error: {package: 'example/numeric/driver', type: 'NumericIssue'},
     estimate_error: {package: 'example/numeric/driver', type: 'NumericIssue'},
@@ -163,6 +164,38 @@ test('unsupported or duplicate metadata never hides dependencies in comments or 
   ]) {
     f.mod(1, ['actql/actql@0.0.1'], extra);
     assert.throws(() => resolveConnectorBuildInputs(f.configuration));
+  }
+});
+
+test('reviewed ESM linker format preserves the original module and dependency inputs', t => {
+  const f = fixture(t);
+  const esm = 'options("link-flags": ["-js-format", "esm"])\n';
+  for (const selected of [esm, 'options(\n  "link-flags": [ "-js-format", "esm" ],\n)\n']) for (const index of [0, 1, 2]) {
+    const path = join(f.modules[index].root, 'moon.mod');
+    const original = readFileSync(path, 'utf8');
+    f.put(path, original + selected);
+    assert.equal(resolveConnectorBuildInputs(f.configuration).computeEntries.length, 1);
+    assert.equal(readFileSync(path, 'utf8'), original + selected);
+    f.put(path, original);
+  }
+});
+
+test('module format review refuses extra flags, hooks and duplicate options', t => {
+  const f = fixture(t);
+  const esm = 'options("link-flags": ["-js-format", "esm"])';
+  for (const extra of [
+    'options("link-flags": ["-js-format", "esm",,],)',
+    'options("link-flags": ["-js-format", "esm"],,)',
+    'options("link-flags": ["-js-format", "cjs"])',
+    'options("link-flags": ["-js-format", "esm", "-other"])',
+    'options("link-flags": ["esm", "-js-format"])',
+    'options("pre-build": ["-js-format", "esm"])',
+    'options("link-flags": ["-js-format", "esm"], deps: {})',
+    esm + '\n' + esm, esm.slice(0, -1),
+  ]) {
+    f.mod(1, ['actql/actql@0.0.1'], extra);
+    assert.throws(() => resolveConnectorBuildInputs(f.configuration),
+      /Unsupported build metadata syntax|Duplicate reviewed module format/);
   }
 });
 
@@ -400,5 +433,57 @@ test('duplicate installed source and Effect profiles are refused by the shared s
     second.write({...second.installation, [role]: {...second.installation[role],
       profileVersion: first.installation[role].profileVersion}});
     assert.throws(() => resolveConnectorBuildInputs(f.configuration), /Duplicate installed/);
+  }
+});
+
+test('selected packages accept only literal local file target selections', t => {
+  const f = fixture(t);
+  const path = join(f.connector, 'src/driver/moon.pkg');
+  const original = readFileSync(path, 'utf8');
+  for (const source of [
+    'options(targets: {"local_file.mbt": ["js"], "fallback.mbt": ["not", "wasm"],})',
+    ...['physical_resources', 'client_local_host'].map(name => {
+      const source = readFileSync(new URL(`../src/${name}/moon.pkg`, import.meta.url), 'utf8');
+      return source.slice(source.indexOf('options('));
+    }),
+  ]) {
+    f.put(path, original + source);
+    assert.equal(resolveConnectorBuildInputs(f.configuration).computeEntries.length, 1);
+  }
+  for (const option of [
+    'options(targets: {"../outside.mbt": ["js"]})',
+    'options(targets: {"/outside.mbt": ["js"]})',
+    'options(targets: {"sub/file.mbt": ["js"]})',
+    'options(targets: {"file.js": ["js"]})',
+    'options(targets: {"file.mbt": []})',
+    'options(targets: {"file.mbt": ["not"]})',
+    'options(targets: {"file.mbt": ["unknown"]})',
+    'options(targets: {"file.mbt": ["not", "unknown"]})',
+    'options(targets: {"file.mbt": ["js", "native"]})',
+    'options(targets: {"file.mbt": ["js"], "file.mbt": ["js"]})',
+    'options(targets: {}) options(targets: {})',
+    'options(targets: {}, deps: {"absent/dependency": "1.0.0"})',
+    'options(targets: {}, "native-stub": ["outside.c"])',
+    'options(targets: {}, link: {"js": {"flags": "unsafe"}})',
+    'options(targets: {}) import {"absent/dependency/hidden"}',
+    'options(targets: {"file.mbt": ["js"]} ',
+  ]) {
+    f.put(path, original + option);
+    assert.throws(() => resolveConnectorBuildInputs(f.configuration), undefined, option);
+  }
+});
+
+test('compiler standard library cannot be shadowed and lookalikes require declared owners', t => {
+  for (const namespace of ['moonbitlang/core', 'moonbitlang/core/encoding']) {
+    const f = fixture(t);
+    assert.throws(() => resolveConnectorBuildInputs({...f.configuration,
+      modules: [...f.configuration.modules, {namespace, version: '0.0.1', root: join(f.root, 'shadow')}],
+    }), /standard library cannot be supplied or shadowed/);
+  }
+  for (const imported of ['moonbitlang/core_evil/encoding', 'moonbitlang/coreevil/encoding']) {
+    const f = fixture(t);
+    const path = join(f.connector, 'src/driver/moon.pkg');
+    f.put(path, readFileSync(path, 'utf8') + `import {${JSON.stringify(imported)}}`);
+    assert.throws(() => resolveConnectorBuildInputs(f.configuration), /Unavailable package namespace/);
   }
 });

@@ -9,7 +9,10 @@ fn original_composed_test_input(
     prepared,
   ).unwrap()
   let prefix = @input.prepare_client_composed_infer_prefix(
-    prepared, occurrence, infer_fixture_registry, infer_fixture_values,
+    prepared,
+    occurrence,
+    infer_fixture_installed_contracts(),
+    infer_fixture_values,
   ).unwrap()
   (occurrence, prefix)
 }

@@ -7,7 +7,7 @@ fn closed_values_writer_layout(
   count : Int,
   material_count : Int,
   material_bytes : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if count < 0 ||
     material_count < 0 ||
     material_count > count ||
@@ -21,22 +21,40 @@ fn closed_values_writer_layout(
   let m = material_count.to_int64()
   let b = material_bytes.to_int64()
   // Count is internal today, but preserve checked arithmetic if reused.
-  guard preparation_cost_add(4L * m, w.record_headers, c + 1L) is Some(h_plus) &&
-    preparation_cost_add(2L * m, w.reference_slots, c + 1L) is Some(r_plus) &&
-    preparation_cost_add(m, w.scalar_words, c + 1L) is Some(s_plus) &&
-    preparation_cost_add(2L * m * b, w.owned_utf16_units, c + 1L)
+  guard @execution.checked_preparation_add_product(
+      4L * m,
+      w.record_headers,
+      c + 1L,
+    )
+    is Some(h_plus) &&
+    @execution.checked_preparation_add_product(
+      2L * m,
+      w.reference_slots,
+      c + 1L,
+    )
+    is Some(r_plus) &&
+    @execution.checked_preparation_add_product(m, w.scalar_words, c + 1L)
+    is Some(s_plus) &&
+    @execution.checked_preparation_add_product(
+      2L * m * b,
+      w.owned_utf16_units,
+      c + 1L,
+    )
     is Some(t_plus) &&
-    preparation_cost_add(0L, w.owned_wire_bytes, c + 1L) is Some(b_plus) else {
+    @execution.checked_preparation_add_product(0L, w.owned_wire_bytes, c + 1L)
+    is Some(b_plus) else {
     return None
   }
-  let output : PreparationRepresentationUnits = {
+  let output : @execution.PreparationRepresentationUnits = {
     record_headers: h_plus - w.record_headers,
     reference_slots: r_plus - w.reference_slots,
     scalar_words: s_plus - w.scalar_words,
     owned_utf16_units: t_plus - w.owned_utf16_units,
     owned_wire_bytes: b_plus - w.owned_wire_bytes,
   }
-  guard preparation_representation_cost(output) is Some(_) else { return None }
+  guard @execution.preparation_representation_cost(output) is Some(_) else {
+    return None
+  }
   Some(output)
 }
 
@@ -45,14 +63,14 @@ fn closed_values_writer_layout(
 /// twice, canonical hash once; Lookup hashes once directly. Byte hashes use
 /// the same stronger encoder+SHA recipe. Scalar policy emitter peak is2pending
 /// frames plus the popped one, never an input-dependent recursive walk.
-fn closed_values_policy_writer_layout() -> PreparationRepresentationUnits? {
+fn closed_values_policy_writer_layout() -> @execution.PreparationRepresentationUnits? {
   guard closed_values_writer_layout(28, 1, 4, 1, 1436) is Some(capacity) &&
     closed_values_writer_layout(7, 1, 4, 1, 279) is Some(text) &&
     closed_values_writer_layout(8, 1, 1, 0, 0) is Some(lookup) &&
     closed_values_js_bytes_document_layout(1715L, 2) is Some(decoded) else {
     return None
   }
-  let emit : PreparationRepresentationUnits = {
+  let emit : @execution.PreparationRepresentationUnits = {
     // Per emitter Array wrapper/new+oldbacking3, frames3, previous-key Some3,
     // pop Some1. Both scalar/ref payload alternatives conservatively reserved.
     record_headers: 3L * (3L + 3L + 3L + 1L),
@@ -74,7 +92,7 @@ fn closed_values_policy_writer_layout() -> PreparationRepresentationUnits? {
 fn closed_values_operation_writer_layout(
   fields : Int,
   rows : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if fields < 1 || rows < 0 {
     return None
   }
@@ -101,7 +119,7 @@ fn closed_values_operation_writer_layout(
 fn closed_values_identity_writer_layout(
   source_nodes : Int,
   source_depth : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if source_nodes < 1 ||
     source_nodes > 2147483639 ||
     source_depth < 0 ||

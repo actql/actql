@@ -24,8 +24,8 @@ import {
 import {
   "actql/actql/infer_typing" @infer,
   "actql/actql/connectors/local/driver" @local_driver,
-  "actql/actql/physical_strategy" @strategy,
-  "actql/actql/physical_host" @host_driver,
+  "actql/actql/physical_strategy_host" @strategy,
+  "actql/actql/physical_host_dispatch" @host_driver,
   "actql/actql/connectors_builtin_node" @node_fixture,
   "actql/actql/value_admission" @admitted,
   "actql/actql/execution_authorization" @authorization,

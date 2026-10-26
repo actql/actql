@@ -40,7 +40,6 @@ priv struct StoredPayloadWriting {
 }
 
 ///|
-#export_name("actql_payload_writing_reserve")
 pub fn reserve_payload_writing(
   nonce : Int64,
   parent : Int,
@@ -115,7 +114,6 @@ pub fn reserve_payload_writing(
 }
 
 ///|
-#export_name("actql_payload_writing_produce")
 pub fn produce_payload_writing(
   nonce : Int64,
   handle : Int,
@@ -216,7 +214,6 @@ pub fn produce_payload_writing(
 }
 
 ///|
-#export_name("actql_payload_writing_validate")
 pub fn validate_payload_writing(
   nonce : Int64,
   handle : Int,
@@ -244,7 +241,6 @@ pub fn validate_payload_writing(
 }
 
 ///|
-#export_name("actql_payload_writing_begin")
 pub fn begin_payload_writing(
   nonce : Int64,
   handle : Int,
@@ -263,7 +259,6 @@ pub fn begin_payload_writing(
 }
 
 ///|
-#export_name("actql_payload_writing_confirm")
 pub fn confirm_payload_writing(
   nonce : Int64,
   handle : Int,
@@ -344,7 +339,6 @@ pub fn confirm_payload_writing(
 }
 
 ///|
-#export_name("actql_payload_writing_length")
 pub fn payload_writing_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.payload_writings.get(handle) is Some(record) else {
@@ -357,7 +351,6 @@ pub fn payload_writing_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_payload_writing_close")
 pub fn close_payload_writing(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.payload_writings.get(handle) is Some(record) else {

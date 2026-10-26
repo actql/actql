@@ -1,4 +1,16 @@
 ///|
+/// Scalar cells still charge original UTF-8 field names per row occurrence.
+fn client_local_scalar_name_bytes(
+  sequences : Array[@execution.GeneratedSequence],
+  max_rows : Int,
+) -> Int? {
+  match client_local_schema_proof_inventory(sequences) {
+    Some(inventory) => client_local_inventory_names(inventory, max_rows)
+    None => None
+  }
+}
+
+///|
 test "text-free capacity proof checks every typed child and original step" {
   let assets = @publication_host.client_local_product_assets()
   let environment = @publication_host.admit_client_check_environment(
@@ -154,4 +166,12 @@ test "capacity plan funds checked leaf nodes separately from text and Result met
     )
     is None,
   )
+}
+
+///|
+fn client_local_inventory_names(
+  inventory : ClientLocalSchemaProofInventory,
+  max_rows : Int,
+) -> Int? {
+  client_local_scalar_product(inventory.max_name_width, max_rows, 0)
 }

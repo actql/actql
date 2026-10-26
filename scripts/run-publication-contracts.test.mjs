@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {gunzipSync} from 'node:zlib';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {
@@ -35,7 +36,15 @@ test('Run Definition optional selection projection preserves the old shape', () 
   // schema changes. Reconstruct that exact body with checked leaf inverses;
   // neither its historical pin nor today's registry is silently repinned.
   const history = read('portability/corpus/publication-selection-registry-history.json');
-  const historical = structuredClone(registry.artifact_schemas);
+  // The inverse list belongs to this exact retained successor, not today's
+  // registry after unrelated expression and resource-owner adoptions.
+  assert.equal(history.current_source_commit, '68984332ab66af4d918511d6cbc70fdd64d9a60b');
+  const successorBytes = gunzipSync(readFileSync(
+    'scripts/fixtures/publication-selection-registry/68984332-protocol.json.gz'));
+  assert.equal(createHash('sha1').update(Buffer.concat([
+    Buffer.from(`blob ${successorBytes.length}\0`), successorBytes,
+  ])).digest('hex'), '288bdc228f7749ad3f0f3f1ba3c4536a92c17969');
+  const historical = JSON.parse(successorBytes).artifact_schemas;
   for (const change of history.changes) {
     const parent = change.path.slice(0, -1).reduce((value, key) => value[key], historical);
     const key = change.path.at(-1);

@@ -45,7 +45,6 @@ priv struct StoredPublicationCommitExport {
 }
 
 ///|
-#export_name("actql_publication_commit_export_reserve")
 pub fn reserve_publication_commit_export(
   nonce : Int64,
   publication : Int,
@@ -149,7 +148,6 @@ fn publication_commit_export_view(
 
 ///|
 /// Count original references, without copying contracts or observing a Store.
-#export_name("actql_publication_commit_export_count")
 pub fn publication_commit_export_count(
   nonce : Int64,
   publication : Int,
@@ -174,7 +172,6 @@ pub fn publication_commit_export_count(
 ///|
 /// Count original completed Result occurrences after the same nominal Done
 /// view/current-account check. This is not a durable Store or admitted Run count.
-#export_name("actql_publication_commit_export_result_count")
 pub fn publication_commit_export_result_count(
   nonce : Int64,
   publication : Int,
@@ -195,7 +192,6 @@ pub fn publication_commit_export_result_count(
 /// Copy one original field into the existing accounted output. Fields are
 /// wire=0, name=1, identity_field=2 and identity=3, all exact UTF-8 bytes.
 /// Raw fields avoid re-escaping a bounded contract inside a second JSON value.
-#export_name("actql_publication_commit_export_produce_material")
 pub fn produce_publication_commit_material(
   nonce : Int64,
   handle : Int,
@@ -256,7 +252,6 @@ pub fn produce_publication_commit_material(
 ///|
 /// Copy the actually inspected stored index, never the original candidate.
 /// Current publisher is checked again; this projection is not Store ACK.
-#export_name("actql_publication_commit_export_produce_observed_index")
 pub fn produce_publication_observed_index(
   nonce : Int64,
   handle : Int,
@@ -327,7 +322,6 @@ pub fn produce_publication_observed_index(
 ///|
 /// Borrow one original stored request/attempt reference. This does not perform
 /// full-chain validation or grant authority to read a different Store/scope.
-#export_name("actql_publication_commit_export_produce_lookup_reference")
 pub fn produce_publication_lookup_reference(
   nonce : Int64,
   handle : Int,
@@ -400,7 +394,6 @@ pub fn produce_publication_lookup_reference(
 ///|
 /// Project the existing Owner's scoped key from the original validated index.
 /// This is a physical address, not publisher permission or a durable ACK.
-#export_name("actql_publication_commit_export_produce_index_key")
 pub fn produce_publication_commit_index_key(
   nonce : Int64,
   handle : Int,
@@ -455,7 +448,6 @@ pub fn produce_publication_commit_index_key(
 /// Copy one schema field from the same original completed Result receipt.
 /// Schema index follows the original preflight inventory, not contract ordinal.
 /// The existing buffer owns allocation/cleanup; no schema is reconstructed.
-#export_name("actql_publication_commit_export_produce_schema")
 pub fn produce_publication_commit_schema(
   nonce : Int64,
   handle : Int,
@@ -529,7 +521,6 @@ pub fn produce_publication_commit_schema(
 /// Return exact Core contract bytes after full-chain validation and current
 /// Run/Source access. A Client still needs separate current publisher authority
 /// and actual physical Store acceptance before reporting a durable commit.
-#export_name("actql_publication_commit_export_produce")
 pub fn produce_publication_commit_export(
   nonce : Int64,
   handle : Int,
@@ -624,7 +615,6 @@ pub fn produce_publication_commit_export(
 }
 
 ///|
-#export_name("actql_publication_commit_export_length")
 pub fn publication_commit_export_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.commit_exports.get(handle) is Some(record) else {
@@ -640,7 +630,6 @@ pub fn publication_commit_export_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_publication_commit_export_retire_sdk_delivery_output")
 pub fn retire_publication_sdk_delivery_output(
   nonce : Int64,
   handle : Int,
@@ -670,7 +659,6 @@ pub fn retire_publication_sdk_delivery_output(
 }
 
 ///|
-#export_name("actql_publication_commit_export_close")
 pub fn close_publication_commit_export(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.commit_exports.get(handle) is Some(record) else {

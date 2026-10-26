@@ -55,34 +55,58 @@ fn composed_local_capacity(
   // The Model's original ledger still owns its attempts and captures. The
   // enclosing Local candidate must also reserve their physical envelope;
   // ordinary Relation capacity alone cannot cover the component's custody.
-  let retained_parts = [
-    @relation.execution_capacity_retained_bytes(base),
-    limits.model.ledger.retained_bytes,
-    limits.output_values.max_nodes.to_int64() * 256L,
-    limits.output_values.max_text_bytes.to_int64() * 8L,
-    limits.identity.logical_wire.max_bytes.to_int64() * 8L,
-  ]
-  let execution_parts = [
-    @relation.execution_capacity_execution_bytes(base),
-    limits.model.ledger.execution_bytes,
-    limits.measurement.max_nodes.to_int64() * 256L,
-    limits.measurement.max_bytes.to_int64() * 8L,
-  ]
-  let mut retained = 0L
-  for amount in retained_parts {
-    if amount < 0L || amount > 9223372036854775807L - retained {
-      return None
-    }
-    retained += amount
-  }
-  let mut executing = retained
-  for amount in execution_parts {
-    if amount < 0L || amount > 9223372036854775807L - executing {
-      return None
-    }
-    executing += amount
-  }
-  @relation.execution_capacity(retained, executing)
+  @relation.execution_capacity_inventory(
+    [
+      {
+        unit: QuotedBytes,
+        count: @relation.execution_capacity_retained_bytes(base),
+        copies: 1,
+      },
+      {
+        unit: QuotedBytes,
+        count: limits.model.ledger.retained_bytes,
+        copies: 1,
+      },
+      {
+        unit: ValueNodeSlots,
+        count: limits.output_values.max_nodes.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: DecodedTextBytes,
+        count: limits.output_values.max_text_bytes.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: CanonicalWireBytes,
+        count: limits.identity.logical_wire.max_bytes.to_int64(),
+        copies: 1,
+      },
+    ],
+    [
+      {
+        unit: QuotedBytes,
+        count: @relation.execution_capacity_execution_bytes(base),
+        copies: 1,
+      },
+      {
+        unit: QuotedBytes,
+        count: limits.model.ledger.execution_bytes,
+        copies: 1,
+      },
+      {
+        unit: ValueNodeSlots,
+        count: limits.measurement.max_nodes.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: CanonicalWireBytes,
+        count: limits.measurement.max_bytes.to_int64(),
+        copies: 1,
+      },
+    ],
+    @relation.RetainedAlongsideExecution,
+  )
 }
 
 ///|
@@ -111,8 +135,7 @@ pub fn keyed_root_capacity(
   guard composed_local_capacity(prefix, limits) is Some(base) else {
     return None
   }
-  let mut retained = @relation.execution_capacity_retained_bytes(base)
-  let mut executing = @relation.execution_capacity_execution_bytes(base)
+  let mut capacity = base
   match suffix {
     None =>
       if !@publication_host.client_infer_occurrence_terminal(occurrence) {
@@ -144,19 +167,13 @@ pub fn keyed_root_capacity(
         is Some(extra) else {
         return None
       }
-      let suffix_retained = @relation.execution_capacity_retained_bytes(extra)
-      let suffix_execution = @relation.execution_capacity_execution_bytes(extra)
-      if suffix_retained < 0L ||
-        suffix_execution < 0L ||
-        suffix_retained > 9223372036854775807L - retained ||
-        suffix_execution > 9223372036854775807L - executing {
+      guard @relation.add_execution_capacity(capacity, extra) is Some(combined) else {
         return None
       }
-      retained += suffix_retained
-      executing += suffix_execution
+      capacity = combined
     }
   }
-  @relation.execution_capacity(retained, executing)
+  Some(capacity)
 }
 
 ///|

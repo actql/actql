@@ -25,7 +25,8 @@ assert(!/\b(sorry|admit|axiom|native_decide|unsafe)\b/.test((array + identities 
   .replace(/\/\-[\s\S]*?\-\//g, '').replace(/--[^\n]*/g, '')));
 const names = ['phase_bound', 'growth_overlap', 'retired_owner_witness'];
 assert.deepEqual([...model.matchAll(/^theorem\s+(\w+)/gm)].map(([, n]) => n), names);
-const selectionNames = ['candidate_component', 'retained_core_union'];
+const selectionNames = ['candidate_component', 'retained_core_union',
+  'current_candidate_component', 'current_retained_core_union'];
 assert.deepEqual([...selection.matchAll(/^theorem\s+(\w+)/gm)].map(([, n]) => n), selectionNames);
 const preparationNames = ['storage_bound', 'same_storage_charge'];
 assert.deepEqual([...preparation.matchAll(/^theorem\s+(\w+)/gm)].map(([, n]) => n), preparationNames);
@@ -49,6 +50,16 @@ example (n : Nat) (r : RelationCapacity.Registry) (a b : Nat → Bool)
   (sc : RelationCapacity.charge r.ids r.size b ≤ s.bytes) :
   RelationCapacity.charge r.ids r.size (fun id => a id || b id) ≤ NativeParentCore.envelope n + 2344 :=
   ProviderConstruction.retained_core_union n r a b core s c sb cc sc
+example (s : ProviderConstruction.Footprint) (r : s.records ≤ 11 * 48)
+  (c : s.callbacks ≤ 44 * 40) (a : s.candidates ≤ 120) (f : s.defaultFamily ≤ 24) :
+  s.bytes ≤ 2432 := ProviderConstruction.current_candidate_component s r c a f
+example (n : Nat) (r : RelationCapacity.Registry) (a b : Nat → Bool)
+  (core : NativeParentCore.Footprint) (s : ProviderConstruction.Footprint)
+  (c : core.bytes ≤ NativeParentCore.envelope n) (sb : s.bytes ≤ 2432)
+  (cc : RelationCapacity.charge r.ids r.size a ≤ core.bytes)
+  (sc : RelationCapacity.charge r.ids r.size b ≤ s.bytes) :
+  RelationCapacity.charge r.ids r.size (fun id => a id || b id) ≤ NativeParentCore.envelope n + 2432 :=
+  ProviderConstruction.current_retained_core_union n r a b core s c sb cc sc
 example (ports fields : Nat) (s : PreparationArrays.Footprint)
   (o : s.owners ≤ 48) (h : s.headers ≤ 32)
   (a : s.selectedSlots ≤ 2 * ArrayBacking.ceiling 0 ports)
@@ -97,5 +108,6 @@ for (const [, axioms] of result.stdout.matchAll(/depends on axioms: \[([^\]]*)\]
 }
 console.log('3 conditional retained parent-core propositions checked; complete parent/edge and retirement correspondence remain open');
 console.log('2 conditional provider-construction propositions checked; complete parent/pipeline capacity remains open');
+console.log('2 current five-field provider-construction propositions checked; Native layout and whole-lifetime correspondence remain open');
 console.log('2 conditional preparation-array propositions checked; referent and whole-lifetime capacity remain open');
 console.log('13 snapshot correspondence reductions checked; not additional capacity theorems or physical cleanup evidence');

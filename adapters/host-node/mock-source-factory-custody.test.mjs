@@ -4,7 +4,7 @@ import {compileFunction} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'acorn';
 
-const source=readFileSync(new URL('./installed-project-mock.mjs',import.meta.url),'utf8');
+const source=readFileSync(new URL('../local-node/installed-project-mock.mjs',import.meta.url),'utf8');
 const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'}),nodes=[];
 function collect(node){
   if(node===null||typeof node!=='object')return;nodes.push(node);

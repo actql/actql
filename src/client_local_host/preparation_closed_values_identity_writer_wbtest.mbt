@@ -16,10 +16,13 @@ test "ClosedValues identity writer specialization removes six source-sized copie
     depth_upper: 8,
   }
   let quote = closed_values_context_components_layout(facts, 100, 99).unwrap()
-  assert_eq(preparation_representation_cost(quote.retained).unwrap(), 898703L)
+  assert_eq(
+    @execution.preparation_representation_cost(quote.retained).unwrap(),
+    898703L,
+  )
   // Prior temporary47987835 - six unnecessary full-source scopes27759200.
   assert_eq(
-    preparation_representation_cost(quote.temporary).unwrap(),
+    @execution.preparation_representation_cost(quote.temporary).unwrap(),
     20228635L,
   )
 }
@@ -45,7 +48,7 @@ test "ClosedValues identity writer specialization preserves width monotonicity a
       names.join(",") +
       "]}}}],\"results\":{\"r\":{\"from\":{\"stage\":\"s\",\"result\":\"r\"}}}}"
     let facts = closed_values_lexical_facts(document, document.length()).unwrap()
-    let priced = preparation_representation_cost(
+    let priced = @execution.preparation_representation_cost(
       closed_values_identity_writer_layout(facts.node_upper, facts.depth_upper).unwrap(),
     ).unwrap()
     assert_true(priced > previous)
@@ -53,13 +56,16 @@ test "ClosedValues identity writer specialization preserves width monotonicity a
   }
   let small = closed_values_identity_writer_layout(40, 7).unwrap()
   let large = closed_values_identity_writer_layout(20640, 8).unwrap()
-  let smaller = preparation_representation_cost(small).unwrap()
-  let larger = preparation_representation_cost(large).unwrap()
+  let smaller = @execution.preparation_representation_cost(small).unwrap()
+  let larger = @execution.preparation_representation_cost(large).unwrap()
   assert_true(larger > smaller)
   assert_eq(larger, 4682398L)
   // Every scope remains summed; no early retirement or peak-max substitution.
   let stage = closed_values_writer_layout(20648, 9, 1, 0, 0).unwrap()
-  assert_eq(larger - preparation_representation_cost(stage).unwrap(), 47884L)
+  assert_eq(
+    larger - @execution.preparation_representation_cost(stage).unwrap(),
+    47884L,
+  )
   for nodes in [0, -1, 2147483640] {
     assert_true(closed_values_identity_writer_layout(nodes, 8) is None)
   }
@@ -97,7 +103,7 @@ test "ClosedValues identity writer specialization leaves actual identities and s
   assert_eq(@publication_host.prepared_client_identity(prepared), before)
   assert_eq(
     before.program_definition_cid,
-    "sha256:26334bc3b274becef9457799e919c5433306ce1f8324bb81ff4aae0604635ce5",
+    "sha256:b67e5088e1001970a65a6280b36608e842ba61a7ec528154f7d7a84f9619c809",
   )
   assert_eq(
     before.parameter_values_cid,
@@ -105,13 +111,13 @@ test "ClosedValues identity writer specialization leaves actual identities and s
   )
   assert_eq(
     @publication_host.prepared_client_program_semantics_cid(prepared),
-    "sha256:fcaa7dcc999a2dff2b225caffc85e72987c1d4fd68f8250edd9100442e11d147",
+    "sha256:9440165a0fdabb112deb1d78295b0f614a0e2031190954e331f0db156869eef3",
   )
   assert_eq(
     @publication_host.emit_prepared_client_program_semantics(
       prepared, 10000, 20, 5,
     ).unwrap(),
-    "{\"actql_version\":\"actql/0.1\",\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:b5701b2178a3b2e624d0fbfbda877d0117c367e42a855161e26e0d2e133f1c2c\",\"parameter_references\":[],\"parameters\":{},\"program_template\":{\"exports\":{\"r\":{\"from\":{\"result\":\"r\",\"stage\":\"s\"}}},\"stages\":[{\"after\":\"initial\",\"id\":\"s\",\"imports\":{},\"stage_semantics_cid\":\"sha256:114e89f94b5307288c47bf3612847f871da69dc4da4b48b5a13548fd707f4d93\"}]},\"version\":\"actql-program-semantics/0.1\"}",
+    "{\"actql_version\":\"actql/0.1\",\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:2849a6667980fc51ed51a04879470a97068fd08e358d784262602a09b22dacda\",\"parameter_references\":[],\"parameters\":{},\"program_template\":{\"exports\":{\"r\":{\"from\":{\"result\":\"r\",\"stage\":\"s\"}}},\"stages\":[{\"after\":\"initial\",\"id\":\"s\",\"imports\":{},\"stage_semantics_cid\":\"sha256:1ebe6c2ecd7a0e29bd72cd07131ba24b4e33313baeecbb4f303ea3e48204751f\"}]},\"version\":\"actql-program-semantics/0.1\"}",
   )
   assert_true(
     @publication_host.emit_prepared_client_program_semantics(
@@ -129,7 +135,7 @@ test "ClosedValues identity writer specialization leaves actual identities and s
     @publication_host.emit_prepared_client_program_definition(
       prepared, 10000, 4, 1,
     ).unwrap(),
-    "{\"id\":\"identity-writer\",\"program_semantics_cid\":\"sha256:fcaa7dcc999a2dff2b225caffc85e72987c1d4fd68f8250edd9100442e11d147\",\"version\":\"actql-program-definition/0.1\"}",
+    "{\"id\":\"identity-writer\",\"program_semantics_cid\":\"sha256:9440165a0fdabb112deb1d78295b0f614a0e2031190954e331f0db156869eef3\",\"version\":\"actql-program-definition/0.1\"}",
   )
   assert_true(
     @publication_host.emit_prepared_client_program_definition(
@@ -145,22 +151,22 @@ test "ClosedValues identity writer specialization leaves actual identities and s
       facts.node_upper + 8,
       facts.depth_upper + 1,
     ).unwrap(),
-    "{\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:b5701b2178a3b2e624d0fbfbda877d0117c367e42a855161e26e0d2e133f1c2c\",\"local_body\":{\"effects\":{},\"inputs\":{},\"results\":{\"r\":{\"fields\":[\"x\"],\"from\":\"v\"}},\"steps\":[{\"as\":\"v\",\"values\":{\"rows\":[{\"x\":1}],\"schema\":{\"x\":{\"nullable\":false,\"type\":\"number\"}}}}]},\"parameter_references\":[],\"parameters\":{},\"version\":\"actql-stage-semantics/0.1\"}",
+    "{\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:2849a6667980fc51ed51a04879470a97068fd08e358d784262602a09b22dacda\",\"local_body\":{\"effects\":{},\"inputs\":{},\"results\":{\"r\":{\"fields\":[\"x\"],\"from\":\"v\"}},\"steps\":[{\"as\":\"v\",\"values\":{\"rows\":[{\"x\":1}],\"schema\":{\"x\":{\"nullable\":false,\"type\":\"number\"}}}}]},\"parameter_references\":[],\"parameters\":{},\"version\":\"actql-stage-semantics/0.1\"}",
   )
   let identity = @checked.source_identity(
     @strategy.graph_program(@publication_host.prepared_client_graph(prepared)),
   )
-  let local = @context.program_identity_stage_at(identity, 0).unwrap()
+  let local_layout = @context.program_identity_stage_at(identity, 0).unwrap()
   assert_eq(
-    @context.stage_identity_definition_cid(local),
-    "sha256:2c32b3113d7b194a94b4374cd23d82145892b010b139f8fd6292452fc8a82a4d",
+    @context.stage_identity_definition_cid(local_layout),
+    "sha256:fdc662ca6c096ba489cc0190539298237ec07823dad9664b3b26753afebf8bcb",
   )
   assert_eq(
-    @context.stage_identity_parameter_values_cid(local),
+    @context.stage_identity_parameter_values_cid(local_layout),
     "sha256:c183484727a250f184812053fce437f9b9c90ca889a7a7505a9f9791d84a7b52",
   )
   assert_eq(
-    @context.stage_identity_parameter_declarations_cid(local),
+    @context.stage_identity_parameter_declarations_cid(local_layout),
     "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
   )
 }

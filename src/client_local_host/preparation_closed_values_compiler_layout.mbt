@@ -5,7 +5,7 @@
 /// reserving through the original preparation owner. Source/indexed trees,
 /// borrowed names and shared contract references are not copied here.
 struct ClosedValuesLiteralLayout {
-  retained : PreparationRepresentationUnits
+  retained : @execution.PreparationRepresentationUnits
   field_capacity : Int64
   row_capacity : Int64
   cell_count : Int64
@@ -63,28 +63,47 @@ fn closed_values_literal_layout(
   let cells = f * r
   // Per-cell (4,6,4); per-row (4,5+field_capacity,3); per-field
   // (2,2,2). Constant owners (16,18,20), plus field/row backing slots.
-  guard preparation_cost_add(16L, cells, 4L) is Some(headers) else {
+  guard @execution.checked_preparation_add_product(16L, cells, 4L)
+    is Some(headers) else {
     return None
   }
-  guard preparation_cost_add(headers, r, 4L) is Some(headers) else {
+  guard @execution.checked_preparation_add_product(headers, r, 4L)
+    is Some(headers) else {
     return None
   }
-  guard preparation_cost_add(headers, f, 2L) is Some(headers) else {
+  guard @execution.checked_preparation_add_product(headers, f, 2L)
+    is Some(headers) else {
     return None
   }
-  guard preparation_cost_add(18L, cells, 6L) is Some(refs) else { return None }
-  guard preparation_cost_add(refs, r, 5L + field_capacity) is Some(refs) else {
+  guard @execution.checked_preparation_add_product(18L, cells, 6L) is Some(refs) else {
     return None
   }
-  guard preparation_cost_add(refs, f, 2L) is Some(refs) else { return None }
-  guard preparation_cost_add(refs, field_capacity + row_capacity, 1L)
+  guard @execution.checked_preparation_add_product(refs, r, 5L + field_capacity)
     is Some(refs) else {
     return None
   }
-  guard preparation_cost_add(20L, cells, 4L) is Some(words) else { return None }
-  guard preparation_cost_add(words, r, 3L) is Some(words) else { return None }
-  guard preparation_cost_add(words, f, 2L) is Some(words) else { return None }
-  let retained : PreparationRepresentationUnits = {
+  guard @execution.checked_preparation_add_product(refs, f, 2L) is Some(refs) else {
+    return None
+  }
+  guard @execution.checked_preparation_add_product(
+      refs,
+      field_capacity + row_capacity,
+      1L,
+    )
+    is Some(refs) else {
+    return None
+  }
+  guard @execution.checked_preparation_add_product(20L, cells, 4L)
+    is Some(words) else {
+    return None
+  }
+  guard @execution.checked_preparation_add_product(words, r, 3L) is Some(words) else {
+    return None
+  }
+  guard @execution.checked_preparation_add_product(words, f, 2L) is Some(words) else {
+    return None
+  }
+  let retained : @execution.PreparationRepresentationUnits = {
     record_headers: headers,
     reference_slots: refs,
     scalar_words: words,
@@ -92,7 +111,7 @@ fn closed_values_literal_layout(
     owned_wire_bytes: 0L,
   }
   // Refuse a component whose existing tariff cannot itself be represented.
-  guard preparation_representation_cost(retained) is Some(_) else {
+  guard @execution.preparation_representation_cost(retained) is Some(_) else {
     return None
   }
   Some({ retained, field_capacity, row_capacity, cell_count: cells, })
@@ -111,7 +130,7 @@ fn closed_values_literal_layout(
 /// Temporary `used`, identifier concatenation and binding result wrappers are
 /// excluded here, not asserted free. No expression-context replacement occurs
 /// because the guarded shape's expression closure is empty.
-fn closed_values_lower_retained_layout() -> PreparationRepresentationUnits {
+fn closed_values_lower_retained_layout() -> @execution.PreparationRepresentationUnits {
   {
     record_headers: 23L,
     reference_slots: 35L,
@@ -133,7 +152,7 @@ fn closed_values_lower_retained_layout() -> PreparationRepresentationUnits {
 /// sites/dispositions/ports and owners borrow their original context/checker.
 /// The single-step Values route does not split carrier tasks; split_boundaries
 /// and work Ref are temporary, not included in this retained vector.
-fn closed_values_dag_retained_layout() -> PreparationRepresentationUnits {
+fn closed_values_dag_retained_layout() -> @execution.PreparationRepresentationUnits {
   {
     record_headers: 39L,
     reference_slots: 59L,
@@ -165,7 +184,7 @@ fn closed_values_dag_retained_layout() -> PreparationRepresentationUnits {
 /// scratch; names, contracts and Schema themselves remain borrowed.
 fn closed_values_pipeline_retained_layout(
   fields : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if fields <= 0 {
     return None
   }
@@ -188,7 +207,7 @@ fn closed_values_pipeline_retained_layout(
 /// conservatively eight slots; inner backing is empty. Empty keyed-input proofs
 /// and one-element units add two Arrays. Numeric-slot/audit/context objects and
 /// all eight BuiltUnit context arrays remain in the context component.
-fn closed_values_program_wrappers_layout() -> PreparationRepresentationUnits {
+fn closed_values_program_wrappers_layout() -> @execution.PreparationRepresentationUnits {
   {
     record_headers: 50L,
     reference_slots: 160L,
@@ -208,7 +227,7 @@ fn closed_values_program_wrappers_layout() -> PreparationRepresentationUnits {
 /// capacities. This helper does not authorize arbitrary Map creation.
 fn closed_values_map_constructor_layout(
   entries : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if entries < 0 {
     return None
   }
@@ -242,7 +261,7 @@ fn closed_values_map_constructor_layout(
 fn closed_values_walk_storage_layout(
   node_upper : Int,
   largest_object_fields : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if node_upper <= 0 ||
     largest_object_fields < 0 ||
     largest_object_fields > node_upper {
@@ -262,7 +281,7 @@ fn closed_values_walk_storage_from_extents(
   pending : Int,
   children : Int,
   names : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if pending <= 0 || children < 0 || names < 0 {
     return None
   }
@@ -292,7 +311,7 @@ fn closed_values_walk_storage_from_extents(
 fn closed_values_guarded_walk_storage_layout(
   fields : Int,
   rows : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if fields <= 0 || rows < 0 {
     return None
   }
@@ -315,7 +334,7 @@ fn closed_values_guarded_walk_storage_layout(
 /// usage tuple, its Result and mapped Result; numeric view/finite Result/finite
 /// Option. CheckedValue and Value::Number belong to retained literals above.
 /// Calls are sequential, so one such component coexists with accumulated rows.
-fn closed_values_numeric_admission_scratch_layout() -> PreparationRepresentationUnits {
+fn closed_values_numeric_admission_scratch_layout() -> @execution.PreparationRepresentationUnits {
   {
     record_headers: 16L,
     reference_slots: 17L,
@@ -334,7 +353,7 @@ fn closed_values_numeric_admission_scratch_layout() -> PreparationRepresentation
 /// wrappers, text/UTF8/NFC/Boolean results and two pop Options give (34,39,43).
 /// Two two-entry ObjectView maps add twice the independently checked grow
 /// envelope (11,30,17). ASCII quick check retains original "number" text.
-fn closed_values_number_contract_scratch_layout() -> PreparationRepresentationUnits {
+fn closed_values_number_contract_scratch_layout() -> @execution.PreparationRepresentationUnits {
   {
     record_headers: 56L,
     reference_slots: 99L,
@@ -360,7 +379,7 @@ fn closed_values_number_contract_scratch_layout() -> PreparationRepresentationUn
 fn closed_values_values_caller_scratch_layout(
   fields : Int,
   rows : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if fields <= 0 || rows < 0 {
     return None
   }
@@ -397,7 +416,7 @@ fn closed_values_values_caller_scratch_layout(
 /// strings. This constructor convention excludes opaque runtime stack backing.
 fn closed_values_sort_scratch_layout(
   fields : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if fields <= 0 {
     return None
   }
@@ -440,7 +459,7 @@ fn closed_values_sort_scratch_layout(
 /// This retained component does not include Result preparation scratch.
 fn closed_values_result_port_retained_layout(
   fields : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if fields <= 0 {
     return None
   }
@@ -459,50 +478,73 @@ fn closed_values_result_port_retained_layout(
 
 ///|
 struct ClosedValuesCompilerPhaseLayout {
-  retained : PreparationRepresentationUnits
-  temporary : PreparationRepresentationUnits
-  failure : PreparationRepresentationUnits
+  retained : @execution.PreparationRepresentationUnits
+  temporary : @execution.PreparationRepresentationUnits
+  failure : @execution.PreparationRepresentationUnits
 } derive(Eq)
 
 ///|
 fn closed_values_sum_layouts(
-  values : Array[PreparationRepresentationUnits],
-) -> PreparationRepresentationUnits? {
+  values : Array[@execution.PreparationRepresentationUnits],
+) -> @execution.PreparationRepresentationUnits? {
   let mut h = 0L
   let mut r = 0L
   let mut w = 0L
   let mut t = 0L
   let mut b = 0L
   for value in values {
-    guard preparation_cost_add(h, value.record_headers, 1L) is Some(n) else {
+    guard @execution.checked_preparation_add_product(
+        h,
+        value.record_headers,
+        1L,
+      )
+      is Some(n) else {
       return None
     }
     h = n
-    guard preparation_cost_add(r, value.reference_slots, 1L) is Some(n) else {
+    guard @execution.checked_preparation_add_product(
+        r,
+        value.reference_slots,
+        1L,
+      )
+      is Some(n) else {
       return None
     }
     r = n
-    guard preparation_cost_add(w, value.scalar_words, 1L) is Some(n) else {
+    guard @execution.checked_preparation_add_product(w, value.scalar_words, 1L)
+      is Some(n) else {
       return None
     }
     w = n
-    guard preparation_cost_add(t, value.owned_utf16_units, 1L) is Some(n) else {
+    guard @execution.checked_preparation_add_product(
+        t,
+        value.owned_utf16_units,
+        1L,
+      )
+      is Some(n) else {
       return None
     }
     t = n
-    guard preparation_cost_add(b, value.owned_wire_bytes, 1L) is Some(n) else {
+    guard @execution.checked_preparation_add_product(
+        b,
+        value.owned_wire_bytes,
+        1L,
+      )
+      is Some(n) else {
       return None
     }
     b = n
   }
-  let result : PreparationRepresentationUnits = {
+  let result : @execution.PreparationRepresentationUnits = {
     record_headers: h,
     reference_slots: r,
     scalar_words: w,
     owned_utf16_units: t,
     owned_wire_bytes: b,
   }
-  guard preparation_representation_cost(result) is Some(_) else { return None }
+  guard @execution.preparation_representation_cost(result) is Some(_) else {
+    return None
+  }
   Some(result)
 }
 
@@ -518,7 +560,7 @@ fn closed_values_sum_layouts(
 fn closed_values_result_scratch_layout(
   fields : Int,
   longest_name : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if longest_name < 0 {
     return None
   }
@@ -528,7 +570,7 @@ fn closed_values_result_scratch_layout(
   guard closed_values_map_constructor_layout(fields) is Some(map) else {
     return None
   }
-  let strings : PreparationRepresentationUnits = {
+  let strings : @execution.PreparationRepresentationUnits = {
     record_headers: 2L,
     reference_slots: 0L,
     scalar_words: 0L,
@@ -554,7 +596,7 @@ fn closed_values_result_scratch_layout(
 /// an opaque raw cause or stringify the entire source without a new proof.
 fn closed_values_compiler_failure_layout(
   depth_upper : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   guard closed_values_append_capacity(depth_upper) is Some(capacity) else {
     return None
   }
@@ -615,7 +657,7 @@ fn closed_values_compiler_phase_layout(
   }
   // Original SequencePreparationDemand: three scalar fields plus its one
   // PreparedClientProgram reference. This is not an output cardinality claim.
-  let demand : PreparationRepresentationUnits = {
+  let demand : @execution.PreparationRepresentationUnits = {
     record_headers: 1L,
     reference_slots: 1L,
     scalar_words: 3L,
@@ -624,7 +666,7 @@ fn closed_values_compiler_phase_layout(
   }
   // One lower demand record/Ok, composition Ok, and two error carriers.
   // Both branches are summed; the actual node scan allocates no collection.
-  let demand_scratch : PreparationRepresentationUnits = {
+  let demand_scratch : @execution.PreparationRepresentationUnits = {
     record_headers: 5L,
     reference_slots: 4L,
     scalar_words: 7L,
@@ -666,7 +708,7 @@ fn closed_values_compiler_phase_layout(
   // Fixed planner-owned unit descriptors, Options and the four fixed component
   // lists: 34 unit records +32 Option wrappers +one literal-layout record +one
   // phase record +four Array wrappers/backings; list backing slots total37.
-  let bookkeeping : PreparationRepresentationUnits = {
+  let bookkeeping : @execution.PreparationRepresentationUnits = {
     record_headers: 76L,
     reference_slots: 77L,
     scalar_words: 213L,

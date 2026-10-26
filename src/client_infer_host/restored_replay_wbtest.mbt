@@ -39,7 +39,7 @@ test "saved capture replays under a fresh input without retaining old execution"
   let replay = start_restored_replay(
     prepared,
     2,
-    infer_fixture_registry,
+    infer_fixture_installed_contracts(),
     infer_fixture_values,
     saved,
     standard_limits(),
@@ -81,7 +81,7 @@ test "saved replay rejects a changed logical input without redispatch" {
   let replay = start_restored_replay(
     prepared,
     2,
-    infer_fixture_registry,
+    infer_fixture_installed_contracts(),
     infer_fixture_values,
     saved,
     standard_limits(),

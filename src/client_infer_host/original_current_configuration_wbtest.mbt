@@ -19,7 +19,9 @@ fn current_configuration_host_test_wire() -> String {
   // ceilings intersected with Host100/200000. Remaining limits are Host facts.
   // The installed quantity declaration10000/10000/10000 is intersected with
   // checked128/0/1000. This data fixture issues no original custody or grant.
-  "[\"actql-original-ledger-state/0.1\",[\"17\",\"4\",\"16\",\"133072\",\"256\",\"256\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\"],[\"0\",\"0\",\"0\"],[\"128\",\"0\",\"1000\"],[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],\"-3\",[\"4\",\"0\",\"0\",true,true,false,\"parked\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]],[],[]]"
+  // No attempts or output holdings have issued; the bootstrap and one open
+  // reservation are the two live reservations. Neither has an attempt reserved or started.
+  "[\"actql-original-ledger-state/0.1\",[\"17\",\"4\",\"16\",\"133072\",\"256\",\"256\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\",\"0\",\"2\",\"0\"],[\"0\",\"0\",\"0\"],[\"128\",\"0\",\"1000\"],[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],[\"-3\",\"0\",\"0\"],[\"4\",\"0\",\"0\",true,true,false,\"parked\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null,false,false],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null,false,false]],[],[]]"
 }
 
 ///|

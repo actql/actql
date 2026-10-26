@@ -98,7 +98,6 @@ fn host_current_issue(issue : @host.ClientLocalAdoptedCurrentIssue[Int]) -> Int 
 }
 
 ///|
-#export_name("actql_current_reserve")
 pub fn reserve_host_current(
   nonce : Int64,
   input : Int,
@@ -169,7 +168,6 @@ pub fn reserve_host_current(
 
 ///|
 /// Bind actual already-committed adoption, never initialize or repair it.
-#export_name("actql_current_bind")
 pub fn bind_host_current(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.host_currents.get(handle) is Some(record) else {
@@ -225,7 +223,6 @@ pub fn bind_host_current(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_current_validate")
 pub fn validate_host_current(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.host_currents.get(handle) is Some(record) &&
@@ -241,7 +238,6 @@ pub fn validate_host_current(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Project original current scope metadata. It is neither Account Allow,
 /// execution/read permission, Host adoption nor durable acknowledgement.
-#export_name("actql_current_produce")
 pub fn produce_host_current(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.host_currents.get(handle) is Some(record) &&
@@ -293,7 +289,6 @@ pub fn produce_host_current(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_current_length")
 pub fn host_current_length(nonce : Int64, handle : Int) -> Int {
   let checked = validate_host_current(nonce, handle)
   if checked != 0 {
@@ -311,7 +306,6 @@ pub fn host_current_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_current_close")
 pub fn close_host_current(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.host_currents.get(handle) is Some(record) else {
