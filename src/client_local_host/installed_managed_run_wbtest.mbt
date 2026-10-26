@@ -161,26 +161,26 @@ test "managed Run usage projection preserves all limits and live Ledger counters
   @resources.charge_transfer(ledger, reservation, 100L).unwrap()
   @resources.mark_transfer_uncertain(ledger, reservation, 50L).unwrap()
   let holding = @resources.retain_allocation(ledger, reservation, 200L).unwrap()
-  let live = installed_managed_run_usage_values(ledger)
+  let live = installed_managed_run_accounting_values(ledger)
   assert_eq(live, [
-    10L, 3L, 2L, 1000L, 2000L, 3000L, 7L, 1L, 1L, 100L, 50L, 250L, 200L, 300L, 600L,
-    500L, 0L, 1L, 0L,
+    10L, 3L, 2L, 1000L, 2000L, 3000L, 7L, 1L, 0L, 1L, 1L, 0L, 100L, 50L, 250L, 200L,
+    300L, 600L, 500L,
   ])
   // Observation neither settles reservations nor retires the actual holding.
-  assert_eq(installed_managed_run_usage_values(ledger), live)
+  assert_eq(installed_managed_run_accounting_values(ledger), live)
   @resources.settle_reservation(ledger, reservation).unwrap()
-  assert_eq(installed_managed_run_usage_values(ledger), [
-    10L, 3L, 2L, 1000L, 2000L, 3000L, 7L, 1L, 1L, 100L, 50L, 0L, 200L, 0L, 0L, 500L,
-    0L, 0L, 0L,
+  assert_eq(installed_managed_run_accounting_values(ledger), [
+    10L, 3L, 2L, 1000L, 2000L, 3000L, 7L, 1L, 0L, 1L, 0L, 0L, 100L, 50L, 0L, 200L,
+    0L, 0L, 500L,
   ])
   @resources.release_allocation(ledger, holding).unwrap()
-  assert_eq(installed_managed_run_usage_values(ledger), [
-    10L, 3L, 2L, 1000L, 2000L, 3000L, 7L, 1L, 0L, 100L, 50L, 0L, 0L, 0L, 0L, 500L,
-    0L, 0L, 0L,
+  assert_eq(installed_managed_run_accounting_values(ledger), [
+    10L, 3L, 2L, 1000L, 2000L, 3000L, 7L, 1L, 0L, 0L, 0L, 0L, 100L, 50L, 0L, 0L,
+    0L, 0L, 500L,
   ])
-  assert_eq(live[11], 250L)
-  assert_eq(live[12], 200L)
-  assert_eq(live[17], 1L)
+  assert_eq(live[14], 250L)
+  assert_eq(live[15], 200L)
+  assert_eq(live[10], 1L)
 }
 
 ///|
@@ -193,21 +193,21 @@ test "managed Run usage projection returns independent exact Int64 snapshots" {
     retained_bytes: 9007199254740995L,
     execution_bytes: 9007199254740997L,
   }).unwrap()
-  let first = installed_managed_run_usage_values(ledger)
+  let first = installed_managed_run_accounting_values(ledger)
   first[3] = 0L
-  first[15] = -1L
+  first[18] = -1L
   let reservation = @resources.reserve_attempt(
     ledger, 9007199254740993L, 9007199254740995L, 9007199254740997L,
   ).unwrap()
-  let again = installed_managed_run_usage_values(ledger)
+  let again = installed_managed_run_accounting_values(ledger)
   assert_eq(again[3], 9007199254740993L)
   assert_eq(again[4], 9007199254740995L)
   assert_eq(again[5], 9007199254740997L)
-  assert_eq(again[11], 9007199254740993L)
-  assert_eq(again[13], 9007199254740995L)
-  assert_eq(again[14], 9007199254740997L)
-  assert_eq(again[15], 9007199254740995L)
+  assert_eq(again[14], 9007199254740993L)
+  assert_eq(again[16], 9007199254740995L)
+  assert_eq(again[17], 9007199254740997L)
+  assert_eq(again[18], 9007199254740995L)
   assert_eq(first[7], 0L)
-  assert_eq(first[15], -1L)
+  assert_eq(first[18], -1L)
   @resources.settle_reservation(ledger, reservation).unwrap()
 }

@@ -34125,7 +34125,7 @@
               },
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
-                "anchor": "pub fn installed_managed_run_usage("
+                "anchor": "pub fn installed_managed_run_accounting("
               }
             ],
             "identity": [
@@ -34289,7 +34289,7 @@
               },
               {
                 "path": "adapters/host-common/observation.mjs",
-                "anchor": "const snapshot = Object.freeze({'actql.resource.scope': 'managed-run-ledger',"
+                "anchor": "const snapshot = {'actql.resource.scope': 'managed-run-ledger'};"
               }
             ],
             "extension": [
@@ -34315,7 +34315,7 @@
               },
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
-                "anchor": "/// values, not a measurement of process memory or physical cleanup."
+                "anchor": "/// These are managed accounting values, not a measurement of process memory"
               }
             ],
             "verification": [
