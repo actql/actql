@@ -135,9 +135,11 @@ fn retained_effect_review_retention_store(
     is Err(Unavailable),
   )
   let binding : @checkpoint.ResumeBinding = {
-    // The original Local fixture explicitly installed these Host bindings at
-    // admission. They are not inferred from Source, Preview or a report.
-    authorization_context_cid: retained_compute_cid("a"),
+    // Use the same original Run admission, including a genuinely adopted
+    // Host's context. A legacy literal is not that Host's authority original.
+    authorization_context_cid: @publication.run_publication_execution_context(
+      @host.client_effect_allowed_run_admission(materials.allowed),
+    ),
     environment_binding_cid: retained_compute_cid("b"),
   }
   if original_work is Some((work, journal)) {
@@ -491,6 +493,21 @@ fn retained_effect_review_retention_store(
       ])
       is Err(@client.Journal(@client.Checkpoint(@client.InvalidMaterial))),
     )
+    if binding.authorization_context_cid != retained_compute_cid("a") {
+      assert_true(
+        work.wait_review_checkpoint(
+          retention,
+          revision,
+          { ..binding, authorization_context_cid: retained_compute_cid("a"), },
+          [],
+        )
+        is Err(@client.Journal(@client.Checkpoint(@client.InvalidMaterial))),
+      )
+      guard journal.lookup(request, true) is Ok(@client.Retained(unchanged)) else {
+        fail("mismatched waiting binding lost original Run custody")
+      }
+      assert_eq(@client.native_client_run_record_revision(unchanged), revision)
+    }
     let waiting = match
       work.wait_review_checkpoint(retention, revision, binding, []) {
       Ok(value) => value
