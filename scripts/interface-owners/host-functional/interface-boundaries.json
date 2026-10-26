@@ -19531,7 +19531,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -19650,7 +19650,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -76262,7 +76262,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "8bcef3df948be79da553186238c0eeccddb3bfce806317150dec043a5b5053fb",
+      "sha256": "083255f115796479e5697c18b1629286935c0839406c41917021c34059e8630e",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -81359,7 +81359,7 @@
     },
     {
       "module": "adapters/local-node/closed-values-preparation-adapter.mjs",
-      "sha256": "00ba7043961c6cee3e1ed7defa263f57744dd7de40a5259e068923f1c9825368",
+      "sha256": "046411b0dd2bff9ab2f21266ad6fca5feccf1b33a406960ea5963499d0f23186",
       "exports": [
         "beginClosedValuesInput",
         "bindClosedValuesSnapshot",
@@ -81412,6 +81412,14 @@
           "async": false
         },
         {
+          "name": "closedValuesPreparationAvailable/own/own",
+          "parameters": [
+            "object",
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "commonInt/commonInt",
           "parameters": [
             "value"
@@ -81447,8 +81455,9 @@
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
-        "./closed-values-own-data-scan.mjs",
-        "./ordinary-node-resource-runtime.cjs"
+        "../host-node/closed-values-own-data-scan.mjs",
+        "../host-node/ordinary-node-resource-runtime.cjs",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -81573,6 +81582,107 @@
               {
                 "path": "adapters/host-node/preparation-capacity-refusal.test.mjs",
                 "anchor": "prepared initial cleanup requires its fixed retirement callback and preserves retry ownership"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "closedValuesPreparationAvailable/own/own"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function closedValuesPreparationAvailable"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original ModuleBody preparation mode"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function closedValuesPreparationAvailable"
+              },
+              {
+                "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
+                "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function closedValuesPreparationAvailable"
+              },
+              {
+                "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
+                "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function closedValuesPreparationAvailable"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original ModuleBody preparation mode"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function closedValuesPreparationAvailable"
+              },
+              {
+                "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
+                "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function closedValuesPreparationAvailable"
+              },
+              {
+                "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
+                "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous capability snapshot neither starts work nor issues cancellation."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original ModuleBody preparation mode"
+              },
+              {
+                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
+                "anchor": "export function closedValuesPreparationAvailable"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original ModuleBody preparation mode"
+              },
+              {
+                "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
+                "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
+                "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Original ModuleBody preparation mode"
               }
             ]
           }
@@ -82905,7 +83015,7 @@
       "sha256": "82d23d01b6c99054e795ee06207f1c03040479a6134eb9be48d4b759d23e992b",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -83154,7 +83264,7 @@
       "sha256": "1579102c910d242eaa6502ab6284feda6fec201af7c2ea93d0928cbbfe0e96f4",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "prepareInstalledEffectManagedPlanRun",
@@ -83396,7 +83506,7 @@
       "sha256": "7c91d8d3073b2dcca5f1ca12b48ac2ce7ba4d269d07c38983a65a57d35d5b56f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "captureInstalledSourceServices",
         "createInstalledHostServices",

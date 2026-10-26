@@ -1616,3 +1616,21 @@ cleanup carriers pass through unchanged. The connector still selects its own
 explicit legacy entrance when the service is omitted, and keeps its own profile
 grammar, limit conversion and error boundaries. The shared snapshot never
 chooses a fallback, a numeric policy or physical authority.
+
+
+## Original ModuleBody preparation mode
+
+The installed Host retains its normalized Boolean output mode in the same
+immutable preparation context as the original runtime and publication
+environment. The funded caller passes that exact mode to the distinct
+ModuleBody constructor together with its existing phase and sequence-contract
+admission. Completion remains a separate call after the constructor returns.
+Neither an older Body export nor a missing mode supplies a fallback.
+
+A selected funded context is checked before the Source owner allocates a
+producer receipt. A missing capability or throwing context lookup cannot
+consume producer slots or select raw snapshot preparation. A staged adapter
+which cannot construct the selected input retires its actual preparation and
+reports unavailability; this does not define a new language restriction or
+qualify the remaining frontend construction paths. Original cleanup failures
+remain attached to the same producer until their actual retirement.
