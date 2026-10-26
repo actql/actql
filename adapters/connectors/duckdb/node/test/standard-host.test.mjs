@@ -2525,7 +2525,7 @@ async function exerciseStrategyGraph(
         new AbortController().signal,
       ), error => {
         failureExecution = error.execution;
-        return error.code === 'CapturedRunPublicationFailed';
+        return error.code === 'CapturedRunExecutionFailed';
       });
       assert.equal(failureExecution.status, 'host-tasks-failed');
       assert(failureRetained.leases.length > 0);
@@ -3452,7 +3452,7 @@ async function exerciseStrategyGraph(
       } catch (error) {
         scoredFailureExecution = error.execution;
         if (!failConsumer && !cancelRanking) throw error;
-        assert.equal(error.code, 'CapturedRunPublicationFailed');
+        assert.equal(error.code, 'CapturedRunExecutionFailed');
       }
       const publicationKey = {
         namespaceId: plan.request.namespaceId,
@@ -3800,7 +3800,7 @@ async function exerciseStrategyGraph(
       new AbortController().signal,
     ), error => {
       nearestFailureExecution = error.execution;
-      return error.code === 'CapturedRunPublicationFailed';
+      return error.code === 'CapturedRunExecutionFailed';
     });
     assert(computeEntrances > 0);
     computeEntrancesAtFailure = computeEntrances;
@@ -4350,7 +4350,7 @@ async function exerciseStrategyGraph(
       await assert.rejects(host.runPublishedCapturedStrategy(setup,
         {store, plan}, {local: retained.configuration}, cancellation.signal), error => {
         execution = error.execution;
-        return error.code === 'CapturedRunPublicationFailed';
+        return error.code === 'CapturedRunExecutionFailed';
       });
       assert.equal(execution.status, 'host-tasks-failed');
       assert.equal(advanced, true);
@@ -10832,7 +10832,7 @@ async function exerciseStrategyGraph(
           {store: failurePublicationStore, plan}, {local: configuration},
           cancellation.signal), error => {
           execution = error.execution;
-          return error.code === 'CapturedRunPublicationFailed';
+          return error.code === 'CapturedRunExecutionFailed';
         });
         await assert.rejects(failurePublicationStore.lookupCommittedIndex({
           namespaceId: plan.request.namespaceId,
@@ -11119,7 +11119,7 @@ async function exerciseStrategyGraph(
         {store: publication, plan}, {local: configuration},
         new AbortController().signal), error => {
         failure = error.execution;
-        return error.code === 'CapturedRunPublicationFailed';
+        return error.code === 'CapturedRunExecutionFailed';
       });
       assert.equal(failure.status, 'host-tasks-failed', name);
       assert.deepEqual(failure.completed.map(item => item.task), [1], name);
@@ -11211,7 +11211,7 @@ async function exerciseStrategyGraph(
       {local: expansionPolicyConfiguration}, new AbortController().signal),
     error => {
       expansionFailure = error.execution;
-      return error.code === 'CapturedRunPublicationFailed';
+      return error.code === 'CapturedRunExecutionFailed';
     });
     assert.equal(expansionFailure.status, 'host-tasks-failed');
     assert.deepEqual(expansionFailure.completed.map(item => item.task), [1, 2]);
@@ -11287,7 +11287,7 @@ async function exerciseStrategyGraph(
       {local: nestPolicyConfiguration}, new AbortController().signal),
     error => {
       nestPolicyFailure = error.execution;
-      return error.code === 'CapturedRunPublicationFailed';
+      return error.code === 'CapturedRunExecutionFailed';
     });
     assert.equal(nestPolicyFailure.status, 'host-tasks-failed');
     assert.deepEqual(nestPolicyFailure.completed.map(item => item.task), [1, 2]);
