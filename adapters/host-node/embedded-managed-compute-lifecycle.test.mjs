@@ -581,7 +581,7 @@ test('same ordinary Host retains separate Run records for successive prepared re
   await f.preparation.prepareManagedCompute();
   for (const prepared of [a, b, a]) assert.strictEqual(
     f.preparation.prepareManagedComputeRun(runtime, prepared, requests.get(prepared)), prepared);
-  assert.equal(f.record.computeRuns.size, 2);
+  assert.equal(f.record.computeLiveRuns.size, 2);
   await f.initialControl.close();
   assert.deepEqual(retired, [a, b]);
 });
