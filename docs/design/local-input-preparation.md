@@ -197,3 +197,34 @@ shared representation units. The existing Working growth/retirement protocol
 owns that transition. Native and Remote consumers must retain their actual
 backend module and limits; a Node owner or Local policy is not a substitute.
 Completed-only metadata access supplies no execution or restoration authority.
+
+
+## Native standard module handoff
+
+The existing Native Source preparation can retain its full Pure or Effect
+sequence array; it does not need a Node managed owner to preserve that DATA.
+The standard Local/DuckDB module preparation takes the original checked graph,
+parent Ledger, registrations, sequences and typed backend limits before any
+captured Run exists. DuckDB static compiler work charges that same Ledger
+before each task; partial failure retains consumed work. This is planning,
+not an attempt, Source read or physical database allocation.
+
+Binding requires the exact graph and parent Ledger and uses the original
+prepared modules through the canonical configured-module assembly. Static
+rejections and compilation are retained rather than recomputed at binding.
+The selected Local input/output and Native retained-output policies are sealed
+before quotation; later estimates and strategy/current checks still use the
+actual Run. This does not supply Native Source/database physical backing or
+fund initial constructor controls from execution buffer limits.
+
+
+## Retained selection container ownership
+
+The two retained Local selection arrays have a domain-owned container
+inventory: exact slot storage, both array/backing pairs and the module's
+references. It uses the common representation units and price without adding
+a tariff or copying the referenced provider/capacity bodies. The one-task
+closed Values supplier includes those containers in its original initial
+reservation before construction. This container inventory does not cover the
+providers' closure/kernel construction, capacity payload ownership or other
+module controls; those remain separate simultaneous demands.

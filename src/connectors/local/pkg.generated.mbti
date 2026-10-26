@@ -126,6 +126,8 @@ pub fn local_module_max_work(LocalComputeModule) -> Int
 
 pub fn local_module_measurement_limits(LocalComputeModule) -> @execution_relation.FixedInputGuardMeasureLimits
 
+pub fn local_module_selection_container_inventory(Int) -> @execution_relation.PreparationRepresentationUnits?
+
 pub fn local_module_sequence_contains_carrier_step(LocalComputeModule, Int) -> Bool
 
 pub fn local_module_sequence_has_carrier_input(LocalComputeModule, Int) -> Bool
