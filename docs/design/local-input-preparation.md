@@ -226,8 +226,13 @@ storage is one domain inventory: eight array/backing headers, `3N + M + 8`
 reference slots and eight scalar words for N sequences and M installed
 providers. References borrow original sequence/provider/capacity bodies;
 those bodies and factory temporaries have separate owners and demands.
+Preparation of an execution quote also owns its typed inventory item records,
+list backings and scalar fold outcomes. The executor's quoted byte allowances
+do not fund those constructor objects.
 
-The selected Node package retains one immutable container recipe. Its
+The selected Node package retains one immutable container recipe. One compiled
+ordered family composition supplies both its provider count and actual factory
+traversal. Projecting that count constructs no policy, provider or kernel. The
 existing initial-control and begin bridges use that SAME recipe without
 accepting a JavaScript count or unit override. The provider-free RelA factory
 has an empty installed dimension; it does not expose these Node initial

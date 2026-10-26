@@ -103,29 +103,73 @@ fn selected_graph_union_policy() -> @local_sga_provider.UnionPolicy {
 }
 
 ///|
+// One compiled composition declaration owns both the installed order and its
+// pre-construction container extent. It contains no provider or kernel body.
+priv enum InstalledClientFamily {
+  Graph
+  Events
+  TimeSeries
+  CalendarSeries
+  CalendarBucket
+  IntervalJoin
+  AsofJoin
+  SequenceMatch
+  Vectors
+}
+
+///|
+let installed_client_family_composition : Array[InstalledClientFamily] = [
+  Graph,
+  Events,
+  TimeSeries,
+  CalendarSeries,
+  CalendarBucket,
+  IntervalJoin,
+  AsofJoin,
+  SequenceMatch,
+  Vectors,
+]
+
+///|
+fn construct_installed_client_family(
+  family : InstalledClientFamily,
+  records : @record_storage.Limits,
+  capacity : @execution.ExecutionCapacity,
+) -> @local.ManagedProvider {
+  match family {
+    Graph =>
+      @local_sga_provider.provider(
+        selected_graph_limits(),
+        10000L,
+        capacity,
+        snapshot_policy=Some(selected_graph_snapshot_policy()),
+        delta_policy=Some(selected_graph_delta_policy()),
+        union_policy=Some(selected_graph_union_policy()),
+        mean_policy=Some(selected_graph_mean_policy()),
+      )
+    Events => @local_tea_provider.provider(records, 100000L, capacity)
+    TimeSeries => @local_tea_provider.time_series_provider(records, capacity)
+    CalendarSeries =>
+      @local_tea_provider.calendar_series_provider(records, capacity)
+    CalendarBucket =>
+      @local_tea_provider.calendar_bucket_provider(records, capacity)
+    IntervalJoin =>
+      @local_tea_provider.interval_join_provider(records, capacity)
+    AsofJoin => @local_tea_provider.asof_join_provider(records, capacity)
+    SequenceMatch =>
+      @local_tea_provider.sequence_match_provider(records, capacity)
+    Vectors => @local_veca_provider.provider(records, 100000L, capacity)
+  }
+}
+
+///|
 fn installed_client_family_providers(
   capacity : @execution.ExecutionCapacity,
 ) -> Array[@local.ManagedProvider] {
   let records = selected_record_limits()
-  [
-    @local_sga_provider.provider(
-      selected_graph_limits(),
-      10000L,
-      capacity,
-      snapshot_policy=Some(selected_graph_snapshot_policy()),
-      delta_policy=Some(selected_graph_delta_policy()),
-      union_policy=Some(selected_graph_union_policy()),
-      mean_policy=Some(selected_graph_mean_policy()),
-    ),
-    @local_tea_provider.provider(records, 100000L, capacity),
-    @local_tea_provider.time_series_provider(records, capacity),
-    @local_tea_provider.calendar_series_provider(records, capacity),
-    @local_tea_provider.calendar_bucket_provider(records, capacity),
-    @local_tea_provider.interval_join_provider(records, capacity),
-    @local_tea_provider.asof_join_provider(records, capacity),
-    @local_tea_provider.sequence_match_provider(records, capacity),
-    @local_veca_provider.provider(records, 100000L, capacity),
-  ]
+  installed_client_family_composition.map(family => {
+    construct_installed_client_family(family, records, capacity)
+  })
 }
 
 ///|
@@ -190,10 +234,10 @@ fn selected_graph_mean_policy() -> @local_sga_provider.MeanPolicy {
 }
 
 ///|
-// This is fixed installed implementation DATA, not per-Run demand or a grant.
-// The pure constructor correspondence fixture pins the actual factory count.
+// Count the same compiled composition traversed by the actual constructor.
+// No provider callback, policy or kernel is created by this projection.
 fn installed_client_family_provider_count() -> Int {
-  9
+  installed_client_family_composition.length()
 }
 
 ///|
