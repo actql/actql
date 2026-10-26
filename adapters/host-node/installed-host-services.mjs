@@ -181,4 +181,3 @@ export function retainInstalledHostServiceInstallation(services, installation, r
     'InstalledHostServiceRuntimeChanged');
   original.selected.set(installation, runtimeBundleCid);
 }
-
