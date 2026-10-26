@@ -10,10 +10,14 @@ import {
   "actql/actql/execution_relation",
   "actql/actql/physical_cost",
   "actql/actql/physical_host_dispatch",
+  "actql/actql/physical_resources",
+  "actql/actql/physical_strategy",
   "actql/actql/physical_strategy_host",
 }
 
 // Values
+pub fn bind_strategy_dispatch(@physical_strategy_host.CapturedDAG, StrategyDispatchPreparation) -> Result[StrategyHostDispatch, DispatchIssue]
+
 pub fn commit_dispatch_offline_policy_choice(StrategyHostDispatch) -> Result[Unit, DispatchIssue]
 
 pub fn commit_dispatch_policy_response_json(StrategyHostDispatch, @physical_strategy_host.PolicyRequest, String, String, Int64) -> Result[Unit, DispatchIssue]
@@ -68,9 +72,13 @@ pub fn prepare_dispatch_policy_request(StrategyHostDispatch, String, String, Str
 
 pub fn prepare_next_dispatch(StrategyHostDispatch) -> Result[TaskDispatch?, DispatchIssue]
 
+pub fn prepare_strategy_dispatch(@physical_strategy.CheckedDAG, @physical_resources.Ledger, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], TaskDispatchLimits, local_retained_output? : (@local.LocalImportLimits, @local.LocalExportLimits, Int64?)?, native_retained_output? : (Int64, Int64?)?) -> Result[StrategyDispatchPreparation, DispatchIssue]
+
 pub fn refresh_dispatch_estimates(StrategyHostDispatch) -> Result[Unit, DispatchIssue]
 
 pub fn stop_strategy_dispatch(StrategyHostDispatch) -> Unit
+
+pub fn strategy_dispatch_preparation_local_capacity(StrategyDispatchPreparation, Int) -> @physical_strategy_host.PhysicalEnvelope?
 
 pub fn take_local_dispatch(TaskDispatch) -> Result[@actql/actql/connectors/local/driver.LocalDispatchOperations, DispatchIssue]
 
@@ -101,6 +109,8 @@ pub(all) enum DispatchIssue {
   EstimateOverflow
   JoinPreparation(@adapter.FixedJoinInputIssue)
 }
+
+type StrategyDispatchPreparation
 
 type StrategyHostDispatch
 

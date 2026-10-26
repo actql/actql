@@ -125,6 +125,8 @@ pub fn[E] validate_adaptive_policy_request(AdaptiveDispatch[E], @physical_strate
 
 pub fn[C, E] validate_compute_host_policy_request(ComputeHost[C, E], @physical_strategy_host.PolicyRequest, Int64) -> Result[Unit, AdaptiveEstimateIssue[E]]
 
+pub fn[T] validate_dispatch_channel_binding(DispatchChannel[T], DispatchDriver, @connector_sdk.CapabilityRegistry) -> Result[Unit, DispatchIssue]
+
 // Errors
 
 // Types and methods

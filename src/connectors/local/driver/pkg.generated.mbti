@@ -9,10 +9,13 @@ import {
   "actql/actql/physical_cost",
   "actql/actql/physical_host",
   "actql/actql/physical_host_dispatch",
+  "actql/actql/physical_strategy",
   "actql/actql/physical_strategy_host",
 }
 
 // Values
+pub fn bind_local_dispatch_plan(@physical_host_dispatch.DispatchDriver, LocalDispatchPreparation) -> Result[LocalDispatchModule, LocalDispatchIssue]
+
 pub fn configure_local_compute(@physical_host_dispatch.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, LocalComputeConfiguration) -> Result[LocalDispatchModule, LocalDispatchIssue]
 
 pub fn configure_local_retained_inputs(LocalDispatchModule, @local.LocalImportLimits, Int64?, metadata? : LocalManagedMetadataLimits?) -> Result[Unit, LocalDispatchIssue]
@@ -33,7 +36,15 @@ pub fn[E] local_compute_contribution(LocalDispatchModule, (LocalDispatchIssue) -
 
 pub fn local_dispatch_next_carrier_path(LocalDispatchModule) -> Bool
 
+pub fn local_dispatch_original_preparation(LocalDispatchModule) -> LocalDispatchPreparation?
+
 pub fn local_dispatch_predecessor_is_carrier(LocalDispatchModule, Int) -> Bool
+
+pub fn local_dispatch_preparation_retained_bytes(LocalDispatchPreparation) -> Int64?
+
+pub fn local_dispatch_preparation_task_capacity(LocalDispatchPreparation, Int) -> @physical_strategy_host.PhysicalEnvelope?
+
+pub fn local_dispatch_preparation_transfer_bytes(LocalDispatchPreparation) -> Int64?
 
 pub fn local_dispatch_registration(LocalDispatchModule) -> @connector_sdk.CapabilityRegistration
 
@@ -61,6 +72,8 @@ pub fn prepare_local_dispatch(LocalDispatchModule, Int, @physical_strategy_host.
 
 pub fn prepare_local_dispatch_module(@physical_host_dispatch.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, managed_capacity? : @connector_sdk.FixedComputeCapacity, managed_providers? : Array[@local.ManagedProvider]) -> Result[LocalDispatchModule, LocalDispatchIssue]
 
+pub fn prepare_local_dispatch_plan(@physical_strategy.CheckedDAG, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, managed_capacity? : @connector_sdk.FixedComputeCapacity, managed_providers? : Array[@local.ManagedProvider], inputs? : (@local.LocalImportLimits, Int64?)?, metadata? : LocalManagedMetadataLimits?, output? : (@local.LocalExportLimits, Int64?)?) -> Result[LocalDispatchPreparation, LocalDispatchIssue]
+
 pub fn prepare_local_estimate_module(LocalDispatchModule, Array[@physical_cost.RateSchedule], Int, eligible? : Array[Bool]) -> Result[LocalEstimateModule, LocalEstimateIssue]
 
 pub fn prepare_local_estimate_settings(LocalDispatchModule, LocalEstimateSettings) -> Result[LocalEstimateModule, LocalEstimateIssue]
@@ -74,6 +87,8 @@ pub fn[C, E] start_local_dispatch(LocalDispatchModule, @physical_host_dispatch.D
 pub fn[T] start_local_managed_dispatch(LocalManagedDispatchConfiguration[T]) -> Result[LocalManagedDispatchOperations[T], LocalDispatchIssue]
 
 pub fn start_local_managed_dispatch_node(LocalManagedDispatchConfiguration[Int]) -> Result[LocalManagedDispatchOperations[Int], LocalDispatchIssue]
+
+pub fn validate_local_dispatch_binding(LocalDispatchModule, @physical_host_dispatch.DispatchDriver, @connector_sdk.CapabilityRegistry) -> Result[Unit, LocalDispatchIssue]
 
 // Errors
 
@@ -119,6 +134,8 @@ pub struct LocalDispatchOperations {
   close : () -> Unit
   cleanup_refresh : () -> Bool
 }
+
+type LocalDispatchPreparation
 
 pub(all) enum LocalEstimateIssue {
   InvalidConfiguration

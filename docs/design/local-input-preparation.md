@@ -216,3 +216,33 @@ The selected Local input/output and Native retained-output policies are sealed
 before quotation; later estimates and strategy/current checks still use the
 actual Run. This does not supply Native Source/database physical backing or
 fund initial constructor controls from execution buffer limits.
+
+## Native resident acquisition and retained consumers
+
+The Native resident caller selects each original generated task sequence and
+estimate against the actual checked graph before Source acquisition. It prepares
+the Local and Native modules on the same per-Run parent Ledger that will own the
+captured DAG. Capturing the Source binds that original preparation; it does not
+compile another static Native plan or initialize a replacement Ledger.
+
+For a retained consumer, the pure retained projection exposes the exact checked
+view used by its existing opener. Module preparation uses that view before the
+independently owned destination reader is borrowed. The completed producer and
+original task coordinates remain bound by the existing projection and module
+checks. The live captured DAG belongs to the canonical Host package; immutable
+checked graphs and projections remain in the pure strategy package.
+
+Preparation and module capacity accessors do not establish physical backing for
+the initial constructors or the complete Native engine. Source and destination
+currentness, exclusive start, physical reservation and pending cleanup remain
+with their original owners. Search and estimate configuration still bind the
+actual captured Run, and neither preparation nor binding issues approval.
+
+The existing reserved-attempt budget is consumed only at possible physical use:
+before opening the admitted Source, on the retained decoder's actual stream
+entry after metadata/codec/limit/current checks, and at the Native task runner
+before retained-file or transaction work. The decoder receives the caller's
+original Ledger and Reservation; it does not initialize or substitute either.
+The existing common task-use operation checks the original live TaskExecution.
+Plan preparation, capacity reservation and pre-I/O refusal do not consume an
+attempt. Started, failed and unknown physical uses are never refunded.

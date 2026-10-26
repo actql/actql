@@ -230,8 +230,7 @@ fn retained_compute_effect_materials(
     resident_provider_environment()
   } else {
     (
-      resident_effect_source_environment, "sha256:c110639082170812464555ae57368f5fc5a8ffa2edb159b2433dd3fc36f56227",
-      resident_native_effect_document,
+      resident_effect_source_environment, resident_effect_source_bundle_cid, resident_native_effect_document,
     )
   }
   if provider {

@@ -43,6 +43,7 @@ pub fn acquire_native_remote_retained_task_output(
   program : @context.ProgramSourceIdentity,
   limits : NativeRemoteStandardTransferSourceLimits,
   current : NativeRemoteRetainedInputCurrent,
+  physical_attempt : (@resources.Ledger, @resources.Reservation),
 ) -> Result[NativeRemoteRetainedTaskOutput, NativeRemoteRetainedTaskSourceIssue] {
   let producer = @publication_host.client_retained_task_input_producer(
     input.common,
@@ -90,6 +91,13 @@ pub fn acquire_native_remote_retained_task_output(
         )
         is Err(_) {
         return Err("retained-input-unavailable")
+      }
+      // Refused metadata, codec, limits and currentness never consume use.
+      // Only this original stream entry can begin physical decoder work.
+      let (ledger, reservation) = physical_attempt
+      match @resources.consume_reserved_attempt(ledger, reservation) {
+        Ok(_) => ()
+        Err(_) => return Err("retained-input-attempt")
       }
       @transfer_client.stream_destination_material_use(
         material, max_bytes, emit,

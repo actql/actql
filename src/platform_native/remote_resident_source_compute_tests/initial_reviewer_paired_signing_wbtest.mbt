@@ -293,7 +293,7 @@ test "adopted initial Reviewer signs and restores the same real paired Checkpoin
   assert_true(
     @host.admit_client_check_environment(
       resident_effect_source_environment,
-      "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+      resident_effect_source_bundle_cid,
       { text_time: false, veca: false, },
       { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     )
