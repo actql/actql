@@ -10,6 +10,8 @@ import {
 // Values
 pub fn[I, P] abort_preparation_capacity_after_cleanup(PreparationCapacity[I, P], I) -> Result[Bool, PreparationCapacityIssue]
 
+pub fn add_ledger_limits(LedgerLimits, LedgerLimits) -> LedgerLimits?
+
 pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]
 
 pub fn admit_quiescent_ledger_state(@decode_core.Cursor) -> Result[LedgerContinuationState, LedgerContinuationIssue]
