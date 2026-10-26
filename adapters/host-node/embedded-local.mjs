@@ -5457,8 +5457,17 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         }
         if (run.failure !== undefined) throw run.failure;
         if (run.value === undefined) throw clientOperationError('NodeManagedRunAdmissionUnavailable');
-        checked(Reflect.apply(run.check, runtime, [run.value, prepared, run.request]));
-        return run.value;
+        const parent = run.value;
+        checked(Reflect.apply(run.check, runtime, [parent, prepared, run.request]));
+        // The current callback can retire or replace this original Run.
+        // Recheck before the Source can prepare or expose its capacity.
+        if (record.computeRuns?.get(prepared) !== run || run.closed ||
+            run.runtime !== runtime || run.prepared !== prepared ||
+            run.sourceProfile !== selected || run.value !== parent) {
+          throw clientOperationError('ForeignInstalledSourcePreparation');
+        }
+        if (run.failure !== undefined) throw run.failure;
+        return parent;
       });
       record.managedSourceProfile = originalInstallation.managedSourceProfile = selected;
       return selected;

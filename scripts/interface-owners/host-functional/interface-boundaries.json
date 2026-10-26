@@ -63081,10 +63081,11 @@
     {
       "module": "adapters/host-node/source-profile-json.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d535d573119979dae5b1432c6b4d67d69a30f4a7ff959bd4fb7aec71b25673be",
+      "sha256": "350f31d5f8a81b8b24c11e8c32cf13f28a712ead9cf1c01db43f25c2d7cb93ea",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
+        "captureConfigurationReaders",
         "installedRuntimeBundleCid",
         "readBoundedConfigurationText",
         "readBoundedConfigurationUtf8",
@@ -63092,6 +63093,34 @@
         "withOriginalFile"
       ],
       "operations": [
+        {
+          "name": "captureConfigurationReaders",
+          "parameters": [
+            "reader",
+            "readJson",
+            "unavailable"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureConfigurationReaders/captureConfigurationReaders",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureConfigurationReaders/captureConfigurationReaders#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureConfigurationReaders/refuse/refuse",
+          "parameters": [],
+          "async": false
+        },
         {
           "name": "installedRuntimeBundleCid",
           "parameters": [
@@ -63611,12 +63640,130 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "captureConfigurationReaders",
+            "captureConfigurationReaders/captureConfigurationReaders",
+            "captureConfigurationReaders/captureConfigurationReaders#2",
+            "captureConfigurationReaders/refuse/refuse"
+          ],
+          "exports": [
+            "captureConfigurationReaders"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "anchor": "test('configuration reader selection refuses proxies accessors and incomplete originals without invoking them'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "node:crypto",
-        "node:fs/promises"
+        "node:fs/promises",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []

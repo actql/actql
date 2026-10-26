@@ -638,7 +638,7 @@
               },
               {
                 "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "const pem=await readBoundedConfigurationText"
+                "anchor": "const pem=await reads.readText"
               },
               {
                 "path": "docs/design/notion-user-reader.md",

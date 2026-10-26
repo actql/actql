@@ -140,6 +140,35 @@ pub fn admit_effectful_final_run_evidence_chain(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[PublicationContract, EffectfulFinalChainIssue] {
+  admit_effectful_final_run_evidence_with_outcomes(
+    run_definition, invocation, definitions, artifacts, manifest, computation_receipt,
+    captured_run, preview, set_receipt_wire, member_receipt_wires, final_receipt_wire,
+    max_wire_bytes, max_nodes, max_depth,
+  ).map(value => value.0)
+}
+
+///|
+/// The same complete chain admission also retains its typed Set outcomes.
+/// No second member-wire admission is required for disposition or partition.
+pub fn admit_effectful_final_run_evidence_with_outcomes(
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  manifest : PublicationContract,
+  computation_receipt : PublicationContract,
+  captured_run : PublicationContract,
+  preview : EffectPreviewIdentity,
+  set_receipt_wire : String,
+  member_receipt_wires : Array[String],
+  final_receipt_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (PublicationContract, EffectSetApplyReceiptEvidence),
+  EffectfulFinalChainIssue,
+] {
   match
     validate_effectful_computation_evidence_chain(
       run_definition, invocation, definitions, artifacts, manifest, computation_receipt,
@@ -148,7 +177,7 @@ pub fn admit_effectful_final_run_evidence_chain(
     Ok(_) => ()
     Err(issue) => return Err(Computation(issue))
   }
-  admit_effectful_final_receipt_references(
+  admit_effectful_final_receipt_evidence(
     run_definition, computation_receipt, captured_run, preview, set_receipt_wire,
     member_receipt_wires, final_receipt_wire, max_wire_bytes, max_nodes, max_depth,
   ).map_err(issue => FinalReferences(issue))
@@ -171,6 +200,28 @@ pub fn admit_effectful_final_receipt_references(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[PublicationContract, EffectfulFinalReferenceIssue] {
+  admit_effectful_final_receipt_evidence(
+    run_definition, computation_receipt, captured_run, preview, set_receipt_wire,
+    member_receipt_wires, final_receipt_wire, max_wire_bytes, max_nodes, max_depth,
+  ).map(value => value.0)
+}
+
+///|
+fn admit_effectful_final_receipt_evidence(
+  run_definition : PublicationContract,
+  computation_receipt : PublicationContract,
+  captured_run : PublicationContract,
+  preview : EffectPreviewIdentity,
+  set_receipt_wire : String,
+  member_receipt_wires : Array[String],
+  final_receipt_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (PublicationContract, EffectSetApplyReceiptEvidence),
+  EffectfulFinalReferenceIssue,
+] {
   if run_definition.name != "run_definition" ||
     computation_receipt.name != "run_receipt" ||
     captured_run.name != "captured_run" {
@@ -242,7 +293,7 @@ pub fn admit_effectful_final_receipt_references(
     return Err(ForeignEffectInventory)
   }
   let set_receipt = match
-    admit_effect_set_apply_receipt_references(
+    admit_effect_set_apply_receipt_evidence(
       preview, set_receipt_wire, member_receipt_wires, max_wire_bytes, max_nodes,
       max_depth,
     ) {
@@ -259,7 +310,7 @@ pub fn admit_effectful_final_receipt_references(
   for
     (field, expected) in [
       ("effect_preview_cid", preview.semantic_cid),
-      ("effect_set_apply_receipt_cid", set_receipt.identity),
+      ("effect_set_apply_receipt_cid", set_receipt.receipt.identity),
       ("captured_run_cid", captured_run.identity),
     ] {
     if contract_string(final_receipt, field) != Some(expected) {
@@ -296,7 +347,7 @@ pub fn admit_effectful_final_receipt_references(
     ) {
     return Err(ChangedComputationEvidence)
   }
-  Ok(final_receipt)
+  Ok((final_receipt, set_receipt))
 }
 
 ///|
