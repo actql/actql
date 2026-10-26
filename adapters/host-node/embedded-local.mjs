@@ -548,7 +548,9 @@ export function readManagedComputeRunRequirements(originals, checkedPrepared) {
       prepareInstalledSequenceContractOriginal(originals).admission,
       contracts.values, contracts.expression, contracts.ordered));
   } else if (run !== undefined) {
-    if (run.runtime !== moon || run.prepared !== checkedPrepared || run.closed ||
+    const retainedRelationOutput = originals.installation.retainedRelationOutput;
+    if (typeof retainedRelationOutput !== 'boolean' ||
+        run.runtime !== moon || run.prepared !== checkedPrepared || run.closed ||
         typeof moon.clientProgramPrepareInstalledManagedSourceFreeWithContracts !== 'function' ||
         typeof moon.clientProgramInstalledManagedRunIssueIsUnsupported !== 'function' ||
         typeof moon.clientProgramPreparedInstalledManagedSourceFreeRequirements !== 'function') {
@@ -564,7 +566,7 @@ export function readManagedComputeRunRequirements(originals, checkedPrepared) {
       }
       const result = moon.clientProgramPrepareInstalledManagedSourceFreeWithContracts(
         checkedPrepared, originalContracts.admission,
-        contracts.values, contracts.expression, contracts.ordered);
+        contracts.values, contracts.expression, contracts.ordered, retainedRelationOutput);
       // This exact pure Core preparation precedes Resource and business Run
       // admission. Only its typed Unsupported variant proves a refusal; no
       // arbitrary Host exception or missing journal record does so.
@@ -6048,7 +6050,8 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     inferEvidence: installation?.inferEvidence,
     hostCapacityPolicy: installation?.hostCapacityPolicy,
     hostLookupExecutionPolicy: installation?.hostLookupExecutionPolicy,
-    retainedRelationOutput: installation?.retainedRelationOutput,
+    retainedRelationOutput: installation?.retainedRelationOutput === undefined
+      ? false : installation.retainedRelationOutput,
     observation: installation?.observation,
     valuesMaxRows: installation?.valuesMaxRows});
   record.installation = originalInstallation;

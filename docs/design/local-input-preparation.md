@@ -247,3 +247,19 @@ inventory. Full module construction must not be moved into that fixed driver
 until the selected mode and complete simultaneous constructor inventory are
 funded by its original preparation. These old callers remain migration work,
 not another successful route for the nominal prepared module entry.
+
+## Original output mode before Pure module preparation
+
+The normal Host records its effective retained-output mode on the same private
+installation before requirements are read. An omitted operator option keeps
+the existing effective `false` behaviour; the requirements reader itself
+requires an actual Boolean and supplies it to the existing typed sequence
+preparation port. The later Host opens with that same installation field.
+Neither the profile name nor request counters select this mode, and a missing
+internal mode cannot fall back to another preparation path.
+
+Forwarding this scalar does not fund provider, kernel or module construction.
+The selected original initial owner must back their complete simultaneous
+construction inventory before using the pre-Run module path. The unconverted
+fixed Body/raw paths retain their existing obligations; a caller-only source
+connection cannot qualify them or a runtime built from older typed APIs.
