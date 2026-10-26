@@ -17,7 +17,8 @@ pub fn borrow_installed_managed_dispatch_preparation(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  guard value.preparation_retirement is Some(original) else { return Ok(None) }
+  guard value.preparation_retirement is Some(custody) else { return Ok(None) }
+  guard custody is PurePreparation(original) else { return Err(ForeignOriginal) }
   guard original.holder is Some(holder) &&
     @resources.preparation_body_borrow_value(holder) is Some(body) &&
     physical_equal(body, prepared) &&
@@ -51,5 +52,43 @@ pub fn installed_managed_preparation_usage_isolated(
     value.preparation_retirement is Some(retirement) else {
     return false
   }
-  @resources.node_preparation_usage_isolated(retirement.admission, ledger)
+  match retirement {
+    PurePreparation(original) => @resources.node_preparation_usage_isolated(original.admission, ledger)
+    EffectPlanPreparation(original) => @resources.node_preparation_usage_isolated(original.admission, ledger)
+  }
+}
+
+///|
+/// The selected Effect dispatch and its operations borrow the same plan body
+/// before opening the Host. No equal Program/request or copied plan can select
+/// this holder; retirement fences new siblings on the existing capacity owner.
+pub fn borrow_installed_effect_dispatch_preparation(
+  value : ClientInstalledManagedRun,
+  plan : ClientInstalledEffectManagedPlan,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[
+  @resources.PreparationBodyBorrow[ClientInstalledEffectManagedPlan]?,
+  ClientInstalledManagedRunIssue,
+] {
+  guard value.preparation is Some(PlannedEffectManaged(_, original)) &&
+    physical_equal(original, plan) && physical_equal(value.request, request) else {
+    return Err(ForeignOriginal)
+  }
+  match require_installed_managed_run(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard value.preparation_retirement is Some(custody) else { return Ok(None) }
+  guard custody is EffectPlanPreparation(original) &&
+    original.holder is Some(holder) &&
+    @resources.preparation_body_borrow_value(holder) is Some(body) &&
+    physical_equal(body, plan) &&
+    !@resources.preparation_body_retirement_started(holder) else {
+    return Err(Retired)
+  }
+  match @resources.borrow_preparation_body_sibling(holder) {
+    Ok(borrowed) => Ok(Some(borrowed))
+    Err(@resources.PreparationCapacityIssue::Resource(issue)) => Err(Ledger(issue))
+    Err(_) => Err(CleanupPending)
+  }
 }

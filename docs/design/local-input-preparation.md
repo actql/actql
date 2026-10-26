@@ -139,3 +139,26 @@ bootstrap remains charged until the Run's original cleanup retires every child;
 no other capacity is treated as spare or ignored by the isolation guard. This
 common handoff does not supply the installation's physical backing, family
 constructor inventory, Model authorization or a cleanup acknowledgement.
+
+
+## Typed final Effect preparation
+
+An Effect preparation's completed body is its original
+`ClientInstalledEffectManagedPlan`, including the checked Effect, request,
+contracts, acquisitions and generated sequences. It is never cast to the
+pure `PreparedClientProgram` body. The existing initial admission is checked
+for its original purpose, input and immutable Ledger limits before cleanup
+custody transfers. A deficient final Plan envelope leaves the same initial
+owner available for retirement; no second imported business child is started.
+
+The Run retains a closed Pure/EffectPlan case and uses one generic retirement
+procedure. The selected dispatch borrows its original body before opening its
+Host; pending siblings keep the original preparation reservation charged after
+the Run severs its heavy aliases. New borrows are fenced before those aliases
+are cut. Source-read and physical-operation cleanup still precede Run cleanup.
+
+The initial inventory must include the typed custody case, generic retirement
+record, admission and Run holders and each simultaneous operation/dispatch
+borrow. This connection does not turn a numeric final Plan quote into complete
+initial constructor funding, enable an unfunded Model/Content family, or
+acknowledge physical stop from alias severance.
