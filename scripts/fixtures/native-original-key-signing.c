@@ -156,6 +156,18 @@ int main(int argc, char **argv) {
   moonbit_decref(selected_public);moonbit_decref(message);
   assert(actql_native_original_key_signing_ready(original) && library->pending_signatures == 1 &&
     original->descriptor == -1 && signatures == 0);
+  if (strcmp(which, "orphan-finalize") == 0) {
+    // Actual external-object finalization: losing this receiver is not an
+    // explicit child ACK to the retained Library. No private read/sign occurs.
+    moonbit_decref(original);
+    assert(library->pending_signatures == 1 && signatures == 0 && descriptor_closes == 0);
+    assert(actql_native_signature_library_close(library) == 1);
+    assert(library->pending_signatures == 1);
+    assert(actql_native_filesystem_root_close(root) == 0);
+    moonbit_decref(key);moonbit_decref(root);moonbit_decref(library);
+    puts("{\"case\":\"orphan-finalize\",\"discovered\":1,\"passed\":1,\"failed\":0,\"physicalSignatureCalls\":0,\"pendingLibraryChild\":1}");
+    return 0;
+  }
   if (strcmp(which, "owner-observation") == 0) {
     assert(actql_native_original_key_signing_owner_current(original));
     pthread_t thread;

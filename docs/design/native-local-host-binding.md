@@ -572,6 +572,11 @@ still has no Host attestation, Resolution admission or continuation permission.
 The retained physical child closes before Host database/Root cleanup. Failure
 keeps that same receiver, and no new initial key or configured-signer fallback
 is selected.
+Losing the managed signing receiver permits only best-effort physical cleanup.
+Its finalizer does not decrement the Library's pending-signature count: a
+retained parent cannot infer an explicit child acknowledgement from GC. Only
+successful explicit close acknowledges that child; an uncertain descriptor
+close remains unconfirmed and is not retried by finalization.
 
 Fresh explicit default initialization creates two distinct original RFC8410
 files in the same exclusive Store initialization: the existing Reviewer key

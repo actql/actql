@@ -43,9 +43,8 @@ static bool actql_original_key_signing_close_descriptor(
   return true;
 }
 
-MOONBIT_FFI_EXPORT
-int32_t actql_native_original_key_signing_close(
-  actql_native_original_key_signing *original
+static int32_t actql_original_key_signing_retire(
+  actql_native_original_key_signing *original, bool acknowledge
 ) {
   if (!actql_original_key_signing_owner(original)) return 2;
   if (original->closed) return 0;
@@ -55,7 +54,7 @@ int32_t actql_native_original_key_signing_close(
   if (original->key) {moonbit_decref(original->key);original->key = NULL;}
   if (original->message) {moonbit_decref(original->message);original->message = NULL;}
   if (original->child_registered) {
-    original->library->pending_signatures--;
+    if (acknowledge) original->library->pending_signatures--;
     original->child_registered = false;
     moonbit_decref(original->library);
     original->library = NULL;
@@ -63,10 +62,17 @@ int32_t actql_native_original_key_signing_close(
   return 0;
 }
 
+MOONBIT_FFI_EXPORT
+int32_t actql_native_original_key_signing_close(
+  actql_native_original_key_signing *original
+) {
+  return actql_original_key_signing_retire(original, true);
+}
+
 static void actql_original_key_signing_finalize(void *value) {
   /* Best-effort cleanup is not a returned ACK. An uncertain close is never
    * retried; the caller must retain that original pending receiver. */
-  (void)actql_native_original_key_signing_close(value);
+  (void)actql_original_key_signing_retire(value, false);
 }
 
 MOONBIT_FFI_EXPORT
