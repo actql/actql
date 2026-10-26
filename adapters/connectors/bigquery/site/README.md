@@ -56,3 +56,30 @@ it cannot create an acquisition, replace its Ledger or choose a new Job on loss.
   loss, no resend, one-shot callbacks and original cleanup. Their explicit
   original-operation assembly double does not prove durable Run Journal CAS,
   cold Job recovery, live BigQuery or an installed product route.
+
+
+## Standard table Source installation
+
+`src/connectors/bigquery/host-bundle.json` selects the table Source through the
+existing installation table and integrated Common. The installed snapshot
+retains original Get Table bytes, exact project/dataset/table/location and the
+selected Site/TLS authority. The existing Common description/declaration and
+query-requirement preparation produce the original acquisition. Authored SQL
+is not passed through as arbitrary provider query text.
+
+The private Site's `tokenEnvironment` or trusted `resolveSecret` supplies an
+already resolved OAuth access token. Service-account key exchange belongs to
+its actual authentication supplier; this factory does not interpret key JSON
+as a token. Parser/read ceilings in the installed profile remain DATA, while
+the original RowSource/Host supplies the actual admitted Ledger and RowRun.
+
+- Installation responsibility: this factory binds the existing table description/read driver to standard RowSource, Account/Site, original-operation Journal and cleanup owners. It adds no query scheduler or retry state machine.
+- Installation inputs and outputs: closed table/Site/metadata selection and original metadata bytes produce the same Common declaration/environment and Source. Each actual query requirement retains its original prepared read/acquisition; its existing Job driver fills that same accounted RowRun.
+- Installation identity: exact metadata, project/dataset/table/location, runtime, Account context and TLS bytes bind installation/approval identity. The provider Job name is deterministically selected from the original Source attempt/Run/dispatch identifiers; the separate original-operation CAS still binds the actual request before its first POST.
+- Installation ownership: provider preparation is associated only with its same nominal acquisition in a private weak map. Standard Account/Site, original RowRun/reader/Journal and failure-cleanup owners retain all physical and authority duties.
+- Installation synchronization: prepareAcquisition retains the original checked requirement. readPages requires the standard same-RowRun withOriginalJob callback and forwards current/authorization/credential inputs unchanged to the existing Job loop; no await may replace its original first-request fence.
+- Installation failure: changed metadata target/origin, malformed base64, unsupported runtime, foreign acquisition or missing original-operation port refuses. The same existing driver retains original Job/Unknown on loss or failure; no fresh POST is authorized by a metadata match.
+- Installation cancellation: the existing driver and RowSource retain cancellation, borrow/transport stop and actual close duties. Factory construction failure delegates the same Site to existing initialization cleanup without reopening it.
+- Installation resources: parser/page/row/request/secret/TLS extents and maximum bytes billed remain explicit DATA. Int64 billing uses exact decimal-string configuration and bigint only at the typed boundary; no scalar limit issues backing or resets an entered Ledger.
+- Installation extension: the host manifest declares only the real Source role, with integrated existing BigQuery bridge functions. The exact target and original-operation inputs remain required when adding authentication suppliers, Effects or recovery; they cannot be replaced by a new callback/permission framework.
+- Installation verification: `installed-bigquery-source.test.mjs` covers actual profile/metadata/TLS identity, generated table import and the complete unchanged loader body with explicit Common/Account/Site/RowSource/Job-driver ports. The existing direct-driver cases retain their original physical scopes. This does not prove a matching installed Common, real BigQuery credentials/API, same-Run funding or cold Job recovery.

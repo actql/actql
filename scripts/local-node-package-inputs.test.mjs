@@ -57,6 +57,9 @@ test('real declared providers supply runtime, adapter and static asset inventory
   assert.ok(inputs.adapterEntries.includes('adapters/connectors/local/host/installed-local-table.mjs'));
   assert.ok(inputs.adapterEntries.includes('adapters/connectors/sheets/host/installed-sheets.mjs'));
   assert.ok(inputs.adapterEntries.includes('adapters/connectors/snowflake/host/installed-snowflake-source.mjs'));
+  assert.ok(inputs.adapterEntries.includes('adapters/connectors/bigquery/host/installed-bigquery-source.mjs'));
+  assert.equal(inputs.providerBundles.some(entry => entry.name === 'bigquery'), false,
+    'BigQuery uses its original integrated Common, without a fabricated provider bundle');
   // Root entries and their transitive implementation inputs are distinct.
   const table = readFileSync(join(repository, 'adapters/connectors-builtin/installations.generated.mjs'), 'utf8');
   for (const path of ['adapters/connectors/gcs/site/gcs-credential-site.mjs',

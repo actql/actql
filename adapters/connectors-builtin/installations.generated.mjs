@@ -4,6 +4,20 @@
 // version and loads only that connector's module and provider bundle.
 export const installedConnectors = Object.freeze([
   Object.freeze({
+    name: "bigquery", registration: "bigquery",
+    revision: "bigquery/0.1",
+    implementationFiles: Object.freeze([
+      Object.freeze({path: "adapters/connectors/bigquery/host/installed-bigquery-source.mjs", href: new URL("../connectors/bigquery/host/installed-bigquery-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/bigquery/site/bigquery-sql-read.mjs", href: new URL("../connectors/bigquery/site/bigquery-sql-read.mjs", import.meta.url).href}),
+    ]),
+    responseHeaders: Object.freeze(["content-encoding"]),
+    source: Object.freeze({
+      profileVersion: "actql-installed-bigquery-source/0.1",
+      load: () => import("../connectors/bigquery/host/installed-bigquery-source.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledBigQuerySourceProfile, identityParts: module.installedBigQuerySourceIdentityParts, load: module.loadInstalledBigQuerySource})),
+    }),
+  }),
+  Object.freeze({
     name: "calendar", registration: "calendar",
     revision: "calendar/0.1",
     implementationFiles: Object.freeze([

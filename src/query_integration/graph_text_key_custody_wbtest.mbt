@@ -1072,3 +1072,100 @@ test "Graph diagnostics count typed edge definitions and self-loop incidences" {
   assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
   assert_true(@graphs.discard_completed(graph))
 }
+
+///|
+test "stored Graph degree cancels after positive work and releases cleanup custody" {
+  let prefix = "x".repeat(160)
+  let first = prefix + "a"
+  let second = prefix + "b"
+  let source = keyed_source_owner(
+    "{\"id\":{\"type\":\"string\",\"nullable\":false},\"src\":{\"type\":\"string\",\"nullable\":false},\"dst\":{\"type\":\"string\",\"nullable\":false}}",
+    "[{\"id\":\"" +
+    second +
+    "\",\"src\":\"" +
+    first +
+    "\",\"dst\":\"" +
+    second +
+    "\"},{\"id\":\"" +
+    first +
+    "\",\"src\":\"" +
+    first +
+    "\",\"dst\":\"" +
+    second +
+    "\"}]",
+  )
+  let graph_body =
+    #|[{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["id"]}],"edges":[{"name":"E","from":"edges","key":["id"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]}}]},"as":"g"}]
+  let owner = keyed_bridge_owner(source, source, body=Some(graph_body))
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    prepared_sequence(owner),
+    0,
+    keyed_bridge_inputs(owner, source, source),
+    { ..carrier_graph_storage_limits(), max_work: 10000, },
+    10000L,
+    1000,
+    () => true,
+  ).unwrap()
+  let mut retained = None
+  for _ in 0..<10000 {
+    match @local_bridge.advance_rows_to_graph(construction, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Complete(graph, ..) => {
+        retained = Some(graph)
+        break
+      }
+      _ => fail("diagnostic Graph construction failed")
+    }
+  }
+  let graph = retained.unwrap()
+  let receiver = keyed_graph_receiver(
+    owner,
+    body="[{\"from\":\"g\",\"degree\":{\"direction\":\"both\"}}]",
+  )
+  let input = @graphs.prepare_producer_read(receiver, 0, owner, graph).unwrap()
+  let control = @bounded.control()
+  let active = @local_sga.start_graph_degree(
+    control,
+    task_test_completion(receiver),
+    prepared_sequence(receiver),
+    0,
+    input,
+    2,
+    {
+      max_work: 100000,
+      max_nodes: 10000,
+      max_text_bytes: 10000,
+      max_depth: 50,
+    },
+    8,
+    10000,
+    10000,
+    [],
+  ).unwrap()
+  // Exercise the stored kernel's resumable typed-key work before requesting stop.
+  for _ in 0..<60 {
+    guard @local_sga.advance_graph_degree(active, 1)
+      is Ok(@local_sga.GraphDegreeContinue(work~, ..)) else {
+      fail("stored degree must remain incomplete during typed-key work")
+    }
+    assert_true(work > 0L)
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_graph_degree(active, 1)
+    is Ok(@local_sga.GraphDegreeStopped(@bounded.Cancelled, ..)),
+  )
+  assert_true(@local_sga.graph_degree_cleanup_pending(active))
+  assert_true(
+    @local_sga.advance_graph_degree(active, 1)
+    is Err(@local_sga.GraphBoundsExecutionIssue(@bounded.Terminal)),
+  )
+  assert_true(@local_sga.cleanup_graph_degree(active).unwrap())
+  assert_false(@local_sga.graph_degree_cleanup_pending(active))
+  assert_false(@local_sga.cleanup_graph_degree(active).unwrap())
+  assert_true(@graphs.producer_read_available(input))
+  assert_true(@graphs.completed_available(graph))
+  assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
+  assert_true(@graphs.discard_completed(graph))
+}
