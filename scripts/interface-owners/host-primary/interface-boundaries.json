@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "312a37af894784832fdfe2838a78b933b59fb8b840b13e24d1791d5d40d1896f",
+      "sha256": "c7274fdba908d9db1958b8aeaf71ea140b9d4f201d9b65e07cb964bba738a99b",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -19,6 +19,7 @@
             "moon",
             "owner",
             "acquired",
+            "managedRun",
             "sourceProfile",
             "registry",
             "values",
@@ -53,7 +54,7 @@
         {
           "name": "openAcquiredEffectComputation/capacities/capacities",
           "parameters": [
-            "value"
+            "source"
           ],
           "async": false
         },
@@ -156,20 +157,6 @@
           "async": false
         },
         {
-          "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#12",
-          "parameters": [
-            "task"
-          ],
-          "async": false
-        },
-        {
-          "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#13",
-          "parameters": [
-            "task"
-          ],
-          "async": false
-        },
-        {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#2",
           "parameters": [
             "slot"
@@ -179,7 +166,7 @@
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#3",
           "parameters": [
-            "source"
+            "value"
           ],
           "async": false
         },
@@ -214,14 +201,14 @@
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#8",
           "parameters": [
-            "value"
+            "task"
           ],
           "async": false
         },
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#9",
           "parameters": [
-            "value"
+            "task"
           ],
           "async": false
         },
@@ -238,13 +225,6 @@
         {
           "name": "openAcquiredEffectComputation/originalCurrent/originalCurrent/originalCurrent",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openAcquiredEffectComputation/pendingSelection/pendingSelection",
-          "parameters": [
-            "value"
-          ],
           "async": false
         },
         {
@@ -357,7 +337,6 @@
             "openAcquiredEffectComputation/openAcquiredEffectComputation",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#10",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#11",
-            "openAcquiredEffectComputation/openAcquiredEffectComputation#12",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#2",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#3",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#4",
@@ -369,7 +348,6 @@
             "openAcquiredEffectComputation/originalCurrent/originalCurrent",
             "openAcquiredEffectComputation/originalCurrent/originalCurrent/changed/changed",
             "openAcquiredEffectComputation/originalCurrent/originalCurrent/originalCurrent",
-            "openAcquiredEffectComputation/pendingSelection/pendingSelection",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources#2",
@@ -491,9 +469,7 @@
           }
         },
         {
-          "operations": [
-            "openAcquiredEffectComputation/openAcquiredEffectComputation#13"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -566,7 +542,6 @@
         "../host-common/effect-preparation-result.mjs",
         "../host-common/runtime-result.mjs",
         "./acquired-effect-sources.mjs",
-        "./captured-duckdb-source.mjs",
         "./entry.mjs",
         "./infer-capture-custody.mjs",
         "./infer-operation.mjs",
@@ -4842,7 +4817,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "5780c7a59550bc00ba090f5bd74ee44691908e84ab616acec34b1563c67f415f",
+      "sha256": "8e3146d1823489017ebb11606354c89b7ed4e1827aa909b5f18c8736778d15e6",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -5035,6 +5010,20 @@
         },
         {
           "name": "connectEmbeddedLocal/preparation/init:canRetireManagedPreparation/init:canRetireManagedPreparation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun/current/current",
           "parameters": [],
           "async": false
         },
@@ -5316,6 +5305,22 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun",
+          "parameters": [
+            "runtime",
+            "facts",
+            "selection",
+            "inputs",
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/current/current",
+          "parameters": [],
           "async": false
         },
         {
@@ -5957,11 +5962,6 @@
           "parameters": [
             "prepared"
           ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun/effectRun",
-          "parameters": [],
           "async": false
         },
         {
@@ -7724,7 +7724,22 @@
           "name": "readSourceManagedEffectRunRequirements",
           "parameters": [
             "originals",
-            "checkedPrepared"
+            "checkedPrepared",
+            "operationPlan"
+          ],
+          "async": false
+        },
+        {
+          "name": "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -7740,8 +7755,7 @@
           "name": "readSourceManagedRunRequirementsOwned",
           "parameters": [
             "originals",
-            "checkedPrepared",
-            "effectful"
+            "checkedPrepared"
           ],
           "async": false
         },
@@ -8812,7 +8826,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -9225,7 +9239,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -10525,7 +10539,6 @@
             "connectEmbeddedLocal/preparation/init:installMockEffects/init:installMockEffects/init:installMockEffects",
             "openInstalledHost/assertMockEffectRunOriginal",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#6",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun/effectRun",
             "openInstalledHost/mockEffectResources/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/mockEffectResources/init:bindRunOriginal/init:bindRunOriginal",
             "openInstalledHost/mockEffectResources/init:limits/init:limits",
@@ -12008,6 +12021,119 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun",
+            "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun/current/current",
+            "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun",
+            "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/current/current",
+            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements",
+            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareManagedEffectPlanRun(runtime, facts, selection, inputs, model)"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedRun(runtime, prepared, request)"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "readInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "record.computeLiveRuns"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "run.selecting"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "throw clientOperationError('InstalledEffectPlanUnavailable')"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "finishInstalledEffectModelScope(run, true, checked)"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "readSourceManagedEffectRunRequirements"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "Model Effect retains one demand Plan parent and original Scope before Source work"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -12030,6 +12156,10 @@
         "../host-common/run-state-observation.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
+        "../local-node/closed-values-preparation-adapter.mjs",
+        "../local-node/installed-mock-row-effect.mjs",
+        "../local-node/installed-project-mock-answers.mjs",
+        "../local-node/installed-project-mock.mjs",
         "../local-node/retained-store.mjs",
         "../store-local/files.mjs",
         "../store-local/publication-store.mjs",
@@ -12054,7 +12184,6 @@
         "./client-run-plan.mjs",
         "./client-run-start.mjs",
         "./client-submission.mjs",
-        "./closed-values-preparation-adapter.mjs",
         "./effect-run-recovery.mjs",
         "./effect-target-read-continuation.mjs",
         "./effect-target-read-inventory.mjs",
@@ -12070,19 +12199,18 @@
         "./installed-connectors.mjs",
         "./installed-content-run.mjs",
         "./installed-effect-inventory.mjs",
+        "./installed-effect-managed-run.mjs",
         "./installed-effect-site.mjs",
         "./installed-effect.mjs",
         "./installed-host-cleanup.mjs",
         "./installed-host-policy.mjs",
+        "./installed-host-services.mjs",
         "./installed-infer-run.mjs",
         "./installed-managed-source.mjs",
-        "./installed-mock-row-effect.mjs",
         "./installed-model-continuation.mjs",
         "./installed-model-originals.mjs",
         "./installed-model.mjs",
         "./installed-project-configuration.mjs",
-        "./installed-project-mock-answers.mjs",
-        "./installed-project-mock.mjs",
         "./installed-project-model-tasks.mjs",
         "./installed-project-profile.mjs",
         "./installed-row-effect.mjs",
@@ -12124,7 +12252,7 @@
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A \u2014 existing Host preparation input boundary",
+      "owner": "A — existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -12920,7 +13048,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "efd801f4070faad41bd68f429f4a624a09e5559bac72e513684ee0af4db8859d",
+      "sha256": "e8f5932be5e14edf7a37733df201ebd7b6e6a808d981b8920f2fe10cbba416d2",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -13299,10 +13427,7 @@
           "parameters": [
             "moon",
             "facts",
-            "registry",
-            "values",
-            "fragment",
-            "ordered"
+            "managedRun"
           ],
           "async": false
         },
@@ -13675,7 +13800,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -13781,7 +13906,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }

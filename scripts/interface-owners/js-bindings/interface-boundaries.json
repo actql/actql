@@ -17,7 +17,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "b595d46303db472b68243751d4a18129e968968a80a65c7f8bfffec8ed1bd938",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "consumeRetainedComputeInput",
         "encodeManagedColumnFrame",
@@ -4570,7 +4570,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d4de151b675628ba9e21c7d5dec7c9104db72b233ad725fdac1c386a2472dd3c",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "finishManagedOutputReceipt"
       ],
@@ -4824,7 +4824,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "243d6e24785503fd307a79711aec9075101956681bff6e9fdc7fa30022449af0",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checked"
       ],
@@ -5077,7 +5077,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "6f8598cc533afa1629a5d3faa40bb0c3c28ea47e25f6afb52ff670988935ce0e",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "duckdbStrategyContribution"
       ],
@@ -5929,7 +5929,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "68d81095d50b3015dd221e2a9bf46c78fc735f5e7c994465947323421b6f35cf",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "INSTALLED_SALESFORCE_EFFECT_VERSION",
         "SALESFORCE_EFFECT_PUBLICATION_VERSION",
@@ -8511,7 +8511,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "33659da72fb6dc7a1caa4fd6aba48915e2c8471a10e463d12f6f5e1ecea9f647",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "INSTALLED_SALESFORCE_SOURCE_VERSION",
         "checkInstalledSalesforceSourceProfile",
@@ -10169,7 +10169,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "eb81ffdafaae658b50714ba81985105d94841ec0ff42e623149fbdfe494c79c1",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "salesforceRowEffectSite",
         "salesforceWriteDriver"
@@ -11229,7 +11229,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "2e3ca5fabc271f7717afd5067d29c77b66d1b59fe5c21476a710fb44f4387875",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkedSalesforceCatalogPreparation"
       ],
@@ -11493,7 +11493,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "346a80302aa10dfd246ac2cb6bad4d01f692473a4f0d7f6deea385e19e4f0567",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "readSalesforceManagedQuery",
         "readSalesforceQuery"
@@ -12822,7 +12822,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -14669,7 +14669,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "0313a8872505ef8bf159d088d548873ba3a72783d37d88f47a5e538f653f41c5",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkedEffectPreparation",
         "isEffectPreparationRefusal",
@@ -15166,7 +15166,7 @@
       "responsibilityFacet": "primary",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "publicationAction"
       ],
@@ -15417,7 +15417,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "11dac27a4ebd4af2f0a1bbf7095bc957d1c472c30f25213338efbabb92cfc16d",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "contentCaptureControl",
         "contentGenerationControl",
@@ -22641,7 +22641,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -25966,7 +25966,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -26696,7 +26696,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d17780e2ca901ff56cc87c907dc588eae3b829913d7c06916c14a4659f7aa1ab",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checked"
       ],
@@ -26948,7 +26948,7 @@
       "responsibilityFacet": "primary",
       "sha256": "2a624b18cfc0db8bd92f030934252579add7011e584021ffcb78328a0f5f9094",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "strategyAction"
       ],
@@ -27205,9 +27205,9 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "312a37af894784832fdfe2838a78b933b59fb8b840b13e24d1791d5d40d1896f",
+      "sha256": "c7274fdba908d9db1958b8aeaf71ea140b9d4f201d9b65e07cb964bba738a99b",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -27218,6 +27218,7 @@
             "moon",
             "owner",
             "acquired",
+            "managedRun",
             "sourceProfile",
             "registry",
             "values",
@@ -27252,7 +27253,7 @@
         {
           "name": "openAcquiredEffectComputation/capacities/capacities",
           "parameters": [
-            "value"
+            "source"
           ],
           "async": false
         },
@@ -27355,20 +27356,6 @@
           "async": false
         },
         {
-          "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#12",
-          "parameters": [
-            "task"
-          ],
-          "async": false
-        },
-        {
-          "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#13",
-          "parameters": [
-            "task"
-          ],
-          "async": false
-        },
-        {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#2",
           "parameters": [
             "slot"
@@ -27378,7 +27365,7 @@
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#3",
           "parameters": [
-            "source"
+            "value"
           ],
           "async": false
         },
@@ -27413,14 +27400,14 @@
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#8",
           "parameters": [
-            "value"
+            "task"
           ],
           "async": false
         },
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#9",
           "parameters": [
-            "value"
+            "task"
           ],
           "async": false
         },
@@ -27437,13 +27424,6 @@
         {
           "name": "openAcquiredEffectComputation/originalCurrent/originalCurrent/originalCurrent",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openAcquiredEffectComputation/pendingSelection/pendingSelection",
-          "parameters": [
-            "value"
-          ],
           "async": false
         },
         {
@@ -27664,7 +27644,6 @@
             "openAcquiredEffectComputation/openAcquiredEffectComputation",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#10",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#11",
-            "openAcquiredEffectComputation/openAcquiredEffectComputation#12",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#2",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#3",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#4",
@@ -27676,7 +27655,6 @@
             "openAcquiredEffectComputation/originalCurrent/originalCurrent",
             "openAcquiredEffectComputation/originalCurrent/originalCurrent/changed/changed",
             "openAcquiredEffectComputation/originalCurrent/originalCurrent/originalCurrent",
-            "openAcquiredEffectComputation/pendingSelection/pendingSelection",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources#2",
@@ -27802,9 +27780,7 @@
           }
         },
         {
-          "operations": [
-            "openAcquiredEffectComputation/openAcquiredEffectComputation#13"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -27877,7 +27853,6 @@
         "../host-common/effect-preparation-result.mjs",
         "../host-common/runtime-result.mjs",
         "./acquired-effect-sources.mjs",
-        "./captured-duckdb-source.mjs",
         "./entry.mjs",
         "./infer-capture-custody.mjs",
         "./infer-operation.mjs",
@@ -27891,7 +27866,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "8c41827c3d9108274b722d9f1427031f0699aebc66ca76b458527cbb30d62e80",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "acquiredEffectContinuation"
       ],
@@ -28915,7 +28890,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "4de0c786a6224f74858d8686dbdc055cb2895d1836818db23b1d9912552677d7",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "capturedDuckDBConfiguration",
         "capturedDuckDBNativeConfiguration",
@@ -30376,7 +30351,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "13810047b24718adb46d14359be4f651adcb6d0fa31cd58fc7569551c84a9854",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
@@ -32901,7 +32876,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "responsibilityFacet": "supplemental",
       "contracts": [
         {
@@ -33053,7 +33028,7 @@
       "unresolvedSyntax": [],
       "role": "physical-io",
       "responsibilityFacet": "supplemental",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "contracts": [
         {
           "operations": [
@@ -33177,7 +33152,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "f0bc70a0f60c584dbdf78b510a67764e1d063b7fef98f5fbb15e16961c113400",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -36146,7 +36121,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "7af76add4483436d900afe0e152f802ea4a8ce71496473adbf3517292117340a",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "verifyPinnedEffectPlan"
       ],
@@ -36568,7 +36543,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d04b7cb2df313ab2693def3ca799e54807bc180c3f9c83f8d126a8eefd898e6e",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "applyCapturedEffectSet",
         "applyRecoveredEffectSet",
@@ -38850,9 +38825,9 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "5780c7a59550bc00ba090f5bd74ee44691908e84ab616acec34b1563c67f415f",
+      "sha256": "8e3146d1823489017ebb11606354c89b7ed4e1827aa909b5f18c8736778d15e6",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -39045,6 +39020,20 @@
         },
         {
           "name": "connectEmbeddedLocal/preparation/init:canRetireManagedPreparation/init:canRetireManagedPreparation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun/current/current",
           "parameters": [],
           "async": false
         },
@@ -39326,6 +39315,22 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun",
+          "parameters": [
+            "runtime",
+            "facts",
+            "selection",
+            "inputs",
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/current/current",
+          "parameters": [],
           "async": false
         },
         {
@@ -39967,11 +39972,6 @@
           "parameters": [
             "prepared"
           ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun/effectRun",
-          "parameters": [],
           "async": false
         },
         {
@@ -41734,7 +41734,22 @@
           "name": "readSourceManagedEffectRunRequirements",
           "parameters": [
             "originals",
-            "checkedPrepared"
+            "checkedPrepared",
+            "operationPlan"
+          ],
+          "async": false
+        },
+        {
+          "name": "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -41750,8 +41765,7 @@
           "name": "readSourceManagedRunRequirementsOwned",
           "parameters": [
             "originals",
-            "checkedPrepared",
-            "effectful"
+            "checkedPrepared"
           ],
           "async": false
         },
@@ -42065,7 +42079,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -46087,7 +46101,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -47387,7 +47401,6 @@
             "connectEmbeddedLocal/preparation/init:installMockEffects/init:installMockEffects/init:installMockEffects",
             "openInstalledHost/assertMockEffectRunOriginal",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#6",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun/effectRun",
             "openInstalledHost/mockEffectResources/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/mockEffectResources/init:bindRunOriginal/init:bindRunOriginal",
             "openInstalledHost/mockEffectResources/init:limits/init:limits",
@@ -48930,6 +48943,119 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun",
+            "connectEmbeddedLocal/preparation/init:effectManagedRun/init:effectManagedRun/current/current",
+            "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun",
+            "connectEmbeddedLocal/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/current/current",
+            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements",
+            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareManagedEffectPlanRun(runtime, facts, selection, inputs, model)"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "effectManagedRun(runtime, prepared, request)"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "readInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "record.computeLiveRuns"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "run.selecting"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "throw clientOperationError('InstalledEffectPlanUnavailable')"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "finishInstalledEffectModelScope(run, true, checked)"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Model demand on the original installed Effect Plan"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "readSourceManagedEffectRunRequirements"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "Model Effect retains one demand Plan parent and original Scope before Source work"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -48952,6 +49078,10 @@
         "../host-common/run-state-observation.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
+        "../local-node/closed-values-preparation-adapter.mjs",
+        "../local-node/installed-mock-row-effect.mjs",
+        "../local-node/installed-project-mock-answers.mjs",
+        "../local-node/installed-project-mock.mjs",
         "../local-node/retained-store.mjs",
         "../store-local/files.mjs",
         "../store-local/publication-store.mjs",
@@ -48976,7 +49106,6 @@
         "./client-run-plan.mjs",
         "./client-run-start.mjs",
         "./client-submission.mjs",
-        "./closed-values-preparation-adapter.mjs",
         "./effect-run-recovery.mjs",
         "./effect-target-read-continuation.mjs",
         "./effect-target-read-inventory.mjs",
@@ -48992,19 +49121,18 @@
         "./installed-connectors.mjs",
         "./installed-content-run.mjs",
         "./installed-effect-inventory.mjs",
+        "./installed-effect-managed-run.mjs",
         "./installed-effect-site.mjs",
         "./installed-effect.mjs",
         "./installed-host-cleanup.mjs",
         "./installed-host-policy.mjs",
+        "./installed-host-services.mjs",
         "./installed-infer-run.mjs",
         "./installed-managed-source.mjs",
-        "./installed-mock-row-effect.mjs",
         "./installed-model-continuation.mjs",
         "./installed-model-originals.mjs",
         "./installed-model.mjs",
         "./installed-project-configuration.mjs",
-        "./installed-project-mock-answers.mjs",
-        "./installed-project-mock.mjs",
         "./installed-project-model-tasks.mjs",
         "./installed-project-profile.mjs",
         "./installed-row-effect.mjs",
@@ -49048,7 +49176,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "e9cb2e7f3bd058bee417585a8e89a05da96dea3d24a6143030768e34680ffa14",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "openNodeInferCaptureCustody"
       ],
@@ -49725,7 +49853,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "a8b59358ea08677da044371e235c6a31f9b5e95a6552090b00193d9b21916963",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "configureInferEvidence",
         "projectInferEvidence",
@@ -50841,7 +50969,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "4a4fe5df15808b3926f5d587c062374ff6d7f0725f0063e8c08239b2a74f2ebf",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "inferOriginalReadCleanupComplete",
         "openNodeComposedInferProvider",
@@ -53682,7 +53810,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d6a1c11c9683de2a3953ff0ba4cb22c1973f78c96af8b7162516eaa0ebbfcf5a",
       "role": "physical-io",
-      "owner": "A \u2014 existing Model raw custody projection",
+      "owner": "A — existing Model raw custody projection",
       "exports": [
         "bindOriginalModelRawTransportPersistence",
         "createModelRawCaptureStorePort",
@@ -54753,7 +54881,7 @@
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A \u2014 existing Host preparation input boundary",
+      "owner": "A — existing Host preparation input boundary",
       "responsibilityFacet": "supplemental",
       "contracts": [
         {
@@ -54986,7 +55114,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "204d7697f4effe3a54b2dd4f3301ca95de4c27b2ae92c653f8e8d12892770472",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runInstalledComposedInfers"
       ],
@@ -55828,7 +55956,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "f033485fd23383b134fd004eff3fab9afc8ebdc6dd2416682b1d82df757f975e",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "installNodeInferRun"
       ],
@@ -56335,7 +56463,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "c7c9a2089530fda48981f33e3d874607ef7bc9a024d1b64c6e530448919a333b",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "installRunKeyedContentCapture"
       ],
@@ -57052,7 +57180,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "a794d669b085b34ffc371dd77158d829d4c88c4a4649b24592de0e2008f56ad9",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "installNodeModelContinuation"
       ],
@@ -59019,7 +59147,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "8937c6e81fec6018d2347ed9727d0781e4a094f563a144a3d261a703bef77205",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitInstalledModelProvider",
         "admitInstalledModelProviderBinding",
@@ -60875,9 +61003,9 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "a4ca6ec7dd3320d48c05bc3d3f3941d7307c65e3c433df90d33e3f6a345b4ccc",
+      "sha256": "6d944ffc6630c1255dbe7cd7b873cd265e9f454ae9ea79431ee511c3fbd3dab7",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "composeInstalledRowEffectOwners",
         "createInstalledRowEffect",
@@ -60915,6 +61043,37 @@
           "name": "captureEffectResources/captureEffectResources",
           "parameters": [
             "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedPlanDefinition",
+          "parameters": [
+            "definition",
+            "driver"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedPlanDefinition/array/array",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedPlanDefinition/fields/fields",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedPlanDefinition/fields/fields/fields",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -61112,7 +61271,8 @@
             "continuationBinding",
             "suppliedLimits",
             "effectResources",
-            "issueOriginalCollectionReference"
+            "issueOriginalCollectionReference",
+            "managedPlanDefinition"
           ],
           "async": true
         },
@@ -66449,6 +66609,110 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "captureManagedPlanDefinition",
+            "captureManagedPlanDefinition/array/array",
+            "captureManagedPlanDefinition/fields/fields",
+            "captureManagedPlanDefinition/fields/fields/fields"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function captureManagedPlanDefinition"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function captureManagedPlanDefinition"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-definition-data.test.mjs",
+                "anchor": "managedPlanDefinition"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function captureManagedPlanDefinition"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-definition-data.test.mjs",
+                "anchor": "managedPlanDefinition"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function captureManagedPlanDefinition"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function captureManagedPlanDefinition"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-definition-data.test.mjs",
+                "anchor": "managedPlanDefinition"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "fail('InvalidInstalledEffectPlanDefinition')"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-definition-data.test.mjs",
+                "anchor": "managedPlanDefinition"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous frozen operation-name DATA capture neither starts work nor owns cancellation."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function captureManagedPlanDefinition"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function captureManagedPlanDefinition"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-definition-data.test.mjs",
+                "anchor": "managedPlanDefinition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-definition-data.test.mjs",
+                "anchor": "managedPlanDefinition"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -66472,7 +66736,8 @@
         "./table-write-binding.mjs",
         "./update-target-original-shape.mjs",
         "node:crypto",
-        "node:fs/promises"
+        "node:fs/promises",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -66480,9 +66745,9 @@
     {
       "module": "adapters/host-node/installed-row-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "38dc09523834613feb0592739321187eb904676289f2214a4fe1e79471a4d560",
+      "sha256": "953c7f35126ac4af012ea0761f64ff70b5c83d69c0f81106d1da2fd3bd30ada5",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "startInstalledRowRun"
       ],
@@ -66631,6 +66896,13 @@
         },
         {
           "name": "startInstalledRowRun/run/run",
+          "parameters": [
+            "attempt"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/run/run#10",
           "parameters": [
             "attempt"
           ],
@@ -67247,7 +67519,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "ledger === undefined || keyed || reportCapacity !== undefined || providerCapacity !== undefined"
+                "anchor": "ledger === undefined || keyed || reportCapacity !== undefined"
               },
               {
                 "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
@@ -67339,6 +67611,114 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "startInstalledRowRun/run/run#10"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "fail('InstalledSourceReadUnavailable')"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "fail('InstalledSourceReadUnavailable')"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "export function startInstalledRowRun"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -67352,13 +67732,15 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "c4df751b4beba307a3a97503ab7d847e1611e35a886b3cc0d21cac0994a9fa2d",
+      "sha256": "12c05c0bdc6c5a4f9b42f7fe34d42e3ee90bcbb5be7be6dc6fa274df8225df1b",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowSource",
         "installRowSourceAuthorization",
+        "installedRowCredentialOperationSite",
         "loadRowSourceCredentialCustody",
+        "openInstalledRowSite",
         "openRowSourceCredentialCustody",
         "openRowSourceCredentialSite",
         "rowSourceCheckEnvironment",
@@ -67629,6 +68011,11 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSource/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/init:retainedCapture/init:retainedCapture",
           "parameters": [
             "prepared"
@@ -67639,6 +68026,13 @@
           "name": "createInstalledRowSource/keyedRecoveryBinding",
           "parameters": [
             "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/managedProviderCaptureCapacity",
+          "parameters": [
+            "requirement"
           ],
           "async": false
         },
@@ -67918,6 +68312,7 @@
             "access",
             "queryTimePreparation",
             "requestIdentity",
+            "managedRun",
             "occurrence"
           ],
           "async": true
@@ -67955,6 +68350,13 @@
           "name": "createInstalledRowSource/prepareKeyed/prepareKeyed#2",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/prepareOriginalAcquisition",
+          "parameters": [
+            "requirement"
           ],
           "async": false
         },
@@ -68007,6 +68409,13 @@
           "parameters": [
             "code",
             "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedRowCredentialOperationSite",
+          "parameters": [
+            "credential"
           ],
           "async": false
         },
@@ -68067,6 +68476,41 @@
           "async": false
         },
         {
+          "name": "openInstalledRowSite",
+          "parameters": [
+            "root",
+            "principalId",
+            "commonMoon",
+            "installation",
+            "runtimeBundleCid",
+            "accountConfiguration",
+            "originalContext",
+            "connection",
+            "profile",
+            "resolveSecret",
+            "ca",
+            "responseHeaders",
+            "admitsApprovalTarget",
+            "admitsEffectTargetRead",
+            "runAcquisitionLimits",
+            "assertCurrent",
+            "receiver"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledRowSite/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledRowSite/openInstalledRowSite",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
           "name": "openRowSourceCredentialCustody",
           "parameters": [
             "profile",
@@ -68085,6 +68529,13 @@
             "runAcquisitionLimits",
             "closedCode",
             "grantCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/authorizationPurpose",
+          "parameters": [
+            "authorization"
           ],
           "async": false
         },
@@ -68182,31 +68633,24 @@
         {
           "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
           "parameters": [
-            "name"
+            "field"
           ],
           "async": false
         },
         {
           "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
           "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#3",
-          "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#4",
+          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#3",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#5",
+          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#4",
           "parameters": [],
           "async": false
         },
@@ -68267,7 +68711,8 @@
             "runInvocationCid",
             "taskAttempt",
             "dispatchRequestCid",
-            "maxUses"
+            "maxUses",
+            "issuerPurpose"
           ],
           "async": false
         },
@@ -68297,6 +68742,8 @@
             "admitsApprovalTarget",
             "admitsEffectTargetRead",
             "installationMetadata",
+            "runAcquisitionLimits",
+            "ownAuthorization",
             "responseHeaders",
             "now",
             "grantLifetimeMs",
@@ -68316,6 +68763,11 @@
           "parameters": [
             "options"
           ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialSite/closeOwnedAuthorization/closeOwnedAuthorization",
+          "parameters": [],
           "async": false
         },
         {
@@ -68399,6 +68851,27 @@
         {
           "name": "openRowSourceCredentialSite/synchronous/synchronous",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "ownCredentialAcquisitionLimits",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownCredentialAcquisitionLimits/ownCredentialAcquisitionLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownCredentialSecretPresentation",
+          "parameters": [
+            "options"
+          ],
           "async": false
         },
         {
@@ -68595,6 +69068,31 @@
         {
           "name": "prepareInstallationMetadataSite/synchronous/synchronous/synchronous",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainCredentialOperationSite",
+          "parameters": [
+            "site",
+            "custody",
+            "identity",
+            "enabled"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainCredentialOperationSite/retainCredentialOperationSite",
+          "parameters": [
+            "authorization",
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainCredentialOperationSite/retainCredentialOperationSite#2",
+          "parameters": [
+            "authorization"
+          ],
           "async": false
         },
         {
@@ -69227,7 +69725,7 @@
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "const credentialRead = owner.originalRead === undefined;"
+                "anchor": "const credentialRead = owner.originalRead === undefined ||"
               }
             ],
             "verification": [
@@ -69511,7 +70009,6 @@
             "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
             "openRowSourceCredentialCustody/openRowSourceCredentialCustody#3",
             "openRowSourceCredentialCustody/openRowSourceCredentialCustody#4",
-            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#5",
             "openRowSourceCredentialCustody/openRunAcquisition",
             "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition",
             "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#2",
@@ -70737,7 +71234,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "const originalRead = prepareSourceRead === undefined ? undefined :"
+                "anchor": "const originalRead = planned !== undefined ? runtimeField(planned, 0)"
               }
             ],
             "inputsOutputs": [
@@ -70795,7 +71292,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "occurrence, physicalBindingCid, providerCaptureCapacity, originalRead}));"
+                "anchor": "occurrence, physicalBindingCid, providerCaptureCapacity, originalRead, managedRun}));"
               },
               {
                 "path": "adapters/host-node/source-managed-phase-envelope.cjs",
@@ -70969,6 +71466,238 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createInstalledRowSource/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
+            "createInstalledRowSource/managedProviderCaptureCapacity",
+            "createInstalledRowSource/prepareOriginalAcquisition"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function prepareOriginalAcquisition"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function prepareOriginalAcquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function prepareOriginalAcquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function prepareOriginalAcquisition"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function prepareOriginalAcquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "fail('InstalledSourceReaderNotCurrent')"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "fail('InstalledSourceReaderNotCurrent')"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function prepareOriginalAcquisition"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function prepareOriginalAcquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installedRowCredentialOperationSite",
+            "openInstalledRowSite",
+            "openInstalledRowSite/current/current",
+            "openInstalledRowSite/openInstalledRowSite",
+            "openRowSourceCredentialCustody/authorizationPurpose",
+            "openRowSourceCredentialSite/closeOwnedAuthorization/closeOwnedAuthorization",
+            "ownCredentialAcquisitionLimits",
+            "ownCredentialAcquisitionLimits/ownCredentialAcquisitionLimits",
+            "ownCredentialSecretPresentation",
+            "retainCredentialOperationSite",
+            "retainCredentialOperationSite/retainCredentialOperationSite",
+            "retainCredentialOperationSite/retainCredentialOperationSite#2"
+          ],
+          "exports": [
+            "installedRowCredentialOperationSite",
+            "openInstalledRowSite"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function retainCredentialOperationSite"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function retainCredentialOperationSite"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "generic provider capture selection uses the same original declaration acquisition and provider capacity"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function retainCredentialOperationSite"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "generic provider capture selection uses the same original declaration acquisition and provider capacity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function retainCredentialOperationSite"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function retainCredentialOperationSite"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "generic provider capture selection uses the same original declaration acquisition and provider capacity"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "fail('InvalidRowSourceSecretPresentation')"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "generic provider capture selection uses the same original declaration acquisition and provider capacity"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "fail('InvalidRowSourceSecretPresentation')"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function retainCredentialOperationSite"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function retainCredentialOperationSite"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "generic provider capture selection uses the same original declaration acquisition and provider capacity"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "generic provider capture selection uses the same original declaration acquisition and provider capacity"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -71006,7 +71735,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "90247d18abc6db953b021cc7efa9191bbcbbbb3dbd70b80c34b9b62f8af0f15b",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkInstalledTableEffectLimits",
         "createInstalledTableEffect"
@@ -72811,9 +73540,9 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "efd801f4070faad41bd68f429f4a624a09e5559bac72e513684ee0af4db8859d",
+      "sha256": "e8f5932be5e14edf7a37733df201ebd7b6e6a808d981b8920f2fe10cbba416d2",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -73192,10 +73921,7 @@
           "parameters": [
             "moon",
             "facts",
-            "registry",
-            "values",
-            "fragment",
-            "ordered"
+            "managedRun"
           ],
           "async": false
         },
@@ -73537,7 +74263,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -76830,7 +77556,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -77266,7 +77992,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "024e1ae2bb1d1a8fbcb1f282ac11b6b71eaab1dcc3e620ab239b139433e69b40",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "authorTableOperationPreview"
       ],
@@ -78033,7 +78759,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "cdc086218b28f7170fbe70e9145c79b4e7ab470d0b64097493974a04c0b7731b",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkedTableWriteBinding",
         "verifyTableWriteBinding"
@@ -78413,7 +79139,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "2696846f037c18d380967acbabd4ca6dd2de29ae0761bbb5587fe2bcef2835ec",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "prepareLocalRetainedOutput"
       ],
@@ -78831,7 +79557,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "345163893ae19eb2d038eb9702c676a962eb257e857a12c11337a11593afe548",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "localStrategyContribution"
       ],
@@ -80196,7 +80922,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "752288be142a2ea76466f032875af7b85019d9675dd0a135af109db0fec35f9c",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "numericStrategyContribution"
       ],
@@ -80741,7 +81467,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "dce72ee5465ad9556e2f2b84758eb0008e491acc0d60f24610f2befe91a52e1a",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "bindWorkersFiniteHost"
       ],
@@ -81960,7 +82686,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -83807,7 +84533,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "29401b3dfde33c5b48963671b7b2174299b27ddb0e8ed1bb55b82744aa46b898",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "acceptedSiteOutput",
         "acceptedSourceObservation",
@@ -94179,7 +94905,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -96026,7 +96752,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -97873,7 +98599,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -99720,7 +100446,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "b9365510c3e60a79136911bd78a4c08dad863d64ff4f0f29cf6e16595539fb09",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitCapturedResultSnapshot",
         "admitCompletedSourceObservation",
@@ -123918,7 +124644,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "47c5920dcd16b65be41156686e7970adfd6b998d719c4e62420b0bef5f93887c",
       "role": "observation-presentation",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitObservationScope",
         "chargeObservation",
@@ -125192,7 +125918,7 @@
       "responsibilityFacet": "primary",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "publicationAction"
       ],
@@ -125443,7 +126169,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -127290,7 +128016,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "ba3ac39d933226c2230e0abc1d5d12c09dde8d3097c6d18629defae3e8ee70a6",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "activeAt",
         "admitDurableJson",

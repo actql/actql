@@ -464,6 +464,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (operationPlan === null || typeof operationPlan !== 'object') fail('InstalledEffectPlanUnavailable');
       return prepareRun(prepared, 'source-compute', undefined, true, undefined, operationPlan);
     },
+    prepareEffectModelPlanRun(prepared, operationPlan) {
+      if (operationPlan === null || typeof operationPlan !== 'object') fail('InstalledEffectPlanUnavailable');
+      return prepareRun(prepared, 'local-mock-model', undefined, true, undefined, operationPlan);
+    },
     prepareLocalMockModelRun(prepared, model) {
       return prepareRun(prepared, 'local-mock-model', model);
     },

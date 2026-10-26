@@ -1581,3 +1581,23 @@ same original Source read and parent Ledger, while Credential authorization
 remains independently required. Copied installation DATA, changed runtime
 identity, changed policy selection and stale current checks cannot substitute
 for any of these originals.
+
+
+## Model demand on the original installed Effect Plan
+
+The Node bridge obtains Model/read/bootstrap bounds through the same checked
+compiled Run, definition, Infer occurrence and graph. Its Model demand retains
+those originals in the existing Core Plan. JavaScript supplies no Model Ledger
+vector and cannot convert an ordinary admission into the local Mock purpose.
+The selected component handles enter the Plan's provider factory alongside the
+unchanged canonical family constructors; later execution must use those same
+handles rather than append a replacement after quoting.
+
+The Host Run record retains the Plan before Root preparation and its admission
+before beginning the existing Model Scope. A failed begin remains attached to
+that same admission. The returned managed Run and Scope remain paired with the
+original compiled definition and graph. The existing complete dispatch or
+initialization retirement observation reaches the same Scope's finish port
+before the parent can retire. Live reads, a pending finish, or changed originals
+refuse that transition; a terminal outcome or settled Promise supplies no
+physical-cleanup acknowledgement.

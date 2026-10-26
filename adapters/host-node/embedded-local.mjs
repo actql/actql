@@ -81,7 +81,7 @@ import {installedRuntimeBundleCid} from './source-profile-json.mjs';
 import {initializeOrdinaryMockAccount} from './ordinary-mock-account.mjs';
 import {ordinaryHostJournalInstallation} from './ordinary-host-journal.mjs';
 import {bindInstalledManagedSources} from './installed-managed-source.mjs';
-import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun}
+import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun, finishInstalledEffectModelScope}
   from './installed-effect-managed-run.mjs';
 import {prepareSourceManagedInstallation, assertSourceManagedInstallationCurrent,
   assertSourceManagedPreparationCurrent, prepareManagedComputeInstallation,
@@ -5174,6 +5174,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       // Dispatch has closed its actual children before this initial duty.
       // Source-free Runs on either joint Source/Compute or Compute-only
       // installations retire before their same parent service can close.
+      finishInstalledEffectModelScope(run, true, checked);
       if (run.value !== undefined) checked(Reflect.apply(run.retire, run.runtime, [run.value]));
       else if (run.admission !== undefined) checked(Reflect.apply(run.cleanup, run.runtime, [run.admission]));
       run.closed = true;
@@ -5474,7 +5475,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       }
       return preparation.prepareManagedComputeRun(runtime, prepared, request, sourceProfile);
     },
-    prepareManagedEffectPlanRun(runtime, facts, selection, inputs) {
+    prepareManagedEffectPlanRun(runtime, facts, selection, inputs, model) {
       const manager = computeManaged ?? sourceManaged;
       if (runtime !== moon || manager === undefined) throw clientOperationError('ForeignInstalledComputePreparation');
       const current = () => (computeManaged === undefined
@@ -5484,7 +5485,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       originalInstallation.computeRuns = runs;
       return prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, manager,
         prepared: facts.prepared, request: facts.identity, selection, facts, inputs,
-        sourceProfile: inputs.sourceProfile, assertCurrent: current, checked});
+        sourceProfile: inputs.sourceProfile, model, assertCurrent: current, checked});
     },
     effectManagedRun(runtime, prepared, request) {
       if (runtime !== moon) throw clientOperationError('ForeignInstalledEffectManagedRun');
@@ -5590,6 +5591,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         run.finishRetirement = managedPreparationRetirementContinuation(run,record);
         return run.finishRetirement;
       }
+      finishInstalledEffectModelScope(run, true, checked);
       if (run.value !== undefined) checked(Reflect.apply(run.retire, run.runtime, [run.value]));
       else if (run.admission !== undefined) checked(Reflect.apply(run.cleanup, run.runtime, [run.admission]));
       if (run.original !== undefined) run.manager.retireRun(prepared, run.original);
