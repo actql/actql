@@ -9,6 +9,7 @@ import {isAbsolute} from 'node:path';
 import {types} from 'node:util';
 import {parse} from 'acorn';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
 
 const sources = Object.fromEntries(await Promise.all(['notion', 'slack'].map(async role => [role,
   await readFile(new URL(`../../${role}/host/installed-${role}-source.mjs`, import.meta.url), 'utf8')])));
@@ -55,7 +56,7 @@ function fixture(role, {textFailure, mutateMethods = false, badMethod, noCa = fa
     return ['VariableDeclaration', 'FunctionDeclaration'].includes(declaration.type) ?
       [code.slice(declaration.start, declaration.end)] : [];
   }).join('\n');
-  const ports = {createHash, isAbsolute, types, canonicalJson, installedJsonSourceReaderLimitNames: readerLimits,
+  const ports = {createHash, isAbsolute, types, canonicalJson, checked, installedJsonSourceReaderLimitNames: readerLimits,
     readSourceProfileJson(path) {
       directJson++; assert(allowDirect, 'original supplied JSON reader was ignored');
       assert.equal(path, profile.siteProfilePath); return site;
