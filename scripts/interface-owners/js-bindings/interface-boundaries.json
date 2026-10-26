@@ -38850,7 +38850,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "bf2e3078019d61c9859a762a778fba7e6a86c1a334c18dd3f923e2952e1e4680",
+      "sha256": "a8b21295388edb15ec7d3ebc8e6e5b6afc4dbc822eafb4673bb5f2fd5b7e9860",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -46747,6 +46747,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "if (runtimeIsError(result) && moon.clientProgramInstalledManagedRunIssueIsUnsupported("
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('reused Source retains same-map membership and the original Host current failure'"
               }
             ],
             "cancellation": [
@@ -46859,6 +46863,10 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
                 "anchor": "Unsupported after Resource or a retained failure never issues a new pure refusal"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('reused Source admission refuses retirement replacement and original failure from its captured current check'"
               }
             ]
           }
