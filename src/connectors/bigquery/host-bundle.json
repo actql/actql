@@ -1,0 +1,16 @@
+{
+  "installation": {
+    "registration": "bigquery",
+    "revision": "bigquery/0.1",
+    "responseHeaders": ["content-encoding"],
+    "source": {
+      "profileVersion": "actql-installed-bigquery-source/0.1",
+      "module": "adapters/connectors/bigquery/host/installed-bigquery-source.mjs",
+      "exports": {
+        "check": "checkInstalledBigQuerySourceProfile",
+        "identityParts": "installedBigQuerySourceIdentityParts",
+        "load": "loadInstalledBigQuerySource"
+      }
+    }
+  }
+}

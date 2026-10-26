@@ -202,6 +202,332 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/bigquery/host/installed-bigquery-source.mjs",
+      "sha256": "b2aff12dfd9a84d903fd05072a936f8677f3a4a75c782fa69819ea725f9f13ce",
+      "exports": [
+        "INSTALLED_BIGQUERY_SITE_VERSION",
+        "INSTALLED_BIGQUERY_SOURCE_VERSION",
+        "checkInstalledBigQuerySiteProfile",
+        "checkInstalledBigQuerySourceProfile",
+        "installedBigQuerySourceIdentityParts",
+        "loadInstalledBigQuerySource"
+      ],
+      "operations": [
+        {
+          "name": "absolute/absolute",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "canonical/canonical",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledBigQuerySiteProfile",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledBigQuerySiteProfile/checkInstalledBigQuerySiteProfile",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledBigQuerySourceProfile",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledBigQuerySourceProfile/checkInstalledBigQuerySourceProfile",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledBigQuerySourceProfile/checkInstalledBigQuerySourceProfile#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledBigQuerySourceProfile/checkInstalledBigQuerySourceProfile#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedBigQuerySourceIdentityParts",
+          "parameters": [
+            "profile",
+            "providerProfile"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledBigQuerySource",
+          "parameters": [
+            "value",
+            "root",
+            "principalId",
+            "moon",
+            "baseEnvironmentWire",
+            "runtimeBundleCid",
+            "resolveSecret",
+            "installation"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledBigQuerySource/admitsApprovalTarget/admitsApprovalTarget",
+          "parameters": [
+            "binding",
+            "resource"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledBigQuerySource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledBigQuerySource/loadInstalledBigQuerySource",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledBigQuerySource/loadInstalledBigQuerySource#2",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledBigQuerySource/loadInstalledBigQuerySource#3",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledBigQuerySource/site/site",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "loadInstalledBigQuerySource/target/target",
+          "parameters": [
+            "resource",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own",
+          "parameters": [
+            "value",
+            "required",
+            "optional",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own/own",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own/own#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own/own#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInputs",
+          "parameters": [
+            "value"
+          ],
+          "async": true
+        },
+        {
+          "name": "readInputs/readInputs",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/source-profile-json.mjs",
+        "../site/bigquery-sql-read.mjs",
+        "node:crypto",
+        "node:path",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "connector-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing BigQuery description/query/read, standard RowSource/Journal/Account/Site and cleanup owners; no additional authority or physical owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "absolute/absolute",
+            "canonical/canonical",
+            "checkInstalledBigQuerySiteProfile",
+            "checkInstalledBigQuerySiteProfile/checkInstalledBigQuerySiteProfile",
+            "checkInstalledBigQuerySourceProfile",
+            "checkInstalledBigQuerySourceProfile/checkInstalledBigQuerySourceProfile",
+            "checkInstalledBigQuerySourceProfile/checkInstalledBigQuerySourceProfile#2",
+            "checkInstalledBigQuerySourceProfile/checkInstalledBigQuerySourceProfile#3",
+            "cid/cid",
+            "fail/fail",
+            "installedBigQuerySourceIdentityParts",
+            "loadInstalledBigQuerySource",
+            "loadInstalledBigQuerySource/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledBigQuerySource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledBigQuerySource/loadInstalledBigQuerySource",
+            "loadInstalledBigQuerySource/loadInstalledBigQuerySource#2",
+            "loadInstalledBigQuerySource/loadInstalledBigQuerySource#3",
+            "loadInstalledBigQuerySource/site/site",
+            "loadInstalledBigQuerySource/target/target",
+            "own/own",
+            "own/own/own",
+            "own/own/own#2",
+            "own/own/own#3",
+            "readInputs",
+            "readInputs/readInputs",
+            "text/text"
+          ],
+          "exports": [
+            "INSTALLED_BIGQUERY_SITE_VERSION",
+            "INSTALLED_BIGQUERY_SOURCE_VERSION",
+            "checkInstalledBigQuerySiteProfile",
+            "checkInstalledBigQuerySourceProfile",
+            "installedBigQuerySourceIdentityParts",
+            "loadInstalledBigQuerySource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Installation responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Installation inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Installation identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Installation ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Installation synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Installation failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Installation cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Installation resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Installation extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/bigquery/site/README.md",
+                "anchor": "- Installation verification:"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

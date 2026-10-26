@@ -115,6 +115,25 @@ Close and cleanup failures stay on the same retry handle; completion is
 marked only after close succeeds. A retry releases resources — it never
 repeats a read, a computation, a Preview, an approval or a send.
 
+### Original SQL Job Source installation
+
+BigQuery's `host-bundle.json` is a concrete Source-only registration using the
+integrated Common and existing `readBigQuerySqlApi` driver. Its installed
+factory preserves the exact Get Table bytes and scoped target in the standard
+Account/Site identity, prepares the real query requirement once and retains
+that original prepared read under its own nominal acquisition. It forwards
+the same entered RowRun, current checks and authorization rather than opening
+another acquisition or Ledger.
+
+A Job's first POST requires the standard `withOriginalJob` port from that same
+Source occurrence and Journal. The factory selects a provider Job name from
+the actual original attempt identifiers; this DATA name is not the durable
+CAS or permission to dispatch. Missing original-operation scope refuses before
+the Job driver can send. The shared driver retains exact request/status/result
+and failure cleanup. Preserve its Unknown and same-Job GET behaviour; a new
+factory, copied row or matching metadata does not authorize another POST.
+See [BigQuery installed Source boundaries](../../adapters/connectors/bigquery/site/README.md#standard-table-source-installation).
+
 ## Tests a Connector must pass
 
 Reuse the common registration, value comparison, prepare-refusal, response
