@@ -138,6 +138,8 @@ pub fn[I, P] complete_preparation_capacity(PreparationCapacity[I, P], I, P, Int6
 
 pub fn configure_quantities(Ledger, QuantityAmounts) -> Result[Unit, LedgerIssue]
 
+pub fn consume_execution_delegation_attempt(Ledger, ExecutionDelegation) -> Result[Unit, LedgerIssue]
+
 pub fn[T] consume_original_resource_invalidation(OriginalResourceInvalidationRequest[T], OriginalResourcePark[T], T) -> Result[Unit, OriginalReadIssue]
 
 pub fn consume_reserved_attempt(Ledger, Reservation) -> Result[Unit, LedgerIssue]
