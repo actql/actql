@@ -26,9 +26,9 @@ Serialized input measurement has its own guard in
 [`captured_ledger.mbt`](../../src/client_local_host/captured_ledger.mbt). It counts
 numeric spellings as well as text. The checked plan retains the generic guard
 or the larger original scalar wire envelope; value-text demand cannot replace
-that byte guard. The scalar wire derivation belongs to
-[`scalar_wire_capacity.mbt`](../../src/client_local_host/scalar_wire_capacity.mbt),
-with separate consumer wire profiles and Store ceilings.
+that byte guard. The [scalar wire derivation](../../src/client_local_host/scalar_wire_capacity.mbt)
+has no separate 1,000,000-byte cap. Consumer wire profiles and Store ceilings
+remain independent.
 
 Schema traversal, field names, bridge/completion inventories and Result view
 workspace use separate typed limits retained by
