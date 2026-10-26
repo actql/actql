@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {readSourceProfileJson,readBoundedConfigurationText} from '../../../host-node/source-profile-json.mjs';
+import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
 import {createInstalledRowSource,installRowSourceAuthorization,openRowSourceCredentialSite,
   rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
@@ -49,15 +49,16 @@ function checkSite(site){
   return Object.freeze({...rest,...(caPath===undefined?{}:{caPath})});
 }
 
-async function readInputs(profile){
+async function readInputs(profile,configurationReader,readJson){
   const installed=checkInstalledNotionSourceProfile(profile);
-  const site=checkSite(await readSourceProfileJson(installed.siteProfilePath));
+  const reads=captureConfigurationReaders(configurationReader,readJson,()=>fail('InstalledNotionConfigurationReaderUnavailable'));
+  const site=checkSite(await reads.readJson(installed.siteProfilePath));
   let ca;
   if(site.caPath!==undefined){
     // This private Site accepts bounded PEM text, not an unbounded file read
     // or lenient UTF-8 identity. Non-ASCII/replacement input is refused rather
     // than re-encoding different authority bytes before hashing/native TLS.
-    const pem=await readBoundedConfigurationText(site.caPath,{maxBytes:installed.limits.maxCaBytes});
+    const pem=await reads.readText(site.caPath,{maxBytes:installed.limits.maxCaBytes});
     if(/[^\x09\x0a\x0d\x20-\x7e]/u.test(pem)||!pem.includes('-----BEGIN CERTIFICATE-----')||
         !pem.includes('-----END CERTIFICATE-----'))fail('InvalidInstalledNotionTlsAuthority');
     ca=Buffer.from(pem,'ascii');
@@ -71,8 +72,8 @@ async function readInputs(profile){
   return{installed,site,ca,binding};
 }
 
-export async function installedNotionSourceIdentityParts(profile,providerProfile){
-  const{site,binding}=await readInputs(providerProfile);
+export async function installedNotionSourceIdentityParts(profile,providerProfile,read,_installation,context){
+  const{site,binding}=await readInputs(providerProfile,context?.configurationReader,read);
   return[{...profile,accountConfigurationWire:JSON.parse(profile.accountConfigurationWire)},site,binding];
 }
 
@@ -132,8 +133,8 @@ function originalReaderFactory({provider,site,installed,capacity}){
 }
 
 export async function loadInstalledNotionSource(profile,{root,principalId,moon,providerMoon:provider,
-  baseEnvironmentWire,runtimeBundleCid,resolveSecret,readerCapacity}={}){
-  const{installed,site:siteProfile,ca,binding}=await readInputs(profile);
+  baseEnvironmentWire,runtimeBundleCid,resolveSecret,readerCapacity,configurationReader}={}){
+  const{installed,site:siteProfile,ca,binding}=await readInputs(profile,configurationReader);
   // The existing trusted installer must supply its same-runtime declaration.
   // Public profile amounts, page/transfer limits and fixed spare constants are
   // not a full reader retained/workspace supplier. Never choose legacy readPages.

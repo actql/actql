@@ -2088,7 +2088,7 @@
     },
     {
       "module": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-      "sha256": "5de224532a2d85d01e78524921334391fbe93ba0334d3a3dbcc586aad092da8b",
+      "sha256": "37338447f727076c87b6d866ccc37c334a3be0caecad58d22e0ae8766d0df34e",
       "exports": [
         "INSTALLED_CALENDAR_SITE_VERSION",
         "INSTALLED_CALENDAR_SOURCE_VERSION",
@@ -2181,33 +2181,6 @@
           "parameters": [
             "name"
           ],
-          "async": false
-        },
-        {
-          "name": "configurationReads",
-          "parameters": [
-            "reader",
-            "readJson"
-          ],
-          "async": false
-        },
-        {
-          "name": "configurationReads/configurationReads",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "configurationReads/configurationReads#2",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "configurationReads/unavailable/unavailable",
-          "parameters": [],
           "async": false
         },
         {
@@ -2369,6 +2342,11 @@
           "async": true
         },
         {
+          "name": "readInputs/reads/reads",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "sha/sha",
           "parameters": [
             "bytes"
@@ -2392,8 +2370,7 @@
         "../../../site-node/https-credential-resource.mjs",
         "../site/calendar-list-read.mjs",
         "node:crypto",
-        "node:path",
-        "node:util"
+        "node:path"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -2601,8 +2578,8 @@
                 "anchor": "export async function loadInstalledCalendarSource"
               },
               {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -2623,8 +2600,8 @@
                 "anchor": "The schema, four"
               },
               {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -2645,8 +2622,8 @@
                 "anchor": "Equal target or schema DATA cannot"
               },
               {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -2667,8 +2644,8 @@
                 "anchor": "const credential=site.credential,callResource=site.callResource;"
               },
               {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -2685,8 +2662,8 @@
                 "anchor": "await context.callbacks.consumePage(rows, Object.freeze({charge}));"
               },
               {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -2707,8 +2684,8 @@
                 "anchor": "lost-response Credential Unknown after physical close"
               },
               {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -2725,8 +2702,8 @@
                 "anchor": "rechecks stop before the next page and does not resend"
               },
               {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -2747,8 +2724,8 @@
                 "anchor": "cleanupConfirmed:phase!=="
               },
               {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -2769,8 +2746,8 @@
                 "anchor": "\"registration\": \"calendar\""
               },
               {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -2791,8 +2768,8 @@
                 "anchor": "ordinary installed Source selection reaches the Calendar-owned factory"
               },
               {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -2807,115 +2784,152 @@
         },
         {
           "operations": [
-            "configurationReads",
-            "configurationReads/configurationReads",
-            "configurationReads/configurationReads#2",
-            "configurationReads/unavailable/unavailable"
+            "readInputs/reads/reads"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
                 "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
               }
             ],
             "resources": [
               {
                 "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
               }
             ],
             "extension": [
               {
                 "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
               }
             ],
             "verification": [
               {
                 "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function configurationReads(reader, readJson)"
+                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export function captureConfigurationReaders("
               },
               {
                 "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
+                "anchor": "The existing configuration-reader owner selects original methods for connectors."
               },
               {
                 "path": "adapters/connectors/calendar/test/installed-calendar-source.test.mjs",
-                "anchor": "test('Calendar original reader public callers preserve pending error and refuse method accessors'"
+                "anchor": "test('Calendar original reader public "
               }
             ]
           }
