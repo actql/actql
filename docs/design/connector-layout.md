@@ -444,3 +444,11 @@ The original pending read error and cleanup handle propagate unchanged. These
 adapters do not retry or retire the installer’s reader. Original PEM validation,
 ASCII bytes, workspace bytes and binding hashes remain separate from reader
 selection, as do Source admission, current authorization and physical cleanup.
+
+The existing configuration-reader owner selects original methods for connectors.
+`captureConfigurationReaders` captures own JSON/text data methods and their
+receiver without opening a file, acquiring permission or owning cleanup. It
+rejects proxy/accessor/incomplete readers through the connector's original
+refusal callback; a returning callback still refuses. Connector adapters retain
+their error identity, profile validation, CA bounds and byte/hash semantics.
+This shared selection does not replace currentness or resource admission.
