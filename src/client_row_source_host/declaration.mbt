@@ -259,6 +259,7 @@ pub fn generate_row_declaration(
     None,
     None,
     None,
+    None,
     limits,
   )
 }
@@ -275,6 +276,7 @@ fn generate_row_declaration_impl(
   schemas : Array[Json]?,
   requests : Array[(Json, Json, Json?)]?,
   classifications : Array[@environment.DataClassification]?,
+  resource_identities : Array[Json?]?,
   limits : RowDeclarationLimits,
 ) -> Result[RowDeclaration, RowDeclarationIssue] {
   if !valid_connector_id(connector_id) {
@@ -294,6 +296,9 @@ fn generate_row_declaration_impl(
     return Err(InvalidView)
   }
   if classifications is Some(values) && values.length() != views.length() {
+    return Err(InvalidView)
+  }
+  if resource_identities is Some(values) && values.length() != views.length() {
     return Err(InvalidView)
   }
   let resources = []
@@ -435,39 +440,40 @@ fn generate_row_declaration_impl(
         }
         Err(issue) => return Err(issue)
       }
-      let (body, view_cid) = seal(
-        [
-          ("schema", "actql.source_view/0.1".to_json()),
-          ("connector_id", connector_id.to_json()),
-          ("connector_version", connector_version.to_json()),
-          ("resource_kind", view.resource_kind.to_json()),
-          ("view_id", "records".to_json()),
-          ("view_version", connector_version.to_json()),
-          ("acquisition", acquisition),
-          (
-            "request_processing",
-            object([("mutates_business_state", false.to_json())]),
-          ),
-          (
-            "output",
-            object([
-              ("carrier", "relation".to_json()),
-              ("schema", row),
-              ("facts", facts),
-              ("data_policy", policy),
-            ]),
-          ),
-          (
-            "pushdown",
-            object([
-              ("contract", pushdown),
-              ("operations", Json::array(["projection".to_json()])),
-            ]),
-          ),
-        ],
-        "contract_cid",
-        limits,
-      )
+      let view_fields = [
+        ("schema", "actql.source_view/0.1".to_json()),
+        ("connector_id", connector_id.to_json()),
+        ("connector_version", connector_version.to_json()),
+        ("resource_kind", view.resource_kind.to_json()),
+        ("view_id", "records".to_json()),
+        ("view_version", connector_version.to_json()),
+        ("acquisition", acquisition),
+        (
+          "request_processing",
+          object([("mutates_business_state", false.to_json())]),
+        ),
+        (
+          "output",
+          object([
+            ("carrier", "relation".to_json()),
+            ("schema", row),
+            ("facts", facts),
+            ("data_policy", policy),
+          ]),
+        ),
+        (
+          "pushdown",
+          object([
+            ("contract", pushdown),
+            ("operations", Json::array(["projection".to_json()])),
+          ]),
+        ),
+      ]
+      if resource_identities is Some(values) &&
+        values[view_index] is Some(identity) {
+        view_fields.push(("resource_identity", identity))
+      }
+      let (body, view_cid) = seal(view_fields, "contract_cid", limits)
       members.push((view_cid, body))
       declared.push({
         resource: view.resource,

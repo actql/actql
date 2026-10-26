@@ -121,3 +121,22 @@ Every installed capacity record also has one nullable provider-pair reference;
 the selected pair retains the original acquisition and declaration until the
 existing planning/capture Owner retires it. No extra reference is free merely
 because it aliases an existing object.
+
+### Static Resource identity in saved relation declarations
+
+A saved relation view may carry `resource_identity_wire`, containing the existing
+six-field `actql.resource_identity/0.1` SourceView contract. Restoration validates
+its shape through the SAME generated SourceView rule in `check_environment`.
+Only provider-ID field and output ResourceKind association belongs to the local
+relation schema owner. Source parsing, generated-rule work, canonical body and
+retained output consume the declaration's remaining byte/node/depth/work bounds. The ordinary
+public relation constructor and declarations without this optional wire retain
+their existing contracts and bytes.
+
+The static contract is sealed into the same SourceView and Catalog identities.
+It contains no current authority, concrete connection revision or boundary CID,
+and issues no ResourceReference. The existing Host and value-admission owner
+must separately resolve original connection evidence and issue an original
+reference; a file name, returned JSON envelope or equal CID cannot stand in for
+that authority. Source reads, Content custody, Plan funding and terminal cleanup
+remain with their existing owners.

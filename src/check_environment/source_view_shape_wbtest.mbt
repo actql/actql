@@ -106,3 +106,50 @@ test "SourceView integer schema does not invent a safe integer ceiling" {
     assert_true(sv_probe("\"" + text + "\"", SVText(0, [], true)) is Err(_))
   }
 }
+
+///|
+test "Resource identity subtree uses the same generated SourceView rule and work budget" {
+  let wire =
+    #|{"version":"actql.resource_identity/0.1","provider_namespace":"drive","resource_kind":"file","provider_id_field":"id","output_field":"resource","boundary_topology":"connector_connection"}
+  let cursor = sv_cursor(wire)
+  let used = check_source_view_resource_identity_shape(cursor, 10000).unwrap()
+  assert_true(used > 0)
+  assert_eq(
+    check_source_view_resource_identity_shape(cursor, used).unwrap(),
+    used,
+  )
+  assert_true(
+    check_source_view_resource_identity_shape(cursor, used - 1) is Err(issue) &&
+    issue.kind == WorkLimit,
+  )
+  assert_true(
+    check_source_view_resource_identity_shape(cursor, -1) is Err(issue) &&
+    issue.kind == InvalidLimits,
+  )
+  guard source_view_shape_rule() is SVObject(fields) else {
+    fail("generated root")
+  }
+  let mut compared = false
+  for (name, _, rule) in fields {
+    if name == "resource_identity" {
+      assert_eq(sv_probe(wire, rule).unwrap(), used)
+      compared = true
+    }
+  }
+  assert_true(compared)
+  for
+    (old, replacement) in [
+      ("drive", ""),
+      ("connector_connection", "view"),
+      ("actql.resource_identity/0.1", "other"),
+      ("\"output_field\":\"resource\"", "\"output_field\":true"),
+    ] {
+    assert_true(
+      check_source_view_resource_identity_shape(
+        sv_cursor(wire.replace(old~, new=replacement)),
+        10000,
+      )
+      is Err(_),
+    )
+  }
+}
