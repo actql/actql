@@ -1,7 +1,7 @@
 // Installed control Host wiring, not a connector-supplied completion verifier.
 import {prepareManagedExecution, startManagedExecution} from './process-channel.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {snapshotProcessLimits, emptyProcessUsage} from './process-accounting.mjs';
+import {snapshotProcessLimits, snapshotProcessUsage, emptyProcessUsage} from './process-accounting.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/process_host_bridge/process_host_bridge.js', import.meta.url);
 
@@ -10,7 +10,7 @@ export async function createManagedProcessHost(limits) {
   const runtime = await import(runtimeUrl.href);
   const ledger = checked(runtime.processLedgerCreate(limits));
   return Object.freeze({
-    usage: () => Object.freeze({...runtime.processLedgerUsage(ledger)}),
+    usage: () => snapshotProcessUsage(runtime.processLedgerUsage(ledger)),
     async start(configuration, capacity, signal) {
       signal?.throwIfAborted();
       if (configuration.accounting !== undefined) throw new TypeError('InstalledProcessAccountingOnly');
@@ -57,7 +57,10 @@ export async function createManagedProcessHost(limits) {
       };
       let channel;
       try {
-        channel = await startManagedExecution(prepared, signal);
+        channel = await startManagedExecution(prepared, signal, () => {
+          if (delegation) checked(runtime.processDelegationStarted(ledger, delegation));
+          else checked(runtime.processStarted(ledger, reservation));
+        });
       } catch (error) {
         if (error?.cleanupHandle) error.cleanupHandle = track(error.cleanupHandle);
         else {

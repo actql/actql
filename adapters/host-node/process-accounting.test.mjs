@@ -28,3 +28,40 @@ test('accounting rejects ambiguous encodings extra authority fields and numeric 
   assert.throws(() => decodeProcessUsage({...encodeProcessUsage(emptyProcessUsage()), owner: 'another-run'}), /InvalidProcessAccounting/);
   assert.throws(() => encodeProcessUsage({...emptyProcessUsage(), held_bytes: -1n}), /InvalidProcessAccounting/);
 });
+
+
+test('usage preserves reserved and live custody counts without admitting them as limit fields', () => {
+  const usage = {...emptyProcessUsage(), reserved_attempts: 2,
+    live_reservations: 3, live_delegations: 1};
+  assert.deepEqual(decodeProcessUsage(encodeProcessUsage(usage)), usage);
+  for (const field of ['reserved_attempts', 'live_reservations', 'live_delegations']) {
+    const missing = {...usage}; delete missing[field];
+    assert.throws(() => encodeProcessUsage(missing), /InvalidProcessAccounting/);
+    for (const value of [-1, 0.5, 2147483648, '1']) {
+      assert.throws(() => encodeProcessUsage({...usage, [field]: value}), /InvalidProcessAccounting/);
+    }
+    assert.throws(() => snapshotProcessLimits({...limits(), [field]: 0}), /InvalidProcessAccounting/);
+  }
+});
+
+test('IPC accounting reads only captured own data and never invokes a caller getter', () => {
+  let reads = 0;
+  const accessor = {...limits()};
+  Object.defineProperty(accessor, 'attempts', {enumerable: true, get() { reads++; return 2; }});
+  assert.throws(() => snapshotProcessLimits(accessor), /InvalidProcessAccounting/);
+  assert.equal(reads, 0);
+  let gets = 0;
+  const original = limits();
+  const supplied = new Proxy(original, {get() { gets++; throw Error('CallerGetMustNotRun'); }});
+  assert.deepEqual(snapshotProcessLimits(supplied), original);
+  assert.equal(gets, 0);
+});
+
+test('IPC accounting rejects every extra own field including Symbols and nonenumerable data', () => {
+  const symbol = {...limits(), [Symbol('foreign authority')]: true};
+  const hidden = {...limits()};
+  Object.defineProperty(hidden, 'foreign', {value: true});
+  for (const supplied of [symbol, hidden]) {
+    assert.throws(() => snapshotProcessLimits(supplied), /InvalidProcessAccounting/);
+  }
+});

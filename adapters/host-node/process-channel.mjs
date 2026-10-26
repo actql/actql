@@ -3,6 +3,7 @@
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import {types as utilTypes} from 'node:util';
 import { encodeProcessFrame, createProcessFrameReader, validateFrameLimits, ProcessProtocolError, executionProtocol } from './process-frames.mjs';
 import {encodeProcessLimits, decodeProcessUsage} from './process-accounting.mjs';
 
@@ -49,12 +50,27 @@ export function prepareManagedExecution({ entry, runtime, run, frames, maxReques
   return prepared;
 }
 
-export async function startManagedExecution(configuration, signal) {
+export async function startManagedExecution(configuration, signal, beforeSpawn) {
+  if (beforeSpawn !== undefined && typeof beforeSpawn !== 'function') {
+    throw new TypeError('InvalidExecutionHandoff');
+  }
   signal?.throwIfAborted();
   const prepared = preparations.has(configuration) ? configuration : prepareManagedExecution(configuration);
   const { executable, runtimePath, hello, envelope, frames, session, run, maxRequests, graceMs, startupMs,
     service, maxHostCalls, budget } = preparations.get(prepared);
   preparations.delete(prepared);
+  signal?.throwIfAborted();
+  // Installed Host accounting records the attempted physical handoff after
+  // pure refusals. A callback-triggered abort keeps that debit but cannot spawn.
+  // This trusted hook must finish synchronously and grants no authority.
+  if (beforeSpawn !== undefined) {
+    const result = beforeSpawn();
+    if (result !== undefined) {
+      // Refuse async handoff without leaking an unobserved rejection.
+      if (utilTypes.isPromise(result)) Promise.prototype.then.call(result, () => {}, () => {});
+      throw new TypeError('InvalidExecutionHandoff');
+    }
+  }
   signal?.throwIfAborted();
   const child = spawn(runtimePath, [executable], {
     stdio: ['ignore', 'ignore', 'ignore', 'pipe'],

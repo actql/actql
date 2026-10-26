@@ -71,6 +71,31 @@ pub fn process_reserve(
 }
 
 ///|
+/// Called by the installed Host at the actual spawn invocation boundary.
+#export_name("processStarted")
+pub fn process_started(
+  ledger : @resources.Ledger,
+  reservation : @resources.Reservation,
+) -> Unit raise ProcessCapacityFailure {
+  match @resources.consume_reserved_attempt(ledger, reservation) {
+    Ok(_) => ()
+    Err(issue) => raise Capacity(issue)
+  }
+}
+
+///|
+#export_name("processDelegationStarted")
+pub fn process_delegation_started(
+  ledger : @resources.Ledger,
+  delegation : @resources.ExecutionDelegation,
+) -> Unit raise ProcessCapacityFailure {
+  match @resources.consume_execution_delegation_attempt(ledger, delegation) {
+    Ok(_) => ()
+    Err(issue) => raise Capacity(issue)
+  }
+}
+
+///|
 /// Trusted control Host calls only after actual exit or known unstarted failure.
 #export_name("processStopped")
 pub fn process_stopped(
