@@ -116,3 +116,103 @@ their numbers are attributed to an executing runtime.
 Source-only checks, diagnostic instrumentation, a different backend, and a
 hosted distribution/CI gate are distinct evidence. None may silently stand in
 for another.
+
+
+## Initial preparation and a recorded Model Run
+
+An initial preparation that will host Model reads installs the existing original
+Ledger census before its first preparation reservation. Its original imported
+admission retains that bootstrap even if later construction refuses. Preparation
+then grows and completes the same reservation; adoption transfers the same
+bootstrap, recorded child tokens, supplier purpose and Ledger to the Run. It
+neither imports a second business child nor reconstructs a census from usage.
+
+The checked Model scope binds the actual compiled Run and definition to that
+original census once, after compilation. The census owns one scalar binding
+latch, included in its initial funded control inventory. Binding is independent
+of descriptor issuance: the later descriptor sees the real still-live
+preparation reservation and all recorded children. Foreign originals, repeat
+bindings and attempts to initialize a census after a spent token refuse.
+
+Preparation retirement may coexist with its exact original bootstrap. That
+bootstrap remains charged until the Run's original cleanup retires every child;
+no other capacity is treated as spare or ignored by the isolation guard. This
+common handoff does not supply the installation's physical backing, family
+constructor inventory, Model authorization or a cleanup acknowledgement.
+
+
+Preparation isolation counts live identities as well as bytes. Only its own
+reservation, plus its exact recorded bootstrap when present, may remain live.
+Zero-byte reservations, holdings and delegations still prevent isolation. When
+an original census exists, its live token set must be precisely that preparation
+reservation, with no remaining holding or delegation. Retired records and
+consumed planning/attempt/transfer history do not count as current occupancy;
+retirement never resets or refunds that cumulative history. This is accounting
+correspondence, still separate from physical stop and reader cleanup witnesses.
+
+
+## Typed final Effect preparation
+
+An Effect preparation's completed body is its original
+`ClientInstalledEffectManagedPlan`, including the checked Effect, request,
+contracts, acquisitions and generated sequences. It is never cast to the
+pure `PreparedClientProgram` body. The existing initial admission is checked
+for its original purpose, input and immutable Ledger limits before cleanup
+custody transfers. A deficient final Plan envelope leaves the same initial
+owner available for retirement; no second imported business child is started.
+
+The Run retains a closed Pure/EffectPlan case and uses one generic retirement
+procedure. The selected dispatch borrows its original body before opening its
+Host; pending siblings keep the original preparation reservation charged after
+the Run severs its heavy aliases. New borrows are fenced before those aliases
+are cut. Source-read and physical-operation cleanup still precede Run cleanup.
+
+The initial inventory must include the typed custody case, generic retirement
+record, admission and Run holders and each simultaneous operation/dispatch
+borrow. This connection does not turn a numeric final Plan quote into complete
+initial constructor funding, enable an unfunded Model/Content family, or
+acknowledge physical stop from alias severance.
+
+
+## Retained physical module selection
+
+The checked Effect plan retains the actual prepared Local module, provider
+selection, task capacities and import/output policies. Its factory runs during
+preparation; opening the original Run binds that same module and cannot replace
+it with an equal numerical configuration. A policy sealed for quotation is not
+configured again after binding. Repeated input ports remain separate holdings.
+
+Each physical slot retains its original selected provider and capacity. The
+sequence owner validates genuine refinements against the same registered
+contracts, prepared sequence, contexts, query time, numeric callbacks, selected
+occurrences and retained Results. A changed capacity follows its provider's
+full check and cannot exceed that slot's original envelope. Input sequence and
+provider containers are snapshotted before callbacks can reenter; immutable
+provider dependencies remain shared rather than copied or upgraded.
+
+Per-task execution envelopes do not pay for compilation, factory construction,
+retained module/control objects or their next-phase overlap. Those inventories
+must be funded by the original preparation before construction, using the same
+shared representation units. The existing Working growth/retirement protocol
+owns that transition. Native and Remote consumers must retain their actual
+backend module and limits; a Node owner or Local policy is not a substitute.
+Completed-only metadata access supplies no execution or restoration authority.
+
+
+## Native standard module handoff
+
+The existing Native Source preparation can retain its full Pure or Effect
+sequence array; it does not need a Node managed owner to preserve that DATA.
+The standard Local/DuckDB module preparation takes the original checked graph,
+parent Ledger, registrations, sequences and typed backend limits before any
+captured Run exists. DuckDB static compiler work charges that same Ledger
+before each task; partial failure retains consumed work. This is planning,
+not an attempt, Source read or physical database allocation.
+
+Binding requires the exact graph and parent Ledger and uses the original
+prepared modules through the canonical configured-module assembly. Static
+rejections and compilation are retained rather than recomputed at binding.
+The selected Local input/output and Native retained-output policies are sealed
+before quotation; later estimates and strategy/current checks still use the
+actual Run. This does not supply Native Source/database physical backing or
+fund initial constructor controls from execution buffer limits.

@@ -14,19 +14,33 @@ physical supply, a Ledger, or a replacement for original admission evidence.
 
 ## Separate units
 
-| Dimension | Meaning and consumer | Proof / conservative fallback |
-| --- | --- | --- |
-| Value nodes | Row containers and admitted scalar cells | Original input ports (including duplicates), cumulative intermediate outputs and projected external inputs; unknown/nested schemas retain 20,000 |
-| Value text | UTF-8 value strings **and charged row field names** | Scalar IO uses original schema-name occurrence envelope; evaluator retains 500,000 unless every original expression child and generated step proves text-free |
-| Guard bytes | Serialized input measurement, including numeric spellings | Unchanged 500,000; not interchangeable with value-text bytes |
-| Wire nodes | Bare rows or logical Relation envelope | Proven scalar value nodes + three wrapper nodes; otherwise 100,000 |
-| Wire bytes | Encoding and transfer ceiling | Scalar bound `30 + R * (3 + 6N + 29F)` below the unchanged 1,000,000 maximum; unknown shapes retain the generic allowance |
-| Schema fields / bytes / nodes / depth | Canonical schema traversal | Independent record preserving prior ceilings (100 fields, 1,000,000 bytes, 100,000 nodes, depth 64), never derived from a specialized row wire |
-| Metadata name bytes | Producer bindings, bridge and completion names | Independent 1,000,000 snapshot, never narrowed with row-wire bytes |
-| Bridge / completion entries | Input identities, fields, bindings and issuers | Independent metadata validation ceilings; separately funded retained metadata |
-| Result view workspace | Row indices, merge scratch and exact order terms | `2R + O`; order terms count occurrences, not distinct columns |
-| Publication snapshot workspace | Distinct snapshot preparation/emission counters | `max(100, 2R + O, 8 + 5F)`; no rows-by-fields cell copy |
-| Result mapping work | Projection resolution and source-column lookup | Checked `F * (P + 1 + C) + O * (1 + C)`, with original projection/source counts |
+Value-node and text demand come from the original checked schema/occurrence
+inventory in [`schema_proof_inventory.mbt`](../../src/client_local_host/schema_proof_inventory.mbt),
+[`value_node_demand.mbt`](../../src/client_local_host/value_node_demand.mbt) and
+[`scalar_materialization_demand.mbt`](../../src/client_local_host/scalar_materialization_demand.mbt).
+Rows, repeated ports and intermediate outputs remain distinct occurrences.
+The generic evaluator allowance is a selected implementation profile; it is
+not a language row limit or a ceiling on every proved scalar representation.
+
+Serialized input measurement has its own guard in
+[`captured_ledger.mbt`](../../src/client_local_host/captured_ledger.mbt). It counts
+numeric spellings as well as text. The checked plan retains the generic guard
+or the larger original scalar wire envelope; value-text demand cannot replace
+that byte guard. The scalar wire derivation belongs to
+[`scalar_wire_capacity.mbt`](../../src/client_local_host/scalar_wire_capacity.mbt),
+with separate consumer wire profiles and Store ceilings.
+
+Schema traversal, field names, bridge/completion inventories and Result view
+workspace use separate typed limits retained by
+[`capacity_plan.mbt`](../../src/client_local_host/capacity_plan.mbt). A smaller row
+wire proof cannot narrow unrelated metadata guards. Result field, mapping,
+order-occurrence and workspace facts come from
+[`result_publication_envelope.mbt`](../../src/client_local_host/result_publication_envelope.mbt);
+aliases and repeated order terms remain occurrences even with no output rows.
+Publication projects those facts from the same plan through
+[`publication_limits.mbt`](../../src/client_local_host/publication_limits.mbt).
+These implementation guards are neither Host resource authority nor physical
+backing; their admission and consumed budgets remain separate.
 
 The expression proof examines all original typed children, including dormant
 branches. Scalar output alone is insufficient: `LENGTH(REPEAT(...))` has a text
@@ -37,29 +51,43 @@ and external-input projection. It is not zero for numeric-only tables.
 
 ## Metadata funding
 
-`capacity_metadata.mbt` bounds original checked inventories: maximum field count
-F, input ports P, original/selected binding count B, row ceiling R, exact summed
-Result order terms O, and task identity plus Result occurrence count I. Result
-aliases are not bounded by task count and order terms need not be unique.
-The additive slot categories are:
+[`capacity_metadata.mbt`](../../src/client_local_host/capacity_metadata.mbt)
+retains the checked field, port, binding, Result occurrence, order and row
+inventories. Each receiving traversal, binding identity, completion, export
+view and dispatch reference remains a distinct simultaneous occurrence.
+Named Result aliases are not bounded by task count, and repeated order terms
+are not deduplicated. Schema spelling and escaping retain their own wire
+inventory; a small payload does not remove those objects.
 
-- bridge: `P * (3F + 2B + 8)`;
-- completion: `4P + 2B + 64I + 16`;
-- export / Result view: `24F + 2R + O + 64`;
-- dispatch: `8P + 8I + 64`.
+The common typed conversion and checked fold belongs to
+[`capacity_inventory.mbt`](../../src/execution_relation/capacity_inventory.mbt).
+Domains supply objects, units, multiplicities and overlap; they do not repeat
+its tariffs or arithmetic. The existing preparation representation units and
+16/8/8/2/1 logical tariff are also defined in `execution_relation`; Local
+domains retain only their object inventories. Header/reference/word storage,
+UTF16 code units and owned wire remain distinct from the larger value-node
+and decode/wire envelopes. The same positive-factor checked count operation
+is called directly by layout construction, with no compatibility wrapper.
 
-Each slot is funded at 256 logical bytes. Retained schema text additionally uses
-`8 * (6N + 96F + 2)`, where N is total UTF-8 field-reference-name bytes of the
-largest original schema. Escaping can expand a byte by at most six; checked
-Number/Boolean contract spellings fit the per-field allowance. Arithmetic is
-bounded before specialization; excessive or unproved inventories fall back.
-For the small composition inventory F=2, N=36, P=B=2, I=2, R=100, O=0,
-these categories are 36 + 156 + 312 + 96 = 600 slots and 410 schema bytes:
-`600 * 256 + 410 * 8 = 156,880` logical bytes per task.
+Value nodes, cursor roots, decoded text, canonical
+wire and already-quoted bytes remain distinct inputs. A cursor reference does
+not stand for another copy of its value tree. Retained-alongside-execution
+composition counts that actual overlap; quoted independent dimensions do not
+silently add it again.
 
-These are conservative logical allowances, not allocator-size or process-RSS
-measurements. Independent provider metadata workspace is not reused to fund
-simultaneously retained Host metadata.
+The same fold accepts one occurrence at a time through
+`execution_capacity_inventory_add`. Managed Effect operation demand uses this
+entry for its already-quoted transfer, retained and execution bytes, with the
+original member or checked-row multiplicity. It does not allocate a second
+inventory array or change the live control layout. Invalid counts and overflow
+refuse before replacing the accumulated total; a zero multiplicity neither
+spends capacity nor discards the previous total.
+
+Model and Content composition use the same fold while retaining their original
+provider, proof, writer and response lifetimes. Those logical allowances are
+not allocator-size or process-RSS measurements. Neither an inventory nor its
+byte projection allocates backing, grants a Run, proves a physical ACK or
+permits provider metadata to fund a simultaneously retained Host object.
 
 The scalar wire proof uses the pinned finite binary64 formatter's 25-byte
 maximum, including `-0.0000010000000000000002`. Each field has at most six times
@@ -161,8 +189,12 @@ projects its typed policy from that same original capacity plan: the staged
 original before dispatch and the live Run preparation after acquisition. Equal
 Program shape, a repeated CID, or a freshly prepared Run cannot replace this
 owner. The ABI projection is a view of checked facts, not another grant or an
-independent row/field estimator. Legacy callers without an original plan retain
-an explicitly separate compatibility calculator. Content serialization has its own explicit workspace capacity; that
+independent row/field estimator. Native publication borrows the original
+requirements retained by its live work, which configures execution with that
+same plan. There is no bare-Program publication calculator or missing-owner
+fallback. Node and Native retain their distinct decoder/schema/transport phase
+profiles; a Store byte ceiling only intersects its selected wire budget.
+Content serialization has its own explicit workspace capacity; that
 is not evidence that ordinary Values publication is funded. The ordinary
 publication retention/cleanup owner covers the incremental borrowed-view and
 snapshot metadata through the retained allowance below; Content workspace is
@@ -188,7 +220,10 @@ work, and generic transport defaults. Checked Result facts replace only the
 previous field/workspace/mapping mismatch; proven scalar Result wire uses the
 same byte-bound formula as Local compute. Text and nested publication keep
 conservative wire defaults. The existing Content publication profile remains a
-separate unchanged caller contract.
+separate unchanged caller contract. Unordered Result index initialization uses
+the same original row bound. Ordered comparison retains its separate finite
+phase-work guard in the publication plan; metadata entry capacity is neither
+that work budget nor evidence that ordering executed within it.
 
 ## Shared publication encoders
 
@@ -354,3 +389,92 @@ representation and value-node tariffs; the execution peak includes both. A
 domain must not repeat that arithmetic, introduce another tariff or turn its
 static declaration into an admission. The original checked plan and Ledger
 still determine whether the quoted inventory can actually be funded.
+
+
+## Runtime configuration consumes the original plan
+
+The shared Local runtime constructor requires the same checked capacity plan
+that supplied its sequence and transport inventory. It checks the original
+graph, captured Compute offset and sequence owners before constructing any
+provider. A graph-less quote or an equal independently checked graph cannot
+replace that plan. Execution, measurement, imports, exports, metadata and
+dispatcher bounds are projections of this original; missing plans do not
+select defaults or reconstruct those configurations.
+
+Input custody and metadata are included for both retained-output and
+nonretained runtime paths. Export backing is included only when that same
+caller configures retained output. Omitting the export does not omit real
+input occurrences, invent a cleanup acknowledgement or change the execution
+profile.
+
+The Pure/Node admitted-row boundary and the installed Effect execution-row
+boundary remain distinct projections of the same plan. Configuration does not
+spend an attempt or issue backing. The existing Run, parent Ledger, provider
+and physical cleanup owners retain those obligations. Stopping a rejected
+configuration does not assert physical cleanup or refund consumed work.
+
+## Pre-Run Local physical preparation
+
+`LocalDispatchPreparation` retains the exact checked graph, selected physical
+steps or prefixes, original installed module and its provider capacity facts.
+It can be prepared before a Run or Ledger exists. Its task envelopes quote the
+same module later bound to the Run; equal graph or CID reconstruction cannot
+replace that original. Existing initial preparation funding remains the
+caller's responsibility. The preparation is DATA, without an allocator,
+permission, execution ticket or cleanup engine.
+
+The preparation counts input ports, including repeated occurrences of one
+producer, metadata and any configured output export. Shared checked inventory
+conversion composes these byte quotes. The actual task offer consumes that
+same retained envelope. First-time installation can refine its input/output
+policy before the first quote escapes, retaining the original module and
+provider facts; a directly bound prepared plan is already frozen. No later
+configuration can replace a quoted plan.
+
+The total retention accessor describes the configured Compute holdings that
+may coexist until their actual borrowers retire. The transfer accessor quotes
+cumulative imports. Neither describes Source acquisition holdings, all backend
+choices, physical RSS, a minimum capacity or a whole-Run execution peak. Those
+domains retain their original inventories and shared composition. A missing or
+overflowing quote is unknown demand, never zero capacity or a physical ACK.
+
+Canonical `assemble_configured_compute_modules` retains already-bound modules
+and their original error adapters, delegating the existing contribution
+assembly and Host constructor. It checks each module's exact driver/channel
+and registry binding without configuring, compiling or preparing the module
+again. First-time configuration uses this same wrapper factory. A second
+driver for the same Run is still foreign. These identity checks do not replace
+current authorization, resource admission, actual starts or retirement.
+
+## Wasm publication views
+
+The existing Wasm `LocalComputeHost` retains the exact source-free requirements
+used to configure its original Compute. Its Result bridge/export obtains the
+row, mapping, workspace, scalar-wire and schema facts from that same plan;
+missing or foreign source-free originals cannot select another profile.
+The Wasm formatter's separate value/node/depth/work guards remain in Common,
+with their original meanings, and are not replaced by evaluator budgets.
+
+Captured Source publication has a distinct formatter profile. Formatter
+guards do not by themselves retain or prove a Compute capacity plan. A plan
+projection for that profile requires the actual configured Host original and
+funding for any prolonged representation lifetime. Copying an equal quote,
+borrowing an unused VM extent, or making captured inputs Unsupported cannot
+supply those obligations; source-free originals cannot substitute for them.
+
+
+## Captured Local publication original
+
+`ClientLocalRequirements` retains the checked preparation, selected sequence
+owners and the same capacity/publication plan for source-free and single
+captured-Source Relation computation. Each constructor checks its exact prefix;
+a Source cannot become source-free by carrying this data. The captured original
+quotes only its Compute tail and configured import/output holdings. Acquisition
+and the captured reader remain charged to their existing owner and Ledger.
+
+The configured Local Compute holder retains this original through Wasm/Python
+publication. Publication projects its original checked rows/schema/wire through
+the independent formatter guards; it does not reconstruct a capacity plan after
+execution. A foreign preparation or changed installed input refuses before
+opening another Run. Reading the projection does not reserve or refund capacity,
+authorize a start, or acknowledge the captured reader's physical retirement.

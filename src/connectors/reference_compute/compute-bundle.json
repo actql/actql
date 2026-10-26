@@ -17,6 +17,7 @@
   "configuration": "NumericComputeConfiguration",
   "configure": "configure_numeric_compute",
   "registration": "numeric_contribution_registration",
+  "validate_binding": "validate_numeric_contribution_binding",
   "contribution": "numeric_compute_contribution",
   "dispatch_error": {"package": "actql/actql/physical_strategy_host", "type": "RunIssue"},
   "estimate_error": {"package": "actql/actql/physical_strategy_host", "type": "RunIssue"}

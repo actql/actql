@@ -144,6 +144,183 @@ pub fn configure_strategy_dispatch(
 }
 
 ///|
+/// The same actual Local and DuckDB modules before Source acquisition. This
+/// record owns immutable configuration DATA, not an admission or cleanup
+/// engine. The caller funds construction on its original preparation owner.
+struct StrategyDispatchPreparation {
+  graph : @strategy.CheckedDAG
+  ledger : @resources.Ledger
+  registry : @connector.CapabilityRegistry
+  local_registration : @connector.CapabilityRegistration
+  native_registration : @connector.CapabilityRegistration
+  local_preparation : @local_driver.LocalDispatchPreparation
+  native : @duckdb_driver.DuckDBDispatchPreparation
+  limits : TaskDispatchLimits
+}
+
+///|
+pub fn prepare_strategy_dispatch(
+  graph : @strategy.CheckedDAG,
+  ledger : @resources.Ledger,
+  registry : @connector.CapabilityRegistry,
+  local_registration : @connector.CapabilityRegistration,
+  native_registration : @connector.CapabilityRegistration,
+  generated : Array[@execution.GeneratedSequence],
+  limits : TaskDispatchLimits,
+  local_retained_output? : (
+    @local.LocalImportLimits,
+    @local.LocalExportLimits,
+    Int64?,
+  )? = None,
+  native_retained_output? : (Int64, Int64?)? = None,
+) -> Result[StrategyDispatchPreparation, DispatchIssue] {
+  if generated.length() != @strategy.graph_task_count(graph) - 1 ||
+    limits.input_entries < 0 ||
+    limits.input_name_bytes < 0 ||
+    limits.candidate_work < 1 ||
+    limits.join_validation.max_rows < 0 ||
+    limits.join_validation.max_work < 0 ||
+    limits.join_validation.max_entries < 0 ||
+    !@connector.capability_registration_matches(local_registration, registry) ||
+    !@connector.capability_registration_matches(native_registration, registry) ||
+    physical_equal(local_registration, native_registration) {
+    return Err(InvalidConfiguration)
+  }
+  // Both backends consume one snapshot of the caller's original sequence
+  // inventory. Callback reentry cannot give them different task selections.
+  let original_sequences = generated.copy()
+  let native = match
+    @duckdb_driver.prepare_duckdb_dispatch_plan(
+      graph,
+      ledger,
+      registry,
+      native_registration,
+      original_sequences.map(@execution.generated_completion_preparation),
+      {
+        capacity: limits.capacity,
+        query: limits.native_query,
+        join_validation: limits.join_validation,
+        candidate_work: limits.candidate_work,
+        execution: limits.native,
+        transport: limits.transport,
+      },
+      retained_output=native_retained_output,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(duckdb_dispatch_issue(issue))
+  }
+  let local_preparation = match
+    @local_driver.prepare_local_dispatch_plan(
+      graph,
+      registry,
+      local_registration,
+      original_sequences,
+      limits.local_execution,
+      limits.guards,
+      limits.candidate_work,
+      managed_capacity=limits.capacity,
+      inputs=local_retained_output.map(value => (value.0, value.2)),
+      output=local_retained_output.map(value => (value.1, value.2)),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(local_dispatch_issue(issue))
+  }
+  Ok({
+    graph,
+    ledger,
+    registry,
+    local_registration,
+    native_registration,
+    local_preparation,
+    native,
+    limits,
+  })
+}
+
+///|
+/// Expose the exact selected Local envelope before the captured input exists.
+/// It does not include Native source/database backing or initial constructors.
+pub fn strategy_dispatch_preparation_local_capacity(
+  original : StrategyDispatchPreparation,
+  task : Int,
+) -> @strategy.PhysicalEnvelope? {
+  @local_driver.local_dispatch_preparation_task_capacity(
+    original.local_preparation,
+    task,
+  )
+}
+
+///|
+/// Bind the same graph, parent Ledger, module originals and sealed IO policies.
+/// Estimates/search keep their existing actual Run and currentness boundaries.
+pub fn bind_strategy_dispatch(
+  run : @strategy.CapturedDAG,
+  original : StrategyDispatchPreparation,
+) -> Result[StrategyHostDispatch, DispatchIssue] {
+  if !physical_equal(@strategy.captured_dag_graph(run), original.graph) ||
+    !physical_equal(@strategy.captured_dag_ledger(run), original.ledger) {
+    return Err(ForeignSelection)
+  }
+  let driver = @host_driver.open_dispatch_driver(run)
+  let native = match
+    @duckdb_driver.bind_duckdb_dispatch_plan(driver, original.native) {
+    Ok(value) => value
+    Err(issue) => return Err(duckdb_dispatch_issue(issue))
+  }
+  let local_preparation = match
+    @local_driver.bind_local_dispatch_plan(driver, original.local_preparation) {
+    Ok(value) => value
+    Err(issue) => return Err(local_dispatch_issue(issue))
+  }
+  let modules = match
+    @builtin.assemble_configured_compute_modules(
+      driver,
+      original.registry,
+      2,
+      _ => wrap_issue(InvalidConfiguration),
+      with_local=Some(
+        (
+          local_preparation,
+          issue => wrap_issue(local_dispatch_issue(issue)),
+          issue => wrap_issue(local_estimate_issue(issue)),
+        ),
+      ),
+      with_duckdb=Some(
+        (
+          native,
+          issue => wrap_issue(duckdb_dispatch_issue(issue)),
+          issue => wrap_issue(duckdb_estimate_issue(issue)),
+        ),
+      ),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(unwrap_issue(issue))
+  }
+  let installation = match
+    @builtin.open_configured_compute_host(
+      modules,
+      original.registry,
+      original.limits.capacity,
+      original.limits.input_entries,
+      original.limits.input_name_bytes,
+      2,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(compute_host_issue(issue))
+  }
+  Ok({
+    installation,
+    modules,
+    run,
+    driver,
+    local_registration: original.local_registration,
+    native_registration: original.native_registration,
+    runtime: @builtin.configured_host_runtime(installation),
+    limits: original.limits,
+  })
+}
+
+///|
 /// Select the existing Local materializing path before any offer escapes.
 /// Native storage remains an implementation of its retention callbacks;
 /// selection and completion still belong to the common dispatch owner.
