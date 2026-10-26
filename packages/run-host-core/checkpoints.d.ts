@@ -16,6 +16,10 @@ export declare function checkpointLifecycleState(runId: string, status: string,
  * Unknown Effect outcomes remain needs_reconciliation, never completed cleanup. */
 export declare function waitingExitState(runId: string, updatedAt: string,
   declaredResultsJson: string, unknownEffectsJson: string): string;
+/** Existing failed-revalidation projection. Current recorded outcomes and the
+ * atomic Run/intent commit remain with the receiving Run owner. */
+export declare function revalidationFailedState(runId: string, updatedAt: string,
+  declaredResultsJson: string, unknownEffectsJson: string): string;
 export declare function checkpointExpiredAt(checkpointWire: string, now: string): string;
 export declare function runStateAdmit(wire: string): string;
 export declare function runTransitionAllowed(from: string, to: string): boolean;
