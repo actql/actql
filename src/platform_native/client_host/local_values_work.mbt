@@ -10,7 +10,7 @@ struct NativeClientValuesWork {
   normalization : @host.ClientLocalNormalization
   run : @strategy.CapturedDAG
   execution : @local.LocalValuesExecution
-  mut requirements : @local.ClientLocalSourceFreeRequirements?
+  mut requirements : @local.ClientLocalRequirements?
   current : () -> Bool
   original_access : NativeLocalValuesOriginalAccess?
 }
@@ -126,7 +126,7 @@ fn open_native_client_local_values_work(
   current : () -> Bool,
   ledger? : @resources.Ledger? = None,
   original_access? : NativeLocalValuesOriginalAccess? = None,
-  requirements? : @local.ClientLocalSourceFreeRequirements? = None,
+  requirements? : @local.ClientLocalRequirements? = None,
 ) -> Result[NativeClientValuesWork, NativeClientValuesWorkFailure] {
   if !current() {
     return Err(

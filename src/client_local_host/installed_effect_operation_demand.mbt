@@ -165,6 +165,7 @@ pub fn prepare_installed_effect_managed_plan(
   ordered_body : String?,
   selected_operations : Array[ClientInstalledEffectOperationDemand],
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
+  source_providers? : Array[@execution.ExecutionCapacity]? = None,
 ) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
   if !installed_effect_managed_request_matches(prepared, request) {
     return Err(ForeignOriginal)
@@ -191,6 +192,18 @@ pub fn prepare_installed_effect_managed_plan(
   }
   let graph = installed_managed_owner_graph(Effect(prepared))
   let invocation = query_time.map(original => (original, request))
+  // This is the selected original installed reader declaration, not a grant,
+  // capacity credit or a replacement acquisition. The Plan constructs each
+  // original acquisition once and retains its complete provider overlap.
+  let provider_sources = match source_providers {
+    None => 0
+    Some(providers) => {
+      if providers.is_empty() || providers.length() != declarations.length() {
+        return Err(ForeignOriginal)
+      }
+      providers.length()
+    }
+  }
   let source_free = if @strategy.graph_captured_prefix(graph) == 0 {
     source_free_installed_managed_preparation_owned(
       Effect(prepared),
@@ -236,10 +249,16 @@ pub fn prepare_installed_effect_managed_plan(
       }
   }
   let captures = []
-  for acquisition in acquisitions {
-    guard installed_row_capture_capacity(acquisition) is Some(capacity) else {
-      return Err(Unsupported)
+  for index, acquisition in acquisitions {
+    let selected = match source_providers {
+      None => installed_row_capture_capacity(acquisition)
+      Some(providers) =>
+        installed_provider_row_capture_capacity(
+          acquisition,
+          Some(providers[index]),
+        )
     }
+    guard selected is Some(capacity) else { return Err(Unsupported) }
     captures.push(capacity)
   }
   // Retain the same concrete Local configuration used for this quote. Opening
@@ -418,10 +437,19 @@ pub fn prepare_installed_effect_managed_plan(
   // member: Demand(1H,4R,2W) and two exact extent-reference copies(4H,2R,2W).
   // The optional query-time holder adds one Some header/payload/tag. Its
   // original caller-owned sample/Run backing is borrowed, not copied here.
+  // Each provider capture additionally retains its Some/tuple(2H,3R,1W)
+  // around the original acquisition and selected reader capacity. The capacity
+  // itself is borrowed from the installation, never reconstructed from numbers.
+  // Its original read handoff tuple adds 1H,4R and no scalar payload; retain
+  // the full per-Source overlap until that Source's original preparation ends.
   // Existing generated sequences and acquisition bodies remain charged by
   // their original Compute/capture components, not decoded/copied here.
   let controls = preparation_representation_cost({
-    record_headers: 16L + 5L * members + sources + time_holder,
+    record_headers: 16L +
+    5L * members +
+    sources +
+    time_holder +
+    3L * provider_sources.to_int64(),
     reference_slots: 26L +
     members +
     sources +
@@ -429,8 +457,13 @@ pub fn prepare_installed_effect_managed_plan(
     6L * members +
     extent_count +
     2L * sources +
-    time_holder,
-    scalar_words: 23L + 5L * sources + 4L * members + time_holder,
+    time_holder +
+    7L * provider_sources.to_int64(),
+    scalar_words: 23L +
+    5L * sources +
+    4L * members +
+    time_holder +
+    provider_sources.to_int64(),
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
@@ -441,13 +474,25 @@ pub fn prepare_installed_effect_managed_plan(
   // scalar words. Only actual retained Some row bounds own extra carriers.
   // These peaks are recorded by the SAME traversal, including refusal paths;
   // neither work counts nor a failed proof allocate hypothetical backing.
+  // Provider capture preparation is sequential: its one live argument Some,
+  // temporary summed ExecutionCapacity and returned Some add 3H,2R,4W once,
+  // not once per selected Source. Retained provider pairs are counted above.
+  let provider_scratch = if provider_sources > 0 { 1L } else { 0L }
   let temporary = preparation_representation_cost({
-    record_headers: 21L + workspace.row_bounds.to_int64() + 2L * time_holder,
-    reference_slots: 12L + owner_slots + row_slots + 3L * time_holder,
+    record_headers: 21L +
+    workspace.row_bounds.to_int64() +
+    2L * time_holder +
+    3L * provider_scratch,
+    reference_slots: 12L +
+    owner_slots +
+    row_slots +
+    3L * time_holder +
+    2L * provider_scratch,
     scalar_words: 40L +
     input_slots +
     2L * workspace.row_bounds.to_int64() +
-    time_holder,
+    time_holder +
+    4L * provider_scratch,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()

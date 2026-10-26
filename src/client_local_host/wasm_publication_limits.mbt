@@ -1,7 +1,8 @@
 ///|
 /// Independent installed Wasm formatter guards, not a Compute quote, backing
-/// grant or proof of checked demand. Captured Source publication retains this
-/// distinct profile until that Host supplies its own retained plan original.
+/// grant or proof of checked demand. Both source-free and captured Source
+/// publication project their retained requirements through this independent
+/// formatter profile.
 pub fn client_wasm_result_export_profile() -> @publication_host.PublicationOutputExportLimits {
   {
     max_result_fields: 100,
@@ -40,11 +41,11 @@ pub fn client_wasm_result_export_profile() -> @publication_host.PublicationOutpu
 }
 
 ///|
-/// Project only the same requirements already consumed by source-free Compute.
+/// Project only the same requirements already consumed by this exact Compute.
 /// The phase guards remain independent; no copied Program or missing original
 /// can select the captured-Source profile instead.
-pub fn ClientLocalSourceFreeRequirements::wasm_publication_limits(
-  self : ClientLocalSourceFreeRequirements,
+pub fn ClientLocalRequirements::wasm_publication_limits(
+  self : ClientLocalRequirements,
   prepared : @publication_host.PreparedClientProgram,
 ) -> @publication_host.PublicationOutputExportLimits? {
   guard physical_equal(self.prepared, prepared) &&

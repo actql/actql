@@ -108,7 +108,7 @@ pub fn open_source_free_local_retained_host(
   per_row_ms : Int64,
   per_wire_byte_ms : Int64,
   per_pair_ms : Int64,
-  requirements? : ClientLocalSourceFreeRequirements? = None,
+  requirements? : ClientLocalRequirements? = None,
   fragment_body? : String? = None,
   ordered_body? : String? = None,
   provider_factory? : (@execution.ExecutionCapacity) -> Array[
@@ -128,7 +128,7 @@ pub fn open_source_free_local_retained_host(
     ordered_body~,
     provider_factory~,
     retained_output=true,
-    source_free_requirements=requirements,
+    requirements~,
   )
 }
 
@@ -179,6 +179,7 @@ pub fn open_captured_local_retained_host(
   per_pair_ms : Int64,
   fragment_body? : String? = None,
   ordered_body? : String? = None,
+  requirements? : ClientLocalRequirements? = None,
   provider_factory? : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ] = _ => [],
@@ -196,6 +197,7 @@ pub fn open_captured_local_retained_host(
     ordered_body~,
     provider_factory~,
     retained_output=true,
+    requirements~,
   )
 }
 
@@ -240,6 +242,7 @@ pub fn open_captured_local_retained_host_on_ledger(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
+  requirements? : ClientLocalRequirements? = None,
   provider_factory? : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ] = _ => [],
@@ -257,6 +260,7 @@ pub fn open_captured_local_retained_host_on_ledger(
     ordered_body~,
     provider_factory~,
     retained_output=true,
+    requirements~,
     acquisition_ledger=Some(ledger),
   )
 }
@@ -272,7 +276,7 @@ pub fn open_source_free_local_retained_host_on_ledger(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
-  requirements? : ClientLocalSourceFreeRequirements? = None,
+  requirements? : ClientLocalRequirements? = None,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   open_checked_local_host(
     prepared,
@@ -287,7 +291,7 @@ pub fn open_source_free_local_retained_host_on_ledger(
     ordered_body~,
     retained_output=true,
     acquisition_ledger=Some(ledger),
-    source_free_requirements=requirements,
+    requirements~,
   )
 }
 
@@ -310,7 +314,7 @@ fn open_checked_local_host(
   captured_sources? : Array[(Int, @query.CapturedInputSource)] = [],
   acquisition_ledger? : @resources.Ledger? = None,
   opened_run? : @strategy.CapturedDAG? = None,
-  source_free_requirements? : ClientLocalSourceFreeRequirements? = None,
+  requirements? : ClientLocalRequirements? = None,
   source_free_preparation? : ClientInstalledManagedSourceFreePreparation? = None,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   if installed_contracts.original.registry_body.length() > 100000 ||
@@ -344,12 +348,13 @@ fn open_checked_local_host(
   }
   // Both closed callers retain their own checked preparation. An ambiguous
   // internal selection cannot replace either original or issue another quote.
-  let generated = match (source_free_requirements, source_free_preparation) {
+  let generated = match (requirements, source_free_preparation) {
     (Some(original), None) => {
       if !original.matches(
           prepared, installed_contracts, values_body, fragment_body, ordered_body,
         ) ||
-        source is Some(_) ||
+        (original.capacity_plan.graph_offset == 0 && source is Some(_)) ||
+        (original.capacity_plan.graph_offset == 1 && source is None) ||
         !captured_sources.is_empty() ||
         opened_run is Some(_) ||
         !retained_output {
@@ -400,14 +405,18 @@ fn open_checked_local_host(
   } else {
     1
   }
-  let compute_sequences : Array[@execution.GeneratedSequence] = []
-  for task in first_compute..<generated.length() {
-    compute_sequences.push(generated[task])
+  let compute_sequences = match (requirements, source_free_preparation) {
+    (Some(original), None) => original.capacity_plan.sequences
+    (None, Some(original)) => original.capacity_plan.sequences
+    (None, None) =>
+      Array::makei(generated.length() - first_compute, index => {
+        generated[index + first_compute]
+      })
+    _ => return None
   }
   let max_rows = @publication_host.prepared_client_values_max_rows(prepared)
   let graph = @publication_host.prepared_client_graph(prepared)
-  let capacity_plan = match
-    (source_free_requirements, source_free_preparation) {
+  let capacity_plan = match (requirements, source_free_preparation) {
     (Some(original), None) => original.capacity_plan
     (None, Some(original)) => original.capacity_plan
     (None, None) =>
@@ -439,7 +448,7 @@ fn open_checked_local_host(
     }
     Some(inputs)
   }
-  let capacity = match (source_free_requirements, source_free_preparation) {
+  let capacity = match (requirements, source_free_preparation) {
     (Some(original), None) =>
       Some(
         (

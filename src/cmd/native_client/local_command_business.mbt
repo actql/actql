@@ -344,7 +344,7 @@ fn LocalCommandPreparationOriginal::require_business_program(
   prepared : @run_host.PreparedClientProgram,
   installed_contracts : @local_values.ClientInstalledSequenceContracts,
   assets : @run_host.ClientLocalProductAssets,
-  requirements : @local_values.ClientLocalSourceFreeRequirements,
+  requirements : @local_values.ClientLocalRequirements,
 ) -> Result[@initial_resources.LedgerLimits, LocalCommandPreparationIssue] {
   if self.closing || self.closed || self.primary is Some(_) {
     return Err(CommandUnavailable)
