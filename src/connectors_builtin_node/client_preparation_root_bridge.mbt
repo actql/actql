@@ -38,7 +38,10 @@ pub fn client_program_closed_values_initial_control(
   policy : @client_local_host.ClientLocalResourcePolicy,
 ) -> Array[Int64] {
   match
-    @client_local_host.client_closed_values_initial_control_capacity(policy) {
+    @client_local_host.client_closed_values_initial_control_capacity(
+      policy,
+      module_containers=installed_client_module_container_units,
+    ) {
     Some((retained, execution)) => [retained, execution]
     None => []
   }
@@ -58,7 +61,12 @@ pub fn client_program_begin_closed_values_preparation(
   ],
   @client_local_host.ClientClosedValuesPreparationIssue,
 ] {
-  @client_local_host.begin_closed_values_preparation(initial, input, policy)
+  @client_local_host.begin_closed_values_preparation(
+    initial,
+    input,
+    policy,
+    module_containers=installed_client_module_container_units,
+  )
 }
 
 ///|

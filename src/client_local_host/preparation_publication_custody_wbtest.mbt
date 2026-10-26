@@ -58,6 +58,7 @@ fn publication_custody_fixture(
     input: Some(input),
     initial,
     policy: client_local_resource_policy(),
+    module_containers: empty_family_module_containers,
     capacity,
     work: None,
     header_fields: 0,

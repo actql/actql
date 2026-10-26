@@ -59,7 +59,7 @@ pub fn[I] begin_closed_values_header(ClientClosedValuesPreparation[I]) -> Result
 
 pub fn[I] begin_closed_values_owned_run(ClientClosedValuesPreparation[I], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
-pub fn[I] begin_closed_values_preparation(@physical_resources.NodePreparationAdmission[I], I, ClientLocalResourcePolicy) -> Result[ClientClosedValuesPreparation[I], ClientClosedValuesPreparationIssue]
+pub fn[I] begin_closed_values_preparation(@physical_resources.NodePreparationAdmission[I], I, ClientLocalResourcePolicy, module_containers~ : @execution_relation.PreparationRepresentationUnits) -> Result[ClientClosedValuesPreparation[I], ClientClosedValuesPreparationIssue]
 
 pub fn[I] begin_closed_values_scan(ClientClosedValuesPreparation[I], Int, Int) -> Result[@physical_resources.PreparationPhaseWork, ClientClosedValuesPreparationIssue]
 
@@ -141,7 +141,7 @@ pub fn client_acquired_serialization_prefix_capacity(@run_publication_host.Prepa
 
 pub fn client_broad_residual_execution(ClientBroadResidual) -> @local.ManagedProviderExecution
 
-pub fn client_closed_values_initial_control_capacity(ClientLocalResourcePolicy) -> (Int64, Int64)?
+pub fn client_closed_values_initial_control_capacity(ClientLocalResourcePolicy, module_containers~ : @execution_relation.PreparationRepresentationUnits) -> (Int64, Int64)?
 
 pub fn client_command_key_workspace_capacity(@execution_relation.GeneratedSequence, @run_publication_host.PublicationOutputExportLimits) -> @execution_relation.ExecutionCapacity?
 

@@ -91,7 +91,10 @@ pub fn[I] prepare_closed_values_body(
   // parse_closed_values_document has returned. Program/Cursor/shared source
   // dependencies remain in cumulative R; parser/shape/private containers do
   // not escape that call. Preserve the previous E debit, not cumulative work.
-  guard client_closed_values_initial_control_capacity(owner.policy)
+  guard client_closed_values_initial_control_capacity(
+      owner.policy,
+      module_containers=owner.module_containers,
+    )
     is Some((_, controls)) &&
     closed_values_execution_peak(owner.execution_quote, execution_add, controls)
     is Some(execution) else {

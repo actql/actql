@@ -35,7 +35,10 @@ pub fn[I] parse_closed_values_document(
     closed_values_sum_layouts([walk, map, failure]) is Some(shape_temporary) &&
     @execution.preparation_representation_cost(shape_temporary)
     is Some(shape_peak) &&
-    client_closed_values_initial_control_capacity(owner.policy)
+    client_closed_values_initial_control_capacity(
+      owner.policy,
+      module_containers=owner.module_containers,
+    )
     is Some((_, controls)) else {
     return Err(Policy)
   }

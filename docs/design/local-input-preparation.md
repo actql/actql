@@ -218,16 +218,26 @@ actual Run. This does not supply Native Source/database physical backing or
 fund initial constructor controls from execution buffer limits.
 
 
-## Retained selection container ownership
+## Retained module container ownership
 
-The two retained Local selection arrays have a domain-owned container
-inventory: exact slot storage, both array/backing pairs and the module's
-references. It uses the common representation units and price without adding
-a tariff or copying the referenced provider/capacity bodies. The one-task
-closed Values supplier includes those containers in its original initial
-reservation before construction. This container inventory does not cover the
-providers' closure/kernel construction, capacity payload ownership or other
-module controls; those remain separate simultaneous demands.
+Local snapshots the sequence and installed-provider containers before invoking
+callbacks, and owns the provider/capacity selection arrays. Their exact-length
+storage is one domain inventory: eight array/backing headers, `3N + M + 8`
+reference slots and eight scalar words for N sequences and M installed
+providers. References borrow original sequence/provider/capacity bodies;
+those bodies and factory temporaries have separate owners and demands.
+
+The selected Node package retains one immutable container recipe. Its
+existing initial-control and begin bridges use that SAME recipe without
+accepting a JavaScript count or unit override. The provider-free RelA factory
+has an empty installed dimension; it does not expose these Node initial
+bridges. The generic domain inventory retains that zero-provider case.
+The original preparation owns
+one borrowed reference to it; every later phase reuses it for the original
+reservation. Provider/kernel construction, callback scratch and other module
+controls still require their complete inventories before their actual
+constructors may move into this fixed Body path. A container quote is neither
+physical backing nor permission to run those unfunded constructors.
 
 
 ## Pure selected module preparation
