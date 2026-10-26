@@ -153,6 +153,8 @@ pub fn check_source_request_contracts(CarrierSchemas, SourceRequestLimits) -> Re
 
 pub fn check_source_view_acquisition_shape(@decode_core.Cursor, Int) -> Result[Int, SourceViewShapeIssue]
 
+pub fn check_source_view_resource_identity_shape(@decode_core.Cursor, Int) -> Result[Int, SourceViewShapeIssue]
+
 pub fn check_source_view_shapes(ProtocolValueContracts, SourceViewShapeLimits) -> Result[SourceViewShapes, SourceViewShapeIssue]
 
 pub fn cid(WireEnvironment) -> String

@@ -18,9 +18,9 @@ physical supply, a Ledger, or a replacement for original admission evidence.
 | --- | --- | --- |
 | Value nodes | Row containers and admitted scalar cells | Original input ports (including duplicates), cumulative intermediate outputs and projected external inputs; unknown/nested schemas retain 20,000 |
 | Value text | UTF-8 value strings **and charged row field names** | Scalar IO uses original schema-name occurrence envelope; evaluator retains 500,000 unless every original expression child and generated step proves text-free |
-| Guard bytes | Serialized input measurement, including numeric spellings | Unchanged 500,000; not interchangeable with value-text bytes |
+| Guard bytes | Serialized input measurement, including numeric spellings | The [original input guard](../../src/client_local_host/captured_ledger.mbt) retains the selected generic allowance or the larger proved scalar wire envelope; value-text demand cannot replace it |
 | Wire nodes | Bare rows or logical Relation envelope | Proven scalar value nodes + three wrapper nodes; otherwise 100,000 |
-| Wire bytes | Encoding and transfer ceiling | Scalar bound `30 + R * (3 + 6N + 29F)` below the unchanged 1,000,000 maximum; unknown shapes retain the generic allowance |
+| Wire bytes | Encoding and transfer ceiling | The [scalar wire derivation](../../src/client_local_host/scalar_wire_capacity.mbt) checks finite Number/Boolean row bounds and Int overflow without a separate 1,000,000-byte cap; consumer wire profiles and Store ceilings remain independent |
 | Schema fields / bytes / nodes / depth | Canonical schema traversal | Independent record preserving prior ceilings (100 fields, 1,000,000 bytes, 100,000 nodes, depth 64), never derived from a specialized row wire |
 | Metadata name bytes | Producer bindings, bridge and completion names | Independent 1,000,000 snapshot, never narrowed with row-wire bytes |
 | Bridge / completion entries | Input identities, fields, bindings and issuers | Independent metadata validation ceilings; separately funded retained metadata |

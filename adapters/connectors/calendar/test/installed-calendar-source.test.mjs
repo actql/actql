@@ -11,7 +11,7 @@ test('ordinary installed Source selection reaches the Calendar-owned factory',()
 });
 
 
-import {checkInstalledCalendarSourceProfile,loadInstalledCalendarSource} from '../host/installed-calendar-source.mjs';
+import {checkInstalledCalendarSourceProfile,loadInstalledCalendarSource,installedCalendarSourceIdentityParts} from '../host/installed-calendar-source.mjs';
 const limits={maxResponseBytes:4096,maxNodes:512,maxDepth:16,maxPages:4,maxRows:10,maxRequests:4,perPage:2,
   maxCursorUnits:128,maxValueNodes:100,maxValueTextBytes:4096,maxRowsWireBytes:4096,maxRowsWireNodes:100,
   maxRowsWireDepth:8,maxDeclarationBytes:4096,maxDeclarationNodes:1000,maxSecretBytes:128,maxCaBytes:16384};
@@ -33,4 +33,57 @@ test('installed Calendar snapshots the closed profile without inventing grants o
 test('installed Calendar refuses missing actual capacity or material before profile I/O',async()=>{
   await assert.rejects(loadInstalledCalendarSource(profile,{}),{code:'CalendarReaderCapacityUnavailable'});
   await assert.rejects(loadInstalledCalendarSource(profile,{readerCapacity:{}}),{code:'CalendarCredentialMaterialUnavailable'});
+});
+
+// Invoke the actual exported identity and loader with original configuration
+// ports. The provider sentinel precedes declaration, Account and Source work.
+function originalConfiguration({ca=true, mutate=false, failure}={}) {
+  const events=[], selected={...profile,limits:{...limits,maxCaBytes:16000000}};
+  const site={version:'actql-installed-calendar-site/0.1',apiOrigin:'https://www.googleapis.com',
+    credentialAuthorityId:'authority',credentialKeyId:'key',credentialPrivateKeyPath:'/UNOPENED/key',
+    environment:'test',journalRoot:'/UNOPENED/journal',namespaceId:'test',siteGeneration:1,siteKey:'calendar',
+    ...(ca?{caPath:'/UNOPENED/ca.pem'}:{})};
+  const pem='-----BEGIN CERTIFICATE-----\nORIGINAL\n-----END CERTIFICATE-----\n';
+  const reader={readJson(path){assert.equal(this,reader);assert.equal(path,selected.siteProfilePath);events.push('json');
+    if(mutate)reader.readJson=reader.readText=()=>assert.fail('late method read');return site;},
+    readText(path,bounds){assert.equal(this,reader);assert.equal(path,site.caPath);assert.deepEqual(bounds,{maxBytes:16000000});events.push('text');if(failure)throw failure;return pem;}};
+  const originalJson=reader.readJson, read=(...args)=>Reflect.apply(originalJson,reader,args);
+  const stop=new Error('Original provider boundary');
+  const provider=Object.fromEntries(['calendarProjectCalendarList','calendarListRowsWire','calendarListMetadataJson',
+    'calendarListColumnNames','calendarListSchemaWire','calendarListRelationFactsWire'].map(name=>[name,function(){
+      assert.equal(this,provider);assert.equal(name,'calendarListSchemaWire');events.push('schema');throw stop;} ]));
+  return {reader,events,stop,site,selected,pem,
+    identity(context=true){return installedCalendarSourceIdentityParts(selected,selected,read,undefined,
+      context?{configurationReader:reader}:undefined);},
+    load(){return loadInstalledCalendarSource(selected,{readerCapacity:{},resolveSecret(){assert.fail('no secret read');},
+      providerMoon:provider,configurationReader:reader});}};
+}
+
+test('Calendar original reader public identity honors the supplied JSON port without context',async()=>{
+  const f=originalConfiguration({ca:false});const actual=await f.identity(false);
+  assert.deepEqual(f.events,['json']);assert.deepEqual(actual,[{...f.selected,accountConfigurationWire:{}},f.site,{}]);
+});
+
+test('Calendar original reader public callers capture both methods and preserve original CA bound',async()=>{
+  for(const entry of ['identity','load']){
+    const f=originalConfiguration({mutate:true});
+    if(entry==='identity'){
+      const result=await f.identity();const {createHash}=await import('node:crypto');
+      assert.equal(result[2].caSha256,'sha256:'+createHash('sha256').update(Buffer.from(f.pem,'ascii')).digest('hex'));
+    }else await assert.rejects(f.load(),error=>error===f.stop);
+    assert.deepEqual(f.events,entry==='identity'?['json','text']:['json','text','schema']);
+  }
+});
+
+test('Calendar original reader public callers preserve pending error and refuse method accessors',async()=>{
+  for(const entry of ['identity','load']){
+    let retries=0;const error=Object.assign(new Error('Original pending read'),{cleanupPending:true,
+      cleanupHandle:{retry(){retries++;}}});
+    const f=originalConfiguration({failure:error});await assert.rejects(f[entry](),actual=>actual===error);
+    assert.equal(retries,0);assert.deepEqual(f.events,['json','text']);
+    for(const name of ['readJson','readText']){
+      const bad=originalConfiguration();Object.defineProperty(bad.reader,name,{get(){assert.fail('accessor invoked');}});
+      await assert.rejects(bad[entry](),{code:'InstalledCalendarConfigurationReaderUnavailable'});assert.deepEqual(bad.events,[]);
+    }
+  }
 });

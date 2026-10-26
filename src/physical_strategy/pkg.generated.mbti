@@ -806,6 +806,8 @@ pub fn retain_task_execution_allocation(CapturedDAG, TaskExecution, Int64) -> Re
 
 pub fn retained_task_projection_consumer(RetainedTaskProjection) -> Int
 
+pub fn retained_task_projection_graph(RetainedTaskProjection) -> CheckedDAG
+
 pub fn retained_task_projection_matches_output(RetainedTaskProjection, @execution_relation.CompletedOutput) -> Bool
 
 pub fn retained_task_projection_producer(RetainedTaskProjection) -> Int

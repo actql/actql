@@ -5,7 +5,7 @@
     {
       "module": "adapters/connectors-builtin/installations.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fb29ddfbef95fc0213aef39a5bed9dbfe3d04c237d02356798387fb88bf6889b",
+      "sha256": "7f32aacb911dbc94930b1b4ee333dd4c8a4a97e6a1d5131d7794da3c3c793452",
       "exports": [
         "installedConnectors"
       ],
@@ -66,6 +66,13 @@
         },
         {
           "name": "installedConnectors/installedConnectors/installedConnectors#16",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors/installedConnectors#17",
           "parameters": [
             "module"
           ],
@@ -163,6 +170,11 @@
           "async": false
         },
         {
+          "name": "installedConnectors/installedConnectors#17",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installedConnectors/installedConnectors#2",
           "parameters": [],
           "async": false
@@ -204,6 +216,7 @@
         }
       ],
       "imports": [
+        "../connectors/bigquery/host/installed-bigquery-source.mjs",
         "../connectors/calendar/host/installed-calendar-source.mjs",
         "../connectors/gcs/host/installed-gcs-source.mjs",
         "../connectors/github/host/installed-github-effect.mjs",
@@ -237,6 +250,7 @@
             "installedConnectors/installedConnectors/installedConnectors#14",
             "installedConnectors/installedConnectors/installedConnectors#15",
             "installedConnectors/installedConnectors/installedConnectors#16",
+            "installedConnectors/installedConnectors/installedConnectors#17",
             "installedConnectors/installedConnectors/installedConnectors#2",
             "installedConnectors/installedConnectors/installedConnectors#3",
             "installedConnectors/installedConnectors/installedConnectors#4",
@@ -252,6 +266,7 @@
             "installedConnectors/installedConnectors#14",
             "installedConnectors/installedConnectors#15",
             "installedConnectors/installedConnectors#16",
+            "installedConnectors/installedConnectors#17",
             "installedConnectors/installedConnectors#2",
             "installedConnectors/installedConnectors#3",
             "installedConnectors/installedConnectors#4",
@@ -638,7 +653,7 @@
               },
               {
                 "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "const pem=await readBoundedConfigurationText"
+                "anchor": "const pem=await reads.readText"
               },
               {
                 "path": "docs/design/notion-user-reader.md",

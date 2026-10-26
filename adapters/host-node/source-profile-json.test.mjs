@@ -3,7 +3,7 @@ import {appendFile, mkdtemp, open, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {readSourceProfileJson} from './source-profile-json.mjs';
+import {readSourceProfileJson, readBoundedConfigurationText, captureConfigurationReaders} from './source-profile-json.mjs';
 
 function source(bytes, {step = Infinity, readFailure, closeFailure,
   virtualBytes = bytes.length} = {}) {
@@ -148,4 +148,28 @@ test('Source profile reader bounds growth on the same real handle and releases i
   await assert.rejects(handle.stat(), {code: 'EBADF'});
   await writeFile(path, '{"retry":true}');
   assert.deepEqual(await readSourceProfileJson(path, {maxBytes: 16}), {retry: true});
+});
+
+
+test('configuration reader selection retains original methods receiver and pending error without I/O', async () => {
+  const error = Object.assign(new Error('same pending read'), {cleanupPending: true});
+  const reader = {readJson(value) {assert.equal(this, reader); return value;},
+    readText() {assert.equal(this, reader); throw error;}};
+  const selected = captureConfigurationReaders(reader, undefined, () => assert.fail('valid original'));
+  reader.readJson = reader.readText = () => assert.fail('replaced method');
+  assert.equal(selected.readJson('original'), 'original');
+  assert.throws(() => selected.readText(), cause => cause === error);
+  assert(Object.isFrozen(selected));
+  const legacy = captureConfigurationReaders(undefined, undefined, () => assert.fail('legacy omission'));
+  assert.equal(legacy.readJson, readSourceProfileJson); assert.equal(legacy.readText, readBoundedConfigurationText);
+});
+
+test('configuration reader selection refuses proxies accessors and incomplete originals without invoking them', () => {
+  const error = new Error('connector-specific refusal'), reject = () => {throw error;};
+  const accessor = {readJson() {assert.fail('read');}};
+  Object.defineProperty(accessor, 'readText', {get() {assert.fail('getter');}});
+  for (const reader of [null, [], {}, accessor, new Proxy({}, {getOwnPropertyDescriptor() {assert.fail('proxy trap');}})])
+    assert.throws(() => captureConfigurationReaders(reader, undefined, reject), cause => cause === error);
+  assert.throws(() => captureConfigurationReaders(undefined, 1, reject), cause => cause === error);
+  assert.throws(() => captureConfigurationReaders({}, undefined, () => {}), TypeError);
 });

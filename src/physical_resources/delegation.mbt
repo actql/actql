@@ -87,6 +87,20 @@ pub fn reserve_execution_delegation(
 }
 
 ///|
+/// Trusted execution-domain handoff consumes only this original provisioning
+/// attempt. Reservation alone is not physical use; repeated handoff accounting
+/// is idempotent, while foreign, closed or no-longer-current owners refuse.
+pub fn consume_execution_delegation_attempt(
+  ledger : Ledger,
+  value : ExecutionDelegation,
+) -> Result[Unit, LedgerIssue] {
+  if !physical_equal(ledger, value.owner) {
+    return Err(ForeignOwner)
+  }
+  consume_reserved_attempt(ledger, value.reservation)
+}
+
+///|
 pub fn execution_delegation_limits(value : ExecutionDelegation) -> LedgerLimits {
   value.limits
 }

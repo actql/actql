@@ -4842,7 +4842,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "603c7a41a01941f14fb892b20685c4dbf6192581158ad04ac4995b70ce7c5543",
+      "sha256": "ebc74840041f70b3cf732fb2464b9fa997c8bec2fe0d7637c6a44d88ca92cbf8",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -11943,12 +11943,20 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "Program and parent after the preparation await and a second current fence."
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Managed Source parent current callbacks"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "Copied, foreign and cancelled preparations cannot supply that association."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (record.computeRuns?.get(prepared) !== run || run.closed ||"
               }
             ],
             "cancellation": [
@@ -11973,6 +11981,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "Plural installations forward the same parent through every selected capacity;"
+              },
+              {
+                "path": "adapters/host-node/installed-managed-source.test.mjs",
+                "anchor": "test('Host Source current callback cannot retire or replace its original parent before preparation'"
               }
             ]
           }

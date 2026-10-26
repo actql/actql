@@ -173,3 +173,53 @@ for (const corrupt of ['missing-usage', 'usage-run', 'usage-session', 'usage-seq
     await assert.rejects(channel.request({corrupt}), {code: 'ExecutionNotReady'});
   });
 }
+
+
+test('installed handoff runs once only after preparation and abort refusals', async t => {
+  let entries = 0;
+  const enter = () => { entries++; };
+  await assert.rejects(startManagedExecution({...configuration(), startupMs: 0}, undefined, enter));
+  await assert.rejects(startManagedExecution(configuration(), AbortSignal.abort(), enter));
+  await assert.rejects(startManagedExecution(configuration(), undefined, {}), /InvalidExecutionHandoff/);
+  assert.equal(entries, 0);
+  const prepared = prepareManagedExecution(configuration());
+  const channel = await startManagedExecution(prepared, undefined, enter);
+  t.after(() => channel.close());
+  assert.equal(entries, 1);
+  assert.notEqual((await channel.request({command: 'echo', value: 1})).pid, process.pid);
+  await assert.rejects(startManagedExecution(prepared, undefined, enter));
+  assert.equal(entries, 1);
+  await channel.close();
+  assert.equal(entries, 1);
+});
+
+test('rejected handoff consumes its prepared token without launching or replaying', async t => {
+  const childProcess = (await import('node:child_process')).default;
+  const {syncBuiltinESMExports} = await import('node:module');
+  const originalSpawn = childProcess.spawn;
+  let spawns = 0;
+  t.mock.method(childProcess, 'spawn', (...args) => {
+    spawns++;
+    return originalSpawn(...args);
+  });
+  syncBuiltinESMExports();
+  t.after(() => { t.mock.restoreAll(); syncBuiltinESMExports(); });
+  const prepared = prepareManagedExecution(configuration());
+  let entries = 0;
+  const rejected = new Error('OriginalDebitRefused');
+  await assert.rejects(startManagedExecution(prepared, undefined, () => {
+    entries++;
+    throw rejected;
+  }), error => error === rejected && error.cleanupHandle === undefined);
+  await assert.rejects(startManagedExecution(prepared, undefined, () => { entries++; }));
+  assert.equal(entries, 1);
+  const abort = new AbortController();
+  await assert.rejects(startManagedExecution(configuration(), abort.signal, () => {
+    abort.abort(rejected);
+  }), error => error === rejected && error.cleanupHandle === undefined);
+  await assert.rejects(startManagedExecution(configuration(), undefined, async () => {
+    throw rejected;
+  }), /InvalidExecutionHandoff/);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(spawns, 0);
+});
