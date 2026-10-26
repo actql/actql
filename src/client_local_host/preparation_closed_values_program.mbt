@@ -64,7 +64,7 @@ fn closed_values_program_units_add(
   b : @execution.PreparationRepresentationUnits,
 ) -> @execution.PreparationRepresentationUnits {
   // Only fixed narrow constructor cardinalities call this helper. Resource
-  // projection remains checked by preparation_representation_cost.
+  // projection remains checked by @execution.preparation_representation_cost.
   {
     record_headers: a.record_headers + b.record_headers,
     reference_slots: a.reference_slots + b.reference_slots,
