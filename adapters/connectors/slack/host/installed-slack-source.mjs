@@ -5,7 +5,7 @@ import {isAbsolute} from 'node:path';
 import {types} from 'node:util';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {readSourceProfileJson,readBoundedConfigurationText} from '../../../host-node/source-profile-json.mjs';
+import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
 import {createInstalledRowSource,installRowSourceAuthorization,openRowSourceCredentialSite,
   rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
@@ -66,27 +66,9 @@ function checkSite(value){
   return Object.freeze(site);
 }
 
-function configurationReads(reader, readJson) {
-  const unavailable = () => fail('InstalledSlackConfigurationReaderUnavailable');
-  if (readJson !== undefined && typeof readJson !== 'function') unavailable();
-  if (reader === undefined) return Object.freeze({
-    readJson: readJson ?? readSourceProfileJson, readText: readBoundedConfigurationText,
-  });
-  if (reader === null || typeof reader !== 'object' || Array.isArray(reader) || types.isProxy(reader)) unavailable();
-  const json = Object.getOwnPropertyDescriptor(reader, 'readJson');
-  const text = Object.getOwnPropertyDescriptor(reader, 'readText');
-  if (!json || !Object.hasOwn(json, 'value') || typeof json.value !== 'function' ||
-      !text || !Object.hasOwn(text, 'value') || typeof text.value !== 'function') unavailable();
-  // Retain both original methods and their receiver before the first read awaits.
-  return Object.freeze({
-    readJson: readJson ?? ((...args) => Reflect.apply(json.value, reader, args)),
-    readText: (...args) => Reflect.apply(text.value, reader, args),
-  });
-}
-
 async function readInputs(profile,configurationReader,readJson){
   const installed=checkInstalledSlackSourceProfile(profile);
-  const reads=configurationReads(configurationReader,readJson);
+  const reads=captureConfigurationReaders(configurationReader,readJson,()=>fail('InstalledSlackConfigurationReaderUnavailable'));
   const site=checkSite(await reads.readJson(installed.siteProfilePath));
   let ca;
   if(site.caPath!==undefined){

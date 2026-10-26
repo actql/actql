@@ -13,6 +13,10 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 
 const sources = Object.fromEntries(await Promise.all(['notion', 'slack'].map(async role => [role,
   await readFile(new URL(`../../${role}/host/installed-${role}-source.mjs`, import.meta.url), 'utf8')])));
+const sharedCode = await readFile(new URL('../../../host-node/source-profile-json.mjs', import.meta.url), 'utf8');
+const sharedReader = parse(sharedCode, {ecmaVersion: 'latest', sourceType: 'module'}).body
+  .map(node => node.declaration ?? node).find(node => node.id?.name === 'captureConfigurationReaders');
+assert(sharedReader);
 const readerLimits = ['maxResponseBytes', 'maxTotalResponseBytes', 'maxNodes', 'maxDepth', 'maxRows',
   'maxTotalRows', 'maxPages', 'pageSize', 'maxCursorBytes', 'maxIdentityBytes', 'maxTargetBytes',
   'maxValueNodes', 'maxValueTextBytes', 'maxRowsWireBytes', 'maxRowsWireNodes', 'maxRowsWireDepth'];
@@ -51,7 +55,7 @@ function fixture(role, {textFailure, mutateMethods = false, badMethod, noCa = fa
   const read = (...args) => Reflect.apply(originalJson, reader, args);
   if (badMethod) Object.defineProperty(reader, badMethod, {get() {assert.fail('reader accessor invoked');}});
   const code = sources[role];
-  const bodies = parse(code, {ecmaVersion: 'latest', sourceType: 'module'}).body.flatMap(node => {
+  const bodies = sharedCode.slice(sharedReader.start, sharedReader.end) + '\n' + parse(code, {ecmaVersion: 'latest', sourceType: 'module'}).body.flatMap(node => {
     const declaration = node.declaration ?? node;
     return ['VariableDeclaration', 'FunctionDeclaration'].includes(declaration.type) ?
       [code.slice(declaration.start, declaration.end)] : [];

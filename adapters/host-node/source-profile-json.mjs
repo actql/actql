@@ -2,10 +2,33 @@
 // This does not make separate identity and installation reads one snapshot.
 import {open} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
+import {types} from 'node:util';
 
 const profileByteLimit = 8 * 1024 * 1024;
 const chunkBytes = 64 * 1024;
 const applyOriginal = Reflect.apply;
+
+// Select original read methods only; this owns no I/O, authority or cleanup.
+export function captureConfigurationReaders(reader, readJson, unavailable) {
+  const refuse = () => {
+    unavailable();
+    throw new TypeError('InstalledConfigurationReaderUnavailable');
+  };
+  if (readJson !== undefined && typeof readJson !== 'function') refuse();
+  if (reader === undefined) return Object.freeze({
+    readJson: readJson ?? readSourceProfileJson, readText: readBoundedConfigurationText,
+  });
+  if (reader === null || typeof reader !== 'object' || Array.isArray(reader) || types.isProxy(reader)) refuse();
+  const json = Object.getOwnPropertyDescriptor(reader, 'readJson');
+  const text = Object.getOwnPropertyDescriptor(reader, 'readText');
+  if (!json || !Object.hasOwn(json, 'value') || typeof json.value !== 'function' ||
+      !text || !Object.hasOwn(text, 'value') || typeof text.value !== 'function') refuse();
+  // Retain both original methods and their receiver before the first read awaits.
+  return Object.freeze({
+    readJson: readJson ?? ((...args) => Reflect.apply(json.value, reader, args)),
+    readText: (...args) => Reflect.apply(text.value, reader, args),
+  });
+}
 
 export async function readSourceProfileJson(path,
   {maxBytes = profileByteLimit, openFile = open} = {}) {
