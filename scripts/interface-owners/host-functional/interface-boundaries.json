@@ -69010,7 +69010,7 @@
     {
       "module": "packages/run-host-core/checkpoints.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "41c2138b436016736e40d4b9d367be63a5dd17652999b751ba367046a0fcdffa",
+      "sha256": "b009523fe7bc6235c7b0e821ceb96cf377c25a348cd89e617c3d810be56054d2",
       "role": "common-semantics",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -69031,6 +69031,7 @@
         "resumeCompletionAllowed",
         "resumeFenceDecide",
         "resumedApprovalAt",
+        "revalidationFailedState",
         "runStateAdmit",
         "runStateObservationKey",
         "runStateObservationWire",
@@ -69183,6 +69184,16 @@
           "result": "string"
         },
         {
+          "name": "revalidationFailedState",
+          "parameters": [
+            "runId: string",
+            "updatedAt: string",
+            "declaredResultsJson: string",
+            "unknownEffectsJson: string"
+          ],
+          "result": "string"
+        },
+        {
           "name": "runStateAdmit",
           "parameters": [
             "wire: string"
@@ -69256,8 +69267,9 @@
             "resolutionDecide",
             "resolutionProofPreimage",
             "resumeCompletionAllowed",
-            "resumeFenceDecide",
             "resumedApprovalAt",
+            "resumeFenceDecide",
+            "revalidationFailedState",
             "runStateAdmit",
             "runStateObservationKey",
             "runStateObservationWire",
@@ -69284,6 +69296,7 @@
             "resumeCompletionAllowed",
             "resumeFenceDecide",
             "resumedApprovalAt",
+            "revalidationFailedState",
             "runStateAdmit",
             "runStateObservationKey",
             "runStateObservationWire",
@@ -69463,7 +69476,7 @@
     {
       "module": "packages/run-host-core/checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "949c2f9134f2ec1745487da2ce58ffbc4095a5834975eb573335963b4988f3a0",
+      "sha256": "adc75200bae6b375a45d3debcde55c905a26e0ca0849533b62e85c8a21fb8412",
       "role": "common-semantics",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -69482,6 +69495,7 @@
         "resumeCompletionAllowed",
         "resumeFenceDecide",
         "resumedApprovalAt",
+        "revalidationFailedState",
         "runStateAdmit",
         "runStateObservationKey",
         "runStateObservationWire",
@@ -69615,6 +69629,7 @@
             "resumeCompletionAllowed",
             "resumeFenceDecide",
             "resumedApprovalAt",
+            "revalidationFailedState",
             "runStateAdmit",
             "runStateObservationKey",
             "runStateObservationWire",
