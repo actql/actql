@@ -101,6 +101,25 @@ pub(all) enum LedgerIssue {
 } derive(Eq, Debug)
 
 ///|
+// One immutable initial DATA value owned beside the full LedgerUsage shape.
+// Equality with this value detects a report, never a pristine Ledger/identity.
+let initial_ledger_usage : LedgerUsage = {
+  planning_work: 0,
+  attempts: 0,
+  reserved_attempts: 0,
+  holdings: 0,
+  live_reservations: 0,
+  live_delegations: 0,
+  transferred_bytes: 0L,
+  uncertain_transfer_bytes: 0L,
+  reserved_transfer_bytes: 0L,
+  held_bytes: 0L,
+  reserved_retention_bytes: 0L,
+  reserved_execution_bytes: 0L,
+  peak_retention_bytes: 0L,
+}
+
+///|
 pub fn create_ledger(limits : LedgerLimits) -> Result[Ledger, LedgerIssue] {
   if limits.planning_work < 0 ||
     limits.attempts < 0 ||
@@ -127,21 +146,7 @@ pub fn create_ledger(limits : LedgerLimits) -> Result[Ledger, LedgerIssue] {
       uncertain: zero_quantities(),
       consumed: zero_quantities(),
     },
-    usage: {
-      planning_work: 0,
-      attempts: 0,
-      reserved_attempts: 0,
-      holdings: 0,
-      live_reservations: 0,
-      live_delegations: 0,
-      transferred_bytes: 0L,
-      uncertain_transfer_bytes: 0L,
-      reserved_transfer_bytes: 0L,
-      held_bytes: 0L,
-      reserved_retention_bytes: 0L,
-      reserved_execution_bytes: 0L,
-      peak_retention_bytes: 0L,
-    },
+    usage: initial_ledger_usage,
   })
 }
 
