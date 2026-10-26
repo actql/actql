@@ -5501,8 +5501,19 @@ export async function connectEmbeddedLocal(options, initialEntry) {
             run.sourceProfile !== sourceProfile) {
           throw clientOperationError('ForeignInstalledComputeRun');
         }
-        checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
-        return run.value;
+        const value = run.value;
+        checked(Reflect.apply(run.check, runtime, [value, prepared, request]));
+        if (run.failure !== undefined) throw run.failure;
+        assertCurrent(manager, originals);
+        if (run.failure !== undefined) throw run.failure;
+        if (record.computeRuns !== runs || runs.get(prepared) !== run ||
+            record.computeLiveRuns !== liveRuns || !liveRuns.has(run) ||
+            run.closed || run.runtime !== runtime || run.prepared !== prepared ||
+            run.request !== request || run.manager !== manager ||
+            run.sourceProfile !== sourceProfile || run.value !== value) {
+          throw clientOperationError('ForeignInstalledComputeRun');
+        }
+        return value;
       }
       run = {runtime, prepared, request, manager, sourceProfile, original: undefined, admission: undefined,
         value: undefined, failure: undefined, closed: false};
