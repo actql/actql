@@ -159,9 +159,12 @@ fn closed_values_initial_control_units() -> @execution.PreparationRepresentation
   let run_headers = 11L + 1L
   let run_refs = 18L + 1L
   let run_words = 14L + 1L
-  let holder_headers = 6L * 12L + 4L + 2L + 1L
-  let holder_refs = 6L * 17L + 10L + 1L + 3L
-  let holder_words = 6L * 6L + 7L
+  // The closed PurePreparation/EffectPlanPreparation custody choice adds one
+  // original wrapper header, one reference and its scalar variant tag. Both
+  // cases still use the same already counted retirement record and engine.
+  let holder_headers = 6L * 12L + 4L + 2L + 1L + 1L
+  let holder_refs = 6L * 17L + 10L + 1L + 3L + 1L
+  let holder_words = 6L * 6L + 7L + 1L
   {
     record_headers: js_headers +
     import_headers +

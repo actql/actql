@@ -218,6 +218,8 @@ pub fn[T] model_io_admission_counts(ModelIoAdmission[T], T) -> (Int, Int)?
 
 pub fn[P] node_preparation_usage_isolated(NodeManagedRunAdmission[P], Ledger) -> Bool
 
+pub fn[I] node_source_compute_preparation_limits(NodePreparationAdmission[I], I) -> Result[LedgerLimits, ImportedChildLedgerIssue]
+
 pub fn observe_quantities(Ledger, Reservation, tokens? : Int64?, cost_units? : Int64?, duration_ms? : Int64?) -> Result[Unit, LedgerIssue]
 
 pub fn original_captured_prefix_available(Ledger, Reservation, Holding) -> Bool

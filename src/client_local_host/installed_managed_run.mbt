@@ -32,7 +32,7 @@ struct ClientInstalledManagedRun {
   mut keyed : ClientInstalledManagedKeyedPreparation?
   keyed_reads : Array[ClientInstalledKeyedSourceRead]
   mut source_free_preparation : ClientInstalledManagedSourceFreePreparation?
-  mut preparation_retirement : ClientManagedPreparationRetirement?
+  mut preparation_retirement : ClientManagedPreparationCustody?
   mut source_free_captured : @strategy.CapturedDAG?
   mut source_free_opening : Bool
 }
@@ -1065,7 +1065,12 @@ pub fn retire_installed_managed_run(
     }
   }
   if value.preparation_retirement is Some(original) {
-    return retire_preparation_owned_installed_run(value, original)
+    return match original {
+      PurePreparation(original) =>
+        retire_preparation_owned_installed_run(value, original)
+      EffectPlanPreparation(original) =>
+        retire_preparation_owned_installed_run(value, original)
+    }
   }
   // Use the original admission's complete cleanup path too. It retains an
   // early read bootstrap when later Scope construction did not return a view;

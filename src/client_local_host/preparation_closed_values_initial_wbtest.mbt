@@ -74,3 +74,16 @@ test "closed Values initial recipe has one owned control tariff and combined exa
     }
   }
 }
+
+///|
+test "closed preparation control inventory includes exactly one typed custody choice" {
+  let units = closed_values_initial_control_units()
+  // Independent constructor inventory: prior 241H/446R/292W plus the one
+  // retained closed custody wrapper 1H/1R/1W. Text and wire are unchanged.
+  assert_eq(units.record_headers, 242L)
+  assert_eq(units.reference_slots, 447L)
+  assert_eq(units.scalar_words, 293L)
+  assert_eq(units.owned_utf16_units, 80L)
+  assert_eq(units.owned_wire_bytes, 0L)
+  assert_eq(@execution.preparation_representation_cost(units), Some(9952L))
+}
