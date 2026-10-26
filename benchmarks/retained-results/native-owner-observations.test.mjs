@@ -11,7 +11,7 @@ function evidence() {
   const held = {...base, planningWork: 2, attempts: 3, holdings: 1, heldBytes: 40,
     reservedExecutionBytes: 128, environments: 1, imports: 1, importedRows: 2,
     tables: 2};
-  const closed = {...held, heldBytes: 0, reservedExecutionBytes: 0, tables: 0};
+  const closed = {...held, holdings: 0, heldBytes: 0, reservedExecutionBytes: 0, tables: 0};
   const offer = [1, 'duckdb', '2', 1, '0', '64', '512', '0', [], ['128']];
   return {observations: {
     owners: [{...base, boundary: 'before-task'}, {...held, boundary: 'after-task'},
@@ -34,7 +34,7 @@ function evidence() {
     plannerObserverTime: [{task: 1, value: 2}],
     plannerObserverWork: [{task: 1, value: 1}]},
   holdings: [{task: 1, rows: 2, rowsCid: 'oracle', bytes: 12}],
-  selected: ['duckdb'], final: {attempts: 3, holdings: 1}};
+  selected: ['duckdb'], final: {attempts: 3, holdings: 0}};
 }
 const admit = e => admitNativeOwnerObservations(e.observations, e.holdings,
   e.selected, e.final);
@@ -57,9 +57,10 @@ for (const [name, mutate, issue] of [
   ['post-execution explanation', e => { e.observations.explanations[0].body.selection.tasks[0].completed = true; }, /NativeExplanationTaskMismatch/],
   ['invented selection reason', e => { e.observations.explanations[0].body.selection.reason = 'host_preferred'; }, /NativeExplanationReasonMismatch/],
   ['wrong resident choice', e => { e.observations.choices[0].resident = false; }, /NativeExplanationTaskMismatch/],
+  ['holding remains after close', e => { e.observations.owners[3].holdings = 1; }, /NativeOwnerHoldingCleanupPending/],
   ['early holding release', e => { e.observations.owners[2].heldBytes = 0; }, /NativeHoldingLostBeforeClose/],
   ['early environment release', e => { e.observations.owners[1].reservedExecutionBytes = 0; }, /NativeResidentReservationReleasedEarly/],
-  ['duplicate close changes cumulative count', e => { e.observations.owners[4].holdings++; }, /NativeDuplicateCloseChangedOwner/],
+  ['duplicate close changes live count', e => { e.observations.owners[4].holdings++; }, /NativeDuplicateCloseChangedOwner/],
   ['excess retention', e => { e.observations.candidates[0].body[5][0][5][1][5] = '30'; }, /NativeHoldingExceedsSelectedBound/],
   ['clock retreat', e => { e.observations.phases[1].elapsedMicroseconds = 1; }, /NativePhaseClockRetreat/],
 ]) test(`refuse ${name}`, () => {const e = evidence(); mutate(e); assert.throws(() => admit(e), issue);});

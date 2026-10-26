@@ -3661,14 +3661,7 @@ pub fn strategy_host_usage(
     ),
   )
   [
-    usage.planning_work.to_int64(),
-    usage.attempts.to_int64(),
-    usage.holdings.to_int64(),
-    usage.transferred_bytes,
-    usage.reserved_transfer_bytes,
-    usage.held_bytes,
-    usage.reserved_retention_bytes,
-    usage.reserved_execution_bytes,
+    // CORE_LEDGER_USAGE_VALUES
   ]
 }
 

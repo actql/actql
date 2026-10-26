@@ -1525,6 +1525,8 @@ pub fn client_program_installed_managed_preparation_borrow(@client_local_host.Cl
 
 pub fn client_program_installed_managed_publication_limits(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, Int) -> Array[Int]
 
+pub fn client_program_installed_managed_run_accounting(@client_local_host.ClientInstalledManagedRun) -> Result[Array[Int64], @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_managed_run_begin(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_run_check(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
@@ -1538,8 +1540,6 @@ pub fn client_program_installed_managed_run_requirements(@run_publication_host.P
 pub fn client_program_installed_managed_run_retire(@client_local_host.ClientInstalledManagedRun) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_run_source_read(@client_local_host.ClientInstalledManagedRun, Int) -> Result[@client_local_host.ClientInstalledSourceRead, @client_local_host.ClientInstalledManagedRunIssue]
-
-pub fn client_program_installed_managed_run_usage(@client_local_host.ClientInstalledManagedRun) -> Result[Array[Int64], @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_source_free_begin(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledManagedSourceFreePreparation) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
 

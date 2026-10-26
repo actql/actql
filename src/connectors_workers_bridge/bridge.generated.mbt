@@ -3670,12 +3670,17 @@ pub fn strategy_host_usage(
   [
     usage.planning_work.to_int64(),
     usage.attempts.to_int64(),
+    usage.reserved_attempts.to_int64(),
     usage.holdings.to_int64(),
+    usage.live_reservations.to_int64(),
+    usage.live_delegations.to_int64(),
     usage.transferred_bytes,
+    usage.uncertain_transfer_bytes,
     usage.reserved_transfer_bytes,
     usage.held_bytes,
     usage.reserved_retention_bytes,
     usage.reserved_execution_bytes,
+    usage.peak_retention_bytes,
   ]
 }
 

@@ -34127,7 +34127,7 @@
               },
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
-                "anchor": "pub fn installed_managed_run_usage("
+                "anchor": "pub fn installed_managed_run_accounting("
               }
             ],
             "identity": [
@@ -34291,7 +34291,7 @@
               },
               {
                 "path": "adapters/host-common/observation.mjs",
-                "anchor": "const snapshot = Object.freeze({'actql.resource.scope': 'managed-run-ledger',"
+                "anchor": "const snapshot = {'actql.resource.scope': 'managed-run-ledger'};"
               }
             ],
             "extension": [
@@ -34317,7 +34317,7 @@
               },
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
-                "anchor": "/// values, not a measurement of process memory or physical cleanup."
+                "anchor": "/// These are managed accounting values, not a measurement of process memory"
               }
             ],
             "verification": [
@@ -82729,12 +82729,13 @@
     {
       "module": "adapters/host-node/ledger-contract.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f906b1af11dc97c032ca8173dba58d435d4facb6df4f71f7e5be2e9dbc6cc2bd",
+      "sha256": "23bdb836dbb0b1b9f93762785b3cc2dff875b1b48f5a0faea641bd4afac9e493",
       "role": "common-semantics",
       "owner": "Existing Core LedgerLimits/LedgerUsage record definitions; generated immutable transport layout only",
       "exports": [
         "ledgerLimitsFields",
-        "ledgerUsageFields"
+        "ledgerUsageFields",
+        "ledgerUsageSpentFields"
       ],
       "operations": [],
       "imports": [],
@@ -82747,7 +82748,8 @@
           ],
           "exports": [
             "ledgerLimitsFields",
-            "ledgerUsageFields"
+            "ledgerUsageFields",
+            "ledgerUsageSpentFields"
           ],
           "attributes": {
             "responsibility": [
@@ -82762,6 +82764,18 @@
               {
                 "path": "adapters/host-node/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
             "inputsOutputs": [
@@ -82776,6 +82790,18 @@
               {
                 "path": "adapters/host-node/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
             "identity": [
@@ -82790,6 +82816,18 @@
               {
                 "path": "adapters/host-node/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
             "ownership": [
@@ -82804,6 +82842,18 @@
               {
                 "path": "adapters/host-node/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
             "synchronization": [
@@ -82818,6 +82868,18 @@
               {
                 "path": "adapters/host-node/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
             "failure": [
@@ -82832,6 +82894,18 @@
               {
                 "path": "adapters/host-node/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
             "cancellation": [
@@ -82846,6 +82920,18 @@
               {
                 "path": "adapters/host-node/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
             "resources": [
@@ -82860,6 +82946,18 @@
               {
                 "path": "adapters/host-node/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
             "extension": [
@@ -82874,6 +82972,18 @@
               {
                 "path": "adapters/host-node/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
             "verification": [
@@ -82888,12 +82998,28 @@
               {
                 "path": "scripts/generate-ledger-transport-contract.test.mjs",
                 "anchor": "test('actual Core owns the complete current limits and thirteen-field usage contract'"
+              },
+              {
+                "path": "src/physical_resources/ledger_usage_pending.mbt",
+                "anchor": "pub fn ledger_usage_has_pending_resources("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.mjs",
+                "anchor": "export function projectLedgerUsageSpentFields(source) {"
+              },
+              {
+                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "anchor": "export const ledgerUsageSpentFields = Object.freeze("
+              },
+              {
+                "path": "scripts/generate-ledger-transport-contract.test.mjs",
+                "anchor": "test('diagnostic writer and spent projection follow the same Core owner without a parallel field list'"
               }
             ]
           }
         }
       ],
-      "referenceQualification": "Mechanical projection of actual Core record fields/types. No allocation, debit, physical acknowledgement or resource authority is issued by this layout."
+      "referenceQualification": "Mechanical projection of actual Core record fields/types. No allocation, debit, physical acknowledgement or resource authority is issued by this layout. The spent-field DATA projection is mechanically selected from the same Core pending-resource predicate; it is not a physical-stop or pristine-ledger proof."
     },
     {
       "module": "adapters/host-common/source-response-custody.mjs",

@@ -77,14 +77,14 @@ function observation(fixture, leg, rates, residentEstimates) {
     owners.push({...current, boundary: 'after-task'});
   }
   owners.push({...current, boundary: 'before-close'});
-  const closed = {...current, heldBytes: 0, reservedExecutionBytes: 0};
+  const closed = {...current, holdings: 0, heldBytes: 0, reservedExecutionBytes: 0};
   owners.push({...closed, boundary: 'after-close'}, {...closed, boundary: 'duplicate-close'});
   const cleanupStart = clock;
   if (environment) span('environment-close', 0, 0, 100);
   for (const task of [3, 2, 1]) span('task-release', task, null, 500);
   if (environment) span('environment-release', 0, 0, 150);
   const result = {task_count: 3, rows_cid: fixture.identity().rowsCid,
-    cleanup_us: clock - cleanupStart + 5, usage: {attempts: current.attempts, holdings: 3}};
+    cleanup_us: clock - cleanupStart + 5, usage: {attempts: current.attempts, holdings: 0}};
   const holdings = [1, 2, 3].map(task => ({task, bytes: 24, rows: 2, rowsCid: fixture.identity().rowsCid}));
   const raw = {owners, choices, candidates, explanations,
     phases: [{boundary: 'application', elapsedMicroseconds: 0}, {boundary: 'cleanup-end', elapsedMicroseconds: clock}],

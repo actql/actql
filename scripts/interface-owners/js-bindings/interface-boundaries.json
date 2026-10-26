@@ -15415,7 +15415,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "11dac27a4ebd4af2f0a1bbf7095bc957d1c472c30f25213338efbabb92cfc16d",
+      "sha256": "97e4fcbdae899ed955fbec149c294a1f9e3d66fcac61f21bc37c4eab56d111ce",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -22455,12 +22455,29 @@
             "value"
           ],
           "async": false
+        },
+        {
+          "name": "usageKeys/usageKeys",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "usageKeys/usageKeys/usageKeys",
+          "parameters": [
+            "_",
+            "letter"
+          ],
+          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
-            "<module>"
+            "<module>",
+            "usageKeys/usageKeys",
+            "usageKeys/usageKeys/usageKeys"
           ],
           "exports": [],
           "attributes": {
@@ -26680,6 +26697,7 @@
       ],
       "imports": [
         "../../packages/client-wire/index.mjs",
+        "../host-node/ledger-contract.generated.mjs",
         "./compiler-binding.generated.mjs",
         "./installation-preparation-metadata.mjs",
         "./local-signing-metadata.mjs",
@@ -38825,7 +38843,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "567b3fa0cffd5c1469e8eb9f77c26bba617fbf9e27f3f41613ccf8643ea794a9",
+      "sha256": "8ead12c773d00202ffb06c4e0d25b63db2edb20b5437bd605e69f01c660e05f8",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -46811,20 +46829,20 @@
                 "anchor": "Only the original three static contract strings are retained"
               },
               {
-                "path": "src/client_local_host/installed_managed_run.mbt",
-                "anchor": "pub fn installed_managed_run_usage("
-              },
-              {
-                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
-                "anchor": "#export_name(\"clientProgramInstalledManagedRunUsage\")"
-              },
-              {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The installed managed Run exposes a read-only observation of its own live"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Original output mode before Pure module preparation"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "pub fn installed_managed_run_accounting("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "#export_name(\"clientProgramInstalledManagedRunAccounting\")"
               }
             ],
             "extension": [
@@ -48421,7 +48439,7 @@
               },
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
-                "anchor": "pub fn installed_managed_run_usage("
+                "anchor": "pub fn installed_managed_run_accounting("
               }
             ],
             "identity": [
@@ -48481,7 +48499,7 @@
               },
               {
                 "path": "adapters/host-common/observation.mjs",
-                "anchor": "const snapshot = Object.freeze({'actql.resource.scope': 'managed-run-ledger',"
+                "anchor": "const snapshot = {'actql.resource.scope': 'managed-run-ledger'};"
               }
             ],
             "extension": [
@@ -48491,7 +48509,7 @@
               },
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
-                "anchor": "/// values, not a measurement of process memory or physical cleanup."
+                "anchor": "/// These are managed accounting values, not a measurement of process memory"
               }
             ],
             "verification": [

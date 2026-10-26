@@ -25,7 +25,7 @@ function closed(observations) {
   assert.equal(twice.boundary, 'duplicate-close');
   for (const key of capacity) assert.equal(after[key], 0, key);
   assert.equal(after.attempts, before.attempts);
-  assert.equal(after.holdings, before.holdings);
+  assert.equal(after.holdings, 0, 'NativeOwnerHoldingCleanupPending');
   assert.deepEqual(twice, {...after, boundary: 'duplicate-close'});
 }
 
