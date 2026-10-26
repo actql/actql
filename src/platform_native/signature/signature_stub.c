@@ -4,11 +4,15 @@
 #include "moonbit.h"
 
 #include <dlfcn.h>
+#include <errno.h>
 #include <limits.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #if defined(__APPLE__) && defined(__aarch64__)
 #include <sys/random.h>
 #include "owned_entropy.h"
@@ -75,6 +79,7 @@ typedef struct {
   char *error;
   int32_t diagnostic_ceiling;
   uint32_t pending_hashes;
+  uint32_t pending_signatures;
   bool closing;
   bool close_unconfirmed;
   actql_bio_new_mem_buf_fn bio_new_mem_buf;
@@ -214,13 +219,14 @@ static void actql_native_signature_library_finalize(void *value) {
     // The original component/Host retains a lost Library borrow; GC cannot
     // release it, unload the component or acknowledge its physical extent.
     if (!actql_crypto_original_thread(library->component)) return;
-    if (!library->component_borrowed && !library->pending_hashes) moonbit_decref(library->component);
+    if (!library->component_borrowed && !library->pending_hashes &&
+        !library->pending_signatures) moonbit_decref(library->component);
     return;
   }
   // Finalization is best effort, never an application cleanup acknowledgement.
   // In particular it cannot retry an unconfirmed explicit dlclose.
   if (library->dynamic_library != NULL && !library->close_unconfirmed &&
-      library->pending_hashes == 0) {
+      library->pending_hashes == 0 && library->pending_signatures == 0) {
     if (dlclose(library->dynamic_library) == 0) library->dynamic_library = NULL;
   }
   actql_signature_free(library, library->error);
@@ -239,7 +245,7 @@ int32_t actql_native_signature_library_close(
     if (!library->component_borrowed && library->dynamic_library == NULL) return 0;
     if (!actql_crypto_original_current(library->component)) return 2;
     library->closing = true;
-    if (library->pending_hashes != 0) return 1;
+    if (library->pending_hashes != 0 || library->pending_signatures != 0) return 1;
     // Original diagnostic buffers cannot outlive the explicit Library ACK.
     actql_signature_free(library, library->error); library->error = NULL;
     if (library->component_borrowed &&
@@ -251,7 +257,7 @@ int32_t actql_native_signature_library_close(
   library->closing = true;
   if (library->close_unconfirmed) return 3;
   if (library->dynamic_library == NULL) return 0;
-  if (library->pending_hashes != 0) return 1;
+  if (library->pending_hashes != 0 || library->pending_signatures != 0) return 1;
   dlerror();
   if (dlclose(library->dynamic_library) != 0) {
     const char *issue = dlerror();
@@ -697,6 +703,66 @@ static int actql_signing_no_password(char *buffer, int size, int writing, void *
 
 /* Resolve signing symbols only for signing. Existing verification, hashing
  * and Store users retain their original library-loading requirements. */
+static int actql_signature_sign_material(
+  actql_native_signature_library *library,
+  const unsigned char *private_key,
+  int32_t private_key_length,
+  const unsigned char *message,
+  int32_t message_length,
+  const unsigned char *expected_public_key,
+  unsigned char signature[ACTQL_ED25519_SIGNATURE_BYTES]
+) {
+  ACTQL_SIGNATURE_SCOPE(library, 2);
+  if (!actql_signature_library_available(library) ||
+      private_key_length <= 0 || private_key_length > 16384 ||
+      message_length < 0 || message_length > 1048576 ||
+      memchr(private_key, 0, (size_t)private_key_length) != NULL) return 2;
+  actql_pem_read_bio_pubkey_fn read_private = NULL;
+  actql_evp_digest_verify_init_fn sign_init = NULL;
+  typedef int (*sign_fn)(EVP_MD_CTX *, unsigned char *, size_t *,
+                         const unsigned char *, size_t);
+  sign_fn sign = NULL;
+  if (!actql_load_symbol(library, (void **)&read_private, "PEM_read_bio_PrivateKey") ||
+      !actql_load_symbol(library, (void **)&sign_init, "EVP_DigestSignInit") ||
+      !actql_load_symbol(library, (void **)&sign, "EVP_DigestSign")) return 5;
+  BIO *bio = library->bio_new_mem_buf(private_key, private_key_length);
+  if (bio == NULL) return 5;
+  EVP_PKEY *key = read_private(bio, NULL, actql_signing_no_password, NULL);
+  library->bio_free(bio);
+  if (key == NULL) return 3;
+  if (library->evp_pkey_get_base_id(key) != ACTQL_NID_ED25519) {
+    library->evp_pkey_free(key);
+    return 4;
+  }
+  if (expected_public_key != NULL) {
+    if (library->evp_pkey_get_raw_public_key == NULL &&
+        !actql_load_symbol(library, (void **)&library->evp_pkey_get_raw_public_key,
+          "EVP_PKEY_get_raw_public_key")) {
+      library->evp_pkey_free(key);
+      return 5;
+    }
+    unsigned char observed[32];
+    size_t length = sizeof(observed);
+    int ready = library->evp_pkey_get_raw_public_key(key, observed, &length);
+    bool matches = ready == 1 && length == sizeof(observed) &&
+      memcmp(observed, expected_public_key, sizeof(observed)) == 0;
+    memset(observed, 0, sizeof(observed));
+    if (!matches) {
+      library->evp_pkey_free(key);
+      return 7;
+    }
+  }
+  EVP_MD_CTX *context = library->evp_md_ctx_new();
+  if (context == NULL) { library->evp_pkey_free(key); return 5; }
+  size_t length = ACTQL_ED25519_SIGNATURE_BYTES;
+  int initialized = sign_init(context, NULL, NULL, NULL, key);
+  int signed_message = initialized == 1
+    ? sign(context, signature, &length, message, (size_t)message_length) : 0;
+  library->evp_md_ctx_free(context);
+  library->evp_pkey_free(key);
+  return signed_message == 1 && length == ACTQL_ED25519_SIGNATURE_BYTES ? 0 : 5;
+}
+
 MOONBIT_FFI_EXPORT
 moonbit_bytes_t actql_native_signature_sign_ed25519(
   actql_native_signature_library *library,
@@ -705,50 +771,35 @@ moonbit_bytes_t actql_native_signature_sign_ed25519(
   moonbit_bytes_t message,
   int32_t message_length
 ) {
-  moonbit_bytes_t result = moonbit_make_bytes_raw(1);
-  result[0] = 2;
-  ACTQL_SIGNATURE_SCOPE(library, result);
-  if (!actql_signature_library_available(library) ||
-      private_key_length <= 0 || private_key_length > 16384 ||
-      message_length < 0 || message_length > 1048576 ||
-      memchr(private_key, 0, (size_t)private_key_length) != NULL) return result;
-  actql_pem_read_bio_pubkey_fn read_private = NULL;
-  actql_evp_digest_verify_init_fn sign_init = NULL;
-  typedef int (*sign_fn)(EVP_MD_CTX *, unsigned char *, size_t *,
-                         const unsigned char *, size_t);
-  sign_fn sign = NULL;
-  result[0] = 5;
-  if (!actql_load_symbol(library, (void **)&read_private, "PEM_read_bio_PrivateKey") ||
-      !actql_load_symbol(library, (void **)&sign_init, "EVP_DigestSignInit") ||
-      !actql_load_symbol(library, (void **)&sign, "EVP_DigestSign")) return result;
-  BIO *bio = library->bio_new_mem_buf(private_key, private_key_length);
-  if (bio == NULL) return result;
-  EVP_PKEY *key = read_private(bio, NULL, actql_signing_no_password, NULL);
-  library->bio_free(bio);
-  if (key == NULL) { result[0] = 3; return result; }
-  if (library->evp_pkey_get_base_id(key) != ACTQL_NID_ED25519) {
-    library->evp_pkey_free(key);
-    result[0] = 4;
-    return result;
-  }
-  EVP_MD_CTX *context = library->evp_md_ctx_new();
-  if (context == NULL) { library->evp_pkey_free(key); return result; }
   unsigned char signature[ACTQL_ED25519_SIGNATURE_BYTES];
-  size_t length = sizeof(signature);
-  int initialized = sign_init(context, NULL, NULL, NULL, key);
-  int signed_message = initialized == 1
-    ? sign(context, signature, &length, message, (size_t)message_length) : 0;
-  library->evp_md_ctx_free(context);
-  library->evp_pkey_free(key);
-  if (signed_message == 1 && length == sizeof(signature)) {
-    moonbit_decref(result);
+  int status = actql_signature_sign_material(library, private_key,
+    private_key_length, message, message_length, NULL, signature);
+  moonbit_bytes_t result;
+  if (status == 0) {
     result = moonbit_make_bytes_raw(1 + ACTQL_ED25519_SIGNATURE_BYTES);
     result[0] = 0;
     memcpy(result + 1, signature, sizeof(signature));
+  } else {
+    result = moonbit_make_bytes_raw(1);
+    result[0] = (unsigned char)status;
   }
   memset(signature, 0, sizeof(signature));
   return result;
 }
+
+#ifndef ACTQL_SIGNATURE_RAW_DIAGNOSTIC
+#include "original_key_signing.inc"
+
+MOONBIT_FFI_EXPORT
+int32_t actql_native_original_key_signing_owner_current(
+  actql_native_original_key_signing *original
+) {
+  /* Noncallback original process/thread/lifetime observation only. This is
+   * neither key/current authority nor permission to attempt another sign. */
+  return actql_original_key_signing_owner(original) && !original->closed &&
+    original->child_registered;
+}
+#endif
 
 /* Private evidence uses the same AES-256-GCM algorithm and AAD as the existing
  * Node Store. Optional cipher symbols are resolved only for this operation;

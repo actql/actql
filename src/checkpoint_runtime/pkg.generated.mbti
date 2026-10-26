@@ -240,6 +240,7 @@ pub struct PersistedCheckpoint {
 type PreparedResolutionProof
 pub fn PreparedResolutionProof::actor(Self) -> String
 pub fn PreparedResolutionProof::checkpoint(Self) -> SealedCheckpoint
+pub fn PreparedResolutionProof::decision(Self) -> ResolutionDecision
 pub fn PreparedResolutionProof::preimage(Self) -> String
 
 pub(all) enum ResolutionCommitAction {

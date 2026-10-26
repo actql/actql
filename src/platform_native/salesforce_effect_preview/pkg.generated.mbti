@@ -29,6 +29,8 @@ pub fn admit_native_effect_resolution(@signature.Library, @checkpoint_runtime.Se
 
 pub fn authenticate_native_effect_reviewer(NativeEffectReviewerInstallation, NativeEffectReviewerSelection, String, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.HostAuthentication, NativeResidentEffectResolutionIssue]
 
+pub fn authenticate_native_effect_wrapper_reviewer(NativeEffectReviewerInstallation, NativeEffectReviewerSelection, String, String, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.HostAuthentication, NativeResidentEffectResolutionIssue]
+
 pub fn install_native_effect_host_account(NativeEffectHostAccountFile?, read_ceiling? : Int, diagnostic_ceiling? : Int?, require_current_read_context? : Bool, on_read_failure? : ((@bounded_files.NativeBoundedTextFailure) -> Unit)?, read_scope_current? : (() -> Bool)?) -> Result[NativeEffectHostAccountInstallation?, NativeEffectHostAccountInstallationIssue]
 
 pub fn observe_and_retain_native_salesforce_named_catalog(@credential_resource.NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, @credential_resource.NativeCredentialScope, @catalog.CatalogObservationBinding, String, String, String, @catalog.DescribeLimits, Int, @publication_store.Store, @signature.Library, Bytes, () -> Bool) -> Result[(@publication_store.EffectCatalogCustody, @publication_store.NativeEffectCatalogResponse), NativeSalesforceCatalogCustodyFailure]

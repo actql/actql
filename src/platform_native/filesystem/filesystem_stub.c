@@ -1449,16 +1449,24 @@ bool actql_native_private_file_projection_matches(
     actql_private_file_same_generation(&projection->original, &named);
 }
 
-int actql_native_private_file_projection_open(
-  actql_native_private_file_projection *projection
+bool actql_native_private_file_projection_open_with_custody(
+  actql_native_private_file_projection *projection, int *descriptor
 ) {
-  if (projection == NULL || !projection->ready ||
-      !actql_native_filesystem_private_root_identity(projection->root)) return -1;
-  int descriptor = openat(
+  if (descriptor == NULL || *descriptor != -1 || projection == NULL ||
+      !projection->ready ||
+      !actql_native_filesystem_private_root_identity(projection->root)) return false;
+  *descriptor = openat(
     projection->root->fd, projection->name,
     O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK
   );
-  if (!actql_native_private_file_projection_matches(projection, descriptor)) {
+  return actql_native_private_file_projection_matches(projection, *descriptor);
+}
+
+int actql_native_private_file_projection_open(
+  actql_native_private_file_projection *projection
+) {
+  int descriptor = -1;
+  if (!actql_native_private_file_projection_open_with_custody(projection, &descriptor)) {
     if (descriptor >= 0) close(descriptor);
     return -1;
   }
