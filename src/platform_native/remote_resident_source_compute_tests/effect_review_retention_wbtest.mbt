@@ -19,6 +19,10 @@ fn retained_effect_review_retention_store(
     @client.NativeClientEffectSourceWork,
     @client.NativeClientRunJournal,
   )? = None,
+  initial_reviewer? : (
+    PairedInitialReviewerFixture,
+    @client.NativeClientSubmissionReference,
+  )? = None,
   original_context? : (
     @resident.ResidentEffectReviewInputContext,
     @dispatch_journal.Journal,
@@ -522,6 +526,15 @@ fn retained_effect_review_retention_store(
       @client.native_client_run_record_revision(after_read),
       revision + 1L,
     )
+    if initial_reviewer is Some((value, reference)) {
+      paired_initial_reviewer_signing(
+        value,
+        reference,
+        request,
+        approval_scope,
+        persisted.artifact,
+      )
+    }
     // Discharge this test's actual review obligation before exercising custody
     // cleanup below. No fixture receipt replaces the signed common rejection.
     native_local_effect_reject_review(journal, request, persisted.artifact)

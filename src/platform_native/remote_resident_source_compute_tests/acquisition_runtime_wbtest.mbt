@@ -152,7 +152,7 @@ fn acquisition_runtime_case(
     issuer_capability_cid: selected.evidence_issuer_capability_cid,
     bundles,
     budgets: [budget],
-    registry_body: configuration.registry_body,
+    installed_contracts: configuration.installed_contracts,
     values_body: configuration.values_body,
     fixed_ms: 1L,
     per_row_ms: 0L,
@@ -315,7 +315,7 @@ fn acquisition_runtime_case(
           retained_compute_effect_limits(),
           polled,
           "2026-10-09T00:00:00.000Z",
-          configuration.registry_body,
+          configuration.installed_contracts,
           configuration.values_body,
           configuration.source.fragment_contract_body,
         )

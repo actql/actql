@@ -25,6 +25,10 @@ fn retained_effect_complete_capture(
     @client.NativeClientEffectSourceWork,
     @client.NativeClientRunJournal,
   )? = None,
+  initial_reviewer? : (
+    PairedInitialReviewerFixture,
+    @client.NativeClientSubmissionReference,
+  )? = None,
 ) -> Unit raise {
   let capture = (material, proofs, sources) => {
     consumer.capture_effect_run(
@@ -114,6 +118,7 @@ fn retained_effect_complete_capture(
       wire,
       authoring_cid,
       original_work~,
+      initial_reviewer~,
     )
   } else {
     retained_effect_capture_store(

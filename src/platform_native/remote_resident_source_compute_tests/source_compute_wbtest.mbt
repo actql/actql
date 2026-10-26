@@ -54,6 +54,18 @@ fn resident_compute_prepared(
 }
 
 ///|
+// Same independently authored fixture wires, admitted once through the existing
+// installed-contract Owner. No execution plan, funding or permission is issued.
+fn resident_compute_installed_contracts() -> @local.ClientInstalledSequenceContracts {
+  @local.prepare_installed_sequence_contracts(
+    resident_effect_source_registry,
+    resident_effect_source_values,
+    Some(resident_effect_source_fragment),
+    None,
+  ).unwrap()
+}
+
+///|
 fn resident_compute_configuration(
   library : @duckdb.Library,
   path : String,
@@ -88,7 +100,7 @@ fn resident_compute_configuration(
         execution_bytes: 1073741824L,
       },
     },
-    registry_body: resident_effect_source_registry,
+    installed_contracts: resident_compute_installed_contracts(),
     values_body: resident_effect_source_values,
     dispatch: {
       input_entries: 100,

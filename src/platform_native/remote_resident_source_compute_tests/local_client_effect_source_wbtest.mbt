@@ -23,8 +23,9 @@ fn local_client_effect_source_materials(
 fn local_client_effect_source_original(
   root : String,
   name : String,
+  adopted_host? : @client.NativeLocalHostConnection? = None,
 ) -> (
-  @sqlite.Database,
+  @sqlite.Database?,
   @client.NativeClientRunJournal,
   @client.NativeClientSubmissionReference,
   @host.ClientRequestIdentity,
@@ -37,35 +38,71 @@ fn local_client_effect_source_original(
   let crypto = @signature.load_library(
     @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY").unwrap(),
   ).unwrap()
-  let database = sqlite
-    .open_database(root + "/" + name + ".sqlite3", 131072L)
+  let database = if adopted_host is Some(_) {
+    None
+  } else {
+    Some(sqlite.open_database(root + "/" + name + ".sqlite3", 131072L).unwrap())
+  }
+  let (journal, authority, scope) = match adopted_host {
+    Some(host) => {
+      assert_true(
+        host.authorize({
+          principal: "operator",
+          connection: "cli",
+          resource: "run",
+          operation: "submit",
+        })
+        is Ok(@authorization.Allow(_)),
+      )
+      (
+        host.run_journal().unwrap(),
+        host.epoch_authority().unwrap(),
+        host.authority_scope_cid("operator", "cli", crypto).unwrap(),
+      )
+    }
+    None => {
+      let database = database.unwrap()
+      // Independently authored initial custody in this test-owned fresh DB only.
+      // No production adoption/grant or Submission/Run receipt is synthesized.
+      // The real epoch Owner issues and authenticates every reference below.
+      let key = @base64.encode(crypto.random_bytes(32).unwrap())
+      database
+      .insert(
+        "client_submission_epoch",
+        "authority",
+        @utf8.encode(
+          "{\"authentication_key\":\"" +
+          key +
+          "\",\"observed_at\":0,\"version\":\"actql-native-submission-epoch-custody/0.1\"}",
+        ),
+      )
+      .unwrap()
+      |> ignore
+      database.insert("client_run_custody", "issued", b"0").unwrap() |> ignore
+      database.insert("client_cancel_custody", "issued", b"0").unwrap()
+      |> ignore
+      database
+      .insert("client_submitted_intent_custody", "issued", b"0")
+      .unwrap()
+      |> ignore
+      let journal = @client.open_native_client_run_journal(database, 8).unwrap()
+      let authority = @client.open_native_client_epoch_authority(
+        database, crypto, 100.0,
+      ).unwrap()
+      (journal, authority, "sha256:" + "a".repeat(64))
+    }
+  }
+  let epoch = authority
+    .issue_epoch(
+      scope,
+      true,
+      if adopted_host is Some(_) {
+        @env.now().to_double()
+      } else {
+        1000.0
+      },
+    )
     .unwrap()
-  // Independently authored initial custody in this test-owned fresh DB only.
-  // No production adoption/grant or Submission/Run receipt is synthesized.
-  // The real epoch Owner issues and authenticates every reference below.
-  let key = @base64.encode(crypto.random_bytes(32).unwrap())
-  database
-  .insert(
-    "client_submission_epoch",
-    "authority",
-    @utf8.encode(
-      "{\"authentication_key\":\"" +
-      key +
-      "\",\"observed_at\":0,\"version\":\"actql-native-submission-epoch-custody/0.1\"}",
-    ),
-  )
-  .unwrap()
-  |> ignore
-  database.insert("client_run_custody", "issued", b"0").unwrap() |> ignore
-  database.insert("client_cancel_custody", "issued", b"0").unwrap() |> ignore
-  database.insert("client_submitted_intent_custody", "issued", b"0").unwrap()
-  |> ignore
-  let journal = @client.open_native_client_run_journal(database, 8).unwrap()
-  let authority = @client.open_native_client_epoch_authority(
-    database, crypto, 100.0,
-  ).unwrap()
-  let scope = "sha256:" + "a".repeat(64)
-  let epoch = authority.issue_epoch(scope, true, 1000.0).unwrap()
   let reference = @client.prepare_native_client_submission_reference(
     epoch, "original-local-effect-source-submit",
   ).unwrap()
@@ -78,7 +115,18 @@ fn local_client_effect_source_original(
     64,
   ).unwrap()
   journal
-  .record_submitted_intent(authority, reference, intent, scope, true, 1001.0)
+  .record_submitted_intent(
+    authority,
+    reference,
+    intent,
+    scope,
+    true,
+    if adopted_host is Some(_) {
+      @env.now().to_double()
+    } else {
+      1001.0
+    },
+  )
   .unwrap()
   |> ignore
   let environment = @host.admit_client_check_environment(
@@ -133,8 +181,19 @@ fn local_client_effect_source_original(
   ).unwrap()
   let accepted = journal
     .accept_submitted_effect_run(
-      authority, reference, preparation, request, allowed, definition, scope, true,
-      1002.0,
+      authority,
+      reference,
+      preparation,
+      request,
+      allowed,
+      definition,
+      scope,
+      true,
+      if adopted_host is Some(_) {
+        @env.now().to_double()
+      } else {
+        1002.0
+      },
     )
     .unwrap()
   assert_eq(
@@ -328,7 +387,7 @@ test "Native original accepted Effect Run acquires once computes its Result and 
   )
   assert_eq(acquisitions, 1)
   assert_eq(consumers, 1)
-  database.close_checked().unwrap()
+  database.unwrap().close_checked().unwrap()
 }
 
 ///|
@@ -342,7 +401,10 @@ test "Native original Local Effect persists waiting rejects explicitly and retri
 }
 
 ///|
-fn native_local_effect_capture_acceptance(review : Bool) -> Unit raise {
+fn native_local_effect_capture_acceptance(
+  review : Bool,
+  initial_reviewer? : PairedInitialReviewerFixture? = None,
+) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     abort("Native Client Effect capture requires actual DuckDB")
   }
@@ -353,8 +415,10 @@ fn native_local_effect_capture_acceptance(review : Bool) -> Unit raise {
   let path = root_path + "/" + name
   let root = @filesystem.open_root(root_path).unwrap()
   resident_compute_database(library, path)
-  let (database, journal, _, request, allowed, definition) = local_client_effect_source_original(
-    root_path, name,
+  let (database, journal, reference, request, allowed, definition) = local_client_effect_source_original(
+    root_path,
+    name,
+    adopted_host=initial_reviewer.map(value => value.host),
   )
   let configured = resident_compute_configuration(library, path)
   let configuration : @resident.ResidentSourceComputeConfiguration = {
@@ -859,6 +923,7 @@ fn native_local_effect_capture_acceptance(review : Bool) -> Unit raise {
     dependencies,
     facts.result,
     original_work=if review { Some((work, journal)) } else { None },
+    initial_reviewer=initial_reviewer.map(value => (value, reference)),
   )
   authorized = false
   assert_true(
@@ -896,7 +961,19 @@ fn native_local_effect_capture_acceptance(review : Bool) -> Unit raise {
   assert_eq(work.usage().held_bytes, 0L)
   assert_eq(work.usage().reserved_retention_bytes, 0L)
   assert_eq(work.usage().reserved_execution_bytes, 0L)
-  database.close_checked().unwrap()
+  if initial_reviewer is Some(value) {
+    assert_true(value.restored)
+    assert_true(
+      value.binding
+      .unwrap()
+      .restore_initial_resolution_candidate("paired-initial-reviewer")
+      is Err(_),
+    )
+    value.host.close().unwrap()
+    value.crypto.close_checked().unwrap()
+    return
+  }
+  database.unwrap().close_checked().unwrap()
   // Reopening the actual original journal is not a new process claim. The
   // original rejected Run and its Checkpoint state must survive unchanged.
   let sqlite = @sqlite.load_library(
