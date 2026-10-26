@@ -68,6 +68,14 @@ not stand for another copy of its value tree. Retained-alongside-execution
 composition counts that actual overlap; quoted independent dimensions do not
 silently add it again.
 
+The same fold accepts one occurrence at a time through
+`execution_capacity_inventory_add`. Managed Effect operation demand uses this
+entry for its already-quoted transfer, retained and execution bytes, with the
+original member or checked-row multiplicity. It does not allocate a second
+inventory array or change the live control layout. Invalid counts and overflow
+refuse before replacing the accumulated total; a zero multiplicity neither
+spends capacity nor discards the previous total.
+
 Model and Content composition use the same fold while retaining their original
 provider, proof, writer and response lifetimes. Those logical allowances are
 not allocator-size or process-RSS measurements. Neither an inventory nor its

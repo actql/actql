@@ -41,29 +41,49 @@ fn execution_capacity_unit_bytes(unit : ExecutionCapacityUnit) -> Int64 {
 }
 
 ///|
+/// Add one domain occurrence to the same checked inventory without allocating
+/// another inventory array. Units and overflow rules remain common-owned.
+pub fn execution_capacity_inventory_add(
+  total : Int64,
+  unit : ExecutionCapacityUnit,
+  count : Int64,
+  copies : Int,
+) -> Int64? {
+  if total < 0L || count < 0L || copies < 0 {
+    return None
+  }
+  // A zero multiplicity owns no instance, but invalid counts still refuse.
+  if count == 0L || copies == 0 {
+    return Some(total)
+  }
+  let bytes = execution_capacity_unit_bytes(unit)
+  if bytes <= 0L || count > 9223372036854775807L / bytes {
+    return None
+  }
+  let amount = count * bytes
+  let multiplicity = copies.to_int64()
+  if amount > (9223372036854775807L - total) / multiplicity {
+    return None
+  }
+  Some(total + amount * multiplicity)
+}
+
+///|
 pub fn execution_capacity_inventory_bytes(
   items : Array[ExecutionCapacityItem],
 ) -> Int64? {
   let mut total = 0L
   for item in items {
-    if item.count < 0L || item.copies < 0 {
+    guard execution_capacity_inventory_add(
+        total,
+        item.unit,
+        item.count,
+        item.copies,
+      )
+      is Some(next) else {
       return None
     }
-    // No instance exists when multiplicity is zero; still reject invalid
-    // counts above before taking this branch.
-    if item.count == 0L || item.copies == 0 {
-      continue
-    }
-    let unit = execution_capacity_unit_bytes(item.unit)
-    let copies = item.copies.to_int64()
-    if unit <= 0L || item.count > 9223372036854775807L / unit {
-      return None
-    }
-    let amount = item.count * unit
-    if amount > (9223372036854775807L - total) / copies {
-      return None
-    }
-    total += amount * copies
+    total = next
   }
   Some(total)
 }

@@ -134,22 +134,6 @@ fn installed_effect_plan_matches(
 }
 
 ///|
-fn installed_effect_add_extent(
-  total : Int64,
-  count : Int64,
-  bytes : Int64,
-) -> Int64? {
-  if total < 0L ||
-    count < 0L ||
-    bytes < 0L ||
-    (bytes > 0L && count > (9223372036854775807L - total) / bytes) {
-    None
-  } else {
-    Some(total + count * bytes)
-  }
-}
-
-///|
 fn installed_effect_limits_fit(
   required : @resources.LedgerLimits,
   admitted : @resources.LedgerLimits,
@@ -382,10 +366,11 @@ pub fn prepare_installed_effect_managed_plan(
           }
           attempts += count
         }
-        guard installed_effect_add_extent(
+        guard @execution.execution_capacity_inventory_add(
             transfer,
-            count,
+            QuotedBytes,
             extent.transfer_bytes,
+            multiplicity,
           )
           is Some(next) else {
           return Err(Unsupported)
@@ -393,11 +378,23 @@ pub fn prepare_installed_effect_managed_plan(
         transfer = next
         let r = @execution.execution_capacity_retained_bytes(extent.capacity)
         let e = @execution.execution_capacity_execution_bytes(extent.capacity)
-        guard installed_effect_add_extent(retained, count, r) is Some(next) else {
+        guard @execution.execution_capacity_inventory_add(
+            retained,
+            QuotedBytes,
+            r,
+            multiplicity,
+          )
+          is Some(next) else {
           return Err(Unsupported)
         }
         retained = next
-        guard installed_effect_add_extent(execution, count, e) is Some(next) else {
+        guard @execution.execution_capacity_inventory_add(
+            execution,
+            QuotedBytes,
+            e,
+            multiplicity,
+          )
+          is Some(next) else {
           return Err(Unsupported)
         }
         execution = next
