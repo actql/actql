@@ -1,8 +1,14 @@
 ///|
+let empty_family_module_containers : @execution.PreparationRepresentationUnits = @local.local_module_container_inventory(
+  1, 0,
+).unwrap()
+
+///|
 test "closed Values initial recipe has one owned control tariff and combined exact scanner boundary" {
   let policy = client_local_resource_policy()
   let (retained, execution) = client_closed_values_initial_control_capacity(
     policy,
+    module_containers=empty_family_module_containers,
   ).unwrap()
   assert_eq(
     preparation_node_own_data_scan_cost().unwrap() +
@@ -19,7 +25,7 @@ test "closed Values initial recipe has one owned control tariff and combined exa
   assert_eq(
     retained,
     @execution.preparation_representation_cost(
-      closed_values_initial_control_units(),
+      closed_values_initial_control_units(empty_family_module_containers),
     ).unwrap(),
   )
   let limits = client_local_preparation_initial_limits(policy).unwrap()
@@ -77,71 +83,96 @@ test "closed Values initial recipe has one owned control tariff and combined exa
 
 ///|
 test "closed preparation control inventory includes exactly one typed custody choice" {
-  let units = closed_values_initial_control_units()
-  // Independent constructor inventory: prior 241H/446R/292W plus the one
-  // retained closed custody wrapper 1H/1R/1W and prepared Local packet
-  // 1H/5R/1W. The two exact one-slot selection containers and their module
-  // references add4H/6R/4W. Text and wire are unchanged.
-  assert_eq(units.record_headers, 247L)
-  assert_eq(units.reference_slots, 458L)
-  assert_eq(units.scalar_words, 298L)
+  let units = closed_values_initial_control_units(
+    empty_family_module_containers,
+  )
+  // Prior241H/446R/292W plus custody1H/1R/1W, Local packet1H/5R/1W,
+  // four containers8H/11R/8W, and one recipe reference. Text/wire unchanged.
+  assert_eq(units.record_headers, 251L)
+  assert_eq(units.reference_slots, 464L)
+  assert_eq(units.scalar_words, 302L)
   assert_eq(units.owned_utf16_units, 80L)
   assert_eq(units.owned_wire_bytes, 0L)
-  assert_eq(@execution.preparation_representation_cost(units), Some(10160L))
+  assert_eq(@execution.preparation_representation_cost(units), Some(10304L))
 }
 
 ///|
-test "initial original reservation funds retained slot containers before any module allocation" {
+test "initial original reservation funds all module containers with selected backend count" {
   let policy = client_local_resource_policy()
-  let (retained, execution) = client_closed_values_initial_control_capacity(
-    policy,
-  ).unwrap()
-  // Independent representation inventory: four headers, six references and
-  // four scalar length/capacity words for two exact one-slot arrays.
-  let slots = @local.local_module_selection_container_inventory(1).unwrap()
-  assert_eq(
-    (slots.record_headers, slots.reference_slots, slots.scalar_words),
-    (4L, 6L, 4L),
-  )
-  assert_eq(@execution.preparation_representation_cost(slots), Some(144L))
-  assert_true(@local.local_module_selection_container_inventory(-1) is None)
-  let two = @local.local_module_selection_container_inventory(2).unwrap()
-  assert_eq(@execution.preparation_representation_cost(two), Some(160L))
-  // This is independently fixed by the constructor inventory above:
-  // prior10016 + two arrays144; it must not derive from the product quote.
-  let required = 10160L
-  for available in [required - 1L, required] {
-    let ledger = @resources.create_ledger({
-      ..client_local_preparation_initial_limits(policy).unwrap(),
-      retained_bytes: available,
-      execution_bytes: execution,
-    }).unwrap()
-    let input = [1]
-    let reserved : Result[
-      @resources.PreparationCapacity[Array[Int], Array[Int]],
-      @resources.PreparationCapacityIssue,
-    ] = @resources.reserve_preparation_capacity(
-      ledger,
-      input,
-      retained,
-      execution,
-      max_borrowers=1,
+  assert_true(@local.local_module_container_inventory(-1, 0) is None)
+  assert_true(@local.local_module_container_inventory(1, -1) is None)
+  for
+    (providers, expected_containers, required) in [
+      (0, 280L, 10304L),
+      (9, 352L, 10376L),
+    ] {
+    let containers = @local.local_module_container_inventory(1, providers).unwrap()
+    assert_eq(
+      @execution.preparation_representation_cost(containers),
+      Some(expected_containers),
     )
-    if available < required {
-      assert_true(reserved is Err(Resource(RetentionLimit)))
-      assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
-      assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
-    } else {
-      let original = reserved.unwrap()
-      assert_eq(
-        @resources.preparation_capacity_accounting(original).0,
+    let (retained, execution) = client_closed_values_initial_control_capacity(
+      policy,
+      module_containers=containers,
+    ).unwrap()
+    // Independent fixed controls10016 +recipe link8 +four arrays280/352.
+    assert_eq(retained, required)
+    for available in [required - 1L, required] {
+      let ledger = @resources.create_ledger({
+        ..client_local_preparation_initial_limits(policy).unwrap(),
+        retained_bytes: available,
+        execution_bytes: execution,
+      }).unwrap()
+      let input = [1]
+      let reserved : Result[
+        @resources.PreparationCapacity[Array[Int], Array[Int]],
+        @resources.PreparationCapacityIssue,
+      ] = @resources.reserve_preparation_capacity(
+        ledger,
+        input,
         retained,
+        execution,
+        max_borrowers=1,
       )
-      assert_eq(
-        @resources.abort_preparation_capacity_after_cleanup(original, input),
-        Ok(true),
-      )
+      if available < required {
+        assert_true(reserved is Err(Resource(RetentionLimit)))
+        assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+        assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+      } else {
+        let original = reserved.unwrap()
+        assert_eq(
+          @resources.preparation_capacity_accounting(original).0,
+          required,
+        )
+        assert_eq(
+          @resources.abort_preparation_capacity_after_cleanup(original, input),
+          Ok(true),
+        )
+      }
+      assert_eq(@resources.ledger_usage(ledger).attempts, 0)
     }
-    assert_eq(@resources.ledger_usage(ledger).attempts, 0)
   }
+}
+
+///|
+test "initial module recipe validates each shared component before composing its fields" {
+  let invalid = { ..empty_family_module_containers, record_headers: -1L, }
+  assert_true(
+    client_closed_values_initial_control_capacity(
+      client_local_resource_policy(),
+      module_containers=invalid,
+    )
+    is None,
+  )
+  let invalid = {
+    ..empty_family_module_containers,
+    owned_wire_bytes: 9223372036854775807L,
+  }
+  assert_true(
+    client_closed_values_initial_control_capacity(
+      client_local_resource_policy(),
+      module_containers=invalid,
+    )
+    is None,
+  )
 }

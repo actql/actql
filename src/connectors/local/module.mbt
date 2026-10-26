@@ -15,24 +15,28 @@ struct LocalComputeModule {
 }
 
 ///|
-/// Owned storage for the two original-slot selection arrays and their two
-/// references in LocalComputeModule. The original input/provider arrays are
-/// separate owners; provider closures, capacity values and their payloads are
-/// not priced again here. This quotes containers, not execution backing.
-/// These exact-length arrays never append or grow during slot selection.
-pub fn local_module_selection_container_inventory(
+/// Owned sequence/provider snapshot arrays and original-slot selection arrays.
+/// The provider objects and sequence bodies are borrowed, not copied. Each
+/// exact-length array owns one header/backing pair and its module link. This
+/// inventories all four containers, not provider/kernel construction backing.
+pub fn local_module_container_inventory(
   slots : Int,
+  installed_providers : Int,
 ) -> @execution.PreparationRepresentationUnits? {
-  guard @execution.checked_preparation_add_product(4L, slots.to_int64(), 2L)
+  guard @execution.checked_preparation_add_product(8L, slots.to_int64(), 3L)
+    is Some(references) &&
+    @execution.checked_preparation_add_product(
+      references,
+      installed_providers.to_int64(),
+      1L,
+    )
     is Some(references) else {
     return None
   }
   Some({
-    // Each Array has one record and one exact-length backing. Two module
-    // fields and two backing references coexist with both arrays' slots.
-    record_headers: 4L,
+    record_headers: 8L,
     reference_slots: references,
-    scalar_words: 4L,
+    scalar_words: 8L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })
