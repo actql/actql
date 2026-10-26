@@ -296,8 +296,7 @@ fn prepare_planned_installed_effect_ledger(
   }
   for index, capacity in capacities {
     if !physical_equal(capacity, plan.captures[index]) ||
-      !capacity.original_input ||
-      capacity.provider is Some(_) {
+      !capacity.original_input {
       return Err(ForeignOriginal)
     }
     guard value.reads[index] is Some(read) &&
@@ -307,6 +306,15 @@ fn prepare_planned_installed_effect_ledger(
       physical_equal(acquisition, plan.acquisitions[index]) &&
       read.requirement is Some(requirement) &&
       physical_equal(requirement, capacity.requirement) else {
+      return Err(ForeignOriginal)
+    }
+    if capacity.provider is Some((selected, provider)) &&
+      (
+        !physical_equal(selected, acquisition) ||
+        !installed_provider_row_capture_capacity_matches(
+          capacity, acquisition, provider,
+        )
+      ) {
       return Err(ForeignOriginal)
     }
   }

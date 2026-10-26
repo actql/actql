@@ -240,3 +240,103 @@ pub fn client_program_installed_effect_managed_operation_plan(
 ] {
   @client_local_host.installed_effect_managed_operation_plan(value)
 }
+
+///|
+#export_name("clientProgramInstalledEffectManagedProviderPlanPrepare")
+pub fn client_program_installed_effect_managed_provider_plan_prepare(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  declarations : Array[@client_row_source_host.RowDeclaration],
+  providers : Array[@execution.ExecutionCapacity],
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  selected_operations : Array[
+    @client_local_host.ClientInstalledEffectOperationDemand,
+  ],
+) -> Result[
+  @client_local_host.ClientInstalledEffectManagedPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_effect_managed_plan(
+    prepared,
+    request,
+    declarations,
+    query_contract_body,
+    evidence_contract_body,
+    transport_bytes,
+    transport_execution_bytes,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    selected_operations,
+    source_providers=Some(providers),
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectManagedProviderPlanPrepareAtQueryTime")
+pub fn client_program_installed_effect_managed_provider_plan_prepare_at_query_time(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  query_time : @publication_host.ClientQueryTimePreparation,
+  declarations : Array[@client_row_source_host.RowDeclaration],
+  providers : Array[@execution.ExecutionCapacity],
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  selected_operations : Array[
+    @client_local_host.ClientInstalledEffectOperationDemand,
+  ],
+) -> Result[
+  @client_local_host.ClientInstalledEffectManagedPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_effect_managed_plan(
+    prepared,
+    request,
+    declarations,
+    query_contract_body,
+    evidence_contract_body,
+    transport_bytes,
+    transport_execution_bytes,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    selected_operations,
+    query_time=Some(query_time),
+    source_providers=Some(providers),
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectManagedSourceRead")
+pub fn client_program_installed_effect_managed_source_read(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  declaration : @client_row_source_host.RowDeclaration,
+  occurrence : Int,
+) -> Result[
+  (
+    @client_local_host.ClientInstalledSourceRead,
+    @planning.QueryRequirement,
+    @client_row_source_host.RowAcquisition,
+    @client_local_host.ClientInstalledCaptureCapacity,
+  ),
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_installed_effect_managed_source_read(
+    owner, declaration, occurrence,
+  )
+}
