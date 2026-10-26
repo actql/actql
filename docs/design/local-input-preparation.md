@@ -174,3 +174,27 @@ temporary object views, inspection/diagnostic controls and semantic
 checking/lowering/module construction. Those actual simultaneous owners must
 be supplied before a generic preparation driver can claim complete funding.
 The existing narrow constructor scratch proof stays scoped to Closed Values.
+
+
+## Preparation count arithmetic below domain constructors
+
+The existing capacity arithmetic owner supplies exact nonnegative Int64
+sum/product composition for preparation counts. Domain constructors below the
+execution layer can use that same operation without introducing a dependency
+cycle or a second overflow rule. The execution preparation API delegates to it;
+its positive coefficient rule and the original representation tariff remain
+unchanged. No raw source, physical allocation, permission or Ledger is issued.
+
+Language capacity Values keep their separate nonnegative safe-integer range.
+An Int64 preparation result cannot be promoted into that opaque Value, and a
+large count never widens a language bound. Zero/negative coefficients, negative
+counts and overflow keep their original preparation refusal. The existing
+accounting and actual backing/retirement owners remain responsible for admission
+and physical duties; arithmetic alone does not establish complete phase funding.
+
+
+Installed Effect demand keeps its distinct zero-byte domain case: a
+nonnegative original count adds no bytes to a nonnegative total. Its positive
+products delegate to the same checked arithmetic owner as the Local preparation
+tariff. That domain case does not change the shared operation's requirement
+that its coefficient be positive, nor grant capacity or refund consumed work.

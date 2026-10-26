@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/capacity_arithmetic" @preparation_counts,
   "actql/actql/client_source_publication" @source_publication,
   "actql/actql/expression_typing" @typing,
   "actql/actql/encode_core" @encode,

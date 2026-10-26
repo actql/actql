@@ -797,3 +797,29 @@ test "operation demand follows checked zero or three rows and both ordered Effec
     )
   }
 }
+
+///|
+test "Effect extent preserves zero-byte domains and shares exact positive composition" {
+  let maximum = 9223372036854775807L
+  assert_eq(installed_effect_add_extent(maximum, maximum, 0L), Some(maximum))
+  assert_eq(installed_effect_add_extent(0L, maximum, 0L), Some(0L))
+  assert_true(installed_effect_add_extent(-1L, 0L, 0L) is None)
+  assert_true(installed_effect_add_extent(0L, -1L, 0L) is None)
+  assert_true(installed_effect_add_extent(0L, 0L, -1L) is None)
+  for coefficient in [1L, 2L, 8L, 256L, maximum] {
+    for total in [0L, 1L, maximum - 1L, maximum] {
+      let count = (maximum - total) / coefficient
+      assert_eq(
+        installed_effect_add_extent(total, count, coefficient),
+        Some(total + count * coefficient),
+      )
+      if count < maximum {
+        assert_true(
+          installed_effect_add_extent(total, count + 1L, coefficient) is None,
+        )
+      }
+    }
+  }
+  assert_true(installed_effect_add_extent(-1L, 0L, 1L) is None)
+  assert_true(installed_effect_add_extent(0L, -1L, 1L) is None)
+}
