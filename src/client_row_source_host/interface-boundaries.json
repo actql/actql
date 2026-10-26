@@ -2346,6 +2346,581 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/client_row_source_host/declaration.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "f48e201b5da9a44bddd1d4fb1d281da63079d30779bb31e594f5e65a6f29d841",
+      "role": "common-semantics",
+      "owner": "Existing Common original row declaration and SourceView contract Owner; not a ResourceReference or authority issuer",
+      "exports": [],
+      "operations": [
+        {
+          "name": "canonical_cid",
+          "declaration": "canonical_cid ( value : Json , limits : RowDeclarationLimits , ) - > String raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "canonical_text",
+          "declaration": "canonical_text ( value : Json , limits : RowDeclarationLimits , ) - > String raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "Envelopes::add",
+          "declaration": "Envelopes : : add ( self : Envelopes , name : String , kind : String , body : Json , ) - > Json raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "generate_row_declaration",
+          "declaration": "generate_row_declaration ( connector_id : String , connector_registration : String , connector_version : String , views : Array [ RowViewSpec ] , limits : RowDeclarationLimits , ) - > Result [ RowDeclaration , RowDeclarationIssue ]"
+        },
+        {
+          "name": "generate_row_declaration_impl",
+          "declaration": "generate_row_declaration_impl ( connector_id : String , connector_registration : String , connector_version : String , views : Array [ RowViewSpec ] , schemas : Array [ Json ] ? , requests : Array [ ( Json , Json , Json ? ) ] ? , classifications : Array [ @ environment . DataClassification ] ? , resource_identities : Array [ Json ? ] ? , limits : RowDeclarationLimits , ) - > Result [ RowDeclaration , RowDeclarationIssue ]"
+        },
+        {
+          "name": "key_before",
+          "declaration": "key_before ( left : String , right : String ) - > Bool"
+        },
+        {
+          "name": "object",
+          "declaration": "object ( entries : Array [ ( String , Json ) ] ) - > Json"
+        },
+        {
+          "name": "ref_cid",
+          "declaration": "ref_cid ( reference : Json ) - > String"
+        },
+        {
+          "name": "row_declaration_evidence_members",
+          "declaration": "row_declaration_evidence_members ( declaration : RowDeclaration , ) - > ( Array [ String ] , Array [ String ] ) raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "row_declaration_view",
+          "declaration": "row_declaration_view ( declaration : RowDeclaration , source_ref : String , ) - > RowDeclaredView ?"
+        },
+        {
+          "name": "seal",
+          "declaration": "seal ( entries : Array [ ( String , Json ) ] , key : String , limits : RowDeclarationLimits , ) - > ( Json , String ) raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "supported_type",
+          "declaration": "supported_type ( value_type : String ) - > Bool"
+        },
+        {
+          "name": "valid_connector_id",
+          "declaration": "valid_connector_id ( value : String ) - > Bool"
+        },
+        {
+          "name": "valid_name",
+          "declaration": "valid_name ( value : String , max_units : Int ) - > Bool"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "canonical_cid",
+            "canonical_text",
+            "Envelopes::add",
+            "generate_row_declaration",
+            "generate_row_declaration_impl",
+            "key_before",
+            "object",
+            "ref_cid",
+            "row_declaration_evidence_members",
+            "row_declaration_view",
+            "seal",
+            "supported_type",
+            "valid_connector_id",
+            "valid_name"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Static Resource identity in saved relation declarations"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Static Resource identity in saved relation declarations"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Identity:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Static Resource identity in saved relation declarations"
+              },
+              {
+                "path": "docs/spec/language.md",
+                "anchor": "### Resource identity contract"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Resources:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Static Resource identity in saved relation declarations"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Extension:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Static Resource identity in saved relation declarations"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_row_source_host/relation_resource_identity_wbtest.mbt",
+                "anchor": "test \"restored relation Source retains the original static Resource identity contract\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_row_source_host/relation_declaration.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "a1c012df14b4a5ab63490ba244a179102f6fbc34edb97aed4c2887357afc557c",
+      "role": "common-semantics",
+      "owner": "Existing Common original row declaration and SourceView contract Owner; not a ResourceReference or authority issuer",
+      "exports": [],
+      "operations": [
+        {
+          "name": "generate_relation_row_declaration",
+          "declaration": "generate_relation_row_declaration ( connector_id : String , connector_registration : String , connector_version : String , views : Array [ RowRelationViewSpec ] , limits : RowDeclarationLimits , classifications ? : Array [ @ environment . DataClassification ] ?"
+        },
+        {
+          "name": "generate_relation_row_declaration_with_resource_identities",
+          "declaration": "generate_relation_row_declaration_with_resource_identities ( connector_id : String , connector_registration : String , connector_version : String , views : Array [ RowRelationViewSpec ] , limits : RowDeclarationLimits , classifications : Array [ @ environment . DataClassification ] ? , resource_identity_wires : Array [ String ? ] ? , ) - > Result [ RowDeclaration , RowHostIssue ]"
+        },
+        {
+          "name": "restore_relation_row_declaration",
+          "declaration": "restore_relation_row_declaration ( connector_id : String , connector_registration : String , connector_version : String , views_json : String , expected_catalog_cid : String ? , ) - > Result [ RowDeclaration , RowHostIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "generate_relation_row_declaration",
+            "generate_relation_row_declaration_with_resource_identities",
+            "restore_relation_row_declaration"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Static Resource identity in saved relation declarations"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Static Resource identity in saved relation declarations"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Identity:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Static Resource identity in saved relation declarations"
+              },
+              {
+                "path": "docs/spec/language.md",
+                "anchor": "### Resource identity contract"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Resources:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Static Resource identity in saved relation declarations"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Extension:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Static Resource identity in saved relation declarations"
+              },
+              {
+                "path": "src/check_environment/source_view_shape.mbt",
+                "anchor": "pub fn check_source_view_resource_identity_shape("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_row_source_host/relation_resource_identity_wbtest.mbt",
+                "anchor": "test \"restored relation Source retains the original static Resource identity contract\""
+              },
+              {
+                "path": "src/check_environment/source_view_shape_wbtest.mbt",
+                "anchor": "test \"Resource identity subtree uses the same generated SourceView rule and work budget\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_row_source_host/relation_resource_identity.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "50ac60c5ef7544bfe7712693a914b684f43406504c70e189576decdc735a8330",
+      "role": "common-semantics",
+      "owner": "Existing Common original row declaration and SourceView contract Owner; not a ResourceReference or authority issuer",
+      "exports": [],
+      "operations": [
+        {
+          "name": "relation_resource_identity_body",
+          "declaration": "relation_resource_identity_body ( wire : String , resource_kind : String , schema : @ schema . Schema , max_bytes : Int , max_nodes : Int , max_depth : Int , max_work : Int , ) - > Result [ ( Json , Int , Int , Int ) , RowHostIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "relation_resource_identity_body"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Static Resource identity in saved relation declarations"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Static Resource identity in saved relation declarations"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Identity:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Static Resource identity in saved relation declarations"
+              },
+              {
+                "path": "docs/spec/language.md",
+                "anchor": "### Resource identity contract"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Resources:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Static Resource identity in saved relation declarations"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Extension:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Static Resource identity in saved relation declarations"
+              },
+              {
+                "path": "src/check_environment/source_view_shape.mbt",
+                "anchor": "pub fn check_source_view_resource_identity_shape("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_row_source_host/relation_resource_identity_wbtest.mbt",
+                "anchor": "test \"restored relation Source retains the original static Resource identity contract\""
+              },
+              {
+                "path": "src/check_environment/source_view_shape_wbtest.mbt",
+                "anchor": "test \"Resource identity subtree uses the same generated SourceView rule and work budget\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/check_environment/source_view_shape.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "3bf3bb67bab2c8618dec48468a959b4cf151db96003f39df7f1395ceaae2d59b",
+      "role": "common-semantics",
+      "owner": "Existing Check Environment generated SourceView shape Owner; schema roles/current authority remain separate",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]sv_fail",
+          "declaration": "[ T ] sv_fail ( kind : SourceViewShapeIssueKind , source : @ decode . Cursor , ) - > T raise ViewShapeStop"
+        },
+        {
+          "name": "check_source_view_acquisition_shape",
+          "declaration": "check_source_view_acquisition_shape ( source : @ decode . Cursor , max_work : Int , ) - > Result [ Int , SourceViewShapeIssue ]"
+        },
+        {
+          "name": "check_source_view_resource_identity_shape",
+          "declaration": "check_source_view_resource_identity_shape ( source : @ decode . Cursor , max_work : Int , ) - > Result [ Int , SourceViewShapeIssue ]"
+        },
+        {
+          "name": "check_source_view_shapes",
+          "declaration": "check_source_view_shapes ( values : ProtocolValueContracts , limits : SourceViewShapeLimits , ) - > Result [ SourceViewShapes , SourceViewShapeIssue ]"
+        },
+        {
+          "name": "source_view_shape_at",
+          "declaration": "source_view_shape_at ( v : SourceViewShapes , i : Int ) - > Member ?"
+        },
+        {
+          "name": "source_view_shape_usage",
+          "declaration": "source_view_shape_usage ( v : SourceViewShapes ) - > ( Int , Int )"
+        },
+        {
+          "name": "source_view_shape_values",
+          "declaration": "source_view_shape_values ( v : SourceViewShapes ) - > ProtocolValueContracts"
+        },
+        {
+          "name": "sv_charge",
+          "declaration": "sv_charge ( b : ViewShapeBudget , n : Int , c : @ decode . Cursor , ) - > Unit raise ViewShapeStop"
+        },
+        {
+          "name": "validate_view_shape",
+          "declaration": "validate_view_shape ( root : @ decode . Cursor , rule : SourceViewRule , budget : ViewShapeBudget , ) - > Unit raise ViewShapeStop"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]sv_fail",
+            "check_source_view_acquisition_shape",
+            "check_source_view_resource_identity_shape",
+            "check_source_view_shapes",
+            "source_view_shape_at",
+            "source_view_shape_usage",
+            "source_view_shape_values",
+            "sv_charge",
+            "validate_view_shape"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/check_environment/source_view_shape.mbt",
+                "anchor": "pub fn check_source_view_resource_identity_shape("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Identity:"
+              },
+              {
+                "path": "src/check_environment/source_view_shape.mbt",
+                "anchor": "pub fn check_source_view_resource_identity_shape("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Resources:"
+              },
+              {
+                "path": "src/check_environment/source_view_shape.mbt",
+                "anchor": "pub fn check_source_view_resource_identity_shape("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Extension:"
+              },
+              {
+                "path": "src/check_environment/source_view_shape.mbt",
+                "anchor": "pub fn check_source_view_resource_identity_shape("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "src/check_environment/source_view_shape_wbtest.mbt",
+                "anchor": "test \"Resource identity subtree uses the same generated SourceView rule and work budget\""
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
