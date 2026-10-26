@@ -237,8 +237,17 @@ fn combine_installed_mock_model_run_requirements(
   // allocation and failures, and each acquired child keeps its own cleanup.
   let read_retained = selected.mapping.logical.max_live_value_bytes
   let read_execution = selected.identity.wire.max_bytes.to_int64()
-  // Domain multiplicity is the existing bootstrap/read pair. The common
-  // inventory checks multiplication BEFORE either intermediate can wrap.
+  // The domain has exactly the existing bootstrap/read pair. Compose their
+  // immutable demands through the Ledger owner BEFORE forming any sum. No
+  // intermediate multiplication or addition may wrap before admission.
+  let read : @resources.LedgerLimits = {
+    planning_work: 0,
+    attempts: 0,
+    holdings: 0,
+    transfer_bytes: 0L,
+    retained_bytes: read_retained,
+    execution_bytes: read_execution,
+  }
   guard base.length() == 6 &&
     base[0] >= 0L &&
     base[0] <= 2147483647L &&
@@ -246,20 +255,8 @@ fn combine_installed_mock_model_run_requirements(
     base[1] <= 2147483647L &&
     base[2] >= 0L &&
     base[2] <= 2147483647L &&
-    @execution.execution_capacity_inventory_add(
-      model.retained_bytes,
-      QuotedBytes,
-      read_retained,
-      2,
-    )
-    is Some(retained_bytes) &&
-    @execution.execution_capacity_inventory_add(
-      model.execution_bytes,
-      QuotedBytes,
-      read_execution,
-      2,
-    )
-    is Some(execution_bytes) &&
+    @resources.add_ledger_limits(model, read) is Some(with_bootstrap) &&
+    @resources.add_ledger_limits(with_bootstrap, read) is Some(extra) &&
     @resources.add_ledger_limits(
       {
         planning_work: base[0].to_int(),
@@ -269,7 +266,7 @@ fn combine_installed_mock_model_run_requirements(
         retained_bytes: base[4],
         execution_bytes: base[5],
       },
-      { ..model, retained_bytes, execution_bytes, },
+      extra,
     )
     is Some(combined) else {
     return Err(InsufficientCapacity)

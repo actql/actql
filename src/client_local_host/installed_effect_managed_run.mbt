@@ -202,6 +202,11 @@ pub fn begin_prepared_installed_effect_managed_run(
   if !installed_effect_plan_matches(plan, prepared, request) {
     return Err(ForeignOriginal)
   }
+  // The ordinary entry cannot spend a separately selected Model purpose or
+  // begin Source reads before that plan's original Scope is installed.
+  if plan.model is Some(_) {
+    return Err(Unsupported)
+  }
   match @resources.check_node_source_compute_run_preparation(admission, plan) {
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
@@ -220,6 +225,71 @@ pub fn begin_prepared_installed_effect_managed_run(
   )
   value.source_free_preparation = plan.source_free
   require_installed_managed_run(value).map(_ => value)
+}
+
+///|
+/// Install the same recorded Model Scope before any Source or Compute child.
+/// No sequence/contract/provider is re-prepared here. The Host retains this
+/// admission before calling: bootstrap/Scope failure keeps its original cleanup.
+pub fn begin_prepared_installed_effect_mock_model_managed_run(
+  admission : @resources.NodeManagedRunAdmission[
+    ClientInstalledEffectManagedPlan,
+  ],
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+) -> Result[
+  (ClientInstalledManagedRun, @publication_host.ClientModelReadScope),
+  ClientInstalledManagedRunIssue,
+] {
+  if !installed_effect_plan_matches(plan, prepared, request) {
+    return Err(ForeignOriginal)
+  }
+  guard plan.model is Some(selected) else { return Err(Unsupported) }
+  match
+    @resources.check_node_local_mock_model_run_preparation(admission, plan) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
+  }
+  let ledger = match @resources.start_node_managed_run_admission(admission) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(value) => value
+  }
+  if !installed_effect_limits_fit(plan.limits, @resources.ledger_limits(ledger)) {
+    return Err(InsufficientCapacity)
+  }
+  let bootstrap = match
+    @resources.reserve_node_managed_run_read_bootstrap(
+      admission,
+      plan,
+      ledger,
+      selected.bootstrap_retained_bytes,
+      selected.bootstrap_execution_bytes,
+    ) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(value) => value
+  }
+  let scope = match
+    @publication_host.begin_client_model_read_scope(
+      selected.compiled,
+      selected.definition,
+      selected.graph,
+      ledger,
+      bootstrap,
+      selected.max_reservations,
+      selected.max_holdings,
+      selected.max_delegations,
+    ) {
+    Err(issue) => return Err(ModelRead(issue))
+    Ok(value) => value
+  }
+  let run = new_installed_managed_run_owned(
+    PlannedEffectManaged(admission, plan),
+    request,
+    ledger,
+  )
+  run.source_free_preparation = plan.source_free
+  require_installed_managed_run(run).map(_ => (run, scope))
 }
 
 ///|

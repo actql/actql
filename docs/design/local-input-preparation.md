@@ -199,9 +199,8 @@ Ledger limits are a different typed composition. `physical_resources` owns
 `add_ledger_limits`: all six original dimensions must be nonnegative and fit
 before their sums are formed. Retention and execution limits remain independent;
 this DATA operation neither chooses a policy nor creates or debits a Ledger.
-The installed Model requirement projection uses the common checked inventory
-fold for its existing two simultaneous bootstrap/read holdings, then adds the
-selected Model and Run limits through that owner. Only a successful complete
+The installed Model requirement projection composes its selected Model, two
+simultaneous bootstrap/read contributions and Run limits through that owner. Only a successful complete
 composition updates the private Run projection. A refused contribution leaves
 that projection unchanged. Its original read reservations and operation/retention
 census remain separate; numerical composition is not their physical funding.
@@ -283,3 +282,27 @@ inventory. Full module construction must not be moved into that fixed driver
 until the selected mode and complete simultaneous constructor inventory are
 funded by its original preparation. These old callers remain migration work,
 not another successful route for the nominal prepared module entry.
+
+## Recorded Model demand in an Effect plan
+
+A selected Model purpose retains its original checked Effect, compiled Run,
+compilation, definition, occurrence and Infer graph in one nominal demand.
+The installation projects the selected Model and simultaneous read/bootstrap
+limits from those originals. The common Ledger owner composes that demand
+with the same Plan's Source/Compute and operation inventory; neither equal
+numbers nor operation DATA convert an ordinary parent into a Model parent.
+
+The dedicated prepared-Model begin entry consumes that exact Plan admission,
+checks its distinct Model purpose and complete envelope, and installs the
+existing recorded-read Scope on the original parent before a Source can start.
+It returns the original managed Run and Scope together. The admission retains
+an attempted bootstrap before Scope construction, including the partial-failure
+path. Live reads prevent retirement; settlement and the original complete
+cleanup close that same inventory. No Scope getter, replacement Ledger,
+re-prepared sequence or second cleanup owner is needed.
+
+A retained demand and a successful numerical quote do not supply the initial
+constructor, provider or response backing. The installation must reserve the
+complete domain overlap before constructing it and keep the original physical
+borrowers through pending/Unknown. Backend and ordinary-caller adoption remain
+separate from this Core Plan connection.
