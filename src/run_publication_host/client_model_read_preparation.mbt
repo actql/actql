@@ -12,8 +12,8 @@ struct ClientModelReadOrigin {
 }
 
 ///|
-// Issued before any child resources: this is the original Run/Host binding,
-// not a retrospective assignment of a used Ledger to a supplied Run CID.
+// The census is issued before any child resources. Its one original Run/Host
+// binding may follow preparation; it never reconstructs a used Ledger census.
 struct ClientModelReadScope {
   origin : ClientModelReadOrigin
   ledger : @resources.Ledger
@@ -55,6 +55,36 @@ pub fn begin_client_model_read_scope(
     check_client_compiled_run_definition(compiled, definition) is Err(_) {
     return Err(ForeignRun)
   }
+  let identity = match
+    @resources.begin_original_ledger_inventory(
+      ledger, bootstrap, max_reservations, max_holdings, max_delegations,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Resource(issue))
+  }
+  bind_client_model_read_scope(compiled, definition, plan, ledger, identity)
+}
+
+///|
+// The initial preparation owner has already registered every original child
+// on this identity. Bind the actual compiled Model once, without dropping
+// preparation history or demanding a second pristine Ledger. Equal bounds,
+// a foreign Ledger/Run or a second scope cannot replace this association.
+pub fn bind_client_model_read_scope(
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  ledger : @resources.Ledger,
+  identity : @resources.OriginalLedgerIdentity,
+) -> Result[ClientModelReadScope, ClientModelReadPreparationIssue] {
+  if !client_compiled_run_has_infer(compiled, plan) ||
+    check_client_compiled_run_definition(compiled, definition) is Err(_) {
+    return Err(ForeignRun)
+  }
+  match @resources.claim_original_ledger_run_binding(identity, ledger) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
+  }
   let origin : ClientModelReadOrigin = {
     compiled,
     definition_cid: @publication.publication_contract_identity(definition),
@@ -65,13 +95,6 @@ pub fn begin_client_model_read_scope(
     execution_context_cid: @publication.run_publication_execution_context(
       compiled.admission,
     ),
-  }
-  let identity = match
-    @resources.begin_original_ledger_inventory(
-      ledger, bootstrap, max_reservations, max_holdings, max_delegations,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Resource(issue))
   }
   Ok({ origin, ledger, identity, })
 }

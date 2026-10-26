@@ -116,3 +116,26 @@ their numbers are attributed to an executing runtime.
 Source-only checks, diagnostic instrumentation, a different backend, and a
 hosted distribution/CI gate are distinct evidence. None may silently stand in
 for another.
+
+
+## Initial preparation and a recorded Model Run
+
+An initial preparation that will host Model reads installs the existing original
+Ledger census before its first preparation reservation. Its original imported
+admission retains that bootstrap even if later construction refuses. Preparation
+then grows and completes the same reservation; adoption transfers the same
+bootstrap, recorded child tokens, supplier purpose and Ledger to the Run. It
+neither imports a second business child nor reconstructs a census from usage.
+
+The checked Model scope binds the actual compiled Run and definition to that
+original census once, after compilation. The census owns one scalar binding
+latch, included in its initial funded control inventory. Binding is independent
+of descriptor issuance: the later descriptor sees the real still-live
+preparation reservation and all recorded children. Foreign originals, repeat
+bindings and attempts to initialize a census after a spent token refuse.
+
+Preparation retirement may coexist with its exact original bootstrap. That
+bootstrap remains charged until the Run's original cleanup retires every child;
+no other capacity is treated as spare or ignored by the isolation guard. This
+common handoff does not supply the installation's physical backing, family
+constructor inventory, Model authorization or a cleanup acknowledgement.
