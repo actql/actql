@@ -39,8 +39,6 @@ pub fn accounted_client_source_original_read(ClientAccountedSourceCapture) -> @e
 
 pub fn acknowledge_client_local_content_piece(ClientLocalContentStep, Int) -> Bool
 
-pub fn add_client_serialization_workspace_capacity(@execution_relation.ExecutionCapacity, @execution_relation.ExecutionCapacity) -> @execution_relation.ExecutionCapacity?
-
 pub fn advance_client_infer_input(ClientInferInputExecution, Int) -> Result[ClientInferInputPoll, ClientInferInputIssue]
 
 pub fn advance_client_original_keyed_prefix_input(ClientOriginalKeyedPrefixInput, Int) -> Result[@local.ManagedProviderPoll, @connector_sdk.FixedComputeIssue]

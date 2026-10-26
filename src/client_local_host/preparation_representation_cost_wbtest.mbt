@@ -15,33 +15,23 @@ priv struct PreparationExecutionInventory {
 fn preparation_execution_capacity(
   inventory : PreparationExecutionInventory,
 ) -> @execution.ExecutionCapacity? {
-  let node = @execution.execution_capacity_node_bytes()
-  guard preparation_representation_cost(inventory.retained) is Some(retained) else {
+  guard preparation_representation_cost(inventory.retained) is Some(retained) &&
+    preparation_representation_cost(inventory.workspace) is Some(workspace) else {
     return None
   }
-  guard preparation_cost_add(retained, inventory.retained_nodes, node)
-    is Some(retained) else {
-    return None
-  }
-  guard preparation_cost_add(retained, inventory.retained_bytes, 1L)
-    is Some(retained) else {
-    return None
-  }
-  guard preparation_representation_cost(inventory.workspace) is Some(workspace) else {
-    return None
-  }
-  guard preparation_cost_add(workspace, inventory.workspace_nodes, node)
-    is Some(workspace) else {
-    return None
-  }
-  guard preparation_cost_add(workspace, inventory.workspace_bytes, 1L)
-    is Some(workspace) else {
-    return None
-  }
-  guard preparation_cost_add(retained, workspace, 1L) is Some(execution) else {
-    return None
-  }
-  @execution.execution_capacity(retained, execution)
+  @execution.execution_capacity_inventory(
+    [
+      { unit: QuotedBytes, count: retained, copies: 1, },
+      { unit: ValueNodeSlots, count: inventory.retained_nodes, copies: 1, },
+      { unit: QuotedBytes, count: inventory.retained_bytes, copies: 1, },
+    ],
+    [
+      { unit: QuotedBytes, count: workspace, copies: 1, },
+      { unit: ValueNodeSlots, count: inventory.workspace_nodes, copies: 1, },
+      { unit: QuotedBytes, count: inventory.workspace_bytes, copies: 1, },
+    ],
+    @execution.RetainedAlongsideExecution,
+  )
 }
 
 ///|

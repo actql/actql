@@ -51,29 +51,28 @@ and external-input projection. It is not zero for numeric-only tables.
 
 ## Metadata funding
 
-`capacity_metadata.mbt` bounds original checked inventories: maximum field count
-F, input ports P, original/selected binding count B, row ceiling R, exact summed
-Result order terms O, and task identity plus Result occurrence count I. Result
-aliases are not bounded by task count and order terms need not be unique.
-The additive slot categories are:
+[`capacity_metadata.mbt`](../../src/client_local_host/capacity_metadata.mbt)
+retains the checked field, port, binding, Result occurrence, order and row
+inventories. Each receiving traversal, binding identity, completion, export
+view and dispatch reference remains a distinct simultaneous occurrence.
+Named Result aliases are not bounded by task count, and repeated order terms
+are not deduplicated. Schema spelling and escaping retain their own wire
+inventory; a small payload does not remove those objects.
 
-- bridge: `P * (3F + 2B + 8)`;
-- completion: `4P + 2B + 64I + 16`;
-- export / Result view: `24F + 2R + O + 64`;
-- dispatch: `8P + 8I + 64`.
+The common typed conversion and checked fold belongs to
+[`capacity_inventory.mbt`](../../src/execution_relation/capacity_inventory.mbt).
+Domains supply objects, units, multiplicities and overlap; they do not repeat
+its tariffs or arithmetic. Value nodes, cursor roots, decoded text, canonical
+wire and already-quoted bytes remain distinct inputs. A cursor reference does
+not stand for another copy of its value tree. Retained-alongside-execution
+composition counts that actual overlap; quoted independent dimensions do not
+silently add it again.
 
-Each slot is funded at 256 logical bytes. Retained schema text additionally uses
-`8 * (6N + 96F + 2)`, where N is total UTF-8 field-reference-name bytes of the
-largest original schema. Escaping can expand a byte by at most six; checked
-Number/Boolean contract spellings fit the per-field allowance. Arithmetic is
-bounded before specialization; excessive or unproved inventories fall back.
-For the small composition inventory F=2, N=36, P=B=2, I=2, R=100, O=0,
-these categories are 36 + 156 + 312 + 96 = 600 slots and 410 schema bytes:
-`600 * 256 + 410 * 8 = 156,880` logical bytes per task.
-
-These are conservative logical allowances, not allocator-size or process-RSS
-measurements. Independent provider metadata workspace is not reused to fund
-simultaneously retained Host metadata.
+Model and Content composition use the same fold while retaining their original
+provider, proof, writer and response lifetimes. Those logical allowances are
+not allocator-size or process-RSS measurements. Neither an inventory nor its
+byte projection allocates backing, grants a Run, proves a physical ACK or
+permits provider metadata to fund a simultaneously retained Host object.
 
 The scalar wire proof uses the pinned finite binary64 formatter's 25-byte
 maximum, including `-0.0000010000000000000002`. Each field has at most six times

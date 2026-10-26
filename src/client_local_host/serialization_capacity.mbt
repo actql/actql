@@ -77,57 +77,103 @@ pub fn client_serialization_workspace_capacity(
   // Original byte completion, issued Ref and three private proof bodies remain
   // alive together. Two reference bodies overlap candidate issuance; proof
   // canonical bodies and their encrypted Store transport may overlap cleanup.
-  let retained = 8192L +
-    8L *
-    (
-      limits.generation_bytes.to_int64() +
-      2L * limits.reference_bytes.to_int64() +
-      6L * limits.contract_bytes.to_int64()
-    ) +
-    256L *
-    (
-      2L * limits.reference_nodes.to_int64() +
-      6L * limits.contract_nodes.to_int64()
-    )
-  // The source is already held by the prefix provider. These are additional
-  // identity/encoder recheck/Result mapping roots, never another input copy.
-  let scratch = payload +
-    logical +
-    256L *
-    (
-      limits.identity_slots.to_int64() +
-      limits.generation_nodes.to_int64() +
-      limits.generation_depth.to_int64() +
-      limits.generation_frames.to_int64() +
-      limits.reference_depth.to_int64() +
-      limits.contract_depth.to_int64() +
-      export_limits.schema.max_fields.to_int64() +
-      export_limits.schema.max_nodes.to_int64() +
-      export_limits.schema.max_depth.to_int64() +
-      export_limits.max_result_fields.to_int64() +
-      export_limits.max_result_workspace_entries.to_int64()
-    ) +
-    8L * export_limits.schema.max_bytes.to_int64()
-  // Each term is a fixed coefficient times a nonnegative Int, so the sum
-  // cannot overflow Int64; no saturation or sample-based capacity is used.
-  @execution.execution_capacity(retained, retained + scratch)
-}
-
-///|
-pub fn add_client_serialization_workspace_capacity(
-  prefix : @execution.ExecutionCapacity,
-  workspace : @execution.ExecutionCapacity,
-) -> @execution.ExecutionCapacity? {
-  let retained = @execution.execution_capacity_retained_bytes(prefix)
-  let execution = @execution.execution_capacity_execution_bytes(prefix)
-  let extra_retained = @execution.execution_capacity_retained_bytes(workspace)
-  let extra_execution = @execution.execution_capacity_execution_bytes(workspace)
-  if retained > 9223372036854775807L - extra_retained ||
-    execution > 9223372036854775807L - extra_execution {
-    return None
-  }
-  @execution.execution_capacity(
-    retained + extra_retained,
-    execution + extra_execution,
+  @execution.execution_capacity_inventory(
+    [
+      // Existing installed owner-control allowance, already denominated in
+      // bytes. This is not a node tariff or a measured object size.
+      { unit: QuotedBytes, count: 8192L, copies: 1, },
+      {
+        unit: CanonicalWireBytes,
+        count: limits.generation_bytes.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: CanonicalWireBytes,
+        count: limits.reference_bytes.to_int64(),
+        copies: 2,
+      },
+      {
+        unit: CanonicalWireBytes,
+        count: limits.contract_bytes.to_int64(),
+        copies: 6,
+      },
+      {
+        unit: ValueNodeSlots,
+        count: limits.reference_nodes.to_int64(),
+        copies: 2,
+      },
+      {
+        unit: ValueNodeSlots,
+        count: limits.contract_nodes.to_int64(),
+        copies: 6,
+      },
+    ],
+    [
+      // Payload and logical writers coexist with additional roots, not a
+      // second input body. Every root occurrence stays a separate instance.
+      { unit: QuotedBytes, count: payload, copies: 1, },
+      { unit: QuotedBytes, count: logical, copies: 1, },
+      {
+        unit: CursorRootSlots,
+        count: limits.identity_slots.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: ValueNodeSlots,
+        count: limits.generation_nodes.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: CursorRootSlots,
+        count: limits.generation_depth.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: CursorRootSlots,
+        count: limits.generation_frames.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: CursorRootSlots,
+        count: limits.reference_depth.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: CursorRootSlots,
+        count: limits.contract_depth.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: CursorRootSlots,
+        count: export_limits.schema.max_fields.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: ValueNodeSlots,
+        count: export_limits.schema.max_nodes.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: CursorRootSlots,
+        count: export_limits.schema.max_depth.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: CursorRootSlots,
+        count: export_limits.max_result_fields.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: CursorRootSlots,
+        count: export_limits.max_result_workspace_entries.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: CanonicalWireBytes,
+        count: export_limits.schema.max_bytes.to_int64(),
+        copies: 1,
+      },
+    ],
+    @execution.RetainedAlongsideExecution,
   )
 }

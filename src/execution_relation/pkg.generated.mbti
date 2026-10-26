@@ -24,6 +24,8 @@ import {
 // Values
 pub fn acquire_prepared_infer_rows(PreparedInferRows) -> InferRowsUse?
 
+pub fn add_execution_capacity(ExecutionCapacity, ExecutionCapacity) -> ExecutionCapacity?
+
 pub fn admit_fragment_contract(RegisteredRelationContracts, @canonical_json.CanonicalValue, RegistryLimits) -> Result[FragmentContract, FragmentContractIssue]
 
 pub fn admit_managed_execution_profile(@canonical_json.CanonicalValue, RegistryLimits) -> Result[ManagedExecutionProfile, ManagedProfileIssue]
@@ -649,6 +651,10 @@ pub fn execute_selected_relation_step(GeneratedSequence, ProducerRead, SequenceE
 pub fn execution_capacity(Int64, Int64) -> ExecutionCapacity?
 
 pub fn execution_capacity_execution_bytes(ExecutionCapacity) -> Int64
+
+pub fn execution_capacity_inventory(Array[ExecutionCapacityItem], Array[ExecutionCapacityItem], ExecutionCapacityOverlap) -> ExecutionCapacity?
+
+pub fn execution_capacity_inventory_bytes(Array[ExecutionCapacityItem]) -> Int64?
 
 pub fn execution_capacity_node_bytes() -> Int64
 
@@ -1986,6 +1992,25 @@ pub(all) enum EvalIssueKind {
 pub struct ExecutionCapacity {
   retained_bytes : Int64
   execution_bytes : Int64
+}
+
+pub(all) struct ExecutionCapacityItem {
+  unit : ExecutionCapacityUnit
+  count : Int64
+  copies : Int
+}
+
+pub(all) enum ExecutionCapacityOverlap {
+  SeparateDimensions
+  RetainedAlongsideExecution
+}
+
+pub(all) enum ExecutionCapacityUnit {
+  ValueNodeSlots
+  CursorRootSlots
+  DecodedTextBytes
+  CanonicalWireBytes
+  QuotedBytes
 }
 
 type ExpressionExecution
