@@ -4,7 +4,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import test from 'node:test';
-import {projectCoreLedger, renderLedgerTransportContract, projectLedgerUsageSpentFields, renderLedgerUsageDiagnostic} from './generate-ledger-transport-contract.mjs';
+import {projectCoreLedger, renderLedgerTransportContract, projectLedgerUsageSpentFields, renderLedgerUsageDiagnostic, renderLedgerAccountingValues} from './generate-ledger-transport-contract.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 
 const core = readFileSync(new URL('../src/physical_resources/ledger.mbt', import.meta.url), 'utf8') + '\n' +
@@ -75,4 +75,19 @@ test('an unknown or changed Core pending rule cannot silently produce a spent-fi
     core.replace('    peak_retention_bytes: 0L,\n  }\n  pending', '    absent_count: 0,\n  }\n  pending'),
     core + core.slice(core.indexOf('pub fn ledger_usage_has_pending_resources')),
   ]) assert.throws(() => projectLedgerUsageSpentFields(changed), /Core ledger/u);
+});
+
+
+test('complete Core accounting snapshot uses declared order and exact primitive conversion', () => {
+  const generated = renderLedgerAccountingValues(core);
+  assert.equal(generated, readFileSync(new URL('../src/physical_resources/ledger_accounting.generated.mbt', import.meta.url), 'utf8'));
+  assert.match(generated, /ledger_limits_usage_values\(ledger : Ledger\)/u);
+  assert(generated.indexOf('usage.reserved_attempts.to_int64()') < generated.indexOf('usage.holdings.to_int64()'));
+  assert.match(generated, /usage\.transferred_bytes,/u);
+  assert(!generated.includes('usage.transferred_bytes.to_int64()'));
+  const changed = core.replace('pub(all) struct LedgerUsage {', 'pub(all) struct LedgerUsage {\n  future_count : Int');
+  const after = renderLedgerAccountingValues(changed);
+  assert.match(after, /usage\.future_count\.to_int64\(\)/u);
+  assert(after.indexOf('usage.future_count.to_int64()') < after.indexOf('usage.planning_work.to_int64()'));
+  assert.throws(() => renderLedgerAccountingValues(core.replace('reserved_attempts : Int', 'reserved_attempts : String')), /Core ledger/u);
 });

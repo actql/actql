@@ -202,6 +202,8 @@ pub fn ledger_admission_limits(Ledger) -> LedgerLimits
 
 pub fn ledger_limits(Ledger) -> LedgerLimits
 
+pub fn ledger_limits_usage_values(Ledger) -> Array[Int64]
+
 pub fn ledger_usage(Ledger) -> LedgerUsage
 
 pub fn ledger_usage_diagnostic_json(LedgerUsage) -> String

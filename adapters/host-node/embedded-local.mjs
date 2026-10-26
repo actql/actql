@@ -5656,7 +5656,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return () => {
         const run = record.computeRunObservations?.get(key);
         if (run === undefined || run.value === undefined || run.closed) return undefined;
-        if (!Object.hasOwn(run, 'usage')) run.usage = run.runtime.clientProgramInstalledManagedRunUsage;
+        if (!Object.hasOwn(run, 'usage')) run.usage = run.runtime.clientProgramInstalledManagedRunAccounting;
         if (typeof run.usage !== 'function') return undefined;
         return checked(Reflect.apply(run.usage, run.runtime, [run.value]));
       };

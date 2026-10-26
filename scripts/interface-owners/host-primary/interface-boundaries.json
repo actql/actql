@@ -4842,7 +4842,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "605e3560943f191adc7e97937a9989232eb603e516f3370c6e1a3ef3609c306c",
+      "sha256": "671e9db5eb652fe86fbf54270104bf290ef3d55455e2df7516e428d6d12e254f",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -9932,11 +9932,11 @@
               },
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
-                "anchor": "pub fn installed_managed_run_usage("
+                "anchor": "pub fn installed_managed_run_accounting("
               },
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
-                "anchor": "#export_name(\"clientProgramInstalledManagedRunUsage\")"
+                "anchor": "#export_name(\"clientProgramInstalledManagedRunAccounting\")"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -11514,7 +11514,7 @@
               },
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
-                "anchor": "pub fn installed_managed_run_usage("
+                "anchor": "pub fn installed_managed_run_accounting("
               }
             ],
             "identity": [
@@ -11574,7 +11574,7 @@
               },
               {
                 "path": "adapters/host-common/observation.mjs",
-                "anchor": "const snapshot = Object.freeze({'actql.resource.scope': 'managed-run-ledger',"
+                "anchor": "const snapshot = {'actql.resource.scope': 'managed-run-ledger'};"
               }
             ],
             "extension": [
@@ -11584,7 +11584,7 @@
               },
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
-                "anchor": "/// values, not a measurement of process memory or physical cleanup."
+                "anchor": "/// These are managed accounting values, not a measurement of process memory"
               }
             ],
             "verification": [

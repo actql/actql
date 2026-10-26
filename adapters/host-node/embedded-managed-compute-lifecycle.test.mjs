@@ -267,7 +267,7 @@ test('managed usage reader selects only the same admitted Run and releases its i
   const prepared = {}, value = {}, foreign = {}, first = {namespaceId:'n',authorityScopeCid:'a',runDefinitionCid:'r'};
   let reads = 0;
   const usage = [1n,2n,3n,4n,5n,6n,7n,8n,9n,10n,11n,12n,13n,14n,15n,16n];
-  runtime.clientProgramInstalledManagedRunUsage = function(actual) {
+  runtime.clientProgramInstalledManagedRunAccounting = function(actual) {
     assert.strictEqual(this,runtime); assert.strictEqual(actual,value); reads++; return usage;
   };
   f.record.computeRuns = new Map([[prepared,{runtime,prepared,value,closed:false}]]);
@@ -279,7 +279,7 @@ test('managed usage reader selects only the same admitted Run and releases its i
   assert.equal(reads,0,'Capturing correlation does not sample or admit');
   assert.equal(f.preparation.managedComputeUsageReader({...first,authorityScopeCid:'foreign'}),undefined);
   assert.strictEqual(read(),usage); assert.equal(reads,1);
-  runtime.clientProgramInstalledManagedRunUsage=()=>{throw new Error('Replacement must not run');};
+  runtime.clientProgramInstalledManagedRunAccounting=()=>{throw new Error('Replacement must not run');};
   assert.strictEqual(read(),usage); assert.equal(reads,2,'Same original callback and receiver');
   f.record.computeRunObservations=undefined;
   assert.equal(read(),undefined,'A retired installation bag retains no Core original');
@@ -789,4 +789,18 @@ test('reused Source retains same-map membership and the original Host current fa
         error?.code === 'ForeignInstalledComputeRun');
     assert.equal(prepares, 1); assert.equal(begins, 1);
   }
+});
+
+
+test('managed accounting refuses old Usage capability before any sample', () => {
+  const runtime = {}, f = lifecycle({factory() {}, runtime});
+  const prepared = {}, value = {}, original = {namespaceId:'n',authorityScopeCid:'a',runDefinitionCid:'r'};
+  let oldReads = 0;
+  runtime.clientProgramInstalledManagedRunUsage = () => {oldReads++; return Array(19).fill(0n);};
+  f.record.computeRuns = new Map([[prepared,{runtime,prepared,value,closed:false}]]);
+  f.preparation.bindManagedComputeRunObservation(prepared,original);
+  const read = f.preparation.managedComputeUsageReader(original);
+  assert.equal(typeof read,'function');
+  assert.equal(read(),undefined,'An older same-size layout cannot be interpreted by the new capability');
+  assert.equal(oldReads,0,'No legacy fallback or speculative second sample');
 });

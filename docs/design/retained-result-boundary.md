@@ -1010,3 +1010,18 @@ those cleared fields for diagnostic consumers; a future counter fails closed
 unless its spent meaning is deliberately added by the same Core owner. This
 observation supplies neither a physical stop acknowledgement nor the original
 census/serial/quantity proof needed for restoration.
+
+Managed Run observation uses the same Core declarations to generate a complete
+limits-and-usage snapshot. The original Run getter delegates to that projection;
+it does not maintain a separate field order. The distinct `Accounting` bridge
+capability identifies this declaration-order layout. An absent capability leaves
+optional observation unavailable, rather than interpreting the old same-length
+layout, filling missing counters with zero, or falling back to the old getter.
+
+The observation adapter derives membership and primitive widths from the same
+generated descriptor. Its only field-name aliases preserve existing public
+attribute spellings. It copies closed own-DATA array values into exact decimal
+attributes and refuses holes, accessors, extra own fields and out-of-range
+scalars. This presentation neither admits a report nor changes the original
+Run, Ledger, cancellation or retirement lifetime. Snapshot allocation and
+observation storage remain subject to their existing owners and limits.
