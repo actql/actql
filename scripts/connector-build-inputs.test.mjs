@@ -36,6 +36,7 @@ function fixture(t) {
   const compute = {
     package: 'example/numeric/driver', module: 'NumericModule', configuration: 'NumericSettings',
     configure: 'configure', registration: 'registration', contribution: 'contribution',
+    validate_binding: 'validate_binding',
     dispatch: 'dispatch', synchronous_dispatch: 'execute', dispatch_result: 'Unit',
     dispatch_error: {package: 'example/numeric/driver', type: 'NumericIssue'},
     estimate_error: {package: 'example/numeric/driver', type: 'NumericIssue'},

@@ -34,6 +34,24 @@ pub fn[T] open_dispatch_channel(
 }
 
 ///|
+/// Read only the original channel binding before composing installed modules.
+/// This does not stage/take work, check current authority or issue a start or
+/// cleanup acknowledgement. Even another driver of the same Run is foreign.
+pub fn[T] validate_dispatch_channel_binding(
+  channel : DispatchChannel[T],
+  driver : DispatchDriver,
+  registry : @connector.CapabilityRegistry,
+) -> Result[Unit, DispatchIssue] {
+  if !physical_equal(channel.owner, driver.owner) ||
+    !physical_equal(channel.registry, registry) ||
+    !@connector.capability_registration_matches(channel.registration, registry) {
+    Err(StaleTask)
+  } else {
+    Ok(())
+  }
+}
+
+///|
 pub fn[T] stage_dispatch_work(
   channel : DispatchChannel[T],
   task : Int,

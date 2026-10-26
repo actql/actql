@@ -11,6 +11,8 @@ import {
 // Values
 pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host_dispatch.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]
 
+pub fn[E] assemble_configured_compute_modules(@physical_host_dispatch.DispatchDriver, @connector_sdk.CapabilityRegistry, Int, (@connector_sdk.CapabilityInstallationIssue) -> E, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[ConfiguredComputeModules[E], E]
+
 pub fn[E] configure_compute_modules(@physical_host_dispatch.DispatchDriver, @connector_sdk.CapabilityRegistry, Int, (@connector_sdk.CapabilityInstallationIssue) -> E, with_local? : (@connector_sdk.CapabilityRegistration, @driver.LocalComputeConfiguration, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[ConfiguredComputeModules[E], E]
 
 pub fn[E] configured_compute_contributions(ConfiguredComputeModules[E]) -> @connector_sdk.CapabilityImplementations[@physical_host_dispatch.ComputeContribution[Unit, E]]

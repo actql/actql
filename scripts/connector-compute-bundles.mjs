@@ -48,7 +48,7 @@ export function generateComputeAssembly(entries, {buildInputs} = {}) {
     const managedCapacity = Object.hasOwn(m, 'managed_capacity');
     const managedOptional = m.managed_dispatch_optional === true;
     if (!identifier(name) || names.has(name) ||
-        !keys(m, ['package', 'module', 'configuration', 'configure', 'registration', 'contribution', 'dispatch', 'dispatch_result', 'dispatch_error', 'estimate_error', 'estimate_policy', 'resource_policy', ...(Object.hasOwn(m, 'synchronous_dispatch') ? ['synchronous_dispatch'] : []), ...(Object.hasOwn(m, 'completion_dispatch') ? ['completion_dispatch'] : []), ...(managed ? ['managed_dispatch', 'managed_dispatch_result'] : []), ...(managedOptional ? ['managed_dispatch_optional'] : []), ...(managedStart ? ['managed_start', 'managed_start_result', 'managed_start_error'] : []), ...(managedDuration ? ['managed_duration'] : []), ...(managedCapacity ? ['managed_capacity'] : [])]) ||
+        !keys(m, ['package', 'module', 'configuration', 'configure', 'registration', 'validate_binding', 'contribution', 'dispatch', 'dispatch_result', 'dispatch_error', 'estimate_error', 'estimate_policy', 'resource_policy', ...(Object.hasOwn(m, 'synchronous_dispatch') ? ['synchronous_dispatch'] : []), ...(Object.hasOwn(m, 'completion_dispatch') ? ['completion_dispatch'] : []), ...(managed ? ['managed_dispatch', 'managed_dispatch_result'] : []), ...(managedOptional ? ['managed_dispatch_optional'] : []), ...(managedStart ? ['managed_start', 'managed_start_result', 'managed_start_error'] : []), ...(managedDuration ? ['managed_duration'] : []), ...(managedCapacity ? ['managed_capacity'] : [])]) ||
         (Object.hasOwn(m, 'synchronous_dispatch') && !identifier(m.synchronous_dispatch)) ||
         (Object.hasOwn(m, 'completion_dispatch') &&
           (m.dispatch_result !== 'Unit' || !identifier(m.completion_dispatch))) ||
@@ -69,7 +69,7 @@ export function generateComputeAssembly(entries, {buildInputs} = {}) {
         (managedCapacity && (!managed || !identifier(m.managed_capacity))) ||
         !packageName(m.package) || !(m.package === packagePrefix || m.package.startsWith(`${packagePrefix}/`)) ||
         !typeName(m.module) || !typeName(m.configuration) || !identifier(m.configure) ||
-        !identifier(m.registration) || !identifier(m.contribution) || !identifier(m.dispatch)) {
+        !identifier(m.registration) || !identifier(m.validate_binding) || !identifier(m.contribution) || !identifier(m.dispatch)) {
       throw new Error('Invalid Compute bundle declaration');
     }
     names.add(name);
@@ -145,7 +145,14 @@ function configurationAssembly(entries, alias, typed, resultType) {
     `        Err(issue) => return Err(dispatch_issue(issue))\n` +
     `      }\n    }\n  }\n`).join('');
   const passed = entries.map(({name}) => `    with_${name}=installed_${name},\n`).join('');
-  const stored = entries.map(({name}) => `    installed_${name},\n`).join('');
+  const preparedParameters = entries.map(({name, manifest: m}) =>
+    `  with_${name}? : (@${alias(m.package)}.${m.module}, (${typed(m.dispatch_error)}) -> E, (${typed(m.estimate_error)}) -> E)? = None,\n`).join('');
+  const bindingChecks = entries.map(({name, manifest: m}) =>
+    `  if with_${name} is Some((installed, dispatch_issue, _)) {\n` +
+    `    match @${alias(m.package)}.${m.validate_binding}(installed, driver, registry) {\n` +
+    `      Ok(_) => ()\n      Err(issue) => return Err(dispatch_issue(issue))\n    }\n  }\n`).join('');
+  const preparedPassed = entries.map(({name}) => `    with_${name}=with_${name},\n`).join('');
+  const preparedStored = entries.map(({name}) => `    installed_${name}: with_${name},\n`).join('');
   const getters = entries.map(({name, manifest: m}) =>
     `\n///|\npub fn[E] configured_${name}_module(value : ConfiguredComputeModules[E]) -> @${alias(m.package)}.${m.module}? {\n  value.installed_${name}.map(value => value.0)\n}\n`).join('');
   const installedKeys = '\n///|\n/// Composition keys only; not capability IDs, resource bindings or dispatch authority.\n' +
@@ -175,6 +182,16 @@ function configurationAssembly(entries, alias, typed, resultType) {
     `  }\n}\n`).join('');
   return '\n///|\nstruct ConfiguredComputeModules[E] {\n  driver : @host.DispatchDriver\n' + fields +
     '  contributions : @connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]]\n}\n' +
+    '\n///|\n/// Assemble the same already-bound modules without configuring them again.\n' +
+    '/// Original driver, Run and registry bindings are checked before exposure.\n' +
+    'pub fn[E] assemble_configured_compute_modules(\n' +
+    '  driver : @host.DispatchDriver,\n  registry : @connector.CapabilityRegistry,\n' +
+    '  max_entries : Int,\n  installation_issue : (@connector.CapabilityInstallationIssue) -> E,\n' +
+    preparedParameters + ') -> Result[ConfiguredComputeModules[E], E] {\n' +
+    bindingChecks +
+    '  let contributions = match assemble_compute_contributions(registry, max_entries,\n' + preparedPassed +
+    '  ) {\n    Ok(value) => value\n    Err(issue) => return Err(installation_issue(issue))\n  }\n' +
+    '  Ok({\n    driver,\n' + preparedStored + '    contributions,\n  })\n}\n' +
     '\n///|\n/// Validate the complete registration subset before invoking any connector factory.\n' +
     '/// Configuration is synchronous and cannot authorize provider I/O or task start.\n' +
     'pub fn[E] configure_compute_modules(\n' +
@@ -185,9 +202,8 @@ function configurationAssembly(entries, alias, typed, resultType) {
     '  match @connector.install_capability_implementations(registry, registrations, max_entries) {\n' +
     '    Err(issue) => return Err(installation_issue(issue))\n    Ok(_) => ()\n  }\n' +
     prepare +
-    '  let contributions = match assemble_compute_contributions(registry, max_entries,\n' + passed +
-    '  ) {\n    Ok(value) => value\n    Err(issue) => return Err(installation_issue(issue))\n  }\n' +
-    '  Ok({\n    driver,\n' + stored + '    contributions,\n  })\n}\n' +
+    '  assemble_configured_compute_modules(driver, registry, max_entries, installation_issue,\n' + passed +
+    '  )\n}\n' +
     '\n///|\npub fn[E] configured_compute_contributions(value : ConfiguredComputeModules[E]) -> @connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]] {\n  value.contributions\n}\n' +
     getters + installedKeys + '\n///|\npub(all) enum ConfiguredDispatchIssue[E] {\n  MissingImplementation\n  Implementation(E)\n}\n' + dispatches + managedDispatches + estimateAssembly(entries, alias) + hostAssembly() + synchronousAssembly(entries, alias);
 }

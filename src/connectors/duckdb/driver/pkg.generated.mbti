@@ -202,6 +202,8 @@ pub fn start_configured_strategy_compute_host(StrategyComputeHostConfiguration, 
 
 pub fn[C, E] take_duckdb_dispatch(DuckDBDispatchModule, @physical_host_dispatch.DispatchHost[C, E], @physical_host_dispatch.PreparedTaskDispatch) -> Result[StrategyComputeHostConfiguration, DuckDBDispatchIssue]
 
+pub fn validate_duckdb_dispatch_binding(DuckDBDispatchModule, @physical_host_dispatch.DispatchDriver, @connector_sdk.CapabilityRegistry) -> Result[Unit, DuckDBDispatchIssue]
+
 // Errors
 pub suberror DuckDBFailure {
   Compute(@compute.DuckDBComputeIssue)

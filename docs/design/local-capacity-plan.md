@@ -398,6 +398,39 @@ spend an attempt or issue backing. The existing Run, parent Ledger, provider
 and physical cleanup owners retain those obligations. Stopping a rejected
 configuration does not assert physical cleanup or refund consumed work.
 
+## Pre-Run Local physical preparation
+
+`LocalDispatchPreparation` retains the exact checked graph, selected physical
+steps or prefixes, original installed module and its provider capacity facts.
+It can be prepared before a Run or Ledger exists. Its task envelopes quote the
+same module later bound to the Run; equal graph or CID reconstruction cannot
+replace that original. Existing initial preparation funding remains the
+caller's responsibility. The preparation is DATA, without an allocator,
+permission, execution ticket or cleanup engine.
+
+The preparation counts input ports, including repeated occurrences of one
+producer, metadata and any configured output export. Shared checked inventory
+conversion composes these byte quotes. The actual task offer consumes that
+same retained envelope. First-time installation can refine its input/output
+policy before the first quote escapes, retaining the original module and
+provider facts; a directly bound prepared plan is already frozen. No later
+configuration can replace a quoted plan.
+
+The total retention accessor describes the configured Compute holdings that
+may coexist until their actual borrowers retire. The transfer accessor quotes
+cumulative imports. Neither describes Source acquisition holdings, all backend
+choices, physical RSS, a minimum capacity or a whole-Run execution peak. Those
+domains retain their original inventories and shared composition. A missing or
+overflowing quote is unknown demand, never zero capacity or a physical ACK.
+
+Canonical `assemble_configured_compute_modules` retains already-bound modules
+and their original error adapters, delegating the existing contribution
+assembly and Host constructor. It checks each module's exact driver/channel
+and registry binding without configuring, compiling or preparing the module
+again. First-time configuration uses this same wrapper factory. A second
+driver for the same Run is still foreign. These identity checks do not replace
+current authorization, resource admission, actual starts or retirement.
+
 ## Wasm publication views
 
 The existing Wasm `LocalComputeHost` retains the exact source-free requirements
