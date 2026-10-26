@@ -82656,6 +82656,121 @@
         }
       ],
       "referenceQualification": "Mechanical projection of actual Core record fields/types. No allocation, debit, physical acknowledgement or resource authority is issued by this layout."
+    },
+    {
+      "module": "adapters/host-common/source-response-custody.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "e5d53c97c58a18dba4cea01f84af1300bc0b4d16beee5a80997338557e4d34b0",
+      "role": "physical-io",
+      "owner": "Existing installed Source response custody and provider sequence Owners",
+      "exports": [
+        "captureSourceResponseCustody"
+      ],
+      "operations": [
+        {
+          "name": "captureSourceResponseCustody",
+          "parameters": [
+            "holder",
+            "invalid"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourceResponseCustody/retainSourceResponse",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourceResponseCustody/retainSourceResponse/retainSourceResponse",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "captureSourceResponseCustody",
+            "captureSourceResponseCustody/retainSourceResponse",
+            "captureSourceResponseCustody/retainSourceResponse/retainSourceResponse"
+          ],
+          "exports": [
+            "captureSourceResponseCustody"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Standard Source response custody callback"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Standard Source response custody callback"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Standard Source response custody callback"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Standard Source response custody callback"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Standard Source response custody callback"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Standard Source response custody callback"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Standard Source response custody callback"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Standard Source response custody callback"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Standard Source response custody callback"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/source-response-custody.test.mjs",
+                "anchor": "test('standard response custody retains"
+              },
+              {
+                "path": "adapters/host-common/source-response-custody.test.mjs",
+                "anchor": "test('non-Unit response custody stays joined"
+              },
+              {
+                "path": "adapters/host-common/source-response-custody.test.mjs",
+                "anchor": "test('a rejected custody borrow preserves"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "generated": [],
