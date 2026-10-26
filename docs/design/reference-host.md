@@ -1581,3 +1581,19 @@ same original Source read and parent Ledger, while Credential authorization
 remains independently required. Copied installation DATA, changed runtime
 identity, changed policy selection and stale current checks cannot substitute
 for any of these originals.
+
+
+## Capturing the installed Source service
+
+Connector loaders capture their four original standard Source methods once,
+before the first metadata await. The common snapshot retains each own DATA
+function and its original receiver; replacement methods, inherited methods,
+accessors and proxies cannot change that selection. Its invoker is bounded to
+those same four methods and adds no service call, admission or cleanup owner.
+
+The connector supplies its existing synchronous unavailable error factory or
+throw callback. Returned values and Promises, original throws and rejected
+cleanup carriers pass through unchanged. The connector still selects its own
+explicit legacy entrance when the service is omitted, and keeps its own profile
+grammar, limit conversion and error boundaries. The shared snapshot never
+chooses a fallback, a numeric policy or physical authority.

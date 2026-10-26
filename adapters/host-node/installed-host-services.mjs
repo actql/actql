@@ -10,6 +10,26 @@ import {types as nodeTypes} from 'node:util';
 const installations = new WeakMap();
 const fail = code => {throw Object.assign(new TypeError(code), {code});};
 
+// Snapshot only the existing required Source service methods. The connector
+// chooses its own unavailable error and retains its explicit legacy branch.
+// This view issues no service, installation, capacity or cleanup observation.
+export function captureInstalledSourceServices(receiver, unavailable) {
+  if (typeof unavailable !== 'function') throw new TypeError('InvalidInstalledSourceServiceErrorFactory');
+  const refuse = () => {throw Reflect.apply(unavailable, undefined, []);};
+  if (receiver === null || !['object', 'function'].includes(typeof receiver) || nodeTypes.isProxy(receiver)) refuse();
+  const methods = Object.create(null);
+  for (const name of ['sourceReaderImplementationProfile', 'sourceReaderImplementation', 'openRowSite', 'createSourceReader']) {
+    const field = Object.getOwnPropertyDescriptor(receiver, name);
+    if (field === undefined || !Object.hasOwn(field, 'value') || typeof field.value !== 'function') refuse();
+    methods[name] = field.value;
+  }
+  Object.freeze(methods);
+  return Object.freeze(function invokeInstalledSourceService(name, ...args) {
+    if (typeof name !== 'string' || !Object.hasOwn(methods, name)) refuse();
+    return Reflect.apply(methods[name], receiver, args);
+  });
+}
+
 export function createInstalledHostServices({root, principalId, moon, assertCurrent, receiver}) {
   if (typeof root !== 'string' || !root || typeof principalId !== 'string' || !principalId ||
       !moon || typeof moon !== 'object' || typeof assertCurrent !== 'function') fail('InvalidInstalledHostServices');
