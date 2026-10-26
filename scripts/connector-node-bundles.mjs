@@ -10,7 +10,15 @@ import {checkRelaClientBridges} from './client-bridge-mirrors.mjs';
 export {checkRelaClientBridges} from './client-bridge-mirrors.mjs';
 import {connectorManifestSelection} from './connector-manifest-selection.mjs';
 import {readHostBundles, generateInstallations, moduleSpecifier} from './connector-host-bundles.mjs';
+import {projectCoreLedger} from './generate-ledger-transport-contract.mjs';
 export {checkHostBundle, readHostBundles, generateInstallations} from './connector-host-bundles.mjs';
+
+// The Core record owns both field order and primitive width. This is only
+// its generated Int64 bridge projection, not another usage schema.
+function renderStrategyLedgerUsage(source) {
+  return projectCoreLedger(source).usage.map(({name, bits}) =>
+    `    usage.${name}${bits === 32 ? '.to_int64()' : ''},`).join('\n');
+}
 
 export function checkNodeAssembly(root, write = false, options = {}) {
 const buildInputs = options.buildInputs;
@@ -173,6 +181,11 @@ const host = '@builtin.ConfiguredComputeHost[@strategy.RunIssue]';
 let template = readFileSync(buildInputs === undefined
   ? join(coreRoot, 'scripts/templates/strategy-node.mbt')
   : buildInputs.resolveFile('actql/actql', 'scripts/templates/strategy-node.mbt'), 'utf8');
+const usageMarker = '    // CORE_LEDGER_USAGE_VALUES';
+if (template.split(usageMarker).length !== 2) throw Error('Invalid Core ledger usage projection marker');
+template = template.replace(usageMarker, renderStrategyLedgerUsage(readFileSync(
+  buildInputs === undefined ? join(coreRoot, 'src/physical_resources/ledger.mbt')
+    : buildInputs.resolveFile('actql/actql', 'src/physical_resources/ledger.mbt'), 'utf8')));
 // Only a selected Local module can project its sealed producer metadata.
 // Keep unrelated backend assemblies independent and explicitly legacy.
 const publicationPolicyBlock = /  \/\/ LOCAL_PUBLICATION_BRIDGE_POLICY_BEGIN[\s\S]*?  \/\/ LOCAL_PUBLICATION_BRIDGE_POLICY_END\n/;
@@ -410,6 +423,9 @@ if (hasClientProgramBridge) {
 if (buildInputs !== undefined) {
   for (const path of dependencies.keys()) {
     if (path === `${buildInputs.host.namespace}/${assembly}`) continue;
+    // As in resolvePackage's import walk, the pinned compiler supplies its
+    // standard library; it is not another external module to acquire.
+    if (path.startsWith('moonbitlang/core/')) continue;
     buildInputs.packagePath(path);
   }
 }

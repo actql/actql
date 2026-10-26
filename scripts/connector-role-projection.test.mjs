@@ -21,6 +21,8 @@ function fixture(t) {
   mkdirSync(join(root, 'src/connectors'), {recursive: true});
   put(root, 'scripts/templates/strategy-node.mbt', readFileSync(
     new URL('./templates/strategy-node.mbt', import.meta.url)));
+  put(root, 'src/physical_resources/ledger.mbt', readFileSync(
+    new URL('../src/physical_resources/ledger.mbt', import.meta.url)));
   return root;
 }
 function host(root, name, roles) {
