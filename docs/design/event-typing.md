@@ -27,9 +27,11 @@ The fixed Sketch reference describes the original schema for `drop`, whereas
 the AoA executor adds `watermark_ms`, `late` and `watermark_decision` to every
 surviving event for both policies. ActQL explicitly adopts the latter shape,
 also consistent with the existing Relation watermark operation. Dropping rows
-does not remove label columns. The source remains the existing finite literal
-threshold and explicit policy, without importing the richer Relation threshold
-and Parameter syntax. Equality at the threshold is not late.
+does not remove label columns. The threshold is the existing finite numeric literal or a declared
+numeric Parameter, with the explicit policy and exact operand rules owned by
+[watermark events](../spec/language.md#event-bridges). The original selected
+Parameter binding remains an execution requirement; static checking does not
+supply its value. Equality at the threshold is not late.
 
 The typed Carrier retains authored role names rather than inventing physical
 `id` or `event_time_ms` columns. Generated-column collisions are rejected rather
