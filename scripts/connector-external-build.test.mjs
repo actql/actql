@@ -37,6 +37,8 @@ function fixture(t) {
   }
   put(join(modules[0].root, 'scripts/templates/strategy-node.mbt'), readFileSync(
     new URL('./templates/strategy-node.mbt', import.meta.url)));
+  put(join(modules[0].root, 'src/physical_resources/ledger.mbt'), readFileSync(
+    new URL('../src/physical_resources/ledger.mbt', import.meta.url)));
   put(join(modules[1].root, 'src/driver/moon.pkg'),
     'supported_targets = "js"\nimport { "actql/actql/physical_host" @host, }\n');
   const manifest = {package: 'fixture/portable/driver', module: 'Contribution',
@@ -53,6 +55,31 @@ function fixture(t) {
     connectors: [{name: 'portable', module: 'fixture/portable', directory: 'declarations'}]};
   return {root, modules, put, configuration, resolved: resolveConnectorBuildInputs(configuration)};
 }
+
+test('strategy usage generation follows the selected Core fields and primitive widths', t => {
+  const f = fixture(t);
+  const ledger = join(f.modules[0].root, 'src/physical_resources/ledger.mbt');
+  const original = readFileSync(ledger, 'utf8');
+  f.put(ledger, original.replace('pub(all) struct LedgerUsage {',
+    'pub(all) struct LedgerUsage {\n  future_count : Int\n  future_bytes : Int64'));
+  const inputs = resolveConnectorBuildInputs(f.configuration);
+  checkNodeAssembly(f.modules[2].root, true, {buildInputs: inputs});
+  const bridgePath = join(f.modules[2].root, 'src/connectors_builtin_node/bridge.generated.mbt');
+  const bridge = readFileSync(bridgePath, 'utf8');
+  const usage = bridge.slice(bridge.indexOf('#export_name("strategyHostUsage")'),
+    bridge.indexOf('#export_name("strategyHostTransferBegin")'));
+  assert.match(usage, /usage\.future_count\.to_int64\(\)/u);
+  assert.match(usage, /usage\.future_bytes,/u);
+  assert.doesNotMatch(usage, /usage\.future_bytes\.to_int64/u);
+  for (const field of ['reserved_attempts', 'live_reservations', 'live_delegations',
+    'uncertain_transfer_bytes', 'peak_retention_bytes']) assert.match(usage,
+      new RegExp(`usage\\.${field}(?:\\.to_int64\\(\\))?,`, 'u'));
+  assert(usage.indexOf('usage.future_count') < usage.indexOf('usage.planning_work'));
+  f.put(ledger, original.replace('reserved_attempts : Int', 'reserved_attempts : String'));
+  assert.throws(() => checkNodeAssembly(f.modules[2].root, true,
+    {buildInputs: resolveConnectorBuildInputs(f.configuration)}), /Unsupported Core ledger field/u);
+  assert.equal(readFileSync(bridgePath, 'utf8'), bridge);
+});
 
 function hostFixture(f, name, role) {
   const root = f.modules[1].root;
