@@ -25,7 +25,7 @@ test('private Source forwarding retains the same receiver and original arguments
   captured.bindSourceRequest(receipt, body, packet);
   captured.finishSourceProducer(receipt, 'returned');
   assert.deepEqual(calls, [
-    [receiver, 'before', 'aql', input, options],
+    [receiver, 'before', 'aql', input, options, undefined],
     [receiver, 'snapshot', receipt, body],
     [receiver, 'intent', receipt, body],
     [receiver, 'request', receipt, body, packet],
