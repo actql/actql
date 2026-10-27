@@ -73,9 +73,14 @@ Operations — sending is an operation, not a record write:
 
 Send, reply and forward act on the connection's mailbox, so they take no `TARGET`; purge names the message as its `TARGET`. `ID` is
 the row's key and identifies each send in the Preview and the status; it is
-not the recipient. A send that Gmail took ends `accepted`: Gmail accepted the
-message for delivery, which does not mean it was delivered or read. Nothing is
-sent until the Effect is applied.
+not the recipient. Send, reply and forward end `applied` when Gmail confirms
+the original message submission. This completes the submission Command; it does
+not mean the message was delivered or read. In the common
+[Effect outcome contract](../spec/execution.md#reconciliation), `accepted` is
+reserved for a pending provider operation with a genuine OperationRef and its
+status and reconciliation contracts. A Gmail message ID or thread ID is not
+such an operation handle. An unproved response loss remains `unknown`, with no
+automatic resend. Nothing is sent until the approved Effect is applied.
 
 ## Setup
 
