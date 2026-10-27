@@ -14,6 +14,9 @@ extern "js" fn usage_boundary_url() -> String =
 /// The actual Core-created Array[Int64] crosses directly to the real Host
 /// adapter. The one runtime callback returns that SAME array without copying,
 /// padding, JSON admission or another MoonBit namespace. No provider runs.
+// Keep this exact current bridge Array ABI under test; a FixedArray copy
+// would weaken the original-object identity assertion below.
+#warnings("-deprecated")
 extern "js" fn usage_boundary_observe(
   loader : UsageBoundaryLoader,
   values : Array[Int64],

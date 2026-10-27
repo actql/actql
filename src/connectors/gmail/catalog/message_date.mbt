@@ -1,4 +1,7 @@
 ///|
+// Private parser errors retain Eq/Debug for exact white-box assertions;
+// ordinary provider projection only maps these errors into its public result.
+#warnings("-unused_value")
 priv enum GmailHeaderDateIssue {
   Malformed
   Unsupported
