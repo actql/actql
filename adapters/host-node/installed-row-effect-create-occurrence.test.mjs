@@ -112,3 +112,16 @@ test('create cold request preparation receives same admitted Preview identities 
   const result=recover({members:[member],body:{effects:[{changes}]},durable:{},recorded:{members:[{claims}]},previewWire:'original approved Preview',runInvocationCid:cid('c'),dispatches:[cid('d')]});
   assert.equal(seen.length,3);assert.equal(result.entries[0].length,3);
 });
+
+test('non-create request preparation retains its original context without a create occurrence field',()=>{
+  for(const kind of ['update','delete','upsert','command']){
+    const selected=Object.freeze({kind}),current=Object.freeze({}),runOriginal=Object.freeze({}),seen=[];
+    const rows=[{value:{n:1},selector:'first'},{value:{n:2},selector:'second'}];
+    const owned={prepareRequest(context){seen.push(context);return context.value;}};
+    const requestsOf=expression('requestsOf',{ownerOf:value=>{assert.strictEqual(value,selected);return {owned};},
+      resourceFields:()=>({runOriginal}),commandContentRow:()=>assert.fail('No Content lookup without original borrower'),
+      requestEntry:(member,row,prepared)=>{assert.strictEqual(member,selected);assert.strictEqual(row.value,prepared);return prepared;}});
+    assert.deepEqual(requestsOf(selected,rows,current,undefined,undefined),rows.map(row=>row.value));
+    seen.forEach((context,index)=>{assert.deepEqual(context,{member:selected,value:rows[index].value,selector:rows[index].selector,current,runOriginal});assert.equal(Object.hasOwn(context,'createRowIdentity'),false);});
+  }
+});
