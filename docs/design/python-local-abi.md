@@ -2035,6 +2035,17 @@ issue permission, and return no token that can carry currentness to another
 callback. The next callback observes the physical originals again; Account,
 epoch, namespace and Core-loan checks retain their independent boundaries.
 
+The original Host retains its bound current observer once and forwards that
+exact callable through its inspected Store operations and Journal loans. A
+namespace reader may combine `check_fences` with that observer: each invocation
+still completes the original current check between both SQL metadata fences.
+Only the exact observer already invoked by that same reader is covered; a
+distinct callback runs separately and must return no permission value. Readers
+without this optional port retain the separate full-fence/current path. This
+retains no successful observation across calls or transactions. Changed rows,
+copied or expired readers and callback failures retain their original refusal
+and cleanup duties; Account and publication authority remain independent.
+
 The existing Store supplies this reader with `inspect_namespaces`, using a
 read-only transaction and the existing bounded/failure-latched reader and
 physical fence validator. It performs no write or COMMIT. Failed transaction

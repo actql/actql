@@ -35,9 +35,13 @@ class _JournalCallbacks:
             if (self.reader is None or self.reader.owner is not self.store
                     or self.failure is not None):
                 raise ValueError('Original Local journal snapshot is unavailable')
-            self.reader.check_fences(self.reader, ())
-            if self.current() is not None:
-                raise ValueError('Local journal current port cannot return a permission boolean')
+            check = self.reader.check_fences_and_current
+            if check is None:
+                self.reader.check_fences(self.reader, ())
+                if self.current() is not None:
+                    raise ValueError('Local journal current port cannot return a permission boolean')
+            else:
+                check(self.reader, (), self.current)
             return 0
         except BaseException as error:
             return self._fail(error)

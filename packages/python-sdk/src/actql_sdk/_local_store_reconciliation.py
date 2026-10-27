@@ -199,7 +199,7 @@ class OriginalStoreReconciliation:
                                 self._inspect, self._originals, fences,
                                 namespace=lambda reader, consume:
                                     binding.inspect_reader(reader, lambda _: consume()),
-                                current=binding.current,
+                                current=binding._current_observer,
                                 before_lookup=lambda: self._before_lookup())
             finally:
                 self._active = False
