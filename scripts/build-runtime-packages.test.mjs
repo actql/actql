@@ -80,8 +80,11 @@ const packages = {
   'local-node': {builder: 'build-local-node-assets', args: [],
     sources: ['connectors_builtin_node', 'connectors/duckdb/host_node',
       'retained_host_bridge', 'process_host_bridge', 'checkpoint_runtime_node',
-      'connectors/github/host_node', 'connectors/salesforce/host_node',
-      'connectors/sheets/host_node'],
+      'connectors/calendar/host_node', 'connectors/gcs/host_node',
+      'connectors/github/host_node', 'connectors/gmail/host_node',
+      'connectors/hubspot/host_node', 'connectors/notion/host_node',
+      'connectors/salesforce/host_node', 'connectors/sheets/host_node',
+      'connectors/slack/host_node'],
     destination: 'packages/local-node/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
     stale: 'StaleLocalNodeAsset'},
 };
@@ -91,7 +94,8 @@ function put(directory, path, contents) {
   writeFileSync(join(directory, path), contents);
 }
 
-function run(t, requested, {fail, stalePayload, wrapper, version, additionalProvider = false, temporaryParent = tmpdir()} = {}) {
+function run(t, requested, {fail, stalePayload, wrapper, version, additionalProvider = false,
+  refuseInterfaces = false, normalCli = false, temporaryParent = tmpdir()} = {}) {
   const directory = realpathSync(mkdtempSync(join(temporaryParent, 'runtime-build-check-')));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   mkdirSync(join(directory, 'scripts'));
@@ -214,8 +218,27 @@ childProcess.execFileSync = (command, args, options) => {
   return original(command, args, options);
 };
 syncBuiltinESMExports();
-process.argv = [process.execPath, 'scripts/build-runtime-packages.mjs', ...${JSON.stringify(requested)}];
-await import('./scripts/build-runtime-packages.mjs');
+const refusal = new Error('Original fixture interface admission refused');
+try {
+  if (${JSON.stringify(normalCli)}) {
+    record({normalCli: true});
+    process.argv = [process.execPath, 'scripts/build-runtime-packages.mjs', ...${JSON.stringify(requested)}];
+    await import('./scripts/build-runtime-packages.mjs');
+  } else {
+    const {prepareRuntimePackages} = await import('./scripts/build-runtime-packages.mjs');
+    await prepareRuntimePackages(${JSON.stringify(requested)}, {
+      checkInterfaces: async (root, {manifests}) => {
+        record({command: 'fixture-interface-admission', root, manifests});
+        await Promise.resolve();
+        if (${JSON.stringify(refuseInterfaces)}) throw refusal;
+        record({fixtureInterfacesAdmitted: true});
+      },
+    });
+  }
+} catch (error) {
+  if (${JSON.stringify(refuseInterfaces)}) record({originalInterfaceRefusal: error === refusal});
+  throw error;
+}
 record({done: true});
 `);
   const result = spawnSync(process.execPath, ['driver.mjs'], {
@@ -228,7 +251,10 @@ record({done: true});
 }
 
 function expectedCalls(names, directory) {
-  return [{command: 'moon', args: ['build', '--target', 'js', '--release',
+  return [{command: 'fixture-interface-admission', root: directory + '/',
+    manifests: names.map(name => `packages/${name}/package.json`)},
+  {fixtureInterfacesAdmitted: true},
+  {command: 'moon', args: ['build', '--target', 'js', '--release',
     ...new Set(names.flatMap(name => packages[name].sources.map(source => `src/${source}`)))],
   cwd: directory + '/', stdio: 'inherit'}, ...names.flatMap(name => {
     const item = packages[name];
@@ -398,6 +424,102 @@ distribution[3] = distribution[3].replace(
 distribution.splice(distribution.indexOf('node scripts/check-submission-input-mutations.mjs') + 1,
   0, 'node scripts/check-submission-check-observation-mutations.mjs');
 
+// Preserve the additional public registrations at their adopted positions.
+// These are fixed independent expectations, not a projection of package.json.
+expectedGates['check:remote-site-runtime'][2] = expectedGates['check:remote-site-runtime'][2]
+  .replace('adapters/connectors/github/test/github-issue-read.test.mjs ',
+    'adapters/connectors/github/test/github-issue-read.test.mjs adapters/connectors/github/test/github-comment-read.test.mjs adapters/connectors/github/test/github-installed-comment-source.test.mjs adapters/connectors/github/test/github-installed-comment-outcome.test.mjs ');
+expectedGates['check:run-host-core'][2] +=
+  ' packages/run-host-core/effect-checkpoint-retention.test.mjs packages/run-host-core/effect-checkpoint-binding.test.mjs';
+distribution[3] = distribution[3]
+  .replace('node --test ',
+    'node --test adapters/host-common/source-response-custody.test.mjs adapters/host-node/installed-family-content.test.mjs scripts/packed-public-query-profile.test.mjs adapters/host-node/client-full-join-refusal.test.mjs ')
+  .replace('adapters/host-node/installed-composed-infer-run.test.mjs ',
+    'adapters/host-node/installed-composed-infer-run.test.mjs adapters/host-common/strategy-usage.test.mjs adapters/host-node/ledger-usage-consumers.test.mjs ')
+  .replace('adapters/host-node/installed-effect-site.test.mjs ',
+    'adapters/host-node/installed-effect-site.test.mjs adapters/connectors/notion/test/source-configuration-reader.test.mjs adapters/host-node/installed-update-targets.test.mjs adapters/host-node/recovered-command-content.test.mjs adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs adapters/connectors/local/host/local-file-store-driver.test.mjs adapters/connectors/local/host/local-file-store-target.test.mjs ')
+  .replace('adapters/host-node/acquired-effect-computation.test.mjs ',
+    'adapters/host-node/acquired-effect-computation.test.mjs adapters/host-node/acquired-effect-installed-capacity.test.mjs adapters/host-node/acquired-effect-source-binding.test.mjs ')
+  .replace('adapters/host-node/client-check.test.mjs ',
+    'adapters/host-node/client-check.test.mjs adapters/host-node/client-publication-limit-projection.test.mjs adapters/local-node/managed-failure-public.test.mjs adapters/host-node/client-result-alias-routing.test.mjs adapters/host-node/client-result-publication-envelope.test.mjs ')
+  .replace('adapters/host-node/client-values-row-limit.test.mjs ',
+    'adapters/host-node/client-values-row-limit.test.mjs adapters/host-node/client-values-join-profile.test.mjs adapters/host-node/client-sql-array-struct.test.mjs adapters/host-node/client-values-fragment-capacity.test.mjs ')
+  .replace('adapters/host-node/client-request-journal.test.mjs ',
+    'adapters/host-node/client-request-journal.test.mjs adapters/host-node/ordinary-source-binding.test.mjs adapters/host-node/client-mock-source-occurrences.test.mjs adapters/host-node/embedded-values-cleanup.test.mjs adapters/local-node/managed-output-custody.test.mjs ')
+  .replace('adapters/host-node/public-source-preparation.test.mjs ',
+    'adapters/host-node/public-source-preparation.test.mjs adapters/host-node/public-store-source-preparation.test.mjs ')
+  .replace('adapters/host-node/client-submission.test.mjs ',
+    'adapters/host-node/client-submission.test.mjs adapters/host-node/source-request-lineage.test.mjs adapters/host-node/journal-lifecycle-limits.test.mjs adapters/host-node/client-pre-admission-refusal.test.mjs ')
+  .replace('adapters/host-node/client-submission-attempt.test.mjs ',
+    'adapters/host-node/client-submission-attempt.test.mjs adapters/host-node/client-submission-operation.test.mjs ');
+for (const files of [
+  ['adapters/host-node/client-null-context.test.mjs'],
+  ['adapters/host-node/public-text-time.test.mjs'],
+  ['adapters/host-node/client-relational-composition.test.mjs'],
+  ['adapters/host-node/client-right-join.test.mjs'],
+  ['adapters/host-node/client-audited-capabilities.test.mjs'],
+  ['adapters/host-node/client-publication-capacity.test.mjs'],
+  ['adapters/host-node/local-preparation-custody.test.mjs'],
+  ['adapters/host-node/client-preparation-custody-public.test.mjs'],
+  ['adapters/host-node/client-result-schema-budget.test.mjs'],
+  ['adapters/host-node/client-publication-plan-original.test.mjs'],
+  ['adapters/host-node/ordinary-source-producer-lifetime.test.mjs'],
+  ['scripts/verify-local-source-runtime.test.mjs'],
+  ['scripts/preparation-context-carrier-layout.test.mjs'],
+  ['adapters/host-node/preparation-root-bridge.test.mjs'],
+  ['adapters/host-node/submission-snapshot-publication.test.mjs'],
+  ['adapters/host-node/closed-values-own-data-scan.test.mjs'],
+  ['adapters/host-node/local-preparation-registry.test.mjs'],
+  ['adapters/host-node/preparation-host-custody.test.mjs'],
+  ['adapters/host-node/client-large-input-public.test.mjs', 'adapters/host-node/local-values-policy-original.test.mjs',
+    'adapters/host-node/host-result-extent.test.mjs', 'adapters/host-node/client-join-scale-public.test.mjs'],
+  ['adapters/host-node/preparation-journal-failure-public.test.mjs', 'adapters/host-node/preparation-initial-failure-public.test.mjs'],
+  ['adapters/host-node/ordinary-preparation-cut-retry.test.mjs'],
+  ['scripts/preparation-closed-values-plan-controls.test.mjs'],
+  ['adapters/store-local/publication-contract-node-bound.test.mjs'],
+  ['scripts/preparation-closed-values-layout.test.mjs'],
+  ['scripts/preparation-closed-values-graph-layout.test.mjs'],
+  ['scripts/preparation-closed-values-contract-layout.test.mjs'],
+  ['adapters/host-node/client-numeric-scale-public.test.mjs'],
+  ['adapters/host-node/preparation-capacity-refusal.test.mjs'],
+  ['scripts/preparation-intent-lifetime.test.mjs'],
+  ['adapters/host-node/installed-sequence-infer-subset.test.mjs', 'adapters/host-node/client-compilation-original.test.mjs',
+    'adapters/host-node/preparation-compilation-cold-open-public.test.mjs', 'scripts/preparation-compilation-call-controls.test.mjs',
+    'scripts/preparation-compilation-projector-controls.test.mjs', 'adapters/host-node/client-snapshot-output-envelope.test.mjs',
+    'adapters/host-node/client-captured-context-original.test.mjs'],
+  ['scripts/scalar-snapshot-projector-layout.test.mjs', 'scripts/capture-projector-layout.test.mjs',
+    'adapters/host-node/publication-currentness-boundary.test.mjs', 'adapters/host-node/client-publication-preparation-phase.test.mjs',
+    'adapters/host-node/publication-validation-close-public.test.mjs'],
+  ['adapters/host-node/publication-snapshot-original-public.test.mjs'],
+  ['adapters/host-node/finalization-scratch-cut-public.test.mjs', 'adapters/connectors/calendar/test/installed-calendar-source.test.mjs'],
+  ['adapters/host-node/installed-content-family-custody.test.mjs'],
+]) distribution.push(`node scripts/local-checks.mjs test node -- ${files.join(' ')}`);
+
+test('explicit fixture interface admission is awaited for the physical root and selected manifests', t => {
+  const {result, calls, directory} = run(t, ['coordinator-core', 'transfer-core', 'coordinator-core']);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(calls, expectedCalls(['coordinator-core', 'transfer-core'], directory));
+  assert.equal(realpathSync(calls[0].root), directory);
+});
+
+test('original interface refusal prevents every compiler and builder call', t => {
+  const {result, calls, directory} = run(t, ['local-node', 'run-host-core'], {refuseInterfaces: true});
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Original fixture interface admission refused/u);
+  assert.deepEqual(calls, [expectedCalls(['local-node', 'run-host-core'], directory)[0],
+    {originalInterfaceRefusal: true}]);
+});
+
+test('normal runtime CLI selects its real interface checker instead of fixture admission', t => {
+  const {result, calls} = run(t, ['transfer-core'], {normalCli: true});
+  assert.notEqual(result.status, 0);
+  // The isolated scheduling fixture deliberately has no real Owner checker
+  // or approvals. Normal CLI selection must load that missing dependency.
+  assert.match(result.stderr, /ERR_MODULE_NOT_FOUND/u);
+  assert.match(result.stderr, /scripts\/check-interface-owners\.mjs/u);
+  assert.deepEqual(calls, [{normalCli: true}]);
+});
+
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-alias-')));
   // Both the link and its target belong to this test. Recursive removal of
@@ -457,7 +579,7 @@ for (const wrapper of ['result-access.mjs', 'result-delivery.mjs', 'publication-
     const {result, calls, directory} = run(t, [], {wrapper});
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /StaleRunHostResultAccessService/);
-    assert.deepEqual(calls, expectedCalls(Object.keys(packages), directory).slice(0, 3));
+    assert.deepEqual(calls, expectedCalls(Object.keys(packages), directory).slice(0, 5));
     assert.equal(readFileSync(join(directory, `packages/run-host-core/${wrapper}`), 'utf8'), 'stale wrapper\n');
   });
 }
@@ -469,7 +591,7 @@ test('run-host-core refuses a stale Checkpoint payload before subsequent work', 
   });
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /StaleRunHostCheckpointPackage/);
-  assert.deepEqual(calls, expectedCalls(['run-host-core', 'coordinator-core'], directory).slice(0, 3));
+  assert.deepEqual(calls, expectedCalls(['run-host-core', 'coordinator-core'], directory).slice(0, 5));
 });
 
 for (const file of ['workers_finite.js', 'workers_finite_payload.js']) {
@@ -479,7 +601,7 @@ for (const file of ['workers_finite.js', 'workers_finite_payload.js']) {
     });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /StaleRunHostWorkersFinitePackage/);
-    assert.deepEqual(calls, expectedCalls(['run-host-core', 'coordinator-core'], directory).slice(0, 3));
+    assert.deepEqual(calls, expectedCalls(['run-host-core', 'coordinator-core'], directory).slice(0, 5));
   });
 }
 
@@ -504,7 +626,7 @@ for (const name of Object.keys(packages)) {
 test('a new Host manifest drives both the actual build command and copied runtime', t => {
   const {result, calls, directory} = run(t, ['local-node'], {additionalProvider: true});
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(calls[0].args, ['build', '--target', 'js', '--release',
+  assert.deepEqual(calls[2].args, ['build', '--target', 'js', '--release',
     ...packages['local-node'].sources.map(source => `src/${source}`),
     'src/connectors/third/host_node']);
   assert.match(readFileSync(join(directory,
