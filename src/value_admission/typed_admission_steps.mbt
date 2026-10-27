@@ -1,9 +1,19 @@
 ///|
 priv struct TypedObjectAdmission {
   source : @decode.Cursor
-  fields : @contract.Fields
+  contract : @contract.Contract
   children : Map[String, @decode.Cursor]
   depth : Int
+}
+
+///|
+// The private record is issued only by ReadTyped's original Object arm.
+// Project its same immutable fields; this runs no validation/callback or IO.
+fn typed_object_fields(original : TypedObjectAdmission) -> @contract.Fields {
+  guard original.contract.shape is @contract.Object(fields) else {
+    abort("private typed Object lost original Contract")
+  }
+  fields
 }
 
 ///|
@@ -19,7 +29,7 @@ priv enum TypedAdmissionFrame {
   TypedReference(ReferenceAdmission, @decode.Cursor)
   TypedTextEnumeration(@decode.Cursor, String, @contract.TextLimits, Int, Int)
   TypedArrayAppend(ArrayBuilder)
-  TypedObjectAppend(ObjectBuilder, String)
+  TypedObjectAppend(ObjectBuilder, Int)
 }
 
 ///|
@@ -185,13 +195,13 @@ fn TypedAdmission::step(admission : TypedAdmission) -> Unit raise Abort {
           admission.value = None
           admission.frames.push(TypedArrayNext(cursor, item, builder, 0, depth))
         }
-        @contract.Object(fields) => {
+        @contract.Object(_) => {
           if @decode.object_length(cursor) is None {
             typed_object_issue(cursor, @decode.WrongType)
           }
           let object : TypedObjectAdmission = {
             source: cursor,
-            fields,
+            contract,
             children: Map([]),
             depth,
           }
@@ -319,11 +329,15 @@ fn TypedAdmission::step(admission : TypedAdmission) -> Unit raise Abort {
             name,
             child,
             0,
-            @contract.field_count(object.fields),
+            @contract.field_count(typed_object_fields(object)),
           ),
         )
       } else {
-        reserve(object.source, @contract.field_count(object.fields), budget)
+        reserve(
+          object.source,
+          @contract.field_count(typed_object_fields(object)),
+          budget,
+        )
         admission.frames.push(TypedObjectNames(object, 0))
       }
     TypedObjectFind(object, index, name, child, low, high) => {
@@ -331,7 +345,7 @@ fn TypedAdmission::step(admission : TypedAdmission) -> Unit raise Abort {
         typed_object_issue(child, @decode.UnknownField)
       }
       let middle = low + (high - low) / 2
-      let field = @contract.field_at(object.fields, middle).unwrap()
+      let field = @contract.field_at(typed_object_fields(object), middle).unwrap()
       let order = @canonical.compare_utf16(name, field.name)
       if order < 0 {
         admission.frames.push(
@@ -350,7 +364,7 @@ fn TypedAdmission::step(admission : TypedAdmission) -> Unit raise Abort {
       }
     }
     TypedObjectNames(object, index) =>
-      if @contract.field_at(object.fields, index) is Some(field) {
+      if @contract.field_at(typed_object_fields(object), index) is Some(field) {
         guard object.children.get(field.name) is Some(child) else {
           typed_object_issue(
             object.source,
@@ -361,17 +375,16 @@ fn TypedAdmission::step(admission : TypedAdmission) -> Unit raise Abort {
         cursor_key_text(field.name, child, budget)
         admission.frames.push(TypedObjectNames(object, index + 1))
       } else {
-        guard prepare_object_value(@contract.field_count(object.fields))
-          is Some(builder) else {
+        guard prepare_contract_object_value(object.contract) is Some(builder) else {
           fail(object.source, BudgetExceeded)
         }
         admission.frames.push(TypedObjectNext(object, builder, 0))
       }
     TypedObjectNext(object, builder, index) =>
-      if @contract.field_at(object.fields, index) is Some(field) {
+      if @contract.field_at(typed_object_fields(object), index) is Some(field) {
         let child = object.children.get(field.name).unwrap()
         admission.frames.push(TypedObjectNext(object, builder, index + 1))
-        admission.frames.push(TypedObjectAppend(builder, field.name))
+        admission.frames.push(TypedObjectAppend(builder, index))
         admission.frames.push(
           ReadTyped(child, field.contract, object.depth, true),
         )
@@ -431,9 +444,9 @@ fn TypedAdmission::step(admission : TypedAdmission) -> Unit raise Abort {
       }
       admission.value = None
     }
-    TypedObjectAppend(builder, name) => {
+    TypedObjectAppend(builder, index) => {
       guard admission.value is Some(value) &&
-        append_object_field(builder, name, value) else {
+        append_contract_object_field(builder, index, value) else {
         fail(root, BudgetExceeded)
       }
       admission.value = None
