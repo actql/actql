@@ -24395,7 +24395,7 @@
     {
       "module": "src/physical_resources/preparation_capacity_continuation.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "ef1aca5169c112b9a56d6f776f7b751aced68620e123d3300de67bf6e4b7676b",
+      "sha256": "0ea8b42c9697b036763eda26d1df16938b78570c9e93865b10d75f5440412e71",
       "role": "common-semantics",
       "owner": "Existing physical_resources preparation state machine",
       "exports": [],
