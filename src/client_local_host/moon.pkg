@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/decode_shape" @shape,
   "actql/actql/parameter_binding" @parameters,
   "actql/actql/client_source_publication" @source_publication,
   "actql/actql/expression_typing" @typing,
@@ -42,6 +43,8 @@ import {
 }
 
 import {
+  "actql/actql/capacity_host_witness" @binding_host,
+  "actql/actql/capacity_witness" @binding_wire,
   "actql/actql/local_veca_provider" @nearest_provider,
   "actql/actql/source_frontend" @frontend,
   "actql/actql/sha256" @sha,
@@ -50,6 +53,7 @@ import {
 
 options(
   targets: {
+    "preparation_program_check_current_js_wbtest.mbt": [ "js" ],
     "preparation_request_parent_js_wbtest.mbt": [ "js" ],
     "preparation_closed_values_module_call_js.mbt": [ "js" ],
     "preparation_closed_values_module_call_portable.mbt": [

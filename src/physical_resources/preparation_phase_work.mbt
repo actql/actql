@@ -16,6 +16,26 @@ pub(all) enum PreparationWorkPhase {
   ParameterSourceConstruction
   ParameterBindingHeaderInventory
   ParameterBindingBodyInventory
+  CapacityInputInspection
+  CapacityInputRecheck
+  CapacityInputBinding
+  SemanticPrelude
+  CatalogInspection
+  CatalogAdmission
+  CatalogContentsInspection
+  CatalogContentsAdmission
+  CatalogReferencesInspection
+  CatalogReferencesAdmission
+  CatalogPoliciesInspection
+  CatalogPoliciesAdmission
+  CatalogValuesInspection
+  CatalogValuesAdmission
+  CatalogViewsInspection
+  CatalogViewsAdmission
+  CatalogCarriersInspection
+  CatalogCarriersAdmission
+  CatalogRequestsInspection
+  CatalogRequestsAdmission
   SemanticCheck
   LowerAndGraph
   ExecutionPlan
@@ -96,10 +116,30 @@ fn preparation_work_ordinal(phase : PreparationWorkPhase) -> Int {
     ParameterSourceConstruction => 11
     ParameterBindingHeaderInventory => 12
     ParameterBindingBodyInventory => 13
-    SemanticCheck => 14
-    LowerAndGraph => 15
-    ExecutionPlan => 16
-    PublicationProof => 17
+    CapacityInputInspection => 14
+    CapacityInputRecheck => 15
+    CapacityInputBinding => 16
+    SemanticPrelude => 17
+    CatalogInspection => 18
+    CatalogAdmission => 19
+    CatalogContentsInspection => 20
+    CatalogContentsAdmission => 21
+    CatalogReferencesInspection => 22
+    CatalogReferencesAdmission => 23
+    CatalogPoliciesInspection => 24
+    CatalogPoliciesAdmission => 25
+    CatalogValuesInspection => 26
+    CatalogValuesAdmission => 27
+    CatalogViewsInspection => 28
+    CatalogViewsAdmission => 29
+    CatalogCarriersInspection => 30
+    CatalogCarriersAdmission => 31
+    CatalogRequestsInspection => 32
+    CatalogRequestsAdmission => 33
+    SemanticCheck => 34
+    LowerAndGraph => 35
+    ExecutionPlan => 36
+    PublicationProof => 37
   }
 }
 

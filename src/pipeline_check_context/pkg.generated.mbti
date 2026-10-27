@@ -13,6 +13,7 @@ import {
   "actql/actql/capacity_witness",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "actql/actql/event_typing",
   "actql/actql/expression_typing",
@@ -177,6 +178,10 @@ pub fn bind_source_policy(SourceRowContexts, SelectedPolicyContext, Int) -> Resu
 pub fn bind_source_producers(SourceCapacityContext, Array[Array[(Int, Int)]], Int) -> Result[SourceProducerContext, SourceProducerIssue]
 
 pub fn bound_guards(PipelineContext) -> @pipeline_typing.BoundGuardClosure
+
+pub fn capacity_input_construction_inventory(@stage_syntax.Program, Array[StageCapacityInput]) -> @decode_shape.CollectionConstructionInventory?
+
+pub fn capacity_input_construction_observation_inventory() -> @decode_shape.CollectionConstructionInventory
 
 pub fn capacity_inputs_work(ProgramCapacityInputs) -> Int
 
@@ -583,6 +588,8 @@ pub fn numeric_slots_requirements(ProgramNumericSlots) -> ProgramOperationRequir
 pub fn numeric_slots_work(ProgramNumericSlots) -> Int
 
 pub fn observe_capacity_input_binding(@stage_syntax.Program, Array[StageCapacityInput], Int) -> (Result[ProgramCapacityInputs, CapacityInputsIssue], Int)
+
+pub fn observe_capacity_input_construction_inventory(@stage_syntax.Program, Array[StageCapacityInput]) -> (@decode_shape.CollectionConstructionInventory?, Int64)
 
 pub fn operation_calendar_at(ProgramOperationCalendar, Int) -> OperationCalendarResolution?
 

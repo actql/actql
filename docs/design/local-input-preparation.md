@@ -598,3 +598,34 @@ prelude and domain control/geometry records remain DATA continuations: their
 caller must supply all constructor overlap before entry and retain actual
 borrowed backing. These APIs do not supply a physical prelude, final Context
 funding, a CheckedProgram verdict or an execution grant by themselves.
+
+## Later Host Catalog continuation
+
+After the original Program/Source handoff, the later check/Catalog controller
+continues on the same preparation capacity and original input. Its separate
+installed control inventory is added once to the existing outside debit before
+its own argument/phase records are constructed. It does not add future Catalog
+fields or quotation controls to the Source-only JSON entrance. The caller still
+backs the original Program/Source, immutable evidence and the pre-entry
+getter/current/resize frames.
+
+The controller funds the original capacity-input observer before reading
+dimensions. It closes that actual work receipt and retains its inventory and
+absolute constructor quote before a grow. An atomic failed grow retains those
+same values; retry does not repeat observation, add its debit again or refill
+work. After a successful grow, a distinct recheck phase compares dimensions
+across the original external-current boundary before allocating the binder.
+The actual binder runs once and retains the current original Source together
+with its owned capacity evidence. Neither comparison is a semantic verdict,
+input-immutability proof or permission.
+
+Registry, contents, references, policies, values, views, carriers and request
+phases use the existing staged readers and quantity owners. Each constructor is
+grown before entry; its original charged prefix is retained on typed failure.
+Reconciliation removes only that returned synchronous scratch, retaining its
+actual typed output, original metadata and outside debit. Transfer and clear
+remove only this DATA controller's references; the existing Resource owner
+retains all backing and cleanup obligations. No active work receipt is carried
+through a grow, and no new allocator, tariff, Ledger or physical cleanup owner
+is introduced. Native/Node caller integration, physical first-entry backing and
+subsequent full Context/compiler/material funding remain distinct obligations.

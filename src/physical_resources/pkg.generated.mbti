@@ -923,6 +923,26 @@ pub(all) enum PreparationWorkPhase {
   ParameterSourceConstruction
   ParameterBindingHeaderInventory
   ParameterBindingBodyInventory
+  CapacityInputInspection
+  CapacityInputRecheck
+  CapacityInputBinding
+  SemanticPrelude
+  CatalogInspection
+  CatalogAdmission
+  CatalogContentsInspection
+  CatalogContentsAdmission
+  CatalogReferencesInspection
+  CatalogReferencesAdmission
+  CatalogPoliciesInspection
+  CatalogPoliciesAdmission
+  CatalogValuesInspection
+  CatalogValuesAdmission
+  CatalogViewsInspection
+  CatalogViewsAdmission
+  CatalogCarriersInspection
+  CatalogCarriersAdmission
+  CatalogRequestsInspection
+  CatalogRequestsAdmission
   SemanticCheck
   LowerAndGraph
   ExecutionPlan
