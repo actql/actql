@@ -305,3 +305,39 @@ test('finite package entry bundles only the explicitly seeded production runtime
   t.diagnostic(JSON.stringify({profile: 'finite-runtime', bytes: artifact.bytes,
     gzipBytes: artifact.gzipBytes, modules: modules.length}));
 });
+
+
+test('canonical Ledger projection has one exact import-free shared Workers graph', async () => {
+  const leaf = 'adapters/host-common/ledger-contract.generated.mjs';
+  const result = await build({absWorkingDir: fileURLToPath(new URL('../../', import.meta.url)),
+    entryPoints: [leaf], bundle: true, platform: 'browser', format: 'esm',
+    metafile: true, write: false});
+  assert.deepEqual(Object.keys(result.metafile.inputs), [leaf]);
+  assert.deepEqual(result.metafile.inputs[leaf].imports, []);
+  checkPureRuntime(readFileSync(new URL('../../' + leaf, import.meta.url), 'utf8'));
+  for (const modules of [hostModules, conformanceModules, finiteRuntimeModules, finiteConformanceModules]) {
+    assert.equal(modules.filter(value => value === leaf).length, 1);
+    checkWorkersArtifact(result.metafile, result.outputFiles[0].text, modules);
+  }
+});
+
+test('shared Ledger review keeps Node paths siblings and hidden dependencies rejected', () => {
+  const leaf = 'adapters/host-common/ledger-contract.generated.mjs';
+  const oldNode = 'adapters/host-node/ledger-contract.generated.mjs';
+  const sibling = 'adapters/host-common/ledger-contract-physical.mjs';
+  for (const modules of [hostModules, conformanceModules, finiteRuntimeModules, finiteConformanceModules]) {
+    assert(!modules.includes(oldNode));
+    assert.throws(() => checkWorkersArtifact({inputs: {[oldNode]: {imports: []}},
+      outputs: {'bundle.mjs': {imports: []}}}, 'export {};', [...modules, oldNode]), /WorkersModuleRejected/);
+    assert.throws(() => checkWorkersArtifact({inputs: {[sibling]: {imports: []}},
+      outputs: {'bundle.mjs': {imports: []}}}, 'export {};', modules), /WorkersModuleRejected/);
+    for (const dependency of [sibling, 'node:fs']) {
+      assert.throws(() => checkWorkersArtifact({inputs: {[leaf]: {
+        imports: [{path: dependency, kind: 'import-statement'}]}},
+      outputs: {'bundle.mjs': {imports: []}}}, 'export {};', modules), /WorkersDependencyRejected/);
+    }
+    assert.throws(() => checkWorkersArtifact({inputs: {[leaf]: {
+      imports: [{path: leaf, kind: 'dynamic-import'}]}}, outputs: {'bundle.mjs': {imports: []}}},
+    'export {};', modules), /WorkersDynamicDependency/);
+  }
+});

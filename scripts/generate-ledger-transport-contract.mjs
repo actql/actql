@@ -105,7 +105,7 @@ function main(args) {
   const source = readFileSync(resolve(root, 'src/physical_resources/ledger.mbt'), 'utf8');
   const pending = readFileSync(resolve(root, 'src/physical_resources/ledger_usage_pending.mbt'), 'utf8');
   const targets = [
-    [resolve(root, 'adapters/host-node/ledger-contract.generated.mjs'), renderLedgerTransportContract(source + '\n' + pending)],
+    [resolve(root, 'adapters/host-common/ledger-contract.generated.mjs'), renderLedgerTransportContract(source + '\n' + pending)],
     [resolve(root, 'src/physical_resources/ledger_usage_diagnostic.generated.mbt'), renderLedgerUsageDiagnostic(source)],
     [resolve(root, 'src/physical_resources/ledger_accounting.generated.mbt'), renderLedgerAccountingValues(source)],
   ];
