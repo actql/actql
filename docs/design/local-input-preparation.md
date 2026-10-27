@@ -541,6 +541,42 @@ Underlying current, stop, pending report and Unknown remain original obligations
 Binding/check/prelude/Catalog/Requests, effect compilation and material/restore
 overlap are later required phases, not completion claims of this first caller.
 
+## Request-owned Program to Check handoff
+
+The existing request parent takes the Program only from its own retained JSON
+controller and keeps that exact Program before entering the later Check
+constructor. The same original input and working capacity enter both domains.
+The later Check holder is retained in the parent before it is returned. No raw
+capacity getter or independent Resource owner is exposed. Borrowed environment,
+evidence, limits, optional original Source and catalog retain their existing
+caller backing requirements.
+
+The original bootstrap includes the two parent links and their two Some carriers
+(`2H4R2W`), Check return/error alternatives (`3H3R3W`) and conservative returned
+Source-take/child-clear carriers (`4H4R4W`). The total `9H11R9W` is 304 logical
+bytes under the existing shared representation tariff, reserved before any take
+or later-grow callback. Neither domain inventory is pre-added or subtracted:
+the JSON constructor and later Check constructor each add their own original
+packet once on the same reservation. Native input, VM/callback entry and full
+backend physical backing remain separate prerequisites.
+
+The parent fences reentry through both original current boundaries. A failed
+Source take retains its original JSON phase. A failed later grow retains the
+exact taken Program and original input for cleanup; it neither loses the
+transfer nor issues a replacement Program. The parent clears its Check child,
+then its Source child, then its retained Program only after the fixed caller's
+untransferred arguments and synchronous returned aliases have unwound. Busy or
+failed original work cleanup keeps the remaining links and charge. Original
+capacity retirement and Node stop/Unknown handling are unchanged.
+
+A Source output taken outside this registered transition still blocks parent
+abort. Any later Check input or registry output transfer likewise blocks abort,
+including after that controller's own DATA clear. Clearing aliases is not a
+next-consumer retirement acknowledgement. A further Context/compiler/material
+consumer requires its own genuine registered lifetime transition before that
+fence can be discharged; this handoff supplies no Boolean ACK, new grant,
+completed Unit body, normal Effect backing or ordinary execution acceptance.
+
 ## Public generic JSON constructor continuation
 
 The generic JSON prefix retains the existing `PreparationCapacity[I, P]`:

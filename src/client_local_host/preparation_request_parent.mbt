@@ -4,6 +4,8 @@ priv enum ClientRequestPreparationPhase {
   Selecting
   ProgramJson
   ProgramJsonFailed
+  ProgramCheck
+  ProgramCheckFailed
   Selected
   Retiring
   Closed
@@ -22,6 +24,8 @@ struct ClientRequestPreparation[I] {
   // The same generic domain holder owns its source/index/Program aliases.
   // Unit remains uncompleted until the actual output-type continuation.
   mut program_json : ClientProgramJsonPreparation[I, Unit]?
+  mut held_program : @syntax.Program?
+  mut program_check : ClientProgramCheckPreparation[I, Unit]?
   mut phase : ClientRequestPreparationPhase
 }
 
@@ -33,7 +37,16 @@ pub(all) enum ClientRequestPreparationIssue {
   Initial(@resources.ImportedChildLedgerIssue)
   Capacity(@resources.PreparationCapacityIssue)
   ProgramJson(ClientProgramJsonPreparationIssue)
+  ProgramCheck(ClientProgramCheckPreparationIssue)
 } derive(Debug)
+
+///|
+// Preserve the original typed suberror for this caller's existing Debug sum.
+// Error's native representation retains the actual constructor/cause.
+pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
+  let original : Error = self
+  Repr(original)
+}
 
 ///|
 /// Fixed controls only. No Values shape, source count, compiler body, wire,
@@ -90,10 +103,15 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
   // Original current/resize objects use the same declared scratch below;
   // fixed nonrecursive VM frames stay installed baseline. Borrowed input,
   // limits/path and external callback backing still belong to their owners.
-  // Capacity: six reference fields and four scalars. Parent: six references
+  // Capacity: six reference fields and four scalars. Original parent: six references
   // and phase. Live Some/Result carriers conservatively cover eight headers,
   // eight references and eight tags. Original-current/resize scratch has
   // sixteen headers, thirty-two references and twenty-four scalar slots.
+  // Later same-parent links add two parent reference slots and two live Some
+  // carriers (2H4R2W). The Check return/error alternatives add3H3R3W;
+  // conservative Source-take and both child-clear returned carriers add4H4R4W.
+  // Total9H11R9W=304 is caller control, prepaid here before the Source take or
+  // Check grow callback. It does not include another copy of either domain.
   {
     // One resident domain link; its Some(1H1R1W), and conservative sum of
     // returned Ok plus Err/ProgramJson carriers(3H3R3W). No domain payload
@@ -105,7 +123,8 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     8L +
     16L +
     4L +
-    10L,
+    10L +
+    9L,
     reference_slots: js_refs +
     import_refs +
     ledger_refs +
@@ -113,7 +132,8 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     8L +
     32L +
     5L +
-    7L,
+    7L +
+    11L,
     scalar_words: js_words +
     import_words +
     ledger_words +
@@ -121,7 +141,8 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     8L +
     24L +
     4L +
-    13L,
+    13L +
+    9L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
@@ -187,6 +208,8 @@ pub fn[I] begin_request_preparation(
     capacity,
     input: Some(input),
     program_json: None,
+    held_program: None,
+    program_check: None,
     phase: Open,
   })
 }
@@ -229,6 +252,67 @@ pub fn[I] prepare_request_program_json_preparation(
     Ok(child) => {
       owner.program_json = Some(child)
       owner.phase = ProgramJson
+      Ok(child)
+    }
+  }
+}
+
+///|
+/// Continue only this parent's original Source Program into the later domain.
+/// Keep the exact Program before its grow callback; the original Source packet
+/// remains charged, and the later constructor adds its own packet once. These
+/// borrowed environment/evidence/limits and callback frames require their real
+/// caller backing. No output body, raw capacity or cleanup authority is issued.
+pub fn[I] prepare_request_program_check_preparation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  environment : @checked.CheckEnvironment,
+  supplied : @decode.Cursor?,
+  evidence : Array[@context.StageCapacityInput],
+  limits : @checked.CheckLimits,
+  source_catalog? : @checked.PreparedSourceCatalog? = None,
+  source_preparation? : @stages.Source? = None,
+) -> Result[
+  ClientProgramCheckPreparation[I, Unit],
+  ClientRequestPreparationIssue,
+] {
+  guard owner.phase == ProgramJson &&
+    owner.held_program is None &&
+    owner.program_check is None &&
+    owner.program_json is Some(source) else {
+    return Err(WrongPhase)
+  }
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(ForeignOriginal)
+  }
+  owner.phase = Selecting
+  let program = match take_program_json_preparation_program(source) {
+    Err(issue) => {
+      owner.phase = ProgramJson
+      return Err(ProgramJson(issue))
+    }
+    Ok(value) => value
+  }
+  owner.held_program = Some(program)
+  match
+    begin_program_check_preparation(
+      owner.capacity,
+      input,
+      program,
+      environment,
+      supplied,
+      evidence,
+      limits,
+      source_catalog~,
+      source_preparation~,
+    ) {
+    Err(issue) => {
+      owner.phase = ProgramCheckFailed
+      Err(ProgramCheck(issue))
+    }
+    Ok(child) => {
+      owner.program_check = Some(child)
+      owner.phase = ProgramCheck
       Ok(child)
     }
   }
@@ -312,12 +396,32 @@ pub fn[I] abort_request_preparation_after_cleanup(
   if owner.phase == Closed {
     return Ok(())
   }
-  if owner.program_json is Some(child) {
-    // A handed-off heavy output belongs to the next real consumer. This
-    // abort boundary cannot infer that consumer's alias retirement.
-    if child.phase == Transferred {
+  // A Check output transferred outside this registered chain still belongs
+  // to its next consumer, even if the Check controller's DATA was cleared.
+  if owner.program_check is Some(child) && child.phase == Transferred {
+    return Err(WrongPhase)
+  }
+  if owner.program_json is Some(child) && child.phase == Transferred {
+    // Only our own retained Program/later-controller transition can clear the
+    // Source transfer. Direct index/Program take has no such registered link.
+    guard owner.held_program is Some(_) &&
+      (owner.phase == ProgramCheck || owner.phase == ProgramCheckFailed) else {
       return Err(WrongPhase)
     }
+  }
+  if owner.program_check is Some(child) {
+    let previous = owner.phase
+    owner.phase = Selecting
+    match clear_program_check_preparation(child) {
+      Err(issue) => {
+        owner.phase = previous
+        return Err(ProgramCheck(issue))
+      }
+      Ok(_) => owner.program_check = None
+    }
+    owner.phase = previous
+  }
+  if owner.program_json is Some(child) {
     let previous = owner.phase
     owner.phase = Selecting
     match clear_program_json_preparation(child) {
@@ -329,6 +433,9 @@ pub fn[I] abort_request_preparation_after_cleanup(
     }
     owner.phase = previous
   }
+  // Both registered controllers have relinquished only their own aliases.
+  // This caller is explicitly after its borrowed arguments/returned frames.
+  owner.held_program = None
   let retiring = owner.phase == Retiring
   owner.phase = Retiring
   let stopped = if retiring {
