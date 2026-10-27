@@ -181,6 +181,7 @@ fn declaration_read_value(
   body.entries.push({
     name: body.names[body.index],
     source: body.current.unwrap(),
+    syntax,
     parameter_type: syntax.parameter_type,
     metadata: syntax.metadata,
     default_cursor: syntax.default_value,

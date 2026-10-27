@@ -43,65 +43,9 @@ pub fn bind(
   supplied : @decode.Cursor?,
   limits : @value.Limits,
 ) -> Result[BindingResult, Issue] {
-  if limits.max_nodes < 0 || limits.max_depth < 0 || limits.max_text_bytes < 0 {
-    return Err(InvalidLimits)
+  let original = match prepare_binding_read(declarations, supplied, limits) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
   }
-  // This is the selected input domain, not a guess from equal path labels.
-  // Outer-map validation belongs to supplied data; defaults are charged and
-  // may fail their current binding budget without being supplied values.
-  let mut origin = Supplied
-  try {
-    let names = declarations.entries.map(e => e.name)
-    let object = match supplied {
-      None => None
-      Some(cursor) => Some(decoded(@decode.closed_object(cursor, names)))
-    }
-    let budget : Budget = {
-      nodes: limits.max_nodes,
-      text: limits.max_text_bytes,
-      depth: limits.max_depth,
-    }
-    let entries : Array[BoundParameter] = []
-    let missing : Array[Declaration] = []
-    for declaration in declarations.entries {
-      let provided = match object {
-        None => None
-        Some(o) => @decode.lookup(o, declaration.name)
-      }
-      let selected = match provided {
-        Some(c) => Some(c)
-        None => declaration.default_cursor
-      }
-      match selected {
-        None => missing.push(declaration)
-        Some(cursor) => {
-          origin = if provided is Some(_) { Supplied } else { Default }
-          charge_text(declaration.name, cursor, budget)
-          preflight(cursor, budget)
-          let (value, origin) = if provided is Some(_) {
-            (check_value(cursor, declaration.parameter_type, limits), Supplied)
-          } else {
-            (declaration.default_value.unwrap(), Default)
-          }
-          entries.push({
-            name: declaration.name,
-            value,
-            origin,
-            parameter_type: declaration.parameter_type,
-          })
-        }
-      }
-    }
-    let usage = (
-      limits.max_nodes - budget.nodes,
-      limits.max_text_bytes - budget.text,
-    )
-    if missing.is_empty() {
-      Ok(Ready({ declarations, entries, usage, }))
-    } else {
-      Ok(NeedsBindings({ declarations, entries: missing, usage, }))
-    }
-  } catch {
-    Abort(issue) => Err(BindingInput(origin, issue))
-  }
+  finish_binding_read(original)
 }

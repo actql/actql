@@ -74,23 +74,23 @@ test "actual complete Value phase waits for one-byte parent growth and retries o
   let syntax = @parameters.declaration_read_pending_syntax(reader)
   let facts = @parameters.declaration_read_current_construction(reader)
   let work = @parameters.declaration_read_construction_work(reader)
-  // Header1808+own fact vector616+actual Array Type768. Value113H434R209W
-  // is6952; its maximum sequential temporary410H1626R1198W is28936.
+  // Header1808+own fact vector616+actual Array Type768. Value113H435R209W
+  // is6960; its maximum sequential temporary410H1626R1198W is28936.
   assert_eq(owner.body_bytes, 3192L)
   assert_eq(
     parameter_value_construction_bytes(reader, 0),
-    Some((6952L, 29152L)),
+    Some((6960L, 29152L)),
   )
   let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
-  let sibling = @resources.reserve_capacity(ledger, 148904L, 148904L).unwrap()
-  // R0=73 + domain11256 + retained10144 + next temporary28936=51097.
-  // The SAME unused sibling makes50409+148904=200001, exactly one short.
+  let sibling = @resources.reserve_capacity(ledger, 148896L, 148896L).unwrap()
+  // R0=73 + domain11256 + retained10152 + next temporary28936=51105.
+  // The SAME unused sibling makes50409+148896=200001, exactly one short.
   assert_true(
     prepare_parameter_declaration_value(owner)
     is Err(Capacity(Resource(RetentionLimit))),
   )
   assert_true(owner.phase == ValueQuoted)
-  assert_eq(owner.quote, Some((51097L, 51115L)))
+  assert_eq(owner.quote, Some((51105L, 51123L)))
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
     Ok(before),
@@ -156,7 +156,7 @@ test "actual complete Value phase waits for one-byte parent growth and retries o
   reconcile_parameter_declarations(owner).unwrap()
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((21945L, 21963L)),
+    Ok((21953L, 21971L)),
   )
   assert_true(
     physical_equal(completed, @parameters.finish_declaration_read(reader)),
@@ -166,7 +166,7 @@ test "actual complete Value phase waits for one-byte parent growth and retries o
   assert_true(owner.current_syntax is None && owner.current_type_facts is None)
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((21945L, 21963L)),
+    Ok((21953L, 21971L)),
   )
   assert_eq(
     (

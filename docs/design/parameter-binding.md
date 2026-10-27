@@ -484,3 +484,38 @@ drops only its references; it neither settles the parent nor reports physical
 cleanup. Binding supplied/default values into a later binding result, Program
 and Context consumers, actual backend entrance frames and physical preparation
 supply remain distinct original-owner obligations.
+
+
+### One binding reader for ordinary and funded callers
+
+`BindingReadInput` retains the original declarations, supplied Cursor and Value
+limits. Its Header, Selection, Preflight and Value boundaries belong to the
+existing semantic binder. Ordinary `bind` drives that same reader to its
+cached result; a fixed resource caller can fund and advance one constructor at
+a time. There is no alternate interpretation of supplied shape, default
+selection, nullability, constraints, missing values or binding budgets.
+
+Header closes the supplied object before any selected-value work. Each
+Selection retains its original Declaration and source Cursor once. Missing
+entries are accumulated while later supplied values are still checked; a
+missing field cannot mask a subsequent invalid value. Explicit NULL remains
+supplied, rather than selecting a default. The selected origin is recorded
+before name/source budget admission, so failures preserve their actual domain
+and original location. Preflight charges the same cumulative binding budget;
+Value admission uses the same original type and constraints only for supplied
+values. Defaults forward their already admitted original CheckedValue.
+
+Each Declaration also retains its original ParameterSyntax. The provided-value
+step uses that same syntax's ParameterType; the existing public type projection
+remains the identical original. A later constructor quotation can use the
+syntax's completed Decimal fact without reconstructing a type or scanning its
+graph. The extra reference belongs to the declaration's return inventory, not
+a capacity grant or new authority.
+
+Original selection getters forward their stored optional records without
+lookups, allocation, IO or current callbacks. Only a complete result exposes
+Ready BoundValues or the original missing declarations. Repeated finishing
+returns that same Result and does no binding work. Semantic boundaries alone
+do not fund construction: Header, selected-source preflight, supplied Value,
+output/diagnostic coexistence and actual Program/Context/backend consumers
+still require their corresponding original-parent resource connection.

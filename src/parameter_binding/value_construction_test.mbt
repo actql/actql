@@ -30,7 +30,7 @@ test "original declaration Value quantities retain sequential families and exact
       inventory.returned.reference_slots,
       inventory.returned.scalar_words,
     ),
-    (9L, 20L, 7L),
+    (9L, 21L, 7L),
   )
   assert_eq(
     (

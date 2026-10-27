@@ -56,12 +56,12 @@ pub fn declaration_value_construction_inventory(
     }
     _ => return None
   }
-  // Declaration6R; default Some1R1W; final Declarations2R/Ok1R1W/state1R1W.
+  // Declaration7R retains SAME original Syntax; default Some1R1W; final Declarations2R/Ok1R1W/state1R1W.
   // Three incremental entry slots extend Header's SAME growing entries Array.
   // Next original Cursor+Some2H3R2W can remain in that Header/next declaration.
   let declaration : @shape.CollectionConstructionExtent = {
     record_headers: 7L,
-    reference_slots: 17L,
+    reference_slots: 18L,
     scalar_words: 5L,
   }
   let returned = match value {
