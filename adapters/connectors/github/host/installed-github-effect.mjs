@@ -135,12 +135,13 @@ function commentValue(resource, value) {
   return value;
 }
 
-// One row's typed outcome as the common `effect_outcome`.
+// A Created response is provider evidence pending actual scoped confirmation,
+// not a terminal Effect outcome or an asynchronous OperationRef.
 function commentOutcome(projected) {
   if (projected.kind === 'typed-success-response') {
-    return {kind: projected.kind, outcome: {state: 'applied', result: {
-      comment_id: projected.result.commentId,
-      node_id: projected.result.nodeId}}};
+    return Object.freeze({kind: 'provider-response', observation: projected.observation,
+      providerEvidence: Object.freeze({kind: 'CreatedComment',
+        comment_id: projected.result.commentId, node_id: projected.result.nodeId})});
   }
   if (projected.kind === 'typed-failure-response') {
     return {kind: projected.kind, outcome: {state: 'failed', error: {
