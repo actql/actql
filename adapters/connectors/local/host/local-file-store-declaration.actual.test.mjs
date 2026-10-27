@@ -85,7 +85,7 @@ test('actual Local STORE declaration retains complete Source originals and requi
     connector_id:'local',version:'local/0.1',target:{resource_kind:'file_collection',cardinality:'single'},
     input_schema:{id:input.id,version:'local/0.1',cid:cid(input)},input_contract:inputBody,
     output_schema:{id:output.id,version:'local/0.1',cid:cid(output)},permissions:['files.write'],
-    minimum_approval:'required',preview:{strength:'exact'},outcome:'synchronous',
+    preview:{strength:'exact'},outcome:'synchronous',
     idempotency:{support:'unsupported'},reversibility:'unknown',atomicity:'single_target'};
   assert.deepEqual(command,expected);assert.equal(contract_cid,cid(expected));
   assert.equal(localFileStoreDeclaration(data.declarationWire,options).declarationWire,data.declarationWire,

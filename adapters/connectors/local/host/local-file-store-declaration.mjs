@@ -61,7 +61,7 @@ export function localFileStoreDeclaration(declaredWire,{connectorId,rootPath,max
   const command=sealed({schema:'actql.command_contract/0.1',
     command_id:`command:${connectorId}.local.files.store.v1`,connector_id:connectorId,version:'local/0.1',
     target:{resource_kind:'file_collection',cardinality:'single'},input_schema:reference(input),
-    input_contract:inputBody,output_schema:reference(output),permissions,minimum_approval:'required',
+    input_contract:inputBody,output_schema:reference(output),permissions,
     preview:{strength:'exact'},outcome:'synchronous',idempotency:{support:'unsupported'},
     reversibility:'unknown',atomicity:'single_target'},'contract_cid');
   const merge=(original,additional,key,selector)=>{

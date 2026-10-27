@@ -159,7 +159,7 @@ test "GCS complete upload role is admitted by original Common with exact presenc
   ).unwrap()
   assert_eq(
     @environment.command_target_cid(target),
-    "sha256:01b4437a23e585b15309e958d28d7069d58f3f9002ec6fffe8458dc24b58fa39",
+    "sha256:faa1d52507efc3722752d36a72aef759e84fedfa14ddcd9528ace59d9ba4ace2",
   )
   let (input, work) = @environment.command_target_input_contract(
     target,
@@ -315,5 +315,53 @@ test "GCS original input admission budgets every child and exact comparison work
       work - 1,
     )
     is Err(_),
+  )
+}
+
+///|
+test "GCS current full receiver matches independent Command-law preimages" {
+  // Full literal preimages were independently hashed before executing this
+  // receiver. The frozen723/af680 predecessor remains a separate input.
+  let expected_wire =
+    #|{"command_contracts":[{"atomicity":"single_target","command_id":"command:exports.gcs.upload.v1","connector_id":"exports","contract_cid":"sha256:faa1d52507efc3722752d36a72aef759e84fedfa14ddcd9528ace59d9ba4ace2","idempotency":{"support":"unsupported"},"input_contract":{"additional_properties":false,"fields":{"content":{"nullable":false,"type":"content_ref"},"content_type":{"nullable":false,"type":"string"},"name":{"nullable":false,"type":"string"},"overwrite":{"nullable":false,"type":"boolean"}},"required_fields":["content","name"]},"input_schema":{"cid":"sha256:d15b2d1c7b0555836d28a967fa895f56ced810a056e4045c500e760181fa5fac","id":"exports.gcs.upload.command_input","version":"gcs/0.1"},"outcome":"synchronous","output_schema":{"cid":"sha256:57da33bdf9e0d3470e4c6436b26c9fb1162cc3200c0e0c331ee28d8ab2afe5ad","id":"exports.gcs.upload.command_output","version":"gcs/0.1"},"permissions":["storage.objects.create","storage.objects.delete","storage.objects.get"],"preview":{"strength":"exact"},"reversibility":"unknown","schema":"actql.command_contract/0.1","target":{"cardinality":"single","resource_kind":"file_collection"},"version":"gcs/0.1"}],"connector_capabilities":[],"connector_catalogs":[{"catalog_cid":"sha256:e1df4cb44a7b51bc5cd71ffb944c3835a2d3c1a1b78b875d0fd89524cddf8871","commands":[{"atomicity":"single_target","command_id":"command:exports.gcs.upload.v1","connector_id":"exports","contract_cid":"sha256:faa1d52507efc3722752d36a72aef759e84fedfa14ddcd9528ace59d9ba4ace2","idempotency":{"support":"unsupported"},"input_contract":{"additional_properties":false,"fields":{"content":{"nullable":false,"type":"content_ref"},"content_type":{"nullable":false,"type":"string"},"name":{"nullable":false,"type":"string"},"overwrite":{"nullable":false,"type":"boolean"}},"required_fields":["content","name"]},"input_schema":{"cid":"sha256:d15b2d1c7b0555836d28a967fa895f56ced810a056e4045c500e760181fa5fac","id":"exports.gcs.upload.command_input","version":"gcs/0.1"},"outcome":"synchronous","output_schema":{"cid":"sha256:57da33bdf9e0d3470e4c6436b26c9fb1162cc3200c0e0c331ee28d8ab2afe5ad","id":"exports.gcs.upload.command_output","version":"gcs/0.1"},"permissions":["storage.objects.create","storage.objects.delete","storage.objects.get"],"preview":{"strength":"exact"},"reversibility":"unknown","schema":"actql.command_contract/0.1","target":{"cardinality":"single","resource_kind":"file_collection"},"version":"gcs/0.1"}],"connector_id":"exports","connector_version":"gcs/0.1","contracts":[{"body":{"additional_properties":false,"fields":{},"nullable":false,"type":"object"},"cid":"sha256:57da33bdf9e0d3470e4c6436b26c9fb1162cc3200c0e0c331ee28d8ab2afe5ad","id":"exports.gcs.upload.command_output","kind":"command_output","schema":"actql.contract/0.1","version":"gcs/0.1"},{"body":{"additional_properties":false,"fields":{"content":{"nullable":false,"type":"content_ref"},"content_type":{"nullable":false,"type":"string"},"name":{"nullable":false,"type":"string"},"overwrite":{"nullable":false,"type":"boolean"}},"required_fields":["content","name"]},"cid":"sha256:d15b2d1c7b0555836d28a967fa895f56ced810a056e4045c500e760181fa5fac","id":"exports.gcs.upload.command_input","kind":"command_input","schema":"actql.contract/0.1","version":"gcs/0.1"}],"schema":"actql.connector_catalog/0.1","source_views":[]}],"connector_manifest":{"connectors":[{"connector":"gcs","connector_id":"exports","connector_version":"gcs/0.1"}],"version":"actql-connectors/0.1"},"contract_registry":[{"body":{"additional_properties":false,"fields":{},"nullable":false,"type":"object"},"cid":"sha256:57da33bdf9e0d3470e4c6436b26c9fb1162cc3200c0e0c331ee28d8ab2afe5ad","id":"exports.gcs.upload.command_output","kind":"command_output","schema":"actql.contract/0.1","version":"gcs/0.1"},{"body":{"additional_properties":false,"fields":{"content":{"nullable":false,"type":"content_ref"},"content_type":{"nullable":false,"type":"string"},"name":{"nullable":false,"type":"string"},"overwrite":{"nullable":false,"type":"boolean"}},"required_fields":["content","name"]},"cid":"sha256:d15b2d1c7b0555836d28a967fa895f56ced810a056e4045c500e760181fa5fac","id":"exports.gcs.upload.command_input","kind":"command_input","schema":"actql.contract/0.1","version":"gcs/0.1"}],"evidence_bundle_cid":"sha256:47c870540667e91083753017e426b60b156efbcacbba23425d88267ebbec76cd","host_policy_profile":{},"mapping_contracts":[{"connector_manifest_cid":"sha256:770110acd081a211ff71ba28f48fcd784e388ca4d5207e9a7a43402c1bd3e6a0","conversions":[],"mapping_contract_cid":"sha256:3f164c301754fb37b0efef76361d77db57fb131466ef6da6eaf033093bcda2dc","mapping_ref":"mapping:exports.gcs.objects.upload.v1","minimum_approval":"required","permission_rules":[{"effect_kind":"create","permissions":["storage.objects.create","storage.objects.delete","storage.objects.get"],"selector_class":"none","write_fields":["content","name"]},{"effect_kind":"create","permissions":["storage.objects.create","storage.objects.delete","storage.objects.get"],"selector_class":"none","write_fields":["content","content_type","name"]},{"effect_kind":"create","permissions":["storage.objects.create","storage.objects.delete","storage.objects.get"],"selector_class":"none","write_fields":["content","name","overwrite"]},{"effect_kind":"create","permissions":["storage.objects.create","storage.objects.delete","storage.objects.get"],"selector_class":"none","write_fields":["content","content_type","name","overwrite"]}],"primary_identity":null,"required_fields":["content","name"],"required_permissions":["storage.objects.create","storage.objects.delete","storage.objects.get"],"resource_identity_cid":"sha256:0cc33aa75bec736618d7e8130c52aa04c2f9228e9952da1a0988965f3931b81b","row_mapping":{"content":{"field":"content","null_behavior":"reject"},"content_type":{"field":"content_type","null_behavior":"reject"},"name":{"field":"name","null_behavior":"reject"},"overwrite":{"field":"overwrite","null_behavior":"reject"}},"schema":"actql.mapping_contract/0.1","store_command":{"catalog_cid":"sha256:e1df4cb44a7b51bc5cd71ffb944c3835a2d3c1a1b78b875d0fd89524cddf8871","command_contract_cid":"sha256:faa1d52507efc3722752d36a72aef759e84fedfa14ddcd9528ace59d9ba4ace2","command_ref":"command:exports.gcs.upload.v1"},"target_ref":"connector://exports/objects","target_schema":{"additional_properties":false,"fields":{"content":{"nullable":false,"type":"content_ref"},"content_type":{"nullable":false,"type":"string"},"name":{"nullable":false,"type":"string"},"overwrite":{"nullable":false,"type":"boolean"}},"nullable":false,"type":"object"},"target_schema_identity":"sha256:3420afa3b6d4a946a3858dde773d70f9ffd4491f083775b06009637a8d2bcf08","version":"gcs/0.1","writable_fields":["content","content_type","name","overwrite"]}],"model_task_contracts":[],"schema_snapshots":[],"source_views":[],"version":"actql-check-environment/0.1"}
+  let (original, actual_wire) = upload_environment()
+  assert_eq(actual_wire, expected_wire)
+  assert_eq(
+    @environment.cid(original),
+    "sha256:47c870540667e91083753017e426b60b156efbcacbba23425d88267ebbec76cd",
+  )
+  let target = @environment.select_command_target(
+    catalogs(original),
+    "command:exports.gcs.upload.v1",
+    100000,
+  ).unwrap()
+  assert_eq(
+    @environment.command_target_cid(target),
+    "sha256:faa1d52507efc3722752d36a72aef759e84fedfa14ddcd9528ace59d9ba4ace2",
+  )
+  let command = @decode.open_object(
+    @environment.member_body(@environment.command_target_member(target)),
+  ).unwrap()
+  assert_true(@decode.lookup(command, "minimum_approval") is None)
+  let mapping = @environment.member_at(
+    original,
+    @environment.MappingContracts,
+    0,
+  ).unwrap()
+  let mapping_body = @decode.open_object(@environment.member_body(mapping)).unwrap()
+  assert_true(@decode.lookup(mapping_body, "minimum_approval") is Some(_))
+  let checked = @environment.check_mapping_contract_shapes(
+    original,
+    caps(),
+    100000,
+  ).unwrap()
+  let bound = @environment.bind_store_command(
+    @environment.mapping_shape_at(checked, 0).unwrap(),
+    catalogs(original),
+    100000,
+  ).unwrap()
+  assert_eq(
+    @environment.command_target_cid(@environment.store_command_target(bound)),
+    "sha256:faa1d52507efc3722752d36a72aef759e84fedfa14ddcd9528ace59d9ba4ace2",
   )
 }

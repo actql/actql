@@ -35,10 +35,13 @@ test('clear selects a distinct empty-input Command and preserves the original up
   assert.equal(clear.command.command_id, 'command:sheets-book.sheets.clear_range.v1');
   assert.deepEqual(clear.command.input_contract.fields, {});
   assert.deepEqual(clear.command.permissions, ['sheets:cells:clear']);
-  assert.equal(clear.command.minimum_approval, 'required');
+  assert.equal(Object.hasOwn(clear.command, 'minimum_approval'), false);
   const old = JSON.parse(readFileSync(new URL('./fixtures/range-owned-baseline.json', import.meta.url), 'utf8'));
   const update = sheetsRangeCommand('sheets-book', site, provider);
-  assert.equal(update.installed.commandCid, old.commandCid);
+  const current = JSON.parse(readFileSync(new URL('./fixtures/range-command-approval-carriage.json', import.meta.url), 'utf8'));
+  assert.equal(current.predecessor.command.contract_cid, old.commandCid);
+  assert.deepEqual(update.command, current.current.command);
+  assert.equal(update.installed.commandCid, current.current.command.contract_cid);
   assert.equal(update.command.input_schema.cid, old.inputContractCid);
   assert.equal(update.command.output_schema.cid, old.outputContractCid);
 });

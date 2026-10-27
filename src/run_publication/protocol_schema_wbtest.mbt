@@ -242,7 +242,8 @@ fn protocol_test_effect_member(
   "\",\"provider_namespace\":\"provider\",\"provider_boundary_cid\":\"" +
   cid +
   "\",\"resource_kind\":\"Object\",\"provider_object_identity_cids\":[]}," +
-  "\"count\":0,\"max_items\":1,\"required_permissions\":[],\"approval\":\"none\"," +
+  "\"count\":0,\"max_items\":1,\"required_permissions\":[]," +
+  (if kind == "command" { "" } else { "\"approval\":\"none\"," }) +
   "\"on_item_failure\":\"halt\",\"changes\":[],\"row_order\":[]," +
   "\"effect_member_preview_cid\":\"" +
   cid +
@@ -425,5 +426,27 @@ test "shared generated protocol metadata retains no values budgets or cursor can
         "effect_outcome", good, true, 4096, 128, 16,
       ),
     )
+  }
+}
+
+///|
+test "Effect Preview Command forbids both former approval spellings" {
+  let (nodes, effects_index) = protocol_test_property_node("effect_preview", [
+    "effects",
+  ])
+  let member_index = match nodes[effects_index] {
+    ArrayRule(items, _, _, _) => items
+    _ => abort("Expected Effect member array")
+  }
+  let command = ",\"contract\":\"command:fixture\",\"resolved_command_contract_cid\":\"sha256:" +
+    "a".repeat(64) +
+    "\""
+  let valid = protocol_test_effect_member("command", command, "false")
+  for approval in ["none", "required"] {
+    let invalid = valid.replace(
+      old="\"effect_kind\":\"command\"",
+      new="\"approval\":\"" + approval + "\",\"effect_kind\":\"command\"",
+    )
+    assert_false(protocol_test_accepts(nodes, member_index, invalid))
   }
 }
