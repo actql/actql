@@ -2892,7 +2892,7 @@
   {
     "module": "src/connectors/sheets/catalog/range_declaration.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "e4b803cabd84ba56f2c2a8b705f9ddbc204c66c45d062de78955fdb6b745f06d",
+    "sha256": "8afa3ff55c4f13315695a7f961ec22566fdf958d0830496f3f777c6413f0c319",
     "operations": [
       {
         "name": "range_catalog_json",
@@ -4842,7 +4842,7 @@
   },
   {
     "module": "src/connectors/sheets/catalog/clear_declaration.mbt",
-    "sha256": "dafe9097a4e50c674da79372a9fa1211e8932578edf5d8090aa2504c869ee754",
+    "sha256": "3abdd253341a700f6c1c8d1a4980c68a27eaf70fa3682a1519f92501f251c6f2",
     "exports": [],
     "operations": [
       {

@@ -1,6 +1,10 @@
+import {parse} from 'acorn';
+import {canonicalJson} from '../../packages/sdk/host-port.mjs';
+import {createAuthorizationGate, requireAuthorizedDispatch, assertAuthorizationAccountCurrent, authorizationDispatchFacts} from '../host-common/authorization-gate.mjs';
+import {localFileStoreDeclaration} from '../connectors/local/host/local-file-store-declaration.mjs';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {mkdtemp, rm} from 'node:fs/promises';
+import {mkdtemp, rm, readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -199,4 +203,273 @@ test('member-scoped recovery cannot be installed without the existing retained r
   await assert.rejects(fixture(t, [{driverExtra: {
     recoverMemberRequests() { assert.fail('uninstalled recovery'); }}}, {}]),
   {code: 'InvalidInstalledRowEffectDriver'});
+});
+
+test('schema-valid Command without approval minimum reaches the actual installed constructor', async t => {
+  // Independent closed Command DATA; Account/Site and Core are explicit ports.
+  // No grant, Ledger, request, Preview or physical operation runs in this case.
+  const body = {schema: 'actql.command_contract/0.1', command_id: 'command:owner-0.send.v1',
+    connector_id: 'owner-0', version: 'test/0.1',
+    target: {resource_kind: 'mailbox', cardinality: 'single', binding: {kind: 'installation'}},
+    input_schema: {id: 'owner-0.send.input', version: 'test/0.1', cid: cid('b')},
+    input_contract: {additional_properties: false, fields: {
+      body: {type: 'string', nullable: false}, subject: {type: 'string', nullable: false},
+      to: {type: 'array', nullable: false, items: {type: 'string', nullable: false}}},
+    required_fields: ['body', 'subject', 'to']},
+    output_schema: {id: 'owner-0.send.output', version: 'test/0.1', cid: cid('c')},
+    permissions: ['https://www.googleapis.com/auth/gmail.send'], preview: {strength: 'exact'},
+    outcome: 'synchronous', idempotency: {support: 'unsupported'},
+    reversibility: 'irreversible', atomicity: 'single_target'};
+  assert.equal(Object.hasOwn(body, 'minimum_approval'), false);
+  const commandCid = `sha256:${createHash('sha256').update(canonicalJson(body)).digest('hex')}`;
+  const unused = () => assert.fail('No provider preparation or recovery in constructor admission');
+  const f = await fixture(t, [{mappings: [], commands: [{resource: 'messages',
+    commandRef: body.command_id, commandCid, body: JSON.stringify({...body, contract_cid: commandCid})}],
+  driverExtra: {kinds: ['command'], recheckRequests: unused, recoveryEntry: unused,
+    recoverRequests: unused, requestCid: unused}}]);
+  assert.equal(f.effects.length, 1);
+  assert.ok(Object.isFrozen(f.effects[0]));
+  assert.deepEqual(f.calls, []);
+  await f.effects[0].close();
+  assert.deepEqual(f.calls, ['close:owner-0']);
+});
+
+async function commandApprovalProductionPorts() {
+  const source = await readFile(new URL('./installed-row-effect.mjs', import.meta.url), 'utf8');
+  const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const stage = ast.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'createRowEffectStage');
+  const variable = (body, name) => body.filter(node => node.type === 'VariableDeclaration')
+    .flatMap(node => node.declarations).find(node => node.id.name === name).init;
+  const expression = name => {const node = variable(stage.body.body, name); return source.slice(node.start, node.end);};
+  const approval = variable(ast.body, 'approvalOf');
+  const approvalOf = new Function(`return (${source.slice(approval.start, approval.end)});`)();
+  return {source, stage, expression, approvalOf};
+}
+
+test('Command dispatch adds no contract floor to the original Account allow or immediate permit', async () => {
+  // Exact production extra-floor function. Decisions are explicit DATA here;
+  // the separate original authorization gate owns interpretation and custody.
+  const f = await commandApprovalProductionPorts();
+  const floor = new Function('approvalOf', 'text', 'refusedEffectPreparation',
+    `return (${f.expression('requireApproval')});`)(f.approvalOf,
+    value => typeof value === 'string' && value.length > 0, error => error);
+  const command = {kind: 'command', command: {approval: 'required'}};
+  for (const basis of ['account_allow', 'permitted_by_host']) {
+    assert.doesNotThrow(() => floor(command, {action: 'dispatch', basis}));
+  }
+  const mapping = {kind: 'update', mapping: {approval: 'required'}};
+  assert.throws(() => floor(mapping, {action: 'dispatch', basis: 'account_allow'}),
+    {code: 'InstalledRowEffectApprovalRequired'});
+  assert.doesNotThrow(() => floor(mapping, {action: 'dispatch', basis: 'resumed',
+    checkpointCid: cid('a'), resolutionCid: cid('b')}));
+});
+
+test('Command Preview omits contract approval DATA while Mapping carriage stays exact', async () => {
+  // Execute the complete original builder with explicit descriptor, identity,
+  // source-binding and canonicalization ports. This does not issue Core facts.
+  const f = await commandApprovalProductionPorts();
+  const node = f.stage.body.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'authorPreview');
+  const moon = {
+    clientProgramEffectRequestAuthority: () => cid('a'), clientProgramEffectDefinitionCid: () => cid('b'),
+    strategyRunEvidenceSeal: (_kind, wire) => JSON.parse(wire), strategyRunEvidenceJson: value => JSON.stringify(value),
+    clientProgramEffectMemberDescriptor: (_prepared, _stage, effect) =>
+      [0, effect, effect === 'command' ? 'command' : 'update', 'target', 'contract:fixture', cid('c'), 'rows', 'halt'],
+    strategyPublicationContractIdentity: () => cid('d'), clientProgramEffectPlanCid: () => undefined,
+    clientProgramEffectSemanticsCid: () => cid('e'), clientProgramEffectEnvironmentCid: () => cid('f'),
+    clientProgramCanonicalEffectPreviewDraft: wire => wire,
+    clientProgramAuthorEffectPreview: wire => [wire, []],
+  };
+  const control = {effectSourceArtifactPreviewBinding: () => [null, cid('1')],
+    issueSourceFreeLocalEffectIdentity: () => ({identity: cid('2')}),
+    checkSourceFreeLocalEffectPreviewIdentities() {}};
+  const build = new Function('limits', 'moon', 'checked', 'runtimeField', 'approvalOf',
+    'permissionsOf', 'pendingCid', 'fail', `return (${f.source.slice(node.start, node.end)});`)(
+    {preview: {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 32}, maxRows: 10, planWork: 100,
+      maxFields: 10, key: {maxBytes: 4096, maxNodes: 64, maxDepth: 8}}, moon, value => value,
+    (value, index) => value[index], f.approvalOf, () => ['scope'], cid('0'), () => assert.fail('Unexpected builder refusal'));
+  const members = [{kind: 'command', effectId: 'command', stageIndex: 0, command: {approval: 'required'}},
+    {kind: 'update', effectId: 'mapping', stageIndex: 0, mapping: {approval: 'required'}}];
+  const result = build({control, prepared: {}, inputs: {}, context: {}, requestScope: {}, members,
+    rowsOf: [[], []], capabilities: [{identity: cid('3')}, {identity: cid('4')}], footprints: [{}, {}],
+    payloads: members.map(() => ({summary: {artifact: {}}, localResultArtifact: {identity: cid('5')}}))});
+  const effects = JSON.parse(result.wire).effects;
+  assert.equal(Object.hasOwn(effects[0], 'approval'), false);
+  assert.equal(effects[1].approval, 'required');
+});
+
+function commandAccountGate(outcome, answer = 'permit') {
+  // Real gate and resumed-dispatch machinery; Core interpretation, Host answer
+  // authentication and committed Journal rows are explicit finite ports. No
+  // fixture imports a release Common, creates a key, DB, claim or physical IO.
+  const configuration = {state: 'admitted', account_id: 'account', configuration_cid: cid('a'),
+    entry_id: 'effect', outcome};
+  let wire = JSON.stringify(configuration), persisted, resolved = false, entered = 0, hostCalls = 0;
+  const claim = Object.freeze({intentId: 'intent', claimant: 'owner', generation: 1});
+  const refuse = code => {throw Object.assign(new Error(code), {code});};
+  const admission = () => ({configurationCid: configuration.configuration_cid,
+    requestedClaims: persisted.requestedClaims, observedClaims: ['effect_scope_approved'],
+    kind: 'effect_set', requiredArtifactCid: persisted.body.required_artifact.artifact_cid,
+    decisionSubjectCid: persisted.decisionSubjectCid, authority: 'host',
+    checkpointCid: cid('b'), resolutionCid: cid('c'), ...claim});
+  const journal = {
+    persistCheckpoint(value) {persisted = value;return {checkpointCid: cid('b'), checkpointId: 'checkpoint', runId: 'run'};},
+    submitResolution() {assert.fail('Only the explicit committed-row port resolves this DATA fixture');},
+    admitResume(held, {checkpointCid} = {}) {
+      if (!resolved) refuse('ResolutionNotCommitted');
+      if (held.intentId !== claim.intentId || held.claimant !== claim.claimant || held.generation !== claim.generation ||
+          checkpointCid !== undefined && checkpointCid !== cid('b')) refuse('ForeignResumeClaim');
+      return admission();
+    },
+    enterResumedDispatch(held) {journal.admitResume(held);entered++;return admission();},
+  };
+  const runtime = {
+    executionAuthorizationAdmit: JSON.parse, executionAuthorizationMissing: () => ({state: 'missing'}),
+    executionAuthorizationAccountJson: JSON.stringify,
+    executionAuthorizationEvaluate: (account, principal, connection, resource, operation) =>
+      ({...account, principal, connection, resource, operation}),
+    executionAuthorizationEvaluationJson: JSON.stringify,
+    executionAuthorizationEvaluationAction: evaluation => evaluation.outcome === 'allow'
+      ? {action: 'dispatch', basis: 'account_allow'}
+      : {action: 'deny', basis: 'account', reason: evaluation.outcome === 'no_match' ? 'no_match' : 'explicit'},
+    executionAuthorizationPrepare: (evaluation, configurationCid, boundary, subjectCid, contextCid, authorities, claims) =>
+      ({ok: true, subject: {account_id: evaluation.account_id, configuration_cid: configurationCid,
+        entry_id: evaluation.entry_id, principal: evaluation.principal, connection: evaluation.connection,
+        resource: evaluation.resource, operation: evaluation.operation, boundary, subject_cid: subjectCid, context_cid: contextCid},
+      answering_authorities: authorities, required_claims: claims}),
+    executionAuthorizationRequestJson: JSON.stringify,
+    executionAuthorizationAnswer: (_request, kind, _subject, authority, claims) => kind === 'permit'
+      ? {action: 'dispatch', authority, claims} : kind === 'defer'
+        ? {action: 'checkpoint'} : {action: 'deny', reason: 'rejected'},
+    executionAuthorizationDecisionJson: JSON.stringify,
+  };
+  const gate = createAuthorizationGate({runtime, configuration: wire,
+    readConfiguration: () => wire, context: {principal: 'owner', contextCid: cid('d')},
+    answeringAuthorities: ['host'], requiredClaims: ['effect_scope_approved'],
+    decide(view) {hostCalls++;return {decision: answer, subject: view.subject, authority: 'host', claims: view.requiredClaims};},
+    deferral: {journal, authorities: ['host'], binding: {fixture: true}, describe: () => ({body: {}})}});
+  return {gate, scope: {connection: 'connection', resource: 'messages', operation: 'effect'},
+    subjectCid: cid('e'), resumption: {claim: {...claim, checkpointCid: cid('b')}},
+    resolve() {resolved = true;}, change() {wire = JSON.stringify({...configuration, configuration_cid: cid('f')});},
+    counts: () => ({hostCalls, entered, persisted: persisted === undefined ? 0 : 1})};
+}
+
+test('Command uses the same original Account gate for allow deny no-match immediate permit reject and defer', async () => {
+  const f = await commandApprovalProductionPorts();
+  const floor = new Function('approvalOf', 'text', 'refusedEffectPreparation',
+    `return (${f.expression('requireApproval')});`)(f.approvalOf,
+    value => typeof value === 'string' && value.length > 0, error => error);
+  const member = {kind: 'command', command: {}};
+  for (const [outcome, answer, allowed] of [['allow', 'permit', true], ['deny', 'permit', false],
+    ['no_match', 'permit', false], ['delegate', 'permit', true], ['delegate', 'reject', false], ['delegate', 'defer', false]]) {
+    const x = commandAccountGate(outcome, answer);
+    try {
+      const enter = async () => {
+        const decision = await requireAuthorizedDispatch(x.gate, 'effect_commit', x.scope, {subjectCid: x.subjectCid});
+        floor(member, decision);
+        assertAuthorizationAccountCurrent(decision);
+        assert.ok(authorizationDispatchFacts(decision));
+        assert.equal(decision.checkpointCid, undefined);
+        assert.equal(decision.resolutionCid, undefined);
+        return decision;
+      };
+      if (allowed) await enter();
+      else await assert.rejects(enter(), error => ['ExecutionAuthorizationDenied', 'ExecutionAuthorizationWaiting'].includes(error.code));
+      assert.equal(x.counts().hostCalls, outcome === 'delegate' ? 1 : 0);
+      assert.equal(x.counts().persisted, answer === 'defer' ? 1 : 0);
+      assert.equal(x.counts().entered, 0);
+    } finally {assert.equal(x.gate.close(), true);}
+  }
+});
+
+test('Command defer still requires the same committed Set Resolution original claim and current Account', async () => {
+  const f = await commandApprovalProductionPorts();
+  const floor = new Function('approvalOf', 'text', 'refusedEffectPreparation',
+    `return (${f.expression('requireApproval')});`)(f.approvalOf,
+    value => typeof value === 'string' && value.length > 0, error => error);
+  const x = commandAccountGate('delegate', 'defer');
+  try {
+    const waiting = await x.gate.authorize('effect_commit', x.scope, {subjectCid: x.subjectCid});
+    assert.equal(waiting.action, 'waiting');
+    const resume = changes => x.gate.resume('effect_commit', x.scope,
+      {subjectCid: x.subjectCid, resumption: x.resumption, ...changes});
+    assert.equal((await resume()).detail, 'ResolutionNotCommitted');
+    x.resolve();
+    assert.equal((await resume({subjectCid: cid('1')})).detail, 'ResolutionSubjectMismatch');
+    assert.equal((await resume({resumption: {claim: {...x.resumption.claim, generation: 2}}})).detail, 'ForeignResumeClaim');
+    const original = await resume();
+    assert.equal(original.action, 'dispatch');assert.equal(original.basis, 'resumed');
+    assert.equal(original.checkpointCid, cid('b'));assert.equal(original.resolutionCid, cid('c'));
+    floor({kind: 'command', command: {}}, original);
+    assertAuthorizationAccountCurrent(original);
+    assert.throws(() => assertAuthorizationAccountCurrent({...original}), {code: 'ForeignAuthorizationDecision'});
+    original.admission.enter();
+    assert.equal(x.counts().entered, 1);
+    assert.throws(() => original.admission.enter(), {code: 'ResumeAdmissionConsumed'});
+    x.change();
+    assert.throws(() => assertAuthorizationAccountCurrent(original), {code: 'AuthorizationCurrentAccountChanged'});
+    assert.equal(x.counts().entered, 1);
+  } finally {assert.equal(x.gate.close(), true);}
+});
+
+test('Command constructor refuses an illegal minimum or foreign whole-body identity before any grant', async t => {
+  const vector = JSON.parse(await readFile(new URL('../../spec/fixtures/gcs-command-approval-carriage.json', import.meta.url)));
+  const base = JSON.parse(vector.current.environmentWire).command_contracts[0];
+  const unused = () => assert.fail('No request or grant during constructor refusal');
+  for (const mutate of [body => {body.minimum_approval = 'none';}, body => {body.minimum_approval = 'required';},
+    body => {body.connector_id = 'foreign';}]) {
+    const body = structuredClone(base);delete body.contract_cid;mutate(body);
+    const commandCid = `sha256:${createHash('sha256').update(canonicalJson(body)).digest('hex')}`;
+    await assert.rejects(fixture(t, [{connectorId: 'exports', mappings: [], commands: [{resource: 'messages',
+      commandRef: body.command_id, commandCid, body: JSON.stringify({...body, contract_cid: commandCid})}],
+    driverExtra: {kinds: ['command'], recheckRequests: unused, recoveryEntry: unused,
+      recoverRequests: unused, requestCid: unused}}]), {code: 'InvalidInstalledRowEffectCommand'});
+  }
+});
+
+test('Local STORE declaration keeps its separate Mapping floor while its Command carries none', () => {
+  // Actual pure declaration assembler, explicit original declaration DATA.
+  // rootPath is identity DATA only: no filesystem, Account or grant is opened.
+  const hash = value => `sha256:${createHash('sha256').update(canonicalJson(value)).digest('hex')}`;
+  const catalog = {schema: 'actql.connector_catalog/0.1', connector_id: 'local', connector_version: 'local/0.1',
+    source_views: [], commands: [], contracts: []};
+  const manifest = {connector: 'local', connector_id: 'local', connector_version: 'local/0.1'};
+  const declared = {connector_id: 'local', connector_registration: 'local', connector_version: 'local/0.1',
+    catalog: canonicalJson({...catalog, catalog_cid: hash(catalog)}), catalog_cid: hash(catalog),
+    manifest_entry: canonicalJson(manifest), manifest_entry_cid: hash(manifest), contracts: []};
+  const selected = localFileStoreDeclaration(canonicalJson(declared), {connectorId: 'local',
+    rootPath: '/fixture/local-root', maxBytes: 65536});
+  const command = JSON.parse(selected.commandWire), mapping = JSON.parse(selected.mappingWire);
+  assert.equal(Object.hasOwn(command, 'minimum_approval'), false);
+  assert.equal(mapping.minimum_approval, 'required');
+  assert.equal(mapping.store_command.command_contract_cid, command.contract_cid);
+  assert.equal(mapping.store_command.catalog_cid, JSON.parse(selected.declarationWire).catalog_cid);
+});
+
+test('current GCS receiver admits its exact Command while the frozen predecessor is refused before any grant', async t => {
+  const current = JSON.parse(await readFile(new URL('../../spec/fixtures/gcs-command-approval-carriage.json', import.meta.url)));
+  const historicalBytes = await readFile(new URL('../../' + current.predecessor.path, import.meta.url));
+  assert.equal(createHash('sha256').update(historicalBytes).digest('hex'), current.predecessor.sha256);
+  const historical = JSON.parse(historicalBytes);
+  const oldCommand = JSON.parse(historical.wire).command_contracts[0];
+  assert.equal(oldCommand.contract_cid, current.predecessor.commandCid);
+  assert.equal(oldCommand.minimum_approval, 'required');
+  const body = JSON.parse(current.current.environmentWire).command_contracts[0];
+  assert.equal(body.contract_cid, current.current.commandCid);
+  assert.equal(Object.hasOwn(body, 'minimum_approval'), false);
+  const unchanged = structuredClone(oldCommand);delete unchanged.minimum_approval;delete unchanged.contract_cid;
+  const {contract_cid, ...preimage} = body;
+  assert.deepEqual(preimage, unchanged);
+  assert.equal(`sha256:${createHash('sha256').update(canonicalJson(preimage)).digest('hex')}`, contract_cid);
+  const source = await readFile(new URL('../../src/connectors/gcs/contract_acceptance/upload_test.mbt', import.meta.url), 'utf8');
+  assert.ok(source.includes('#|' + current.current.environmentWire), 'actual receiver compares the same complete independent wire');
+  const unused = () => assert.fail('No provider request, permission or grant at constructor admission');
+  const options = selected => ({connectorId: 'exports', mappings: [], commands: [{resource: 'objects',
+    commandRef: selected.command_id, commandCid: selected.contract_cid, body: JSON.stringify(selected)}],
+  driverExtra: {kinds: ['command'], recheckRequests: unused, recoveryEntry: unused,
+    recoverRequests: unused, requestCid: unused}});
+  await assert.rejects(fixture(t, [options(oldCommand)]), {code: 'InvalidInstalledRowEffectCommand'});
+  const admitted = await fixture(t, [options(body)]);
+  assert.deepEqual(admitted.calls, []);
+  await admitted.effects[0].close();
+  assert.deepEqual(admitted.calls, ['close:owner-0']);
 });

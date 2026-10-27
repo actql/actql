@@ -12664,6 +12664,17 @@
       }
     },
     {
+      "requirement_id": "actql.execution/effect-application.command-preview-contract-minimum-absence",
+      "statement_sha256": "3eacecea8829cd981bd36ebd69b6d8d21df5dc30e9ada56639675213d2272382",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effect-application",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/effect-application.they-must-not-make-structural-or-authority-choices-such-as",
       "statement_sha256": "1fbd1d6b8ccf9303fdea7a695564c374a7e3a4e1cd02400e2bbffbf191e36991",
       "status": "pending",
@@ -19463,7 +19474,7 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "1822b9768dd9a8795cbd1b4ee175b33dd1de6e3577dad41a7b399560317d2868",
+      "statement_sha256": "e3aa9b08c3c5a3653f379430e35f1e38353ae813126cecea79faa8f87b8ec9d4",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

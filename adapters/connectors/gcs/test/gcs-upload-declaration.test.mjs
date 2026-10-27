@@ -9,7 +9,7 @@ import {prepareGcsCollectionTarget, gcsCollectionUploadMapping} from '../host/gc
 const limits = {maxBytes: 32768, maxNodes: 4096, maxDepth: 32};
 const catalogCid = 'sha256:74765512d8f6e59d807f87de33f97bf1bea07b40a7719731d6bbe33347e7786a';
 const inputCid = 'sha256:d15b2d1c7b0555836d28a967fa895f56ced810a056e4045c500e760181fa5fac';
-const commandCid = 'sha256:01b4437a23e585b15309e958d28d7069d58f3f9002ec6fffe8458dc24b58fa39';
+const commandCid = 'sha256:faa1d52507efc3722752d36a72aef759e84fedfa14ddcd9528ace59d9ba4ace2';
 function original() {
   return JSON.stringify({connector_id: 'exports', connector_registration: 'gcs',
     connector_version: 'gcs/0.1', catalog_cid: catalogCid,
@@ -41,7 +41,7 @@ test('real GCS upload declares the independent complete presence role and Comman
   });
   assert.deepEqual(contracts[0].body, command.input_contract);
   assert.deepEqual(command.permissions, ['storage.objects.create', 'storage.objects.delete', 'storage.objects.get']);
-  assert.equal(command.minimum_approval, 'required');
+  assert.equal(Object.hasOwn(command, 'minimum_approval'), false);
 });
 
 test('original declared Catalog retains Source data and exact complete role registration', () => {

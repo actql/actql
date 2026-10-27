@@ -42,7 +42,7 @@ pub struct EffectPreviewIdentity {
   member_max_items : Array[Int64]
   member_contracts : Array[EffectPreviewResolvedContract]
   member_failure_policies : Array[String]
-  member_approvals : Array[String]
+  member_approvals : Array[String?]
   member_footprints : Array[EffectPreviewFootprintIdentity]
   row_keys : Array[Array[String]]
   row_cids : Array[Array[String]]
@@ -977,7 +977,7 @@ pub fn admit_effect_preview_identity(
   let member_max_items : Array[Int64] = []
   let member_contracts : Array[EffectPreviewResolvedContract] = []
   let member_failure_policies : Array[String] = []
-  let member_approvals : Array[String] = []
+  let member_approvals : Array[String?] = []
   let member_footprints : Array[EffectPreviewFootprintIdentity] = []
   let seen_effect_ids : Map[String, Bool] = Map([])
   let seen_effect_identities : Map[String, Bool] = Map([])
@@ -1089,8 +1089,10 @@ pub fn admit_effect_preview_identity(
       _ => return Err(InvalidMember)
     }
     member_failure_policies.push(failure_policy)
-    let approval = match @json.object_field(effect, "approval") {
-      Some(@json.String(value)) => value
+    let approval = match (effect_kind, @json.object_field(effect, "approval")) {
+      ("command", None) => None
+      ("command", _) => return Err(InvalidMember)
+      (_, Some(@json.String(value))) => Some(value)
       _ => return Err(InvalidMember)
     }
     member_approvals.push(approval)
@@ -1439,12 +1441,16 @@ pub fn effect_preview_member_failure_policy(
 }
 
 ///|
-/// The declared requirement, not evidence that approval has been granted.
+/// Legacy Mapping requirement DATA, not approval evidence. A Command has no
+/// contract minimum and returns None, distinct from Some("none").
 pub fn effect_preview_member_approval(
   value : EffectPreviewIdentity,
   index : Int,
 ) -> String? {
-  value.member_approvals.get(index)
+  match value.member_approvals.get(index) {
+    Some(value) => value
+    None => None
+  }
 }
 
 ///|

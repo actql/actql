@@ -1,0 +1,520 @@
+{
+  "purpose": "Independent literal operation/role preimages under unchanged public Sheets IDs. Reproduces original unsupported-min predecessor before applying only the selected Command law.",
+  "predecessor": {
+    "fixture": "range-owned-baseline.json",
+    "command": {
+      "schema": "actql.command_contract/0.1",
+      "command_id": "command:sheets-book.sheets.update_range.v0",
+      "connector_id": "sheets-book",
+      "version": "sheets/0.1",
+      "target": {
+        "resource_kind": "sheet_range",
+        "cardinality": "single"
+      },
+      "input_schema": {
+        "id": "sheets-book.sheets.command_input",
+        "version": "sheets/0.1",
+        "cid": "sha256:78db59086c6c4c9465fb3056c990d3fb01272730b035cefe01c26acfd726f299"
+      },
+      "output_schema": {
+        "id": "sheets-book.sheets.command_output",
+        "version": "sheets/0.1",
+        "cid": "sha256:055d991819365174d58a40e0ae5a108d6fd165273ec970fc174da5a21c99f4b9"
+      },
+      "input_contract": {
+        "additional_properties": false,
+        "fields": {
+          "rows": {
+            "type": "array",
+            "nullable": false,
+            "max_items": 2,
+            "items": {
+              "type": "object",
+              "nullable": false,
+              "additional_properties": false,
+              "fields": {
+                "text": {
+                  "type": "string",
+                  "nullable": false
+                },
+                "flag": {
+                  "type": "boolean",
+                  "nullable": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "permissions": [
+        "sheets:cells:update"
+      ],
+      "preview": {
+        "strength": "exact"
+      },
+      "outcome": "synchronous",
+      "idempotency": {
+        "support": "unsupported"
+      },
+      "reversibility": "unknown",
+      "atomicity": "single_target",
+      "minimum_approval": "required",
+      "contract_cid": "sha256:e3b7d39898d2037cffd055b1c51f24c66e616d2bb8ae3d4a34529515c26196ab"
+    },
+    "recovery": {
+      "version": "actql-sheets-range-recovery/0.1",
+      "bindingCid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "commandCid": "sha256:e3b7d39898d2037cffd055b1c51f24c66e616d2bb8ae3d4a34529515c26196ab",
+      "origin": "https://sheets.example.test",
+      "spreadsheetId": "book",
+      "range": {
+        "sheetId": 7,
+        "startRow": 2,
+        "endRow": 4,
+        "startColumn": 1,
+        "endColumn": 3
+      },
+      "columns": [
+        {
+          "name": "text",
+          "type": "string",
+          "nullable": false
+        },
+        {
+          "name": "flag",
+          "type": "boolean",
+          "nullable": true
+        }
+      ],
+      "target": {
+        "$actql_ref": "resource",
+        "version": "actql-resource-ref/0.1",
+        "provider_namespace": "sheets",
+        "resource_kind": "sheet_range",
+        "provider_identity_cid": "sha256:d7482f414734110c3d1775460ab9c00fd769271779374b48ceef7bf4ecc73845",
+        "identity_cid": "sha256:3df522c65a0e49bd6aa3b16c946d9b5f587b824800bbdc6e021654f4a524042d",
+        "authority_scope_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "boundary_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "effectId": "replace"
+    },
+    "recoveryObservationCid": "sha256:af8322924b910fde0e1bfd46a909921fcd7039f869969b8e94ce0c23aa738e6e",
+    "catalog": {
+      "schema": "actql.catalog/0.1",
+      "connector_id": "sheets-book",
+      "source_views": [],
+      "commands": [
+        {
+          "schema": "actql.command_contract/0.1",
+          "command_id": "command:sheets-book.sheets.update_range.v0",
+          "connector_id": "sheets-book",
+          "version": "sheets/0.1",
+          "target": {
+            "resource_kind": "sheet_range",
+            "cardinality": "single"
+          },
+          "input_schema": {
+            "id": "sheets-book.sheets.command_input",
+            "version": "sheets/0.1",
+            "cid": "sha256:78db59086c6c4c9465fb3056c990d3fb01272730b035cefe01c26acfd726f299"
+          },
+          "output_schema": {
+            "id": "sheets-book.sheets.command_output",
+            "version": "sheets/0.1",
+            "cid": "sha256:055d991819365174d58a40e0ae5a108d6fd165273ec970fc174da5a21c99f4b9"
+          },
+          "input_contract": {
+            "additional_properties": false,
+            "fields": {
+              "rows": {
+                "type": "array",
+                "nullable": false,
+                "max_items": 2,
+                "items": {
+                  "type": "object",
+                  "nullable": false,
+                  "additional_properties": false,
+                  "fields": {
+                    "text": {
+                      "type": "string",
+                      "nullable": false
+                    },
+                    "flag": {
+                      "type": "boolean",
+                      "nullable": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "permissions": [
+            "sheets:cells:update"
+          ],
+          "preview": {
+            "strength": "exact"
+          },
+          "outcome": "synchronous",
+          "idempotency": {
+            "support": "unsupported"
+          },
+          "reversibility": "unknown",
+          "atomicity": "single_target",
+          "minimum_approval": "required",
+          "contract_cid": "sha256:e3b7d39898d2037cffd055b1c51f24c66e616d2bb8ae3d4a34529515c26196ab"
+        }
+      ],
+      "contracts": [
+        {
+          "schema": "actql.contract/0.1",
+          "id": "sheets-book.sheets.command_output",
+          "version": "sheets/0.1",
+          "kind": "command_output",
+          "body": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "spreadsheet_id": {
+                "type": "string",
+                "nullable": false
+              },
+              "sheet_id": {
+                "type": "number",
+                "nullable": false
+              },
+              "acknowledged_rows": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          },
+          "cid": "sha256:055d991819365174d58a40e0ae5a108d6fd165273ec970fc174da5a21c99f4b9"
+        },
+        {
+          "schema": "actql.contract/0.1",
+          "id": "sheets-book.sheets.command_input",
+          "version": "sheets/0.1",
+          "kind": "command_input",
+          "body": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "rows": {
+                "type": "array",
+                "nullable": false,
+                "max_items": 2,
+                "items": {
+                  "type": "object",
+                  "nullable": false,
+                  "additional_properties": false,
+                  "fields": {
+                    "text": {
+                      "type": "string",
+                      "nullable": false
+                    },
+                    "flag": {
+                      "type": "boolean",
+                      "nullable": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "cid": "sha256:78db59086c6c4c9465fb3056c990d3fb01272730b035cefe01c26acfd726f299"
+        }
+      ]
+    },
+    "catalogWithCommandCid": "sha256:f8139dc2eb8070940ce48b1c873b8c2557fcff03495e7decbe70ff62275ee36e"
+  },
+  "current": {
+    "command": {
+      "schema": "actql.command_contract/0.1",
+      "command_id": "command:sheets-book.sheets.update_range.v0",
+      "connector_id": "sheets-book",
+      "version": "sheets/0.1",
+      "target": {
+        "resource_kind": "sheet_range",
+        "cardinality": "single"
+      },
+      "input_schema": {
+        "id": "sheets-book.sheets.command_input",
+        "version": "sheets/0.1",
+        "cid": "sha256:78db59086c6c4c9465fb3056c990d3fb01272730b035cefe01c26acfd726f299"
+      },
+      "output_schema": {
+        "id": "sheets-book.sheets.command_output",
+        "version": "sheets/0.1",
+        "cid": "sha256:055d991819365174d58a40e0ae5a108d6fd165273ec970fc174da5a21c99f4b9"
+      },
+      "input_contract": {
+        "additional_properties": false,
+        "fields": {
+          "rows": {
+            "type": "array",
+            "nullable": false,
+            "max_items": 2,
+            "items": {
+              "type": "object",
+              "nullable": false,
+              "additional_properties": false,
+              "fields": {
+                "text": {
+                  "type": "string",
+                  "nullable": false
+                },
+                "flag": {
+                  "type": "boolean",
+                  "nullable": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "permissions": [
+        "sheets:cells:update"
+      ],
+      "preview": {
+        "strength": "exact"
+      },
+      "outcome": "synchronous",
+      "idempotency": {
+        "support": "unsupported"
+      },
+      "reversibility": "unknown",
+      "atomicity": "single_target",
+      "contract_cid": "sha256:18ce8397b901680ab5512e685ee3db746037ba4702e6ac9034df968a1ef7e091"
+    },
+    "contracts": [
+      {
+        "schema": "actql.contract/0.1",
+        "id": "sheets-book.sheets.command_input",
+        "version": "sheets/0.1",
+        "kind": "command_input",
+        "body": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "rows": {
+              "type": "array",
+              "nullable": false,
+              "max_items": 2,
+              "items": {
+                "type": "object",
+                "nullable": false,
+                "additional_properties": false,
+                "fields": {
+                  "text": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "flag": {
+                    "type": "boolean",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "cid": "sha256:78db59086c6c4c9465fb3056c990d3fb01272730b035cefe01c26acfd726f299"
+      },
+      {
+        "schema": "actql.contract/0.1",
+        "id": "sheets-book.sheets.command_output",
+        "version": "sheets/0.1",
+        "kind": "command_output",
+        "body": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "spreadsheet_id": {
+              "type": "string",
+              "nullable": false
+            },
+            "sheet_id": {
+              "type": "number",
+              "nullable": false
+            },
+            "acknowledged_rows": {
+              "type": "number",
+              "nullable": false
+            }
+          }
+        },
+        "cid": "sha256:055d991819365174d58a40e0ae5a108d6fd165273ec970fc174da5a21c99f4b9"
+      }
+    ],
+    "recovery": {
+      "version": "actql-sheets-range-recovery/0.1",
+      "bindingCid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "commandCid": "sha256:18ce8397b901680ab5512e685ee3db746037ba4702e6ac9034df968a1ef7e091",
+      "origin": "https://sheets.example.test",
+      "spreadsheetId": "book",
+      "range": {
+        "sheetId": 7,
+        "startRow": 2,
+        "endRow": 4,
+        "startColumn": 1,
+        "endColumn": 3
+      },
+      "columns": [
+        {
+          "name": "text",
+          "type": "string",
+          "nullable": false
+        },
+        {
+          "name": "flag",
+          "type": "boolean",
+          "nullable": true
+        }
+      ],
+      "target": {
+        "$actql_ref": "resource",
+        "version": "actql-resource-ref/0.1",
+        "provider_namespace": "sheets",
+        "resource_kind": "sheet_range",
+        "provider_identity_cid": "sha256:d7482f414734110c3d1775460ab9c00fd769271779374b48ceef7bf4ecc73845",
+        "identity_cid": "sha256:3df522c65a0e49bd6aa3b16c946d9b5f587b824800bbdc6e021654f4a524042d",
+        "authority_scope_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "boundary_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "effectId": "replace"
+    },
+    "recoveryObservationCid": "sha256:0247644acc3ec89579e2cee78414aa22daaf375192c2e8d97df1f05dd436f01e",
+    "catalog": {
+      "schema": "actql.catalog/0.1",
+      "connector_id": "sheets-book",
+      "source_views": [],
+      "commands": [
+        {
+          "schema": "actql.command_contract/0.1",
+          "command_id": "command:sheets-book.sheets.update_range.v0",
+          "connector_id": "sheets-book",
+          "version": "sheets/0.1",
+          "target": {
+            "resource_kind": "sheet_range",
+            "cardinality": "single"
+          },
+          "input_schema": {
+            "id": "sheets-book.sheets.command_input",
+            "version": "sheets/0.1",
+            "cid": "sha256:78db59086c6c4c9465fb3056c990d3fb01272730b035cefe01c26acfd726f299"
+          },
+          "output_schema": {
+            "id": "sheets-book.sheets.command_output",
+            "version": "sheets/0.1",
+            "cid": "sha256:055d991819365174d58a40e0ae5a108d6fd165273ec970fc174da5a21c99f4b9"
+          },
+          "input_contract": {
+            "additional_properties": false,
+            "fields": {
+              "rows": {
+                "type": "array",
+                "nullable": false,
+                "max_items": 2,
+                "items": {
+                  "type": "object",
+                  "nullable": false,
+                  "additional_properties": false,
+                  "fields": {
+                    "text": {
+                      "type": "string",
+                      "nullable": false
+                    },
+                    "flag": {
+                      "type": "boolean",
+                      "nullable": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "permissions": [
+            "sheets:cells:update"
+          ],
+          "preview": {
+            "strength": "exact"
+          },
+          "outcome": "synchronous",
+          "idempotency": {
+            "support": "unsupported"
+          },
+          "reversibility": "unknown",
+          "atomicity": "single_target",
+          "contract_cid": "sha256:18ce8397b901680ab5512e685ee3db746037ba4702e6ac9034df968a1ef7e091"
+        }
+      ],
+      "contracts": [
+        {
+          "schema": "actql.contract/0.1",
+          "id": "sheets-book.sheets.command_output",
+          "version": "sheets/0.1",
+          "kind": "command_output",
+          "body": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "spreadsheet_id": {
+                "type": "string",
+                "nullable": false
+              },
+              "sheet_id": {
+                "type": "number",
+                "nullable": false
+              },
+              "acknowledged_rows": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          },
+          "cid": "sha256:055d991819365174d58a40e0ae5a108d6fd165273ec970fc174da5a21c99f4b9"
+        },
+        {
+          "schema": "actql.contract/0.1",
+          "id": "sheets-book.sheets.command_input",
+          "version": "sheets/0.1",
+          "kind": "command_input",
+          "body": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "rows": {
+                "type": "array",
+                "nullable": false,
+                "max_items": 2,
+                "items": {
+                  "type": "object",
+                  "nullable": false,
+                  "additional_properties": false,
+                  "fields": {
+                    "text": {
+                      "type": "string",
+                      "nullable": false
+                    },
+                    "flag": {
+                      "type": "boolean",
+                      "nullable": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "cid": "sha256:78db59086c6c4c9465fb3056c990d3fb01272730b035cefe01c26acfd726f299"
+        }
+      ]
+    },
+    "catalogWithCommandCid": "sha256:b5da9739e8e504eeca038578ae18d475dfbb436976b7dcdb1f7f9260c82b4df2"
+  }
+}

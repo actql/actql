@@ -1882,7 +1882,7 @@
     {
       "module": "adapters/connectors/local/host/local-file-store-declaration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c5c4b1ba7722830051e40c33f65ecd94e3a696dd30c8f7fd1fe05c564888faea",
+      "sha256": "459556ff0181a2fc6e0f74586c2a66e37f45f8187753e5ff8e0f68034f3f857e",
       "role": "connector-semantics",
       "owner": "Existing Local Connector Catalog/Command/Mapping declaration; DATA only, not Reference or I/O authority",
       "exports": [

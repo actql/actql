@@ -142,8 +142,8 @@ const guarded = kind => kind === 'update' || kind === 'upsert' || kind === 'dele
 const targeted = kind => guarded(kind) || kind === 'command';
 const contractCidOf = member => member.kind === 'command'
   ? member.command.commandCid : member.mapping.mappingCid;
-const approvalOf = member => member.kind === 'command'
-  ? member.command.approval : member.mapping.approval;
+// Command has no contract minimum. Only legacy Mapping DATA uses this reader.
+const approvalOf = member => member.mapping.approval;
 const approvedValue = (kind, row) => kind === 'delete' ? undefined : kind === 'command'
   ? row.intended_changes?.value : row.after?.value;
 // A deletion has no proposed value. It must not acquire an empty object,
@@ -489,12 +489,11 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
         cid(preimage) !== selfCid || body.connector_id !== connectorId ||
         !text(body.target?.resource_kind) ||
         !Array.isArray(body.permissions) ||
-        !['required', 'none'].includes(body.minimum_approval)) {
+        Object.hasOwn(body, 'minimum_approval')) {
       fail('InvalidInstalledRowEffectCommand');
     }
     return Object.freeze({...command, target: body.target.resource_kind,
-      permissions: Object.freeze([...body.permissions]),
-      approval: body.minimum_approval});
+      permissions: Object.freeze([...body.permissions])});
   }));
   if (new Set(installedCommands.map(item => item.commandRef)).size !==
       installedCommands.length) fail('InvalidInstalledRowEffectCommand');
@@ -996,7 +995,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // alone is not an approval. Decided from the commit decision before the
   // row's claim, so the Set's prepared intents show nothing was sent.
   const requireApproval = (member, decision) => {
-    if (approvalOf(member) === 'required' &&
+    if (member.kind !== 'command' && approvalOf(member) === 'required' &&
         (decision?.basis !== 'resumed' || !text(decision.checkpointCid) ||
           !text(decision.resolutionCid))) {
       throw refusedEffectPreparation(Object.assign(
@@ -1322,7 +1321,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         write_footprint: footprints[index],
         count: rows.length, max_items: rows.length,
         required_permissions: permissionsOf(member),
-        approval: approvalOf(member),
+        ...(member.kind === 'command' ? {} : {approval: approvalOf(member)}),
         on_item_failure: runtimeField(descriptor, 7),
         changes: rows.map(row => member.kind === 'create' ? {
           target_row_identity: row.identity,

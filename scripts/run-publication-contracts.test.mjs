@@ -18,6 +18,21 @@ import {
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
 
+function restoreHistoricalSchemas(schemas, changes) {
+  const historical = structuredClone(schemas);
+  for (const change of changes) {
+    const parent = change.path.slice(0, -1).reduce((value, key) => value[key], historical);
+    const key = change.path.at(-1);
+    assert.equal(Object.hasOwn(parent, key), change.current_present !== false);
+    if (change.current_present !== false) assert.deepEqual(parent[key], change.current);
+    if (change.historical_present === false) {
+      if (Array.isArray(parent)) parent.splice(key, 1);
+      else delete parent[key];
+    } else parent[key] = structuredClone(change.historical);
+  }
+  return historical;
+}
+
 test('Run Definition optional selection projection preserves the old shape', () => {
   const vectors = read('portability/corpus/effect-target-selection-projection.json');
   const registry = read('spec/contracts/actql-protocol-schemas.json');
@@ -35,17 +50,7 @@ test('Run Definition optional selection projection preserves the old shape', () 
   // schema changes. Reconstruct that exact body with checked leaf inverses;
   // neither its historical pin nor today's registry is silently repinned.
   const history = read('portability/corpus/publication-selection-registry-history.json');
-  const historical = structuredClone(registry.artifact_schemas);
-  for (const change of history.changes) {
-    const parent = change.path.slice(0, -1).reduce((value, key) => value[key], historical);
-    const key = change.path.at(-1);
-    assert.equal(Object.hasOwn(parent, key), change.current_present !== false);
-    if (change.current_present !== false) assert.deepEqual(parent[key], change.current);
-    if (change.historical_present === false) {
-      if (Array.isArray(parent)) parent.splice(key, 1);
-      else delete parent[key];
-    } else parent[key] = structuredClone(change.historical);
-  }
+  const historical = restoreHistoricalSchemas(registry.artifact_schemas, history.changes);
   assert.equal(history.artifact_registry_cid, vectors.artifact_registry_pins.after);
   assert.equal(machineCid(historical), vectors.artifact_registry_pins.after);
 });
@@ -681,10 +686,16 @@ test('ResourceRef targets change only the independently pinned Preview and revie
       'sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb',
       schema => schema.properties.displayed_rows.items.properties.target_row_identity],
   ]) {
-    const adopted = structuredClone(registry.artifact_schemas[name]);
+    let adopted = structuredClone(registry.artifact_schemas[name]);
     // Undo only the later sealed-review extensions before testing the older
     // ff6ee156 ResourceRef row-identity change and its original literal pins.
     if (name === 'effect_preview') {
+      // Restore the later Command policy-carriage correction from the SAME
+      // independently recorded inverse DATA as the complete registry case.
+      const changes = read('portability/corpus/publication-selection-registry-history.json')
+        .changes.filter(change => change.source_change === 'command-preview-approval-omission');
+      assert.equal(changes.length, 3);
+      adopted = restoreHistoricalSchemas({effect_preview: adopted}, changes).effect_preview;
       const member = adopted.properties.effects.items;
       assert.deepEqual(member.properties.preview_strength.enum, ['full_diff', 'targeted']);
       member.properties.preview_strength.enum = ['full_diff', 'targeted', 'blind'];
@@ -756,4 +767,18 @@ test('independent CLI receipt vectors retain singleton bytes and every equal-byt
   for (const [name, identity] of Object.entries(vector.schema_pins)) {
     assert.equal(machineCid(read(`spec/contracts/${name}`)), identity);
   }
+});
+
+test('Command Preview approval is forbidden absence while Mapping still requires its legacy field', () => {
+  const existing = read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.effect_preview;
+  const schema = effectPreviewSchema(existing), member = schema.properties.effects.items;
+  assert.equal(member.required.includes('approval'), false);
+  const selection = member.allOf.find(rule => rule.oneOf?.some(branch => branch.properties?.effect_kind?.const === 'command'));
+  const command = selection.oneOf.find(branch => branch.properties?.effect_kind?.const === 'command');
+  const mapping = selection.oneOf.find(branch => branch.properties?.effect_kind?.enum);
+  assert.deepEqual(command.not, {required: ['approval']});
+  assert.equal(command.required.includes('approval'), false);
+  assert.equal(mapping.required.includes('approval'), true);
+  assert.deepEqual(member.properties.approval, {enum: ['none', 'required']});
+  assert.deepEqual(effectPreviewSchema(schema), schema);
 });

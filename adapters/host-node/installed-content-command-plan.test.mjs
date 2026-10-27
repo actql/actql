@@ -28,7 +28,7 @@ test('checked Content COMMAND compiles with its original Catalog and Result root
   const material = JSON.parse(moon.clientProgramEffectCompilationPlanWire(compilation));
   assert.deepEqual(material.execution_material.program.stages[1].effects,
     program.stages[1].effects);
-  assert.equal(command.minimum_approval, 'required');
+  assert.equal(Object.hasOwn(command, 'minimum_approval'), false);
   assert.deepEqual(moon.clientProgramEffectCompilationResultNames(compilation), ['r']);
   const descriptor = checked(moon.clientProgramEffectMemberDescriptor(prepared, 1, 'upload', 2));
   assert.deepEqual([descriptor._0, descriptor._1, descriptor._2, descriptor._3,

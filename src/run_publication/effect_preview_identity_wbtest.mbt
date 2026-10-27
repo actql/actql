@@ -115,6 +115,7 @@ test "Command Preview retains its closed ResourceRef target through readmission"
       old="\"after\":{\"state\":\"present\",\"value\":{\"Name\":\"After\"}}",
       new="\"after\":{\"state\":\"not_applicable\"}",
     )
+  let raw = raw.replace_all(old="\"approval\":\"none\",", new="")
   let draft = preview_identity_test_canonical(raw)
   let (wire, identity) = author_effect_preview_semantic_wire(
     draft, run, authoring, 8192, 512, 16,
@@ -129,6 +130,16 @@ test "Command Preview retains its closed ResourceRef target through readmission"
     wire, run, authoring, 8192, 512, 16,
   ).unwrap()
   assert_eq(effect_preview_row_correlation_wire(readmitted, 0, 0), Some(target))
+  // Neither enum spelling is Command DATA; absence is not Account allow.
+  for approval in ["none", "required"] {
+    let invalid = draft.replace_all(
+      old="\"effect_kind\":\"command\"",
+      new="\"approval\":\"" + approval + "\",\"effect_kind\":\"command\"",
+    )
+    assert_true(
+      canonical_effect_preview_draft_wire(invalid, 8192, 512, 16) is Err(_),
+    )
+  }
   // A shape-valid ref is not issuance. The captured verifier and current
   // installation still validate its exact target and current authority.
   for
@@ -1107,4 +1118,46 @@ test "Effect Outcome Receipt retains exact JSON keys through seal and readmissio
       )
     }
   }
+}
+
+///|
+test "Command contract minimum absence stays distinct from Mapping none" {
+  let a = preview_identity_test_cid("a")
+  let run = preview_identity_test_cid("b")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let mapping = preview_identity_test_wire(
+    run,
+    authoring,
+    preview_identity_test_cid("4"),
+    "target",
+    a,
+    a,
+  )
+  let (_, original_mapping) = author_effect_preview_semantic_wire(
+    mapping, run, authoring, 8192, 512, 16,
+  ).unwrap()
+  assert_eq(effect_preview_member_approval(original_mapping, 0), Some("none"))
+  let command = mapping
+    .replace_all(
+      old="\"effect_kind\":\"update\"",
+      new="\"effect_kind\":\"command\"",
+    )
+    .replace_all(
+      old="\"mapping\":\"mapping:fixture\"",
+      new="\"contract\":\"command:fixture\"",
+    )
+    .replace_all(
+      old="resolved_mapping_contract_cid",
+      new="resolved_command_contract_cid",
+    )
+    .replace_all(old="\"approval\":\"none\",", new="")
+  let command = preview_identity_test_canonical(command)
+  let (_, original_command) = author_effect_preview_semantic_wire(
+    command, run, authoring, 8192, 512, 16,
+  ).unwrap()
+  assert_true(effect_preview_member_approval(original_command, 0) is None)
+  assert_true(
+    effect_preview_member_resolved_contract(original_command, 0)
+    is Some(Command(_, _)),
+  )
 }
