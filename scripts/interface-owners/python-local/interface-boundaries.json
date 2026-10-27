@@ -24255,25 +24255,24 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
-          "async": false,
           "name": "LocalHostBindingCleanupPending",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalHostBindingCleanupPending/__init__",
           "parameters": [
             "self",
             "binding"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/__init__",
           "parameters": [
             "self",
@@ -24290,96 +24289,97 @@
             "epoch",
             "principal",
             "connection"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/_nominal",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/_physical_current",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/_reserve",
           "parameters": [
             "self",
             "acquire"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/_settings_inventory",
           "parameters": [
             "self",
             "reader"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/_settings_inventory/receive",
           "parameters": [
             "row"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/close",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/current",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/fenced",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/inspect",
           "parameters": [
             "self",
             "consume"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalHostBinding/inspect_reader",
           "parameters": [
             "self",
             "reader",
             "consume"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_body",
           "parameters": [
             "raw"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_body/pairs",
           "parameters": [
             "items"
-          ]
+          ],
+          "async": false
         }
       ],
       "sha256": "ab609dbde341a4b56823b69859fd5791563fd17b97a3d24f819c693df92dcb0b",
