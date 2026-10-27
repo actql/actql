@@ -26,7 +26,7 @@ function fixture({pendingRetirement=false,missingOriginal=false}={}) {
     clientProgramOpenMultiCapturedComposedInferHost(){assert.fail('No multi-Source fallback');},
     strategyHostStop(actual){assert.strictEqual(actual,setup);calls.push('stop-driver');},
     strategyHostCloseOutputs(actual){assert.strictEqual(actual,setup);calls.push('close-outputs');},
-    strategyHostUsage(actual){assert.strictEqual(actual,setup);return [0n,0n,0n,0n,0n,0n];}};
+    strategyHostUsage(actual){assert.strictEqual(actual,setup);return [0n,0n,0n,0n,0n,0n,0n,0n,0n,0n,0n,0n,0n];}};
   const run=installNodeInferRun({moon,core:{publicationControl:control},registry:'registry',values:'values',
     fragment:'fragment',ordered:'ordered',selections:new Map([[prepared,selected]]),
     modelController:{discover:()=>[]},computeConfigurations:{},

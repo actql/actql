@@ -1,3 +1,5 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {writeFile} from 'node:fs/promises';
@@ -42,10 +44,10 @@ test('standard installed Host drives the original 202, gzip status and partition
   assert.equal(f.state.requests[2].path, `/api/v2/statements/${handle}?partition=1`);
   assert.equal(JSON.parse(f.state.requests[0].body).statement,
     'SELECT "ACCOUNT_ID","ACTIVE_USERS","TREND" FROM "PRODUCT"."USAGE"."USAGE_30D"');
-  assert.equal(f.moon.clientProgramMultiCapturedLedgerUsage(ledger)[3],
+  assert.equal(ledgerUsageSnapshot(f.moon.clientProgramMultiCapturedLedgerUsage(ledger)).transferredBytes,
     BigInt(bodies.reduce((n, b) => n + b.byteLength, 0)));
   await opened.close();
-  assert.deepEqual(f.moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(f.moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });
 
 test('installed metadata is scope-bound and cannot silently select another original table', async t => {
@@ -88,7 +90,7 @@ test('standard installed status refusal after 202 retains Unknown and the origin
   assert.deepEqual(f.state.requests.map(r => r.method), ['POST', 'GET']);
   assert.equal(f.state.requests[1].path, '/api/v2/statements/installed-pending-original');
   // Confirmed local cleanup is independent of the remote job's Unknown.
-  assert.deepEqual(f.moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(f.moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });
 
 test('same-shaped metadata from a foreign table is rejected by the actual Common description Owner', async t => {

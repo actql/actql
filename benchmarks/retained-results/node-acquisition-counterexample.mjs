@@ -1,3 +1,4 @@
+import {ledgerUsageSnapshot} from '../../adapters/host-common/runtime-core.mjs';
 // Explicit real-Node boundary for one registered 100-row source. Both choices
 // use the same checked requirement; Broad includes its original residual.
 import assert from 'node:assert/strict';
@@ -98,7 +99,7 @@ test('Node Native/Broad selection retains equivalent 100-row acquisition and res
         assert.equal(observation.output.row_count, fixture.cardinalities.capture);
         assert.deepEqual(captured.acquisition.selection, preparedSource.selection);
         const beforeClose = moon.clientProgramMultiCapturedLedgerUsage(ledger);
-        assert(beforeClose[1] > 0n && beforeClose[2] > 0n && beforeClose[5] > 0n);
+        assert(ledgerUsageSnapshot(beforeClose).attempts > 0n && ledgerUsageSnapshot(beforeClose).holdings > 0n && ledgerUsageSnapshot(beforeClose).heldBytes > 0n);
         await captured.close();
         const afterClose = moon.clientProgramMultiCapturedLedgerUsage(ledger);
         for (const index of [5, 6, 7, 8]) assert.equal(afterClose[index], 0n);

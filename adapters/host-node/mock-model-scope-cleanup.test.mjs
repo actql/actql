@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
+import {ledgerUsageHasPendingResources} from '../host-common/runtime-core.mjs';
 
 // Actual cleanup source with explicit child/Scope observations. A fixture
 // reservation models ordering only; it supplies no Core or physical capacity.
@@ -17,14 +18,14 @@ function fixture(children=[]){
   let held=10n,scopeReady=true;
   const moon={strategyHostStop(value){assert.strictEqual(value,setup);calls.push('stop-setup');},
     strategyHostCloseOutputs(value){assert.strictEqual(value,setup);calls.push('close-outputs');},
-    strategyHostUsage(value){assert.strictEqual(value,setup);calls.push('usage');return[0n,0n,0n,0n,0n,0n,held,0n];}};
+    strategyHostUsage(value){assert.strictEqual(value,setup);calls.push('usage');return[0n,0n,0n,0n,0n,0n,0n,0n,0n,held,0n,0n,0n];}};
   const originalPreparation={async retire(){calls.push('retire-scope');
     if(!scopeReady)return false;held=0n;return true;}};
-  const api=new Function('moon','children','originalPreparation','setup','checked',
+  const api=new Function('moon','children','originalPreparation','setup','checked','ledgerUsageHasPendingResources',
     'let execution,pendingSetup=setup,issuance,publication,holding,sourceContinuation,restoredSource;'+
     'let closeAttempted=false,released=false;'+source.slice(cleanup.start,cleanup.end)+
     ';return{cleanup,pending:()=>pendingSetup!==undefined,released:()=>released};')(
-      moon,children,originalPreparation,setup,value=>value);
+      moon,children,originalPreparation,setup,value=>value,ledgerUsageHasPendingResources);
   return{...api,calls,setScopeReady(value){scopeReady=value;}};
 }
 

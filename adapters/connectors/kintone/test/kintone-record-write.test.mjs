@@ -1,3 +1,4 @@
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
@@ -152,11 +153,11 @@ test('an in-flight physical write holds the same binding and response custody un
     assert.equal(closeHttpsCredentialBinding(f.binding), 'pending');
     assert.equal(settled, false); assert.equal(f.state.writes, 1);
     assert.throws(() => f.closeRoot(), {code: 'MoonBitHostFailure'});
-    assert.ok(f.row.usage().slice(4, 8).some(value => value > 0n));
+    assert.ok(ledgerUsageFieldsFor(f.row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]).some(value => value > 0n));
   } finally {release();}
   await assert.rejects(result, {code: 'RemoteCredentialBindingRetiring'});
   assert.equal(closeHttpsCredentialBinding(f.binding), 'closed');
-  f.closeRoot(); assert.deepEqual(f.row.usage().slice(4, 8), [0n, 0n, 0n, 0n]);
+  f.closeRoot(); assert.deepEqual(ledgerUsageFieldsFor(f.row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   assert.equal(f.state.writes, 1);
 });
 

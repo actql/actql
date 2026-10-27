@@ -1,3 +1,5 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {gzipSync} from 'node:zlib';
@@ -30,8 +32,8 @@ test('original TLS POST, status and gzip pages feed the exact Common Signed64 ca
   assert.equal(result.rows, 2n); assert.equal(result.pages, 2); assert.equal(result.exchanges, 4);
   assert.equal(result.wireBytes, BigInt(wire.reduce((n, b) => n + b.length, 0)));
   assert.equal(result.decodedBytes, BigInt(bodies.reduce((n, b) => n + b.length, 0)));
-  assert.equal(f.row.usage()[3], result.wireBytes);
-  assert.ok(f.row.usage()[6] > 0n && f.row.usage()[7] > 0n,
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, result.wireBytes);
+  assert.ok(ledgerUsageSnapshot(f.row.usage()).reservedRetentionBytes > 0n && ledgerUsageSnapshot(f.row.usage()).reservedExecutionBytes > 0n,
     'transport retirement does not retire the original Host holding');
   assert.deepEqual(f.journal.recover().map(r => r.outcome), Array(4).fill('succeeded'));
   f.row.assertNoCapture();
@@ -47,7 +49,7 @@ test('a missing original-operation supplier refuses before credential or physica
   const f = await bigqueryHttpsFixture(t);
   await assert.rejects(f.read({withOriginalJob: undefined}), {code: 'BigQueryOriginalOperationUnavailable'});
   assert.equal(f.state.resolutions, 0); assert.equal(f.state.requests.length, 0);
-  assert.deepEqual(f.journal.recover(), []); assert.equal(f.row.usage()[3], 0n);
+  assert.deepEqual(f.journal.recover(), []); assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, 0n);
 });
 
 test('unresolved original-operation handoff cannot dispatch later or mint a replacement Job', async t => {
@@ -93,7 +95,7 @@ test('an unawaited original send remains owned until its actual response complet
   await assert.rejects(result);
   assert.equal(f.state.requests.length, 1, 'parent closing never authorizes a second request');
   f.row.close();
-  assert.deepEqual(f.row.usage().slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(f.row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });
 
 test('callback failure after starting a send waits for its original response without GET or resend', async t => {
@@ -149,7 +151,7 @@ test('Account replacement across a real reply charges original bytes without acc
     assert.equal(error.code, 'AuthorizationCurrentAccountChanged');
     assert.deepEqual(error.observation.body, body); return true;
   });
-  assert.equal(f.row.usage()[3], BigInt(body.length));
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, BigInt(body.length));
   assert.deepEqual(f.journal.recover().map(r => r.outcome), ['succeeded']);
   assert.equal(f.state.requests.length, 1); f.row.assertNoCapture();
 });
@@ -166,7 +168,7 @@ test('lost original POST reply retains the same Job and Unknown without resend',
   await assert.rejects(f.read(), {code: 'MoonBitHostFailure'});
   assert.equal(f.state.requests.length, 1); assert.equal(f.state.resolutions, 1);
   assert.deepEqual(f.journal.recover().map(r => r.outcome), ['unknown']);
-  assert.equal(f.row.usage()[3], 0n); f.row.assertNoCapture();
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, 0n); f.row.assertNoCapture();
 });
 
 test('accepted RUNNING Job followed by refused GET remains Unknown and cannot resend POST', async t => {
@@ -182,7 +184,7 @@ test('accepted RUNNING Job followed by refused GET remains Unknown and cannot re
     });
     await assert.rejects(f.read(), {code: 'MoonBitHostFailure'});
     assert.equal(f.state.requests.length, 2);
-    assert.equal(f.row.usage()[3], BigInt(body.length + refusal.length));
+    assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, BigInt(body.length + refusal.length));
     assert.deepEqual(f.journal.recover().map(r => r.outcome), ['succeeded', 'failed']);
     f.row.assertNoCapture();
   }
@@ -195,7 +197,7 @@ test('gzip failure charges the wire before decoder allocation and never accepts 
     await assert.rejects(f.read(), error => {
       assert.deepEqual(error.observation.body, body); return true;
     });
-    assert.equal(f.row.usage()[3], BigInt(body.length));
+    assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, BigInt(body.length));
     assert.equal(f.state.requests.length, 1); f.row.assertNoCapture();
   }
 });
@@ -205,7 +207,7 @@ test('foreign Job identity is charged and refused by the actual original Common 
   const body = jobBody(f.row.requestId, {foreign: true});
   f.state.onRequest = () => ({body});
   await assert.rejects(f.read(), {code: 'MoonBitHostFailure', outcome: 'unknown'});
-  assert.equal(f.row.usage()[3], BigInt(body.length));
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, BigInt(body.length));
   assert.equal(f.state.requests.length, 1); f.row.assertNoCapture();
 });
 

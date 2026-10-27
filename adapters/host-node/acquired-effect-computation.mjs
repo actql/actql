@@ -14,6 +14,7 @@ import {openNodeComposedInferProvider} from './infer-operation.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
+import {ledgerUsageDiagnostic} from '../host-common/runtime-core.mjs';
 
 export async function openAcquiredEffectComputation({moon, owner, acquired,
   sourceProfile, registry, values, fragment, ordered, sourceAccess,
@@ -49,11 +50,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       : moon.strategyHostUsage(moon.clientProgramLocalEffectHostRuntime(checkedHost))
       : moon.clientProgramMultiCapturedLedgerUsage(ledger);
     if (usage === undefined) return;
-    diagnostic(name, {...facts, resourceUsage: Object.fromEntries([
-      'planningWork', 'attempts', 'holdings', 'transferredBytes',
-      'reservedTransferBytes', 'heldBytes', 'reservedRetentionBytes',
-      'reservedExecutionBytes', 'uncertainTransferBytes',
-    ].slice(0, usage.length).map((field, index) => [field, usage[index].toString()]))});
+    diagnostic(name, {...facts, resourceUsage: ledgerUsageDiagnostic(usage)});
   };
   let unresolved = false;
   let pending = true;

@@ -1,3 +1,5 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 // Actual normal Common and generated Node forwarding. These tests exercise
 // original RowRun custody, not physical Site/App authentication or installed I/O.
 import assert from 'node:assert/strict';
@@ -77,7 +79,7 @@ async function originalRead(t) {
     stopped = true;
     checked(moon.clientProgramKintoneRetireRead(reader));
     checked(moon.clientProgramRowSourceCloseAccounted(run));
-    assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+    assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   });
   return {prepared, acquisition, run, reader, ledger, stop: () => {stopped = true;}};
 }
@@ -109,7 +111,7 @@ test('actual kintone Form/page forwards consume original bytes and retain the sa
   assert.deepEqual(checked(moon.clientProgramKintoneReadPageIds(f.reader)), ['9007199254740992', '9007199254740993']);
   assert.throws(() => checked(moon.clientProgramKintoneRetireRead(f.reader)), {code: 'MoonBitHostFailure'});
   assert.throws(() => checked(moon.clientProgramRowSourceCloseAccounted(f.run)), {code: 'MoonBitHostFailure'});
-  assert.ok(moon.clientProgramMultiCapturedLedgerUsage(f.ledger)[7] > 0n);
+  assert.ok(ledgerUsageSnapshot(moon.clientProgramMultiCapturedLedgerUsage(f.ledger)).reservedExecutionBytes > 0n);
 });
 
 test('actual kintone bridge refuses changed Form and cannot finish the original RowRun', async t => {

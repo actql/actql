@@ -13,6 +13,7 @@ import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {installTaskObservation} from '../host-common/task-observation.mjs';
 import {bindClientSourceOperation} from './client-source-operation.mjs';
+import {ledgerUsageDiagnostic, ledgerUsageHasPendingResources} from '../host-common/runtime-core.mjs';
 
 // Diagnostics must not become a second owner of execution/cleanup capabilities.
 // Read only inert own data; accessors and arbitrary thrown objects are not
@@ -174,11 +175,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   const current = ref => entries.get(keyOf(ref));
   const resourceUsage = ledger => {
     const usage = moon.clientProgramMultiCapturedLedgerUsage(ledger);
-    return Object.freeze(Object.fromEntries([
-      'planningWork', 'attempts', 'holdings', 'transferredBytes',
-      'reservedTransferBytes', 'heldBytes', 'reservedRetentionBytes',
-      'reservedExecutionBytes', 'uncertainTransferBytes',
-    ].map((name, index) => [name, usage[index].toString()])));
+    return ledgerUsageDiagnostic(usage);
   };
   const cancel = ref => current(ref)?.abort.abort(
     new Error('ClientRunCancellationRequested'));
@@ -406,7 +403,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     if (entry.pendingSetup !== undefined) {
       moon.strategyHostStop(entry.pendingSetup);
       moon.strategyHostCloseOutputs(entry.pendingSetup);
-      if (moon.strategyHostUsage(entry.pendingSetup).slice(4).some(value => value !== 0n) &&
+      if (ledgerUsageHasPendingResources(moon.strategyHostUsage(entry.pendingSetup)) &&
           !(entry.preparationHostBorrow !== undefined &&
             typeof moon.clientProgramPreparationBorrowUsageIsolated === 'function' &&
             moon.clientProgramPreparationBorrowUsageIsolated(entry.preparationHostBorrow, moon.strategyHostRun(entry.pendingSetup)) === true)) {

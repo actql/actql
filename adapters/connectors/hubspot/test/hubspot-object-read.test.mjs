@@ -1,3 +1,4 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as moon from '../../../../_build/js/release/build/connectors/hubspot/host_node/host_node.js';
@@ -74,7 +75,7 @@ test('actual bound identity schema and pages use one accounted RowRun with exact
     {id: '9007199254740993', amount: '9007199254740993.0100000000', tags: ['a', 'b']},
     {id: '9007199254740994', amount: '0.0000000000', tags: []},
   ]);
-  assert.equal(f.row.usage()[3], result.observations.reduce((n, r) => n + BigInt(r.body.length), 0n));
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, result.observations.reduce((n, r) => n + BigInt(r.body.length), 0n));
   assert.equal(f.state.requests.length, 5);
   assert.ok(f.state.requests.every(r => r.authorization === 'Bearer provider-secret'));
   const query = new URL(`https://fixture${f.state.requests[3].path}`);
@@ -266,7 +267,7 @@ test('active original page socket close remains pending until physical retiremen
   const pending = f.read();
   await started;
   assert.equal(closeHttpsCredentialBinding(f.binding), 'pending');
-  assert.ok(f.row.usage()[6] > 0n && f.row.usage()[7] > 0n);
+  assert.ok(ledgerUsageSnapshot(f.row.usage()).reservedRetentionBytes > 0n && ledgerUsageSnapshot(f.row.usage()).reservedExecutionBytes > 0n);
   resume();
   await assert.rejects(pending, error => {
     assert.equal(error.code, 'RemoteCredentialBindingRetiring');

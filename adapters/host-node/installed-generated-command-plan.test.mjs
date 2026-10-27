@@ -1,3 +1,4 @@
+import {ledgerUsageFields} from './ledger-contract.generated.mjs';
 // Required integration regression: an authentic generation barrier must be
 // compiled inside the same checked Effect Program, not rewritten to a Source
 // supplying an already issued ContentRef. Physical acceptance is separate.
@@ -67,7 +68,7 @@ test('original generated COMMAND sizes its actual installed Content family befor
   assert.ok(ledger, 'the original checked acquisition and Content task share a sized ledger');
   // Existing projection: planning, attempts, holdings, transferred, reserved
   // transfer, held, reserved retention, reserved execution, uncertain transfer.
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger), Array(9).fill(0n),
+  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger), Array(ledgerUsageFields.length).fill(0n),
     'neither capacity preparation nor ledger creation starts or reserves a task');
   for (const [transfer, scratch] of [[-1n, 1024n], [1024n, -1n],
     [1024n, 9223372036854775807n]]) {

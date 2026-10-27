@@ -48,6 +48,7 @@ import {prepareCompletedEffectFreeRunPublication} from
 import {ExecutionAuthorizationError, missingAuthorizationGate} from
   './authorization-gate.mjs';
 import {projectTaskObservation} from './task-observation.mjs';
+import {ledgerUsageSnapshotHasPendingResources} from './runtime-core.mjs';
 
 export class StrategyHostError extends Error {
   constructor(code) { super(code); this.code = code; }
@@ -310,8 +311,7 @@ function preflightSetupCleanup({core, setup, siteCleanup, preparationHolder}) {
         }
       }
       const usage = core.usage(setup);
-      if (['reservedTransferBytes', 'heldBytes', 'reservedRetentionBytes',
-        'reservedExecutionBytes'].some(key => usage[key] !== 0n) &&
+      if (ledgerUsageSnapshotHasPendingResources(usage) &&
           !(preparationHolder !== undefined && core.preparationUsageIsolated?.(setup, preparationHolder) === true)) {
         throw new StrategyHostError('PublicationPreflightCleanupPending');
       }

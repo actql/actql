@@ -1,3 +1,5 @@
+import {ledgerUsageSnapshot} from '../host-common/runtime-core.mjs';
+import {ledgerUsageFieldsFor} from './fixtures/ledger-usage.mjs';
 // Real Iceberg generations -> installed row Source -> common capture. This is
 // not packed/public Effect approval acceptance: fixture publication is direct.
 import test from 'node:test';
@@ -136,9 +138,9 @@ for (const empty of [false, true]) {
       assert.equal(f.checks(), 5);
       assert.equal(acquired.setup, undefined);
       assert.ok(acquired.capture.source());
-      assert.ok(moon.clientProgramMultiCapturedLedgerUsage(prepared.ledger)[5] > 0n);
+      assert.ok(ledgerUsageSnapshot(moon.clientProgramMultiCapturedLedgerUsage(prepared.ledger)).heldBytes > 0n);
     } finally { acquired.close(); }
-    assert.ok(moon.clientProgramMultiCapturedLedgerUsage(prepared.ledger).slice(4)
+    assert.ok(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(prepared.ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes","uncertainTransferBytes"])
       .every(value => value === 0n));
     assert.throws(() => acquired.capture.source(), {code: 'MoonBitHostFailure'});
     // Releasing the temporary acquisition never releases the durable Table.
@@ -162,7 +164,7 @@ test('installed Table Source rechecks genuine read authority after each physical
       await assert.rejects(source.open(prepared), {code: 'ExecutionAuthorizationDenied'});
       assert.equal(metadata, stopAt > 3 ? 1 : 0);
       assert.equal(reads, stopAt > 4 ? 1 : 0);
-      assert.ok(moon.clientProgramMultiCapturedLedgerUsage(prepared.ledger).slice(4)
+      assert.ok(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(prepared.ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes","uncertainTransferBytes"])
         .every(value => value === 0n));
       await source.close();
       assert.deepEqual(plain((await f.bridge.read(f.receipt, f.mapping)).result), [{id: 1}]);
@@ -185,7 +187,7 @@ test('installed Table Source cancellation after data I/O releases only its acqui
   await assert.rejects(source.open({...prepared, signal: abort.signal}),
     {message: 'CancelledAfterTableRead'});
   assert.equal(reads, 1);
-  assert.ok(moon.clientProgramMultiCapturedLedgerUsage(prepared.ledger).slice(4)
+  assert.ok(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(prepared.ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes","uncertainTransferBytes"])
     .every(value => value === 0n));
   await source.close();
   assert.deepEqual(plain((await f.bridge.read(f.receipt, f.mapping)).result), expected);
@@ -219,7 +221,7 @@ test('installed Table Source keeps the same accounted cleanup after a read failu
       return true;
     });
     assert.equal(closes, 1);
-    assert.ok(moon.clientProgramMultiCapturedLedgerUsage(prepared.ledger)[4] > 0n);
+    assert.ok(ledgerUsageSnapshot(moon.clientProgramMultiCapturedLedgerUsage(prepared.ledger)).reservedTransferBytes > 0n);
     await assert.rejects(failure.recovery.cleanup(), {code: 'MoonBitHostFailure', cause: closeFailure});
     assert.equal(failure.recovery.cleanupPending(), true);
     assert.equal(released, 0);
@@ -230,7 +232,7 @@ test('installed Table Source keeps the same accounted cleanup after a read failu
     assert.equal(closes, 3);
     assert.equal(released, 1);
     assert.equal(reads, 1);
-    assert.ok(moon.clientProgramMultiCapturedLedgerUsage(prepared.ledger).slice(4)
+    assert.ok(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(prepared.ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes","uncertainTransferBytes"])
       .every(value => value === 0n));
     assert.deepEqual(plain((await f.bridge.read(f.receipt, f.mapping)).result), [{id: 1}]);
   } finally {
@@ -252,7 +254,7 @@ test('installed Table Source refuses schema drift before data I/O and never defa
   const source = await f.install(changed);
   const changedPreparation = await f.prepare(source);
   await assert.rejects(source.open(changedPreparation), {code: 'InstalledTableReadGenerationMismatch'});
-  assert.ok(moon.clientProgramMultiCapturedLedgerUsage(changedPreparation.ledger).slice(4)
+  assert.ok(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(changedPreparation.ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes","uncertainTransferBytes"])
     .every(value => value === 0n));
   assert.equal(reads, 0);
   await source.close();
@@ -261,7 +263,7 @@ test('installed Table Source refuses schema drift before data I/O and never defa
   const absent = await f.install(missing);
   const absentPreparation = await f.prepare(absent);
   await assert.rejects(absent.open(absentPreparation), {code: 'TableReadNotFound'});
-  assert.ok(moon.clientProgramMultiCapturedLedgerUsage(absentPreparation.ledger).slice(4)
+  assert.ok(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(absentPreparation.ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes","uncertainTransferBytes"])
     .every(value => value === 0n));
   await absent.close();
 });
@@ -277,7 +279,7 @@ test('installed Table Source admits the whole physical input within its existing
   const prepared = await f.prepare(source);
   await assert.rejects(source.open(prepared), {code: 'MoonBitHostFailure'});
   assert.equal(reads, 1);
-  assert.ok(moon.clientProgramMultiCapturedLedgerUsage(prepared.ledger).slice(4)
+  assert.ok(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(prepared.ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes","uncertainTransferBytes"])
     .every(value => value === 0n));
   await source.close();
   assert.deepEqual(plain((await f.bridge.read(f.receipt, f.mapping)).result), expected);

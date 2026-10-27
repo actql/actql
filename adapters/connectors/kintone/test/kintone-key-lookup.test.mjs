@@ -1,3 +1,4 @@
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {checked} from '../../../host-common/runtime-result.mjs';
@@ -162,9 +163,9 @@ test('physical response and async frame retain original binding and reservation 
   };
   await assert.rejects(f.send(), {code: 'RemoteCredentialBindingRetiring'});
   assert.equal(pending, 'pending'); assert.equal(refused?.code, 'MoonBitHostFailure');
-  assert.ok(f.row.usage().slice(4, 8).some(value => value > 0n));
+  assert.ok(ledgerUsageFieldsFor(f.row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]).some(value => value > 0n));
   assert.equal(closeHttpsCredentialBinding(f.binding), 'closed');
-  f.closeRoot(); assert.deepEqual(f.row.usage().slice(4, 8), [0n, 0n, 0n, 0n]);
+  f.closeRoot(); assert.deepEqual(ledgerUsageFieldsFor(f.row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   assert.equal(f.journal.recover().filter(row => row.outcome === 'unknown').length, 1);
   assert.equal(f.state.targets, 1);
 });
@@ -180,5 +181,5 @@ test('root retirement during final Form current cannot dispatch the final physic
   await assert.rejects(f.send(), {code: 'OriginalAcquisitionRetiring'});
   assert.equal(refused?.code, 'MoonBitHostFailure');
   assert.equal(f.state.forms, 1); assert.equal(f.state.targets, 1);
-  f.closeRoot(); assert.deepEqual(f.row.usage().slice(4, 8), [0n, 0n, 0n, 0n]);
+  f.closeRoot(); assert.deepEqual(ledgerUsageFieldsFor(f.row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });

@@ -23,6 +23,29 @@ test "owned usage diagnostic preserves all count fields and exact Int64 numeric 
 }
 
 ///|
+test "generated usage array preserves complete declaration order and exact Int64 values" {
+  let usage : LedgerUsage = {
+    planning_work: 101,
+    attempts: 102,
+    reserved_attempts: 103,
+    holdings: 104,
+    live_reservations: 105,
+    live_delegations: 106,
+    transferred_bytes: 9007199254740993L,
+    uncertain_transfer_bytes: 108L,
+    reserved_transfer_bytes: 109L,
+    held_bytes: 110L,
+    reserved_retention_bytes: 111L,
+    reserved_execution_bytes: 112L,
+    peak_retention_bytes: 9223372036854775807L,
+  }
+  assert_eq(ledger_usage_values(usage), [
+    101L, 102L, 103L, 104L, 105L, 106L, 9007199254740993L, 108L, 109L, 110L, 111L,
+    112L, 9223372036854775807L,
+  ])
+}
+
+///|
 test "pending resource observation sees real zero-byte tokens but preserves cumulative spent facts" {
   let ledger = create_ledger(backed_test_limits()).unwrap()
   assert_false(ledger_usage_has_pending_resources(ledger_usage(ledger)))

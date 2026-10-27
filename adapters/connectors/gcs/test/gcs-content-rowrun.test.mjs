@@ -1,3 +1,5 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 // Actual ordinary GCS declaration, same-Ledger RowRuns, Content/Value owners
 // and encrypted Store. Credential/Account and HTTP are explicit finite ports,
 // not a normally installed or live-service acceptance campaign.
@@ -222,7 +224,7 @@ for(const gzip of [false,true]) {
     assert.equal(media.path,'/storage/v1/b/actql-fixture/o/in%2Fe%CC%81%252F.pdf?generation=9007199254740993&ifGenerationMatch=9007199254740993&alt=media&ifMetagenerationMatch=9007199254740995');
     assert.deepEqual(media.headers,[['accept-encoding',gzip?'gzip':'identity'],
       ...(gzip?[['range','bytes=0-28']]:[])]);
-    assert.equal(moon.clientProgramMultiCapturedLedgerUsage(f.ledger)[3],
+    assert.equal(ledgerUsageSnapshot(moon.clientProgramMultiCapturedLedgerUsage(f.ledger)).transferredBytes,
       BigInt(f.state.raw.reduce((sum,body)=>sum+body.length,0)));
     assert.deepEqual(await f.readStored(),f.payload);
     await lookup.close();
@@ -230,7 +232,7 @@ for(const gzip of [false,true]) {
       'right cleanup must not release the original left metadata');
     assert.throws(()=>lookup.capture.identity(),{code:'InstalledSourceClosed'});
     await f.closeRows();
-    assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(f.ledger).slice(4,8),[0n,0n,0n,0n]);
+    assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(f.ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),[0n,0n,0n,0n]);
     assert.equal(f.storeStatus().storedBytes,f.payload.length,
       'RowRun cleanup does not retire the separately held physical Content');
     await f.reopenStore();
@@ -263,10 +265,10 @@ test('JSON object names retain legal controls through actual same-Ledger capture
   assert.equal(f.state.calls[2].operations.get('gcs:file:read').path,
     path+'&alt=media&ifMetagenerationMatch=9007199254740995');
   assert.deepEqual(await f.readStored(),f.payload);
-  assert.equal(moon.clientProgramMultiCapturedLedgerUsage(f.ledger)[3],
+  assert.equal(ledgerUsageSnapshot(moon.clientProgramMultiCapturedLedgerUsage(f.ledger)).transferredBytes,
     BigInt(f.state.raw.reduce((sum,body)=>sum+body.length,0)));
   await f.closeRows();
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(f.ledger).slice(4,8),[0n,0n,0n,0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(f.ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),[0n,0n,0n,0n]);
   await f.reopenStore();
   assert.deepEqual(await f.readStored(),f.payload);
   assert.equal(f.state.calls.length,3);
