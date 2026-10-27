@@ -102,7 +102,8 @@ test "number extrema full roots preserve independently fixed finite values" {
         "-1.7976931348623157e308, 1.7976931348623157e308", 0xffefffffffffffffUL,
         0x7fefffffffffffffUL,
       ),
-      // Negative-zero source literals are refused by the existing text grammar.
+      // Signed source zero normalizes to positive zero; canonical JSON Number
+      // and Parameter values still reject negative zero.
       ("safe_negate(0), 0, safe_negate(0)", 0UL, 0UL),
     ] {
     for (name, expected) in [("greatest", maximum), ("least", minimum)] {

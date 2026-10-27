@@ -612,15 +612,13 @@ pub fn ResidentSourceCompute::usage(
 
 ///|
 fn resident_source_compute_capacity_released(
-  run : @strategy.CapturedDAG,
+  ledger : @resources.Ledger,
 ) -> Bool {
-  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
-  // Holding identifiers are cumulative admission counters, not live resources.
-  usage.held_bytes == 0L &&
-  usage.uncertain_transfer_bytes == 0L &&
-  usage.reserved_transfer_bytes == 0L &&
-  usage.reserved_retention_bytes == 0L &&
-  usage.reserved_execution_bytes == 0L
+  // This final accounting observation follows the original physical closes.
+  // Zero-byte live tokens remain pending; cumulative spent history does not.
+  !@resources.ledger_usage_has_pending_resources(
+    @resources.ledger_usage(ledger),
+  )
 }
 
 ///|
@@ -658,7 +656,9 @@ pub fn ResidentSourceCompute::close(self : ResidentSourceCompute) -> Bool {
     self.source_closed.val = true
   }
   @strategy.refresh_captured_retention(self.run)
-  if !resident_source_compute_capacity_released(self.run) {
+  if !resident_source_compute_capacity_released(
+      @strategy.captured_dag_ledger(self.run),
+    ) {
     if self.observe is Some(record) {
       ignore(record(CleanupPending))
     }
@@ -786,7 +786,9 @@ fn open_resident_captured_compute(
     }
     source_closed.val = true
     @strategy.refresh_captured_retention(run)
-    resident_source_compute_capacity_released(run)
+    resident_source_compute_capacity_released(
+      @strategy.captured_dag_ledger(run),
+    )
   }
   let dispatch = match
     @standard.bind_strategy_dispatch(run, dispatch_preparation) {

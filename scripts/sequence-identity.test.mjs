@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {sequenceIdentityOracle,retainedSequenceIdentityOracle} from './sequence-identity-oracle.mjs';
 import {signatureRoleCid} from './sga-signature-role-identity-oracle.mjs';
@@ -26,10 +27,23 @@ test('Merged current contracts retain independent expression and query grammar i
  for(const [part,field] of [['template','bound_invocation_template_cid'],['executable','executable_plan_cid'],['compiled','compiled_plan_cid'],['run','run_definition_cid']]) {
   const {[field]:pin,...body}=before.run_preimages[part];assert.equal(signatureRoleCid(body),pin);
  }
- const after=sequenceIdentityOracle();assert.deepEqual(after,read('scripts/fixtures/current-sequence-values-identities.json'));
- assert.deepEqual(after.grammar,read('spec/manifests/actql-grammar-0.1.json'));
- const mutable=new Set(['expression_contract_cid','expression_text_grammar_sha256',
+ const current=sequenceIdentityOracle();assert.deepEqual(current,read('scripts/fixtures/current-sequence-values-identities.json'));
+ assert.deepEqual(current.grammar,read('spec/manifests/actql-grammar-0.1.json'));
+ // This recorded two-contract transition remains bound to its actual Source;
+ // later current normative dependencies are checked separately above.
+ const source='c6aa9761c5fb941ef98279b8aa483cf4e8ca43b0';
+ const historical=path=>JSON.parse(execFileSync('git',['show',`${source}:${path}`],{encoding:'utf8',maxBuffer:4*1024*1024}));
+ const after=historical('scripts/fixtures/current-sequence-values-identities.json');
+ assert.deepEqual(after.grammar,historical('spec/manifests/actql-grammar-0.1.json'));
+ const mutable=new Set(['source_grammar_cid','structural_text_grammar_sha256','structural_text_rules_sha256',
+  'expression_contract_cid','expression_text_grammar_sha256',
   'expression_text_rules_sha256','query_text_grammar_sha256','query_text_rules_sha256','grammar_manifest_cid']);
+ // Each current normative input is independently selected, not an arbitrary
+ // mutable field accepted from the candidate manifest.
+ const protocol=historical('spec/contracts/actql-protocol-schemas.json');
+ assert.equal(after.grammar.source_grammar_cid,signatureRoleCid(protocol.artifact_schemas.executable_plan.properties.execution_material.properties.program));
+ assert.equal(after.grammar.structural_text_grammar_sha256,createHash('sha256').update(execFileSync('git',['show',`${source}:spec/grammar/actql-text-0.1.ebnf`])).digest('hex'));
+ assert.equal(after.grammar.structural_text_rules_sha256,createHash('sha256').update(execFileSync('git',['show',`${source}:docs/spec/structural-text.md`])).digest('hex'));
  const retained=grammar=>Object.fromEntries(Object.entries(grammar).filter(([key])=>!mutable.has(key)));
  assert.deepEqual(retained(after.grammar),retained(before.grammar));
  const oldExpression=before.grammar.expression_contract_cid;
@@ -37,8 +51,8 @@ test('Merged current contracts retain independent expression and query grammar i
  const replaced=new Set([oldExpression,oldEnvironment]);
  assert.deepEqual(after.values_dependencies.contracts,[
   ...before.values_dependencies.contracts.filter(cid=>!replaced.has(cid)),
-  signatureRoleCid(read('spec/contracts/actql-expressions.json')),
-  signatureRoleCid(read('spec/contracts/actql-check-environment.json'))].sort());
+  signatureRoleCid(historical('spec/contracts/actql-expressions.json')),
+  signatureRoleCid(historical('spec/contracts/actql-check-environment.json'))].sort());
  const {expression_contract_cid:oldLocalExpression,...oldLocal}=before.values_dependencies.local;
  const {expression_contract_cid:newLocalExpression,...newLocal}=after.values_dependencies.local;
  assert.equal(oldLocalExpression,oldExpression);

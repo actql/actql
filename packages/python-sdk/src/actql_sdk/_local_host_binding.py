@@ -137,8 +137,9 @@ class OriginalHostBinding:
                 for start in range(0, len(wire), 16384):
                     core.fill_input(original_input, start, min(16384, len(wire) - start))
                 core.seal_input(original_input)
+                self._current_observer = self.current
                 self._current = self._reserve(lambda: core.reserve_host_current(
-                    original_input, store=self._store, current=self._physical_current,
+                    original_input, store=self._store, current=self._current_observer,
                     cleanup=lambda: not self._active))
                 self._physical_current()
         except BaseException as failure:
@@ -212,7 +213,7 @@ class OriginalHostBinding:
         with self.fenced() as fences:
             self._store.inspect_namespaces(fences,
                 inspect=lambda reader: self.inspect_reader(reader, consume),
-                current=self.current)
+                current=self._current_observer)
 
     @contextmanager
     def fenced(self) -> Iterator[tuple[ByteFence, ...]]:

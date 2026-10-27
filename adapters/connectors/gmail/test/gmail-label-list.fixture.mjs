@@ -1,3 +1,4 @@
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 // Source component fixture: actual SQL/AQL Common, legacy accounted canonical
 // RowRun, Account, signed Credential, SQLite and TLS. Its existing reservations
 // do not fund the new reader raw/alias inventory or establish normal physical
@@ -107,7 +108,7 @@ export async function labelListFixture(t, {account = 'allow', factsWire = '{"rel
   t.after(async () => {
     const failures = [];
     try {if (binding) assert.equal(closeHttpsCredentialBinding(binding), 'closed');} catch (cause) {failures.push(cause);}
-    try {row?.close();if (row) assert.deepEqual(row.usage().slice(4,8), [0n,0n,0n,0n]);} catch (cause) {failures.push(cause);}
+    try {row?.close();if (row) assert.deepEqual(ledgerUsageFieldsFor(row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n,0n,0n,0n]);} catch (cause) {failures.push(cause);}
     try {journal?.close();} catch (cause) {failures.push(cause);}
     try {await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));} catch (cause) {failures.push(cause);}
     t.diagnostic(`Retained original Gmail label-list fixture: ${root}`);

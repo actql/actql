@@ -170,6 +170,19 @@ pub fn check_installed_effect_managed_run(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  match check_installed_effect_managed_run_binding(value, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  require_installed_managed_run(value).map(_ => ())
+}
+
+///|
+fn check_installed_effect_managed_run_binding(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard value.preparation is Some(preparation) else { return Err(Retired) }
   let original = match preparation {
     EffectManaged(_, original) => original
@@ -184,7 +197,7 @@ pub fn check_installed_effect_managed_run(
   guard physical_equal(original, prepared) && value.request == request else {
     return Err(ForeignOriginal)
   }
-  require_installed_managed_run(value).map(_ => ())
+  Ok(())
 }
 
 ///|
@@ -297,9 +310,15 @@ pub fn begin_prepared_installed_effect_mock_model_managed_run(
 /// Compute-only Effect parents cannot fund a normal operation from spare bytes.
 pub fn installed_effect_managed_operation_plan(
   value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
 ) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
   guard value.preparation is Some(PlannedEffectManaged(_, plan)) else {
     return Err(Unsupported)
+  }
+  match check_installed_effect_managed_run_binding(value, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   require_installed_managed_run(value).map(_ => plan)
 }

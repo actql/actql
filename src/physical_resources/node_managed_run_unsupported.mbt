@@ -56,6 +56,17 @@ pub fn[P] check_node_managed_run_admission(
 }
 
 ///|
+pub fn[P] check_node_managed_run_mutable_admission(
+  value : NodeManagedRunAdmission[P],
+  _prepared : P,
+  _ledger : Ledger,
+) -> Result[Unit, ImportedChildLedgerIssue] {
+  match value {
+
+  }
+}
+
+///|
 pub fn[P] check_node_managed_run_preparation(
   value : NodeManagedRunAdmission[P],
   _prepared : P,

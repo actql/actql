@@ -1,3 +1,4 @@
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 // Installed Source component acceptance with explicit fixture authority and
 // reservations. This does not issue a normal Host/business-Run resource profile.
 import assert from 'node:assert/strict';
@@ -110,7 +111,7 @@ async function fixture(t, {commentsRead = 'allow'} = {}) {
 }
 
 const released = ledger => assert.deepEqual(
-  common.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  ledgerUsageFieldsFor(common.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 
 test('installed GitHub comments retain their declared contracts through the original accounted Source capture', async t => {
   const f = await fixture(t), source = await f.load();

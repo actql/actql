@@ -1,3 +1,5 @@
+import {ledgerUsageSnapshot} from '../host-common/runtime-core.mjs';
+import {ledgerUsageFieldsFor} from './fixtures/ledger-usage.mjs';
 // Live installed-capture boundary tests. These are ownership/refusal checks;
 // native positive resource, cancellation and cleanup proofs live in the
 // DuckDB native-capture-custody suite. No runtime builds occur in this file.
@@ -270,8 +272,8 @@ test('two Broad captures keep original identity and positive custody in the shar
   const pair = await f.capturePair();
   const {moon} = f;
   const usage = () => moon.clientProgramMultiCapturedLedgerUsage(pair.ledger);
-  assert.ok(usage()[5] > 0n, 'completed Broad inputs still hold their admitted bytes');
-  assert.ok(usage()[2] > 0n, 'the original acquisition holdings remain accounted');
+  assert.ok(ledgerUsageSnapshot(usage()).heldBytes > 0n, 'completed Broad inputs still hold their admitted bytes');
+  assert.ok(ledgerUsageSnapshot(usage()).holdings > 0n, 'the original acquisition holdings remain accounted');
   checked(f.issue(pair));
   for (const [task, capture] of pair.captured.entries()) {
     assert.equal(capture.acquisition.selection.selectedCandidate, 'broadQuery');
@@ -281,11 +283,11 @@ test('two Broad captures keep original identity and positive custody in the shar
       'selected Broad captures cannot swap physical occurrence identity');
   }
   await pair.captured[0].close();
-  assert.ok(usage()[5] > 0n, 'closing the first capture cannot release the second capture');
-  const counts = usage().slice(0, 4);
+  assert.ok(ledgerUsageSnapshot(usage()).heldBytes > 0n, 'closing the first capture cannot release the second capture');
+  const counts = ledgerUsageFieldsFor(usage(), ["planningWork","attempts","holdings","transferredBytes"]);
   await pair.captured[0].close();
-  assert.deepEqual(usage().slice(0, 4), counts, 'repeat close does not create attempts or holdings');
+  assert.deepEqual(ledgerUsageFieldsFor(usage(), ["planningWork","attempts","holdings","transferredBytes"]), counts, 'repeat close does not create attempts or holdings');
   await pair.captured[1].close();
-  assert.ok(usage().slice(4).every(value => value === 0n),
+  assert.ok(ledgerUsageFieldsFor(usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes","uncertainTransferBytes"]).every(value => value === 0n),
     'the original capacity owner settles all pending retention and execution reservations');
 });

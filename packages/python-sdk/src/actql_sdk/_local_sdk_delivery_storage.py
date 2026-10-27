@@ -392,7 +392,7 @@ class OriginalSDKDeliveryStore:
                         binding.inspect_reader(reader, prepare)
                     generations = observation._store.compare_exchange_projected_inspected(
                         3, project, observation._originals, fences, inspect=inspect,
-                        current=binding.current, before_commit=before_commit)
+                        current=binding._current_observer, before_commit=before_commit)
                 if generations is None:
                     raise LocalStorageError('Original terminal CAS conflicted; lookup is required')
             finally:
@@ -505,7 +505,7 @@ class OriginalSDKDeliveryStore:
                         binding.inspect_reader(reader, prepare)
                     generations = observation._store.compare_exchange_projected_inspected(
                         6, project, observation._originals, fences, inspect=inspect,
-                        current=binding.current, before_commit=before_commit)
+                        current=binding._current_observer, before_commit=before_commit)
                 if generations is None:
                     raise LocalStorageError('Original delivery physical CAS conflicted; lookup is required')
                 return generations

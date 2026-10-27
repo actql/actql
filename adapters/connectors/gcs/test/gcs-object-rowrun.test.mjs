@@ -1,3 +1,5 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 // Real installed Source, RowRun, reference admission and original Ledger.
 // Credential/account/HTTP ports are explicit controls; this is neither an
 // installed package campaign nor a GCS service/permission acceptance result.
@@ -129,8 +131,8 @@ test('GCS ordinary metadata reaches actual accounted Source capture with exact t
   assert.ok(value.state.referenceReads > 0);
   assert.notEqual(capture.capture.originalRead(), undefined);
   const usage = moon.clientProgramMultiCapturedLedgerUsage(value.ledger);
-  assert.equal(usage[3], BigInt(value.state.raw.reduce((sum, body) => sum + body.length, 0)));
-  assert.ok(usage[5] > 0n, 'capture retains the original holding after temporary execution settles');
+  assert.equal(ledgerUsageSnapshot(usage).transferredBytes, BigInt(value.state.raw.reduce((sum, body) => sum + body.length, 0)));
+  assert.ok(ledgerUsageSnapshot(usage).heldBytes > 0n, 'capture retains the original holding after temporary execution settles');
   const original = value.adapter.retainedCapture(value.inputs.preparedSource);
   const binding = 'gcs-object-original-run/task-0/input-0';
   const exported = checked(moon.clientProgramExportSourceCapture(capture.capturedSource,
@@ -140,7 +142,7 @@ test('GCS ordinary metadata reaches actual accounted Source capture with exact t
   const saved = [moon.clientProgramSourceCaptureExportRequirement(exported), binding, binding,
     moon.clientProgramSourceCaptureExportDescriptor(exported), rows];
   capture.close();
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(value.ledger).slice(4, 8),
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(value.ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),
     [0n, 0n, 0n, 0n]);
   let custodyChecks = 0;
   assert.throws(() => checked(moon.clientProgramRestoreSourceCapture(original.requirement,
@@ -164,8 +166,8 @@ test('GCS ordinary metadata reaches actual accounted Source capture with exact t
   assert.equal(moon.clientProgramCloseSourceCapture(restored), true);
   assert.equal(moon.clientProgramSourceCaptureSource(restored), undefined);
   assert.deepEqual(moon.clientProgramSourceCaptureUsage(restored), [0n, 0n, 0n]);
-  assert.equal(moon.clientProgramMultiCapturedLedgerUsage(value.ledger)[1], 3n);
-  assert.equal(moon.clientProgramMultiCapturedLedgerUsage(value.ledger)[2], 2n);
+  assert.equal(ledgerUsageSnapshot(moon.clientProgramMultiCapturedLedgerUsage(value.ledger)).attempts, 3n);
+  assert.equal(ledgerUsageSnapshot(moon.clientProgramMultiCapturedLedgerUsage(value.ledger)).holdings, 2n);
 });
 
 test('GCS ordinary Source refuses insufficient original Ledger capacity before any grant or physical call', async () => {
@@ -184,6 +186,6 @@ test('GCS ordinary Resource refusal cannot turn complete provider bytes into a c
   assert.equal(value.state.calls.length, 1);
   assert.ok(value.state.referenceReads > 0);
   const usage = moon.clientProgramMultiCapturedLedgerUsage(value.ledger);
-  assert.equal(usage[3], BigInt(value.state.raw[0].length));
-  assert.deepEqual(usage.slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.equal(ledgerUsageSnapshot(usage).transferredBytes, BigInt(value.state.raw[0].length));
+  assert.deepEqual(ledgerUsageFieldsFor(usage, ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });

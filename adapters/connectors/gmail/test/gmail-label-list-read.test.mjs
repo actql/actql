@@ -1,3 +1,4 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {GmailLabelListReadFailure, createGmailLabelListReader} from '../site/gmail-label-list-read.mjs';
@@ -15,7 +16,7 @@ test('Gmail labels actual SQL and AQL prepare then TLS Account Credential and Ro
     assert.equal(f.state.requests.length,1);assert.equal(f.state.resolutions,1);assert.equal(f.state.charges,1);
     const request=f.state.requests[0];assert.equal(request.path,expectedTarget);assert.equal(request.method,'GET');
     assert.equal(request.authorization,'Bearer gmail-fixture-secret');assert.equal(request.contentType,undefined);
-    assert.equal(request.body.length,0);assert.equal(f.row.usage()[3],BigInt(result.observations[0].body.length));
+    assert.equal(request.body.length,0);assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes,BigInt(result.observations[0].body.length));
     f.row.finish();assert.equal(f.row.captureCount(),2);
   }
 });

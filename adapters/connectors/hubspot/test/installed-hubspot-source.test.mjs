@@ -1,3 +1,5 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {writeFile} from 'node:fs/promises';
@@ -33,9 +35,9 @@ test('installed HubSpot keeps identity, schema and pages on the original account
       '/crm/v3/objects/companies', '/crm/v3/properties/companies']);
   assert.equal(f.state.resolutions, 4);
   const received = Buffer.byteLength(f.state.body) + f.requestBodies.reduce((total, bytes) => total + bytes.length, 0);
-  assert.equal(common.clientProgramMultiCapturedLedgerUsage(ledger)[3], BigInt(received));
+  assert.equal(ledgerUsageSnapshot(common.clientProgramMultiCapturedLedgerUsage(ledger)).transferredBytes, BigInt(received));
   await opened.close();
-  assert.deepEqual(common.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(common.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });
 
 test('a data read grant cannot authorize identity or property metadata', async t => {
@@ -45,7 +47,7 @@ test('a data read grant cannot authorize identity or property metadata', async t
     await assert.rejects(source.openCapture({...preparation, ledger}), {code: 'HubSpotMetadataReadDenied'});
     assert.equal(f.state.requests.length, choice.account === 'deny' ? 0 : 1);
     assert.equal(f.state.resolutions, choice.account === 'deny' ? 0 : 1);
-    assert.deepEqual(common.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+    assert.deepEqual(ledgerUsageFieldsFor(common.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   }
 });
 
@@ -56,7 +58,7 @@ test('a changed current resolver cannot substitute another token for the data pa
   await assert.rejects(source.openCapture({...preparation, ledger}), {code: 'RemoteCredentialBindingChanged'});
   assert.equal(f.state.requests.length, 2); assert.equal(f.state.resolutions, 3);
   assert(f.state.requests.every(value => value.authorization === 'Bearer provider-secret'));
-  assert.deepEqual(common.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(common.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });
 
 test('foreign original account metadata and incomplete property metadata refuse before Site I/O', async t => {
@@ -99,7 +101,7 @@ test('the declared record id remains conditional until cross-page duplicates are
   const ledger = f.ledger();
   await assert.rejects(source.openCapture({...preparation, ledger}), {code: 'HubSpotReadDuplicateRecord'});
   assert.equal(pages, 2); assert.equal(f.state.requests.length, 4);
-  assert.deepEqual(common.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(common.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });
 
 test('schema drift after the last data page prevents Source completion without a replacement lookup', async t => {
@@ -117,7 +119,7 @@ test('schema drift after the last data page prevents Source completion without a
   const ledger = f.ledger();
   await assert.rejects(source.openCapture({...preparation, ledger}), {code: 'MoonBitHostFailure'});
   assert.equal(schemas, 2); assert.equal(f.state.requests.length, 4);
-  assert.deepEqual(common.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(common.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });
 
 test('cancellation of the original identity response closes the same bound transport before releasing the RowRun', async t => {
@@ -146,5 +148,5 @@ test('cancellation of the original identity response closes the same bound trans
   controller.abort(); resume();
   await rejected;
   assert.equal(f.state.requests.length, 1); assert.equal(f.state.resolutions, 1);
-  assert.deepEqual(common.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(common.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });

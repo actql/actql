@@ -25,8 +25,9 @@ fn script_traversal_argument(
     OutputName(name) => construction.text(name.value)
     TextValue(value) => construction.text(value)
     NumberValue(text) =>
-      // Unary plus has no value effect. The existing decoder still owns
-      // precision, finite/hex admission and negative-zero rejection.
+      // Unary plus has no value effect. The existing numeric-literal owner
+      // preserves precision and finite/hex admission, normalizing signed source
+      // zero. Canonical JSON Number and Parameter values still reject negative zero.
       match
         @expression.numeric_literal(
           if text.has_prefix("+") {

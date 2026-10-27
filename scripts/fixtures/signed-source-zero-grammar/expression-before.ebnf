@@ -1,0 +1,130 @@
+(* ActQL expression text 0.1. The normative signature, decoding, type and
+   evaluation rules are docs/spec/language.md#expression-text and
+   docs/spec/language.md#common-expression-contract. This is not SQL grammar.
+   Whole-word keyword terminals are ASCII case-insensitive; functions are exact.
+   SPACE/TAB/CR/LF separate tokens. Longest-match lexing; no comments or unlisted
+   tokens. A parameter has no whitespace after $. Consume the entire string.
+   Comparison families are non-associative except explicit grouping;
+   repeated AND/OR/|| flatten only their own unparenthesized chains. *)
+
+expression = or_expression ;
+or_expression = and_expression, { "OR", and_expression } ;
+and_expression = not_expression, { "AND", not_expression } ;
+not_expression = "NOT", not_expression | truth_test ;
+truth_test = comparison, [ "IS", [ "NOT" ],
+             ( "NULL" | "TRUE" | "FALSE" | "UNKNOWN" | "DISTINCT", "FROM", comparison ) ] ;
+comparison = membership, [ comparison_operator, membership ] ;
+comparison_operator = "=" | "<>" | "<" | "<=" | ">" | ">=" ;
+membership = concatenation, [ membership_suffix ] ;
+membership_suffix = [ "NOT" ], "IN", membership_rhs
+                  | [ "NOT" ], "BETWEEN", concatenation, "AND", concatenation
+                  | [ "NOT" ], "LIKE", like_pattern ;
+like_pattern = string | parameter | "(", like_pattern, ")" ;
+membership_rhs = "(", in_item, { ",", in_item }, ")" | unary ;
+(* An initial open parenthesis always selects the literal-list production,
+   never a grouped ARRAY expression. Other operands retain unary precedence and are typed as ARRAY. *)
+in_item = literal | "-", grouped_number | parameter | "(", in_item, ")" ;
+grouped_number = number | "(", grouped_number, ")" ;
+concatenation = addition, { "||", addition } ;
+addition = multiplication, { ( "+" | "-" ), multiplication } ;
+multiplication = unary, { ( "*" | "/" | "%" ), unary } ;
+unary = "-", unary | postfix ;
+postfix = primary, { ".", identifier | "[", expression, "]" } ;
+primary = literal | parameter | call | identifier | join_field
+        | "(", expression, ")" | searched_case | cast | array ;
+join_field = ( "left" | "right" ), ".", identifier ;
+(* Initial unquoted exact lowercase left./right. always chooses join_field.
+   Quoted "left" is an ordinary field; neither production consults a schema. *)
+array = "[", [ expression, { ",", expression } ], "]" ;
+cast = "CAST", "(", expression, "AS", cast_type, ")" ;
+cast_type = "NUMBER" | "STRING" | "BOOLEAN" | "TIMESTAMP"
+          | "DECIMAL", "(", integer, ",", integer, ")" ;
+searched_case = "CASE", case_arm, { case_arm }, [ "ELSE", expression ], "END" ;
+case_arm = "WHEN", expression, "THEN", expression ;
+call = zero_argument_call | function_name, "(", expression, { ",", expression }, ")" ;
+zero_argument_call = "current_timestamp", "(", ")" ;
+(* trim, ltrim and rtrim take exactly one or two STRING expressions. Unary
+   forms preserve their sole expression body; explicit sets retain both ordered
+   operands as a two-element array. Other arities and BYTES are not admitted. *)
+(* round and trunc take exactly one or two NUMBER expressions. Unary forms
+   preserve their sole expression body; explicit decimal positions retain both
+   ordered operands as a two-element array. The second expression is checked
+   for an integral finite value at runtime after strict NULL propagation.
+   Other arities, rounding modes and decimal overloads are not admitted. *)
+(* left and right take exactly two expressions: STRING value, NUMBER length.
+   lpad and rpad take exactly two or three expressions, with an optional STRING
+   pattern. All four retain ordered argument arrays, including two-argument
+   padding. Lengths count Unicode scalars and use the admitted finite NUMBER
+   safe-integer domain; strict NULL precedes demanded length-domain checks.
+   Omitted padding uses U+0020; an explicit empty pattern is a domain failure.
+   BYTES and collation overloads are not admitted. *)
+(* split takes exactly one or two STRING expressions. The optional delimiter
+   is an ordinary expression, not restricted to a literal or parameter. Its
+   match is literal rather than a regular expression; omission selects comma.
+   Both forms retain an ordered argument array, including a one-element array
+   for omission, and produce an Array of non-null STRING elements. BYTES and
+   collation overloads are not admitted. *)
+(* byte_length and its octet_length alias take exactly one STRING expression,
+   as does unicode; chr takes exactly one finite NUMBER expression. All use
+   a direct unary expression body, never an argument array. Byte length counts
+   UTF-8 bytes; unicode selects the first scalar code point, or zero for empty.
+   chr validates an integral Unicode scalar code point; zero yields empty.
+   BYTES, distinct INT64 overloads and implicit conversions are not admitted. *)
+(* repeat takes exactly two expressions, STRING then a nonnegative integral
+   finite NUMBER count, in an ordered binary canonical array. reverse takes one
+   STRING in a direct unary canonical body and reverses Unicode scalar order.
+   Neither operation normalizes or segments graphemes; BYTES is not admitted. *)
+(* cbrt takes exactly one finite NUMBER expression in a direct unary canonical
+   body. It returns the real cube root for positive and negative finite values,
+   canonical positive zero for either zero sign, and NULL for NULL. *)
+(* sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, asinh, acosh and atanh
+   each take one finite NUMBER expression in a direct unary canonical body.
+   atan2 takes exactly two finite NUMBER expressions in authored order in a
+   binary canonical array. Circular angles and inverse results use radians.
+   asin/acos require [-1,1], acosh requires >=1, and atanh requires (-1,1).
+   Strict NULL propagation precedes demanded value-domain checks. *)
+(* translate takes exactly three STRING expressions in an ordered canonical array.
+   instr takes two to four expressions in an ordered canonical array: STRING
+   value and subvalue, then optional finite integral NUMBER position and occurrence.
+   Omitted position and occurrence mean one but remain omitted in canonical identity.
+   Position is nonzero; occurrence is positive. Negative position searches backward;
+   overlapping occurrences and empty-pattern scalar boundaries are counted.
+   BYTES, collation, regex and distinct INT64 overloads are not admitted. *)
+(* Vector profile calls: vector_score has exactly three arguments; the third
+   is a string literal 'cosine', 'dot' or 'l2', lowered as a structural metric.
+   vector_concat has at least two expression arguments. These spellings require
+   the separately admitted VecA expression profile; grammar is not execution support. *)
+(* current_timestamp has exactly zero arguments. It retains the original Run
+   evaluation-time dependency, never an authored literal or frontend clock read. *)
+function_name = "array_offset" | "array_safe_offset" | "current_timestamp" | "len" | "contains" | "starts_with" | "ends_with" | "strpos" | "concat" | "concat_strict" | "safe_div" | "safe_divide" | "safe_add" | "safe_subtract" | "safe_multiply" | "safe_negate" | "sqrt" | "cbrt" | "sin" | "cos" | "tan" | "asin" | "acos" | "atan" | "atan2" | "sinh" | "cosh" | "tanh" | "asinh" | "acosh" | "atanh" | "pow" | "power" | "exp" | "ln" | "log" | "log10" | "abs" | "sign" | "round" | "trunc" | "greatest" | "least" | "floor"
+              | "lower" | "upper" | "trim" | "ltrim" | "rtrim" | "replace" | "left" | "right" | "lpad" | "rpad" | "split" | "byte_length" | "octet_length" | "unicode" | "chr" | "repeat" | "reverse" | "translate" | "instr" | "nullif" | "negate"
+              | "vector_score" | "vector_concat"
+              | "date_trunc" | "date_add" | "date_diff" | "timestamp_add" | "timestamp_sub"
+              | "to_number" | "to_string" | "to_boolean" | "to_timestamp"
+              | "if" | "coalesce" | "to_decimal" | "try_decimal"
+              | "quantize" | "decimal_divide"
+              | "split_part" | "substring" | "utf8_truncate" | "try_number"
+              | "parse_timestamp" | "format_timestamp" | "try_timestamp"
+              | "regex_match" | "regex_extract" | "regex_replace" | "nfkc" | "case_fold" ;
+literal = number | string | "TRUE" | "FALSE" | "NULL" ;
+parameter = "$", bare_identifier ;
+identifier = bare_identifier | quoted_identifier ;
+bare_identifier = identifier_start, { identifier_continue } ;
+identifier_start = letter | "_" ;
+identifier_continue = identifier_start | digit ;
+letter = ? ASCII A-Z or a-z ? ;
+number = integer, [ ".", digit, { digit } ], [ ( "e" | "E" ), [ "+" | "-" ], digit, { digit } ] ;
+integer = "0" | nonzero_digit, { digit } ;
+digit = "0" | nonzero_digit ;
+nonzero_digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+string = "'", { string_character | "''" }, "'" ;
+quoted_identifier = '"', quoted_identifier_character, { quoted_identifier_character }, '"' ;
+string_character = ? any Unicode scalar except U+0027 APOSTROPHE ? ;
+quoted_identifier_character = '""' | ? any Unicode scalar except U+0022 QUOTATION MARK ? ;
+(* Reserved bare field words: AND OR NOT IS NULL TRUE FALSE UNKNOWN DISTINCT FROM
+   IN BETWEEN LIKE CASE WHEN THEN ELSE END CAST AS. Cast target names are
+   contextual. Backslash is ordinary. Values/names obey ActQL normalization.
+   Minus applied to a number token through grouping yields a signed literal;
+   negative zero and non-finite numbers are rejected. Other minus is negate.
+   Type checking, static signature constraints and Effect selector restrictions
+   apply after decoding; syntax acceptance alone does not authorize execution. *)

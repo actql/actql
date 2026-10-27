@@ -1,3 +1,4 @@
+import {ledgerUsageSnapshot} from '../host-common/runtime-core.mjs';
 // Actual original Program preparation, Local managed prefix, common generation
 // and actual Store publication. This is not installed public dispatch or a
 // whole-Run physical Ledger proof; the dispatcher must adopt these same owners.
@@ -128,8 +129,8 @@ async function fixture(t, options = {}) {
     capacity.retainedBytes, capacity.executionBytes, 0));
   prefix = control.prefix(prepared, 0, 2, bodies, prefixLimits, ledger);
   const before = moon.clientProgramMultiCapturedLedgerUsage(ledger);
-  assert.equal(before[6], capacity.retainedBytes);
-  assert.equal(before[7], capacity.executionBytes);
+  assert.equal(ledgerUsageSnapshot(before).reservedRetentionBytes, capacity.retainedBytes);
+  assert.equal(ledgerUsageSnapshot(before).reservedExecutionBytes, capacity.executionBytes);
   let prefixWork = 0;
   const output = await runGeneratedContentPrefix({control, prefix, quantum: 7,
     remainingWork: () => prefixLimits.maxWork - prefixWork,
@@ -909,7 +910,7 @@ test('actual Content prefix reserves the Run ledger before start and holds it un
   const {capacity, ledger} = value;
   assert.ok(capacity.retainedBytes > 0n && capacity.executionBytes > 0n);
   const usage = () => moon.clientProgramMultiCapturedLedgerUsage(ledger);
-  assert.equal(usage()[6], capacity.retainedBytes,
+  assert.equal(ledgerUsageSnapshot(usage()).reservedRetentionBytes, capacity.retainedBytes,
     'Completed input remains reserved while serialization borrows it');
   for (const [retained, execution] of [
     [capacity.retainedBytes - 1n, capacity.executionBytes],
@@ -919,14 +920,14 @@ test('actual Content prefix reserves the Run ledger before start and holds it un
       retained, execution, 0));
     assert.throws(() => control.prefix(value.prepared, 0, 2, bodies, prefixLimits, short),
       {code: 'MoonBitHostFailure'});
-    assert.equal(moon.clientProgramMultiCapturedLedgerUsage(short)[1], 0n,
+    assert.equal(ledgerUsageSnapshot(moon.clientProgramMultiCapturedLedgerUsage(short)).attempts, 0n,
       'Rejected reservation must not start or consume an attempt');
   }
   assert.throws(() => control.prefix(value.prepared, 0, 2, bodies, prefixLimits),
     /requires the Run ledger/u);
   assert.equal(control.prefixCleanup(value.prefix), true);
-  assert.equal(usage()[6], 0n);
-  assert.equal(usage()[7], 0n);
+  assert.equal(ledgerUsageSnapshot(usage()).reservedRetentionBytes, 0n);
+  assert.equal(ledgerUsageSnapshot(usage()).reservedExecutionBytes, 0n);
   assert.equal(control.prefixCleanup(value.prefix), true);
   assert.equal(control.prefixAdvance(value.prefix, 1).output, undefined);
   assert.equal(control.prefixAdvance(value.prefix, 1).work, 0n);

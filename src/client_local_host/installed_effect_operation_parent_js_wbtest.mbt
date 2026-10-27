@@ -37,7 +37,10 @@ test "actual managed supplier binds one original Effect plan and same Ledger thr
     admission, prepared, request, plan,
   ).unwrap()
   assert_true(
-    physical_equal(installed_effect_managed_operation_plan(run).unwrap(), plan),
+    physical_equal(
+      installed_effect_managed_operation_plan(run, prepared, request).unwrap(),
+      plan,
+    ),
   )
   let ledger = prepare_installed_effect_managed_run_ledger(
     run,
@@ -195,7 +198,10 @@ test "same Effect parent retains pending operation budget and never refunds cons
   @resources.consume_reserved_attempt(ledger, reservation).unwrap()
   assert_true(retire_installed_managed_run(run) is Err(Resource(Unavailable)))
   assert_true(
-    physical_equal(installed_effect_managed_operation_plan(run).unwrap(), plan),
+    physical_equal(
+      installed_effect_managed_operation_plan(run, prepared, request).unwrap(),
+      plan,
+    ),
   )
   assert_eq(@resources.ledger_usage(ledger).attempts, 1)
   @resources.settle_reservation(ledger, reservation).unwrap()
@@ -742,7 +748,10 @@ test "staged Effect plan adopts the one initial Ledger and retains its actual di
     initial, input, capacity, prepared, request, plan,
   ).unwrap()
   assert_true(
-    physical_equal(installed_effect_managed_operation_plan(run).unwrap(), plan),
+    physical_equal(
+      installed_effect_managed_operation_plan(run, prepared, request).unwrap(),
+      plan,
+    ),
   )
   assert_true(
     physical_equal(require_installed_managed_run(run).unwrap(), ledger),
@@ -1040,7 +1049,10 @@ test "planned Model begins same original Scope before children and retains pendi
   ).unwrap()
   assert_eq(calls.val, 1)
   assert_true(
-    physical_equal(installed_effect_managed_operation_plan(run).unwrap(), plan),
+    physical_equal(
+      installed_effect_managed_operation_plan(run, prepared, request).unwrap(),
+      plan,
+    ),
   )
   assert_true(
     @publication_host.client_model_read_scope_live(
@@ -1140,4 +1152,122 @@ test "planned Model refuses wrong purpose foreign original and short envelope wi
     @resources.cleanup_node_managed_run_admission(short).unwrap()
   }
   assert_eq(calls.val, 2)
+}
+
+///|
+test "same original planned parent lookup observes physical current once" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let calls = Ref(0)
+  let admission = effect_parent_test_admission(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+    current=() => calls.val += 1,
+  )
+  let run = begin_prepared_installed_effect_managed_run(
+    admission, prepared, request, plan,
+  ).unwrap()
+  calls.val = 0
+  let ledger = require_installed_managed_run(run).unwrap()
+  assert_true(physical_equal(run.ledger.unwrap(), ledger))
+  // Count the actual original physical-owner callback, not a Result unwrap,
+  // function entry, Plan getter hit or another compilation/capacity quote.
+  assert_eq(calls.val, 1)
+  retire_installed_managed_run(run).unwrap()
+}
+
+///|
+test "bound Plan getter checks exact immutable originals and calls current once" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let calls = Ref(0)
+  let admission = effect_parent_test_admission(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+    current=() => calls.val += 1,
+  )
+  let run = begin_prepared_installed_effect_managed_run(
+    admission, prepared, request, plan,
+  ).unwrap()
+  calls.val = 0
+  let original = installed_effect_managed_operation_plan(run, prepared, request).unwrap()
+  assert_true(physical_equal(original, plan))
+  assert_eq(calls.val, 1)
+  let copy = { ..run, }
+  let equal_request = @publication_host.prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "effect-operation-plan",
+    "sha256:" + "b".repeat(64),
+  ).unwrap()
+  assert_true(equal_request == request)
+  calls.val = 0
+  assert_true(
+    installed_effect_managed_operation_plan(copy, prepared, request)
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    installed_effect_managed_operation_plan(run, prepared, equal_request)
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    installed_effect_managed_operation_plan(
+      run,
+      installed_effect_managed_fixture(),
+      request,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_eq(calls.val, 0)
+  retire_installed_managed_run(run).unwrap()
+  assert_true(
+    installed_effect_managed_operation_plan(run, prepared, request)
+    is Err(Unsupported),
+  )
+}
+
+///|
+test "one current callback cannot retire or replace the original planned Run tuple" {
+  for replace in [false, true] {
+    let (prepared, request, contracts) = effect_operation_plan_inputs()
+    let plan = effect_operation_plan_fixture(prepared, request, contracts)
+    let foreign_plan = effect_operation_plan_fixture(
+      prepared, request, contracts,
+    )
+    let selected : Ref[ClientInstalledManagedRun?] = Ref(None)
+    let original : Ref[ClientInstalledManagedRunOriginal?] = Ref(None)
+    let calls = Ref(0)
+    let armed = Ref(false)
+    let admission = effect_parent_test_admission(
+      plan,
+      prepared_installed_effect_managed_requirements(plan),
+      current=() => {
+        calls.val += 1
+        if armed.val && selected.val is Some(run) {
+          armed.val = false
+          if replace && original.val is Some(PlannedEffectManaged(a, _)) {
+            run.preparation = Some(PlannedEffectManaged(a, foreign_plan))
+          } else {
+            run.preparation = None
+          }
+        }
+      },
+    )
+    let run = begin_prepared_installed_effect_managed_run(
+      admission, prepared, request, plan,
+    ).unwrap()
+    selected.val = Some(run)
+    original.val = run.preparation
+    calls.val = 0
+    armed.val = true
+    assert_true(
+      installed_effect_managed_operation_plan(run, prepared, request)
+      is Err(Retired),
+    )
+    assert_eq(calls.val, 1)
+    // Restore only this private test's artificial tuple mutation so the
+    // original admission owns its actual normal cleanup; no new Run/owner.
+    run.preparation = original.val
+    retire_installed_managed_run(run).unwrap()
+  }
 }

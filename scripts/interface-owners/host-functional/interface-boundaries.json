@@ -11218,7 +11218,7 @@
     {
       "module": "adapters/host-common/strategy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b85eedf2f4d5aba23051ca11c3d2d7b41662927654323dfb253d07b04e01967b",
+      "sha256": "f99afda3ed9306dc7717539471999b48e43f8c6f79b45852fea4a53bb7f57500",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
@@ -11316,13 +11316,6 @@
         {
           "name": "preflightSetupCleanup/settle/settle",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "preflightSetupCleanup/settle/settle/settle",
-          "parameters": [
-            "key"
-          ],
           "async": false
         },
         {
@@ -11759,8 +11752,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
-            "StrategyHostError/constructor:constructor/constructor:constructor",
             "coreOutputSiteOwner",
             "coreOutputSiteOwner/init:afterFailure/init:afterFailure",
             "coreOutputSiteOwner/init:afterFailure/init:afterFailure/cleanupHandle/init:retry/init:retry",
@@ -11775,7 +11766,6 @@
             "preflightSetupCleanup/init:retry/init:retry",
             "preflightSetupCleanup/preflightSetupCleanup",
             "preflightSetupCleanup/settle/settle",
-            "preflightSetupCleanup/settle/settle/settle",
             "preflightSetupCleanup/status/status",
             "publicationContract/publicationContract",
             "rejectSetupPreflight",
@@ -11795,8 +11785,8 @@
             "runInstalledStrategy/cleanupPending/cleanupPending",
             "runInstalledStrategy/init:cleanup/init:cleanup",
             "runInstalledStrategy/init:cleanup/init:cleanup/init:cleanup",
-            "runInstalledStrategy/init:cleanup/init:cleanup/init:cleanup#2",
             "runInstalledStrategy/init:cleanup/init:cleanup/init:cleanup/retryKnown/retryKnown",
+            "runInstalledStrategy/init:cleanup/init:cleanup/init:cleanup#2",
             "runInstalledStrategy/init:close/init:close",
             "runInstalledStrategy/init:close/init:close/init:close",
             "runInstalledStrategy/init:close/init:close/init:close#2",
@@ -11837,7 +11827,9 @@
             "runInstalledStrategy/settleSiteAfterFailure/settleSiteAfterFailure/combined/init:status/init:status",
             "runInstalledStrategy/settleSiteAfterFailure/settleSiteAfterFailure/drive/drive",
             "runInstalledStrategy/siteCompletionPermit/init:assertAvailable/init:assertAvailable",
-            "runInstalledStrategy/siteCompletionReady/siteCompletionReady"
+            "runInstalledStrategy/siteCompletionReady/siteCompletionReady",
+            "StrategyHostError/constructor:constructor/constructor:constructor",
+            "<module>"
           ],
           "exports": [
             "StrategyHostError",
@@ -11991,6 +11983,7 @@
         "./execution-sites.mjs",
         "./managed-site-transfer.mjs",
         "./run-publication-preflight.mjs",
+        "./runtime-core.mjs",
         "./strategy-actions.mjs",
         "./task-observation.mjs"
       ],
@@ -19531,7 +19524,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -19650,7 +19643,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -77840,7 +77833,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-      "sha256": "637fdb1df82a9af271ebf778e6d4605c155cebf53d823fd668203eaa57b9c760",
+      "sha256": "6e34e942f5b3e640e4d734eea7c700c5751174afdc49ab3df6881ed2261b7279",
       "exports": [
         "commonjs:assertOrdinaryManagedRunCurrent",
         "commonjs:ordinaryManagedRunStatus",
@@ -78111,6 +78104,14 @@
               {
                 "path": "adapters/host-node/ordinary-node-resource-runtime.test.mjs",
                 "anchor": "test('ordinary"
+              },
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.test.mjs",
+                "anchor": "test('ordinary original assertion cannot return current after its callback retires that same Run'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.test.mjs",
+                "anchor": "test('ordinary original port selection refuses when same-callback reentry already took the sole ports'"
               }
             ]
           }
@@ -78294,6 +78295,10 @@
               {
                 "path": "adapters/host-node/client-preparation-custody-public.test.mjs",
                 "anchor": "test('retired Pure preparation preserves saved plan and original lookup after reopen', async () => {"
+              },
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.test.mjs",
+                "anchor": "test('ordinary retained current calls once and refuses same-callback terminal reentry'"
               }
             ]
           }
@@ -83618,7 +83623,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "1579102c910d242eaa6502ab6284feda6fec201af7c2ea93d0928cbbfe0e96f4",
+      "sha256": "84f36a1f55c82089b1b4ed7f5862b43521296813a3f600be35b309147b299a0b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -83628,6 +83633,30 @@
         "readInstalledEffectManagedPlanRun"
       ],
       "operations": [
+        {
+          "name": "assertCurrentPlanRecord",
+          "parameters": [
+            "run",
+            "runs",
+            "liveRuns",
+            "runtime",
+            "prepared",
+            "request",
+            "parent",
+            "plan",
+            "readPlan",
+            "definition",
+            "manager",
+            "selection",
+            "sourceProfile",
+            "model",
+            "demand",
+            "scope",
+            "admission",
+            "original"
+          ],
+          "async": false
+        },
         {
           "name": "fail/fail",
           "parameters": [
@@ -83709,6 +83738,20 @@
           "name": "prepareInstalledEffectManagedPlanRun/same/same/same",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readCurrentPlanParent",
+          "parameters": [
+            "run",
+            "runs",
+            "liveRuns",
+            "runtime",
+            "prepared",
+            "request",
+            "assertCurrent",
+            "checked"
           ],
           "async": false
         },
@@ -83852,6 +83895,91 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Model demand on the original installed Effect Plan"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "assertCurrentPlanRecord",
+            "readCurrentPlanParent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "### Bound Effect Plan currentness"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "### Bound Effect Plan currentness"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "### Bound Effect Plan currentness"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "run.manager !== manager || run.selection !== selection || run.sourceProfile !== sourceProfile ||"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "### Bound Effect Plan currentness"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "run.admission !== admission || run.original !== original)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "### Bound Effect Plan currentness"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "### Bound Effect Plan currentness"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "if (Object.hasOwn(run, 'failure')) throw run.failure;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "### Bound Effect Plan currentness"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "### Bound Effect Plan currentness"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "### Bound Effect Plan currentness"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-plan-current.test.mjs",
+                "anchor": "test('public Record and Model Plan readers use one exact bound getter and no preceding check'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-current.test.mjs",
+                "anchor": "test('public Plan getter cannot replace the original tuple or retained Model Scope'"
               }
             ]
           }
@@ -84314,6 +84442,96 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/physical_resources/ledger_accounting.generated.mbt",
+      "responsibilityFacet": "Core declaration-order numeric Ledger projection",
+      "sha256": "6d9e13931fe4e1d8f392186634d9b5eeee53431d510d062a8189d419adc3bb44",
+      "role": "generated-binding",
+      "owner": "Existing physical_resources Ledger declarations and transport generator",
+      "exports": [],
+      "operations": [
+        {
+          "name": "ledger_limits_usage_values",
+          "declaration": "ledger_limits_usage_values ( ledger : Ledger ) - > Array [ Int64 ]"
+        },
+        {
+          "name": "ledger_usage_values",
+          "declaration": "ledger_usage_values ( usage : LedgerUsage ) - > Array [ Int64 ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "ledger_limits_usage_values",
+            "ledger_usage_values"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Exact generated implementation and selected Core API delta only; no whole-resource API, resource admission, physical stop or normal runtime acceptance."
     }
   ],
   "generated": [],
@@ -84326,10 +84544,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 174,
-    "operations": 4443,
-    "exports": 1061,
-    "explicitContractGroups": 274
+    "modules": 180,
+    "operations": 4518,
+    "exports": 1082,
+    "explicitContractGroups": 285
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }

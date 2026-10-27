@@ -12,6 +12,7 @@ import {openNodeComposedInferProvider} from './infer-operation.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
+import {ledgerUsageDiagnostic} from '../host-common/runtime-core.mjs';
 
 export async function openAcquiredEffectComputation({moon, owner, acquired, managedRun,
   sourceProfile, registry, values, fragment, ordered, sourceAccess,
@@ -19,6 +20,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
   observe, sourceContinuation, computeConfigurations = {}, withComputePauseHandler, modelController,
   submission, existingModel, modelClaim, parentResume, modelJournalPort, contentRun,
   assertUpdateSelectionCurrent, assertContinuationCurrent, originalPreparation, originalModelPlan}) {
+  const preparedOriginal = acquired.prepared, requestOriginal = acquired.requestIdentity;
   const count = moon?.clientProgramEffectAcquisitionCount?.(acquired.prepared);
   const sourceFree = count === 0;
   const multiple = count === 2;
@@ -47,11 +49,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       : moon.strategyHostUsage(moon.clientProgramLocalEffectHostRuntime(checkedHost))
       : moon.clientProgramMultiCapturedLedgerUsage(ledger);
     if (usage === undefined) return;
-    diagnostic(name, {...facts, resourceUsage: Object.fromEntries([
-      'planningWork', 'attempts', 'holdings', 'transferredBytes',
-      'reservedTransferBytes', 'heldBytes', 'reservedRetentionBytes',
-      'reservedExecutionBytes', 'uncertainTransferBytes',
-    ].slice(0, usage.length).map((field, index) => [field, usage[index].toString()]))});
+    diagnostic(name, {...facts, resourceUsage: ledgerUsageDiagnostic(usage)});
   };
   let unresolved = false;
   let pending = true;
@@ -179,15 +177,17 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       originalPreparationRetained = true;
     }
     current();
-    if (managedRun === undefined ||
-        typeof moon.clientProgramInstalledEffectManagedRunCheck !== 'function' ||
-        typeof moon.clientProgramInstalledEffectManagedOperationPlan !== 'function' ||
+    const readPlan = moon.clientProgramInstalledEffectManagedOperationPlan;
+    if (managedRun === undefined || typeof readPlan !== 'function' ||
         typeof moon.clientProgramInstalledEffectManagedHostOpen !== 'function') {
       throw new Error('InstalledEffectPlanUnavailable');
     }
-    checked(moon.clientProgramInstalledEffectManagedRunCheck(managedRun, acquired.prepared, acquired.requestIdentity));
-    const operationPlan = checked(moon.clientProgramInstalledEffectManagedOperationPlan(managedRun));
+    assertAcquiredEffectOriginal(acquired, preparedOriginal, requestOriginal);
+    const operationPlan = checked(Reflect.apply(readPlan, moon,
+      [managedRun, preparedOriginal, requestOriginal]));
+    assertAcquiredEffectOriginal(acquired, preparedOriginal, requestOriginal);
     current();
+    assertAcquiredEffectOriginal(acquired, preparedOriginal, requestOriginal);
     if (acquired.queryTimePreparation !== undefined) {
       if (typeof moon.clientProgramEffectRunQueryTimeMatches !== 'function' ||
           typeof moon.clientProgramEffectRunQueryTimeMatches !== 'function' ||
@@ -415,10 +415,11 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
         captureStartedAt, captureCompletedAt}) : undefined;
     if (component === undefined && infer !== undefined) component = prepareInferComponent();
     current();
-    checked(moon.clientProgramInstalledEffectManagedRunCheck(managedRun, acquired.prepared, acquired.requestIdentity));
-    if (checked(moon.clientProgramInstalledEffectManagedOperationPlan(managedRun)) !== operationPlan) {
-      throw new Error('ForeignInstalledEffectManagedRun');
-    }
+    assertAcquiredEffectOriginal(acquired, preparedOriginal, requestOriginal);
+    const currentPlan = checked(Reflect.apply(readPlan, moon,
+      [managedRun, preparedOriginal, requestOriginal]));
+    assertAcquiredEffectOriginal(acquired, preparedOriginal, requestOriginal);
+    if (currentPlan !== operationPlan) throw new Error('ForeignInstalledEffectManagedRun');
     checkedHost = checked(moon.clientProgramInstalledEffectManagedHostOpen(managedRun,
       owner, captures.map(value => value.capture.source())));
     if (checkedHost === undefined) {
@@ -553,5 +554,14 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       cleanupOwner: custody});
   } finally {
     settled = true;
+  }
+}
+
+// The original acquisition/dispatch boundary keeps the same prepared/request
+// across the bound getter and its existing outer current callback.
+function assertAcquiredEffectOriginal(acquired, prepared, request) {
+  if (acquired.prepared !== prepared || acquired.requestIdentity !== request) {
+    throw Object.assign(new Error('ForeignInstalledEffectManagedRun'),
+      {code: 'ForeignInstalledEffectManagedRun'});
   }
 }

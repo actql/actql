@@ -1,3 +1,5 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {gzipSync} from 'node:zlib';
@@ -43,13 +45,13 @@ test('actual TLS selects original DATE and UTC LTZ formats and captures exact fr
   assert.equal(result.rows, 2n); assert.equal(result.pages, 2);
   assert.equal(result.wireBytes, BigInt(wire.reduce((n, b) => n + b.length, 0)));
   assert.equal(result.decodedBytes, BigInt(bodies.reduce((n, b) => n + b.length, 0)));
-  assert.equal(f.row.usage()[3], result.wireBytes);
-  assert.ok(f.row.usage()[6] > 0n && f.row.usage()[7] > 0n);
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, result.wireBytes);
+  assert.ok(ledgerUsageSnapshot(f.row.usage()).reservedRetentionBytes > 0n && ledgerUsageSnapshot(f.row.usage()).reservedExecutionBytes > 0n);
   assert.deepEqual(f.row.captureRows().map(JSON.parse), [
     {ACCOUNT_ID: 'a1', ACTIVE_USERS: '2024-02-29', TREND: '1969-12-31T23:59:59.999999999Z'},
     {ACCOUNT_ID: 'a2', ACTIVE_USERS: '2000-02-29', TREND: '1970-01-01T00:00:00.1234Z'}]);
   assert.deepEqual(f.journal.recover().map(value => value.outcome), ['succeeded', 'succeeded', 'succeeded']);
-  f.row.close(); assert.deepEqual(f.row.usage().slice(4, 8), [0n, 0n, 0n, 0n]);
+  f.row.close(); assert.deepEqual(ledgerUsageFieldsFor(f.row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });
 
 test('selected temporal SQL NULL remains distinct from text and retains canonical milliseconds', async t => {
@@ -62,7 +64,7 @@ test('selected temporal SQL NULL remains distinct from text and retains canonica
   assert.deepEqual(f.row.captureRows().map(JSON.parse), [
     {ACCOUNT_ID: 'a1', ACTIVE_USERS: '0001-01-01', TREND: null},
     {ACCOUNT_ID: 'a2', ACTIVE_USERS: '9999-12-31', TREND: '1970-01-01T00:00:00.123Z'}]);
-  assert.equal(f.row.usage()[3], BigInt(body.length));
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, BigInt(body.length));
 });
 
 test('actual temporal format and scale contradictions stay charged Unknown without capture or resend', async t => {
@@ -80,12 +82,12 @@ test('actual temporal format and scale contradictions stay charged Unknown witho
       assert.equal(error.originalStatement.statementHandle, 'original-temporal');
       assert.deepEqual(error.observation.body, body); return true;
     });
-    assert.equal(f.row.usage()[3], BigInt(first.length + body.length));
+    assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, BigInt(first.length + body.length));
     assert.equal(f.state.requests.length, 2); f.row.assertNoCapture();
     const resolutions = f.state.resolutions;
     await assert.rejects(f.read(), {code: 'MoonBitHostFailure'});
     assert.equal(f.state.requests.length, 2); assert.equal(f.state.resolutions, resolutions);
-    assert.ok(f.row.usage()[6] > 0n && f.row.usage()[7] > 0n);
-    f.row.close(); assert.deepEqual(f.row.usage().slice(4, 8), [0n, 0n, 0n, 0n]);
+    assert.ok(ledgerUsageSnapshot(f.row.usage()).reservedRetentionBytes > 0n && ledgerUsageSnapshot(f.row.usage()).reservedExecutionBytes > 0n);
+    f.row.close(); assert.deepEqual(ledgerUsageFieldsFor(f.row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   }
 });

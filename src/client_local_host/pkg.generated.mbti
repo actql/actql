@@ -277,7 +277,7 @@ pub fn installed_capture_capacity_values(ClientInstalledCaptureCapacity) -> Arra
 
 pub fn installed_duckdb_capture_capacity(@host.CaptureConfiguration) -> ClientInstalledCaptureCapacity?
 
-pub fn installed_effect_managed_operation_plan(ClientInstalledManagedRun) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue]
+pub fn installed_effect_managed_operation_plan(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue]
 
 pub fn installed_effect_managed_run_requirements(@run_publication_host.PreparedClientEffectComputation, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?) -> Result[Array[Int64], ClientInstalledManagedRunIssue]
 

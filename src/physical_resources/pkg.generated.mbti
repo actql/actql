@@ -104,6 +104,8 @@ pub fn[P] check_node_local_mock_model_run_preparation(NodeManagedRunAdmission[P]
 
 pub fn[P] check_node_managed_run_admission(NodeManagedRunAdmission[P], Ledger) -> Result[Unit, ImportedChildLedgerIssue]
 
+pub fn[P] check_node_managed_run_mutable_admission(NodeManagedRunAdmission[P], P, Ledger) -> Result[Unit, ImportedChildLedgerIssue]
+
 pub fn[P] check_node_managed_run_preparation(NodeManagedRunAdmission[P], P) -> Result[Unit, ImportedChildLedgerIssue]
 
 pub fn[P] check_node_preparation_cleanup_original(NodeManagedRunAdmission[P], Ledger) -> Result[Unit, ImportedChildLedgerIssue]
@@ -213,6 +215,8 @@ pub fn ledger_usage(Ledger) -> LedgerUsage
 pub fn ledger_usage_diagnostic_json(LedgerUsage) -> String
 
 pub fn ledger_usage_has_pending_resources(LedgerUsage) -> Bool
+
+pub fn ledger_usage_values(LedgerUsage) -> Array[Int64]
 
 pub fn mark_cleanup_pending(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 

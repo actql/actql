@@ -1,3 +1,4 @@
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 // Component assembly only: real Account, Credential Site, SQLite and Common
 // RowRun with one fresh loopback service. This is no installed Effect claim.
 import assert from 'node:assert/strict';
@@ -67,7 +68,7 @@ export async function lookupFixture(t, {faults = []} = {}) {
     const failures = [];
     try { if (binding) assert.equal(closeHttpsCredentialBinding(binding), 'closed'); }
     catch (cause) {failures.push(cause);}
-    try { row?.close(); if (row) assert.deepEqual(row.usage().slice(4, 8), [0n, 0n, 0n, 0n]); }
+    try { row?.close(); if (row) assert.deepEqual(ledgerUsageFieldsFor(row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]); }
     catch (cause) {failures.push(cause);}
     try {site?.close();} catch (cause) {failures.push(cause);}
     await writeFile(join(root, 'original-observations.json'), JSON.stringify({

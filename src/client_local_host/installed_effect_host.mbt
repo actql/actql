@@ -41,7 +41,12 @@ fn select_installed_effect_managed_host(
   )?,
   ClientInstalledManagedRunIssue,
 ] {
-  let plan = match installed_effect_managed_operation_plan(owner) {
+  let plan = match
+    installed_effect_managed_operation_plan(
+      owner,
+      @publication_host.prepared_client_effect_run_computation(bound),
+      owner.request,
+    ) {
     Err(issue) => return Err(issue)
     Ok(plan) => plan
   }

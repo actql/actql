@@ -77,3 +77,64 @@ test('ordinary Content ports keep their original purpose and physical-child clea
   assert.equal(ports.status(2), 0);
   assert.equal(runtime.prepareOriginalLocalContentRunPorts(original, prepared), null);
 });
+
+// One imported callback can retire this same original reentrantly. Its
+// successful return is not a current proof after that transition.
+test('ordinary retained current calls once and refuses same-callback terminal reentry', () => {
+  for (const terminal of ['unpublished', 'admitted-stop']) {
+    const prepared = {}, q = {planningWork: 3, attempts: 2, holdings: 2,
+      transferBytes: 20n, retainedBytes: 20n, executionBytes: 20n};
+    let calls = 0, stop;
+    const original = runtime.retainOrdinaryManagedRun(prepared, q, () => {calls++; stop?.();}, () => false);
+    const ports = runtime.prepareOriginalManagedRunPorts(original, prepared);
+    const before = calls;
+    assert.equal(ports.status(1), 0); assert.equal(calls, before + 1);
+    if (terminal === 'admitted-stop') {
+      assert.equal(ports.status(0), 0);
+      assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);
+    }
+    stop = () => assert.equal(terminal === 'unpublished' ? ports.cancelUnpublished() : ports.status(2), 0);
+    const beforeStop = calls;
+    assert.equal(ports.status(1), 1);
+    assert.equal(calls, beforeStop + 1);
+    assert.equal(runtime.ordinaryManagedRunStatus(original).stopped, true);
+    assert.equal(ports.status(1), 1); assert.equal(calls, beforeStop + 1);
+  }
+});
+
+// These are separate original-admission boundaries, not a reused proof from
+// retainedPorts.current. Original cleanup still owns the same terminal duty.
+test('ordinary original assertion cannot return current after its callback retires that same Run', () => {
+  for (const terminal of ['unpublished', 'admitted-stop']) {
+    const prepared = {}; let stop, calls = 0;
+    const original = runtime.retainOrdinaryManagedRun(prepared, requirements, () => {calls++; stop?.();}, () => false);
+    const ports = runtime.prepareOriginalManagedRunPorts(original, prepared);
+    if (terminal === 'admitted-stop') {assert.equal(ports.status(0), 0); assert.equal(zero(ports), 0);}
+    const before = calls; runtime.assertOrdinaryManagedRunCurrent(original, prepared);
+    assert.equal(calls, before + 1);
+    stop = () => assert.equal(terminal === 'unpublished' ? ports.cancelUnpublished() : ports.status(2), 0);
+    const beforeStop = calls;
+    assert.throws(() => runtime.assertOrdinaryManagedRunCurrent(original, prepared),
+      {code: 'NodeManagedRunAdmissionUnavailable'});
+    assert.equal(calls, beforeStop + 1);
+    assert.equal(runtime.ordinaryManagedRunStatus(original).stopped, true);
+  }
+});
+
+test('ordinary original port selection refuses when same-callback reentry already took the sole ports', () => {
+  const prepared = {}; let selecting = false, inner, calls = 0, original;
+  original = runtime.retainOrdinaryManagedRun(prepared, requirements, () => {
+    calls++;
+    if (!selecting) return;
+    selecting = false; inner = runtime.prepareOriginalManagedRunPorts(original, prepared);
+    assert.notEqual(inner, null);
+  }, () => false);
+  selecting = true; const before = calls;
+  assert.equal(runtime.prepareOriginalManagedRunPorts(original, prepared), null);
+  assert.equal(calls, before + 2); // Two distinct calls; neither repeats current.
+  assert.notEqual(inner, null);
+  assert.equal(runtime.prepareOriginalManagedRunPorts(original, prepared), null);
+  assert.equal(calls, before + 2);
+  assert.equal(inner.cancelUnpublished(), 0);
+  assert.equal(runtime.ordinaryManagedRunStatus(original).stopped, true);
+});

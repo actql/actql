@@ -41,6 +41,8 @@ class _NamespaceReader:
     owner: 'LocalByteStore'
     current: Callable[[], None]
     check_fences: Callable[['_NamespaceReader', tuple['ByteFence', ...]], None]
+    check_fences_and_current: Callable[
+        ['_NamespaceReader', tuple['ByteFence', ...], Callable[[], object]], None]
 
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
@@ -930,6 +932,21 @@ class LocalByteStore:
                 failure = error
                 raise
 
+        def check_fences_and_current(
+                view: _NamespaceReader, required: tuple[ByteFence, ...],
+                required_current: Callable[[], object]) -> None:
+            nonlocal failure
+            try:
+                # Each call completes both SQL fences and the original current
+                # observation now. Only that exact observer is already covered.
+                check_fences(view, required)
+                if required_current is not current:
+                    if required_current() is not None:
+                        raise ValueError('Invalid Local physical current callback result')
+            except BaseException as error:
+                failure = error
+                raise
+
         def observe(namespace: str, after: str, consume: _NamespaceConsumer, *,
                     scan: bool) -> None:
             nonlocal reading, reads, copied, failure
@@ -990,7 +1007,8 @@ class LocalByteStore:
                     observe(namespace, after, consume, scan=True),
                 read=lambda namespace, key, consume:
                     observe(namespace, key, consume, scan=False),
-                owner=self, current=current_snapshot, check_fences=check_fences)
+                owner=self, current=current_snapshot, check_fences=check_fences,
+                check_fences_and_current=check_fences_and_current)
             result = inspect(reader)
             if failure is not None:
                 raise failure

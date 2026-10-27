@@ -26,8 +26,9 @@ with its exact token-byte allowance, one node and zero container depth. This
 shares the JSON decoder's exact-significand rebasing before binary64 conversion;
 it does not introduce another floating-point parser. Long mantissa/exponent
 cancellation, overflow and underflow therefore follow the same rules. Unary
-minus folds only a numeric token through grouping alone, rejects negative zero,
-and otherwise produces `negate`.
+minus folds only a numeric token through grouping alone, normalizing signed
+source zero to positive zero, and otherwise produces `negate`. Canonical JSON
+Number and Parameter values still reject negative zero.
 
 Explicit heap continuations implement precedence, non-associative comparison
 families, calls, arrays, searched CASE, CAST and postfix access. Unparenthesized

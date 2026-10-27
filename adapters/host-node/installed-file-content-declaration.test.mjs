@@ -1,3 +1,6 @@
+import {ledgerUsageFields} from './ledger-contract.generated.mjs';
+import {ledgerUsageSnapshot} from '../host-common/runtime-core.mjs';
+import {ledgerUsageFieldsFor} from './fixtures/ledger-usage.mjs';
 // Actual declaration/Checker, installed Source and public Client boundaries.
 // Envelope-only cases are labelled separately from real Store-backed capture.
 import assert from 'node:assert/strict';
@@ -889,7 +892,7 @@ test('original keyed lookup supplies bounded SERIALIZE input without recapture o
       await lookup?.close();
       await value.close();
     }
-    assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(value.ledger).slice(4, 8),
+    assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(value.ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),
       [0n, 0n, 0n, 0n]);
   }
 });
@@ -940,7 +943,7 @@ test('installed lookup uses one shared work allowance before content I/O', async
     && error.outcome === 'not_started');
   assert.equal(sends, 0);
   assert.deepEqual(moon.clientProgramKeyedLookupUsage(value.left).slice(0, 5), [0n, 0n, 0n, 0n, 0n]);
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });
 
 test('original whole lookup refuses right-input sealing before every left occurrence is accepted', async t => {
@@ -988,7 +991,7 @@ test('original whole lookup refuses right-input sealing before every left occurr
   assert.equal(moon.clientProgramKeyedLookupRead(lookup).$tag, 0,
     'one complete key cannot settle a two-occurrence original lookup');
   assert.equal(moon.clientProgramKeyedLookupIdentity(lookup), undefined);
-  assert.ok(moon.clientProgramMultiCapturedLedgerUsage(ledger)[6] > 0n);
+  assert.ok(ledgerUsageSnapshot(moon.clientProgramMultiCapturedLedgerUsage(ledger)).reservedRetentionBytes > 0n);
 });
 
 test('installed whole lookup assembles every original key before exposing its exact right input', async t => {
@@ -1013,12 +1016,12 @@ test('installed whole lookup assembles every original key before exposing its ex
     resource: row.resource, version: row.version}))));
   const work = lookup.work();
   assert.ok(work > 0n);
-  assert.ok(moon.clientProgramMultiCapturedLedgerUsage(ledger)[5] > 0n);
+  assert.ok(ledgerUsageSnapshot(moon.clientProgramMultiCapturedLedgerUsage(ledger)).heldBytes > 0n);
   await lookup.close();
   assert.throws(lookup.capture.read, {code: 'InstalledSourceClosed'});
   assert.throws(lookup.capture.identity, {code: 'InstalledSourceClosed'});
   assert.equal(lookup.work(), work, 'cleanup preserves original cumulative work');
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   await lookup.close();
   assert.equal(requests.length, 2, 'close cannot reopen acquisition');
   assert.equal(moon.clientProgramKeyedLeftReadRows(value.left), 2,
@@ -1500,7 +1503,7 @@ test('actual keyed Host executes and commits ordinary Named Result publication',
       'ordinary Named Result retention outlives temporary acquisition/Compute cleanup');
     assert.equal(Buffer.concat(retainedChunks).toString('utf8'), canonical(expectedRows));
     assert.equal(requests.length, empty ? 0 : 1);
-    assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8),
+    assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),
       [0n, 0n, 0n, 0n]);
   }
   await store.close();
@@ -2320,7 +2323,7 @@ test('normal keyed Host preserves empty capture and cancels before the post-JOIN
     assert.equal(executed.cleanupPending(), false);
     await lookup.close();
     assert.equal(moon.clientProgramKeyedLeftReadRows(value.left), empty ? 0 : 1);
-    assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8),
+    assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),
       [0n, 0n, 0n, 0n], 'same Run Ledger retains no keyed/Compute reservation after cleanup');
   }
 });
@@ -2429,7 +2432,7 @@ test('installed lookup retains the same rows identity and logical work across qu
     totals.push(lookup.work());
     await lookup.close();
     assert.equal(lookup.work(), totals.at(-1));
-    assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+    assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   }
   assert.ok(totals[0] > 0n);
   assert.deepEqual(totals, [totals[0], totals[0], totals[0]], 'quantum is not logical work');
@@ -2451,9 +2454,9 @@ test('installed lookup refuses cancellation after positive physical work without
     keyedAcquisition: value.acquisition, left: value.left, ledger, signal: abort.signal}),
   error => error.code === 'StoppedOriginalLookup' && error.outcome === 'stopped');
   assert.equal(sends, 2);
-  assert.ok(moon.clientProgramMultiCapturedLedgerUsage(ledger)[3] > 0n,
+  assert.ok(ledgerUsageSnapshot(moon.clientProgramMultiCapturedLedgerUsage(ledger)).transferredBytes > 0n,
     'cancellation never refunds observed physical bytes');
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   assert.equal(moon.clientProgramKeyedLeftReadRows(value.left), 2);
 });
 
@@ -2471,7 +2474,7 @@ test('installed empty original lookup makes zero GETs and seals a typed empty ri
   assert.ok(lookup.capture.read());
   assert.deepEqual(moon.clientProgramKeyedLookupUsage(value.left).slice(0, 5), [0n, 0n, 0n, 0n, 0n]);
   await lookup.close();
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });
 
 test('installed middle-key uncertainty retains assembly and original physical recovery without resend', async t => {
@@ -2501,14 +2504,14 @@ test('installed middle-key uncertainty retains assembly and original physical re
   assert.equal(sends, 2);
   assert.equal(failure.recovery.cleanupPending(), true);
   const retained = moon.clientProgramMultiCapturedLedgerUsage(ledger);
-  assert.ok(retained[3] > 0n && retained[6] > 0n && retained[7] > 0n);
+  assert.ok(ledgerUsageSnapshot(retained).transferredBytes > 0n && ledgerUsageSnapshot(retained).reservedRetentionBytes > 0n && ledgerUsageSnapshot(retained).reservedExecutionBytes > 0n);
   assert.equal(await failure.recovery.cleanup(), false);
   assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger), retained,
     'unconfirmed child stop cannot return the assembly reservation');
   stopped = true;
   assert.equal(await failure.recovery.cleanup(), true);
   assert.equal(failure.recovery.cleanupPending(), false);
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   const calls = physicalCleanups;
   assert.equal(await failure.recovery.cleanup(), true);
   assert.equal(physicalCleanups, calls, 'successful physical cleanup is not repeated');
@@ -2530,7 +2533,7 @@ test('installed lookup checks its original owner and reserves assembly before pr
     keyedAcquisition: value.acquisition, left: value.left, ledger: tiny}),
   {code: 'MoonBitHostFailure'});
   assert.equal(sends, 0);
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(tiny).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(tiny), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });
 
 test('installed original keyed acquisition retains its right port and charges the physical page once', async t => {
@@ -2561,10 +2564,10 @@ test('installed original keyed acquisition retains its right port and charges th
     {content: admittedContent, resource: resource('d'), version: 'v1'},
   ]));
   const usage = moon.clientProgramMultiCapturedLedgerUsage(ledger);
-  assert.equal(usage[3], bodyBytes, 'the charged body is not charged again during admission');
-  assert.equal(usage[2], 1n);
-  assert.ok(usage[5] > 0n);
-  assert.deepEqual(usage.slice(6, 8), [0n, 0n]);
+  assert.equal(ledgerUsageSnapshot(usage).transferredBytes, bodyBytes, 'the charged body is not charged again during admission');
+  assert.equal(ledgerUsageSnapshot(usage).holdings, 1n);
+  assert.ok(ledgerUsageSnapshot(usage).heldBytes > 0n);
+  assert.deepEqual(ledgerUsageFieldsFor(usage, ["reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n]);
   assert.deepEqual(moon.clientProgramKeyedLookupUsage(value.left).slice(0, 5),
     [1n, 1n, BigInt(Buffer.byteLength(canonical({resource: resource('d'), version: 'v1'}))),
       bodyBytes, bodyBytes]);
@@ -2572,7 +2575,7 @@ test('installed original keyed acquisition retains its right port and charges th
   assert.throws(acquired.capture.read, {code: 'MoonBitHostFailure'});
   assert.throws(acquired.capture.identity, {code: 'MoonBitHostFailure'});
   const released = moon.clientProgramMultiCapturedLedgerUsage(ledger);
-  assert.deepEqual(released.slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(released, ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   acquired.close();
   assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger), released);
   assert.equal(moon.clientProgramKeyedLeftReadRows(value.left), 1,
@@ -2593,7 +2596,7 @@ test('per-Run keyed capture refuses invalid or ambiguous custody before reservat
       await assert.rejects(value.adapter.openKeyedLookup({preparedProgram: value.preparedProgram,
         keyedAcquisition: value.acquisition, left: value.left, ledger, keyedContent}),
       {code: 'InvalidInstalledContentCapture'});
-      assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger), Array(9).fill(0n));
+      assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger), Array(ledgerUsageFields.length).fill(0n));
     }
   }
   const installed = await capturedListingForOriginalKeyedProgram({captureContent,
@@ -2604,7 +2607,7 @@ test('per-Run keyed capture refuses invalid or ambiguous custody before reservat
     keyedAcquisition: installed.acquisition, left: installed.left, ledger,
     keyedContent: {capture: captureContent, referenceIssuer: issuer}}),
   {code: 'InvalidInstalledContentCapture'});
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger), Array(9).fill(0n));
+  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger), Array(ledgerUsageFields.length).fill(0n));
   assert.equal(sends, 0);
 });
 
@@ -2745,7 +2748,7 @@ test(`GCS physical keyed read uses the original RowRun and real Store-backed Con
     'metadata and content use separate immutable registered credential operations');
   assert.equal(lookup.capture.identity(), cid([{resource: resource('d'), version: generation,
     content: expectedRef}]));
-  assert.equal(moon.clientProgramMultiCapturedLedgerUsage(ledger)[3], BigInt(metadataBody.length + payload.length));
+  assert.equal(ledgerUsageSnapshot(moon.clientProgramMultiCapturedLedgerUsage(ledger)).transferredBytes, BigInt(metadataBody.length + payload.length));
   assert.deepEqual(moon.clientProgramKeyedLookupUsage(value.left).slice(0, 2), [1n, 2n]);
   assert.equal(moon.clientProgramKeyedLookupUsage(value.left)[3], BigInt(metadataBody.length + payload.length));
   assert.ok(await store.inspectPhysicalHolding(holdings[0].holding_cid));
@@ -2757,7 +2760,7 @@ test(`GCS physical keyed read uses the original RowRun and real Store-backed Con
   await lookup.close();
   assert.equal(moon.clientProgramKeyedLeftReadRows(value.left), 1,
     'closing the right lookup never closes its borrowed original listing');
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   await dispose();
   scratch.passed();
 });
@@ -3029,7 +3032,7 @@ test(missingKeyedPreparation
   assert.equal(gets, 2, 'missing custody is a refusal, never recapture');
   assert.equal(await cleanupOwner.close(), true);
   assert.equal(await cleanupOwner.close(), true);
-  for (const quantity of moon.clientProgramMultiCapturedLedgerUsage(restoredLedger).slice(4, 8)) {
+  for (const quantity of ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(restoredLedger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"])) {
     assert.equal(quantity, 0n, 'the same receiving frame releases all live capacity');
   }
   await reopenedStore.close();
@@ -3201,7 +3204,7 @@ test('captured Content inventory restores every original holding before enabling
   assert.throws(() => restored.capture({}), /InstalledKeyedContentCaptureMismatch/u,
     'failed recovery cannot switch to acquisition of new bytes');
   for (const candidate of candidates) assert.equal(reissue(restored, candidate).$tag, 0);
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(restoredLedger).slice(6, 8), [199936n, 203776n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(restoredLedger), ["reservedRetentionBytes","reservedExecutionBytes"]), [199936n, 203776n]);
   await children[1].retryRecovery();
   assert.deepEqual(restored.recoveryInventory(), original);
   for (const candidate of candidates) assert.equal(reissue(restored, candidate).$tag, 1);
@@ -3214,7 +3217,7 @@ test('captured Content inventory restores every original holding before enabling
   for (const candidate of candidates) assert.equal(reissue(restored, candidate).$tag, 0,
     'cancellation revokes authority before asynchronous cleanup');
   await children[1].cleanup();
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(restoredLedger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(restoredLedger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   await dispose();
   scratch.passed();
 });
@@ -3275,7 +3278,7 @@ test(`Run-bound capture preserves original workspace and retry handles after Sto
   assert.equal(allocations, 1);
   assert.equal(child.cleanupPending(), true);
   const pending = moon.clientProgramMultiCapturedLedgerUsage(ledger);
-  assert.deepEqual(pending.slice(6, 8), [199936n, 203776n]);
+  assert.deepEqual(ledgerUsageFieldsFor(pending, ["reservedRetentionBytes","reservedExecutionBytes"]), [199936n, 203776n]);
   if (failure === 'close') {
     await assert.rejects(child.cleanup(), {code: 'FixtureWriterClosePending'});
     assert.equal(child.cleanupPending(), true);
@@ -3284,7 +3287,7 @@ test(`Run-bound capture preserves original workspace and retry handles after Sto
   closeAllowed = true;
   assert.equal(await child.cleanup(), true);
   assert.equal(child.cleanupPending(), false);
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   const finished = moon.clientProgramMultiCapturedLedgerUsage(ledger), finishedCloses = closeAttempts;
   assert.equal(await child.cleanup(), true);
   assert.equal(closeAttempts, finishedCloses);
@@ -3323,7 +3326,7 @@ test('captured file locator borrows original metadata after WHERE and path proje
   assert.equal(gets, 1);
   await lookup.close();
   assert.equal(moon.clientProgramKeyedLeftReadRows(value.left), 1);
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });
 
 test('retained original file metadata restores its checked locator after Source closure without relisting', async t => {
@@ -3451,7 +3454,7 @@ test('retained original file metadata restores its checked locator after Source 
   assert.equal(tooSmall.$tag, 0);
   assert.match(inspect(tooSmall._0), /ClientSourceCaptureIssue.*Physical/u);
   assert.equal(tooSmall._0._0, 5, 'compiled LedgerIssue.RetentionLimit');
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(insufficient).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(insufficient), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   assert.deepEqual(moon.clientProgramSourceCaptureUsage(receivingOwner), [26404096n, 0n, 0n]);
   const left = checked(moon.clientProgramKeyedCaptureLeftRead(recovered.acquisition, restored.capture.source()));
   const ledger = lookupLedger();
@@ -3539,7 +3542,7 @@ test('captured file locator refuses missing metadata before provider I/O and rec
   assert.equal(gets, 0);
   assert.equal(moon.clientProgramKeyedLookupUsage(value.left)[1], 0n);
   assert.equal(moon.clientProgramKeyedLeftReadRows(value.left), 1);
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });
 
 test('captured file locator refuses equivalent foreign capture and observes original closure', async t => {
@@ -3572,7 +3575,7 @@ test('captured file locator refuses equivalent foreign capture and observes orig
   moon.clientProgramKeyedFileLocatorCancel(locator);
   moon.clientProgramKeyedLookupStop(lookup);
   while (!checked(moon.clientProgramKeyedLookupCleanup(lookup, 64))) {}
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });
 
 test('physical keyed verification debits only the original active lookup allowance', async t => {
@@ -3631,7 +3634,7 @@ test('physical keyed verification work refusal preserves consumed work and origi
   assert.equal(moon.clientProgramKeyedLookupWork(lookup), baseline + 9n,
     'cleanup does not refund already consumed verification work');
   assert.equal(moon.clientProgramKeyedLeftReadRows(value.left), 1);
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });
 
 test('installed keyed response refusal recovers physical stop without successful evidence', async t => {
@@ -3666,16 +3669,16 @@ test('installed keyed response refusal recovers physical stop without successful
   assert.equal(await failure.recovery.cleanup(), false,
     'an unobserved transport end cannot return reserved capacity');
   const usage = moon.clientProgramMultiCapturedLedgerUsage(ledger);
-  assert.ok(usage[3] > 0n);
-  assert.equal(usage[5], 0n);
-  assert.ok(usage[6] > 0n && usage[7] > 0n);
+  assert.ok(ledgerUsageSnapshot(usage).transferredBytes > 0n);
+  assert.equal(ledgerUsageSnapshot(usage).heldBytes, 0n);
+  assert.ok(ledgerUsageSnapshot(usage).reservedRetentionBytes > 0n && ledgerUsageSnapshot(usage).reservedExecutionBytes > 0n);
   assert.equal(moon.clientProgramKeyedLeftReadRows(value.left), 1);
   assert.equal(stopRequests, 1);
   stopped = true;
   assert.equal(await failure.recovery.cleanup(), true);
   assert.equal(failure.recovery.cleanupPending(), false);
   const released = moon.clientProgramMultiCapturedLedgerUsage(ledger);
-  assert.deepEqual(released.slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(released, ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   assert.equal(await failure.recovery.cleanup(), true);
   assert.equal(cleanupCalls, 2, 'successful physical cleanup is not invoked twice');
   assert.equal(requests, 1, 'cleanup does not resend the failed keyed request');
@@ -3712,8 +3715,8 @@ test('installed keyed preparation rejects a foreign Program and current content 
   assert.equal(contentChecks, 1);
   assert.equal(requests, 0);
   const after = moon.clientProgramMultiCapturedLedgerUsage(ledger);
-  assert.equal(after[3], 0n);
-  assert.deepEqual(after.slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.equal(ledgerUsageSnapshot(after).transferredBytes, 0n);
+  assert.deepEqual(ledgerUsageFieldsFor(after, ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   assert.equal(moon.clientProgramKeyedLeftReadRows(value.left), 1);
 });
 
@@ -3781,7 +3784,7 @@ test('installed keyed requests share their original left lookup byte budget acro
   assert.deepEqual(after.slice(0, 5),
     [3n, 3n, requestBytes * 3n, responseBytes * 2n, responseBytes * 2n]);
   assert.equal(sends, 2, 'the over-limit request is not sent');
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   value.close();
   assert.deepEqual(moon.clientProgramKeyedLookupUsage(value.left), after,
     'cleanup and producer closure do not erase acquisition accounting');
@@ -3808,8 +3811,8 @@ test('installed keyed wire limit retains the received physical charge and forbid
   assert.equal(moon.clientProgramKeyedLookupUsage(value.left)[3], BigInt(body.length));
   assert.equal(moon.clientProgramKeyedLookupUsage(value.left)[4], 0n,
     'wire refusal precedes decoded admission');
-  assert.equal(moon.clientProgramMultiCapturedLedgerUsage(ledger)[3], BigInt(body.length));
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.equal(ledgerUsageSnapshot(moon.clientProgramMultiCapturedLedgerUsage(ledger)).transferredBytes, BigInt(body.length));
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   await assert.rejects(value.adapter.openKeyed({preparedProgram: value.preparedProgram,
     keyedAcquisition: value.acquisition, request: await originalKeyedRequest(value), ledger}),
     error => error.code === 'MoonBitHostFailure' && error.outcome === 'not_started');
@@ -3825,7 +3828,7 @@ test('installed keyed driver return without a physical send observation is not c
     keyedAcquisition: value.acquisition, request: await originalKeyedRequest(value), ledger}),
     error => error.code === 'MoonBitHostFailure' && error.outcome === 'not_started');
   assert.deepEqual(moon.clientProgramKeyedLookupUsage(value.left).slice(0, 5), [0n, 0n, 0n, 0n, 0n]);
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });
 
 test('installed keyed network attempts consume the same request allowance without automatic retry', async t => {
@@ -3848,7 +3851,7 @@ test('installed keyed network attempts consume the same request allowance withou
   const requestBytes = BigInt(Buffer.byteLength(canonical({resource: resource('d'), version: 'v1'})));
   assert.deepEqual(moon.clientProgramKeyedLookupUsage(value.left).slice(0, 5),
     [1n, 4n, requestBytes * 4n, 0n, 0n]);
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });
 
 test('original checked lookup duration has an inclusive boundary and cannot reset on a new request', async t => {
@@ -3892,7 +3895,7 @@ test('installed keyed lookup deadline requests stop without turning timeout into
   const usage = moon.clientProgramKeyedLookupUsage(value.left);
   assert.equal(usage[1], 1n);
   assert.ok(usage[5] > 20n);
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });
 
 test('original checked lookup distinguishes wire and decoded ceilings and preserves overflow refusal', async t => {
@@ -3938,9 +3941,9 @@ for (const [name, rows] of [
       error.recovery === undefined);
     assert.equal(requests, 1);
     const usage = moon.clientProgramMultiCapturedLedgerUsage(ledger);
-    assert.equal(usage[3], BigInt(Buffer.byteLength(JSON.stringify(rows))));
-    assert.equal(usage[2], 0n);
-    assert.deepEqual(usage.slice(4, 8), [0n, 0n, 0n, 0n]);
+    assert.equal(ledgerUsageSnapshot(usage).transferredBytes, BigInt(Buffer.byteLength(JSON.stringify(rows))));
+    assert.equal(ledgerUsageSnapshot(usage).holdings, 0n);
+    assert.deepEqual(ledgerUsageFieldsFor(usage, ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
     assert.equal(moon.clientProgramKeyedLeftReadRows(value.left), 1);
   });
 }

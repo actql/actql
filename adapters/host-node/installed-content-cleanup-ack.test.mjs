@@ -98,7 +98,7 @@ test('installed Content cleanup retains a real prepared object until the same re
   const run = installNodeContentRun({
     moon: {clientProgramAcquisitionLedger: () => {ledgerPreparations++; return {$tag: 1, _0: ledger};},
       clientProgramAcquisitionCount: () => 0,
-      clientProgramMultiCapturedLedgerUsage: owner => { assert.equal(owner, ledger); return []; }},
+      clientProgramMultiCapturedLedgerUsage: owner => { assert.equal(owner, ledger); return Array(13).fill(0n); }},
     core: {contentGenerationControl: control, publicationControl: publications},
     registry: '{}', values: '{}', fragment: undefined, ordered: undefined,
     namespaceId: 'fixture', authorityScopeCid: cid('independent scope'), storeAuthorityCid: authority,

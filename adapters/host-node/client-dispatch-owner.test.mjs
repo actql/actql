@@ -1,4 +1,5 @@
 import {publicationOriginalFixture} from './fixtures/local-publication-original.mjs';
+import {ledgerUsageFields} from './ledger-contract.generated.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {execFileSync} from 'node:child_process';
@@ -620,7 +621,7 @@ function acquiringOwner(open) {
     moon: {clientProgramAcquisitionCount: () => 1,
       clientProgramRequiresAcquisitionResultPublication: () => false,
       clientProgramPrepareSingleCapturedLocalInstalledLedger: () => ({}),
-      clientProgramMultiCapturedLedgerUsage: () => Array(9).fill(0n)},
+      clientProgramMultiCapturedLedgerUsage: () => Array(ledgerUsageFields.length).fill(0n)},
     control: stopControl,
     journal: {reservePhysicalStart: () => true,
       ...stopFacts(),
@@ -808,7 +809,7 @@ async function preflightDispatchFixture(t, {
       const usage = [...cancellationMoon.strategyHostUsage(value)];
       // A synthetic outstanding byte tests the release barrier independently
       // of successful stop/output-close calls; all other usage stays real.
-      if (blocked === 'usage') usage[5] = 1n;
+      if (blocked === 'usage') usage[ledgerUsageFields.findIndex(({name}) => name === 'reserved_retention_bytes')] = 1n;
       return usage;
     },
     strategyHostNext() { assert.fail('preflight refusal must not enter Compute'); },
