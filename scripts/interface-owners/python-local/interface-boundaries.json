@@ -4634,9 +4634,20 @@
             "result",
             "binding_index"
           ]
+        },
+        {
+          "async": false,
+          "name": "OriginalCommitProjection/validate_reader_facts",
+          "parameters": [
+            "self",
+            "record",
+            "observation",
+            "result",
+            "binding_index"
+          ]
         }
       ],
-      "sha256": "5de9404a5b2d2274369c400f691ff89e56428972ab8b0d99f75a2f3bf8a5e5ce",
+      "sha256": "c3f12e3c3ca1376ec728209d2a8fcdd05fab310f8fa1c5f0ca153fe85c349f36",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -4683,7 +4694,8 @@
             "OriginalCommitProjection/retire_outputs",
             "OriginalCommitProjection/serialized",
             "OriginalCommitProjection/storage_count",
-            "OriginalCommitProjection/validate_payload_binding"
+            "OriginalCommitProjection/validate_payload_binding",
+            "OriginalCommitProjection/validate_reader_facts"
           ],
           "exports": [
             "OriginalCommitProjection"
@@ -49342,6 +49354,13 @@
         },
         {
           "async": false,
+          "name": "OriginalReaderFacts/_material_originals",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "OriginalReaderFacts/_observe_reader",
           "parameters": [
             "self"
@@ -49352,6 +49371,14 @@
           "name": "OriginalReaderFacts/_ready",
           "parameters": [
             "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalReaderFacts/_same_material_originals",
+          "parameters": [
+            "self",
+            "original"
           ]
         },
         {
@@ -49373,6 +49400,13 @@
         {
           "async": false,
           "name": "OriginalReaderFacts/close",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalReaderFacts/observe_original_material",
           "parameters": [
             "self"
           ]
@@ -49406,7 +49440,7 @@
           ]
         }
       ],
-      "sha256": "e43801026649a32a1b0e8716e8c8b875c5ba642e54d559b18d9935c5e548618f",
+      "sha256": "10d266fcf4ed24ae3a25cd38317468ac8609b8fdc51cb1a8e3aa2a9f6d290b66",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -49414,10 +49448,13 @@
           "operations": [
             "OriginalReaderFacts",
             "OriginalReaderFacts/__init__",
+            "OriginalReaderFacts/_material_originals",
             "OriginalReaderFacts/_ready",
+            "OriginalReaderFacts/_same_material_originals",
             "OriginalReaderFacts/before_commit",
             "OriginalReaderFacts/before_lookup",
             "OriginalReaderFacts/close",
+            "OriginalReaderFacts/observe_original_material",
             "OriginalReaderFacts/pending_input",
             "OriginalReaderFacts/serialized",
             "OriginalReaderFacts/uncertain_acquisition_ticket",
@@ -51470,6 +51507,16 @@
         },
         {
           "async": false,
+          "name": "OriginalSDKDeliveryStore/_bound_payload_fact",
+          "parameters": [
+            "self",
+            "request",
+            "first",
+            "original"
+          ]
+        },
+        {
+          "async": false,
           "name": "OriginalSDKDeliveryStore/_close_payload_output",
           "parameters": [
             "self",
@@ -51485,12 +51532,24 @@
         },
         {
           "async": false,
+          "name": "OriginalSDKDeliveryStore/_observe_bound_material",
+          "parameters": [
+            "self",
+            "request",
+            "first",
+            "fact",
+            "original"
+          ]
+        },
+        {
+          "async": false,
           "name": "OriginalSDKDeliveryStore/_payload_observation",
           "parameters": [
             "self",
             "request",
             "clock",
-            "action"
+            "action",
+            "original"
           ]
         },
         {
@@ -51794,7 +51853,7 @@
           ]
         }
       ],
-      "sha256": "807b11baf0f9646c016915777ae11cf5f4610ca410e41d0f02ab665b688b77c1",
+      "sha256": "412ddbc7e76458dfdbcb0084e81ca78be5a85fd532c1d6f399393033232b6d8e",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -51802,8 +51861,10 @@
           "operations": [
             "OriginalSDKDeliveryStore",
             "OriginalSDKDeliveryStore/__init__",
+            "OriginalSDKDeliveryStore/_bound_payload_fact",
             "OriginalSDKDeliveryStore/_close_payload_output",
             "OriginalSDKDeliveryStore/_nominal",
+            "OriginalSDKDeliveryStore/_observe_bound_material",
             "OriginalSDKDeliveryStore/_payload_observation",
             "OriginalSDKDeliveryStore/_payload_observation/inspect",
             "OriginalSDKDeliveryStore/_reserve_payload_output",

@@ -2902,3 +2902,21 @@ state, physical stop/cleanup facts or buffer loans. Projection loans close befor
 their Store workspaces; every Reader, descriptor, input and parent still follows
 its original child-first acknowledgment path. A live or reentrant invocation
 cannot enter this cleanup path, and normal work never resumes from it.
+
+The sealed Reader-facts path composes the two existing public Core validators:
+original payload binding first, then the complete physical snapshot validator.
+It does not implement either rule in Python or require a combined guest export.
+Only success of both calls and the final original physical observation retains
+same-owner immutable material. A failed enclosing current/physical observation
+discards that material, retaining only the same cleanup loans. Successful binding
+is recorded only after the whole original Store/current frame returns.
+
+Only the existing bound Saved SDK byte callers consume that successful material.
+Their public Source, Sealed record, selected binding, access and finish-current
+checks remain mandatory, as do fresh descriptor observations and the complete
+public Host current, Journal and transfer paths. Missing, changed, unbound or
+live material takes complete validation; write/CAS/precommit paths keep their
+full checks. This supplies no active custody transport or lifetime optimization,
+capacity, permission, current-row proof or physical acknowledgment. ABI78 and
+its full public Core validators remain unchanged; no private combined-export,
+ABI82 behavior or runtime timing equivalence is implied.
