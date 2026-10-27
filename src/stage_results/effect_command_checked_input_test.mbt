@@ -33,7 +33,9 @@ fn checked_command_fixture() -> (
 }
 
 ///|
-fn checked_command_wire(input : EffectCommandCheckedInput) -> String {
+fn checked_command_wire(
+  input : EffectCommandCheckedInput,
+) -> String raise @encode.EncodeFailure {
   let writer = @encode.writer(1024, 100, 10)
   @value.emit_checked_wire_value(
     effect_command_checked_input_value(input),
