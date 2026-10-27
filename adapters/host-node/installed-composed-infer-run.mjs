@@ -13,6 +13,7 @@ import {publishCompletedEffectFreeRun} from '../host-common/completed-run-public
 import {projectInferEvidence} from './infer-evaluation-evidence.mjs';
 import {acquiredEffectContinuation} from './acquired-effect-continuation.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
+import {ledgerUsageHasPendingResources} from '../host-common/runtime-core.mjs';
 
 export async function runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,
   store, principalId, signal, retainExecution, acquiredInfer, replay, beginPhysicalWork,
@@ -136,7 +137,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     if (sourceContinuation !== undefined) {await sourceContinuation.close(); sourceContinuation = undefined;}
     if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;
     if (pendingSetup !== undefined) {
-      if (moon.strategyHostUsage(pendingSetup).slice(4).some(value => value !== 0n)) return false;
+      if (ledgerUsageHasPendingResources(moon.strategyHostUsage(pendingSetup))) return false;
       pendingSetup = undefined;
     }
     released = true;

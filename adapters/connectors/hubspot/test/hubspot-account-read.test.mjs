@@ -1,3 +1,4 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
@@ -15,8 +16,8 @@ test('actual identity request uses its original credential and RowRun charge wit
   assert.equal(result.response.body.toString(), f.state.body);
   assert.equal(f.journal.inspect(result.response.useCid).outcome, 'succeeded');
   assert.equal(f.state.charges, 1); assert.equal(f.state.consumed, 1);
-  assert.equal(f.row.usage()[3], BigInt(Buffer.byteLength(f.state.body)));
-  assert.ok(f.row.usage()[6] > 0n && f.row.usage()[7] > 0n);
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, BigInt(Buffer.byteLength(f.state.body)));
+  assert.ok(ledgerUsageSnapshot(f.row.usage()).reservedRetentionBytes > 0n && ledgerUsageSnapshot(f.row.usage()).reservedExecutionBytes > 0n);
   f.row.assertNoCapture();
   assert.equal(f.state.resolutions, 1); assert.equal(f.state.currentCalls, 4);
   assert.equal(Object.keys(f.binding).length, 0);
@@ -39,7 +40,7 @@ test('foreign or rounded account responses keep actual raw custody and charges w
       return true;
     });
     assert.equal(f.state.requests.length, 1); assert.equal(f.state.consumed, 0);
-    assert.equal(f.row.usage()[3], BigInt(Buffer.byteLength(body)));
+    assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, BigInt(Buffer.byteLength(body)));
     f.row.assertNoCapture();
   }
 });
@@ -135,7 +136,7 @@ test('current Account is checked again after the awaited original charge consump
     return true;
   });
   assert.equal(f.state.requests.length, 1); assert.equal(f.state.consumed, 1);
-  assert.equal(f.row.usage()[3], BigInt(Buffer.byteLength(f.state.body)));
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, BigInt(Buffer.byteLength(f.state.body)));
   f.row.assertNoCapture();
 });
 
@@ -164,7 +165,7 @@ test('cleanup during a suspended resolver retains the same original custody unti
   const result = f.observe();
   await entered;
   assert.equal(closeHttpsCredentialBinding(f.binding), 'pending');
-  assert.ok(f.row.usage()[6] > 0n && f.row.usage()[7] > 0n);
+  assert.ok(ledgerUsageSnapshot(f.row.usage()).reservedRetentionBytes > 0n && ledgerUsageSnapshot(f.row.usage()).reservedExecutionBytes > 0n);
   assert.equal(f.state.requests.length, 0);
   resume();
   await assert.rejects(result, {code: 'RemoteCredentialBindingRetiring'});

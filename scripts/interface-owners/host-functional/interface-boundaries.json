@@ -11218,7 +11218,7 @@
     {
       "module": "adapters/host-common/strategy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b85eedf2f4d5aba23051ca11c3d2d7b41662927654323dfb253d07b04e01967b",
+      "sha256": "f99afda3ed9306dc7717539471999b48e43f8c6f79b45852fea4a53bb7f57500",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
@@ -11316,13 +11316,6 @@
         {
           "name": "preflightSetupCleanup/settle/settle",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "preflightSetupCleanup/settle/settle/settle",
-          "parameters": [
-            "key"
-          ],
           "async": false
         },
         {
@@ -11775,7 +11768,6 @@
             "preflightSetupCleanup/init:retry/init:retry",
             "preflightSetupCleanup/preflightSetupCleanup",
             "preflightSetupCleanup/settle/settle",
-            "preflightSetupCleanup/settle/settle/settle",
             "preflightSetupCleanup/status/status",
             "publicationContract/publicationContract",
             "rejectSetupPreflight",
@@ -11991,6 +11983,7 @@
         "./execution-sites.mjs",
         "./managed-site-transfer.mjs",
         "./run-publication-preflight.mjs",
+        "./runtime-core.mjs",
         "./strategy-actions.mjs",
         "./task-observation.mjs"
       ],
@@ -19529,7 +19522,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -19648,7 +19641,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -83128,6 +83121,96 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/physical_resources/ledger_accounting.generated.mbt",
+      "responsibilityFacet": "Core declaration-order numeric Ledger projection",
+      "sha256": "6d9e13931fe4e1d8f392186634d9b5eeee53431d510d062a8189d419adc3bb44",
+      "role": "generated-binding",
+      "owner": "Existing physical_resources Ledger declarations and transport generator",
+      "exports": [],
+      "operations": [
+        {
+          "name": "ledger_limits_usage_values",
+          "declaration": "ledger_limits_usage_values ( ledger : Ledger ) - > Array [ Int64 ]"
+        },
+        {
+          "name": "ledger_usage_values",
+          "declaration": "ledger_usage_values ( usage : LedgerUsage ) - > Array [ Int64 ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "ledger_limits_usage_values",
+            "ledger_usage_values"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Exact generated implementation and selected Core API delta only; no whole-resource API, resource admission, physical stop or normal runtime acceptance."
     }
   ],
   "generated": [],

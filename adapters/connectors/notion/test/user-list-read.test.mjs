@@ -1,3 +1,4 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {NotionUserListReadFailure, NOTION_USER_LIST_OPERATION,
@@ -22,7 +23,7 @@ test('Notion actual SQL and AQL original paged Credential reads capture person a
       x.authorization==='Bearer notion-fixture-token'));
     assert.equal(NOTION_USER_LIST_API_VERSION,'2026-03-11');
     assert.equal(f.state.resolutions,2);assert.equal(f.state.charges,2);
-    assert.equal(f.row.usage()[3],BigInt(result.observations.reduce((sum,x)=>sum+x.body.length,0)));
+    assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes,BigInt(result.observations.reduce((sum,x)=>sum+x.body.length,0)));
     f.row.finish();assert.equal(f.row.captureCount(),2);
     assert.deepEqual(f.journal.recover().map(x=>x.outcome),['succeeded','succeeded']);
     assert.equal(new Set(f.journal.recover().map(x=>x.grantCid)).size,1);

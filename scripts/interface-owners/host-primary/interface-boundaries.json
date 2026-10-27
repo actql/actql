@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "9a6f387baec9879eb409b4de58fe90cf846d7e0356a1db183efe8e883e733d4c",
+      "sha256": "41aee2ec78951ea3fe72cb5691ec0177d4d557e02248600daf24cdc3a0e03fe8",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -130,14 +130,6 @@
           "parameters": [
             "name",
             "facts"
-          ],
-          "async": false
-        },
-        {
-          "name": "openAcquiredEffectComputation/observeUsage/observeUsage/observeUsage",
-          "parameters": [
-            "field",
-            "index"
           ],
           "async": false
         },
@@ -360,7 +352,6 @@
             "openAcquiredEffectComputation/init:observeAccount/init:observeAccount",
             "openAcquiredEffectComputation/init:retainExecution/init:retainExecution",
             "openAcquiredEffectComputation/observeUsage/observeUsage",
-            "openAcquiredEffectComputation/observeUsage/observeUsage/observeUsage",
             "openAcquiredEffectComputation/openAcquiredEffectComputation",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#10",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#11",
@@ -743,6 +734,7 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/diagnostic-observer.mjs",
         "../host-common/effect-preparation-result.mjs",
+        "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
         "./acquired-effect-sources.mjs",
         "./captured-duckdb-source.mjs",
@@ -1522,7 +1514,7 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
-      "sha256": "13810047b24718adb46d14359be4f651adcb6d0fa31cd58fc7569551c84a9854",
+      "sha256": "5c8aeca3338237bef923a7b1efcb78baceb393ea51a413627ee45d4bbfdd730e",
       "exports": [
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
@@ -1761,14 +1753,6 @@
           "async": false
         },
         {
-          "name": "installNodeClientDispatchOwner/resourceUsage/resourceUsage/resourceUsage",
-          "parameters": [
-            "name",
-            "index"
-          ],
-          "async": false
-        },
-        {
           "name": "installNodeClientDispatchOwner/retire",
           "parameters": [
             "entry"
@@ -1781,13 +1765,6 @@
             "entry"
           ],
           "async": true
-        },
-        {
-          "name": "installNodeClientDispatchOwner/settleCleanup/settleCleanup",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/settleCleanupHandle",
@@ -2171,10 +2148,8 @@
             "installNodeClientDispatchOwner/operation/operation",
             "installNodeClientDispatchOwner/releaseAcquisition",
             "installNodeClientDispatchOwner/resourceUsage/resourceUsage",
-            "installNodeClientDispatchOwner/resourceUsage/resourceUsage/resourceUsage",
             "installNodeClientDispatchOwner/retire",
             "installNodeClientDispatchOwner/settleCleanup",
-            "installNodeClientDispatchOwner/settleCleanup/settleCleanup",
             "installNodeClientDispatchOwner/settleCleanupHandle",
             "installNodeClientDispatchOwner/start/start",
             "installNodeClientDispatchOwner/start/start/physical/physical",
@@ -2874,6 +2849,7 @@
         "../host-common/acquisition-outcome.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/diagnostic-observer.mjs",
+        "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
         "../host-common/task-observation.mjs",
         "./client-source-operation.mjs",
@@ -12291,7 +12267,7 @@
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A \u2014 existing Host preparation input boundary",
+      "owner": "A — existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {

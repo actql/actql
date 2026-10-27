@@ -21,7 +21,7 @@ function fixture({reserved = true, failCleanup = false, unresolved = false} = {}
         closes++;
         if (!retry) throw new Error('SetupCleanupPending');
       },
-      strategyHostUsage: () => Array(8).fill(0n)},
+      strategyHostUsage: () => Array(13).fill(0n)},
     control: {runDefinitionRunId: () => 'setup-run',
       runCancellationConfirmed: runtimeCore(moon).publicationControl.runCancellationConfirmed},
     journal: {reservePhysicalStart: () => reserved,

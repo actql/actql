@@ -1,3 +1,4 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {SlackUserListReadFailure,SLACK_USER_LIST_OPERATION,
@@ -22,7 +23,7 @@ test('Slack actual SQL and AQL use distinct identity and page grants on one toke
     assert.equal(f.state.requests[1].body.length,0);assert.equal(f.state.requests[1].contentType,undefined);
     assert(f.state.requests.every(x=>x.authorization==='Bearer slack-fixture-token'));
     assert.equal(f.state.resolutions,3);assert.equal(f.state.charges,3);assert.equal(f.state.observationCharges,1);
-    assert.equal(f.row.usage()[3],BigInt(result.observations.reduce((sum,x)=>sum+x.body.length,0)));
+    assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes,BigInt(result.observations.reduce((sum,x)=>sum+x.body.length,0)));
     f.row.finish();assert.equal(f.row.captureCount(),2);
     // Credential Journal success is named succeeded by its original owner;
     // this is not a public Effect accepted/applied transition.

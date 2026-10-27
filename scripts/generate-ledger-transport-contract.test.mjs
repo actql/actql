@@ -82,6 +82,7 @@ test('complete Core accounting snapshot uses declared order and exact primitive 
   const generated = renderLedgerAccountingValues(core);
   assert.equal(generated, readFileSync(new URL('../src/physical_resources/ledger_accounting.generated.mbt', import.meta.url), 'utf8'));
   assert.match(generated, /ledger_limits_usage_values\(ledger : Ledger\)/u);
+  assert.match(generated, /ledger_usage_values\(usage : LedgerUsage\)/u);
   assert(generated.indexOf('usage.reserved_attempts.to_int64()') < generated.indexOf('usage.holdings.to_int64()'));
   assert.match(generated, /usage\.transferred_bytes,/u);
   assert(!generated.includes('usage.transferred_bytes.to_int64()'));

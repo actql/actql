@@ -1,3 +1,5 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {snowflakeFixture, pending} from './snowflake-read.fixture.mjs';
@@ -28,7 +30,7 @@ test('undefined rejection after original POST202 preserves charge and Unknown wi
     assert.deepEqual(error.observation.body, body); return true;
   });
   assert.equal(f.state.requests.length, 1); assert.equal(f.state.requests[0].method, 'POST');
-  assert.equal(f.row.usage()[3], BigInt(body.length));
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, BigInt(body.length));
   assert.deepEqual(f.journal.recover().map(r => r.outcome), ['succeeded']);
   f.row.assertNoCapture();
 });
@@ -74,7 +76,7 @@ test('undefined refusal-recording fault remains distinct from the real gzip fail
     assert.equal(Object.keys(error).includes('recordingFailure'), false); return true;
   });
   assert.equal(f.state.requests.length, 1);
-  assert.equal(f.row.usage()[3], BigInt(Buffer.byteLength('not-gzip')));
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, BigInt(Buffer.byteLength('not-gzip')));
   f.row.assertNoCapture();
 });
 
@@ -93,10 +95,10 @@ test('an injected cleanup refusal cannot replace an original undefined rejection
       assert.equal(error.outcome, 'unknown'); return true;
     });
     assert.equal(f.state.requests.length, 1);
-    assert.ok(f.row.usage()[7] > 0n);
+    assert.ok(ledgerUsageSnapshot(f.row.usage()).reservedExecutionBytes > 0n);
     // The real registered observer, not the injected port, owns this ACK.
     f.row.close();
-    assert.deepEqual(f.row.usage().slice(4, 8), [0n, 0n, 0n, 0n]);
+    assert.deepEqual(ledgerUsageFieldsFor(f.row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   }
 });
 
