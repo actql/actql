@@ -31,9 +31,12 @@ test "stale Source registry is refused by the original admission before acquisit
     is Err(UnsupportedRegistry),
   )
   assert_true(
-    resident_effect_source_requirement(
-      registry=resident_effect_source_historical_registry,
+    @local.prepare_installed_sequence_contracts(
+      resident_effect_source_historical_registry,
+      resident_effect_source_values,
+      Some(resident_effect_source_fragment),
+      None,
     )
-    is Err(Query(Sequences)),
+    is Err(@local.Unsupported),
   )
 }
