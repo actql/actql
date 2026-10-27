@@ -4,11 +4,10 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {inspect} from 'node:util';
 import test from 'node:test';
-import * as moon from '../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../adapters/host-common/runtime-result.mjs';
 import {rowSourceCheckEnvironment} from '../adapters/host-node/installed-row-source.mjs';
 import {installedConnectors} from '../adapters/connectors-builtin/installations.generated.mjs';
-import {contentCommandFixture} from '../adapters/host-node/fixtures/content-command.fixture.mjs';
+import {contentCommandFixture, moon} from '../adapters/host-node/fixtures/content-command.fixture.mjs';
 
 const baseWire = (await readFile(new URL('../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
 const environment = wire => moon.clientProgramCheckEnvironment(wire,
@@ -56,13 +55,17 @@ test('independent Source uses the original acquisition owner and exact bounded c
   const prepared = moon.clientProgramPreparationReady(outcome);
   assert.ok(prepared, inspect(moon.clientProgramPreparationIssue(outcome), {depth: 6}));
   const read = path => readFile(new URL(`../spec/${path}`, import.meta.url), 'utf8');
-  const [registry, aoa, query, evidence] = await Promise.all([
+  const [registryWire, aoa, query, evidence] = await Promise.all([
     read('dependencies/aoa-pipeline-registry.json'), read('contracts/actql-aoa.json').then(JSON.parse),
     read('contracts/actql-query-acquisition.json'), read('contracts/actql-query-process-evidence.json')]);
+  const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+  const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+  const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  // Retain the same original contract owner for requirement and acquisition;
+  // registry wire is constructor input, never the already-admitted selection.
+  const registry = checked(moon.clientPrepareInstalledSequenceContracts(registryWire, values, fragment, ordered));
   const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(prepared, 0, 0,
-    registry, JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    registry, values, fragment, ordered));
   const acquisition = checked(moon.clientProgramRowSourcePrepareAcquisition(
     declaration, requirement, query, evidence));
   assert.equal(checked(moon.clientProgramRowSourceRequestWire(acquisition)), '{}');
