@@ -80,6 +80,7 @@ pub fn load_current_component_with_custody(
   diagnostic_ceiling : Int,
   command_member? : @filesystem.NativeObservedComponentMember? = None,
 ) -> Result[Library, NativeSqliteLibraryLoadError] {
+  ignore(command_member)
   if heap_bytes < 4096L || heap_bytes > 2147483647L || diagnostic_ceiling <= 0 {
     return Err(RefusedBeforeAcquisition(InvalidLimit))
   }

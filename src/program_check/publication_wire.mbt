@@ -1,6 +1,9 @@
 ///|
 // Private to one artifact construction. This retains the already-checked
 // metadata, not an execution grant or a physical publication acknowledgement.
+// Retain the original checked host policy with its reduced row bound. The
+// independent white-box wire oracle also borrows this exact original context.
+#warnings("-unused_field")
 priv struct PreparedPublicationRowBody {
   _host : @host.Witness
   candidates : Array[(String, @wire.WireWitness?)]

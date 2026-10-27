@@ -1,12 +1,12 @@
 ///|
 fn partition_test_member(
   preview : EffectPreviewIdentity,
-  member : Int,
+  member_index : Int,
   state : String,
 ) -> PublicationContract {
   let cid = effect_receipt_test_cid("e")
   let row = "{\"row_index\":0,\"row_preview_cid\":\"" +
-    effect_preview_ordered_row_identity(preview, member, 0).unwrap() +
+    effect_preview_ordered_row_identity(preview, member_index, 0).unwrap() +
     "\",\"state\":\"" +
     state +
     "\"" +
@@ -42,7 +42,7 @@ fn partition_test_member(
     "\",\"effect_preview_cid\":\"" +
     effect_preview_semantic_identity(preview) +
     "\",\"effect_member_preview_cid\":\"" +
-    effect_preview_member_identity(preview, member).unwrap() +
+    effect_preview_member_identity(preview, member_index).unwrap() +
     "\",\"rows\":[" +
     row +
     "],\"status\":\"" +
@@ -66,10 +66,10 @@ test "admitted Set outcomes distinguish unattempted from every entered state" {
       ("applied", 0, false),
       ("accepted", 0, false),
     ] {
-    let member = partition_test_member(preview, 0, state)
+    let member_receipt = partition_test_member(preview, 0, state)
     let set = issue_effect_set_apply_receipt_from_members(
       preview,
-      [member],
+      [member_receipt],
       [false],
       16384,
       512,
@@ -78,7 +78,7 @@ test "admitted Set outcomes distinguish unattempted from every entered state" {
     let original = admit_effect_set_apply_receipt_evidence(
       preview,
       set.wire,
-      [member.wire],
+      [member_receipt.wire],
       16384,
       512,
       16,
