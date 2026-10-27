@@ -180,6 +180,19 @@ class OriginalCommitProjection:
         """Consume original identity/body without recreating or parsing a contract."""
         self._project(ordinal, False, consume, expected_generation)
 
+    def validate_reader_facts(self, record: _Output, observation: _Input,
+                              result: int, binding_index: int) -> None:
+        """Compose the two existing complete public validators in order.
+
+        The caller retains the same sealed input and physical fences. This
+        ABI78 path is not the private combined guest export: snapshot current
+        and binding checks remain in their original Core implementations.
+        """
+        with self._core._lock:
+            self.validate_payload_binding(record, result, binding_index)
+            self._core.validate_payload_snapshot(
+                record, observation, self._configuration)
+
     def project_index_reference(self, consume: Callable[[ByteWrite], object], *,
                                 expected_generation: int | None = None) -> None:
         """Consume the Owner's scoped key and original index CID, not JSON body."""
