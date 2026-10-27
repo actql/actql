@@ -260,3 +260,37 @@ original diagnostic location. Clearing this continuation drops its references;
 it does not settle the parent, release escaped source/outcome aliases, refund
 attempts or acknowledge physical stop. Actual backend entrance funding and the
 remaining type/default/metadata constructors must consume this same parent.
+
+### Type facts before default construction
+
+`DeclarationReadInput` drives the same reader through header, type and value
+constructor boundaries. Ordinary `finish_declaration_read` drives those steps
+to completion; a funded caller may advance one step at a time. Neither path
+has a second implementation of name, type, metadata, default or constraint
+admission. The input retains either its private traversal or its completed
+original Result, and repeated finishing returns that Result unchanged.
+
+The header retains the actual object, canonical name order and selected
+original Cursor. It performs no non-null admission before that entry's name
+check. The type step applies Decode's original non-null requirement and the
+existing Parameter syntax reader once. Before the value step,
+`declaration_read_pending_syntax` borrows that same completed syntax, including
+its checked ParameterType and original metadata/default Cursors. The caller
+can therefore request the existing Value constructor inventory using the
+actual admitted type, without interpreting type names or default contents to
+reconstruct a contract.
+
+The value step keeps metadata validation before default admission and the next
+entry's name/type work. It forwards the same ParameterType into the final
+Declaration. Finishing a partly advanced reader resumes those original facts;
+it does not reread the type. Phase and original-data accessors perform no
+current callback, Map lookup or resource mutation. Phase DATA supplied by a
+caller is never accepted as a proof or transition input.
+
+These semantic boundaries do not supply their own resources. Header/type,
+metadata, default Value, refusal and retained-result coexistence must all be
+funded on the same preparation before advancing. The preflight packet still
+covers only the initial four-reference read input; its state field replaces
+the former optional-result field without adding a parallel owner. Backend
+entrance frames and full later-phase funding remain the actual consumer's
+responsibility, rather than implied by a successful pure reader step.

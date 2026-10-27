@@ -6,7 +6,7 @@ struct DeclarationReadInput {
   root : @decode.Cursor?
   limits : DeclarationLimits
   usage : (Int, Int)
-  mut outcome : Result[Declarations, Issue]?
+  mut state : DeclarationReadState
 }
 
 ///|
@@ -21,14 +21,14 @@ pub fn prepare_declaration_read(
   let (preflight, nodes, text) = preflight_declaration_read(root, limits)
   let result = match preflight {
     Err(issue) => Err(issue)
-    Ok(_) => Ok({ root, limits, usage: (nodes, text), outcome: None, })
+    Ok(_) => Ok({ root, limits, usage: (nodes, text), state: AwaitingHeader, })
   }
   (result, nodes, text)
 }
 
 ///|
 // Sole original preflight and first-refusal usage implementation. The ordinary
-// reader and the split Resource caller share it; only the latter retains a
+// reader and the split Resource caller share it; only the latter exposes a
 // DeclarationReadInput. No global cache or cross-request result is installed.
 fn preflight_declaration_read(
   root : @decode.Cursor?,
@@ -64,16 +64,13 @@ fn preflight_declaration_read(
 pub fn finish_declaration_read(
   original : DeclarationReadInput,
 ) -> Result[Declarations, Issue] {
-  match original.outcome {
-    Some(completed) => completed
-    None => {
-      let outcome = finish_declaration_read_owned(
-        original.root,
-        original.limits,
-        original.usage,
-      )
-      original.outcome = Some(outcome)
-      outcome
+  for state = original.state {
+    match state {
+      ReadCompleted(completed) => break completed
+      _ => {
+        advance_declaration_read(original)
+        continue original.state
+      }
     }
   }
 }

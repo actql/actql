@@ -15,7 +15,7 @@ pub fn observe_declarations(
   root : @decode.Cursor?,
   limits : DeclarationLimits,
 ) -> (Result[Declarations, Issue], Int, Int) {
-  // Ordinary synchronous callers do not allocate a retained continuation.
+  // Ordinary synchronous callers drive the same reader to completion.
   let (preflight, nodes, text) = preflight_declaration_read(root, limits)
   let result = match preflight {
     Err(issue) => Err(issue)
@@ -30,70 +30,9 @@ fn finish_declaration_read_owned(
   limits : DeclarationLimits,
   usage : (Int, Int),
 ) -> Result[Declarations, Issue] {
-  try {
-    let entries : Array[Declaration] = []
-    if root is Some(root) {
-      let object = decoded(@decode.open_object(root))
-      let names = decoded(@decode.object_field_names(root))
-      if names.is_empty() {
-        invalid(root, EmptyDeclarations)
-      }
-      if names.length() > limits.max_parameters {
-        invalid(root, ParameterLimit)
-      }
-      names.sort_by(@canonical.compare_utf16)
-      for name in names {
-        if !valid_name(name) {
-          match @decode.closed_object(root, names.filter(n => n != name)) {
-            Err(location) =>
-              raise Abort(
-                ParameterIssue(
-                  InvalidName,
-                  path=location.path,
-                  span=location.span,
-                ),
-              )
-            Ok(_) => invalid(root, InvalidName)
-          }
-        }
-        let cursor = decoded(@decode.required(object, name))
-        let syntax = match
-          @contract.read_parameter_syntax(cursor, {
-            max_nodes: limits.max_nodes,
-            max_depth: limits.max_depth,
-            max_text_bytes: limits.max_text_bytes,
-          }) {
-          Ok(value) => value
-          Err(issue) => raise Abort(Contract(issue))
-        }
-        if syntax.metadata is Some(meta) {
-          metadata(meta)
-        }
-        let default_value = match syntax.default_value {
-          None => None
-          Some(cursor) =>
-            Some(
-              check_value(cursor, syntax.parameter_type, {
-                max_nodes: limits.max_nodes,
-                max_depth: limits.max_depth,
-                max_text_bytes: limits.max_text_bytes,
-              }),
-            )
-        }
-        entries.push({
-          name,
-          source: cursor,
-          parameter_type: syntax.parameter_type,
-          metadata: syntax.metadata,
-          default_cursor: syntax.default_value,
-          default_value,
-        })
-      }
-    }
-    Ok({ entries, usage, })
-  } catch {
-    Abort(issue) => Err(issue)
-  }
+  // Ordinary and funded consumers drive the SAME original semantic reader.
+  // This local holder does not escape a synchronous ordinary read.
+  finish_declaration_read({ root, limits, usage, state: AwaitingHeader, })
 }
 
 ///|

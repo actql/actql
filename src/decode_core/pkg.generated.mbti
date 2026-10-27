@@ -73,6 +73,8 @@ pub fn observe_subtree_size(Cursor) -> (Int, Int64)
 
 pub fn open_object(Cursor) -> Result[ObjectView, Issue]
 
+pub fn require_non_null_cursor(Cursor) -> Result[Cursor, Issue]
+
 pub fn required(ObjectView, String) -> Result[Cursor, Issue]
 
 pub fn safe_integer(Cursor) -> Result[Int64, Issue]

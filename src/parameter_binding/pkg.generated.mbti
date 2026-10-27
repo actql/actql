@@ -14,6 +14,8 @@ import {
 }
 
 // Values
+pub fn advance_declaration_read(DeclarationReadInput) -> Unit
+
 pub fn bind(Declarations, @decode_core.Cursor?, @value_admission.Limits) -> Result[BindingResult, Issue]
 
 pub fn binding_usage(BindingResult) -> (Int, Int)
@@ -35,6 +37,12 @@ pub fn declaration_at(Declarations, Int) -> Declaration?
 pub fn declaration_count(Declarations) -> Int
 
 pub fn declaration_preflight_construction_inventory(@decode_core.SubtreeConstructionGeometry, Int, DeclarationLimits) -> DeclarationPreflightConstructionInventory?
+
+pub fn declaration_read_pending_syntax(DeclarationReadInput) -> @value_contract.ParameterSyntax?
+
+pub fn declaration_read_phase(DeclarationReadInput) -> DeclarationReadPhase
+
+pub fn declaration_read_type_cursor(DeclarationReadInput) -> @decode_core.Cursor?
 
 pub fn declaration_source(Declaration) -> @decode_core.Cursor
 
@@ -112,6 +120,13 @@ pub(all) struct DeclarationPreflightConstructionInventory {
 } derive(Eq, @debug.Debug)
 
 type DeclarationReadInput
+
+pub(all) enum DeclarationReadPhase {
+  DeclarationHeader
+  DeclarationType
+  DeclarationValue
+  DeclarationComplete
+} derive(Eq, @debug.Debug)
 
 type Declarations
 
