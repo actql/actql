@@ -3,7 +3,7 @@
 /// Each vector is a logical representation inventory, not a byte allowance.
 /// The original document String belongs to the input lease and is NOT repeated.
 /// Source spans/decoded Strings shared by the indexed tree are charged once.
-struct ClosedValuesSourceInventories {
+priv struct ClosedValuesSourceInventories {
   source_retained : PreparationRepresentationUnits
   source_shared_dependencies : PreparationRepresentationUnits
   source_growth_peak : PreparationRepresentationUnits

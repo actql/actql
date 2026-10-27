@@ -729,8 +729,6 @@ pub fn ClientLocalSourceFreeRequirements::matches(Self, @run_publication_host.Pr
 pub fn ClientLocalSourceFreeRequirements::maximum_limits(Self) -> @physical_resources.LedgerLimits
 pub fn ClientLocalSourceFreeRequirements::simultaneous_limits(Self) -> @physical_resources.LedgerLimits?
 
-type ClientManagedPreparationRetirement
-
 pub(all) enum ClientOriginalKeyedChildIssue {
   Lookup(@run_publication_host.ClientKeyedRequestIssue)
   Acquisition(@client_row_source_host.RowHostIssue)
@@ -840,55 +838,13 @@ pub(all) enum ClientSourceCaptureIssue {
   Original(@client_row_source_host.RowOriginalCaptureIssue)
 }
 
-type ClosedValuesCompilationLayout
-
-type ClosedValuesCompilationMetadataLayout
-
 type ClosedValuesCompilerPhaseLayout derive(Eq)
 
-type ClosedValuesContextPhaseLayout
-
-type ClosedValuesContractLayout
-
-type ClosedValuesExecutionPlanControlsLayout
-
-type ClosedValuesGraphControlLayout
-
 type ClosedValuesIdentityLayout derive(Eq)
-
-type ClosedValuesIntentInventories
 
 type ClosedValuesLexicalFacts derive(Eq, @debug.Debug)
 
 type ClosedValuesLiteralLayout derive(Eq)
-
-type ClosedValuesNormalizationLayout
-
-type ClosedValuesOperationCapacityLayout
-
-type ClosedValuesPlanProofLayout
-
-type ClosedValuesProgramInventories
-
-type ClosedValuesShape
-
-type ClosedValuesSnapshotInventories
-
-type ClosedValuesSourceInventories
-
-type ClosedValuesSourcePhaseLayout
-
-type ClosedValuesTopologyLayout
-
-type ClosedValuesUnitPublicationLayout
-
-type CompilationCanonicalLayout
-
-type CompilationCanonicalShape
-
-type CompilationParseLayout
-
-type CompilationPipelineShape
 
 type LocalValuesEffectResultExport
 pub fn LocalValuesEffectResultExport::captured_export(Self) -> @physical_strategy.CapturedEffectLocalResultExport?
@@ -948,15 +904,7 @@ pub(all) enum LocalValuesResultExportIssue {
   Export(@run_publication_host.PublicationOutputExportIssue)
 }
 
-type PreparationExecutionInventory
-
 type PreparationRepresentationUnits derive(Eq)
-
-type ProgramRetainedValidationLayout
-
-type PublicationCaptureConstructorLayout
-
-type ScalarSnapshotLayout
 
 // Type aliases
 

@@ -4,7 +4,7 @@
 /// forbidden on this route). Checked rows/schemas/graph are borrowed unchanged.
 /// Schema inventory, Result envelope/publication plan and their field-dependent
 /// constructors/Some carriers are separately owned by the proof component.
-struct ClosedValuesExecutionPlanControlsLayout {
+priv struct ClosedValuesExecutionPlanControlsLayout {
   retained : PreparationRepresentationUnits
   temporary : PreparationRepresentationUnits
 }

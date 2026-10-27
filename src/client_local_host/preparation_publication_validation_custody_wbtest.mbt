@@ -3,7 +3,7 @@
 /// never evidence that the publication contract chain is semantically valid.
 fn validation_custody_capture(
   value : ClientProgramPublication[Array[Int]],
-) -> ClientProgramCapture[Array[Int]] raise {
+) -> ClientProgramCapture[Array[Int]] {
   let capture : ClientProgramCapture[Array[Int]] = {
     publication: value,
     plan: None,
@@ -60,8 +60,8 @@ test "retained validation one active slot and serial reuse share same reservatio
 
 ///|
 test "retained validation callback cancellation cannot authorize constructor" {
-  let armed = Ref::new(false)
-  let selected : Ref[ClientProgramValidation[Array[Int]]?] = Ref::new(None)
+  let armed = Ref(false)
+  let selected : Ref[ClientProgramValidation[Array[Int]]?] = Ref(None)
   let (publication, ledger) = publication_custody_fixture(() => {
     if armed.val {
       armed.val = false

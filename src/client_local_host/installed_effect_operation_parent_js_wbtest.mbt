@@ -2,6 +2,8 @@
 // Existing ordinary managed Root with explicit no-I/O current/cleanup ports.
 // This is a source-component connection, not an installed artifact, physical
 // backing, Account/Effect grant or successful provider operation.
+// Preserve the original Array FFI/input boundary under this declaration only.
+#warnings("-deprecated")
 extern "js" fn effect_parent_test_original(
   loader : PublicationTestLoader,
   plan : ClientInstalledEffectManagedPlan,
@@ -190,15 +192,15 @@ test "same Effect parent retains pending operation budget and never refunds cons
     Some(source_query_original_fragment),
     None,
   ).unwrap()
-  // One explicit resource use/cleanup port; no real send or ACK is implied.
-  let use = @resources.reserve_attempt(ledger, 13L, 300L, 500L).unwrap()
-  @resources.consume_reserved_attempt(ledger, use).unwrap()
+  // One explicit resource reservation/cleanup port; no real send or ACK is implied.
+  let reservation = @resources.reserve_attempt(ledger, 13L, 300L, 500L).unwrap()
+  @resources.consume_reserved_attempt(ledger, reservation).unwrap()
   assert_true(retire_installed_managed_run(run) is Err(Resource(Unavailable)))
   assert_true(
     physical_equal(installed_effect_managed_operation_plan(run).unwrap(), plan),
   )
   assert_eq(@resources.ledger_usage(ledger).attempts, 1)
-  @resources.settle_reservation(ledger, use).unwrap()
+  @resources.settle_reservation(ledger, reservation).unwrap()
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(ledger).attempts, 1)
   assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 0)

@@ -3,8 +3,8 @@
 /// reuse checked schema facts, never storage: repeated ports remain counted.
 priv struct ClientLocalSchemaProofInventory {
   original_count : Int
-  owner_count : Int
-  work_used : Int
+  _observed_owner_count : Int
+  _observed_work_used : Int
   max_node_width : Int64
   max_name_width : Int64
   fields : Int
@@ -228,8 +228,8 @@ fn client_local_schema_proof_inventory(
   }
   Some({
     original_count: sequences.length(),
-    owner_count: seen.length(),
-    work_used: max_work - remaining,
+    _observed_owner_count: seen.length(),
+    _observed_work_used: max_work - remaining,
     max_node_width: nodes,
     max_name_width: names_total,
     fields,

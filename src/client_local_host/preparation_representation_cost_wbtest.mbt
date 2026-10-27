@@ -138,22 +138,28 @@ test "preparation representation owner reconciliation deduplicates identity not 
   }
   let cost = preparation_representation_cost(units).unwrap()
   assert_eq(
-    preparation_owned_representation_cost(
+    _preparation_owned_representation_cost(
       [(original, units), (original, units)],
       3,
     ),
     Some(cost),
   )
   assert_eq(
-    preparation_owned_representation_cost([(original, units), (copy, units)], 3),
+    _preparation_owned_representation_cost(
+      [(original, units), (copy, units)],
+      3,
+    ),
     Some(2L * cost),
   )
   assert_true(
-    preparation_owned_representation_cost([(original, units), (copy, units)], 2)
+    _preparation_owned_representation_cost(
+      [(original, units), (copy, units)],
+      2,
+    )
     is None,
   )
   assert_true(
-    preparation_owned_representation_cost(
+    _preparation_owned_representation_cost(
       [(original, units), (original, { ..units, reference_slots: 3L, })],
       3,
     )
@@ -167,7 +173,10 @@ test "preparation representation owner reconciliation deduplicates identity not 
     scalar_words: 2L,
   }
   assert_eq(
-    preparation_owned_representation_cost([(original, units), (copy, units)], 3),
+    _preparation_owned_representation_cost(
+      [(original, units), (copy, units)],
+      3,
+    ),
     preparation_representation_cost(bound),
   )
 }
@@ -195,7 +204,7 @@ test "shared preparation execution fold prices original inventories with one che
     retained_bytes: 7L,
     workspace_bytes: 11L,
   }
-  let capacity = preparation_execution_capacity(inventory).unwrap()
+  let capacity = _preparation_execution_capacity(inventory).unwrap()
   assert_eq(@execution.execution_capacity_retained_bytes(capacity), 588L)
   assert_eq(@execution.execution_capacity_execution_bytes(capacity), 1383L)
   let max = 9223372036854775807L
@@ -207,11 +216,11 @@ test "shared preparation execution fold prices original inventories with one che
     retained_bytes: max,
     workspace_bytes: 0L,
   }
-  let maximum = preparation_execution_capacity(exact).unwrap()
+  let maximum = _preparation_execution_capacity(exact).unwrap()
   assert_eq(@execution.execution_capacity_retained_bytes(maximum), max)
   assert_eq(@execution.execution_capacity_execution_bytes(maximum), max)
   assert_true(
-    preparation_execution_capacity({ ..exact, workspace_bytes: 1L, }) is None,
+    _preparation_execution_capacity({ ..exact, workspace_bytes: 1L, }) is None,
   )
   for
     changed in [
@@ -224,6 +233,6 @@ test "shared preparation execution fold prices original inventories with one che
       { ..inventory, retained: { ..zero, reference_slots: max, }, },
       { ..inventory, workspace: { ..zero, owned_utf16_units: max, }, },
     ] {
-    assert_true(preparation_execution_capacity(changed) is None)
+    assert_true(_preparation_execution_capacity(changed) is None)
   }
 }

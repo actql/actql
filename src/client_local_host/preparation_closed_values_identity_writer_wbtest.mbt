@@ -150,17 +150,17 @@ test "ClosedValues identity writer specialization leaves actual identities and s
   let identity = @checked.source_identity(
     @strategy.graph_program(@publication_host.prepared_client_graph(prepared)),
   )
-  let local = @context.program_identity_stage_at(identity, 0).unwrap()
+  let local_layout = @context.program_identity_stage_at(identity, 0).unwrap()
   assert_eq(
-    @context.stage_identity_definition_cid(local),
+    @context.stage_identity_definition_cid(local_layout),
     "sha256:2c32b3113d7b194a94b4374cd23d82145892b010b139f8fd6292452fc8a82a4d",
   )
   assert_eq(
-    @context.stage_identity_parameter_values_cid(local),
+    @context.stage_identity_parameter_values_cid(local_layout),
     "sha256:c183484727a250f184812053fce437f9b9c90ca889a7a7505a9f9791d84a7b52",
   )
   assert_eq(
-    @context.stage_identity_parameter_declarations_cid(local),
+    @context.stage_identity_parameter_declarations_cid(local_layout),
     "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
   )
 }

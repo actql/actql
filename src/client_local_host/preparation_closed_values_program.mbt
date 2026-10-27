@@ -3,7 +3,7 @@
 /// This inventory is valid only after closed_values_shape established exactly
 /// one Stage, no imports/effects/table inputs, one step and one Result/export.
 /// Its Cursor backing, names and ParseUsage belong to the source phase.
-struct ClosedValuesProgramInventories {
+priv struct ClosedValuesProgramInventories {
   retained : PreparationRepresentationUnits
   containers_peak : PreparationRepresentationUnits
   carriers_peak : PreparationRepresentationUnits
