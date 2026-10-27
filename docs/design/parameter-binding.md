@@ -547,3 +547,35 @@ that reservation call is distinct from the reader's original semantic result.
 Clearing local references does not settle the parent or acknowledge physical
 cleanup. Selected-source preflight, provided Value and final binding inventories
 require their own later construction backing; Header is not their allowance.
+
+
+## Original selected bindings and construction lifetime
+
+A construction-observed binding retains one private inventory of its actual
+original declaration, selected Cursor, provided/default choice, subtree geometry
+and path depth. The existing source-selection helper supplies both ordinary
+binding and this inventory. Later semantic selection forwards the retained
+original instead of repeating a Map lookup. The inventory carries construction
+DATA only; it does not admit a value, authorize access or replace an original.
+
+The complete fact vector is funded before its one work-metered metadata walk.
+A single original phase covers all entries; cached work is not a per-entry work
+allowance. The same parent keeps Header, facts and already constructed outputs.
+Confirmed metadata scratch retirement changes the live quote base, so later
+constructors do not regrow that completed scratch merely from an old peak.
+
+Each selected name/source preflight uses the remaining original binding Budget.
+It shares its constructor recipe with declaration preflight. Provided values
+use the original declaration Syntax and the existing full Value and Parameter
+constraints owners. Cached defaults keep their original CheckedValue and do not
+repeat those admissions, but their selected source still spends the current
+binding Budget. The binding-specific Origin error carrier remains included.
+Missing names cannot mask a later invalid supplied value or expose partial
+BoundValues as Ready.
+
+A retry preserves the same original fact and quote. After the Resource boundary
+can reenter, both phase and original fact must still match before one semantic
+advance. Only the original cached Complete Ok can reconcile synchronous scratch;
+failed source/location backing remains charged. Clearing drops only local
+references, leaving original aliases, the parent and consumed work with their
+existing owners. It does not acknowledge physical stop or make a new Run grant.

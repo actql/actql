@@ -490,6 +490,14 @@ pub fn prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientP
 
 pub fn[I, P] prepare_parameter_binding_header(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
 
+pub fn[I, P] prepare_parameter_binding_inventory(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
+
+pub fn[I, P] prepare_parameter_binding_preflight(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
+
+pub fn[I, P] prepare_parameter_binding_selection(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
+
+pub fn[I, P] prepare_parameter_binding_value(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
+
 pub fn[I, P] prepare_parameter_declaration_header(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
 
 pub fn[I, P] prepare_parameter_declaration_inventory(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
@@ -533,6 +541,10 @@ pub fn program_json_preparation_initial_inventory() -> @execution_relation.Prepa
 pub fn read_client_infer_retained_input_descriptor(String) -> Result[@execution_relation.RetainedCompletionDescriptor, ClientInferRetainedInputIssue]
 
 pub fn read_client_source_capture_descriptor(String) -> Result[@execution_relation.RetainedCompletionDescriptor, ClientSourceCaptureIssue]
+
+pub fn[I, P] reconcile_parameter_binding_inventory(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
+
+pub fn[I, P] reconcile_parameter_bindings(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
 
 pub fn[I, P] reconcile_parameter_declaration_inventory(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
 

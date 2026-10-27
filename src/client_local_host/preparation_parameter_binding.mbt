@@ -3,18 +3,29 @@ priv enum ParameterBindingPreparationPhase {
   BindingInitial
   BindingHeaderQuoted
   BindingHeaderPrepared
+  BindingInventoryQuoted
+  BindingInventoryPrepared
+  BindingSteps
+  BindingStepQuoted
+  BindingRetained
+  BindingFailed
   BindingRetired
 } derive(Eq)
 
 ///|
 /// A constructor continuation over the SAME parent, not a Resource Owner.
-/// Source/declarations/limits stay borrowed. Header funding does not fund any
-/// later selected-source preflight, Value, BoundValues or missing-name growth.
+/// Source/declarations/limits stay borrowed. Each constructor is funded before
+/// entry and retains its original semantic result/facts for later phases.
 struct ClientParameterBindingPreparation[I, P] {
   capacity : @resources.PreparationCapacity[I, P]
   mut input : I?
   mut prepared : Result[@parameters.BindingReadInput, @parameters.Issue]?
   mut quote : (Int64, Int64)?
+  mut work : @resources.PreparationPhaseWork64?
+  mut current : @parameters.BindingReadConstructionFacts?
+  mut step : @parameters.BindingReadPhase
+  mut body_bytes : Int64
+  mut maximum_work : Int64
   base_retained : Int64
   base_execution : Int64
   depth : Int
@@ -103,6 +114,11 @@ pub fn[I, P] begin_parameter_binding_preparation(
     input: Some(input),
     prepared: Some(prepared),
     quote: None,
+    work: None,
+    current: None,
+    step: @parameters.BindingHeader,
+    body_bytes: 0L,
+    maximum_work: 0L,
     base_retained,
     base_execution,
     depth,
@@ -154,6 +170,7 @@ fn[I, P] prepare_parameter_binding_header_owned(
       return Err(Overflow)
     }
     owner.quote = Some((r, e))
+    owner.body_bytes = bytes
     owner.phase = BindingHeaderQuoted
   }
   let (r, e) = owner.quote.unwrap()
@@ -191,12 +208,13 @@ pub fn[I, P] parameter_binding_preparation_outcome(
 pub fn[I, P] clear_parameter_binding_preparation(
   owner : ClientParameterBindingPreparation[I, P],
 ) -> Result[Unit, ClientParameterBindingPreparationIssue] {
-  if owner.busy {
+  if owner.busy || owner.work is Some(_) {
     return Err(WrongPhase)
   }
   owner.input = None
   owner.prepared = None
   owner.quote = None
+  owner.current = None
   owner.phase = BindingRetired
   Ok(())
 }

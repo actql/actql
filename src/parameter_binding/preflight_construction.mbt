@@ -35,6 +35,26 @@ pub fn declaration_preflight_construction_inventory(
   root_path_depth : Int,
   limits : DeclarationLimits,
 ) -> DeclarationPreflightConstructionInventory? {
+  parameter_preflight_construction_inventory(
+    geometry,
+    root_path_depth,
+    limits.max_nodes,
+    limits.max_depth,
+    limits.max_text_bytes,
+  )
+}
+
+///|
+// The SAME semantic preflight owns this one constructor recipe for both
+// declaration and selected binding reads. Remaining semantic budgets are
+// scalar DATA from the original reader, never a second limit policy.
+fn parameter_preflight_construction_inventory(
+  geometry : @decode.SubtreeConstructionGeometry,
+  root_path_depth : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_text_bytes : Int,
+) -> DeclarationPreflightConstructionInventory? {
   let g = geometry
   if root_path_depth < 0 ||
     g.nodes < 1 ||
@@ -49,7 +69,7 @@ pub fn declaration_preflight_construction_inventory(
   }
   // Child counts are charged BEFORE constructing indexed children. Actual
   // pending nodes cannot exceed the SAME original semantic node budget.
-  let n = Int::min(g.nodes, Int::max(0, limits.max_nodes)).to_int64()
+  let n = Int::min(g.nodes, Int::max(0, max_nodes)).to_int64()
   // Pending (Cursor,depth) pairs plus their detached child Cursors own
   //2H3R2W per actual node. One current scalar ValueView adds1H1R2W.
   // The fixed Budget is in the entering driver packet, including absent input.
@@ -66,7 +86,7 @@ pub fn declaration_preflight_construction_inventory(
     maps: 0L,
     map_entries: 0L,
   }
-  let declared_depth = Int::max(0, limits.max_depth).to_int64() + 1L
+  let declared_depth = Int::max(0, max_depth).to_int64() + 1L
   let relative_depth = Int64::min(g.nodes.to_int64(), declared_depth)
   guard @decode.cursor_path_construction_extent(
       root_path_depth.to_int64() + relative_depth,
@@ -93,7 +113,7 @@ pub fn declaration_preflight_construction_inventory(
     None
   } else {
     guard @canonical.nfc_lf_construction_extent(
-        Int::min(g.max_key_utf16, Int::max(0, limits.max_text_bytes)),
+        Int::min(g.max_key_utf16, Int::max(0, max_text_bytes)),
       )
       is Some(value) else {
       return None

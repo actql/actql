@@ -69,9 +69,9 @@ test "binding Header waits for exact one-short SAME parent then retains original
       inventory.reference_slots,
       inventory.scalar_words,
     ),
-    (131L, 45L, 271L),
+    (299L, 91L, 635L),
   )
-  assert_eq(parameter_binding_initial_bytes, 4624L)
+  assert_eq(parameter_binding_initial_bytes, 10592L)
   let ledger = @resources.create_ledger({
     planning_work: 5,
     attempts: 2,
@@ -97,8 +97,8 @@ test "binding Header waits for exact one-short SAME parent then retains original
   ).unwrap()
   let original = parameter_binding_preparation_outcome(owner)
   let reader = original.unwrap().unwrap()
-  assert_eq(parameter_binding_header_construction_bytes(reader, 0), Some(2736L))
-  let sibling = @resources.reserve_capacity(ledger, 12568L, 12568L).unwrap()
+  assert_eq(parameter_binding_header_construction_bytes(reader, 0), Some(2784L))
+  let sibling = @resources.reserve_capacity(ledger, 6552L, 6552L).unwrap()
   assert_true(
     prepare_parameter_binding_header(owner)
     is Err(Capacity(Resource(RetentionLimit))),
@@ -107,10 +107,10 @@ test "binding Header waits for exact one-short SAME parent then retains original
   assert_eq(@parameters.binding_read_phase(reader), @parameters.BindingHeader)
   assert_true(@parameters.binding_read_pending_source(reader) is None)
   let quote = owner.quote.unwrap()
-  assert_eq(quote, (7433L, 7451L))
+  assert_eq(quote, (13449L, 13467L))
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((4697L, 4715L)),
+    Ok((10665L, 10683L)),
   )
   @resources.settle_capacity(ledger, sibling).unwrap()
   prepare_parameter_binding_header(owner).unwrap()
@@ -125,14 +125,14 @@ test "binding Header waits for exact one-short SAME parent then retains original
   assert_true(@parameters.binding_read_pending_source(reader) is None)
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((7433L, 7451L)),
+    Ok((13449L, 13467L)),
   )
   assert_true(prepare_parameter_binding_header(owner) is Err(WrongPhase))
   clear_parameter_binding_preparation(owner).unwrap()
   assert_true(parameter_binding_preparation_outcome(owner) is None)
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((7433L, 7451L)),
+    Ok((13449L, 13467L)),
   )
   let usage = @resources.ledger_usage(ledger)
   assert_eq((usage.attempts, usage.live_reservations), (0, 1))
@@ -170,12 +170,12 @@ test "binding Header funds all supplied fields and preserves known original refu
   let reader = parameter_binding_preparation_outcome(owner).unwrap().unwrap()
   assert_eq(
     parameter_binding_header_construction_bytes(reader, 0),
-    Some(12008L),
+    Some(12056L),
   )
   prepare_parameter_binding_header(owner).unwrap()
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((16705L, 16723L)),
+    Ok((22721L, 22739L)),
   )
   guard @parameters.finish_binding_read(reader)
     is Err(
@@ -189,7 +189,7 @@ test "binding Header funds all supplied fields and preserves known original refu
   clear_parameter_binding_preparation(owner).unwrap()
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((16705L, 16723L)),
+    Ok((22721L, 22739L)),
   )
 }
 

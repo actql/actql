@@ -27,6 +27,7 @@ priv struct BindingReadBody {
   mut selected : @decode.Cursor?
   mut provided : Bool
   mut phase : BindingReadPhase
+  mut construction : BindingReadConstruction?
 }
 
 ///|
@@ -144,6 +145,7 @@ fn binding_read_header(original : BindingReadInput) -> Unit raise Abort {
     selected: None,
     provided: false,
     phase: BindingSelection,
+    construction: None,
   }
   original.state = ReadingBinding(body)
   if original.declarations.entries.is_empty() {
@@ -157,13 +159,12 @@ fn binding_read_selection(
   body : BindingReadBody,
 ) -> Unit {
   let declaration = original.declarations.entries[body.index]
-  let provided = match body.object {
-    None => None
-    Some(o) => @decode.lookup(o, declaration.name)
-  }
-  let selected = match provided {
-    Some(c) => Some(c)
-    None => declaration.default_cursor
+  let (provided, selected) = match body.construction {
+    None => select_binding_source(body.object, declaration)
+    Some(original) => {
+      let current = original.entries[body.index].unwrap()
+      (current.provided, current.selected)
+    }
   }
   match selected {
     None => {
@@ -173,11 +174,29 @@ fn binding_read_selection(
     Some(_) => {
       body.declaration = Some(declaration)
       body.selected = selected
-      body.provided = provided is Some(_)
+      body.provided = provided
       original.origin = if body.provided { Supplied } else { Default }
       body.phase = BindingPreflight
     }
   }
+}
+
+///|
+// One original selection rule for ordinary and construction-observed readers.
+// Explicit NULL remains supplied; only absence selects the original default.
+fn select_binding_source(
+  object : @decode.ObjectView?,
+  declaration : Declaration,
+) -> (Bool, @decode.Cursor?) {
+  let provided = match object {
+    None => None
+    Some(o) => @decode.lookup(o, declaration.name)
+  }
+  let selected = match provided {
+    Some(c) => Some(c)
+    None => declaration.default_cursor
+  }
+  (provided is Some(_), selected)
 }
 
 ///|

@@ -100,34 +100,9 @@ pub fn declaration_value_construction_inventory(
     keys.maps.to_int64(),
     map_entries: fields.to_int64() + keys.map_entries,
   }
-  let (n, arrays, objects, children, names) = match current.default_value {
-    None => (0L, 0L, 0L, 0L, 0L)
-    Some(g) =>
-      (
-        g.nodes.to_int64(),
-        g.arrays.to_int64(),
-        g.objects.to_int64(),
-        g.array_items.to_int64(),
-        g.fields.to_int64(),
-      )
-  }
-  // Original constraints run only after complete Value admission. Thus original
-  // typed fields/child copies correspond to the admitted source occurrences.
-  // Each work tuple+child Cursor2H4R1W; each ObjectView1H2R. Arrays are work,
-  // actual elements copies and actual ParameterFields copies. Maps hold indices.
-  // Fixed Limits/results/numeric/duration/next-lookup families11H7R15W,
-  // original work-pop Some1H1R1W and elements projection closure1H1R, plus
-  // shared Parameter issue carriers5H7R5W are included here.
-  let constraints : @shape.CollectionConstructionInventory = {
-    records: 2L * n + objects + 18L,
-    record_references: 4L * n + 2L * objects + 16L,
-    record_words: n + 21L,
-    reference_arrays: 1L + arrays + objects,
-    reference_items: n + children + names,
-    scalar_arrays: 0L,
-    scalar_items: 0L,
-    maps: objects,
-    map_entries: names,
+  let n = match current.default_value {
+    None => 0L
+    Some(g) => g.nodes.to_int64()
   }
   // Metadata adds a child key; default constraints can fail at a full original
   // nested path. The two paths cover key-span/error projection coexistence.
@@ -146,10 +121,7 @@ pub fn declaration_value_construction_inventory(
     )
     is Some(metadata) &&
     @shape.add_collection_construction_extents(metadata, path) is Some(metadata) &&
-    @shape.collection_construction_extent(constraints) is Some(constraints) &&
-    @shape.add_collection_construction_extents(constraints, path)
-    is Some(constraints) &&
-    @shape.add_collection_construction_extents(constraints, path)
+    parameter_constraints_construction_extent(current.default_value, path)
     is Some(constraints) else {
     return None
   }

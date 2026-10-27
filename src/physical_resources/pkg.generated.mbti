@@ -921,6 +921,7 @@ pub(all) enum PreparationWorkPhase {
   ParameterDeclarationInventory
   ParameterDeclarationBodyInventory
   ParameterBindingHeaderInventory
+  ParameterBindingBodyInventory
   SemanticCheck
   LowerAndGraph
   ExecutionPlan

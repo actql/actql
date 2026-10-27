@@ -22,6 +22,16 @@ pub fn bind(Declarations, @decode_core.Cursor?, @value_admission.Limits) -> Resu
 
 pub fn binding_header_construction_extent(BindingReadInput, Int) -> @decode_shape.CollectionConstructionExtent?
 
+pub fn binding_preflight_construction_inventory(BindingReadInput) -> DeclarationPreflightConstructionInventory?
+
+pub fn binding_read_construction_inventory(BindingReadInput) -> BindingReadConstructionInventory?
+
+pub fn binding_read_construction_maximum_work(BindingReadInput) -> Int64?
+
+pub fn binding_read_construction_work(BindingReadInput) -> Int64?
+
+pub fn binding_read_current_construction(BindingReadInput) -> BindingReadConstructionFacts?
+
 pub fn binding_read_origin(BindingReadInput) -> Origin
 
 pub fn binding_read_pending_declaration(BindingReadInput) -> Declaration?
@@ -30,7 +40,11 @@ pub fn binding_read_pending_source(BindingReadInput) -> @decode_core.Cursor?
 
 pub fn binding_read_phase(BindingReadInput) -> BindingReadPhase
 
+pub fn binding_selection_construction_extent(BindingReadInput) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn binding_usage(BindingResult) -> (Int, Int)
+
+pub fn binding_value_construction_inventory(BindingReadInput) -> BindingValueConstructionInventory?
 
 pub fn bound_declarations(BoundValues) -> Declarations
 
@@ -96,6 +110,8 @@ pub fn missing_declaration_owner(MissingNames) -> Declarations
 
 pub fn missing_names(MissingNames) -> Array[String]
 
+pub fn observe_binding_read_construction(BindingReadInput) -> Int64?
+
 pub fn observe_declaration_preflight_construction(@decode_core.Cursor?, DeclarationLimits) -> (@decode_core.SubtreeConstructionGeometry?, Int, Int64)
 
 pub fn observe_declaration_read_construction(DeclarationReadInput) -> Int64?
@@ -115,6 +131,19 @@ pub fn stringify_values(BoundValues, Int, Int, Int) -> String raise @encode_core
 // Errors
 
 // Types and methods
+pub(all) struct BindingReadConstructionFacts {
+  declaration : Declaration
+  selected : @decode_core.Cursor?
+  provided : Bool
+  geometry : @decode_core.SubtreeConstructionGeometry?
+  depth : Int
+}
+
+pub(all) struct BindingReadConstructionInventory {
+  retained : @decode_shape.CollectionConstructionExtent
+  temporary : @decode_shape.CollectionConstructionExtent
+} derive(Eq, @debug.Debug)
+
 type BindingReadInput
 
 pub(all) enum BindingReadPhase {
@@ -129,6 +158,12 @@ pub enum BindingResult {
   Ready(BoundValues)
   NeedsBindings(MissingNames)
 }
+
+pub(all) struct BindingValueConstructionInventory {
+  returned : @decode_shape.CollectionConstructionExtent
+  constraints : @decode_shape.CollectionConstructionExtent
+  value : @value_admission.ParameterValuePhaseConstructionInventory?
+} derive(Eq, @debug.Debug)
 
 pub struct BoundParameter {
   name : String
