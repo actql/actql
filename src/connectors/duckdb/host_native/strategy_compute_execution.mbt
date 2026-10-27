@@ -267,6 +267,20 @@ pub fn execute_native_strategy_compute_runtime(
     })
   }
   runtime.started = true
+  // The registered task is now entering the actual Native driver. Consume
+  // its original attempt before file/transaction work, never at preparation.
+  match
+    @strategy.begin_task_execution_use(
+      runtime.graph,
+      @duckdb_driver.captured_duckdb_execution(runtime.task),
+    ) {
+    Ok(_) => ()
+    Err(issue) => {
+      close_native_strategy_database(runtime)
+      let settlement = dispose_native_strategy_task(runtime)
+      return Err({ primary: Settlement(issue), rollback: None, settlement, })
+    }
+  }
   let retained : NativeComputeRetainedOutput? = match
     (runtime.retained_profile, runtime.retained_bytes) {
     (Some(profile), Some(bytes)) => {

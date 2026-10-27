@@ -1619,6 +1619,16 @@ pub fn execute_captured_synchronous_task(
       return Err(Physical(issue))
     }
   }
+  // This selected synchronous attempt is now entering its original connector.
+  // Consume before possible physical use; failure and cleanup never refund it.
+  match @resources.consume_reserved_attempt(run.ledger, reservation) {
+    Ok(_) => ()
+    Err(issue) => {
+      @resources.release_allocation(run.ledger, holding) |> ignore
+      @resources.settle_reservation(run.ledger, reservation) |> ignore
+      return Err(Physical(issue))
+    }
+  }
   match @connector.execute_synchronous_compute(compute) {
     Ok(output) => {
       match
