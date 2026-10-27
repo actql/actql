@@ -112,14 +112,26 @@ function quoteFixture(refs) {
     limits: {maxPages: 2 + index, maxPageBytes: 10 + index}}));
   const bundle = {sources}, calls = [], original = {};
   let reads = 0, compute = 0, valid = true;
+  const manifests = {}, admission = {}, installationCalls = [];
   const moon = {
+    clientPrepareInstalledCompilationManifests(...args) {
+      assert.strictEqual(this, moon); assert.deepEqual(args, []);
+      installationCalls.push('manifests'); return manifests;
+    },
+    clientPrepareInstalledSequenceContracts(...args) {
+      assert.strictEqual(this, moon); assert.equal(installationCalls.at(-1), 'manifests');
+      assert.deepEqual(args, ['spec/dependencies/aoa-pipeline-registry.json', '{}', '{}', '{}']);
+      installationCalls.push('sequence'); return admission;
+    },
     clientProgramAcquisitionCount: prepared => {assert.strictEqual(prepared, original); return refs.length;},
     clientProgramPrepareLocalQueryRequirement(...args) {
       assert.strictEqual(args[0], original); assert.equal(args[2], 0);
+      assert.strictEqual(args[3], admission);
       calls.push(['requirement', args[1]]); return {ref: refs[args[1]]};
     },
     clientProgramQueryRequirementSourceRef: requirement => requirement.ref,
     clientProgramInstalledManagedRunRequirements(...args) {
+      assert.strictEqual(args[6], admission);
       calls.push(['limits', args]); return [10n, 11n, 12n, 13n, 14n, 15n];
     },
   };
@@ -137,10 +149,15 @@ function quoteFixture(refs) {
   const contracts = hostAst.body.find(node => node.type === 'FunctionDeclaration' &&
     node.id.name === 'installedManagedRunContracts');
   assert(contracts);
+  const prepare = hostAst.body.find(node => node.type === 'ExportNamedDeclaration' &&
+    node.declaration?.type === 'FunctionDeclaration' &&
+    node.declaration.id.name === 'prepareInstalledSequenceContractOriginal').declaration;
+  assert(prepare);
   const quote = new Function(...Object.keys(ports), `${hostSource.slice(contracts.start, contracts.end)};
+    ${hostSource.slice(prepare.start, prepare.end)};
     ${hostSource.slice(node.start, node.end)};
     return readSourceManagedRunRequirementsOwned;`)(...Object.values(ports));
-  return {declarations, calls, original, quote: () => quote(originals, original, false),
+  return {declarations, calls, original, installationCalls, quote: () => quote(originals, original, false),
     observed: () => ({reads, compute}), invalidate() {valid = false;}};
 }
 
@@ -155,6 +172,7 @@ test('actual Host quote follows checked capture occurrences, not configured conn
     assert.deepEqual(args[4], indices.map(index => BigInt((2 + index) * (10 + index))));
     assert.deepEqual(args[5], indices.map(index => BigInt(10 + index)));
     assert.equal(f.observed().reads, 2);
+    assert.deepEqual(f.installationCalls, ['manifests', 'sequence'], 'One retained installed contract admission');
   }
 });
 
@@ -169,7 +187,9 @@ test('actual Host refuses a missing original Source view or retired Host before 
   const missing = quoteFixture(['foreign']);
   assert.throws(missing.quote, {code: 'InstalledSourcePreparationMismatch'});
   assert.equal(missing.calls.some(value => value[0] === 'limits'), false);
+  assert.deepEqual(missing.installationCalls, ['manifests', 'sequence']);
   const changed = quoteFixture(['source0']); changed.invalidate();
   assert.throws(changed.quote, /OriginalHostChanged/u);
   assert.deepEqual(changed.calls, []);
+  assert.deepEqual(changed.installationCalls, [], 'A retired Host cannot prepare new installed contracts');
 });
