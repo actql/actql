@@ -41,16 +41,29 @@ repository-specific Sources, Content or Effects in another repository.
 
 Organisation repository enumeration requires a separately admitted
 organisation-scoped Source connection that explicitly identifies the
-organisation. Its publication, Account and Site must retain that same original
+organisation through the explicit `organization` connection field; `owner` and
+`repo` are forbidden on that connection. It publishes only `github.repositories`.
+Its separate publication, Account and Site must retain that same original
 organisation and the authority for the bounded repository-listing read. The
 token's type, accessible repositories or ownership of the configured repository
 cannot select this scope implicitly. The `owner`/`repo` setup below selects
 repository scope only.
 
-The organisation Source lists repository metadata within its admitted scope and
-the provider's actual visibility. Those rows do not grant permission to read
+The organisation Source lists metadata for repositories owned by that
+organisation and visible through its admitted current Account and Credential.
+Publication observes the original Organisation ID and login. Later pages resolve
+that same ID, check the unchanged login, and verify every repository owner's
+type, ID and login against it. The GraphQL request explicitly uses
+`ownerAffiliations: [OWNER]`; the provider default also includes collaborators,
+and `affiliations` filters the viewer instead of the organisation's ownership.
+Those rows do not grant permission to read
 each repository's issues, files or content, or to perform Effects there. Provider
-visibility is not proof that inaccessible repositories do not exist. Pagination,
+visibility is not proof that inaccessible repositories do not exist. Exhausting
+validated bounded pagination completes this credential-visible listing, not an
+all-repositories or atomic snapshot claim. It requires no independent proof of
+whole-organisation visibility. A stronger whole-organisation coverage claim
+requires a separately admitted coverage original and Source contract; token
+type, `totalCount` or an empty page cannot supply it. Pagination,
 current checks and bounded-read obligations still apply; a failed or incomplete
 listing is not a complete empty result. An implementation without the admitted
 organisation scope must refuse that selection, rather than return only the
@@ -121,6 +134,22 @@ row's key and identifies the operation in the Preview and the status.
   "credentials": {"token": {"env": "GITHUB_TOKEN"}}
 }
 ```
+
+For organisation-owned repository metadata, use a separate connection:
+
+```json
+"github_org": {
+  "connector": "github",
+  "organization": "acme",
+  "credentials": {"token": {"env": "GITHUB_TOKEN"}}
+}
+```
+
+The two selector forms are mutually exclusive. An organisation connection does
+not publish repository-specific Sources, Content or Effects; configure those
+through separately admitted `owner`/`repo` connections. A consumer without the
+organisation profile and its actual admission must refuse it, not silently use
+repository scope or return an empty result.
 
 Use a fine-grained personal access token or a GitHub App installation token.
 Reading needs `issues: read`, `pull_requests: read`, `contents: read` and
