@@ -598,3 +598,34 @@ come from the original caller's independently inventoried supply. The generic
 Core packet is not evidence that this pre-entry backing is present, and a
 later successful resize cannot retroactively provide it. No numerical backend
 first-prelude claim follows from the finite Core prefix qualification.
+
+
+## Native Source snapshot currentness
+
+A selected private Source receiver may expose the own-DATA synchronous
+`assertSourceSnapshotCurrent(receipt)` operation. The SDK captures that method
+and its original receiver once. A present accessor, nonfunction or asynchronous
+result refuses; an absent legacy method retains its previous snapshot/bind
+path. No public request option, wire field, grant or capacity issuer is added.
+
+The ordinary preparation manager authenticates that same original producer
+receipt, retained preparation and Node Resource before and after its current
+callbacks. A copied, finished or already-bound producer cannot enter this
+snapshot phase. SDK connection closure also refuses new use. These checks do
+not replace the original current/claim paths of later operations.
+
+The SDK invokes the fence before its existing native stringify/parse and again
+after that one snapshot returns, before recursive clone freezing. A getter,
+`toJSON` or coercion may retire the original while native capture runs; that
+loss stops the next phase. Trusted fence failures remain outside the catch
+which classifies ordinary native serialization failures, retaining the exact
+original primary and cleanup carrier, including a thrown `undefined`. Failed
+producer cleanup stays on the same existing lifecycle retry owner. It neither
+repeats submission nor infers physical cleanup from Promise settlement.
+
+The snapshot still uses the same native serialization owner, numeric checks,
+property/coercion order and parse. The original body is frozen before it is
+bound or published; a mutable clone is never offered to a Host callback as an
+identity substitute. This current fence is not preconstruction funding for
+native string/parse/freeze storage. The actual input, VM baseline, callback and
+simultaneous snapshot/backing inventories remain separate original obligations.

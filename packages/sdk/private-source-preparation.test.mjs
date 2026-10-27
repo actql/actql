@@ -25,7 +25,7 @@ test('private Source forwarding retains the same receiver and original arguments
   captured.bindSourceRequest(receipt, body, packet);
   captured.finishSourceProducer(receipt, 'returned');
   assert.deepEqual(calls, [
-    [receiver, 'before', 'aql', input, options],
+    [receiver, 'before', 'aql', input, options, undefined],
     [receiver, 'snapshot', receipt, body],
     [receiver, 'intent', receipt, body],
     [receiver, 'request', receipt, body, packet],
@@ -100,4 +100,29 @@ test('Source intent identity refuses asynchronous or malformed observations with
   }
   await Promise.resolve();
   assert.equal(reads, 0);
+});
+
+
+test('native snapshot fence captures the original optional receipt method and refuses accessor or async replacements', async () => {
+  const receipt = {}, calls = [];
+  const receiver = {beforeSourceSnapshot() {}, bindSourceSnapshot() {}, bindSourceRequest() {},
+    finishSourceProducer() {}, intentCid() {},
+    assertSourceSnapshotCurrent(actual) {assert.equal(this, receiver);assert.equal(actual, receipt);calls.push(actual);}};
+  const captured = captureSourcePreparation({[sourcePreparationPort]: receiver});
+  receiver.assertSourceSnapshotCurrent = () => assert.fail('ReplacedSnapshotCurrent');
+  captured.assertSourceSnapshotCurrent(receipt);
+  assert.deepEqual(calls, [receipt]);
+  let reads = 0;
+  Object.defineProperty(receiver, 'assertSourceSnapshotCurrent', {get() {reads++;}});
+  assert.throws(() => captureSourcePreparation({[sourcePreparationPort]: receiver}),
+    {code: 'NodeSourceManagedAdmissionUnavailable'});
+  assert.equal(reads, 0);
+  let release;
+  const pending = new Promise(resolve => {release = resolve;});
+  const asyncReceiver = {beforeSourceSnapshot() {}, bindSourceSnapshot() {}, bindSourceRequest() {},
+    finishSourceProducer() {}, intentCid() {}, assertSourceSnapshotCurrent() {return pending;}};
+  const asyncCaptured = captureSourcePreparation({[sourcePreparationPort]: asyncReceiver});
+  assert.throws(() => asyncCaptured.assertSourceSnapshotCurrent(receipt),
+    {code: 'NodeSourceManagedAdmissionUnavailable'});
+  release(); await pending;
 });
