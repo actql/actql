@@ -165,8 +165,25 @@ test('actual Local STORE refuses missing or wrong typed inputs and conflicting o
 });
 
 async function storeOwnerFixture({withMapping=true,driverKinds=['command'],continuationBinding,serializationOptions='',authoredResult=false,
-  withCollection=false,requestBoundary,inspectRequest,withLocalDriver=false,observeRecovery}={}) {
+  withCollection=false,requestBoundary,inspectRequest,withLocalDriver=false,observeRecovery,
+  withContentContracts=false}={}) {
   const f={...fixture(),serializationOptions,authoredResult},mapping=JSON.parse(f.data.mappingWire),command=JSON.parse(f.data.commandWire);
+  // The fixture owns one actual installed sequence-contract admission, just
+  // as the normal Host retains its original selection before creating Content.
+  // Every family/cold context below borrows this SAME original; no provider or
+  // runtime method reinterprets a registry wire or creates a replacement cache.
+  let contentBodies;
+  if(withContentContracts){
+    const [registryWire,aoaWire]=await Promise.all([
+      readFile(new URL('../../../../spec/dependencies/aoa-pipeline-registry.json',import.meta.url),'utf8'),
+      readFile(new URL('../../../../spec/contracts/actql-aoa.json',import.meta.url),'utf8')]);
+    const aoa=JSON.parse(aoaWire),values=JSON.stringify(aoa.execution_contracts['REL.values']);
+    const fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+    const ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+    const registry=checked(moon.clientPrepareInstalledSequenceContracts(registryWire,values,fragment,ordered));
+    assert.equal(typeof registry,'object');
+    contentBodies=Object.freeze({registry,values,fragment,ordered});
+  }
   const unavailable=()=>assert.fail('Selection validation cannot perform provider work');
   const target=withCollection?prepareLocalFileStoreTarget(moon,{...options,declaredWire:f.wire,
     scopeCid:'sha256:'+'3'.repeat(64),authorityScopeCid:'sha256:'+'a'.repeat(64),
@@ -222,7 +239,7 @@ async function storeOwnerFixture({withMapping=true,driverKinds=['command'],conti
       contract:descriptor.commandRef,resolved_command_contract_cid:descriptor.commandCid};
     const facts={prepared,compilation,selections,stageIndex,preview:{effects:[member]}};
     return {owner,originals,prepared,compilation,selections,member,facts,declaredWire:f.wire,target,
-      localDriver:local?.driver,
+      localDriver:local?.driver,...(contentBodies===undefined?{}:{contentBodies}),
       close:()=>owner.close()};
   }catch(cause){await owner.close();throw cause;}
 }
@@ -352,15 +369,11 @@ test('actual Local STORE saved Run retains its policy request and same installed
 });
 
 test('actual Local STORE family admits its original source-free Host capacity',async t=>{
-  const f=await storeOwnerFixture();
+  const f=await storeOwnerFixture({withContentContracts:true});
   let family;
   try{
     const core=runtimeCore(moon),control=core.publicationControl;
-    const registry=await readFile(new URL('../../../../spec/dependencies/aoa-pipeline-registry.json',import.meta.url),'utf8');
-    const aoa=JSON.parse(await readFile(new URL('../../../../spec/contracts/actql-aoa.json',import.meta.url),'utf8'));
-    const values=JSON.stringify(aoa.execution_contracts['REL.values']);
-    const fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
-    const ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+    const {registry,values,fragment,ordered}=f.contentBodies;
     const allowed=checked(moon.clientProgramIssueAllowedEffectRun(f.compilation,
       'sha256:'+'1'.repeat(64),'sha256:'+'2'.repeat(64),'2099-01-01T00:00:00.000Z'));
     const definition=checked(moon.clientProgramIssueEffectRunDefinition(allowed,
@@ -451,18 +464,14 @@ test('actual compiled Content preserves zero private generation ceilings without
 });
 
 test('actual Local STORE authored Content captures Preview with its original published target',async t=>{
-  const f=await storeOwnerFixture({authoredResult:true,withCollection:true,withLocalDriver:true});
+  const f=await storeOwnerFixture({withContentContracts:true,authoredResult:true,withCollection:true,withLocalDriver:true});
   const core=runtimeCore(moon),control=core.publicationControl;
   const directory=await mkdtemp(join(tmpdir(),'actql-store-reference-component-'));
   t.diagnostic(`Fresh component Store retained at ${directory}`);
   const storeAuthorityCid='sha256:'+'8'.repeat(64);
   let store,family,execution,stage;
   try{
-    const registry=await readFile(new URL('../../../../spec/dependencies/aoa-pipeline-registry.json',import.meta.url),'utf8');
-    const aoa=JSON.parse(await readFile(new URL('../../../../spec/contracts/actql-aoa.json',import.meta.url),'utf8'));
-    const values=JSON.stringify(aoa.execution_contracts['REL.values']);
-    const fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
-    const ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+    const {registry,values,fragment,ordered}=f.contentBodies;
     const allowed=checked(moon.clientProgramIssueAllowedEffectRun(f.compilation,
       'sha256:'+'1'.repeat(64),'sha256:'+'2'.repeat(64),'2099-01-01T00:00:00.000Z'));
     const definition=checked(moon.clientProgramIssueEffectRunDefinition(allowed,
@@ -520,7 +529,7 @@ test('actual Local STORE authored Content captures Preview with its original pub
 });
 
 test('actual Local STORE cold Content restores its retained generation before send',async t=>{
-  const f=await storeOwnerFixture({authoredResult:true,withCollection:true,withLocalDriver:true});
+  const f=await storeOwnerFixture({withContentContracts:true,authoredResult:true,withCollection:true,withLocalDriver:true});
   const core=runtimeCore(moon),control=core.publicationControl;
   const directory=await mkdtemp(join(tmpdir(),'actql-store-cold-component-'));
   t.diagnostic(`Fresh component Store retained at ${directory}`);
@@ -528,11 +537,7 @@ test('actual Local STORE cold Content restores its retained generation before se
   let store,family,execution,stage,recoveredStage,recoveredComputation,suspended=false;
   const recoveryOwners=[];
   try{
-    const registry=await readFile(new URL('../../../../spec/dependencies/aoa-pipeline-registry.json',import.meta.url),'utf8');
-    const aoa=JSON.parse(await readFile(new URL('../../../../spec/contracts/actql-aoa.json',import.meta.url),'utf8'));
-    const values=JSON.stringify(aoa.execution_contracts['REL.values']);
-    const fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
-    const ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+    const {registry,values,fragment,ordered}=f.contentBodies;
     const allowed=checked(moon.clientProgramIssueAllowedEffectRun(f.compilation,
       'sha256:'+'1'.repeat(64),'sha256:'+'2'.repeat(64),'2099-01-01T00:00:00.000Z'));
     const definition=checked(moon.clientProgramIssueEffectRunDefinition(allowed,
@@ -657,7 +662,7 @@ test('actual Local STORE cold Content restores its retained generation before se
 
 test('actual Local STORE cold Content settles its original response through final publication',async t=>{
   let recoveredRequests;
-  const f=await storeOwnerFixture({authoredResult:true,withCollection:true,withLocalDriver:true,
+  const f=await storeOwnerFixture({withContentContracts:true,authoredResult:true,withCollection:true,withLocalDriver:true,
     observeRecovery:value=>{assert.equal(recoveredRequests,undefined);recoveredRequests=value;}});
   const core=runtimeCore(moon),control=core.publicationControl;
   const directory=await mkdtemp(join(tmpdir(),'actql-store-postwrite-component-'));
@@ -680,11 +685,7 @@ test('actual Local STORE cold Content settles its original response through fina
     }
   };
   try{
-    const registry=await readFile(new URL('../../../../spec/dependencies/aoa-pipeline-registry.json',import.meta.url),'utf8');
-    const aoa=JSON.parse(await readFile(new URL('../../../../spec/contracts/actql-aoa.json',import.meta.url),'utf8'));
-    const values=JSON.stringify(aoa.execution_contracts['REL.values']);
-    const fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
-    const ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+    const {registry,values,fragment,ordered}=f.contentBodies;
     const allowed=checked(moon.clientProgramIssueAllowedEffectRun(f.compilation,
       'sha256:'+'1'.repeat(64),'sha256:'+'2'.repeat(64),'2099-01-01T00:00:00.000Z'));
     const definition=checked(moon.clientProgramIssueEffectRunDefinition(allowed,
@@ -837,18 +838,14 @@ test('actual Local STORE cold Content settles its original response through fina
 });
 
 test('actual Local STORE cold capture refuses altered original source schema',async t=>{
-  const f=await storeOwnerFixture({authoredResult:true,withCollection:true,withLocalDriver:true});
+  const f=await storeOwnerFixture({withContentContracts:true,authoredResult:true,withCollection:true,withLocalDriver:true});
   const core=runtimeCore(moon),control=core.publicationControl;
   const directory=await mkdtemp(join(tmpdir(),'actql-store-schema-controls-'));
   t.diagnostic(`Fresh component Store retained at ${directory}`);
   const storeAuthorityCid='sha256:'+'8'.repeat(64);
   let store,family,execution,stage,recoveredStage,recoveredComputation,suspended=false;
   try{
-    const registry=await readFile(new URL('../../../../spec/dependencies/aoa-pipeline-registry.json',import.meta.url),'utf8');
-    const aoa=JSON.parse(await readFile(new URL('../../../../spec/contracts/actql-aoa.json',import.meta.url),'utf8'));
-    const values=JSON.stringify(aoa.execution_contracts['REL.values']);
-    const fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
-    const ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+    const {registry,values,fragment,ordered}=f.contentBodies;
     const allowed=checked(moon.clientProgramIssueAllowedEffectRun(f.compilation,
       'sha256:'+'1'.repeat(64),'sha256:'+'2'.repeat(64),'2099-01-01T00:00:00.000Z'));
     const definition=checked(moon.clientProgramIssueEffectRunDefinition(allowed,
