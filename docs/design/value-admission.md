@@ -234,3 +234,24 @@ source text, exact projections, comparison/key buffers, decoder/recheck frames,
 encoded output and escaped aliases can overlap within the same existing
 retention and work owners. Parsing limits or a padded key are not capacity,
 authority or physical retirement evidence.
+
+
+## Original Contract in typed Object construction
+
+Typed Object admission retains the same nested `Contract` selected by its
+original `ReadTyped` frame. Its input field matching and original key/value
+budgets run before construction. The private Object record projects fields
+from that original Contract, and the output builder retains those exact
+canonical fields. Child completion passes the selected scalar field index to
+`append_contract_object_field`; the builder chooses the name from its retained
+Contract and enforces exact index/length/open state.
+
+This carries the already completed name/order admission into construction.
+The generic append's repeated name normalization and order readmission are
+removed from this typed path. Actual input-name matching, required-field
+checks, UTF8/key budgets, source paths/spans and cancellation remain with the
+original admission. JSON data keys retain their separate original path.
+The private Object record still holds three references and one depth scalar;
+it retains the original Contract instead of only its fields. Append frames
+carry a field index instead of a second name reference. No resource policy,
+tariff, grant, physical start or cleanup acknowledgement is derived here.
