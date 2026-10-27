@@ -215,3 +215,98 @@ test "Local Environment fixture preserves original identity and member-order ref
     is Ok(_),
   )
 }
+
+///|
+fn local_sort_normalization_journal_body(
+  inventory : @checked.LocalSortNormalizationInventory,
+  catalog_cid : String,
+) -> Result[String, ClientLocalNormalizationIssue] {
+  try {
+    let writer = @encode.writer(1024, 32, 8)
+    @encode.begin_object(writer)
+    @encode.key(writer, "entries")
+    @encode.begin_array(writer)
+    for index in 0..<@checked.local_sort_normalization_entry_count(inventory) {
+      guard @checked.local_sort_normalization_entry_at(inventory, index)
+        is Some((path, authored, canonical)) else {
+        return Err(ForeignPreparation)
+      }
+      @encode.begin_object(writer)
+      @encode.key(writer, "authored")
+      @encode.string_value(writer, authored)
+      @encode.key(writer, "canonical")
+      @encode.string_value(writer, canonical)
+      @encode.key(writer, "path")
+      @encode.string_value(writer, path)
+      @encode.key(writer, "rule")
+      guard @checked.local_sort_normalization_entry_rule_at(inventory, index)
+        is Some(rule) else {
+        return Err(ForeignPreparation)
+      }
+      @encode.string_value(writer, rule)
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    @encode.key(writer, "rule_catalog_cid")
+    @encode.string_value(writer, catalog_cid)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-normalization-journal/0.1")
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => Err(Evidence(@publication.RunEvidenceEncoding))
+  }
+}
+
+///|
+/// Issue only from the inventory retained by the original checked preparation.
+/// No parse, compile, Source acquisition or physical Effect operation occurs.
+fn issue_prepared_client_legacy_local_normalization(
+  owner : PreparedClientProgram,
+) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue] {
+  if owner.local_normalization is Some(original) {
+    match prepared_client_local_normalization_evidence(owner, original) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    return Ok(original)
+  }
+  let program = @strategy.graph_program(owner.graph)
+  let inventory : ClientLocalNormalizationInventory = match
+    @checked.local_program_sort_normalization_inventory(program) {
+    Ok(Some(value)) => SortCompletion(value)
+    Ok(None) =>
+      match @checked.local_program_completion_free_inventory(program) {
+        Ok(value) => CompletionFree(value)
+        Err(issue) => return Err(Inventory(issue))
+      }
+    Err(issue) => return Err(Inventory(issue))
+  }
+  let catalog_cid = local_normalization_catalog_cid(inventory)
+  let wire = match inventory {
+    Common(_) => return Err(ForeignPreparation)
+    CompletionFree(_) =>
+      "{\"entries\":[],\"rule_catalog_cid\":\"" +
+      catalog_cid +
+      "\",\"version\":\"actql-normalization-journal/0.1\"}"
+    SortCompletion(value) =>
+      match local_sort_normalization_journal_body(value, catalog_cid) {
+        Ok(wire) => wire
+        Err(issue) => return Err(issue)
+      }
+  }
+  let journal = match
+    @publication.seal_run_evidence_value(
+      "normalization_journal", wire, 1024, 32, 8,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Evidence(issue))
+  }
+  let issued : ClientLocalNormalization = {
+    preparation: owner,
+    audit: inventory,
+    evidence: journal,
+  }
+  owner.local_normalization = Some(issued)
+  Ok(issued)
+}
