@@ -111,6 +111,7 @@ class OriginalSDKDeliveryStore:
         self._payload_outputs: dict[int, _Output] = {}
         self._uncertain_payload: dict[int, int] = {}
         self._payload_facts: dict[int, OriginalReaderFacts] = {}
+        self._payload_binding_originals: dict[int, tuple[_Output, OriginalReaderFacts]] = {}
         self._payload_reader_borrows: dict[int, object] = {}
         with self._core._lock:
             original._projection._ready()
@@ -158,6 +159,7 @@ class OriginalSDKDeliveryStore:
                     return False
                 del self._first_outputs[request.ticket]
             self._payload_facts.pop(request.ticket, None)
+            self._payload_binding_originals.pop(request.ticket, None)
             workspace = self._first_workspaces.get(request.ticket)
             if workspace is not None:
                 if not self._core.close_workspace(workspace):
@@ -194,30 +196,84 @@ class OriginalSDKDeliveryStore:
                 self._active = False
 
     def _payload_observation(self, request: _Input, clock: _Input,
-                             action: Callable[[_Output, int], _T]) -> _T:
+                             action: Callable[[_Output, int], _T], *,
+                             original: tuple[_Output, OriginalReaderFacts] | None = None) -> _T:
         """Use the same Store/physical generation/current frame for byte ports."""
         with self._core._lock:
             self._nominal()
             self._core._owned_input(clock)
             first = self.original_first_output(request)
             observation = self._observation
+            facts = observation._facts
+            fact = self._bound_payload_fact(request, first, original)
             if self._active or observation._active or not observation._entered:
                 raise RuntimeError('Original SDK payload Store observation is unavailable')
             self._active = True
             try:
                 with observation._serialized_facts():
                     def inspect() -> _T:
-                        observation._before_lookup()
+                        if fact is None:
+                            observation._before_lookup()
+                        else:
+                            self._observe_bound_material(request, first, fact, original)
                         result = action(first, observation._projection._configuration)
-                        observation._validate_facts()
+                        if fact is None:
+                            observation._validate_facts()
+                        else:
+                            self._observe_bound_material(request, first, fact, original)
                         self._core._owned_output(first, 'publication_commit_export')
                         self._core._owned_input(clock)
                         if self._closing:
                             raise RuntimeError('Original SDK delivery storage is closing')
                         return result
                     return observation._current_call(inspect)
+            except BaseException:
+                # A failed final public current/physical fence is not a
+                # successful material observation. Retain cleanup loans only.
+                for original_fact in facts:
+                    if type(original_fact) is OriginalReaderFacts:
+                        original_fact._original_material = None
+                raise
             finally:
                 self._active = False
+
+    def _bound_payload_fact(self, request: _Input, first: _Output,
+                            original: tuple[_Output, OriginalReaderFacts] | None
+                            ) -> OriginalReaderFacts | None:
+        observation = self._observation
+        if (original is not None
+                and self._payload_binding_originals.get(request.ticket) is original
+                and self._first_outputs.get(request.ticket) is first is original[0]
+                and self._payload_facts.get(request.ticket) is original[1]
+                and observation._saved_current is not None
+                and observation._projection._saved
+                and len(observation._facts) == 1
+                and observation._facts[0] is original[1]
+                and original[1]._projection is observation._projection):
+            return original[1]
+        return None
+
+    def _observe_bound_material(self, request: _Input, first: _Output,
+                                fact: OriginalReaderFacts,
+                                original: tuple[_Output, OriginalReaderFacts] | None) -> None:
+        """Observe the same admitted facts; the bound Core port checks current.
+
+        Only prepare-input, chunk and terminal-observation callers use this
+        route. They independently run the original SDK Source/Sealed-record
+        checks before/after their action. SQL writes, live/unbound projections
+        and generic callbacks retain complete fact validation.
+        """
+        observation = self._observation
+        if self._bound_payload_fact(request, first, original) is not fact:
+            raise ValueError('Original bound Saved payload material changed')
+        observation._nominal()
+        observation._saved_current()
+        observation._projection._current()
+        fact.observe_original_material()
+        observation._saved_current()
+        if self._bound_payload_fact(request, first, original) is not fact:
+            raise ValueError('Original bound Saved payload material changed')
+        self._core._owned_output(first, 'publication_commit_export')
 
     def selected_original_payload(self, request: _Input, clock: _Input) -> OriginalReaderFacts:
         """Route Core's original ordinals; no Python selection or read permit."""
@@ -242,18 +298,29 @@ class OriginalSDKDeliveryStore:
             retained = self._payload_facts.get(request.ticket)
             if retained is not None and retained is not fact:
                 raise ValueError('Original SDK payload record cannot be replaced')
+            self._payload_binding_originals.pop(request.ticket, None)
+            accepted: list[tuple[_Output, OriginalReaderFacts]] = []
             def bind(first: _Output, configuration: int) -> None:
                 # Retain physical custody before the Core callback. Failure is
                 # unresolved custody, never a successful selected descriptor.
                 self._payload_facts[request.ticket] = fact
                 self._core.bind_publication_sdk_payload_record(first, fact._record,
                     configuration, fact._result, fact._binding_index)
+                accepted.append((first, fact))
             self._payload_observation(request, clock, bind)
+            if (len(accepted) != 1 or self._first_outputs.get(request.ticket) is not accepted[0][0]
+                    or self._payload_facts.get(request.ticket) is not fact):
+                raise ValueError('Original SDK payload binding changed')
+            # Retain originals only after the actual bind and full final facts
+            # returned. The earlier fact entry remains cleanup custody only.
+            if self._observation._projection._saved:
+                self._payload_binding_originals[request.ticket] = accepted[0]
 
     def prepare_original_input(self, request: _Input, clock: _Input) -> None:
         """Check original current/backpressure before advancing a file reader."""
         self._payload_observation(request, clock, lambda first, configuration:
-            self._core.prepare_publication_sdk_payload_input(first, clock, configuration))
+            self._core.prepare_publication_sdk_payload_input(first, clock, configuration),
+            original=self._payload_binding_originals.get(request.ticket))
 
     def read_original_chunk(self, request: _Input, chunk: _Input, clock: _Input,
                             output: _Output, *, eof: bool) -> bytes:
@@ -266,7 +333,8 @@ class OriginalSDKDeliveryStore:
                 self._core.produce_publication_sdk_payload_chunk(
                     output, first, chunk, clock, configuration, eof=eof)
                 return self._core.read_publication_commit_material(output)
-            return self._payload_observation(request, clock, read)
+            return self._payload_observation(request, clock, read,
+                original=self._payload_binding_originals.get(request.ticket))
 
     def _reserve_payload_output(self, request: _Input) -> _Output:
         if request.ticket in self._payload_outputs or request.ticket in self._uncertain_payload:
@@ -299,7 +367,8 @@ class OriginalSDKDeliveryStore:
                 self._core.produce_publication_sdk_payload_chunk(
                     output, first, chunk, clock, configuration, eof=eof)
                 return output
-            return self._payload_observation(request, clock, produce)
+            return self._payload_observation(request, clock, produce,
+                original=self._payload_binding_originals.get(request.ticket))
 
     def confirm_original_chunk(self, request: _Input, output: _Output) -> int:
         """Record acceptance of the exact offered chunk, never authorize a read."""
@@ -326,7 +395,8 @@ class OriginalSDKDeliveryStore:
         not retry a write, issue another attempt or emit a reader EOF marker.
         """
         self._payload_observation(request, clock, lambda first, configuration:
-            self._core.observe_publication_sdk_terminal(first, configuration))
+            self._core.observe_publication_sdk_terminal(first, configuration),
+            original=self._payload_binding_originals.get(request.ticket))
 
     def persist_original_terminal(self, request: _Input, clock: _Input) -> None:
         """Apply Core's original three-row successor CAS exactly once.
@@ -533,6 +603,7 @@ class OriginalSDKDeliveryStore:
                     return False
                 del self._first_outputs[ticket]
                 self._payload_facts.pop(ticket, None)
+                self._payload_binding_originals.pop(ticket, None)
             for ticket, workspace in tuple(self._first_workspaces.items())[::-1]:
                 if not self._core.close_workspace(workspace):
                     return False

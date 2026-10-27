@@ -67,6 +67,8 @@ class OriginalReaderFacts:
         self._cleanup = cleanup
         self._stopped = stopped
         self._input: _Input | None = None
+        self._original_material: tuple[tuple[object, ...], tuple[object, ...], _Input,
+                                       PhysicalFileSnapshot] | None = None
         self._acquisition_ticket: int | None = None
         self._sealed = False
         self._active = False
@@ -76,6 +78,49 @@ class OriginalReaderFacts:
         if isinstance(self._reader, _OriginalFileReader):
             return self._root.observe_original(self._reader)
         return self._root.observe_completed_reader(self._reader)
+
+    def _material_originals(self) -> tuple[tuple[object, ...], tuple[object, ...]]:
+        projection = self._projection
+        return ((self, projection, projection._core, projection._publication,
+                 self._record, self._root, self._reader),
+                (projection._configuration, projection._saved, self._result,
+                 self._binding_index, self._store_authority, self._material))
+
+    def _same_material_originals(self, original: tuple[tuple[object, ...], tuple[object, ...]]) -> bool:
+        owners, values = self._material_originals()
+        return (all(left is right for left, right in zip(owners, original[0], strict=True))
+                and values == original[1])
+
+    def observe_original_material(self) -> None:
+        """Reobserve admitted DATA for the existing bound Saved byte caller.
+
+        The caller must still enter its actual Store frame and Core byte port,
+        whose original Source/record/current checks remain mandatory. This
+        supplies no Allow, fresh semantic validation or cleanup acknowledgement.
+        Missing/changed originals take the complete original validator instead.
+        """
+        core = self._projection._core
+        with core._lock:
+            original = self._original_material
+            self._original_material = None
+            self._ready()
+            with self._root._lock:
+                if (not self._active or not self._projection._saved
+                        or original is None
+                        or not self._same_material_originals((original[0], original[1]))
+                        or self._input is not original[2] or not self._sealed):
+                    self.validate()
+                    return
+                core._owned_input(original[2])
+                observed = self._observe_reader()
+                self._ready()
+                core._owned_input(original[2])
+                if (self._same_material_originals((original[0], original[1]))
+                        and self._input is original[2] and self._sealed
+                        and observed == original[3]):
+                    self._original_material = original
+                else:
+                    self.validate()
 
     @property
     def pending_input(self) -> _Input | None:
@@ -123,9 +168,23 @@ class OriginalReaderFacts:
         """Read-only original binding/facts validation, retaining the same loan."""
         core = self._projection._core
         with core._lock:
+            self._original_material = None
             self._ready()
+            originals = self._material_originals()
             with self._root._lock:
                 observed = self._observe_reader()
+                if self._input is not None and self._sealed:
+                    # No transfer or external IO separates the original binding
+                    # and snapshot checks for this already sealed metadata loan.
+                    loan = self._input
+                    self._projection.validate_reader_facts(
+                        self._record, loan, self._result, self._binding_index)
+                    after = self._observe_reader()
+                    if (self._projection._saved and self._same_material_originals(originals)
+                            and self._input is loan and observed == after):
+                        core._owned_input(loan)
+                        self._original_material = (*originals, loan, after)
+                    return
                 self._projection.validate_payload_binding(
                     self._record, self._result, self._binding_index)
                 if self._input is None:
@@ -157,9 +216,14 @@ class OriginalReaderFacts:
                     self._sealed = True
                 if not self._sealed:
                     raise RuntimeError('Original Local reader fact transfer requires cleanup')
+                loan = self._input
                 core.validate_payload_snapshot(
-                    self._record, self._input, self._projection._configuration)
-                self._observe_reader()
+                    self._record, loan, self._projection._configuration)
+                after = self._observe_reader()
+                if (self._projection._saved and self._same_material_originals(originals)
+                        and self._input is loan and observed == after):
+                    core._owned_input(loan)
+                    self._original_material = (*originals, loan, after)
 
     def before_lookup(self, publisher: _Output) -> None:
         """Recheck original physical facts around the current Request stage.
@@ -196,6 +260,7 @@ class OriginalReaderFacts:
         """Retire only this metadata loan after physical transaction cleanup."""
         core = self._projection._core
         with core._lock:
+            self._original_material = None
             if self._active:
                 raise RuntimeError('Local reader facts transaction still retains its input')
             self._closing = True
