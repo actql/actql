@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "703dce737042c4b6e473b1618451f08d4f8fcc6391a6b2dd2e8f62e96722eaeb",
+  "grammar_sha256": "9e23a12f73ea54abb2ef855e26362d26a848c15b6bcb11003329f22168655816",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",

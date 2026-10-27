@@ -2,7 +2,7 @@
 
 ///|
 fn catalog_body_grammar_cid() -> String {
-  "sha256:ec175d305964139d025054f925bf269d83bb76b88b1460b864d0c315f35331ec"
+  "sha256:971a37d4a819157f4016cfe804084ebe828dd07df287214e19cb8ed0483a13b9"
 }
 
 ///|
@@ -12,7 +12,7 @@ fn pushdown_relation_laws_cid() -> String {
 
 ///|
 fn pushdown_expression_contract_cid() -> String {
-  "sha256:b5701b2178a3b2e624d0fbfbda877d0117c367e42a855161e26e0d2e133f1c2c"
+  "sha256:2849a6667980fc51ed51a04879470a97068fd08e358d784262602a09b22dacda"
 }
 
 ///|
