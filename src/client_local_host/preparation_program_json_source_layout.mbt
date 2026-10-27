@@ -1,7 +1,10 @@
 ///|
-/// Small quote-construction DATA, not represented source/index payload. The
-/// initial physical caller funds this installed packet before entering Core.
-/// It stays on the SAME capacity during every later grow, without spending
+/// Installed quote-construction DATA, not represented source/index payload.
+/// begin_program_json_preparation adds this domain packet ONCE to the existing
+/// outside debit. It is not a prepaid-original entrance. The entering debit
+/// getter, checked additions and original resize/current frame need the actual
+/// caller's independent first-prelude backing before that grow can complete.
+/// After the grow this stays on the SAME capacity, without spending
 /// unrelated old-supplier slack or treating policy ceilings as actual demand.
 /// Call-expanded peak, conservatively summed sequentially (H,R,W):
 /// - Source grammar quote20,5,46: existing key/map12,2,24; canonical3,1,8;
@@ -15,7 +18,9 @@
 /// index quote18,7,37; three Unit conversions3,0,15; four-item sum29,6,58;
 /// tariff+three checked additions8,0,16. The returned Unit record1H5W is excluded
 /// from scratch and counted once by the retained driver plan below.
-/// This packet funds both projection and later reconciliation before entry.
+/// The begin operation reserves this packet before later projection and
+/// reconciliation calls. That reservation does not retroactively supply the
+/// begin operation's own pre-resize frame or the backend's borrowed inputs.
 // Generic structural continuation adds360H93R772W, funded BEFORE its first
 // descriptor/receipt/observer allocation. Conservative call-expanded families:
 // - original Program base quote156,30,336 (same decoder/container/Map owners);
@@ -97,9 +102,10 @@ let program_json_initial_control_bytes : Int64 = @execution.preparation_represen
 ).unwrap()
 
 ///|
-/// Installed immutable recipe BEFORE constructor/getter entry. Source/input,
-/// Limits/path and the backend's physical first-prelude/outer roles stay
-/// borrowed and independently funded. This DATA creates no reservation.
+/// Return the existing installed immutable recipe DATA, not a prepaid token.
+/// Do not pre-add it to the outside debit passed to begin: begin adds it once.
+/// Source/input, Limits/path and the backend's first-prelude/outer backing
+/// remain borrowed and independently funded. This getter reserves nothing.
 pub fn program_json_preparation_initial_inventory() -> @execution.PreparationRepresentationUnits {
   program_json_initial_controls
 }
