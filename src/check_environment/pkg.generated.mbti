@@ -7,6 +7,7 @@ import {
   "actql/actql/capacity_witness",
   "actql/actql/carrier_contract",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "actql/actql/graph_contract",
   "actql/actql/relation_schema",
@@ -73,6 +74,10 @@ pub fn catalog_body_dependency_count(CatalogBodyDependencies) -> Int
 
 pub fn catalog_command_at(Catalog, Int) -> Member?
 
+pub fn catalog_contents_construction_extent(CatalogConstructionGeometry) -> RegistryConstructionExtent?
+
+pub fn catalog_contents_retained_extent(CatalogConstructionGeometry) -> RegistryConstructionExtent?
+
 pub fn catalog_dependency_grammar(CatalogBodyDependency) -> CatalogGrammar?
 
 pub fn catalog_grammar_cid(CatalogGrammar) -> String
@@ -91,7 +96,11 @@ pub fn catalog_member_reference_count(CatalogReferences, Member) -> Int?
 
 pub fn catalog_reference_at(CatalogReferences, Int) -> CatalogReference?
 
+pub fn catalog_reference_construction_extent(CatalogReferenceGeometry) -> RegistryConstructionExtent?
+
 pub fn catalog_reference_for_cursor(CatalogReferences, @decode_core.Cursor) -> CatalogReference?
+
+pub fn catalog_reference_retained_extent(CatalogReferenceGeometry) -> RegistryConstructionExtent?
 
 pub fn catalog_registry(CatalogContents) -> ContractRegistry
 
@@ -235,6 +244,8 @@ pub fn contract_at(ContractRegistry, Int) -> ContractEnvelope?
 
 pub fn contract_body(ContractEnvelope) -> @decode_core.Cursor
 
+pub fn contract_body_node_count(ContractEnvelope) -> Int
+
 pub fn contract_identity(ContractEnvelope) -> (String, String, String)
 
 pub fn contract_member(ContractEnvelope) -> Member
@@ -249,9 +260,15 @@ pub fn data_classification(SourceDataPolicy) -> DataClassification
 
 pub fn data_policy_at(SourceDataPolicies, Int) -> SourceDataPolicy?
 
+pub fn data_policy_construction_extent(DataPolicyConstructionGeometry) -> RegistryConstructionExtent?
+
+pub fn data_policy_construction_observation_work(CatalogReferences) -> Int64
+
 pub fn data_policy_envelope(SourceDataPolicy) -> ContractEnvelope
 
 pub fn data_policy_references(SourceDataPolicies) -> CatalogReferences
+
+pub fn data_policy_retained_extent(DataPolicyConstructionGeometry) -> RegistryConstructionExtent?
 
 pub fn data_policy_source(SourceDataPolicy) -> String
 
@@ -437,6 +454,8 @@ pub fn mapping_shape_writable_fields(MappingContractShape) -> Array[String]
 
 pub fn mapping_supports_operation(MappingContractShape, String, String, Int) -> Result[(Bool, Int), MappingPermissionIssue]
 
+pub fn member_access_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
 pub fn member_at(WireEnvironment, Section, Int) -> Member?
 
 pub fn member_body(Member) -> @decode_core.Cursor
@@ -565,21 +584,73 @@ pub fn normalized_public_model_task_original_for(NormalizedPublicModelTask, Publ
 
 pub fn normalized_public_model_task_usage(NormalizedPublicModelTask) -> Int
 
+pub fn observe_carrier_schemas(SourceReadModes, CarrierSchemaLimits) -> (Result[CarrierSchemas, CarrierSchemaIssue], Int, Int, Int, Int)
+
+pub fn observe_catalog_construction_geometry(ContractRegistry) -> CatalogConstructionGeometry
+
+pub fn observe_catalog_references(CatalogContents, ReferenceLimits) -> (Result[CatalogReferences, ReferenceIssue], Int)
+
+pub fn observe_command_input_contract(@decode_core.Cursor, @value_contract.Limits) -> (Result[CommandInputContract, CommandInputContractIssue], Int, Int)
+
+pub fn observe_data_policy_construction_geometry(CatalogReferences) -> DataPolicyConstructionGeometry
+
+pub fn observe_protocol_carrier_construction(SourceReadModes) -> ProtocolCarrierConstructionInventory
+
+pub fn observe_protocol_value_construction(SourceDataPolicies) -> ProtocolValueConstructionInventory
+
+pub fn observe_protocol_value_contracts(SourceDataPolicies, ValueContractLimits) -> (Result[ProtocolValueContracts, ValueContractIssue], Int, Int, Int)
+
+pub fn observe_protocol_view_construction(ProtocolValueContracts) -> ProtocolViewConstructionInventory
+
+pub fn observe_reference_construction_geometry(CatalogContents) -> CatalogReferenceGeometry
+
+pub fn observe_registry_construction_geometry(WireEnvironment) -> RegistryConstructionGeometry
+
+pub fn observe_source_data_policies(CatalogReferences, DataPolicyLimits) -> (Result[SourceDataPolicies, DataPolicyIssue], Int)
+
+pub fn observe_source_read_modes(SourceViewShapes, Int) -> (Result[SourceReadModes, SourceReadModeIssue], Int)
+
+pub fn observe_source_request_construction_geometry(CarrierSchemas) -> SourceRequestConstructionGeometry
+
+pub fn observe_source_request_contracts(CarrierSchemas, SourceRequestLimits) -> (Result[SourceRequestContracts, SourceRequestIssue], Int, Int)
+
+pub fn observe_source_view_shapes(ProtocolValueContracts, SourceViewShapeLimits) -> (Result[SourceViewShapes, SourceViewShapeIssue], Int)
+
 pub fn program_source_grammar_cid() -> String
 
 pub fn project_public_model_task_environment(WireEnvironment, Array[NormalizedPublicModelTask], ModelTaskLimits) -> Result[(String, String, Int), ModelTaskIssue]
+
+pub fn protocol_carrier_construction_extent(ProtocolCarrierConstructionInventory) -> RegistryConstructionExtent
+
+pub fn protocol_carrier_construction_inspection_bound(SourceReadModes) -> Int64
+
+pub fn protocol_carrier_construction_inspection_extent(SourceReadModes) -> RegistryConstructionExtent
+
+pub fn protocol_carrier_retained_extent(ProtocolCarrierConstructionInventory) -> RegistryConstructionExtent
 
 pub fn protocol_command_input_type(ProtocolValueContract) -> CommandInputContract?
 
 pub fn protocol_value_at(ProtocolValueContracts, Int) -> ProtocolValueContract?
 
+pub fn protocol_value_construction_extent(ProtocolValueConstructionInventory) -> RegistryConstructionExtent
+
+pub fn protocol_value_construction_inspection_bound(SourceDataPolicies) -> Int64
+
 pub fn protocol_value_envelope(ProtocolValueContract) -> ContractEnvelope
 
 pub fn protocol_value_for(ProtocolValueContracts, ContractEnvelope) -> ProtocolValueContract?
 
+pub fn protocol_value_retained_extent(ProtocolValueConstructionInventory) -> RegistryConstructionExtent
+
 pub fn protocol_value_type(ProtocolValueContract) -> @value_contract.Contract?
 
 pub fn protocol_value_usage(ProtocolValueContracts) -> (Int, Int, Int)
+
+pub fn protocol_view_construction_extent(ProtocolViewConstructionInventory) -> RegistryConstructionExtent
+
+pub fn protocol_view_construction_inspection_bound(ProtocolValueContracts) -> Int64
+
+pub fn protocol_view_retained_extent(ProtocolViewConstructionInventory) -> RegistryConstructionExtent
 
 pub fn public_model_task_contract(PublicModelTaskContract) -> @value_contract.Contract
 
@@ -683,6 +754,8 @@ pub fn read_text_time(WireEnvironment, @text_time_policy.Limits) -> Result[TextT
 
 pub fn reference_catalog(CatalogReference) -> Catalog
 
+pub fn reference_construction_observation_work(CatalogContents) -> Int64
+
 pub fn reference_contents(CatalogReferences) -> CatalogContents
 
 pub fn reference_contract(CatalogReference) -> ContractEnvelope
@@ -692,6 +765,10 @@ pub fn reference_member(CatalogReference) -> Member
 pub fn reference_source(CatalogReference) -> @decode_core.Cursor
 
 pub fn reference_usage(CatalogReferences) -> (Int, Int)
+
+pub fn registry_construction_extent(RegistryConstructionGeometry) -> RegistryConstructionExtent?
+
+pub fn registry_retained_construction_extent(Int) -> RegistryConstructionExtent?
 
 pub fn resolve_catalog_contract(Catalog, String, String, String, String) -> Result[ContractEnvelope, CatalogIssue]
 
@@ -787,6 +864,12 @@ pub fn source_request_batching(SourceViewRequestContract) -> SourceBatching?
 
 pub fn source_request_carriers(SourceRequestContracts) -> CarrierSchemas
 
+pub fn source_request_construction_extent(SourceRequestConstructionGeometry) -> RegistryConstructionExtent?
+
+pub fn source_request_construction_inspection_bound(CarrierSchemas) -> Int64
+
+pub fn source_request_construction_inspection_extent(CarrierSchemas) -> RegistryConstructionExtent
+
 pub fn source_request_correlation(SourceViewRequestContract) -> SourceCorrelation?
 
 pub fn source_request_file_content(SourceViewRequestContract) -> FileContentProfile?
@@ -798,6 +881,8 @@ pub fn source_request_for(SourceRequestContracts, Member) -> SourceViewRequestCo
 pub fn source_request_member(SourceViewRequestContract) -> Member
 
 pub fn source_request_reference(SourceViewRequestContract) -> CatalogReference
+
+pub fn source_request_retained_construction_extent(SourceRequestConstructionGeometry) -> RegistryConstructionExtent?
 
 pub fn source_request_schema(SourceViewRequestContract) -> @relation_schema.Schema
 
@@ -854,6 +939,8 @@ pub fn usage(WireEnvironment) -> (Int, Int, Int)
 pub fn validate_decision_answers(DecisionContract, @decode_core.Cursor, DecisionProbabilityProfile, Int) -> Result[Int, DecisionIssue]
 
 pub fn value_contract_policies(ProtocolValueContracts) -> SourceDataPolicies
+
+pub fn wire_hash_construction_extent(Int) -> RegistryConstructionExtent?
 
 // Errors
 
@@ -940,6 +1027,14 @@ pub(all) enum CatalogBodyDependencyRole {
   ExpressionContract
 } derive(Eq, @debug.Debug)
 
+pub(all) struct CatalogConstructionGeometry {
+  catalogs : Int
+  indexed_members : Int
+  body_nodes : Int
+  max_nodes : Int
+  max_fields : Int
+} derive(Eq, @debug.Debug)
+
 type CatalogContents
 
 pub(all) enum CatalogGrammar {
@@ -972,6 +1067,13 @@ pub(all) enum CatalogIssue {
 } derive(Eq, @debug.Debug)
 
 type CatalogReference
+
+pub(all) struct CatalogReferenceGeometry {
+  catalogs : Int
+  members : Int
+  member_nodes : Int
+  max_member_nodes : Int
+} derive(Eq, @debug.Debug)
 
 type CatalogReferences
 
@@ -1092,6 +1194,13 @@ pub(all) enum DataClassification {
   Confidential
   Restricted
   Unknown
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DataPolicyConstructionGeometry {
+  envelopes : Int
+  policies : Int
+  references : Int
+  policy_references : Int
 } derive(Eq, @debug.Debug)
 
 pub(all) enum DataPolicyIssue {
@@ -1495,9 +1604,36 @@ type ModelTasks
 
 type NormalizedPublicModelTask
 
+pub(all) struct ProtocolCarrierConstructionInventory {
+  retained : RegistryConstructionExtent
+  scratch : RegistryConstructionExtent
+  schemas : Int
+  bindings : Int
+  work : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ProtocolValueConstructionInventory {
+  retained : @decode_shape.CollectionConstructionExtent
+  scratch : @decode_shape.CollectionConstructionExtent
+  scratch_utf16_units : Int64
+  envelopes : Int
+  command_inputs : Int
+  work : Int64
+} derive(Eq, @debug.Debug)
+
 type ProtocolValueContract
 
 type ProtocolValueContracts
+
+pub(all) struct ProtocolViewConstructionInventory {
+  shape_retained : @decode_shape.CollectionConstructionExtent
+  shape_scratch : @decode_shape.CollectionConstructionExtent
+  mode_retained : @decode_shape.CollectionConstructionExtent
+  mode_scratch : @decode_shape.CollectionConstructionExtent
+  views : Int
+  modes : Int64
+  work : Int64
+} derive(Eq, @debug.Debug)
 
 type PublicModelTaskContract
 
@@ -1567,6 +1703,20 @@ pub(all) struct ReferenceLimits {
   max_work : Int
   max_references : Int
 }
+
+pub(all) struct RegistryConstructionExtent {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+  owned_wire_bytes : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RegistryConstructionGeometry {
+  members : Int
+  max_nodes : Int
+  max_fields : Int
+} derive(Eq, @debug.Debug)
 
 type ResolvedModelProviderDefaults
 
@@ -1657,6 +1807,22 @@ type SourceReadModes
 type SourceRelationKeys
 
 type SourceRelationScores
+
+pub(all) struct SourceRequestConstructionGeometry {
+  views : Int
+  request_references : Int
+  correlated_views : Int
+  pairs : Int64
+  identity_roles : Int64
+  batching_views : Int
+  listing_views : Int
+  listing_limits : Int64
+  content_views : Int
+  max_view_map_fields : Int64
+  distinct_facts : Int
+  diagnostic_path_segments : Int
+  inspection_work : Int64
+} derive(Eq, @debug.Debug)
 
 type SourceRequestContracts
 

@@ -82,6 +82,8 @@ pub fn null_value(Writer) -> Unit raise EncodeFailure
 
 pub fn number_value(Writer, Double) -> Unit raise EncodeFailure
 
+pub fn observed_writer_usage(Writer) -> (Int, Int, Int)
+
 pub fn ordered_key(Writer, String) -> Unit raise EncodeFailure
 
 pub fn start_ordered_key(Writer, String) -> OrderedKeyEmitCursor raise EncodeFailure

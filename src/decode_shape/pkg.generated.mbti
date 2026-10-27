@@ -10,6 +10,8 @@ pub fn add_collection_construction_extents(CollectionConstructionExtent, Collect
 
 pub fn admit_key(KeyAdmission, String) -> Bool
 
+pub fn ascii_lower_construction_extent(Int) -> AsciiLowerConstructionExtent?
+
 pub fn check_object_keys(Array[String], Array[String], Array[String]) -> Result[Unit, ObjectKeyIssue]
 
 pub fn collection_construction_extent(CollectionConstructionInventory) -> CollectionConstructionExtent?
@@ -29,6 +31,14 @@ pub fn unknown_key_indices(Array[String], Array[String]) -> Array[Int]
 // Errors
 
 // Types and methods
+pub(all) struct AsciiLowerConstructionExtent {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+  max_output_utf16_units : Int64
+} derive(Eq, @debug.Debug)
+
 pub(all) struct CollectionConstructionExtent {
   record_headers : Int64
   reference_slots : Int64

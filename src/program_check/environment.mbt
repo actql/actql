@@ -102,6 +102,16 @@ fn prepare_environment_with_contents_limits(
     nodes: budget.nodes,
     depth: budget.depth,
   }
+  let registry = prepare_environment_registry(environment, b, contents_limits)
+  finish_environment_registry(registry, b, budget, contents_limits)
+}
+
+///|
+fn prepare_environment_registry(
+  environment : @environment.WireEnvironment,
+  b : IdentityBudget,
+  contents_limits : @environment.Limits?,
+) -> @environment.ContractRegistry raise EnvironmentFailure {
   environment_begin(b)
   let registry = match
     @environment.check_contract_registry(
@@ -113,6 +123,26 @@ fn prepare_environment_with_contents_limits(
   }
   let (bytes, nodes, entries) = @environment.contract_registry_usage(registry)
   environment_body_usage(b, bytes, nodes, entries)
+  registry
+}
+
+///|
+fn finish_environment_registry(
+  registry : @environment.ContractRegistry,
+  b : IdentityBudget,
+  budget : IdentityBudget,
+  contents_limits : @environment.Limits?,
+) -> (@environment.SourceRequestContracts, @environment.CatalogReferences) raise EnvironmentFailure {
+  let contents = prepare_environment_contents(registry, b, contents_limits)
+  finish_environment_contents(contents, b, budget)
+}
+
+///|
+fn prepare_environment_contents(
+  registry : @environment.ContractRegistry,
+  b : IdentityBudget,
+  contents_limits : @environment.Limits?,
+) -> @environment.CatalogContents raise EnvironmentFailure {
   environment_begin(b)
   let contents = match
     @environment.check_catalog_contents(
@@ -124,62 +154,151 @@ fn prepare_environment_with_contents_limits(
   }
   let (bytes, nodes, entries) = @environment.catalog_usage(contents)
   environment_body_usage(b, bytes, nodes, entries)
+  contents
+}
+
+///|
+fn finish_environment_contents(
+  contents : @environment.CatalogContents,
+  b : IdentityBudget,
+  budget : IdentityBudget,
+) -> (@environment.SourceRequestContracts, @environment.CatalogReferences) raise EnvironmentFailure {
+  let references = prepare_environment_references(contents, b)
+  finish_environment_references(references, b, budget)
+}
+
+///|
+fn prepare_environment_references(
+  contents : @environment.CatalogContents,
+  b : IdentityBudget,
+) -> @environment.CatalogReferences raise EnvironmentFailure {
   environment_begin(b)
-  let references = match
-    @environment.check_catalog_references(contents, {
-      max_work: b.work,
-      max_references: b.work,
-    }) {
-    Ok(v) => v
-    Err(e) => raise References(e)
+  let (result, spent) = @environment.observe_catalog_references(contents, {
+    max_work: b.work,
+    max_references: b.work,
+  })
+  environment_work(b, spent)
+  match result {
+    Ok(value) => value
+    Err(issue) => raise References(issue)
   }
-  environment_work(b, @environment.reference_usage(references).0)
+}
+
+///|
+fn finish_environment_references(
+  references : @environment.CatalogReferences,
+  b : IdentityBudget,
+  budget : IdentityBudget,
+) -> (@environment.SourceRequestContracts, @environment.CatalogReferences) raise EnvironmentFailure {
+  let policies = prepare_environment_policies(references, b)
+  finish_environment_policies(policies, b, budget)
+}
+
+///|
+fn prepare_environment_policies(
+  references : @environment.CatalogReferences,
+  b : IdentityBudget,
+) -> @environment.SourceDataPolicies raise EnvironmentFailure {
   environment_begin(b)
-  let policies = match
-    @environment.check_source_data_policies(references, {
-      max_work: b.work,
-      max_policies: b.work,
-    }) {
-    Ok(v) => v
-    Err(e) => raise Policies(e)
+  let (result, spent) = @environment.observe_source_data_policies(references, {
+    max_work: b.work,
+    max_policies: b.work,
+  })
+  environment_work(b, spent)
+  match result {
+    Ok(value) => value
+    Err(issue) => raise Policies(issue)
   }
-  environment_work(b, @environment.data_policy_usage(policies).0)
+}
+
+///|
+fn finish_environment_policies(
+  policies : @environment.SourceDataPolicies,
+  b : IdentityBudget,
+  budget : IdentityBudget,
+) -> (@environment.SourceRequestContracts, @environment.CatalogReferences) raise EnvironmentFailure {
+  let values = prepare_environment_values(policies, b)
+  finish_environment_values(values, b, budget)
+}
+
+///|
+fn prepare_environment_values(
+  policies : @environment.SourceDataPolicies,
+  b : IdentityBudget,
+) -> @environment.ProtocolValueContracts raise EnvironmentFailure {
   environment_begin(b)
   let caps = environment_body_caps(b)
-  let values = match
-    @environment.check_protocol_value_contracts(policies, {
+  let (result, nodes, text, entries) = @environment.observe_protocol_value_contracts(
+    policies,
+    {
       max_envelopes: caps.max_members,
       contracts: {
         max_nodes: caps.max_nodes,
         max_depth: caps.max_depth,
         max_text_bytes: caps.max_bytes,
       },
-    }) {
-    Ok(v) => v
-    Err(e) => raise Values(e)
-  }
-  let (nodes, text, entries) = @environment.protocol_value_usage(values)
+    },
+  )
   environment_body_usage(b, text, nodes, entries)
-  environment_begin(b)
-  let shapes = match
-    @environment.check_source_view_shapes(values, {
-      max_work: b.work,
-      max_views: b.work,
-    }) {
-    Ok(v) => v
-    Err(e) => raise Shapes(e)
+  match result {
+    Ok(value) => value
+    Err(issue) => raise Values(issue)
   }
-  environment_work(b, @environment.source_view_shape_usage(shapes).0)
+}
+
+///|
+fn finish_environment_values(
+  values : @environment.ProtocolValueContracts,
+  b : IdentityBudget,
+  budget : IdentityBudget,
+) -> (@environment.SourceRequestContracts, @environment.CatalogReferences) raise EnvironmentFailure {
+  let modes = prepare_environment_views(values, b)
+  finish_environment_modes(modes, b, budget)
+}
+
+///|
+fn prepare_environment_views(
+  values : @environment.ProtocolValueContracts,
+  b : IdentityBudget,
+) -> @environment.SourceReadModes raise EnvironmentFailure {
   environment_begin(b)
-  let modes = match @environment.check_source_read_modes(shapes, b.work) {
-    Ok(v) => v
-    Err(e) => raise Modes(e)
+  let (result, spent) = @environment.observe_source_view_shapes(values, {
+    max_work: b.work,
+    max_views: b.work,
+  })
+  environment_work(b, spent)
+  let shapes = match result {
+    Ok(value) => value
+    Err(issue) => raise Shapes(issue)
   }
-  environment_work(b, @environment.read_mode_usage(modes).0)
+  environment_begin(b)
+  let (result, spent) = @environment.observe_source_read_modes(shapes, b.work)
+  environment_work(b, spent)
+  match result {
+    Ok(value) => value
+    Err(issue) => raise Modes(issue)
+  }
+}
+
+///|
+fn finish_environment_modes(
+  modes : @environment.SourceReadModes,
+  b : IdentityBudget,
+  budget : IdentityBudget,
+) -> (@environment.SourceRequestContracts, @environment.CatalogReferences) raise EnvironmentFailure {
+  finish_environment_carriers(prepare_environment_carriers(modes, b), b, budget)
+}
+
+///|
+fn prepare_environment_carriers(
+  modes : @environment.SourceReadModes,
+  b : IdentityBudget,
+) -> @environment.CarrierSchemas raise EnvironmentFailure {
   environment_begin(b)
   let caps = environment_body_caps(b)
-  let carriers = match
-    @environment.check_carrier_schemas(modes, {
+  let (result, bytes, nodes, work, entries) = @environment.observe_carrier_schemas(
+    modes,
+    {
       max_work: b.work / 2,
       max_schemas: Int::min(caps.max_members, b.work / 6),
       bodies: {
@@ -187,12 +306,7 @@ fn prepare_environment_with_contents_limits(
         max_nodes: Int::min(caps.max_nodes, b.work / 6),
         max_depth: caps.max_depth,
       },
-    }) {
-    Ok(v) => v
-    Err(e) => raise Carriers(e)
-  }
-  let (bytes, nodes, work, entries) = @environment.carrier_schema_usage(
-    carriers,
+    },
   )
   // Work and body admission have independent underlying caps. Bill the same
   // conservative allowance to each side so replay fits both caps exactly.
@@ -203,18 +317,60 @@ fn prepare_environment_with_contents_limits(
   b.work -= peak * 2
   b.bytes -= bytes
   b.nodes -= nodes
-  environment_begin(b)
-  let requests = match
-    @environment.check_source_request_contracts(carriers, {
-      max_work: b.work,
-      max_roles: b.work,
-    }) {
-    Ok(v) => v
-    Err(e) => raise Requests(e)
+  match result {
+    Ok(value) => value
+    Err(issue) => raise Carriers(issue)
   }
-  environment_work(b, @environment.source_request_usage(requests).0)
+}
+
+///|
+fn finish_environment_carriers(
+  carriers : @environment.CarrierSchemas,
+  b : IdentityBudget,
+  budget : IdentityBudget,
+) -> (@environment.SourceRequestContracts, @environment.CatalogReferences) raise EnvironmentFailure {
+  finish_environment_requests(
+    prepare_environment_requests(carriers, b),
+    b,
+    budget,
+  )
+}
+
+///|
+fn prepare_environment_requests(
+  carriers : @environment.CarrierSchemas,
+  b : IdentityBudget,
+) -> @environment.SourceRequestContracts raise EnvironmentFailure {
+  environment_begin(b)
+  let (result, spent, _) = @environment.observe_source_request_contracts(
+    carriers,
+    { max_work: b.work, max_roles: b.work, },
+  )
+  // A typed refusal does not refund this same reader's consumed prefix.
+  environment_work(b, spent)
+  match result {
+    Ok(value) => value
+    Err(issue) => raise Requests(issue)
+  }
+}
+
+///|
+fn finish_environment_requests(
+  requests : @environment.SourceRequestContracts,
+  b : IdentityBudget,
+  budget : IdentityBudget,
+) -> (@environment.SourceRequestContracts, @environment.CatalogReferences) {
+  let policies = @environment.value_contract_policies(
+    @environment.source_view_shape_values(
+      @environment.read_mode_shapes(
+        @environment.carrier_schema_modes(
+          @environment.source_request_carriers(requests),
+        ),
+      ),
+    ),
+  )
   budget.work = b.work
   budget.bytes = b.bytes
   budget.nodes = b.nodes
-  (requests, references)
+  (requests, @environment.data_policy_references(policies))
 }

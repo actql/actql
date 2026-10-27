@@ -57,11 +57,19 @@ pub fn nonnull_resource_ref_kind(Contract) -> String?
 
 pub fn normalize_content_media_type_case(String, Int) -> Result[String, ContentMediaTypeIssue]
 
+pub fn object_construction_inventory(Int, Int) -> ObjectConstructionInventory?
+
 pub fn object_contract(Array[(String, Contract)], nullable~ : Bool, max_fields~ : Int, max_name_bytes~ : Int) -> Result[Contract, ConstructionIssue]
+
+pub fn object_retained_construction_extent(Int, Int) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn observe_checked_usage(@decode_core.Cursor, Limits) -> (Result[(Contract, Int, Int), AdmissionError], Int, Int)
 
 pub fn observe_parameter_read_construction_geometry(@decode_core.Cursor) -> ParameterReadConstructionGeometry
 
 pub fn observe_parameter_read_construction_sources(@decode_core.Cursor) -> ParameterReadConstructionSources
+
+pub fn observe_read_construction_geometry(@decode_core.Cursor) -> @decode_core.SubtreeGeometry
 
 pub fn parameter_field_at(ParameterFields, Int) -> (String, ParameterType)?
 
@@ -83,7 +91,11 @@ pub fn read_checked(@decode_core.Cursor, Limits) -> Result[Contract, AdmissionEr
 
 pub fn read_checked_usage(@decode_core.Cursor, Limits) -> Result[(Contract, Int, Int), AdmissionError]
 
+pub fn read_construction_inventory(@decode_core.SubtreeGeometry) -> ReadConstructionInventory?
+
 pub fn read_parameter_syntax(@decode_core.Cursor, Limits) -> Result[ParameterSyntax, AdmissionError]
+
+pub fn relation_construction_inventory(Int) -> RelationConstructionInventory?
 
 pub fn start_checked_emission(Contract, @encode_core.Writer, Int) -> CheckedEmission raise @encode_core.EncodeFailure
 
@@ -173,6 +185,12 @@ pub(all) struct Limits {
   max_text_bytes : Int
 } derive(Eq, @debug.Debug)
 
+pub(all) struct ObjectConstructionInventory {
+  retained : @decode_shape.CollectionConstructionExtent
+  scratch : @decode_shape.CollectionConstructionExtent
+  scratch_utf16_units : Int64
+} derive(Eq, @debug.Debug)
+
 type ParameterFields
 
 pub(all) struct ParameterReadConstructionGeometry {
@@ -229,6 +247,17 @@ pub(all) enum Primitive {
   TimestampType
   JsonType
   Signed64Type
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ReadConstructionInventory {
+  retained : @decode_shape.CollectionConstructionExtent
+  scratch : @decode_shape.CollectionConstructionExtent
+  scratch_utf16_units : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RelationConstructionInventory {
+  joined : @decode_shape.CollectionConstructionExtent
+  scratch : @decode_shape.CollectionConstructionExtent
 } derive(Eq, @debug.Debug)
 
 pub enum Shape {

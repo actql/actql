@@ -119,14 +119,22 @@ fn hash(
   cursor : @decode.Cursor,
   limits : Limits,
   omit : Bool,
+  usage? : ((Int, Int) -> Unit)? = None,
 ) -> (String, Int, Int) raise @encode.EncodeFailure {
   let writer = @encode.hashing_writer(
     limits.max_bytes,
     limits.max_nodes,
     limits.max_depth,
   )
+  errdefer (if usage is Some(observe) {
+    let (bytes, nodes, _) = @encode.observed_writer_usage(writer)
+    observe(bytes, nodes)
+  })
   emit_cursor(cursor, writer, omit)
   let (digest, bytes, nodes) = @encode.finish_hash_usage(writer)
+  if usage is Some(observe) {
+    observe(bytes, nodes)
+  }
   ("sha256:" + digest, bytes, nodes)
 }
 

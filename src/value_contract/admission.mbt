@@ -144,13 +144,8 @@ fn decode(
   root : @decode.Cursor,
   limits : Limits,
   checked : Bool,
+  budget : Budget,
 ) -> (Contract, Int, Int) raise Abort {
-  let budget : Budget = {
-    nodes: limits.max_nodes,
-    scheduled: 1,
-    text: limits.max_text_bytes,
-    max_depth: limits.max_depth,
-  }
   let work : Array[Work] = [Read(root, 0)]
   let values : Array[Contract] = []
   while !work.is_empty() {
@@ -197,11 +192,11 @@ fn decode(
             }
           "vector" =>
             if checked {
-              ["dimensions", "element_type"]
+              ["dimensions", read_contract_element_type_field]
             } else {
               ["dimensions"]
             }
-          "resource_ref" => ["resource_kind"]
+          "resource_ref" => [read_contract_resource_kind_field]
           "content_ref" => ["media_type"]
           _ => invalid(type_cursor, UnknownType(kind))
         }
@@ -246,7 +241,7 @@ fn decode(
               invalid(d, InvalidRange)
             }
             if checked {
-              let e = required(view, "element_type")
+              let e = required(view, read_contract_element_type_field)
               if text(e, budget) != "f32" {
                 invalid(e, InvalidFixedField)
               }
@@ -255,7 +250,10 @@ fn decode(
           }
           "resource_ref" =>
             ResourceRef(
-              resource_kind=text(required(view, "resource_kind"), budget),
+              resource_kind=text(
+                required(view, read_contract_resource_kind_field),
+                budget,
+              ),
             )
           "content_ref" =>
             ContentRef(
@@ -333,7 +331,7 @@ fn admit_usage(
   if limits.max_nodes < 0 || limits.max_depth < 0 || limits.max_text_bytes < 0 {
     return Err(InvalidLimits)
   }
-  Ok(decode(cursor, limits, checked)) catch {
+  Ok(decode(cursor, limits, checked, read_budget(limits))) catch {
     Abort(error) => Err(error)
   }
 }
@@ -375,4 +373,31 @@ pub fn read_checked_usage(
   limits : Limits,
 ) -> Result[(Contract, Int, Int), AdmissionError] {
   admit_usage(cursor, limits, true)
+}
+
+///|
+fn read_budget(limits : Limits) -> Budget {
+  {
+    nodes: limits.max_nodes,
+    scheduled: 1,
+    text: limits.max_text_bytes,
+    max_depth: limits.max_depth,
+  }
+}
+
+///|
+/// Same checked reader and actual original node/UTF8 budget cells, even after
+/// a typed refusal. This is not invocation count, NFC work or total CPU.
+pub fn observe_checked_usage(
+  cursor : @decode.Cursor,
+  limits : Limits,
+) -> (Result[(Contract, Int, Int), AdmissionError], Int, Int) {
+  if limits.max_nodes < 0 || limits.max_depth < 0 || limits.max_text_bytes < 0 {
+    return (Err(InvalidLimits), 0, 0)
+  }
+  let budget = read_budget(limits)
+  let result = Ok(decode(cursor, limits, true, budget)) catch {
+    Abort(issue) => Err(issue)
+  }
+  (result, limits.max_nodes - budget.nodes, limits.max_text_bytes - budget.text)
 }

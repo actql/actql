@@ -551,3 +551,32 @@ come from the original caller's independently inventoried supply. The generic
 Core packet is not evidence that this pre-entry backing is present, and a
 later successful resize cannot retroactively provide it. No numerical backend
 first-prelude claim follows from the finite Core prefix qualification.
+
+## Catalog and Source-request constructor observation
+
+The existing Catalog readers expose the quantities charged by their original
+work and admission cells, including a typed refusal after partial progress.
+Their success-only entry points call those same readers and project the
+original successful holder. Observing the consumed prefix does not run a
+second validator, refund failed work, or create a partial admitted Catalog.
+The checker composes the registry, contents, references, policies, values,
+views, carriers and request readers in their original order with the same
+identity budget.
+
+Each constructor owner describes newly owned records, collection backing and
+text separately from borrowed input trees, checked child contracts and shared
+module literals. Repeated retained occurrences count independently; sequential
+reader, canonical emitter and hashing scratch uses its actual largest
+workspace. Reference-route and SourceView rule construction quantities are
+emitted by the same canonical schema walks as the rules themselves. Shared
+indexed access, collection, normalization and hashing constructors remain the
+owners of their respective representations; Catalog does not introduce another
+byte tariff or a semantic type table.
+
+Geometry observations select original structural metadata and relevant
+identifier widths. They are neither semantic admission nor evidence of
+physical backing. A funded continuation must retain the original input,
+selected limits, parent and completed domain holders, quote before constructing
+each domain, reconcile its actual consumed prefix, and retire storage only
+through its real borrowers. Constructing an inventory alone does not perform
+those transitions or fund the later Context, compiler, module or Content work.

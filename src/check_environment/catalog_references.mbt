@@ -150,13 +150,34 @@ pub fn check_catalog_references(
   if limits.max_work < 0 || limits.max_references < 0 {
     return Err({ kind: InvalidLimits, source: None, })
   }
-  let reader = {
-    limits,
-    work: 0,
-    references: [],
-    by_source: Map([]),
-    by_member: Map([]),
+  read_catalog_references(contents, reference_reader(limits))
+}
+
+///|
+fn reference_reader(limits : ReferenceLimits) -> ReferenceReader {
+  { limits, work: 0, references: [], by_source: Map([]), by_member: Map([]), }
+}
+
+///|
+/// Observes the SAME original reader's charged work, including typed refusal.
+/// Limits, cursor/role order and reference occurrences are not replayed.
+pub fn observe_catalog_references(
+  contents : CatalogContents,
+  limits : ReferenceLimits,
+) -> (Result[CatalogReferences, ReferenceIssue], Int) {
+  if limits.max_work < 0 || limits.max_references < 0 {
+    return (Err({ kind: InvalidLimits, source: None, }), 0)
   }
+  let reader = reference_reader(limits)
+  let result = read_catalog_references(contents, reader)
+  (result, reader.work)
+}
+
+///|
+fn read_catalog_references(
+  contents : CatalogContents,
+  reader : ReferenceReader,
+) -> Result[CatalogReferences, ReferenceIssue] {
   let routes = catalog_reference_routes()
   try {
     for catalog in contents.entries {
