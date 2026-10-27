@@ -215,6 +215,8 @@ pub fn client_prepare_installed_sequence_contracts(String, String, String?, Stri
 
 pub fn client_program_abort_closed_values_preparation_after_cleanup(@client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal]) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue]
 
+pub fn client_program_abort_request_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal]) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
+
 pub fn client_program_acknowledge_infer_call_settlement(@model_execution.ModelCallSettlement) -> Bool
 
 pub fn client_program_acknowledge_saved_infer_call_entry(@model_execution.ModelCallEntry, @model_execution.ModelPreparedCallSet) -> @model_execution.ModelCallEntryAcknowledgement?
@@ -378,6 +380,8 @@ pub fn client_program_begin_effect_local_command_key_workspace(ClientEffectComma
 pub fn client_program_begin_infer_original_model_invalidation(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]) -> Result[@physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin], @client_infer_host.Issue]
 
 pub fn client_program_begin_infer_original_read_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelQuantityCapacity?, Int64, Int64, Int, Int, Int) -> Result[@run_publication_host.ClientModelReadScope, @client_infer_host.Issue]
+
+pub fn client_program_begin_request_preparation(@physical_resources.NodePreparationAdmission[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientLocalResourcePolicy) -> Result[@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_begin_snapshot(@client_local_host.ClientProgramPublication[ClientLocalPreparationInputOriginal], StrategyHostOutputExport) -> Result[@client_local_host.ClientProgramSnapshot[ClientLocalPreparationInputOriginal], @client_local_host.ClientClosedValuesPreparationIssue]
 
@@ -2619,6 +2623,8 @@ pub fn client_program_replay_model_capture(@execution_relation.PreparedInferRows
 
 pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
+pub fn client_program_request_preparation_control(@client_local_host.ClientLocalResourcePolicy) -> Array[Int64]
+
 pub fn client_program_request_value_policy_subjects(@run_publication_host.PreparedClientProgram) -> Array[String] raise @program_check.UnitBuildFailure
 
 pub fn client_program_requested_effect_stop(@run_publication_host.ClientSubmittedIntent, String, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @physical_strategy_host.CapturedEffectPreviewInputs) -> Result[@run_publication_host.ClientRequestedEffectStop?, @run_publication_host.ClientRequestedEffectStopIssue]
@@ -2842,6 +2848,8 @@ pub fn client_program_salesforce_row_declaration(@actql/actql/connectors/salesfo
 pub fn client_program_salesforce_site(String, String, String, String, String, String, Int, String) -> Result[@actql/actql/connectors/salesforce/host.InstalledSalesforceSite, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
 pub fn client_program_salesforce_source_target(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
+
+pub fn client_program_select_closed_values_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[@client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal], @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_select_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String, @client_local_host.ClientDuckDBAcquisitionEstimate, @client_local_host.ClientDuckDBAcquisitionEstimate, Array[String]) -> Result[@client_local_host.ClientDuckDBAcquisitionSelection, @client_local_host.ClientDuckDBAcquisitionIssue]
 

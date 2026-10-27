@@ -58,10 +58,23 @@ export function closedValuesPreparationAvailable(context) {
   if(moon===null || typeof moon!=='object' || nodeTypes.isProxy(moon) ||
       own(context,'preparedEnvironment')===undefined ||
       typeof own(context,'retainedRelationOutput')!=='boolean') return false;
-  return typeof own(moon,'clientProgramPrepareClosedValuesModuleBody')==='function' &&
+  return typeof own(moon,'clientProgramRequestPreparationControl')==='function' &&
+    typeof own(moon,'clientProgramBeginRequestPreparation')==='function' &&
+    typeof own(moon,'clientProgramSelectClosedValuesPreparation')==='function' &&
+    typeof own(moon,'clientProgramAbortRequestPreparation')==='function' &&
+    typeof own(moon,'clientProgramPrepareClosedValuesModuleBody')==='function' &&
     typeof own(moon,'clientProgramCompleteClosedValuesBody')==='function' &&
     typeof own(moon,'clientProgramAdoptClosedValuesPreparation')==='function' &&
     typeof own(moon,'clientProgramReserveClosedValuesSnapshot')==='function';
+}
+
+// Fixed supplier precondition before receipt/state/native Root construction.
+// This control quote grants no body bytes and observes no caller input.
+export function assertRequestPreparationControl(context) {
+  const moon=context.runtime;
+  const control=moon.clientProgramRequestPreparationControl(moon.clientLocalResourcePolicyOriginal());
+  if(!Array.isArray(control) || control.length!==2 || typeof control[0]!=='bigint' ||
+      control[0]<=0n || control[1]!==0n) invalid();
 }
 
 export function beginClosedValuesInput(state, input, receipt, connection, requirements, assertCurrent) {
@@ -74,8 +87,11 @@ export function beginClosedValuesInput(state, input, receipt, connection, requir
   state.original=resources.retainOrdinaryManagedRun(receipt,requirements,
     assertCurrent,noPhysicalChildren,'local-preparation');
   state.admission=checked(moon.clientProgramPrepareLocalPreparationAdmission(state.original,receipt));
-  state.phase=checkedPreparation(moon,moon.clientProgramBeginClosedValuesPreparation(state.admission,receipt,
+  state.parent=checked(moon.clientProgramBeginRequestPreparation(state.admission,receipt,
     moon.clientLocalResourcePolicyOriginal()));
+  // Store the same-reservation successor before cutting its consumed parent.
+  state.phase=checked(moon.clientProgramSelectClosedValuesPreparation(state.parent,receipt));
+  state.parent=undefined;
   const headerWork=checkedPreparation(moon,moon.clientProgramBeginClosedValuesHeader(state.phase));
   const header=probeClosedValuesOwnDataHeader(input,undefined,phaseAdapter(moon,headerWork));
   if(header===undefined){cleanupClosedValuesInput(state);return false;}
@@ -129,6 +145,9 @@ export function cleanupClosedValuesInput(state, retireInitialPreparation) {
   if(state.phase!==undefined) {
     checkedPreparation(moon,moon.clientProgramAbortClosedValuesPreparationAfterCleanup(state.phase));
     state.phase=undefined;state.admission=undefined;
+  } else if(state.parent!==undefined) {
+    checked(moon.clientProgramAbortRequestPreparation(state.parent));
+    state.parent=state.admission=undefined;
   } else if(state.admission!==undefined) {
     checked(moon.clientProgramCleanupLocalPreparationAdmission(state.admission));
     state.admission=undefined;

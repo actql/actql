@@ -14,6 +14,11 @@ assert.ok(start >= 0 && end > start);
 const body = manager.slice(start, end).trim().replace(/,$/, '');
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const ports = () => ({
+  clientProgramRequestPreparationControl() {return [1n, 0n];},
+  clientLocalResourcePolicyOriginal() {return {};},
+  clientProgramBeginRequestPreparation() {},
+  clientProgramSelectClosedValuesPreparation() {},
+  clientProgramAbortRequestPreparation() {},
   clientProgramPrepareClosedValuesModuleBody() {},
   clientProgramCompleteClosedValuesBody() {},
   clientProgramAdoptClosedValuesPreparation() {},

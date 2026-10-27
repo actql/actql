@@ -152,6 +152,8 @@ pub fn[T] consume_original_resource_invalidation(OriginalResourceInvalidationReq
 
 pub fn consume_reserved_attempt(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 
+pub fn[I, P, Q] continue_preparation_capacity(PreparationCapacity[I, P], I) -> Result[PreparationCapacity[I, Q], PreparationCapacityIssue]
+
 pub fn create_ledger(LedgerLimits) -> Result[Ledger, LedgerIssue]
 
 pub fn[T] enter_funded_read_consumer(FundedReadConsumer[T], T, Int64, Int64) -> Result[Unit, OriginalReadIssue]

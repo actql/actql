@@ -278,47 +278,11 @@ pub fn[I] begin_closed_values_preparation(
     Ok(value) => value
     Err(issue) => return Err(Capacity(issue))
   }
-  // No fallible constructor follows reservation without returning its owner.
-  // The separate fixed header-open call runs only after the caller stores it.
-  let value : ClientClosedValuesPreparation[I] = {
-    original: None,
-    input: Some(input),
-    initial,
-    policy,
-    module_containers,
-    capacity,
-    work: None,
-    header_fields: 0,
-    header_rows: 0,
-    retiring: false,
-    module_constructing: false,
-    text_checked: false,
-    scan_complete: false,
-    document: None,
-    parsed: None,
-    program: None,
-    prepared: None,
-    shape: None,
-    lexical: None,
-    envelope: None,
-    retained_quote: retained,
-    execution_quote: execution,
-    source_free: None,
-    compilation: None,
-    body_ready: false,
-    manager_issued: false,
-    adopted: false,
-    adopted_run: None,
-    submitted_intent: None,
-    manager_original: None,
-    publication: None,
-    publication_started: false,
-    publication_invocation_started: false,
-    publication_definition: None,
-    publication_invocation: None,
-  }
-  value.original = Some(value)
-  Ok(value)
+  Ok(
+    make_closed_values_preparation(
+      initial, input, policy, capacity, retained, execution, module_containers,
+    ),
+  )
 }
 
 ///|

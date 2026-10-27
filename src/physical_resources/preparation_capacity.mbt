@@ -1,14 +1,23 @@
 ///|
 priv enum PreparationCapacityPhase {
   Working
+  SelectedWorking
   Completing
   Ready
   Transferring
+  Continued
   Run
   Retiring
   Settling
   Closed
 } derive(Eq)
+
+///|
+fn preparation_capacity_phase_is_working(
+  phase : PreparationCapacityPhase,
+) -> Bool {
+  phase == Working || phase == SelectedWorking
+}
 
 ///|
 /// One preparation allocation on an already selected original Ledger. This
@@ -130,7 +139,7 @@ pub fn[I, P] complete_preparation_capacity(
   if !(owner.input is Some(original) && physical_equal(original, input)) {
     return Err(ForeignOriginal)
   }
-  if owner.phase != Working {
+  if !preparation_capacity_phase_is_working(owner.phase) {
     return Err(AlreadyCompleted)
   }
   if owner.active_phase_work is Some(_) {
@@ -245,6 +254,9 @@ pub fn[I, P] preparation_capacity_borrow_value(
 fn[I, P] finish_preparation_retirement(
   owner : PreparationCapacity[I, P],
 ) -> Result[Bool, PreparationCapacityIssue] {
+  if owner.phase == Continued {
+    return Err(AlreadyTransferred)
+  }
   if owner.phase == Closed {
     return Ok(true)
   }
@@ -271,7 +283,10 @@ fn[I, P] finish_preparation_retirement(
 pub fn[I, P] retire_preparation_capacity(
   owner : PreparationCapacity[I, P],
 ) -> Result[Bool, PreparationCapacityIssue] {
-  if owner.phase == Working ||
+  if owner.phase == Continued {
+    return Err(AlreadyTransferred)
+  }
+  if preparation_capacity_phase_is_working(owner.phase) ||
     owner.phase == Completing ||
     owner.phase == Transferring ||
     owner.phase == Settling {
@@ -294,7 +309,7 @@ pub fn[I, P] abort_preparation_capacity_after_cleanup(
   if !(owner.input is Some(original) && physical_equal(original, input)) {
     return Err(ForeignOriginal)
   }
-  if owner.phase != Working {
+  if !preparation_capacity_phase_is_working(owner.phase) {
     return Err(AlreadyCompleted)
   }
   if owner.active_phase_work is Some(_) {
@@ -525,7 +540,7 @@ pub fn[I, P] reserve_working_preparation_phase(
   if !(owner.input is Some(original) && physical_equal(original, input)) {
     return Err(ForeignOriginal)
   }
-  if owner.phase != Working ||
+  if !preparation_capacity_phase_is_working(owner.phase) ||
     owner.body is Some(_) ||
     owner.active_phase_work is Some(_) {
     return Err(WorkActive)
@@ -534,6 +549,7 @@ pub fn[I, P] reserve_working_preparation_phase(
   if retained_peak < token.retention || execution_peak < token.execution {
     return Err(InvalidExtent)
   }
+  let working_phase = owner.phase
   owner.phase = Completing
   let outcome = resize_capacity_reservation(
     owner.ledger,
@@ -541,7 +557,7 @@ pub fn[I, P] reserve_working_preparation_phase(
     retained_peak,
     execution_peak,
   )
-  owner.phase = Working
+  owner.phase = working_phase
   outcome.map_err(issue => PreparationCapacityIssue::Resource(issue))
 }
 
@@ -558,7 +574,7 @@ pub fn[I, P] reconcile_working_preparation_phase(
   if !(owner.input is Some(original) && physical_equal(original, input)) {
     return Err(ForeignOriginal)
   }
-  if owner.phase != Working ||
+  if !preparation_capacity_phase_is_working(owner.phase) ||
     owner.body is Some(_) ||
     owner.active_phase_work is Some(_) {
     return Err(WorkActive)
@@ -570,6 +586,7 @@ pub fn[I, P] reconcile_working_preparation_phase(
     execution_bytes > token.execution {
     return Err(InvalidExtent)
   }
+  let working_phase = owner.phase
   owner.phase = Completing
   let outcome = resize_capacity_reservation(
     owner.ledger,
@@ -577,6 +594,6 @@ pub fn[I, P] reconcile_working_preparation_phase(
     retained_bytes,
     execution_bytes,
   )
-  owner.phase = Working
+  owner.phase = working_phase
   outcome.map_err(issue => PreparationCapacityIssue::Resource(issue))
 }
