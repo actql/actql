@@ -54,6 +54,8 @@ pub fn declaration_read_type_cursor(DeclarationReadInput) -> @decode_core.Cursor
 
 pub fn declaration_source(Declaration) -> @decode_core.Cursor
 
+pub fn declaration_type_construction_inventory(DeclarationReadInput, Int) -> @value_contract.ParameterReadPhaseConstructionInventory?
+
 pub fn declaration_usage(Declarations) -> (Int, Int)
 
 pub fn declarations(Declarations) -> Array[Declaration]

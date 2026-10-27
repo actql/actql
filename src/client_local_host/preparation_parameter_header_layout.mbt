@@ -16,26 +16,35 @@ let parameter_header_quote_controls : @execution.PreparationRepresentationUnits 
 }
 
 ///|
-// This is the source-proved maximum of two independent quote constructors,
+// This is the source-proved maximum of four sequential quote constructors,
 // not spare preflight capacity or a second tariff. Actual body storage below
 // is additional; previous failure/input/outcome aliases remain with owners.
 let parameter_declaration_quote_controls : @execution.PreparationRepresentationUnits = {
   record_headers: Int64::max(
-    parameter_preflight_quote_controls.record_headers,
+    Int64::max(
+      parameter_preflight_quote_controls.record_headers,
+      parameter_type_quote_controls.record_headers,
+    ),
     Int64::max(
       parameter_header_quote_controls.record_headers,
       parameter_inventory_quote_controls.record_headers,
     ),
   ),
   reference_slots: Int64::max(
-    parameter_preflight_quote_controls.reference_slots,
+    Int64::max(
+      parameter_preflight_quote_controls.reference_slots,
+      parameter_type_quote_controls.reference_slots,
+    ),
     Int64::max(
       parameter_header_quote_controls.reference_slots,
       parameter_inventory_quote_controls.reference_slots,
     ),
   ),
   scalar_words: Int64::max(
-    parameter_preflight_quote_controls.scalar_words,
+    Int64::max(
+      parameter_preflight_quote_controls.scalar_words,
+      parameter_type_quote_controls.scalar_words,
+    ),
     Int64::max(
       parameter_header_quote_controls.scalar_words,
       parameter_inventory_quote_controls.scalar_words,

@@ -2,6 +2,7 @@
 package "actql/actql/value_contract"
 
 import {
+  "actql/actql/canonical_value",
   "actql/actql/decode_core",
   "actql/actql/decode_scalar",
   "actql/actql/decode_shape",
@@ -67,6 +68,8 @@ pub fn parameter_field_at(ParameterFields, Int) -> (String, ParameterType)?
 pub fn parameter_fields(ParameterFields) -> Array[(String, ParameterType)]
 
 pub fn parameter_read_construction_inventory(ParameterReadConstructionGeometry) -> @decode_shape.CollectionConstructionInventory?
+
+pub fn parameter_read_phase_construction_inventory(ParameterReadConstructionGeometry, Int64, Limits) -> ParameterReadPhaseConstructionInventory?
 
 pub fn primitive(Primitive, nullable~ : Bool) -> Contract
 
@@ -188,6 +191,13 @@ pub struct ParameterReadConstructionSources {
   metadata : @decode_core.Cursor?
   work : Int64
 }
+
+pub(all) struct ParameterReadPhaseConstructionInventory {
+  returned : @decode_shape.CollectionConstructionExtent
+  temporary : @decode_shape.CollectionConstructionExtent
+  normalization : @canonical_value.NormalizationConstructionExtent?
+  sort_fields : Int
+} derive(Eq, @debug.Debug)
 
 pub enum ParameterRule {
   Plain

@@ -15,7 +15,7 @@ let parameter_preflight_quote_controls : @execution.PreparationRepresentationUni
 }
 
 ///|
-// Holder1H8R6W; input Some1H1R1W; original debit/result and two checked adds
+// Holder1H10R6W; input Some1H1R1W; original debit/result and two checked adds
 //4H1R7W; reserve/typed failure carriers4H4R4W; geometry/Some/spine3H1R14W;
 // exact cursor-depth and returned observer tuples2H1R4W;
 // original preflight/read-input/Budget/usage/Results/tuples7H7R11W;
@@ -23,7 +23,7 @@ let parameter_preflight_quote_controls : @execution.PreparationRepresentationUni
 // alternatives cover absent input and failure, not only the success branch.
 let parameter_preflight_driver_controls : @execution.PreparationRepresentationUnits = {
   record_headers: 23L + 2L,
-  reference_slots: 25L + 1L,
+  reference_slots: 25L + 1L + 2L,
   scalar_words: 45L + 4L + 1L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,

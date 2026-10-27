@@ -9,6 +9,8 @@ priv enum ParameterPreflightPhase {
   InventoryQuoted
   InventoryPrepared
   RetainedInventory
+  TypeQuoted
+  TypePrepared
   Failed
   Retired
 } derive(Eq)
@@ -16,7 +18,8 @@ priv enum ParameterPreflightPhase {
 ///|
 /// A domain continuation over the SAME preparation reservation, never another
 /// Resource Owner. Its source/default/meta backing remains with the entering
-/// caller. It stops before type/default/metadata body construction.
+/// caller. Each actual constructor phase requires its own complete funding;
+/// the current continuation stops before default/metadata body construction.
 struct ClientParameterDeclarationPreflight[I, P] {
   capacity : @resources.PreparationCapacity[I, P]
   mut input : I?
@@ -34,6 +37,8 @@ struct ClientParameterDeclarationPreflight[I, P] {
   base_execution : Int64
   mut depth : Int
   mut body_bytes : Int64
+  mut current_type : @decode.Cursor?
+  mut current_type_facts : @parameters.DeclarationReadConstructionFacts?
   mut busy : Bool
   mut phase : ParameterPreflightPhase
 }
@@ -91,6 +96,8 @@ pub fn[I, P] begin_parameter_declaration_preflight(
     base_execution,
     depth: 0,
     body_bytes: 0L,
+    current_type: None,
+    current_type_facts: None,
     busy: false,
     phase: Initial,
   })
@@ -234,7 +241,8 @@ pub fn[I, P] parameter_declaration_preflight_outcome(
       owner.phase == RetainedPreflight ||
       owner.phase == HeaderPrepared ||
       owner.phase == InventoryPrepared ||
-      owner.phase == RetainedInventory
+      owner.phase == RetainedInventory ||
+      owner.phase == TypePrepared
     ) &&
     owner.prepared is Some(_) else {
     return None
@@ -302,6 +310,8 @@ pub fn[I, P] clear_parameter_declaration_preflight(
   owner.geometry = None
   owner.quote = None
   owner.prepared = None
+  owner.current_type = None
+  owner.current_type_facts = None
   owner.phase = Retired
   Ok(())
 }

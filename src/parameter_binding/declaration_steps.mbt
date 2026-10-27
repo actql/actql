@@ -134,17 +134,16 @@ fn declaration_read_type(
 ) -> Unit raise Abort {
   let name = body.names[body.index]
   if !valid_name(name) {
-    match
-      @decode.closed_object(
-        original.root.unwrap(),
-        body.names.filter(n => n != name),
-      ) {
-      Err(location) =>
-        raise Abort(
-          ParameterIssue(InvalidName, path=location.path, span=location.span),
-        )
-      Ok(_) => invalid(original.root.unwrap(), InvalidName)
-    }
+    // This is the SAME immutable Header field selected by name. Its actual
+    // key span/path need no filtered name array or closed-object recheck.
+    let child = body.current.unwrap()
+    raise Abort(
+      ParameterIssue(
+        InvalidName,
+        path=@decode.cursor_path(child),
+        span=@decode.cursor_key_span(child).unwrap(),
+      ),
+    )
   }
   let cursor = decoded(@decode.require_non_null_cursor(body.current.unwrap()))
   let syntax = match

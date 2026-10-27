@@ -8,17 +8,17 @@ test "Parameter Header grows SAME reservation before Map names and reader constr
     parameter_header_construction_bytes(Some(root), 0, limits),
     Some(2496L),
   )
-  assert_eq(parameter_preflight_initial_bytes, 5152L)
+  assert_eq(parameter_preflight_initial_bytes, 7080L)
   assert_true(
-    parameter_declaration_quote_controls == parameter_preflight_quote_controls,
+    parameter_declaration_quote_controls == parameter_type_quote_controls,
   )
   let ledger = @resources.create_ledger({
     planning_work: 7,
     attempts: 2,
     holdings: 0,
     transfer_bytes: 0L,
-    retained_bytes: 73L + 5152L + 9572L,
-    execution_bytes: 91L + 5152L + 9572L,
+    retained_bytes: 73L + 7080L + 9572L,
+    execution_bytes: 91L + 7080L + 9572L,
   }).unwrap()
   let input = ["same original Header"]
   let capacity : @resources.PreparationCapacity[Array[String], Array[Int]] = @resources.reserve_preparation_capacity(
@@ -40,7 +40,8 @@ test "Parameter Header grows SAME reservation before Map names and reader constr
   // Previous preflight scratch is still owned until its confirmed reconcile.
   assert_true(prepare_parameter_declaration_header(owner) is Err(WrongPhase))
   reconcile_parameter_declaration_preflight(owner).unwrap()
-  let sibling = @resources.reserve_capacity(ledger, 7085L, 7085L).unwrap()
+  let sibling = @resources.reserve_capacity(ledger, 7077L, 7077L).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 14230L)
   assert_true(
     prepare_parameter_declaration_header(owner)
     is Err(Capacity(Resource(RetentionLimit))),
@@ -53,10 +54,10 @@ test "Parameter Header grows SAME reservation before Map names and reader constr
   assert_true(@parameters.declaration_read_type_cursor(reader) is None)
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((5225L, 5243L)),
+    Ok((7153L, 7171L)),
   )
   let quoted = owner.quote.unwrap()
-  assert_eq(quoted, (7721L, 7739L))
+  assert_eq(quoted, (9649L, 9667L))
   // Only unused sibling bytes return; no work or physical attempt is refunded.
   @resources.settle_capacity(ledger, sibling).unwrap()
   prepare_parameter_declaration_header(owner).unwrap()
@@ -72,7 +73,7 @@ test "Parameter Header grows SAME reservation before Map names and reader constr
   assert_true(@parameters.declaration_read_type_cursor(reader) is Some(_))
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((7721L, 7739L)),
+    Ok((9649L, 9667L)),
   )
   assert_true(prepare_parameter_declaration_header(owner) is Err(WrongPhase))
   assert_true(
@@ -82,7 +83,7 @@ test "Parameter Header grows SAME reservation before Map names and reader constr
   assert_true(parameter_declaration_preflight_outcome(owner) is None)
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((7721L, 7739L)),
+    Ok((9649L, 9667L)),
   )
   let usage = @resources.ledger_usage(ledger)
   assert_eq((usage.attempts, usage.live_reservations), (0, 1))
@@ -146,7 +147,7 @@ test "Parameter Header funds all original fields BEFORE count refusal and skips 
   prepare_parameter_declaration_header(owner).unwrap()
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((15713L, 15731L)),
+    Ok((17641L, 17659L)),
   )
   assert_eq(
     @parameters.declaration_read_phase(reader),
@@ -207,7 +208,7 @@ test "Parameter Header preserves absent wrong-kind and NULL child boundaries wit
       None => {
         assert_eq(
           @resources.preparation_capacity_working_extents(capacity, input),
-          Ok((6329L, 6347L)),
+          Ok((8257L, 8275L)),
         )
         assert_eq(
           @parameters.declaration_count(

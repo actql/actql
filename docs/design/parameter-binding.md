@@ -366,7 +366,46 @@ scalar and Header's fact-reference slot are included in their respective
 constructor inventories. Neither clearing references nor retaining facts
 settles the parent or proves physical cleanup.
 
-The next Type and default phases must use these original facts with the actual
-admitted ParameterType and complete constructor coexistence. Observing quantities
+The Type phase uses these original facts; the later default phase must use the
+actual admitted ParameterType and complete constructor coexistence. Observing quantities
 does not prepare a type, validate a default, admit a Program, fund a backend
 entrance frame or authorize execution.
+
+
+### Funded original Type construction
+
+After the quantity traversal returns and reconciles, the Type continuation
+quotes the complete original Parameter syntax constructor from that reader's
+retained current facts. ValueContract owns the returned type graph, recursive
+work, current ObjectViews, key-check path, refusal locations and identifier
+normalization quantities. Existing collection, indexed-path, normalization and
+pinned builtin sort owners describe their own backing. The Host composes those
+quantities through the same representation tariff; it does not infer a type or
+copy the syntax rules into a resource recipe.
+
+The continuation grows the same preparation reservation before advancing the
+original reader once. A failed grow retains the original quote, selected Cursor
+and fact record. Retry neither repeats the quantity walk nor reads another
+parameter's type. After the resource current callback returns, both the same
+read phase and those original associations must still hold. These are internal
+identity checks, without another callback. The original reader retains the
+completed ParameterSyntax for the subsequent metadata/default phase; a resource
+step's success can also hold the original typed refusal, rather than Program
+acceptance.
+
+An invalid declaration name uses that same Header-selected child's original
+key span and path. The immutable Header already established its own complete
+field inventory; reconstructing a filtered allowed-name list and rechecking
+the same object does not add semantic evidence. Name-before-null ordering,
+non-null admission and the actual Parameter type reader remain unchanged.
+Nested field refusals retain their existing ValueContract location path.
+
+Sequential quotation constructors share only their source-derived control
+maximum. The current Type quote also retains its two original-association
+references in the existing continuation. This is domain construction DATA,
+not spare capacity, a minimum, RSS or a numerical physical-entry supplier.
+Type scratch is not reconciled yet: later Value quotation must first fund its
+walk over the original admitted type while those dependencies coexist. Clearing
+local references keeps the parent's charge; it neither refunds work/attempts
+nor acknowledges cleanup. Full metadata/default funding, final declaration
+construction and actual backend entrance remain subsequent obligations.

@@ -25,18 +25,18 @@ test "Parameter preflight grows same parent once and retains exact metadata acro
   let root = funded_parameter_cursor("{\"x\":{\"type\":\"number\"}}")
   // Independent3nodes/2fields/maxKey4/wholeDepth2. Traversal19H43R17W,
   // full refusal11H32R13W, SAME NFC100H123R668W/162U =>9572 logicalB.
-  // Fixed quote/driver/receipt142H62R298W =>5152 logicalB.
+  // Fixed quote/driver/receipt197H70R421W =>7080 logicalB.
   assert_true(
     parameter_declaration_preflight_initial_inventory() ==
     {
-      record_headers: 142L,
-      reference_slots: 62L,
-      scalar_words: 298L,
+      record_headers: 197L,
+      reference_slots: 70L,
+      scalar_words: 421L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     },
   )
-  assert_eq(parameter_preflight_initial_bytes, 5152L)
+  assert_eq(parameter_preflight_initial_bytes, 7080L)
   assert_eq(
     parameter_preflight_construction_bytes(
       @decode.observe_subtree_construction_geometry(root),
@@ -46,7 +46,7 @@ test "Parameter preflight grows same parent once and retains exact metadata acro
     Some(9572L),
   )
   assert_eq(program_json_initial_control_bytes, 20232L)
-  let core = 14724L
+  let core = 16652L
   let ledger = @resources.create_ledger({
     planning_work: 7,
     attempts: 2,
@@ -81,7 +81,7 @@ test "Parameter preflight grows same parent once and retains exact metadata acro
   ).unwrap()
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((5225L, 5243L)),
+    Ok((7153L, 7171L)),
   )
   assert_true(
     prepare_parameter_declaration_preflight(owner)
@@ -94,7 +94,7 @@ test "Parameter preflight grows same parent once and retains exact metadata acro
   assert_eq(quote, (73L + core, 91L + core))
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((5225L, 5243L)),
+    Ok((7153L, 7171L)),
   )
   // Return only the sibling's unused reservation. No cap or spent attempt is
   // changed, and a replayed metadata receipt would refuse AlreadyClaimed.
@@ -114,7 +114,7 @@ test "Parameter preflight grows same parent once and retains exact metadata acro
   reconcile_parameter_declaration_preflight(owner).unwrap()
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((5225L, 5243L)),
+    Ok((7153L, 7171L)),
   )
   assert_true(
     physical_equal(first, parameter_declaration_preflight_outcome(owner)),
@@ -123,7 +123,7 @@ test "Parameter preflight grows same parent once and retains exact metadata acro
   assert_true(parameter_declaration_preflight_outcome(owner) is None)
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((5225L, 5243L)),
+    Ok((7153L, 7171L)),
   )
   let usage = @resources.ledger_usage(ledger)
   assert_eq((usage.attempts, usage.transferred_bytes), (0, 0L))
@@ -286,7 +286,7 @@ test "absent and invalid Parameter preflight keep original zero usage without in
     }
     assert_eq(
       @resources.preparation_capacity_working_extents(capacity, input),
-      Ok((5225L, 5243L)),
+      Ok((7153L, 7171L)),
     )
     clear_parameter_declaration_preflight(owner).unwrap()
   }
