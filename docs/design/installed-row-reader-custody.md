@@ -420,3 +420,45 @@ remain the responsibility of the same original parent. Focused original-tuple,
 Model Scope, callback failure, terminal reentry and sole-port tests exercise
 these boundaries separately from Core's actual imported-current counters and
 normal packed operation acceptance.
+
+
+## Canonical CREATE occurrence carriage
+
+The Row Effect calls its existing Common CREATE inventory on the complete mapped
+rows before either synchronous or child provider request preparation. The
+returned ordering and `{content_cid, occurrence}` DATA determine the same rows
+used for requests, Preview and claims. A JavaScript row index, value comparison,
+request CID or future Preview does not issue an occurrence.
+
+- CREATE carriage responsibility: forward the same original inventory result
+  before a provider request can bind its logical tag or physical request CID.
+- CREATE carriage inputs and outputs: complete mapped rows and the existing
+  inventory bounds produce private ordered frames. Each CREATE request context
+  receives its frame's immutable `createRowIdentity` DATA.
+- CREATE carriage identity: duplicate contents retain distinct original
+  occurrences. The same identity object reaches provider preparation and its
+  completed Preview frame; no second inventory or identity guess is used.
+- CREATE carriage ownership: the existing stage owns decoded rows and private
+  frames. It replaces each frame's entry with the matching original request
+  once, then freezes the completed frame and array. No new cache or Owner is
+  created, and this DATA is not permission, a grant or a physical ACK.
+- CREATE carriage synchronization: settle the inventory and ordering before
+  invoking a provider callback or constructing its retained request child. The
+  child keeps the existing prepare/release/current protocol.
+- CREATE carriage failure: propagate the same inventory refusal and cleanup
+  carrier before provider construction. Existing request/value/CID, current,
+  claim and approval checks remain in their original owners.
+- CREATE carriage cancellation: existing stage and child cancellation/current
+  fences remain authoritative. Carriage does not issue a target-read grant for
+  target-less CREATE or acknowledge native cleanup.
+- CREATE carriage resources: the same preparation parent must cover inventory
+  wire/parsed identities/frames while request construction is live. Moving the
+  existing inventory earlier changes overlap timing; logical row, node and byte
+  bounds alone do not prove normal backing or admit another allowance.
+- CREATE carriage extension: a cold request consumes the identity from its same
+  already-admitted Preview row. It does not issue the Common inventory again.
+  Update/delete/upsert/Command request contexts retain their original shape.
+- CREATE carriage verification: actual enclosing caller controls with explicit
+  Common inventory, Preview and provider ports establish forwarding and order.
+  They do not qualify an installed compiler artifact, ordinary CREATE, provider
+  I/O, complete preparation backing, confirmation or Saved recovery.

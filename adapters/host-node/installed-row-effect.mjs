@@ -830,10 +830,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     }
     return entry;
   };
-  const requestsOf = (member, rows, current, contentOf) => Object.freeze(rows.map((row, index) => {
+  const requestsOf = (member, rows, current, contentOf, createRows) => Object.freeze(rows.map((row, index) => {
     const {owned} = ownerOf(member);
     return requestEntry(member, row, owned.prepareRequest({member, value: row.value,
       selector: row.selector, current, ...resourceFields(member),
+      ...(member.kind === 'create' ? {createRowIdentity: createRows[index].identity} : {}),
       ...(contentOf === undefined ? {} : {content: commandContentRow(contentOf, index)})}));
   }));
 
@@ -1272,8 +1273,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         new Set(inventory.map(item => runtimeField(item, 0))).size !== rows.length) {
       fail('InvalidInstalledRowEffectInventory');
     }
-    return Object.freeze(inventory.map(item => Object.freeze({
-      entry: rows[runtimeField(item, 0)], identity: parseExactJson(runtimeField(item, 1))})));
+    // The identity is immutable before a provider callback. Complete this
+    // private frame with its original request once; do not issue it again.
+    return inventory.map(item => ({entry: rows[runtimeField(item, 0)],
+      identity: Object.freeze(parseExactJson(runtimeField(item, 1)))}));
   };
 
   // A member's write footprint: the provider's complete footprint, or the
@@ -1629,12 +1632,17 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           selector: targeted(member.kind)
             ? JSON.parse(proposal.selectorWire) : undefined};
       });
+      const createRows = member.kind === 'create' ? canonicalRows(rows) : undefined;
+      if (createRows !== undefined) {
+        for (let row = 0; row < rows.length; row++) rows[row] = createRows[row].entry;
+      }
       let entries;
       if (owned.prepareRequestChild !== undefined) {
         const preparedEntries = [];
         for (const [rowIndex, row] of rows.entries()) {
           if (requestChildren.length >= limits.maxRows) fail('InstalledRowEffectRowLimit');
           const context = {member, value: row.value, selector: row.selector,
+            ...(member.kind === 'create' ? {createRowIdentity: createRows[rowIndex].identity} : {}),
             current: description, content: commandContentRow(contentOf, rowIndex), signal,
             ...(contentOwner === undefined ? {} : {contentOwner}),
             ...resourceFields(member),
@@ -1646,10 +1654,14 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           preparedEntries.push(requestEntry(member, row, preparedRequest));
         }
         entries = Object.freeze(preparedEntries);
-      } else entries = requestsOf(member, rows, description, contentOf);
+      } else entries = requestsOf(member, rows, description, contentOf, createRows);
       if (member.kind === 'create') {
-        // Rows are put in canonical order before anything is derived.
-        rowsOf.push(canonicalRows(entries));
+        // Reuse the SAME Common inventory for Preview and requests.
+        for (const [row, entry] of entries.entries()) {
+          createRows[row].entry = entry;
+          Object.freeze(createRows[row]);
+        }
+        rowsOf.push(Object.freeze(createRows));
         observations.push(undefined);
         continue;
       }
@@ -1970,6 +1982,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       const rows = !usesRecovery[index]
         ? changes.map(change => {
           const prepared = owned.prepareRequest({member,
+            ...(member.kind === 'create' ? {createRowIdentity: Object.freeze(change.target_row_identity)} : {}),
             value: change.after?.value, selector: undefined,
             current: currents[index], ...resourceFields(member)});
           return entryOf(member, prepared?.request, prepared?.requestCid);
