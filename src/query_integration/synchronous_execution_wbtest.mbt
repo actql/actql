@@ -54,6 +54,8 @@ test "synchronous wiring binds exact payload and runs only after common reservat
   let ledger = @strategy.captured_dag_ledger(run)
   let calls = Ref(0)
   let received = Ref(0)
+  let attempts_at_entry = Ref(0)
+  let reserved_at_entry = Ref(0)
   let compute = @connector.bind_synchronous_compute(
     choice,
     prepared,
@@ -61,6 +63,8 @@ test "synchronous wiring binds exact payload and runs only after common reservat
     [],
     fn(payload) {
       calls.val += 1
+      attempts_at_entry.val = @resources.ledger_usage(ledger).attempts
+      reserved_at_entry.val = @resources.ledger_usage(ledger).reserved_attempts
       received.val = payload
       Err(Compute(ComputeUnsupported))
     },
@@ -82,12 +86,17 @@ test "synchronous wiring binds exact payload and runs only after common reservat
   )
   assert_eq(calls.val, 1)
   assert_eq(received.val, 17)
+  assert_eq(attempts_at_entry.val, 1)
+  assert_eq(reserved_at_entry.val, 0)
   assert_false(@connector.synchronous_compute_available(compute))
   assert_true(
     @connector.execute_synchronous_compute(compute) is Err(Compute(NotSelected)),
   )
   assert_eq(calls.val, 1)
   let after = @resources.ledger_usage(ledger)
+  assert_eq(after.attempts, 1)
+  assert_eq(after.reserved_attempts, 0)
+  assert_eq(after.live_reservations, 0)
   assert_eq(after.held_bytes, 0L)
   assert_eq(after.reserved_execution_bytes, 0L)
   assert_eq(after.reserved_retention_bytes, 0L)
