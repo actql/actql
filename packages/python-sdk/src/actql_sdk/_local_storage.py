@@ -42,7 +42,7 @@ class _NamespaceReader:
     current: Callable[[], None]
     check_fences: Callable[['_NamespaceReader', tuple['ByteFence', ...]], None]
     check_fences_and_current: Callable[
-        ['_NamespaceReader', tuple['ByteFence', ...], Callable[[], object]], None] | None = None
+        ['_NamespaceReader', tuple['ByteFence', ...], Callable[[], object]], None]
 
 
 _InventoryInspection = Callable[[_NamespaceReader], object]

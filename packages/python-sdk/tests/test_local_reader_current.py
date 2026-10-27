@@ -25,7 +25,7 @@ class SameReaderCurrentTests(unittest.TestCase):
 
     def test_actual_host_reader_keeps_both_sql_fences_and_observes_each_file_once(self):
         observations = {}
-        for mode in ('legacy', 'same-observer'):
+        for mode in ('separate-reference', 'same-observer'):
             fixture = self.fixture()
             _, store, core, _, source, state, _, _, _, _, binding = fixture
             callbacks = core._journal_callbacks(binding._current.ticket)
@@ -33,15 +33,15 @@ class SameReaderCurrentTests(unittest.TestCase):
 
             def consume(_current):
                 reader = callbacks.reader
-                check = reader.check_fences_and_current
                 self.assertIs(callbacks.current, binding._current_observer)
-                if mode == 'legacy':
-                    object.__setattr__(reader, 'check_fences_and_current', None)
                 before = counts.copy()
-                try:
+                if mode == 'separate-reference':
+                    # Independent test-only work reference, not a production
+                    # dispatch option or a reader with a missing checker.
+                    reader.check_fences(reader, ())
+                    self.assertIsNone(callbacks.current())
+                else:
                     self.assertEqual(callbacks.check_current(), 0)
-                finally:
-                    object.__setattr__(reader, 'check_fences_and_current', check)
                 observations[mode] = {key: counts[key] - before[key] for key in before}
 
             with patch.object(source._root, 'observe_original',
@@ -58,7 +58,7 @@ class SameReaderCurrentTests(unittest.TestCase):
             self.assertIsNone(callbacks.reader)
             self.assertTrue(binding.close())
         self.assertEqual(observations, {
-            'legacy': {'file': 12, 'sqlRows': 8, 'completeFences': 2},
+            'separate-reference': {'file': 12, 'sqlRows': 8, 'completeFences': 2},
             'same-observer': {'file': 6, 'sqlRows': 8, 'completeFences': 2},
         })
         print(json.dumps({'completed_public_host_checks': observations, 'writes': 0}))
@@ -105,6 +105,37 @@ class SameReaderCurrentTests(unittest.TestCase):
             self.assertTrue(host.close())
             print(json.dumps({'completed_public_saved_caller_checks': checks, 'writes': 0,
                               'scalar_Core_not_actual_Run_or_admission': True}))
+
+    def test_journal_refuses_a_missing_required_checker_without_legacy_dispatch(self):
+        _, _, core, _, _, _, _, _, _, _, binding = self.fixture()
+        callbacks = core._journal_callbacks(binding._current.ticket)
+
+        def consume(_current):
+            # Corrupt only the test reader after its actual factory supplied the
+            # required checker. Missing code is not a legacy current route.
+            object.__setattr__(callbacks.reader, 'check_fences_and_current', None)
+            self.assertEqual(callbacks.check_current(), -41)
+            self.assertIsInstance(callbacks.failure, TypeError)
+
+        with self.assertRaises(TypeError) as caught:
+            binding.inspect(consume)
+        self.assertIs(caught.exception, callbacks.failure)
+        self.assertIsNone(callbacks.reader)
+        self.assertTrue(binding.close())
+
+    def test_reader_construction_requires_the_combined_checker(self):
+        _, _, core, _, _, _, _, _, _, _, binding = self.fixture()
+        callbacks = core._journal_callbacks(binding._current.ticket)
+
+        def consume(_current):
+            reader = callbacks.reader
+            with self.assertRaises(TypeError):
+                type(reader)(reader.scan_after, reader.read, reader.owner,
+                             reader.current, reader.check_fences)
+            self.assertEqual(callbacks.check_current(), 0)
+
+        binding.inspect(consume)
+        self.assertTrue(binding.close())
 
     def test_distinct_failure_boolean_and_missing_callback_are_not_covered(self):
         for mode in ('failure', 'boolean', 'missing'):
@@ -176,7 +207,7 @@ class SameReaderCurrentTests(unittest.TestCase):
         self.assertEqual(store.read(key).payload, b'original-selected-manifest')
         self.assertTrue(binding.close())
 
-    def test_copied_expired_and_legacy_readers_retain_original_refusals(self):
+    def test_copied_and_expired_readers_retain_original_refusals(self):
         for mode in ('copy', 'expired'):
             with self.subTest(mode=mode):
                 _, _, core, _, _, _, _, _, _, _, binding = self.fixture()

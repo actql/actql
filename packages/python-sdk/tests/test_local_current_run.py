@@ -7,6 +7,7 @@ import unittest
 from actql_sdk._local_core import _Output, _PhysicalInput, LocalCoreError, _RUN_SIGNATURES
 from actql_sdk._local_journal_port import _JournalCallbacks
 from actql_sdk._local_storage import LocalByteStore, _NamespaceReader
+from test_local_journal_port import scalar_reader_check
 from test_local_run import RunCustodyTests
 
 
@@ -24,7 +25,7 @@ class CurrentRunConfigurationTests(unittest.TestCase):
                                         journal=_JournalCallbacks(lambda: None, store))}
         current = _Output(core._identity, 6, 50, 1024, 'current')
         core._loans[6] = current
-        reader = _NamespaceReader(lambda *a: None, lambda *a: None, store, lambda: None, check_fences=lambda *_: None)
+        reader = _NamespaceReader(lambda *a: None, lambda *a: None, store, lambda: None, check_fences=lambda *_: None, check_fences_and_current=scalar_reader_check)
         return core, custody, inputs[2], current, reader, calls, codes
 
     def test_only_original_frame_and_setup_reach_typed_core_configuration(self):
