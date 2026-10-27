@@ -299,7 +299,8 @@ test('original UPDATE selection custody preserves prior combined identity', () =
   assert.equal(machineCid(expression.body), expression.cid);
   assert.equal(currentManifest.expression_contract_cid, machineCid(currentExpression));
   assert.equal(currentManifest.expression_text_grammar_sha256, currentExpression.grammar_sha256);
-  assert.equal(sha(readFileSync(currentExpression.grammar)).slice(7), currentExpression.grammar_sha256);
+  // This predecessor binds retained grammar bytes, not a later annotation.
+  assert.equal(sha(readFileSync('scripts/fixtures/signed-source-zero-grammar/division-predecessor-expression.ebnf')).slice(7), currentExpression.grammar_sha256);
   const currentAligned = {...currentManifest};
   for (const key of ['grammar_manifest_cid', 'query_text_grammar_sha256',
     'query_text_rules_sha256', 'expression_text_rules_sha256',
@@ -363,6 +364,98 @@ test('current manifest metadata and canonical fixtures bind the complete documen
     assert.ok(generated.includes(fixture.slice(fixture.indexOf('///|'))),
       `stale current canonical manifest fixture: ${path}`);
   }
+});
+
+test('signed-source-zero note preserves productions and the complete original identity transition', () => {
+  const transition = read('scripts/fixtures/signed-source-zero-grammar/identity-transition.json');
+  assert.equal(transition.source_commit, 'dbe458ba94ffd4e4693592abf7540a9b2a1b88e6');
+  assert.equal(transition.source_tree, '1debbdb7f02cdbcb0136b278328235d32bc4d246');
+  const before = transition.before, after = transition.after;
+  const previousGrammar = readFileSync('scripts/fixtures/signed-source-zero-grammar/expression-before.ebnf', 'utf8');
+  const currentGrammar = readFileSync('spec/grammar/actql-expression-0.1.ebnf', 'utf8');
+  assert.equal(sha(previousGrammar).slice(7), before.grammar_sha256);
+  assert.equal(sha(currentGrammar).slice(7), after.grammar_sha256);
+  assert.equal(before.grammar_sha256, '703dce737042c4b6e473b1618451f08d4f8fcc6391a6b2dd2e8f62e96722eaeb');
+  assert.equal(after.grammar_sha256, '9e23a12f73ea54abb2ef855e26362d26a848c15b6bcb11003329f22168655816');
+  const productions = source => source.replace(/\(\*[\s\S]*?\*\)/gu, '');
+  assert.equal(productions(currentGrammar), productions(previousGrammar));
+  const currentExpression = read('spec/contracts/actql-expressions.json');
+  assert.deepEqual(currentExpression, {...before.expression_contract, grammar_sha256: after.grammar_sha256});
+  assert.equal(machineCid(before.expression_contract), before.expression_contract_cid);
+  assert.equal(machineCid(currentExpression), after.expression_contract_cid);
+  assert.equal(before.expression_contract_cid, 'sha256:b5701b2178a3b2e624d0fbfbda877d0117c367e42a855161e26e0d2e133f1c2c');
+  assert.equal(after.expression_contract_cid, 'sha256:2849a6667980fc51ed51a04879470a97068fd08e358d784262602a09b22dacda');
+  for (const state of [before, after]) {
+    const {grammar_manifest_cid, ...body} = state.grammar_manifest;
+    assert.equal(machineCid(body), grammar_manifest_cid);
+    assert.equal(machineCid(state.grammar_manifest), state.grammar_manifest_complete_cid);
+    for (const [part, field] of [['template', 'bound_invocation_template_cid'], ['executable', 'executable_plan_cid'], ['compiled', 'compiled_plan_cid'], ['run', 'run_definition_cid']]) {
+      const {[field]: expected, ...preimage} = state.sequence_values.run_preimages[part];
+      assert.equal(machineCid(preimage), expected);
+    }
+  }
+  const previous = Object.fromEntries(before.additional_contracts.map(record => {
+    assert.equal(machineCid(record.body), record.cid);
+    return [record.path, record.body];
+  }));
+  const next = Object.fromEntries(after.additional_contracts.map(record => {
+    assert.equal(machineCid(record.body), record.cid);
+    assert.deepEqual(record.body, read(record.path));
+    return [record.path, record.body];
+  }));
+  const operation = 'ACTQL.expression_fragment/0.1';
+  const aoaPath = 'spec/contracts/actql-aoa.json';
+  const registryPath = 'spec/dependencies/aoa-pipeline-registry.json';
+  const environmentPath = 'spec/contracts/actql-check-environment.json';
+  const expectedAoA = structuredClone(previous[aoaPath]);
+  expectedAoA.expression_contract_cid = after.expression_contract_cid;
+  for (const name of [operation, 'REL.derive.ordered']) {
+    expectedAoA.execution_contracts[name].dependencies.expression_contract.cid = after.expression_contract_cid;
+  }
+  const fragmentCid = machineCid(expectedAoA.execution_contracts[operation]);
+  const expectedRegistry = structuredClone(previous[registryPath]);
+  expectedRegistry[operation].execution_contract.cid = fragmentCid;
+  expectedAoA.target_registry_requirements[operation].execution_contract.cid = fragmentCid;
+  const orderedCid = machineCid(expectedAoA.execution_contracts['REL.derive.ordered']);
+  expectedRegistry['REL.derive'].execution_extensions.ordered_bindings.cid = orderedCid;
+  expectedAoA.target_registry_requirements['REL.derive'].execution_extensions.ordered_bindings.cid = orderedCid;
+  expectedAoA.pipeline_registry_cid = machineCid(expectedRegistry);
+  assert.deepEqual(next[registryPath], expectedRegistry);
+  assert.deepEqual(next[aoaPath], expectedAoA);
+  const expectedEnvironment = structuredClone(previous[environmentPath]);
+  expectedEnvironment.pushdown_contract_bodies.semantic_dependencies.expression_contract.cid = after.expression_contract_cid;
+  assert.deepEqual(next[environmentPath], expectedEnvironment);
+  for (const [name, previousVectors] of Object.entries(before.stage_vectors)) {
+    const currentVectors = after.stage_vectors[name];
+    assert.deepEqual(currentVectors, read(`portability/corpus/${name}.json`));
+    assert.equal(currentVectors.version, previousVectors.version);
+    assert.equal(currentVectors.cases.length, previousVectors.cases.length);
+    for (let i = 0; i < previousVectors.cases.length; i++) {
+      const prior = previousVectors.cases[i], current = currentVectors.cases[i];
+      const expected = structuredClone(prior);
+      if (expected.envelope) {
+        assert.equal(expected.envelope.expression_contract_cid, before.expression_contract_cid);
+        assert.equal(machineCid(expected.envelope), expected.expected_cid);
+        expected.envelope.expression_contract_cid = after.expression_contract_cid;
+        assert.equal(machineCid(expected.envelope), current.expected_cid);
+      }
+      expected.expected_cid = current.expected_cid;
+      assert.deepEqual(current, expected);
+    }
+  }
+  const {grammar_manifest_cid: _beforeSelf, ...beforeBody} = before.grammar_manifest;
+  const {grammar_manifest_cid: _afterSelf, ...afterBody} = after.grammar_manifest;
+  assert.deepEqual(afterBody, {...beforeBody,
+    expression_contract_cid: after.expression_contract_cid,
+    expression_text_grammar_sha256: after.grammar_sha256});
+  assert.deepEqual(after.grammar_manifest, read('spec/manifests/actql-grammar-0.1.json'));
+  assert.deepEqual(after.sequence_values, read('scripts/fixtures/current-sequence-values-identities.json'));
+  // The prior authored current fixture lagged actual structural/Program inputs;
+  // retain it as recorded, rather than relabel it as the actual parent manifest.
+  assert.equal(before.sequence_fixture_equals_actual_manifest, false);
+  assert.notDeepEqual(before.sequence_values.grammar, before.grammar_manifest);
+  assert.notEqual(before.sequence_values.run_preimages.run.run_definition_cid,
+    after.sequence_values.run_preimages.run.run_definition_cid);
 });
 
 test('inference barrier binds the existing model Plan and adjacent fragment', () => {

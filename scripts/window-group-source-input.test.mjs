@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import {windowGroupSourceSuccesses as normal, windowGroupSourceRefusals as refused,
   windowGroupSourceRows} from './fixtures/window-group-source-input.mjs';
 import {sequenceIdentityOracle} from './sequence-identity-oracle.mjs';
@@ -66,6 +67,10 @@ test('window group public matrix uses normal module delivery and completed-case 
   for (const c of refused) assert.equal(c.expectedCode, 'ClientProgramInvalidInput');
 });
 
+const windowSource = '76ad7a71f078a53db76965c33a6d9717c06254ed';
+const windowHistory = path => JSON.parse(execFileSync('git', ['show', `${windowSource}:${path}`],
+  {encoding: 'utf8', maxBuffer: 4 * 1024 * 1024}));
+
 test('window group registration changes only its declared nine controls and nine refusals', async () => {
   const before = JSON.parse(readFileSync('scripts/fixtures/pre-window-group-public-query-inventory.json', 'utf8'));
   const {registeredPublicQueryInventory} = await import('./public-query-inventory.mjs');
@@ -79,9 +84,12 @@ test('window group registration changes only its declared nine controls and nine
 
 test('window source rules change containing grammar and Run identity without rewriting parent preimages', () => {
   const before = JSON.parse(readFileSync('reviews/2026-10-13-frontend-window-group-source/preimages/parent-values-identities.json', 'utf8'));
-  const after = sequenceIdentityOracle();
+  const current = sequenceIdentityOracle();
+  assert.deepEqual(current, JSON.parse(readFileSync('scripts/fixtures/current-sequence-values-identities.json', 'utf8')));
+  assert.deepEqual(current.grammar, JSON.parse(readFileSync('spec/manifests/actql-grammar-0.1.json', 'utf8')));
+  const after = windowHistory('scripts/fixtures/current-sequence-values-identities.json');
   assert.equal(signatureRoleCid((({grammar_manifest_cid, ...body}) => body)(before.grammar)), before.grammar.grammar_manifest_cid);
-  assert.deepEqual(after.grammar, JSON.parse(readFileSync('spec/manifests/actql-grammar-0.1.json', 'utf8')));
+  assert.deepEqual(after.grammar, windowHistory('spec/manifests/actql-grammar-0.1.json'));
   assert.deepEqual(after.values_dependencies, before.values_dependencies);
   assert.deepEqual(after.program_identity, before.program_identity);
   assert.deepEqual(after.run_preimages.executable.resolved_limits, before.run_preimages.executable.resolved_limits);

@@ -17,8 +17,8 @@ const canonical = v => Array.isArray(v) ? `[${v.map(canonical)}]`
     : JSON.stringify(v);
 const cid = v => 'sha256:' + createHash('sha256').update(canonical(v)).digest('hex');
 const currentCid =
-  'sha256:38df5e7d680450fc90f7d6ec4617c384a013f8645916db2208462099100bf33a';
-const contractCid = 'sha256:beeb158446c54c0f581cb865f99e0031acb1f87925077dcc2119838716e818b7';
+  'sha256:09353058f3feff94698f4707cc17c0eb6e142198d058c09b278b92b3f942271e';
+const contractCid = 'sha256:ced7ee00f232f8d5bcfde44dfc769d9d6ae02c8386e54db7d844d43f922bac90';
 
 function resolve(body, selected, owner = aoa, expr = expressions) {
   assert.equal(cid(body), selected, 'RegistryCidMismatch');
@@ -131,6 +131,9 @@ const predecessor = JSON.parse(predecessorBytes);
 
 test('registered closure changes only the stale expression dependency and containing identities', () => {
   assert.equal(predecessor.source, '6f6ebe8a6e4fc4d642614c4753ccf6e8587f3ebf');
+  const adopted = read('scripts/fixtures/signed-source-zero-grammar/identity-transition.json').retained_registration_after;
+  assert.equal(adopted.source_commit, '3e0f3400f913bd20f386c0866c45617a8a702486');
+  const {expression: expressions, aoa, pipelineRegistry: registry, checkEnvironment, grammarManifest} = adopted.records;
   const before = predecessor.bodies;
   assert.equal(cid(before.aoa), 'sha256:aace4d39f4f3f214158027007d7bfd27ded49f29f0aac55ca022b48bb0ddc5f0');
   assert.equal(cid(before.pipelineRegistry), 'sha256:26915f8a20a27b9e37c1e9760fe2526c460b63bf2f1957fa1af858b18051271c');
@@ -146,8 +149,8 @@ test('registered closure changes only the stale expression dependency and contai
   expected.aoa.pipeline_registry_cid = cid(expected.pipelineRegistry);
   assert.deepEqual(aoa, expected.aoa);
   assert.deepEqual(registry, expected.pipelineRegistry);
-  assert.deepEqual(read('spec/contracts/actql-check-environment.json'), before.checkEnvironment);
-  assert.deepEqual(read('spec/manifests/actql-grammar-0.1.json'), before.grammarManifest);
+  assert.deepEqual(checkEnvironment, before.checkEnvironment);
+  assert.deepEqual(grammarManifest, before.grammarManifest);
 });
 
 test('containing expression writer uses the same closed registration updater', () => {
