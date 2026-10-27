@@ -22658,7 +22658,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -25983,7 +25983,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -42262,7 +42262,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -46284,7 +46284,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -73722,7 +73722,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -77015,7 +77015,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -83990,7 +83990,7 @@
     {
       "module": "packages/coordinator-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "29401b3dfde33c5b48963671b7b2174299b27ddb0e8ed1bb55b82744aa46b898",
+      "sha256": "9c5b867af45297b71a23f392b30fbb97daa13ee29c38ceceacb8436d94e9f9c8",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -84036,6 +84036,7 @@
         "effectCurrentObservations",
         "effectResumeDeliveries",
         "exactRetransmissionEligible",
+        "holderTerminalReports",
         "initialDeliveryEligible",
         "intentIsNew",
         "issueOutputPlanPollJson",
@@ -84598,6 +84599,50 @@
           "name": "effectResumeDeliveries/effectResumeDeliveries#2",
           "parameters": [
             "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "holderTerminalReports/holderTerminalReports",
+          "parameters": [
+            "body",
+            "maximum"
+          ],
+          "async": false
+        },
+        {
+          "name": "holderTerminalReports/holderTerminalReports#2",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "holderTerminalReports/holderTerminalReports#3",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "holderTerminalReports/holderTerminalReports#4",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "holderTerminalReports/holderTerminalReports#5",
+          "parameters": [
+            "handle",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "holderTerminalValue/holderTerminalValue",
+          "parameters": [
+            "handle"
           ],
           "async": false
         },
@@ -94347,6 +94392,165 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "holderTerminalReports/holderTerminalReports",
+            "holderTerminalReports/holderTerminalReports#2",
+            "holderTerminalReports/holderTerminalReports#3",
+            "holderTerminalReports/holderTerminalReports#4",
+            "holderTerminalReports/holderTerminalReports#5",
+            "holderTerminalValue/holderTerminalValue"
+          ],
+          "exports": [
+            "holderTerminalReports"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/coordinator-core/index.mjs",
+                "anchor": "holderTerminalReports"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original holder terminal reports"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/coordinator-core/index.mjs",
+                "anchor": "holderTerminalReports"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original holder terminal reports"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/coordinator-core/index.mjs",
+                "anchor": "holderTerminalReports"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original holder terminal reports"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/coordinator-core/index.mjs",
+                "anchor": "holderTerminalReports"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original holder terminal reports"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/coordinator-core/index.mjs",
+                "anchor": "holderTerminalReports"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original holder terminal reports"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/coordinator-core/index.mjs",
+                "anchor": "holderTerminalReports"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original holder terminal reports"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/coordinator-core/index.mjs",
+                "anchor": "holderTerminalReports"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original holder terminal reports"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/coordinator-core/index.mjs",
+                "anchor": "holderTerminalReports"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original holder terminal reports"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/coordinator-core/index.mjs",
+                "anchor": "holderTerminalReports"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original holder terminal reports"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/coordinator-core/index.mjs",
+                "anchor": "holderTerminalReports"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "packages/coordinator-core/holder-terminal.test.mjs",
+                "anchor": "test('holder terminal facade consumes the original shared canonical report in one namespace', () => {"
               }
             ]
           }
