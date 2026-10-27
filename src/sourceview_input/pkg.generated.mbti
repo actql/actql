@@ -3,6 +3,7 @@ package "actql/actql/sourceview_input"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/order_key",
   "actql/actql/stage_parameters",
   "moonbitlang/core/debug",
@@ -13,11 +14,15 @@ pub fn at(Inputs, Int) -> Declaration?
 
 pub fn collect(@stage_parameters.Source, Limits) -> Result[Inputs, Issue]
 
+pub fn collection_observation_control_extent() -> @decode_shape.CollectionConstructionExtent
+
 pub fn count(Inputs) -> Int
 
 pub fn first_by_order(Declaration) -> Array[@order_key.Key]?
 
 pub fn input_for(Inputs, Int, String) -> Declaration?
+
+pub fn observe_collect(@stage_parameters.Source, Limits) -> (Result[Inputs, Issue], Int)
 
 pub fn source(Inputs) -> @stage_parameters.Source
 

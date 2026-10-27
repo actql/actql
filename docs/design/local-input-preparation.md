@@ -726,3 +726,21 @@ that helper. Clearing an untransferred failed or incomplete controller remains
 ordinary retirement; the helper's transient assignment cannot manufacture a
 transfer. Neither path releases parent backing or acknowledges successor
 cleanup.
+
+## Source input collection work observation
+
+The ordinary Source-input collector and its observed entrance call one owned
+reader. The observed entrance returns the same typed result together with the
+work actually charged by that reader's original Budget, including a partial
+refusal. It neither repeats collection nor admits a successful partial input.
+An attempted charge beyond the remaining allowance is not reported as work
+which the reader performed. These quantities are semantic work DATA, not CPU,
+validation invocation counts, resource capacity or permission.
+
+The ordinary result-only entrance allocates no observation Ref. The observed
+entrance separately declares its added Ref, optional reference and returned
+result/work pair using the existing constructor extent. That fixed declaration
+does not fund the collector's traversal, original Cursor/input, array/Map,
+normalization or order construction. A later preparation phase must supply all
+of that backing before calling it and retain the same Source and output through
+the actual registration/Context continuation and its retirement.

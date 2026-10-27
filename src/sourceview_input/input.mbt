@@ -225,11 +225,34 @@ pub fn collect(
   source : @stages.Source,
   limits : Limits,
 ) -> Result[Inputs, Issue] {
+  collect_owned(source, limits)
+}
+
+///|
+/// Observe the SAME reader's charged work, including its partial typed refusal.
+/// This is neither CPU/validation-call counting nor a successful partial input.
+/// The caller funds the original collector and these additional controls before
+/// entry; this observation issues no resource capacity or permission.
+pub fn observe_collect(
+  source : @stages.Source,
+  limits : Limits,
+) -> (Result[Inputs, Issue], Int) {
+  let spent = Ref(0)
+  let result = collect_owned(source, limits, work_out=Some(spent))
+  (result, spent.val)
+}
+
+///|
+fn collect_owned(
+  source : @stages.Source,
+  limits : Limits,
+  work_out? : Ref[Int]? = None,
+) -> Result[Inputs, Issue] {
   if limits.max_work < 0 || limits.max_order_keys < 0 {
     return Err(InvalidLimits)
   }
   let b : Budget = { work: limits.max_work, orders: limits.max_order_keys, }
-  try {
+  let result = try {
     let entries = []
     let by_name : Map[(Int, String), Declaration] = Map([])
     spend(b, @stages.stage_count(source))
@@ -258,6 +281,10 @@ pub fn collect(
   } catch {
     Stop(e) => Err(e)
   }
+  if work_out is Some(output) {
+    output.val = limits.max_work - b.work
+  }
+  result
 }
 
 ///|
