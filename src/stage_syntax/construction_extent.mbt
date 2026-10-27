@@ -122,3 +122,76 @@ pub fn program_construction_extent(
     inspection_work: max_work - work.remaining,
   })
 }
+
+///|
+/// Retained shallow Program containers only. Strings (including normalized
+/// identifiers), the indexed source and constructor scratch remain separate
+/// owners. The common representation tariff performs byte conversion.
+pub(all) struct ProgramContainerConstructionExtent {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  // The same original shallow records also coexist with constructor scratch.
+  shallow_record_headers : Int64
+  shallow_reference_slots : Int64
+  shallow_scalar_words : Int64
+} derive(Eq, Debug)
+
+///|
+/// The same envelope decoder owns these records, import variants, arrays and
+/// name indexes. The input is structural DATA from its original bounded source
+/// inspection, never execution permission or proof of physical allocation.
+pub fn program_container_construction_extent(
+  value : ProgramConstructionExtent,
+) -> ProgramContainerConstructionExtent? {
+  // The producer charges every Stage, input and indexed name to an Int work
+  // budget. Each input contributes at most two imports. These range checks
+  // also make all following linear products provably fit signed Int64.
+  let max_count = 2147483647L
+  if value.stage_records < 0 ||
+    value.export_tuples < 0 ||
+    value.inspection_work < 0 ||
+    value.import_tuple_bound < 0L ||
+    value.import_tuple_bound > 2L * max_count ||
+    value.name_index_entries < 0L ||
+    value.name_index_entries > max_count {
+    return None
+  }
+  let stages = value.stage_records.to_int64()
+  let imports = value.import_tuple_bound
+  let exports = value.export_tuples.to_int64()
+  let names = value.name_index_entries
+  let predecessors = Int64::max(0L, stages - 1L)
+  let arrays = 2L + 4L * stages
+  let items = stages + exports + imports + names
+  let array_capacity = 8L * arrays + 2L * items
+  let maps = 3L * stages
+  let map_capacity = 8L * maps + 4L * names
+  if value.retained_array_capacity_bound != array_capacity ||
+    value.retained_map_capacity_bound != map_capacity {
+    return None
+  }
+  // Program(1H5R); Stage(1H9R plus predecessor tag/ref); each noninitial
+  // predecessor(1H1R1W); Stage Cursor(1H2R1W); import tuple and its payload
+  // variant(2H4R1W); export tuple(1H3R). Initial is an inline scalar tag.
+  let headers = 1L + 2L * stages + predecessors + 2L * imports + exports
+  let refs = 5L + 11L * stages + 2L * predecessors + 4L * imports + 3L * exports
+  let words = 2L * stages + imports
+  // Array wrapper/backing:2H1R2W plus capacity refs. Map record/backing,
+  // entries and tagged bucket/lookup controls:6H6R9W per map,4H5R7W per
+  // entry, plus backing reference/scalar slots. All element bodies borrow
+  // their original owner; no row, parameter value or source String is copied.
+  Some({
+    shallow_record_headers: headers,
+    shallow_reference_slots: refs,
+    shallow_scalar_words: words,
+    record_headers: headers + 2L * arrays + 6L * maps + 4L * names,
+    reference_slots: refs +
+    arrays +
+    array_capacity +
+    6L * maps +
+    map_capacity +
+    5L * names,
+    scalar_words: words + 2L * arrays + 9L * maps + map_capacity + 7L * names,
+  })
+}

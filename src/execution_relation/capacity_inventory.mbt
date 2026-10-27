@@ -57,15 +57,15 @@ pub fn execution_capacity_inventory_add(
     return Some(total)
   }
   let bytes = execution_capacity_unit_bytes(unit)
-  if bytes <= 0L || count > 9223372036854775807L / bytes {
+  guard @preparation_counts.checked_nonnegative_add_product(0L, count, bytes)
+    is Some(amount) else {
     return None
   }
-  let amount = count * bytes
-  let multiplicity = copies.to_int64()
-  if amount > (9223372036854775807L - total) / multiplicity {
-    return None
-  }
-  Some(total + amount * multiplicity)
+  @preparation_counts.checked_nonnegative_add_product(
+    total,
+    amount,
+    copies.to_int64(),
+  )
 }
 
 ///|

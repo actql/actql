@@ -336,3 +336,71 @@ private six-number Run projection is updated only after every dimension fits;
 refusal leaves it unchanged. The original read reservations, census, current
 checks and cleanup remain with their existing owners. A composed numerical
 limit supplies neither physical backing nor permission.
+
+
+## Canonical normalization construction inventory
+
+The canonical-value owner declares the logical construction inventory of its
+existing NFC-plus-LF operation. Local snapshot preparation projects those named
+units into its existing representation model rather than retaining a second
+Unicode expansion or string-builder formula. This preserves the original Local
+reservation; byte pricing and resource admission remain with their existing
+owners. The input String is borrowed, and the returned String is covered beside
+current constructor scratch. Multiple retained results require cumulative text
+and reference inventory.
+
+The pinned canonical decomposition expands to at most four scalars per input
+scalar; compatibility normalization and casefolding are separate operations.
+JS concatenation and the pinned non-JS doubling UInt16 builder have different
+backing lifetimes. Growth and the final `to_string` copy do not coexist. Both
+recipes fit the declared logical bound, including preceding NFC and first
+LF-pass text during the second LF pass. This is a constructor inventory, not
+allocator/RSS, physical backend supply or complete preparation funding evidence.
+
+
+## Structural Program container owner
+
+The syntax owner supplies the retained shallow Program container inventory from
+its existing bounded structural construction facts. It owns the Program/Stage
+records, original import variants, public export tuples, array spare capacity
+and name-index maps. The same record projection supplies their coexistence with
+constructor scratch, so the Local adapter does not repeat their field layout.
+Shared preparation representation rules still perform byte conversion and
+composition. These facts issue no execution, physical allocation or permission.
+
+The fixed Closed Values shape consumes that same owner for its established
+one-Stage/no-import/one-export envelope, preserving the original quote. General
+structural facts can include multiple Stages, imports and Results without
+pretending that their Source body is a numeric Values document. The bounded
+inspection remains with the original indexed source; it is not another parser
+or semantic checker.
+
+This inventory excludes source/index backing, normalized identifier text,
+temporary object views, inspection/diagnostic controls and semantic
+checking/lowering/module construction. Those actual simultaneous owners must
+be supplied before a generic preparation driver can claim complete funding.
+The existing narrow constructor scratch proof stays scoped to Closed Values.
+
+
+## Preparation count arithmetic below domain constructors
+
+The existing capacity arithmetic owner supplies exact nonnegative Int64
+sum/product composition for preparation counts. Domain constructors below the
+execution layer can use that same operation without introducing a dependency
+cycle or a second overflow rule. The execution preparation API delegates to it;
+its positive coefficient rule and the original representation tariff remain
+unchanged. No raw source, physical allocation, permission or Ledger is issued.
+
+Language capacity Values keep their separate nonnegative safe-integer range.
+An Int64 preparation result cannot be promoted into that opaque Value, and a
+large count never widens a language bound. Zero/negative coefficients, negative
+counts and overflow keep their original preparation refusal. The existing
+accounting and actual backing/retirement owners remain responsible for admission
+and physical duties; arithmetic alone does not establish complete phase funding.
+
+
+Installed Effect demand keeps its distinct zero-byte domain case: a
+nonnegative original count adds no bytes to a nonnegative total. Its positive
+products delegate to the same checked arithmetic owner as the Local preparation
+tariff. That domain case does not change the shared operation's requirement
+that its coefficient be positive, nor grant capacity or refund consumed work.

@@ -40371,7 +40371,7 @@
     {
       "module": "adapters/host-node/installed-content-family.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b0dc1a945898c14515d459a792db628939e90d58b4995b23af92103583062feb",
+      "sha256": "1a9de4fcdde1d0560c936c5db94c577d1e90550fcf383727c08d9d037cc1ca45",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -40401,7 +40401,8 @@
             "completionLimits",
             "outputLimits",
             "faultInjection",
-            "restored"
+            "restored",
+            "retainCleanup"
           ],
           "async": false
         },
@@ -40420,6 +40421,11 @@
           "parameters": [
             "binding"
           ],
+          "async": false
+        },
+        {
+          "name": "installEffectContentFamily/cleanupOwner/cleanupOwner",
+          "parameters": [],
           "async": false
         },
         {
@@ -40523,11 +40529,6 @@
           "async": false
         },
         {
-          "name": "installEffectContentFamily/installEffectContentFamily#6",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "installEffectContentFamily/live/live",
           "parameters": [],
           "async": false
@@ -40593,7 +40594,7 @@
             "installEffectContentFamily/installEffectContentFamily#3",
             "installEffectContentFamily/installEffectContentFamily#4",
             "installEffectContentFamily/installEffectContentFamily#5",
-            "installEffectContentFamily/installEffectContentFamily#6",
+            "installEffectContentFamily/cleanupOwner/cleanupOwner",
             "installEffectContentFamily/live/live",
             "installEffectContentFamily/port/init:cancel/init:cancel",
             "installEffectContentFamily/port/port",
@@ -40641,6 +40642,14 @@
               {
                 "path": "adapters/host-node/installed-content-family.mjs",
                 "anchor": "storageForContent: binding => selectedForContent(binding)"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "identity": [
@@ -40659,6 +40668,14 @@
               {
                 "path": "adapters/host-node/installed-content-family.mjs",
                 "anchor": "moon.clientProgramEffectCommandContentMatchesIssued(binding, original.issued)"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "ownership": [
@@ -40677,6 +40694,14 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "The installed serialization family keeps the exact candidate, issued checked"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "synchronization": [
@@ -40695,6 +40720,14 @@
               {
                 "path": "adapters/host-node/installed-content-family.mjs",
                 "anchor": "if (!current() || !live() || !current()) return undefined;"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "failure": [
@@ -40713,6 +40746,14 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "Legacy restoration without this original receiver cannot"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "cancellation": [
@@ -40735,6 +40776,14 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "Explicit parent close is distinct from successful temporary encoder cleanup."
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "resources": [
@@ -40753,6 +40802,14 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "The additional family reference and restored-result field keep candidate,"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "extension": [
@@ -40797,6 +40854,14 @@
               {
                 "path": "adapters/host-node/generated-content-original-selection.integration.test.mjs",
                 "anchor": "test('source probe retires the family alias when explicit close awaited the same completing flight'"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ]
           }
@@ -40917,7 +40982,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7745a120dd0d9325d77b9d194e93523b180b9890dab111fcf8a9e8ba583ede0f",
+      "sha256": "d01e6a66fcde787753ed4a2a99d021d6bf011fc1afc264b76158463e9c6cb055",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -41231,7 +41296,8 @@
             "store",
             "principalId",
             "signal",
-            "restored"
+            "restored",
+            "retainCleanup"
           ],
           "async": false
         },
@@ -41367,6 +41433,14 @@
               {
                 "path": "adapters/host-node/installed-content-run.mjs",
                 "anchor": "run.prepareRun = ({preparedProgram, plan}) => {"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "identity": [
@@ -41389,6 +41463,14 @@
               {
                 "path": "adapters/host-node/installed-content-run.mjs",
                 "anchor": "if (original === undefined || original.plan !== plan || original.attempted ||"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "ownership": [
@@ -41415,6 +41497,14 @@
               {
                 "path": "adapters/host-node/installed-content-run.mjs",
                 "anchor": "if (physical?.prepared.status().pending === true) return false;"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "synchronization": [
@@ -41437,6 +41527,14 @@
               {
                 "path": "adapters/host-node/installed-content-run.mjs",
                 "anchor": "original.attempted = true;"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "failure": [
@@ -41459,6 +41557,14 @@
               {
                 "path": "adapters/host-node/installed-content-run.mjs",
                 "anchor": "if (prior.failure !== undefined) throw prior.failure;"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "cancellation": [
@@ -41481,6 +41587,14 @@
               {
                 "path": "adapters/host-node/installed-content-run.mjs",
                 "anchor": "if (!stopGeneratedContentPrefix({control, prefix, chargeWork})) return false;"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "resources": [
@@ -41507,6 +41621,14 @@
               {
                 "path": "adapters/host-node/installed-content-run.mjs",
                 "anchor": "original.capacity = control.prefixCapacity(preparedProgram, task, step,"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "extension": [
@@ -41559,6 +41681,14 @@
               {
                 "path": "adapters/host-node/installed-content-cleanup-ack.test.mjs",
                 "anchor": "test('installed Content cleanup retains a real prepared object until the same release ACK'"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ]
           }
@@ -68884,7 +69014,7 @@
     {
       "module": "packages/run-host-core/checkpoints.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "41c2138b436016736e40d4b9d367be63a5dd17652999b751ba367046a0fcdffa",
+      "sha256": "b009523fe7bc6235c7b0e821ceb96cf377c25a348cd89e617c3d810be56054d2",
       "role": "common-semantics",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -68905,6 +69035,7 @@
         "resumeCompletionAllowed",
         "resumeFenceDecide",
         "resumedApprovalAt",
+        "revalidationFailedState",
         "runStateAdmit",
         "runStateObservationKey",
         "runStateObservationWire",
@@ -69057,6 +69188,16 @@
           "result": "string"
         },
         {
+          "name": "revalidationFailedState",
+          "parameters": [
+            "runId: string",
+            "updatedAt: string",
+            "declaredResultsJson: string",
+            "unknownEffectsJson: string"
+          ],
+          "result": "string"
+        },
+        {
           "name": "runStateAdmit",
           "parameters": [
             "wire: string"
@@ -69130,8 +69271,9 @@
             "resolutionDecide",
             "resolutionProofPreimage",
             "resumeCompletionAllowed",
-            "resumeFenceDecide",
             "resumedApprovalAt",
+            "resumeFenceDecide",
+            "revalidationFailedState",
             "runStateAdmit",
             "runStateObservationKey",
             "runStateObservationWire",
@@ -69158,6 +69300,7 @@
             "resumeCompletionAllowed",
             "resumeFenceDecide",
             "resumedApprovalAt",
+            "revalidationFailedState",
             "runStateAdmit",
             "runStateObservationKey",
             "runStateObservationWire",
@@ -69337,7 +69480,7 @@
     {
       "module": "packages/run-host-core/checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "949c2f9134f2ec1745487da2ce58ffbc4095a5834975eb573335963b4988f3a0",
+      "sha256": "adc75200bae6b375a45d3debcde55c905a26e0ca0849533b62e85c8a21fb8412",
       "role": "common-semantics",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -69356,6 +69499,7 @@
         "resumeCompletionAllowed",
         "resumeFenceDecide",
         "resumedApprovalAt",
+        "revalidationFailedState",
         "runStateAdmit",
         "runStateObservationKey",
         "runStateObservationWire",
@@ -69489,6 +69633,7 @@
             "resumeCompletionAllowed",
             "resumeFenceDecide",
             "resumedApprovalAt",
+            "revalidationFailedState",
             "runStateAdmit",
             "runStateObservationKey",
             "runStateObservationWire",

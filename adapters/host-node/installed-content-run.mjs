@@ -376,12 +376,12 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
   // The enclosing Model custody retains this same child before allocation.
   // No second Run, encoder, publication or dispatch cleanup owner is created.
   run.generate = options => execute(options, true);
-  run.effectFamily = ({prepared, plan, store, principalId, signal, restored}) =>
+  run.effectFamily = ({prepared, plan, store, principalId, signal, restored, retainCleanup}) =>
     installEffectContentFamily({moon, control, publications, bodies,
       prepared, plan, store, principalId, ownerPrincipal, now, authorize, signal,
       namespaceId, authorityScopeCid, storeAuthorityCid, installedBinding,
       referenceLimits, completionLimits,
-      outputLimits: localOutputLimits, faultInjection, restored});
+      outputLimits: localOutputLimits, faultInjection, restored, retainCleanup});
   run.prepareRecoveredCommandContent = options => prepareRecoveredCommandContent({
     ...options, moon, publications, control, ownerPrincipal, storeAuthorityCid,
     authorityScopeCid, now, authorize, installedBinding, referenceLimits});

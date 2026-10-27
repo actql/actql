@@ -40,7 +40,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
   let modelPlan = originalModelPlan;
   let modelRecord = existingModel;
   let ledger;
-  let contentFamily, contentPlan, contentRecovery, restoredModelInput;
+  let contentFamily, contentFamilyCleanup, contentPlan, contentRecovery, restoredModelInput;
   const diagnostic = diagnosticObserver(observe);
   const observeUsage = (name, facts = {}) => {
     const usage = ledger === undefined ? checkedHost === undefined ? undefined
@@ -117,7 +117,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       catch (error) { failure = error; }
       try { if (settled) await cleanupInfer(); }
       catch (error) { failure ??= error; }
-      try { if (settled) await contentFamily?.close(); }
+      try { if (settled) await (contentFamilyCleanup ?? contentFamily)?.close(); }
       catch (error) { failure ??= error; }
       try { if (settled) await contentRecovery?.close(); }
       catch (error) { failure ??= error; }
@@ -131,8 +131,9 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
         observeUsage('effect_computation_cleanup_pending');
         return false;
       }
-      if (contentFamily !== undefined && (!await contentFamily.cleanup() ||
-          contentFamily.cleanupPending())) {
+      const familyCleanup = contentFamilyCleanup ?? contentFamily;
+      if (familyCleanup !== undefined && (!await familyCleanup.cleanup() ||
+          familyCleanup.cleanupPending())) {
         observeUsage('effect_computation_cleanup_pending');
         return false;
       }
@@ -280,7 +281,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
         current();
       }
       contentFamily = contentRun.effectFamily({prepared: acquired.prepared,
-        plan: contentPlan, store, principalId, signal, restored});
+        plan: contentPlan, store, principalId, signal, restored,
+        retainCleanup(value) {contentFamilyCleanup = value;}});
     }
     const prepareInferComponent = () => {
       current();

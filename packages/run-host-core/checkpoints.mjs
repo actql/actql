@@ -1,7 +1,7 @@
 // Exact existing Owner calls over the portable string ABI. The Host provides
 // trusted authentication, durable transactions and physical continuation.
 export {checkpointAdmit, checkpointWaitingState, checkpointSealBody,
-  checkpointLifecycleState, waitingExitState, checkpointExpiredAt, runStateAdmit,
+  checkpointLifecycleState, waitingExitState, revalidationFailedState, checkpointExpiredAt, runStateAdmit,
   runTransitionAllowed, resumeCompletionAllowed, effectSettlementCompletionAllowed,
   resolutionProofPreimage, resolutionAdmit, resolutionDecide,
   verifiedAttestationPreimage, resumedApprovalAt,
