@@ -22,7 +22,7 @@ test "clear Command keeps the complete closed role bodies and independent identi
     root.get("contracts") is Some(Array(contracts)) else {
     abort("clear declaration")
   }
-  let expected = "sha256:a62ffa81aaa9baea1bc589e0cf117c8665e78f09b890161c3b56d392e5df859a"
+  let expected = "sha256:54f3da4509fc84f409ea96b9bcb93d10cde9c71190c01d3b90ff2745774f0c1a"
   assert_eq(command.get("contract_cid"), Some(expected.to_json()))
   command.remove("contract_cid") |> ignore
   assert_eq(
@@ -41,11 +41,11 @@ test "clear Command keeps the complete closed role bodies and independent identi
   assert_eq(contracts.length(), 2)
   assert_eq(
     range_contract_cid(contracts[0]),
-    "sha256:6089e4d88766135685e548243a3e4a294d8e37a27a12d72516a005f2a5b4bcc5",
+    "sha256:99915de3605da823974eb6955042ad0dc027197bfdbba15b1ba4fe151c7c20c5",
   )
   assert_eq(
     range_contract_cid(contracts[1]),
-    "sha256:fc9fa0579508e4c3633701b21108710759ea4c8cc34f0d48a34a9df472272de2",
+    "sha256:6cb65e3a8f8e63fe9d44b570fe3165791157d6598d4b76c1ffc224dbab2e4536",
   )
 }
 

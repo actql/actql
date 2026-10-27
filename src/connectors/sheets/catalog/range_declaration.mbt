@@ -14,9 +14,19 @@ fn range_contract(
   fields : Json,
   limits : Limits,
 ) -> Result[Json, RangeFailure] {
+  range_named_contract(connector_id + ".sheets." + kind, kind, fields, limits)
+}
+
+///|
+fn range_named_contract(
+  id : String,
+  kind : String,
+  fields : Json,
+  limits : Limits,
+) -> Result[Json, RangeFailure] {
   let body : Json = {
     "schema": "actql.contract/0.1",
-    "id": (connector_id + ".sheets." + kind).to_json(),
+    "id": id.to_json(),
     "version": "sheets/0.1",
     "kind": kind.to_json(),
     "body": {

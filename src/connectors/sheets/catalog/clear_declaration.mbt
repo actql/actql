@@ -20,13 +20,18 @@ pub fn clear_command_json(
   }
   let input_fields : Json = Json::object(Map([]))
   let input = match
-    range_contract(connector_id, "command_input", input_fields, limits) {
+    range_named_contract(
+      connector_id + ".sheets.clear_range.command_input",
+      "command_input",
+      input_fields,
+      limits,
+    ) {
     Ok(input) => input
     Err(issue) => return Err(issue)
   }
   let output = match
-    range_contract(
-      connector_id,
+    range_named_contract(
+      connector_id + ".sheets.clear_range.command_output",
       "command_output",
       {
         "spreadsheet_id": { "type": "string", "nullable": false },

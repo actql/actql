@@ -25,12 +25,24 @@ const modules = () => [
 
 test('every Sheets production operation and API references its original ten-attribute contract', () => {
   const actual = modules();
-  assert.equal(actual.length, 12);
-  assert.equal(assertInterfaceCoverage({root, modules: actual, declarations}), 12);
-  assert.equal(new Set(declarations.map(value => value.module)).size, 12);
+  assert.equal(actual.length, 18);
+  assert.equal(assertInterfaceCoverage({root, modules: actual, declarations}), 18);
+  assert.equal(new Set(declarations.map(value => value.module)).size, 18);
   for (const module of actual.filter(value => value.module.endsWith('.mjs'))) {
     assert.deepEqual(module.compilerFields, [], module.module);
   }
+});
+
+test('the private operation-qualified role issuer requires its own original Moon operation contract', () => {
+  const path = 'src/connectors/sheets/catalog/range_declaration.mbt';
+  const module = modules().find(value => value.module === path);
+  assert(module.operations.some(value => value.name === 'range_named_contract'));
+  const changed = structuredClone(declarations);
+  const selected = changed.find(value => value.module === path);
+  selected.operations = selected.operations.filter(value => value.name !== 'range_named_contract');
+  selected.contracts[0].operations = selected.contracts[0].operations.filter(value => value !== 'range_named_contract');
+  assert.throws(() => assertInterfaceCoverage({root, modules: [module], declarations: changed}),
+    /Unregistered interface operation/u);
 });
 
 test('a new private Sheets decision cannot inherit an existing module contract', () => {
