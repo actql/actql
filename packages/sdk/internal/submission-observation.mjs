@@ -216,7 +216,9 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
         // the same producer aliases, never snapshots, sends or issues again.
         const retry = () => sourcePreparation.finishSourceProducer(producer.receipt, terminal);
         lifecycle.readerCleanups.add(retry);
-        if (primary !== undefined) return primary;
+        // A thrown undefined is still the original failed operation. Keep its
+        // presence separate from a successful result with no primary error.
+        if (terminal === 'failed') return primary;
         const error = new ClientError('ClientCleanupPending', {cause, cleanupPending: true});
         Object.defineProperty(error, 'execution', {value: originalResult});
         retainQueryResult(originalResult, error);
@@ -248,20 +250,28 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
     return pending;
   };
   const submitIntent = (kind, input, options, sourceProducer, requestName) => {
-    let body;
+    let body, captured;
+    // Trusted Source failures retain their exact original carrier, outside
+    // the catch which classifies ordinary native serialization failures.
+    if (sourceProducer !== undefined) sourcePreparation.assertSourceSnapshotCurrent(sourceProducer.receipt);
     try {
       const stopBefore = options.stopBefore;
       const readOnly = options.readOnly;
       if (stopBefore !== undefined && stopBefore !== 'commit') fail('InvalidClientPayload');
       if (Object.hasOwn(options, 'readOnly') && readOnly !== true) fail('InvalidClientPayload');
-      body = freezeInput(snapshotClientRequest({submissionRef: options.submissionRef,
+      captured = snapshotClientRequest({submissionRef: options.submissionRef,
         attemptRef: {operation: 'submit', attemptId: options.attemptId ?? crypto.randomUUID()},
         ...(requestName === undefined ? {} : {requestName}),
         kind, input, parameters: options.parameters ?? null,
         ...(stopBefore === undefined ? {} : {stopBefore}),
         ...(readOnly === undefined ? {} : {readOnly}),
-        ...(options.unresolvedHistory === undefined ? {} : {unresolvedHistory: options.unresolvedHistory})}));
+        ...(options.unresolvedHistory === undefined ? {} : {unresolvedHistory: options.unresolvedHistory})});
     } catch {fail('InvalidClientPayload');}
+    // Native getters/toJSON/coercion may retire the original installation or
+    // producer while the one snapshot is built. Stop before freeze arrays or
+    // publication; do not bind an unfrozen body to bypass the original check.
+    if (sourceProducer !== undefined) sourcePreparation.assertSourceSnapshotCurrent(sourceProducer.receipt);
+    try {body = freezeInput(captured);} catch {fail('InvalidClientPayload');}
     if (sourceProducer !== undefined) {
       sourcePreparation.bindSourceSnapshot(sourceProducer.receipt, body);
       sourceProducer.body = body;
