@@ -706,3 +706,15 @@ bound or published; a mutable clone is never offered to a Host callback as an
 identity substitute. This current fence is not preconstruction funding for
 native string/parse/freeze storage. The actual input, VM baseline, callback and
 simultaneous snapshot/backing inventories remain separate original obligations.
+
+## Source handoff survives controller clearing
+
+Taking the indexed input or Program transfers that exact DATA to the next
+consumer while the original reservation remains charged. Clearing the old
+Source controller removes only its own aliases and returned synchronous work;
+it preserves the fact that DATA was transferred. It cannot make the request
+parent eligible for abort while a successor can still retain the original
+output. Repeated clear is idempotent and neither refunds work nor observes a
+physical acknowledgement. Pre-transfer clear retains its ordinary retirement
+path. The real parent/successor owns the later alias and backing retirement;
+this Source-local transition supplies no replacement cleanup authority.
