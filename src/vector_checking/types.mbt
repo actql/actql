@@ -11,7 +11,14 @@ pub(all) enum IssueKind {
   BudgetExceeded
   InvalidBody
   Decode(@decode.IssueKind)
-  WrongCarrier(@carrier.Kind)
+  // Original vector operation requirement; its closed facts have an existing
+  // public diagnostic projection. Sibling branch/alternative errors retain
+  // their typed facts without widening that disclosure boundary.
+  WrongCarrier(@carrier.Kind, @carrier.Kind)
+  WrongRelationCarrier(@carrier.Kind, @carrier.Kind)
+  WrongCarrierAlternatives(@carrier.Kind, @carrier.Kind, @carrier.Kind)
+  WrongPoolCarrier(@carrier.Kind, @carrier.Kind)
+  IncompletePoolInput
   InvalidQuery
   UnknownParameter(String)
   IncompatibleParameter(String)

@@ -293,7 +293,17 @@ pub fn check_nearest_source(
         Some(v)
       }
       @carrier.Opaque(VectorsKind) => None
-      _ => @checking.fail(source, WrongCarrier(@carrier.kind(input)))
+      @carrier.Opaque(RelationKind) =>
+        @checking.fail(source, IncompleteNearestInput)
+      _ =>
+        @checking.fail(
+          source,
+          WrongCarrierAlternatives(
+            RelationKind,
+            VectorsKind,
+            @carrier.kind(input),
+          ),
+        )
     }
     Ok({
       supplied,
