@@ -4,6 +4,8 @@ struct Source {
   prefix : @stage.Prefix?
   stages : Array[@stage.Stage]
   declarations : @parameter.Declarations
+  declaration_limits : @parameter.DeclarationLimits
+  binding_read : @parameter.BindingReadInput?
 }
 
 ///|
@@ -31,7 +33,19 @@ struct CollectedStage {
 pub fn prepare(
   program : @stage.Program,
   limits : @parameter.DeclarationLimits,
+  original? : Source? = None,
 ) -> Result[Source, Issue] {
+  // Only this private holder has completed these exact Program declarations.
+  // Relaxing resource ceilings cannot invalidate an already accepted value.
+  if original is Some(source) &&
+    source.program is Some(owner) &&
+    physical_equal(owner, program) &&
+    source.declaration_limits.max_parameters <= limits.max_parameters &&
+    source.declaration_limits.max_nodes <= limits.max_nodes &&
+    source.declaration_limits.max_depth <= limits.max_depth &&
+    source.declaration_limits.max_text_bytes <= limits.max_text_bytes {
+    return Ok(source)
+  }
   let root = @decode.open_object(@stage.program_body(program)).unwrap()
   match @parameter.read_declarations(@decode.lookup(root, "params"), limits) {
     Err(e) => Err(Declarations(e))
@@ -41,6 +55,8 @@ pub fn prepare(
         prefix: None,
         stages: @stage.stages(program),
         declarations,
+        declaration_limits: limits,
+        binding_read: None,
       })
   }
 }
@@ -77,6 +93,8 @@ pub fn prepare_prefix(
         prefix: Some(prefix),
         stages: @stage.prefix_stages(prefix),
         declarations,
+        declaration_limits: limits,
+        binding_read: None,
       })
   }
 }

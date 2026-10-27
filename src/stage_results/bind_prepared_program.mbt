@@ -39,7 +39,7 @@ pub fn bind_prepared_program(
     return Err(BudgetExceeded)
   }
   let bound = match
-    @binding.bind(declarations, supplied, {
+    @parameters.bind(wiring.source, supplied, {
       max_nodes: limits.max_nodes - used.nodes - decl_nodes,
       max_text_bytes: limits.max_text_bytes - used.text_bytes - decl_text,
       max_depth: limits.max_depth,

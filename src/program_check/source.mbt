@@ -93,14 +93,19 @@ fn prepare_catalog_source(
   model_tasks? : @environment.ModelTasks? = None,
   derived_capacity_limits? : @wire.Limits? = None,
   graph? : Bool = false,
+  source_preparation? : @stages.Source? = None,
 ) -> @context.ProgramSourceIdentity raise SourceFailure {
   let source = match
-    @stages.prepare(program, {
-      max_parameters: limits.max_parameters,
-      max_nodes: limits.topology.max_nodes,
-      max_depth: limits.topology.max_depth,
-      max_text_bytes: limits.topology.max_text_bytes,
-    }) {
+    @stages.prepare(
+      program,
+      {
+        max_parameters: limits.max_parameters,
+        max_nodes: limits.topology.max_nodes,
+        max_depth: limits.topology.max_depth,
+        max_text_bytes: limits.topology.max_text_bytes,
+      },
+      original=source_preparation,
+    ) {
     Ok(v) => v
     Err(e) => raise Declarations(e)
   }

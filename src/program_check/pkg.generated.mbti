@@ -92,11 +92,11 @@ pub fn check_document(String, CheckEnvironment, @decode_core.Cursor?, CheckLimit
 
 pub fn check_document_with_evidence(String, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckOutcome
 
-pub fn check_parsed(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, CheckLimits, source_catalog? : PreparedSourceCatalog?) -> CheckOutcome
+pub fn check_parsed(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, CheckLimits, source_catalog? : PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> CheckOutcome
 
-pub fn check_parsed_scoped(@stage_syntax.Program, CheckEnvironment, CheckScope, @decode_core.Cursor?, CheckLimits) -> ScopedCheckOutcome
+pub fn check_parsed_scoped(@stage_syntax.Program, CheckEnvironment, CheckScope, @decode_core.Cursor?, CheckLimits, source_preparation? : @stage_parameters.Source?) -> ScopedCheckOutcome
 
-pub fn check_parsed_with_evidence(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, source_catalog? : PreparedSourceCatalog?) -> CheckOutcome
+pub fn check_parsed_with_evidence(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, source_catalog? : PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> CheckOutcome
 
 pub fn checked_catalog_references(CheckedProgram) -> @check_environment.CatalogReferences
 
@@ -474,7 +474,7 @@ pub fn prepare_source_catalog(CheckEnvironment, SourceCatalogLimits) -> Result[P
 
 pub fn prepare_source_catalog_with_contents_limits(CheckEnvironment, SourceCatalogLimits, @check_environment.Limits) -> Result[PreparedSourceCatalog, EnvironmentFailure]
 
-pub fn prepare_template_declarations(@stage_syntax.Program, CheckEnvironment, CheckLimits) -> Result[TemplateDeclarationPreparation, LocalConstructionFailure]
+pub fn prepare_template_declarations(@stage_syntax.Program, CheckEnvironment, CheckLimits, source_preparation? : @stage_parameters.Source?) -> Result[TemplateDeclarationPreparation, LocalConstructionFailure]
 
 pub fn proof_application(ReidentifiedStep) -> @capacity_program_step.StepBound
 

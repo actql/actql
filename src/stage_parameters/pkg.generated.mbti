@@ -8,10 +8,13 @@ import {
   "actql/actql/pipeline_parameters",
   "actql/actql/pipeline_typing",
   "actql/actql/stage_syntax",
+  "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn bind(Source, @decode_core.Cursor?, @value_admission.Limits) -> Result[@parameter_binding.BindingResult, @parameter_binding.Issue]
+
 pub fn bind_operations(CollectedOperations, @parameter_binding.BoundValues, max_work~ : Int) -> Result[BoundOperations, BindingsIssue]
 
 pub fn bindings_usage(BoundOperations) -> OperationsUsage
@@ -46,7 +49,9 @@ pub fn operations_usage(CollectedOperations) -> OperationsUsage
 
 pub fn prefix(Source) -> @stage_syntax.Prefix?
 
-pub fn prepare(@stage_syntax.Program, @parameter_binding.DeclarationLimits) -> Result[Source, Issue]
+pub fn prepare(@stage_syntax.Program, @parameter_binding.DeclarationLimits, original? : Source?) -> Result[Source, Issue]
+
+pub fn prepare_bindings(Source, @decode_core.Cursor?, @value_admission.Limits) -> (Source, Result[@parameter_binding.BindingResult, @parameter_binding.Issue])
 
 pub fn prepare_prefix(@stage_syntax.Prefix, @parameter_binding.DeclarationLimits) -> Result[Source, Issue]
 

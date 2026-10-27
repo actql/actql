@@ -33,6 +33,7 @@ fn construct_local(
   model_tasks? : @environment.ModelTasks? = None,
   request_value_policies? : Array[HostRequestValuePolicyEvidence] = [],
   source_catalog? : PreparedSourceCatalog? = None,
+  source_preparation? : @stages.Source? = None,
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -128,6 +129,7 @@ fn construct_local(
     limits,
     calendar~,
     graph~,
+    source_preparation~,
     capacity_inputs~,
     model_tasks~,
     derived_capacity_limits=if capacity_inputs is Some(_) {

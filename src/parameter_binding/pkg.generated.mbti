@@ -126,6 +126,8 @@ pub fn prepare_declaration_read(@decode_core.Cursor?, DeclarationLimits) -> (Res
 
 pub fn read_declarations(@decode_core.Cursor?, DeclarationLimits) -> Result[Declarations, Issue]
 
+pub fn reuse_binding_read(BindingReadInput, Declarations, @decode_core.Cursor?, @value_admission.Limits) -> Result[BindingResult, Issue]?
+
 pub fn stringify_values(BoundValues, Int, Int, Int) -> String raise @encode_core.EncodeFailure
 
 // Errors
