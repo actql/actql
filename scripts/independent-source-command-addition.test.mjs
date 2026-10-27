@@ -31,7 +31,7 @@ test('independent Source and Command are absent from the product table and admit
   const compiled = checked(moon.clientProgramCompileLocalEffects(prepared));
   const plan = JSON.parse(moon.clientProgramEffectCompilationPlanWire(compiled));
   assert.deepEqual(plan.execution_material.program, fixture.program);
-  assert.equal(fixture.command.minimum_approval, 'required');
+  assert.equal(Object.hasOwn(fixture.command, 'minimum_approval'), false);
   assert.equal(fixture.command.idempotency.support, 'unsupported');
   assert.deepEqual(moon.clientProgramEffectCompilationResultNames(compiled), ['r']);
 });
