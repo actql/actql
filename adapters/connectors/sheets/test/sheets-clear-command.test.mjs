@@ -11,6 +11,7 @@ const site = {apiOrigin: 'https://sheets.example.test', spreadsheetId: 'book',
     {name: 'flag', type: 'boolean', nullable: true}]};
 const token = character => `sha256:${character.repeat(64)}`;
 const member = {resource: 'range_target', effectId: 'clear'};
+const roleIdentities = JSON.parse(readFileSync(new URL('./fixtures/clear-role-identities.json', import.meta.url)));
 function fixture() {
   const clear = sheetsClearCommand('sheets-book', site, provider);
   const target = sheetsRangeReference({site, catalogCid: token('a'), bindingCid: token('b'), moon: provider});
@@ -36,6 +37,10 @@ test('clear selects a distinct empty-input Command and preserves the original up
   assert.deepEqual(clear.command.input_contract.fields, {});
   assert.deepEqual(clear.command.permissions, ['sheets:cells:clear']);
   assert.equal(Object.hasOwn(clear.command, 'minimum_approval'), false);
+  assert.deepEqual(clear.command, {...roleIdentities.clearRange.body,
+    contract_cid: roleIdentities.clearRange.cid});
+  assert.deepEqual(clear.contracts, roleIdentities.clearRange.contracts);
+  assert.notEqual(clear.command.contract_cid, roleIdentities.previousClear.cid);
   const old = JSON.parse(readFileSync(new URL('./fixtures/range-owned-baseline.json', import.meta.url), 'utf8'));
   const update = sheetsRangeCommand('sheets-book', site, provider);
   const current = JSON.parse(readFileSync(new URL('./fixtures/range-command-approval-carriage.json', import.meta.url), 'utf8'));
@@ -44,6 +49,9 @@ test('clear selects a distinct empty-input Command and preserves the original up
   assert.equal(update.installed.commandCid, current.current.command.contract_cid);
   assert.equal(update.command.input_schema.cid, old.inputContractCid);
   assert.equal(update.command.output_schema.cid, old.outputContractCid);
+  for (const clearRole of clear.contracts) {
+    assert(!update.contracts.some(updateRole => clearRole.id === updateRole.id && clearRole.version === updateRole.version));
+  }
 });
 
 test('clear prepares one immutable original marker in the same values-only batch', () => {

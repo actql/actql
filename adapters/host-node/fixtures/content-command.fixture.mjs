@@ -2,7 +2,12 @@
 // compilation and public physical acceptance. Programs contain no Ref envelopes.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import * as moon from '../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {pathToFileURL} from 'node:url';
+const commonRuntime = process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME
+  ? pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME)
+  : new URL('../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
+const moon = await import(commonRuntime);
+export {moon};
 import {checked} from '../../host-common/runtime-result.mjs';
 import {rowSourceCheckEnvironment} from '../installed-row-source.mjs';
 import {canonical, cid} from './file-listing-source.fixture.mjs';
