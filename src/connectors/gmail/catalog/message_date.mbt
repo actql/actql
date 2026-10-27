@@ -3,7 +3,7 @@ priv enum GmailHeaderDateIssue {
   Malformed
   Unsupported
   BudgetExceeded
-} derive(Eq, Debug)
+}
 
 ///|
 priv struct GmailDateText {

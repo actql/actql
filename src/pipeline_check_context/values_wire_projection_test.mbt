@@ -19,7 +19,9 @@ test "Values limit retains typed construction and independent complete-wire boun
   )
   assert_eq(@wire.measure_limit(result.limit, 784, 25, 4), (784, 25, 4))
   for (bytes, nodes, depth) in [(783, 25, 4), (784, 24, 4), (784, 25, 3)] {
-    let refused = try? @wire.measure_limit(result.limit, bytes, nodes, depth)
+    let refused = Ok(@wire.measure_limit(result.limit, bytes, nodes, depth)) catch {
+      error => Err(error)
+    }
     assert_true(refused is Err(@encode.OutputLimit))
   }
   assert_eq(@wire.measure_limit(result.limit, 784, 25, 4), (784, 25, 4))
