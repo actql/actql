@@ -1,5 +1,6 @@
-// Conservative parser for the audited Moon package grammar. Unknown syntax is
-// an error, not an ignored dependency. Build-time tooling may use Node I/O.
+// Inspect the selected literal metadata; the pinned compiler owns Moon syntax
+// and target semantics. Unknown forms are errors, not ignored dependencies.
+// Build-time tooling may use Node I/O.
 import {readFileSync, readdirSync, existsSync, mkdirSync, copyFileSync, writeFileSync} from 'node:fs';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -86,10 +87,11 @@ export function tokens(source, sourceCode = false) {
   return result;
 }
 
-export function packageImports(source) {
+function packageMetadata(source) {
   const ts = tokens(source);
   let i = 0;
   const result = [];
+  let targets = null;
   const take = (kind, value) => {
     const t = ts[i++];
     if (!t || t.kind !== kind || (value !== undefined && t.value !== value)) {
@@ -121,13 +123,40 @@ export function packageImports(source) {
         if (!['test', 'wbtest'].includes(scope)) throw new Error('UnknownImportScope');
       }
       result.push(...imports.map(entry => ({...entry, scope})));
+    } else if (directive === 'options') {
+      // Extract only the existing literal filename -> string-array metadata.
+      // Do not evaluate target expressions or exempt any source/dependency from
+      // inspection. The pinned compiler owns their meaning and validation.
+      if (targets !== null) throw new Error('UnknownManifestOptions: duplicate targets');
+      symbol('('); take('word', 'targets'); symbol(':'); symbol('{');
+      targets = [];
+      const files = new Set();
+      while (!peek('}')) {
+        const file = take('string');
+        if (files.has(file)) throw new Error('UnknownManifestOptions: duplicate filename');
+        files.add(file);
+        symbol(':'); symbol('[');
+        const expression = [];
+        while (!peek(']')) {
+          expression.push(take('string'));
+          if (!peek(']')) symbol(',');
+        }
+        symbol(']');
+        targets.push([file, expression]);
+        if (!peek('}')) symbol(',');
+      }
+      symbol('}'); if (peek(',')) symbol(','); symbol(')');
     } else if (directive === 'formatter') {
       symbol('('); take('word', 'ignore'); symbol(':'); symbol('[');
       while (!peek(']')) { take('string'); if (!peek(']')) symbol(','); }
       symbol(']'); if (peek(',')) symbol(','); symbol(')');
     } else throw new Error(`UnknownManifestDirective: ${directive}`);
   }
-  return result;
+  return {imports: result, targets};
+}
+
+export function packageImports(source) {
+  return packageMetadata(source).imports;
 }
 
 function inspectSource(source, path) {
@@ -258,13 +287,22 @@ export function copyProductionCore(root, destination, roots = coreRoots) {
     const source = join(root, 'src', name);
     const target = join(destination, 'src', name);
     mkdirSync(target, {recursive: true});
-    const imports = packageImports(readFileSync(join(source, 'moon.pkg'), 'utf8'))
-      .filter(entry => entry.scope === 'production');
+    const metadata = packageMetadata(readFileSync(join(source, 'moon.pkg'), 'utf8'));
+    const imports = metadata.imports.filter(entry => entry.scope === 'production');
+    const files = readdirSync(source);
     const manifest = 'supported_targets = "+js+wasm+native"\n' +
       (imports.length ? '\nimport {\n' + imports.map(entry =>
         `  ${JSON.stringify(entry.path)} @${entry.alias},\n`).join('') + '}\n' : '');
-    writeFileSync(join(target, 'moon.pkg'), manifest);
-    for (const file of readdirSync(source)) {
+    // Preserve compiler-owned target DATA for every copied production file.
+    // Remove only entries for actual test files that this existing copier omits.
+    // Unknown filenames stay present so copying cannot hide compiler diagnostics.
+    const targets = metadata.targets?.filter(([file]) =>
+      !files.includes(file) || !/_(?:wb)?test\.mbt$/.test(file));
+    const options = targets === undefined ? '' : '\noptions(targets: {\n' +
+      targets.map(([file, expression]) =>
+        `  ${JSON.stringify(file)}: ${JSON.stringify(expression)},\n`).join('') + '})\n';
+    writeFileSync(join(target, 'moon.pkg'), manifest + options);
+    for (const file of files) {
       if (file.endsWith('.mbt') && !/_(?:wb)?test\.mbt$/.test(file)) {
         copyFileSync(join(source, file), join(target, file));
       }
