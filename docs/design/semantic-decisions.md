@@ -918,3 +918,27 @@ Concrete request bytes and their existing request CID must reflect the resolved
 destinations together; independent positive, negative and boundary fixtures and
 actual funded caller integration remain implementation obligations. Documentation
 alone does not qualify an installed reply or ordinary execution.
+
+## GitHub repository and organisation Source scopes
+
+`ROOT-GITHUB-REPOSITORY-SCOPE-01` resolves conflicting wording: the GitHub guide
+allowed organisation repository listing based on token type while also declaring
+every connection to be a single repository. The normative boundary is owned by
+[GitHub connection scope](../connectors/github.md#connection-scope). Credential
+capability does not choose or enlarge an admitted ActQL Source scope.
+
+GitHub's [organisation repository endpoint](https://docs.github.com/en/rest/repos/repos#list-organization-repositories)
+requires an explicit organisation selector and supports multiple token types.
+That provider behaviour does not itself supply an ActQL publication or read
+grant. The repository-only installed profile retains a stable repository binding;
+it does not already represent an organisation publication. Keeping that original
+binding closed while requiring a separate organisation Source original resolves
+the scope conflict without removing the documented enumeration requirement.
+
+This selects the scope boundary, not a new profile field, wire representation,
+identity domain, registry or authority issuer. The organisation publication,
+actual bounded acquisition and Host admission must be implemented coherently
+before that route is claimed as supported. Existing repository identities,
+Source/current/Account duties and Effect approval remain unchanged. A finite
+repository metadata reader does not establish organisation enumeration or full
+connector acceptance.
