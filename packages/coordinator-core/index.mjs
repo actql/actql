@@ -594,3 +594,32 @@ export const exactRetransmissionEligible =
 
 export const canRetireCancellationDelivery =
   owner.coordinatorCanRetireCancellationDelivery;
+
+// One namespace for the existing Common report value. Copied handles and raw
+// projections cannot stand in for the admitted original.
+const holderTerminalHandles = new WeakMap();
+const holderTerminalValue = handle => {
+  const value = holderTerminalHandles.get(handle);
+  if (value === undefined) throw new TypeError('InvalidHolderTerminalReport');
+  return value;
+};
+export const holderTerminalReports = Object.freeze({
+  admit: (body, maximum) => {
+    if (typeof body !== 'string' || !Number.isSafeInteger(maximum) ||
+        maximum < 1 || maximum > 262144) throw new TypeError('InvalidHolderTerminalReportInput');
+    const value = checked(owner.coordinatorHolderTerminalReportAdmit(body, maximum));
+    const handle = Object.freeze({});
+    holderTerminalHandles.set(handle, value);
+    return handle;
+  },
+  facts: handle => {
+    const [reportCid, rootDispatchCid] = owner.coordinatorHolderTerminalReportProjection(holderTerminalValue(handle));
+    return Object.freeze({reportCid, rootDispatchCid});
+  },
+  requests: handle => Object.freeze([...owner.coordinatorHolderTerminalReportDispatches(holderTerminalValue(handle))]),
+  acceptedJson: handle => checked(owner.coordinatorHolderTerminalAcceptedJson(holderTerminalValue(handle))),
+  admitReplyJson: (handle, body) => {
+    if (typeof body !== 'string') throw new TypeError('InvalidHolderTerminalReplyInput');
+    checked(owner.coordinatorHolderTerminalReplyAdmit(holderTerminalValue(handle), body));
+  },
+});

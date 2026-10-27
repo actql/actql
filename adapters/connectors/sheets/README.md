@@ -10,6 +10,17 @@ owner. Dynamic range Command/Catalog interpretation is in
 `src/connectors/sheets/catalog/range_declaration.mbt`. Common remains responsible
 for checking all resulting contracts and their dependencies.
 
+Clear's input/output roles use operation-qualified
+`<connector>.sheets.clear_range.command_input` and
+`<connector>.sheets.clear_range.command_output` identities. Update retains its
+original role identities and complete bodies. This permits both role inventories
+to coexist without assigning different meanings to one `(id, version)`;
+the ordinary Common registry still rejects such conflicts. Clear's exact role
+references and dependent Command CID change together. Its ValueContract bodies,
+Command identifier and provider meaning stay the same. This does not rewrite
+captured old Catalogs or requests, infer permission or issue an installation.
+Physical request and ResourceRef domains remain independent and unchanged.
+
 The provider-specific ResourceRef identity domains and request preimages live in
 `range_identity.mbt`. Configuration identity uses the historical NFC convention;
 data canonicalization preserves exact payload strings and keys, including

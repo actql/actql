@@ -1179,3 +1179,32 @@ The existing pure Run-state writer emits DATA only. The actual Host retains
 all whole-Run no-grant, no dispatch/unknown outcome/publication, physical stop,
 revision/current and CAS duties. Pending requests or task cleanup alone cannot
 select this terminal projection, and the reconciliation path remains separate.
+
+## Original holder terminal reports
+
+The portable protocol represents an immutable ordered inventory of original
+Dispatch requests. Construction and admission preserve DATA; they grant no
+current permission, physical-stop authority, capacity release, or Run outcome.
+The actual holder and receiving Run Owners retain those separate duties.
+
+`actql-native-holder-terminal/0.1` is the closed canonical object with
+`dispatch_request_jsons`, `root_request_cid`, and `version`. Each array member
+is the complete canonical original Dispatch JSON, from the same Run,
+Coordinator and Site execution scope. The root must occur exactly once;
+duplicate task keys or request identities refuse. Bounds remain the receiving
+operation's configured byte limit. Returned request arrays are copies.
+
+A receiving authenticated Owner must retain the exact original association
+before returning the closed canonical `actql-native-holder-terminal-ack/0.1`
+object: `report_cid`, `root_request_cid`, and `version`. The typed report and
+correlated reply must belong to the same original module namespace. This
+receipt acknowledges only that inventory; a partial inventory does not
+confirm the entire Run, authorize another dispatch, or retire its wake.
+
+The Coordinator facade keeps the original Common value behind an opaque
+handle. Copied objects and caller-authored projections cannot substitute for
+its admitted request inventory. Restored durable bytes require normal typed
+admission; cross-process pointer identity is not a restoration requirement.
+`physical_stop` becomes confirmed only through the existing Run Owner's actual
+same-Run holder coverage, current authorization and durable revision/CAS
+connection, independently of report serialization or process exit.

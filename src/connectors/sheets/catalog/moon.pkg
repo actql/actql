@@ -9,3 +9,7 @@ import {
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
 }
+
+import {
+  "actql/actql/check_environment" @environment,
+} for "wbtest"

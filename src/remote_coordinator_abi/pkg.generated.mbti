@@ -160,6 +160,16 @@ pub fn coordinator_effect_resume_poll_json(@remote_site_protocol.RemoteEffectChe
 
 pub fn coordinator_exact_retransmission_eligible(@remote_site_protocol.CoordinatorDispatchIntentRecord, @remote_site_protocol.DispatchRequest) -> Bool
 
+pub fn coordinator_holder_terminal_accepted_json(@remote_site_protocol.RemoteHolderTerminalReport) -> Result[String, @remote_site_protocol.DispatchIssue]
+
+pub fn coordinator_holder_terminal_reply_admit(@remote_site_protocol.RemoteHolderTerminalReport, String) -> Result[Unit, @remote_site_protocol.DispatchIssue]
+
+pub fn coordinator_holder_terminal_report_admit(String, Int) -> Result[@remote_site_protocol.RemoteHolderTerminalReport, @remote_site_protocol.DispatchIssue]
+
+pub fn coordinator_holder_terminal_report_dispatches(@remote_site_protocol.RemoteHolderTerminalReport) -> Array[@remote_site_protocol.DispatchRequest]
+
+pub fn coordinator_holder_terminal_report_projection(@remote_site_protocol.RemoteHolderTerminalReport) -> Array[String]
+
 pub fn coordinator_initial_delivery_eligible(@remote_site_protocol.CoordinatorDispatchIntentRecord, @remote_site_protocol.DispatchRequest, String, String, Int, Bool, Bool, Bool) -> Result[Bool, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_intent_is_new(@remote_site_protocol.CoordinatorDispatchIntentAdmission) -> Bool
