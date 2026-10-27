@@ -327,3 +327,80 @@ test('formatted ESM module keeps foreign and unknown source declarations rejecte
   f.put('root', 'main.mbt', '@\n  #|() => 1\n');
   assert.throws(f.check, /CoreEmbeddedCode/);
 });
+
+test('target metadata keeps the actual manifest production and test imports distinct', () => {
+  const source = readFileSync(new URL('../src/physical_resources/moon.pkg', import.meta.url), 'utf8');
+  assert.deepEqual(packageImports(source), [
+    {path: 'actql/actql/encode_core', alias: 'encode', scope: 'production'},
+    {path: 'actql/actql/decode_core', alias: 'decode', scope: 'production'},
+    {path: 'actql/actql/source_value', alias: 'source', scope: 'wbtest'},
+  ]);
+});
+
+test('target metadata remains compiler DATA in the isolated production copy', t => {
+  const f = fixture(t);
+  f.put('root', 'moon.pkg', manifest + `
+    options(targets: {
+      "main.mbt": ["not", "wasm"],
+      "other.mbt": ["wasm"],
+      "example_wbtest.mbt": ["not", "js"],
+      "missing_wbtest.mbt": ["native"],
+    },)
+  `);
+  f.put('root', 'other.mbt', 'pub fn value() -> Int { 2 }');
+  f.put('root', 'example_wbtest.mbt', 'test { assert_eq(1, 1) }');
+  const isolated = join(f.root, 'isolated-targets');
+  copyProductionCore(f.root, isolated, ['root']);
+  const copied = readFileSync(join(isolated, 'src/root/moon.pkg'), 'utf8');
+  assert.equal(copied, manifest + '\noptions(targets: {\n' +
+    '  "main.mbt": ["not","wasm"],\n' +
+    '  "other.mbt": ["wasm"],\n' +
+    '  "missing_wbtest.mbt": ["native"],\n})\n');
+  assert.equal(existsSync(join(isolated, 'src/root/example_wbtest.mbt')), false);
+  for (const file of ['main.mbt', 'other.mbt']) {
+    assert.equal(readFileSync(join(isolated, 'src/root', file), 'utf8'),
+      readFileSync(join(f.root, 'src/root', file), 'utf8'));
+  }
+  assert.deepEqual(inspectCore(isolated, ['root']).packages, ['root']);
+});
+
+test('target metadata refuses malformed, duplicate and unknown manifest options', () => {
+  const valid = 'options(targets: {"main.mbt": ["js"]})';
+  for (const source of [
+    'options(link: ["socket"])',
+    'options(targets: {"main.mbt": [js]})',
+    'options(targets: {"main.mbt": "js"})',
+    'options(targets: {"main.mbt": [["js"]]})',
+    'options(targets: {"main.mbt": ["js"]}, link: ["socket"])',
+    'options(targets: {"main.mbt": ["js"], "main.mbt": ["wasm"]})',
+    valid + '\n' + valid,
+    valid + '\nnative_link("socket")',
+    valid + '\nsupported_targets = "native"',
+    valid + '\nimport {"moonbitlang/core/env"} for "native"',
+    valid + '\nunknown_build("node io.mjs")',
+  ]) assert.throws(() => packageImports(source), /Unknown|Unsupported/, source);
+});
+
+test('target metadata cannot conceal dependencies, FFI or foreign files on any target', t => {
+  const f = fixture(t);
+  const options = 'options(targets: {"main.mbt": ["js"]})\n';
+  f.put('root', 'moon.pkg', manifest + options + 'import {"moonbitlang/core/env" @pure}');
+  assert.throws(f.check, /UnreviewedExternal: root/);
+  f.put('root', 'moon.pkg', manifest + options + 'import {"actql/actql/helper"}');
+  f.put('helper', 'moon.pkg', manifest + options + 'import {"actql/actql/connectors/duckdb/adapter"}');
+  assert.throws(f.check, /ConcreteCoreDependency/);
+  f.put('root', 'moon.pkg', manifest + options);
+  for (const source of [
+    '#external\ntype Host',
+    'extern "js" fn host() -> Int = "Date.now"',
+    'extern "C" fn host() -> Int = "host"',
+    '#cfg(target="native")\nfn host() -> Unit {}',
+    '@"host()"',
+  ]) {
+    f.put('root', 'main.mbt', source);
+    assert.throws(f.check, /CoreEnvironmentAccess|CoreForeignOrUnknownAttribute|CoreEmbeddedCode/);
+  }
+  f.put('root', 'main.mbt', 'pub fn value() -> Int { 1 }');
+  f.put('root', 'host.c', 'int host(void) { return 1; }');
+  assert.throws(f.check, /CoreForeignFile/);
+});
