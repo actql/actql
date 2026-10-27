@@ -430,8 +430,10 @@ pub fn object_compose_response_matches(
   }
   let fields = response.fields
   let original = request.before.original
-  let newer = original
-    .map(value => fields.generation > value.fields.generation)
+  // Cloud Storage generations distinguish versions; their numeric order is
+  // not guaranteed. The same generation can never prove a replacement.
+  let distinct_generation = original
+    .map(value => fields.generation != value.fields.generation)
     .unwrap_or(true)
   let expected_metadata = request.properties.metadata.copy()
   expected_metadata.sort_by((left, right) => left.0.lexical_compare(right.0))
@@ -439,7 +441,7 @@ pub fn object_compose_response_matches(
   actual_metadata.sort_by((left, right) => left.0.lexical_compare(right.0))
   fields.bucket == binding.target.bucket &&
   fields.name == request.before.name &&
-  newer &&
+  distinct_generation &&
   fields.metageneration == 1L &&
   fields.size == request.size &&
   fields.crc32c == Some(request.crc32c) &&
