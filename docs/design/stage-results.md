@@ -190,3 +190,44 @@ Effect validation, capacity discharge, identity and execution remain distinct.
 Regression tests cover exact export-port identity, all-stage completeness,
 source-order ownership, substituted producer publications, detached arrays and
 aggregate work/text/import/export limits.
+
+## Checked Command input material
+
+- Command input responsibility: `project_effect_command_checked_input` assembles
+  typed DATA for one original `EffectCommandInputBinding`. It does not resolve
+  a Command target, issue a key, select a publication or admit an operation.
+- Command input inputs and outputs: the caller supplies the original binding,
+  source-row index and bounded typed-field reader. The opaque result exposes
+  the composite CheckedValue, original binding, row index and indexed original
+  children without exposing a mutable field vector.
+- Command input identity: each Result child must retain the physical Contract
+  of the binding's original Result field. Literals retain their original
+  CheckedValue. The necessary composite has the selected input field types;
+  an equal JSON object or a fresh child contract does not establish origin.
+- Command input ownership: the existing captured owner must bind the reader to
+  its exact original Result row, retain all references through use and retire
+  them through its existing lifetime. The pure materializer creates no owner,
+  global cache or retention acknowledgement.
+- Command input synchronization: projection and its reader are synchronous.
+  The consuming owner must check its original selection and current state
+  before and after projection and before exposing or consuming the result.
+- Command input failure: missing fields, foreign contracts, invalid reader usage
+  and exhausted limits return no partial material. A final bounded typed-value
+  recheck validates the complete composite and verifies actual node/text usage.
+- Command input cancellation: no asynchronous work or cancellation engine is
+  introduced. Pending physical work and cleanup remain with the existing owner;
+  a successful DATA projection cannot acknowledge their completion.
+- Command input resources: one work ceiling covers name processing, both sorts,
+  typed reads, literal checks and final composite validation. Node/text ceilings
+  cover the complete object including its root and field names; depth includes
+  that root. These metrics are not funded capacity or a second allowance. The
+  consuming preparation/Plan parent must fund constructor and retained overlap
+  before allocation or row reading.
+- Command input extension: only authored, present input fields are assembled.
+  Optional absence stays absent, explicit NULL stays typed NULL, and the original
+  binding retains required-field and type obligations. No target or Command key
+  is derived from a row index or composite value.
+- Command input verification: identity, presence, complete value limits and
+  reader-usage refusals are independently checked at this DATA boundary. Actual
+  captured-row custody, parent backing, authority, current checks and execution
+  remain obligations of their consuming boundaries.
