@@ -168,11 +168,6 @@ pub fn[I] begin_request_preparation(
 }
 
 ///|
-// Exact existing normal Program source limits, also used by the standard
-// Effect computation limits. This shared immutable value grants no backing.
-let request_program_json_limits : @syntax.Limits = @publication_host.client_standard_program_preparation_limits().checking.input
-
-///|
 /// Caller connection to the existing generic domain driver. The SAME original
 /// working capacity/input enter B's constructor; Unit is never completed or
 /// converted into a prepared Program or Effect. The constructor itself adds
@@ -180,11 +175,14 @@ let request_program_json_limits : @syntax.Limits = @publication_host.client_stan
 ///
 /// This caller declares only its own resident link and return carriers above.
 /// The backend's real first-prelude/input/outer backing is a separate required
-/// precondition. Normal SDK snapshot admission is not enabled by this method.
+/// precondition. The same already selected immutable syntax limits are DATA,
+/// not another resource allowance or a new public request option. No standard
+/// default is substituted here. Normal SDK snapshot admission is not enabled.
 pub fn[I] prepare_request_program_json_preparation(
   owner : ClientRequestPreparation[I],
   input : I,
   document : String,
+  limits : @syntax.Limits,
 ) -> Result[
   ClientProgramJsonPreparation[I, Unit],
   ClientRequestPreparationIssue,
@@ -199,12 +197,7 @@ pub fn[I] prepare_request_program_json_preparation(
   // No second current call, copied byte quota or pre-reservation is inserted.
   owner.phase = Selecting
   match
-    begin_program_json_preparation(
-      owner.capacity,
-      input,
-      document,
-      request_program_json_limits,
-    ) {
+    begin_program_json_preparation(owner.capacity, input, document, limits) {
     Err(issue) => {
       owner.phase = ProgramJsonFailed
       Err(ProgramJson(issue))

@@ -499,8 +499,9 @@ not another current observation, an unpark operation or a physical ACK.
 The original request parent retains the existing generic Program JSON holder on
 its uncompleted `PreparationCapacity[I, Unit]`. The same input, Ledger,
 reservation and original Node admission enter the domain constructor. The caller
-uses the existing standard Program source limits, which are also the source
-limits of the standard Effect profile; it adds no capacity or request option.
+receives the same already selected immutable Program source limits and forwards
+that original DATA to the domain driver. It substitutes no standard default and
+adds no capacity or public request option.
 The domain driver owns its Source/NFC/index/Program construction inventory and
 reserves it on that same capacity before constructing those roles. The caller
 does not pre-add another copy of that domain packet.

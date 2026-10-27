@@ -8,6 +8,7 @@ let request_json_effect_source : String =
 ///|
 test "original request parent continues into generic Unicode Effect source and Program on the same capacity" {
   let input = [1]
+  let limits = @publication_host.client_standard_program_preparation_limits().checking.input
   let initial = request_parent_fixture(input)
   let parent = begin_request_preparation(
     initial,
@@ -19,9 +20,10 @@ test "original request parent continues into generic Unicode Effect source and P
     program_json_preparation_initial_inventory(),
   ).unwrap()
   let child = prepare_request_program_json_preparation(
-    parent, input, request_json_effect_source,
+    parent, input, request_json_effect_source, limits,
   ).unwrap()
   assert_true(physical_equal(child.capacity, parent.capacity))
+  assert_true(physical_equal(child.limits, limits))
   assert_true(physical_equal(parent.program_json.unwrap(), child))
   assert_true(physical_equal(parent.initial, initial))
   assert_true(parent.phase == ProgramJson)
@@ -68,6 +70,7 @@ test "original request parent continues into generic Unicode Effect source and P
 ///|
 test "request JSON caller refuses foreign and repeated originals before a second domain constructor" {
   let input = [1]
+  let limits = @publication_host.client_standard_program_preparation_limits().checking.input
   let parent = begin_request_preparation(
     request_parent_fixture(input),
     input,
@@ -79,17 +82,18 @@ test "request JSON caller refuses foreign and repeated originals before a second
       parent,
       [1],
       request_json_effect_source,
+      limits,
     )
     is Err(ForeignOriginal),
   )
   assert_eq(@resources.ledger_usage(parent.ledger), before)
   let child = prepare_request_program_json_preparation(
-    parent, input, request_json_effect_source,
+    parent, input, request_json_effect_source, limits,
   ).unwrap()
   let admitted = @resources.ledger_usage(parent.ledger)
   assert_true(
     prepare_request_program_json_preparation(
-      parent, input, request_json_effect_source,
+      parent, input, request_json_effect_source, limits,
     )
     is Err(WrongPhase),
   )
@@ -101,6 +105,7 @@ test "request JSON caller refuses foreign and repeated originals before a second
 ///|
 test "request JSON caller one-short domain grow keeps its original input and debit for cleanup" {
   let input = [1]
+  let limits = @publication_host.client_standard_program_preparation_limits().checking.input
   let parent = begin_request_preparation(
     request_parent_fixture(input),
     input,
@@ -121,7 +126,7 @@ test "request JSON caller one-short domain grow keeps its original input and deb
   let held = @resources.ledger_usage(parent.ledger)
   assert_true(
     prepare_request_program_json_preparation(
-      parent, input, request_json_effect_source,
+      parent, input, request_json_effect_source, limits,
     )
     is Err(
       ProgramJson(
@@ -143,13 +148,14 @@ test "request JSON caller one-short domain grow keeps its original input and deb
 ///|
 test "request JSON caller keeps the same source while its actual domain consumer is busy" {
   let input = [1]
+  let limits = @publication_host.client_standard_program_preparation_limits().checking.input
   let parent = begin_request_preparation(
     request_parent_fixture(input),
     input,
     client_local_resource_policy(),
   ).unwrap()
   let child = prepare_request_program_json_preparation(
-    parent, input, request_json_effect_source,
+    parent, input, request_json_effect_source, limits,
   ).unwrap()
   let before = @resources.ledger_usage(parent.ledger)
   // Private component control models the existing domain's active quantum;

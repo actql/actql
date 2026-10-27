@@ -24641,7 +24641,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d9aad617d8672370f3b41935d00e043a50d04ed4e5ebaa5d14e80fa33bfe58df",
+      "sha256": "d211bd0756880238421bb2dd2d4cee830d1164604eb10ee3e74e3cf998f73ce7",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -24660,7 +24660,7 @@
         },
         {
           "name": "[I]prepare_request_program_json_preparation",
-          "declaration": "[ I ] prepare_request_program_json_preparation ( owner : ClientRequestPreparation [ I ] , input : I , document : String , ) - > Result [ ClientProgramJsonPreparation [ I , Unit ] , ClientRequestPreparationIssue , ]"
+          "declaration": "[ I ] prepare_request_program_json_preparation ( owner : ClientRequestPreparation [ I ] , input : I , document : String , limits : @ syntax . Limits , ) - > Result [ ClientProgramJsonPreparation [ I , Unit ] , ClientRequestPreparationIssue , ]"
         },
         {
           "name": "[I]select_closed_values_preparation",
