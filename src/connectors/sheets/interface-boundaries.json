@@ -2892,7 +2892,7 @@
   {
     "module": "src/connectors/sheets/catalog/range_declaration.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "8afa3ff55c4f13315695a7f961ec22566fdf958d0830496f3f777c6413f0c319",
+    "sha256": "f836b1706b6216b42124177408490d8d674c052981607ed7bd668c9af8203c21",
     "operations": [
       {
         "name": "range_catalog_json",
@@ -2913,6 +2913,10 @@
       {
         "name": "range_contract_ref",
         "declaration": "range_contract_ref ( value : Json ) - > Json"
+      },
+      {
+        "name": "range_named_contract",
+        "declaration": "range_named_contract ( id : String , kind : String , fields : Json , limits : Limits , ) - > Result [ Json , RangeFailure ]"
       }
     ],
     "exports": [],
@@ -2927,7 +2931,8 @@
           "range_command_json",
           "range_contract",
           "range_contract_cid",
-          "range_contract_ref"
+          "range_contract_ref",
+          "range_named_contract"
         ],
         "exports": [],
         "attributes": {
@@ -2939,6 +2944,10 @@
             {
               "path": "src/connectors/sheets/catalog/range_declaration.mbt",
               "anchor": "pub fn range_catalog_json("
+            },
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Clear's input/output roles use operation-qualified"
             }
           ],
           "inputsOutputs": [
@@ -3023,6 +3032,10 @@
             {
               "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
               "anchor": "same bytes under another permission"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/command_role_identity_wbtest.mbt",
+              "anchor": "Sheets clear and update original roles coexist in the same checked registry"
             }
           ]
         }
@@ -4842,7 +4855,7 @@
   },
   {
     "module": "src/connectors/sheets/catalog/clear_declaration.mbt",
-    "sha256": "3abdd253341a700f6c1c8d1a4980c68a27eaf70fa3682a1519f92501f251c6f2",
+    "sha256": "7b51c075c3feb52d026d892614eee72044d10c34283fb3603f2d257e170d1286",
     "exports": [],
     "operations": [
       {
@@ -4870,6 +4883,10 @@
             {
               "path": "src/connectors/sheets/catalog/clear_request.mbt",
               "anchor": "pub struct ClearRangeRequest"
+            },
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Clear's input/output roles use operation-qualified"
             }
           ],
           "inputsOutputs": [
@@ -4950,6 +4967,10 @@
             {
               "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
               "anchor": "Sheets clear Command retains original requests"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/command_role_identity_wbtest.mbt",
+              "anchor": "Sheets clear and update original roles coexist in the same checked registry"
             }
           ]
         }
