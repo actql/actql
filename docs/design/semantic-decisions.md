@@ -895,3 +895,26 @@ projections, independent declaration preimages/CIDs and dependent fixtures must
 be updated together before adoption. Generic outcome schemas, approval, durable
 claim, receipt, recovery, no-resend and physical cleanup laws remain unchanged.
 This documentation resolution is not installed or ordinary execution evidence.
+
+## Gmail reply participants
+
+`ROOT-GMAIL-REPLY-RECIPIENTS-01` resolves the previously unspecified recipient
+selection behind the Gmail guide's promise to keep the conversation's recipients.
+The normative mapping is owned by
+[Gmail reply recipients and threading](../connectors/gmail.md#reply-recipients-and-threading).
+[RFC 5322, sections 3.6.2–3.6.3](https://www.rfc-editor.org/rfc/rfc5322.html#section-3.6.2)
+provides reply destinations but deliberately leaves automatic participant
+selection to the application. The selected mapping keeps visible participants
+and preserves valid self-replies without guessing account aliases. Mailbox
+comparison follows
+[RFC 5321, section 2.4](https://www.rfc-editor.org/rfc/rfc5321.html#section-2.4).
+Thread correspondence also retains
+[Gmail's documented requirements](https://developers.google.com/workspace/gmail/api/guides/threads).
+
+This is an explicit resolution of an underspecified provider operation, not a
+claim that the standards mandate the application choice. It adds no Command
+field, identity domain, permission, outcome variant or machine-schema change.
+Concrete request bytes and their existing request CID must reflect the resolved
+destinations together; independent positive, negative and boundary fixtures and
+actual funded caller integration remain implementation obligations. Documentation
+alone does not qualify an installed reply or ordinary execution.
