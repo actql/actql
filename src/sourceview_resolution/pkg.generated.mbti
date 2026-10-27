@@ -6,6 +6,7 @@ import {
   "actql/actql/capacity_program_step",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
@@ -192,6 +193,10 @@ pub fn mode_source(DirectMode) -> @decode_core.Cursor
 
 pub fn mode_work(DirectMode) -> Int
 
+pub fn observe_prepare_pipeline_inputs(Resolved, Int) -> (Result[PipelineInputs, PipelineIssue], Int)
+
+pub fn observe_resolve(@sourceview_input.Inputs, @check_environment.SourceRequestContracts, Limits) -> (Result[Resolved, Issue], Int)
+
 pub fn parameterized_keyed_request(ParameterizedKeyedRequest) -> KeyedRequest
 
 pub fn parameterized_keyed_request_field_at(ParameterizedKeyedRequest, Int) -> ParameterizedRequestField?
@@ -231,6 +236,8 @@ pub fn pipeline_input_count(PipelineInputs, Int) -> Int?
 pub fn pipeline_input_source(PipelineInputs, Int, Int) -> ResolvedInput?
 
 pub fn pipeline_inputs_work(PipelineInputs) -> Int
+
+pub fn pipeline_preparation_observation_control_extent() -> @decode_shape.CollectionConstructionExtent
 
 pub fn pipeline_request_at(PipelineRequests, Int) -> AcquisitionRequest?
 
@@ -327,6 +334,8 @@ pub fn request_parameter_values(RequestParameters) -> @parameter_binding.BoundVa
 pub fn request_parameter_work(RequestParameters) -> Int
 
 pub fn request_usage(DirectRequest) -> (Int, Int, Int, Int)
+
+pub fn resolution_observation_control_extent() -> @decode_shape.CollectionConstructionExtent
 
 pub fn resolve(@sourceview_input.Inputs, @check_environment.SourceRequestContracts, Limits) -> Result[Resolved, Issue]
 

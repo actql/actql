@@ -48,6 +48,8 @@ struct SourceRegistrationRead {
   mut arguments : SourceRegistrationArguments?
   mut collected : @source_inputs.Inputs?
   mut collection_work : Int
+  mut selection_work : Int
+  mut pipeline_work : Int
   mut state : SourceRegistrationState
 }
 
@@ -80,6 +82,8 @@ pub fn begin_source_registration(
     }),
     collected: None,
     collection_work: 0,
+    selection_work: 0,
+    pipeline_work: 0,
     state: ReadDeclarations,
   })
 }
@@ -121,6 +125,21 @@ pub fn source_registration_collection_work(
 }
 
 ///|
+/// New selection work ONLY. The resolver's inherited completed collection
+/// prefix is excluded; success/failure/clear never debit or refund it again.
+/// Later pipeline/Local costs remain their distinct original pass conventions.
+pub fn source_registration_selection_work(read : SourceRegistrationRead) -> Int {
+  read.selection_work
+}
+
+///|
+/// New pipeline-registration work ONLY. Completed resolution remains its
+/// semantic inherited prefix, not another debit. Local costs remain separate.
+pub fn source_registration_pipeline_work(read : SourceRegistrationRead) -> Int {
+  read.pipeline_work
+}
+
+///|
 /// One actual original phase per call. No callback/current observation, second
 /// semantic reader or capacity computation is added. Completed/failed/taken/
 /// retired calls do not re-enter any reader. The caller must quote and fund
@@ -147,7 +166,7 @@ pub fn advance_source_registration(
       }
     }
     SelectDeclarations => {
-      let result = @sourceviews.resolve(
+      let (result, spent) = @sourceviews.observe_resolve(
         read.collected.unwrap(),
         original.catalog,
         {
@@ -156,16 +175,18 @@ pub fn advance_source_registration(
           max_views: original.max_views,
         },
       )
+      read.selection_work = spent
       read.state = match result {
         Err(issue) => RegistrationDone(Err(Selection(issue)))
         Ok(resolved) => BuildRegistrations(resolved)
       }
     }
     BuildRegistrations(resolved) => {
-      let result = @sourceviews.prepare_pipeline_inputs(
+      let (result, spent) = @sourceviews.observe_prepare_pipeline_inputs(
         resolved,
         original.limits.max_work,
       )
+      read.pipeline_work = spent
       read.state = match result {
         Err(issue) => RegistrationDone(Err(Registration(issue)))
         Ok(views) => BuildLocal(views)
@@ -235,9 +256,9 @@ pub fn clear_source_registration(read : SourceRegistrationRead) -> Unit {
 
 ///|
 /// Installed constructor DATA, not capacity. Argument record1H3R3W, its Some
-///1H1R1W, read1H3R1W, initial phase1H1W and returned Ok1H1R1W. The supplied
+///1H1R1W, read1H3R3W, initial phase1H1W and returned Ok1H1R1W. The supplied
 /// Source/Catalog/limits and each phase's metadata/constructor overlap remain
 /// separately backed. The collection phase also adds its original observer.
 pub fn source_registration_initial_construction_extent() -> @shape.CollectionConstructionExtent {
-  { record_headers: 5L, reference_slots: 8L, scalar_words: 7L, }
+  { record_headers: 5L, reference_slots: 8L, scalar_words: 9L, }
 }

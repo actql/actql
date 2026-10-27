@@ -848,3 +848,30 @@ read, each metadata/quotation frame, selection/registration/Local overlap,
 original input and borrowed successor need same-parent backing before their
 constructors execute. The pure phase API adds no Resource owner, current
 callback, permission, ordinary runtime enablement or replacement capacity law.
+
+
+## Selection work is not the inherited collection prefix
+
+The resolver's original Budget includes completed collection work when it
+checks its own total allowance. Its observed entrance reports only newly
+charged selection work, including a partial typed failure. If the inherited
+prefix does not fit, no new selection work is reported. Successful Resolved
+work retains its existing cumulative meaning. Resource phases must not debit
+that inherited prefix a second time or substitute their maximum for a failed
+charge which was not performed.
+
+The same original registration read retains collection and new selection work
+separately. Later pipeline/Local costs keep their own pass conventions; neither
+observed field stands for missing later failure costs. Observation uses the
+same reader, typed result, input and Catalog association. The shared structural
+Result/Int-work controls own their additional construction units once; they
+define no semantic work rule, byte tariff, permission or physical backing.
+
+
+Pipeline registration applies the same distinction to completed resolver work.
+Its common original reader returns one result/new-work pair, which the ordinary
+result-only entrance projects rather than running another implementation. Stage
+count, entry count and each input-name charge retain their original order and
+failure boundaries. The original cumulative pipeline work is unchanged. The
+registration read retains this new pipeline work separately; Local preparation
+and its nested failure work remain distinct obligations.

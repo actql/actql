@@ -18,6 +18,10 @@ pub fn collection_construction_extent(CollectionConstructionInventory) -> Collec
 
 pub fn compose_collection_construction_inventories(Array[CollectionConstructionInventory]) -> CollectionConstructionInventory?
 
+pub fn int_work_observation_construction_extent() -> CollectionConstructionExtent
+
+pub fn int_work_result_pair_construction_extent() -> CollectionConstructionExtent
+
 pub fn key_admission() -> KeyAdmission
 
 pub fn key_admission_construction_extent(Int, Int) -> KeyAdmissionConstructionExtent?

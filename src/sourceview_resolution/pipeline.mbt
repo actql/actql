@@ -33,15 +33,58 @@ pub fn prepare_pipeline_inputs(
   resolved : Resolved,
   max_work : Int,
 ) -> Result[PipelineInputs, PipelineIssue] {
+  prepare_pipeline_inputs_owned(resolved, max_work).0
+}
+
+///|
+/// The SAME original registration reader, with only its newly charged work.
+/// Completed resolution remains in pipeline_inputs_work but is not consumed
+/// again by this observation. Failed charges are not reported as performed.
+/// The result-only entrance uses this same pair, never another reader/Ref.
+pub fn observe_prepare_pipeline_inputs(
+  resolved : Resolved,
+  max_work : Int,
+) -> (Result[PipelineInputs, PipelineIssue], Int) {
+  prepare_pipeline_inputs_owned(resolved, max_work)
+}
+
+///|
+/// Additional common result/work pair only. Both entrances share this frame;
+/// original arrays/carriers/input and constructor backing remain separate.
+pub fn pipeline_preparation_observation_control_extent() -> @shape.CollectionConstructionExtent {
+  @shape.int_work_result_pair_construction_extent()
+}
+
+///|
+fn new_pipeline_preparation_work(
+  inherited : Int,
+  maximum : Int,
+  remaining : Int,
+) -> Int {
+  if inherited <= maximum {
+    maximum - inherited - remaining
+  } else {
+    0
+  }
+}
+
+///|
+fn prepare_pipeline_inputs_owned(
+  resolved : Resolved,
+  max_work : Int,
+) -> (Result[PipelineInputs, PipelineIssue], Int) {
   if max_work < 0 {
-    return Err(InvalidLimits)
+    return (Err(InvalidLimits), 0)
   }
   let source = @inputs.source(resolved.owner.inputs)
   let n = @stages.stage_count(source)
   let mut remaining = max_work
   for cost in [resolved.work, n, resolved.entries.length()] {
     if cost > remaining {
-      return Err(WorkLimit)
+      return (
+        Err(WorkLimit),
+        new_pipeline_preparation_work(resolved.work, max_work, remaining),
+      )
     }
     remaining -= cost
   }
@@ -50,7 +93,10 @@ pub fn prepare_pipeline_inputs(
   for input in resolved.entries {
     let declaration = input.declaration
     if declaration.input_name.length() > remaining {
-      return Err(WorkLimit)
+      return (
+        Err(WorkLimit),
+        new_pipeline_preparation_work(resolved.work, max_work, remaining),
+      )
     }
     remaining -= declaration.input_name.length()
     let carrier = @environment.source_view_carrier(
@@ -59,7 +105,10 @@ pub fn prepare_pipeline_inputs(
     ).unwrap()
     stages[declaration.stage_index].push({ input, carrier, })
   }
-  Ok({ resolved, stages, work: max_work - remaining, })
+  (
+    Ok({ resolved, stages, work: max_work - remaining, }),
+    new_pipeline_preparation_work(resolved.work, max_work, remaining),
+  )
 }
 
 ///|

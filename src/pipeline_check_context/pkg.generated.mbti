@@ -1137,6 +1137,10 @@ pub fn source_registration_initial_construction_extent() -> @decode_shape.Collec
 
 pub fn source_registration_phase(SourceRegistrationRead) -> SourceRegistrationPhase
 
+pub fn source_registration_pipeline_work(SourceRegistrationRead) -> Int
+
+pub fn source_registration_selection_work(SourceRegistrationRead) -> Int
+
 pub fn source_request_bindings_diagnostic_issue(@binding_declarations.Issue) -> PrepareSourcesIssue
 
 pub fn source_request_context_diagnostic_issue(@sourceview_resolution.RequestIssue) -> PrepareSourcesIssue

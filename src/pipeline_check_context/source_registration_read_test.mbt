@@ -206,6 +206,141 @@ test "original Source registration clearing retires only its own untransferred a
   assert_eq(source_registration_initial_construction_extent(), {
     record_headers: 5L,
     reference_slots: 8L,
-    scalar_words: 7L,
+    scalar_words: 9L,
   })
+}
+
+///|
+test "original Source registration retains new selection work without recharging collection" {
+  let (source, catalog, limits, _) = registration_read_fixture()
+  let read = begin_source_registration(
+    source,
+    catalog,
+    limits,
+    max_inputs=2,
+    max_views=100,
+    max_order_keys=100,
+  ).unwrap()
+  assert_eq(source_registration_selection_work(read), 0)
+  assert_eq(advance_source_registration(read), RegistrationSelect)
+  let collected = source_registration_collected_inputs(read).unwrap()
+  let prefix = source_registration_collection_work(read)
+  assert_eq(prefix, @source_inputs.work(collected))
+  assert_eq(source_registration_selection_work(read), 0)
+  assert_eq(advance_source_registration(read), RegistrationPipeline)
+  let selected = source_registration_selection_work(read)
+  assert_true(selected > 0)
+  assert_eq(advance_source_registration(read), RegistrationLocal)
+  assert_eq(advance_source_registration(read), RegistrationComplete)
+  assert_eq(advance_source_registration(read), RegistrationComplete)
+  let (views, _) = take_source_registration_result(read).unwrap().unwrap()
+  let resolved = @sourceviews.pipeline_resolution(views)
+  assert_true(physical_equal(@sourceviews.inputs(resolved), collected))
+  assert_eq(@sourceviews.work(resolved), prefix + selected)
+  clear_source_registration(read)
+  assert_eq(source_registration_selection_work(read), selected)
+  assert_eq(source_registration_collection_work(read), prefix)
+  assert_eq(source_registration_phase(read), RegistrationTransferred)
+  // A distinct original reader under a tighter original budget: the first
+  // Catalog root's field-count charge refuses before any new selection work.
+  let short = begin_source_registration(
+    source,
+    catalog,
+    { ..limits, max_work: prefix + 1, },
+    max_inputs=2,
+    max_views=100,
+    max_order_keys=100,
+  ).unwrap()
+  assert_eq(advance_source_registration(short), RegistrationSelect)
+  assert_eq(advance_source_registration(short), RegistrationFailed)
+  assert_true(
+    take_source_registration_result(short)
+    is Some(Err(Selection({ kind: WorkLimit, .. }))),
+  )
+  assert_eq(source_registration_collection_work(short), prefix)
+  assert_eq(source_registration_selection_work(short), 0)
+}
+
+///|
+test "original Source registration retains new pipeline work without recharging resolution" {
+  let (source, catalog, limits, _) = registration_read_fixture()
+  let read = begin_source_registration(
+    source,
+    catalog,
+    limits,
+    max_inputs=2,
+    max_views=100,
+    max_order_keys=100,
+  ).unwrap()
+  assert_eq(source_registration_pipeline_work(read), 0)
+  assert_eq(advance_source_registration(read), RegistrationSelect)
+  assert_eq(advance_source_registration(read), RegistrationPipeline)
+  assert_eq(source_registration_pipeline_work(read), 0)
+  assert_eq(advance_source_registration(read), RegistrationLocal)
+  // The authored fixture has two Stages, two remote declarations, and the
+  // original names remote(6) and remote_again(12): new work2+2+6+12 =22.
+  assert_eq(source_registration_pipeline_work(read), 22)
+  assert_eq(advance_source_registration(read), RegistrationComplete)
+  let (views, _) = take_source_registration_result(read).unwrap().unwrap()
+  let resolved = @sourceviews.pipeline_resolution(views)
+  let inherited = @sourceviews.work(resolved)
+  assert_eq(@sourceviews.count(resolved), 2)
+  assert_eq(@sourceviews.pipeline_inputs_work(views), inherited + 22)
+  assert_eq(
+    inherited,
+    source_registration_collection_work(read) +
+    source_registration_selection_work(read),
+  )
+  clear_source_registration(read)
+  assert_eq(source_registration_pipeline_work(read), 22)
+  assert_eq(source_registration_phase(read), RegistrationTransferred)
+  let (result, spent) = @sourceviews.observe_prepare_pipeline_inputs(
+    resolved,
+    inherited + 22,
+  )
+  let registered = result.unwrap()
+  assert_true(
+    physical_equal(@sourceviews.pipeline_resolution(registered), resolved),
+  )
+  assert_eq(spent, 22)
+  for
+    (extra, expected) in [
+      (-1, 0),
+      (0, 0),
+      (1, 0),
+      (2, 2),
+      (4, 4),
+      (10, 10),
+      (21, 10),
+    ] {
+    let (result, spent) = @sourceviews.observe_prepare_pipeline_inputs(
+      resolved,
+      inherited + extra,
+    )
+    assert_true(result is Err(WorkLimit))
+    assert_eq(spent, expected)
+  }
+  let (result, spent) = @sourceviews.observe_prepare_pipeline_inputs(
+    resolved, -1,
+  )
+  assert_true(result is Err(InvalidLimits))
+  assert_eq(spent, 0)
+  let short = begin_source_registration(
+    source,
+    catalog,
+    { ..limits, max_work: inherited + 21, },
+    max_inputs=2,
+    max_views=100,
+    max_order_keys=100,
+  ).unwrap()
+  assert_eq(advance_source_registration(short), RegistrationSelect)
+  assert_eq(advance_source_registration(short), RegistrationPipeline)
+  assert_eq(advance_source_registration(short), RegistrationFailed)
+  assert_true(
+    take_source_registration_result(short) is Some(Err(Registration(WorkLimit))),
+  )
+  assert_eq(source_registration_pipeline_work(short), 10)
+  clear_source_registration(short)
+  assert_eq(source_registration_pipeline_work(short), 10)
+  assert_eq(source_registration_phase(short), RegistrationTransferred)
 }
