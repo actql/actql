@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {basename, dirname, join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
@@ -8,6 +8,7 @@ import test from 'node:test';
 import {buildSync} from 'esbuild';
 import {parse} from 'yaml';
 import {readHostBundles, generateInstallations} from './connector-node-bundles.mjs';
+import {localModuleGraphInputs} from './adapter-module-graph.mjs';
 import {finiteRuntimeModules} from '../adapters/workers/artifact.mjs';
 // Keep the deferred-initialization regressions in the ordinary cold-pack gate.
 import './deferred-function-runtime.test.mjs';
@@ -99,13 +100,17 @@ function run(t, requested, {fail, stalePayload, wrapper, version, additionalProv
   const directory = realpathSync(mkdtempSync(join(temporaryParent, 'runtime-build-check-')));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   mkdirSync(join(directory, 'scripts'));
-  for (const name of ['build-runtime-packages', 'runtime-package-inputs', 'check-owned-contract-versions',
-    'generated-owned-contracts',
-    'local-node-package-inputs', 'connector-node-bundles', 'connector-compute-bundles',
-    'connector-manifest-selection', 'connector-host-bundles', 'adapter-module-graph',
-    'deferred-function-runtime',
-    ...Object.values(packages).map(item => item.builder)]) {
-    copyFileSync(join(root, `scripts/${name}.mjs`), join(directory, `scripts/${name}.mjs`));
+  // Resolve actual transitive builder imports instead of maintaining a partial
+  // helper list. The one deliberately omitted checker is replaced only by the
+  // explicit scheduling port below; normal CLI selection must still refuse it.
+  const builderModules = localModuleGraphInputs(root, ['scripts/build-runtime-packages.mjs',
+    ...Object.values(packages).map(item => `scripts/${item.builder}.mjs`)]);
+  assert(builderModules.includes('scripts/check-interface-owners.mjs'));
+  for (const path of builderModules) {
+    assert.ok(!path.startsWith('../') && !path.startsWith('/'));
+    if (path !== 'scripts/check-interface-owners.mjs') {
+      put(directory, path, readFileSync(join(root, path)));
+    }
   }
   put(directory, 'adapters/host-common/installed-connector-declaration.mjs',
     readFileSync(join(root, 'adapters/host-common/installed-connector-declaration.mjs')));
