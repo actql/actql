@@ -50,7 +50,11 @@ pub fn PublicationCommitPreparation::begin_observed_commit(
   // general borrowed arrays, copied contracts and changed observations still
   // take the complete validator above. This does not replace physical reads,
   // current checks, the observed child or its separate cleanup duty.
-  if inputs.origin is StoredInputs &&
+  let stored_inputs = match inputs.origin {
+    StoredInputs => true
+    BorrowedInputs | OwnedInputs => false
+  }
+  if stored_inputs &&
     physical_equal(stored_request, inputs.request) &&
     physical_equal(stored_attempt, inputs.attempt) &&
     physical_equal(stored_index, inputs.index_entry) {

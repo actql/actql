@@ -7,7 +7,7 @@ fn system_test_row(
   url? : String = "\"https://notion.test/page\"",
 ) -> String {
   let base = query_test_row(id)
-  base[0:base.length() - 1].to_string() +
+  base[0:base.length() - 1].to_owned() +
   ",\"url\":" +
   url +
   ",\"created_time\":" +

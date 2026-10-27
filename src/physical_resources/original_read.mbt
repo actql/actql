@@ -153,47 +153,6 @@ pub fn original_read_bootstrap_available(
 }
 
 ///|
-// The existing owner funds descriptor construction/authentication first. The
-// explicit envelope must include controls, inventory, authentication workspace
-// and overlapping read phases; positive bytes alone do not prove its adequacy.
-// Public callers remain gated on independently reviewed profile derivation.
-fn[T] issue_original_ledger_descriptor(
-  ledger : Ledger,
-  origin : T,
-  bootstrap : CapacityReservation,
-  reservations : Array[Reservation],
-  holdings : Array[Holding],
-  delegations : Array[ExecutionDelegation],
-  max_items : Int,
-) -> Result[OriginalLedgerDescriptor[T], OriginalReadIssue] {
-  if max_items < 0 ||
-    reservations.length() > max_items ||
-    holdings.length() > max_items - reservations.length() ||
-    delegations.length() > max_items - reservations.length() - holdings.length() {
-    return Err(IncompleteInventory)
-  }
-  // Private white-box fixture entry only: preserve its explicit input order.
-  // Production's recorded issuer borrows the existing slots directly and
-  // allocates none of these fixture-only temporary collections.
-  let selected_reservations = original_token_slots()
-  for token in reservations {
-    selected_reservations.push(token)
-  }
-  let selected_holdings = original_token_slots()
-  for token in holdings {
-    selected_holdings.push(token)
-  }
-  let selected_delegations = original_token_slots()
-  for token in delegations {
-    selected_delegations.push(token)
-  }
-  issue_original_ledger_descriptor_from_slots(
-    ledger, origin, bootstrap, selected_reservations, selected_holdings, selected_delegations,
-    max_items,
-  )
-}
-
-///|
 fn[T] issue_original_ledger_descriptor_from_slots(
   ledger : Ledger,
   origin : T,

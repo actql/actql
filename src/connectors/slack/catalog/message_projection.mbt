@@ -10,6 +10,9 @@ pub(all) struct SlackMessageProjectionLimits {
 // Original completed acquisition DATA. This retains every selected protocol
 // prefix and the first checked row for each key. It is not a complete workspace
 // inventory, current Source authority, reservation or physical cleanup ACK.
+// Keep original acquisition dependencies alive with this projection, even
+// though getters only read the checked rows; this is not a cleanup ACK.
+#warnings("-unused_field")
 pub struct SlackMessageProjection {
   priv history : SlackMessageHistory
   priv replies : Array[SlackMessageReplies]

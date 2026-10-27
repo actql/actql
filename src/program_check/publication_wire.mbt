@@ -1,6 +1,9 @@
 ///|
 // Private to one artifact construction. This retains the already-checked
 // metadata, not an execution grant or a physical publication acknowledgement.
+// Retain the original checked host policy with its reduced row bound. The
+// independent white-box wire oracle also borrows this exact original context.
+#warnings("-unused_field")
 priv struct PreparedPublicationRowBody {
   host : @host.Witness
   candidates : Array[(String, @wire.WireWitness?)]
@@ -78,55 +81,5 @@ fn prepare_publication_row_body(
     candidates,
     subject,
     maximum: @context.publication_row_limit_maximum(selected),
-  }
-}
-
-///|
-// Serialization passes consume the same private immutable preparation. They
-// still meter each actual traversal and use their own bounded Writer.
-fn emit_prepared_publication_row_body(
-  body : PreparedPublicationRowBody,
-  writer : @encode.Writer,
-  budget : IdentityBudget,
-  cid? : String? = None,
-) -> Unit raise UnitBuildFailure {
-  identity_charge(budget, body.candidates.length())
-  try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "author_guard_binding")
-    @encode.string_value(writer, "absent")
-    @encode.key(writer, "breach")
-    @encode.string_value(writer, "fail")
-    @encode.key(writer, "candidates")
-    @encode.begin_array(writer)
-    let mut previous = ""
-    for (cid, witness) in body.candidates {
-      if cid == previous {
-        continue
-      }
-      previous = cid
-      match witness {
-        None => @host.emit(body.host, writer)
-        Some(value) => @wire.emit(value, writer)
-      }
-    }
-    @encode.end_array(writer)
-    @encode.key(writer, "effective_max")
-    @encode.number_value(writer, body.maximum.to_double())
-    @encode.key(writer, "enforcement")
-    @encode.string_value(writer, "engine_atomic")
-    if cid is Some(value) {
-      @encode.key(writer, "resolved_limit_cid")
-      @encode.string_value(writer, value)
-    }
-    @encode.key(writer, "subject_ref")
-    @encode.string_value(writer, body.subject)
-    @encode.key(writer, "unit")
-    @encode.string_value(writer, "rows")
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-resolved-limit/0.1")
-    @encode.end_object(writer)
-  } catch {
-    e => raise Encoding(e)
   }
 }

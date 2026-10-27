@@ -46,7 +46,7 @@ test "synchronous emission preserves complete text hash measure and every tight 
     data_keys=true,
   )
   let wire = synchronous_emit_outcome(value, 4096, 100, 10, true, 0)
-  assert_true(wire.starts_with("{\"a\":[null,true,3,"))
+  assert_true(wire.has_prefix("{\"a\":[null,true,3,"))
   for sink in 0..<3 {
     for bytes in 0..<400 {
       assert_eq(
