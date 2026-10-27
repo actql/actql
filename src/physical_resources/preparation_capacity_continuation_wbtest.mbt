@@ -307,3 +307,59 @@ test "output continuation invokes original current once before its callback-free
   assert_true(abort_preparation_capacity_after_cleanup(next, input).unwrap())
   assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
 }
+
+///|
+test "public preparation continuation refuses census closure during its original current callback" {
+  let ledger = create_ledger({
+    planning_work: 0,
+    attempts: 0,
+    holdings: 0,
+    transfer_bytes: 0L,
+    retained_bytes: 2000L,
+    execution_bytes: 2000L,
+  }).unwrap()
+  let bootstrap = reserve_capacity(ledger, 100L, 1L).unwrap()
+  begin_original_ledger_inventory(ledger, bootstrap, 1, 0, 0).unwrap() |> ignore
+  let input = [1]
+  let owner : PreparationCapacity[Array[Int], Unit] = reserve_preparation_capacity(
+    ledger,
+    input,
+    500L,
+    600L,
+    max_borrowers=1,
+  ).unwrap()
+  let armed = Ref(true)
+  let closed = Ref(false)
+  ledger.imported_child = Some({
+    nonce: 1L,
+    admit: _ => 0,
+    current: _ => {
+      if armed.val {
+        armed.val = false
+        closed.val = finish_original_ledger_inventory(ledger, false)
+          is Ok(false)
+      }
+      0
+    },
+    limit: (_, _) => 0L,
+    capacity: (_, _) => 0L,
+    report: (_, _) => 0,
+    stop: _ => 0,
+    fixed_capacities: false,
+    ledger: Some(ledger),
+    stopping: false,
+    unavailable: false,
+  })
+  let before = ledger_usage(ledger)
+  let selected : Result[
+    PreparationCapacity[Array[Int], Bool],
+    PreparationCapacityIssue,
+  ] = continue_preparation_capacity(owner, input)
+  assert_true(closed.val)
+  assert_true(selected is Err(Resource(ClosedReservation)))
+  assert_true(owner.phase == Working && owner.input is Some(_))
+  assert_eq(ledger_usage(ledger), before)
+  assert_true(abort_preparation_capacity_after_cleanup(owner, input).unwrap())
+  assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
+  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
+}
