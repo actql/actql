@@ -1,3 +1,5 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 // The standard installed Host reading a Salesforce source: an explicit
 // publication, a Host start that restores it without provider I/O,
 // discovery, Program Check, acquisition and computation through the public
@@ -1404,7 +1406,7 @@ test('an accounted Salesforce close failure retains recovery until checked relea
       assert.equal(setup.queries().length, 1);
       assert.equal(closes, 1);
       assert.equal(released, 0);
-      assert.ok(commonMoon.clientProgramMultiCapturedLedgerUsage(ledger)[4] > 0n);
+      assert.ok(ledgerUsageSnapshot(commonMoon.clientProgramMultiCapturedLedgerUsage(ledger)).reservedTransferBytes > 0n);
       failure.recovery.close();
       assert.equal(failure.recovery.cleanupPending(), true);
       await assert.rejects(failure.recovery.cleanup(), error => {
@@ -1420,8 +1422,7 @@ test('an accounted Salesforce close failure retains recovery until checked relea
       assert.equal(failure.recovery.cleanupPending(), false);
       assert.equal(closes, 3);
       assert.equal(released, 1);
-      assert.ok(commonMoon.clientProgramMultiCapturedLedgerUsage(ledger)
-        .slice(4).every(value => value === 0n));
+      assert.ok(ledgerUsageFieldsFor(commonMoon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes","uncertainTransferBytes"]).every(value => value === 0n));
       assert.equal(await failure.recovery.cleanup(), true);
       assert.equal(closes, 3);
       assert.equal(released, 1);

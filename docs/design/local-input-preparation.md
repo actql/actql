@@ -421,3 +421,18 @@ parked inventory and retirement. An await, external callback or actual mutation
 starts a distinct boundary; resource reservation, before-use checks and cleanup
 keep their existing obligations. Plan/sequence preparation and capacity quoting
 are not repeated by lookup.
+
+### Ledger usage observations
+
+The Core `LedgerUsage` declaration owns usage field order and primitive width.
+The existing transport generator projects both the complete typed usage array
+and the spent-field exclusions from Core's pending-resource predicate. Strategy
+and MultiCaptured observations use that same projection; the shared Host
+adapter refuses missing, extended or malformed layouts without padding them.
+
+Cleanup distinguishes current occupancy from cumulative spent work and history.
+Zero-byte reservations, attempts, holdings and delegations still remain current;
+the generated predicate alone supplies the exclusions. Diagnostic decimal text
+preserves every original counter. No counter projection grants capacity or
+permission, resets spent facts, proves physical stop or replaces the existing
+Site/current/retirement duties and preparation-isolation checks.

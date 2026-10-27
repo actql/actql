@@ -19,7 +19,7 @@ function beforeInstallation({failClose = false, retainedBytes = 0n, abort = fals
     },
     strategyHostUsage(actual) {
       assert.equal(actual, setup);
-      return [0n, 0n, 0n, 0n, reservations, 0n];
+      return [0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, reservations, 0n, 0n];
     },
   };
   return {
@@ -76,6 +76,37 @@ test('composed setup does not report release while its retained reservations rem
   assert.equal(await owner.cleanup(), true);
   assert.equal(owner.cleanupPending(), false);
   assert.deepEqual(boundary.counts(), {stops: 2, closes: 2});
+});
+
+test('composed cleanup retains the actual reserved-attempt and holding fields', async () => {
+  for (const index of [2, 3]) {
+    const boundary = beforeInstallation();
+    const original = boundary.arguments.moon.strategyHostUsage;
+    let pending = true;
+    boundary.arguments.moon.strategyHostUsage = actual => {
+      original(actual);
+      const values = Array(13).fill(0n);
+      if (pending) values[index] = 1n;
+      return values;
+    };
+    await assert.rejects(runInstalledComposedInfers(boundary.arguments), error => error === boundary.cause);
+    assert.equal(await boundary.owner().cleanup(), false);
+    assert.equal(boundary.owner().cleanupPending(), true);
+    pending = false;
+    assert.equal(await boundary.owner().cleanup(), true);
+  }
+});
+
+test('composed cleanup does not retain spent transfer or historical peak as a live resource', async () => {
+  const boundary = beforeInstallation();
+  const original = boundary.arguments.moon.strategyHostUsage;
+  boundary.arguments.moon.strategyHostUsage = actual => {
+    original(actual);
+    return [7n, 3n, 0n, 0n, 0n, 0n, 83n, 0n, 0n, 0n, 0n, 0n, 211n];
+  };
+  await assert.rejects(runInstalledComposedInfers(boundary.arguments), error => error === boundary.cause);
+  assert.equal(await boundary.owner().cleanup(), true);
+  assert.equal(boundary.owner().cleanupPending(), false);
 });
 
 test('composed setup is retained across the actual captured driver early AbortSignal check', async () => {

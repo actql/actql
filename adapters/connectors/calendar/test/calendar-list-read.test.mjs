@@ -1,3 +1,4 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {CalendarListReadFailure, createCalendarListReader} from '../site/calendar-list-read.mjs';
@@ -11,7 +12,7 @@ test('actual Calendar TLS pages use original signed grants Account and one accou
   assert.equal(result.pages,2);assert.equal(result.rowCount,2);assert.deepEqual(f.state.rows,originalRows);
   assert.equal(f.state.requests.length,2);assert.equal(f.state.charges,2);assert.equal(f.state.resolutions,2);
   assert.equal(result.observations.length,2);
-  assert.equal(f.row.usage()[3],result.observations.reduce((sum,r)=>sum+BigInt(r.body.length),0n));
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes,result.observations.reduce((sum,r)=>sum+BigInt(r.body.length),0n));
   for(const request of f.state.requests){const url=new URL('https://fixture'+request.path);
     assert.equal(request.method,'GET');assert.equal(url.pathname,'/calendar/v3/users/me/calendarList');
     assert.equal(url.searchParams.get('maxResults'),'2');assert.equal(url.searchParams.get('showHidden'),'true');

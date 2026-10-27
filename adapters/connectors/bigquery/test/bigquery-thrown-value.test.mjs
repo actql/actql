@@ -1,3 +1,5 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {bigqueryHttpsFixture} from './bigquery-https.fixture.mjs';
@@ -130,8 +132,8 @@ test('an injected cleanup-port refusal cannot replace an original undefined reje
       assert.equal(error.outcome, 'unknown'); return true;
     });
     assert.equal(f.state.requests.length, 1);
-    assert.ok(f.row.usage()[7] > 0n, 'the original Host retains responsibility');
+    assert.ok(ledgerUsageSnapshot(f.row.usage()).reservedExecutionBytes > 0n, 'the original Host retains responsibility');
     f.row.close();
-    assert.deepEqual(f.row.usage().slice(4, 8), [0n, 0n, 0n, 0n]);
+    assert.deepEqual(ledgerUsageFieldsFor(f.row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   }
 });

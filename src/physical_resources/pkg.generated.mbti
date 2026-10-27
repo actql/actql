@@ -216,6 +216,8 @@ pub fn ledger_usage_diagnostic_json(LedgerUsage) -> String
 
 pub fn ledger_usage_has_pending_resources(LedgerUsage) -> Bool
 
+pub fn ledger_usage_values(LedgerUsage) -> Array[Int64]
+
 pub fn mark_cleanup_pending(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 
 pub fn mark_quantities_uncertain(Ledger, Reservation) -> Result[Unit, LedgerIssue]

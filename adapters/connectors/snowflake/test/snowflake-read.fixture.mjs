@@ -1,3 +1,4 @@
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 // Controlled physical boundary: genuine Common contracts, Account authority,
 // credential control, SQLite use journal and loopback TLS. No live Snowflake,
 // installed release, normal funding profile or Python runtime is claimed.
@@ -126,7 +127,7 @@ export async function snowflakeFixture(t, {accountOutcome = 'allow',
   t.after(async () => {
     // Retained SQLite/certificates are new owned fixtures; never old Run/DBs.
     row?.close();
-    if (row) assert.deepEqual(row.usage().slice(4, 8), [0n, 0n, 0n, 0n]);
+    if (row) assert.deepEqual(ledgerUsageFieldsFor(row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
     journal?.close();
     // The peer server's close callback can precede its sockets' close events.
     // Observe those exact events too; do not erase the set or infer peer stop

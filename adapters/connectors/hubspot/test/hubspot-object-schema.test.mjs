@@ -1,3 +1,4 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as provider from '../../../../_build/js/release/build/connectors/hubspot/host_node/host_node.js';
@@ -81,7 +82,7 @@ test('projected schema admits actual bound HubSpot pages into the same accounted
   assert.equal(f.state.consumed, 3);
   assert.deepEqual(rows, [{id: '9007199254740993',
     amount: '9007199254740993.0100000000', tags: ['a', 'b']}]);
-  assert.equal(f.row.usage()[3], result.observations.reduce((n, r) => n + BigInt(r.body.length), 0n));
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, result.observations.reduce((n, r) => n + BigInt(r.body.length), 0n));
   // Only the existing original Host completes/captures and retires the binding.
   f.row.finish();
   assert.equal(f.row.captureCount(), 1);

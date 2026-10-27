@@ -1,3 +1,4 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {CalendarFreeBusyReadFailure, createCalendarFreeBusyReader} from '../site/calendar-free-busy-read.mjs';
@@ -23,7 +24,7 @@ test('Calendar free busy actual TLS POST binds original query signed use Account
   assert.equal(request.contentType,'application/json');
   assert.deepEqual(JSON.parse(request.body),{timeMin:'2026-10-17T00:00:00.000Z',timeMax:'2026-10-18T00:00:00.000Z',
     timeZone:'UTC',calendarExpansionMax:2,items:[{id:'sales@example.test'},{id:'private'}]});
-  assert.equal(f.row.usage()[3],BigInt(result.observations[0].body.length));
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes,BigInt(result.observations[0].body.length));
   f.row.finish();assert.equal(f.row.captureCount(),2);
 });
 

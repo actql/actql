@@ -1,3 +1,4 @@
+import {ledgerUsageSnapshot} from '../host-common/runtime-core.mjs';
 import assert from 'node:assert/strict';
 import {readFile, mkdir, mkdtemp, rm} from 'node:fs/promises';
 import {createRequire} from 'node:module';
@@ -295,23 +296,23 @@ test('one accounted Broad capture holds the original residual until confirmed cl
       {code: 'MoonBitHostFailure'});
     assert.equal(captured.acquisition.selection.selectedCandidate, 'broadQuery');
     const usage = () => moon.clientProgramMultiCapturedLedgerUsage(ledger);
-    assert.equal(usage()[1], 1n);
-    assert.equal(usage()[2], 1n);
-    assert.ok(usage()[3] > 0n);
-    assert.ok(usage()[5] > 0n);
-    assert.equal(usage()[6], 0n);
-    assert.equal(usage()[7], 0n);
-    assert.equal(usage()[8], 0n);
+    assert.equal(ledgerUsageSnapshot(usage()).attempts, 1n);
+    assert.equal(ledgerUsageSnapshot(usage()).holdings, 1n);
+    assert.ok(ledgerUsageSnapshot(usage()).transferredBytes > 0n);
+    assert.ok(ledgerUsageSnapshot(usage()).heldBytes > 0n);
+    assert.equal(ledgerUsageSnapshot(usage()).reservedRetentionBytes, 0n);
+    assert.equal(ledgerUsageSnapshot(usage()).reservedExecutionBytes, 0n);
+    assert.equal(ledgerUsageSnapshot(usage()).uncertainTransferBytes, 0n);
     assert.throws(() => captured.close(), {code: 'ResidualCleanupPending'});
-    assert.equal(usage()[2], 1n);
-    assert.ok(usage()[5] > 0n);
+    assert.equal(ledgerUsageSnapshot(usage()).holdings, 1n);
+    assert.ok(ledgerUsageSnapshot(usage()).heldBytes > 0n);
     cleanupAllowed = true;
     await captured.close();
     // Holdings counts issued allocations; released bytes must return to zero.
-    assert.equal(usage()[2], 1n);
-    assert.equal(usage()[5], 0n);
-    assert.equal(usage()[6], 0n);
-    assert.equal(usage()[7], 0n);
+    assert.equal(ledgerUsageSnapshot(usage()).holdings, 1n);
+    assert.equal(ledgerUsageSnapshot(usage()).heldBytes, 0n);
+    assert.equal(ledgerUsageSnapshot(usage()).reservedRetentionBytes, 0n);
+    assert.equal(ledgerUsageSnapshot(usage()).reservedExecutionBytes, 0n);
     assert.throws(() => captured.capture.source(), {code: 'ClosedSourceCapture'});
     await captured.close();
   } finally {

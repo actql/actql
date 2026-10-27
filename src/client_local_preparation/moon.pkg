@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/carrier_contract" @carrier,
   "actql/actql/client_source_publication" @publication,
   "actql/actql/run_publication_host" @host,
   "actql/actql/program_check" @checked,
