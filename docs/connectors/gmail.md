@@ -65,7 +65,8 @@ Operations — sending is an operation, not a record write:
 
 - **send** — `EFFECT COMMAND gmail.send ID key INPUT (to = …, subject = …, body = …)`.
 - **reply** — `EFFECT COMMAND gmail.reply ID key INPUT (in_reply_to = message_id, body = …)`
-  replies within the thread, keeping its subject and recipients.
+  replies to the visible participants within the thread, using the
+  [recipient and threading rules below](#reply-recipients-and-threading).
 - **forward** — `EFFECT COMMAND gmail.forward ID key INPUT (message = message_id, to = …[, body = …])`.
 - **purge** — `EFFECT COMMAND gmail.purge TARGET message_id ID key` deletes a
   message permanently, bypassing the trash. It needs the full `mail.google.com`
@@ -81,6 +82,38 @@ reserved for a pending provider operation with a genuine OperationRef and its
 status and reconciliation contracts. A Gmail message ID or thread ID is not
 such an operation handle. An unproved response loss remains `unknown`, with no
 automatic resend. Nothing is sent until the approved Effect is applied.
+
+### Reply recipients and threading
+
+`gmail.reply` preserves the visible conversation participants rather than
+choosing recipients from message text or a new lookup. From the same captured
+original message, form `To` from `Reply-To` when that header is present, otherwise
+`From`, followed by the original `To` addresses. Form `Cc` from the original
+`Cc` addresses. Preserve that order and each first retained address's display
+form; remove duplicate mailboxes across `To` then `Cc`. Never copy original
+`Bcc` recipients, infer hidden recipients, or substitute `Sender`, `Return-Path`
+or delivery headers for the reply destination. A malformed present `Reply-To`
+does not silently fall back to `From`.
+
+Compare parsed mailbox local parts case-sensitively, accounting for equivalent
+quoted forms, and domains case-insensitively. Do not infer Gmail dot, plus,
+local-part case or account-alias equivalence. Remove the configured mailbox
+from both destination lists when at least one other destination remains. If
+it is the only destination, retain it: a deliberate reply to oneself is valid.
+Only the configured mailbox is known to be self; no alias lookup or guessed
+mailbox identity is implied.
+
+Keep the original `Subject` value without adding a `Re:` prefix, use its exact
+Gmail `threadId`, and construct `In-Reply-To` and `References` from its original
+message identifiers under
+[RFC 5322, section 3.6.4](https://www.rfc-editor.org/rfc/rfc5322.html#section-3.6.4).
+Gmail requires the matching subject, thread ID and compliant reference headers
+to join the thread; a missing original needed for that correspondence cannot
+be invented. The complete derived destinations, subject and body belong in
+the same targeted Preview and approved immutable request. Header data confers
+no send authority, and changed originals require the existing current and
+correspondence checks. This recipient rule does not change submission outcomes
+or permit a resend after response loss.
 
 ## Setup
 
