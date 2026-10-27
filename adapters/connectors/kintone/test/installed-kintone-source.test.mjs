@@ -1,3 +1,5 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {writeFile} from 'node:fs/promises';
@@ -7,7 +9,7 @@ import {installedSourceIdentity} from '../../../host-node/installed-source.mjs';
 import {installedKintoneFixture as fixture, originalForm, record} from './installed-kintone.fixture.mjs';
 
 const assertReleased = ledger => assert.deepEqual(
-  common.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  ledgerUsageFieldsFor(common.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 
 test('installed kintone prepares original typed metadata without provider or secret lookup', async t => {
   const f = await fixture(t), source = await f.load();
@@ -29,7 +31,7 @@ test('installed kintone pages the same accounted RowRun with original wide ID an
     '/k/v1/app/form/fields.json', '/k/v1/records.json', '/k/v1/app/form/fields.json',
     '/k/v1/records.json', '/k/v1/app/form/fields.json']);
   assert.equal(f.state.resolutions, 5);
-  assert.equal(common.clientProgramMultiCapturedLedgerUsage(ledger)[3],
+  assert.equal(ledgerUsageSnapshot(common.clientProgramMultiCapturedLedgerUsage(ledger)).transferredBytes,
     BigInt(f.state.responseBodies.reduce((sum, value) => sum + value.byteLength, 0)));
   await opened.close();assertReleased(ledger);
 });
@@ -57,7 +59,7 @@ test('a changed final Form refuses capture after real record bytes without a rep
   f.state.form = count => count === 2 ? {...originalForm, revision: '8'} : originalForm;
   await assert.rejects(source.openCapture({...await f.prepare(source), ledger}), {code: 'MoonBitHostFailure'});
   assert.equal(f.tls.seen().length, 3);assert.equal(f.state.forms, 2);
-  assert.equal(common.clientProgramMultiCapturedLedgerUsage(ledger)[3],
+  assert.equal(ledgerUsageSnapshot(common.clientProgramMultiCapturedLedgerUsage(ledger)).transferredBytes,
     BigInt(f.state.responseBodies.reduce((sum, value) => sum + value.byteLength, 0)));
   assertReleased(ledger);
 });
@@ -110,7 +112,7 @@ test('a rejected kintone response is charged on the original RowRun without anot
     source = await f.load(), ledger = f.ledger();
   await assert.rejects(source.openCapture({...await f.prepare(source), ledger}), {code: 'KintoneReadHttpRejected'});
   assert.equal(f.tls.seen().length, 2);assert.equal(f.state.resolutions, 2);
-  assert.equal(common.clientProgramMultiCapturedLedgerUsage(ledger)[3], BigInt(
+  assert.equal(ledgerUsageSnapshot(common.clientProgramMultiCapturedLedgerUsage(ledger)).transferredBytes, BigInt(
     f.state.responseBodies[0].byteLength + Buffer.byteLength(JSON.stringify(rejected))));
   assertReleased(ledger);
 });
@@ -127,7 +129,7 @@ test('canceling an awaited kintone page retains its original reservation until t
     assert.equal(error.code, 'ABORT_ERR');assert.equal(error.outcome, 'unknown');return true;
   });
   await observed;
-  assert.ok(common.clientProgramMultiCapturedLedgerUsage(ledger)[7] > 0n);
+  assert.ok(ledgerUsageSnapshot(common.clientProgramMultiCapturedLedgerUsage(ledger)).reservedExecutionBytes > 0n);
   controller.abort();resume();
   await rejected;
   assert.equal(f.tls.seen().length, 2);assert.equal(f.state.resolutions, 2);

@@ -115,18 +115,7 @@ pub fn client_program_prepare_multi_captured_effect_installed_ledger(
 pub fn client_program_multi_captured_ledger_usage(
   ledger : @resources.Ledger,
 ) -> Array[Int64] {
-  let usage = @resources.ledger_usage(ledger)
-  [
-    usage.planning_work.to_int64(),
-    usage.attempts.to_int64(),
-    usage.holdings.to_int64(),
-    usage.transferred_bytes,
-    usage.reserved_transfer_bytes,
-    usage.held_bytes,
-    usage.reserved_retention_bytes,
-    usage.reserved_execution_bytes,
-    usage.uncertain_transfer_bytes,
-  ]
+  @resources.ledger_usage_values(@resources.ledger_usage(ledger))
 }
 
 ///|

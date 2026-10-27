@@ -198,3 +198,18 @@ nonnegative original count adds no bytes to a nonnegative total. Its positive
 products delegate to the same checked arithmetic owner as the Local preparation
 tariff. That domain case does not change the shared operation's requirement
 that its coefficient be positive, nor grant capacity or refund consumed work.
+
+### Ledger usage observations
+
+The Core `LedgerUsage` declaration owns usage field order and primitive width.
+The existing transport generator projects both the complete typed usage array
+and the spent-field exclusions from Core's pending-resource predicate. Strategy
+and MultiCaptured observations use that same projection; the shared Host
+adapter refuses missing, extended or malformed layouts without padding them.
+
+Cleanup distinguishes current occupancy from cumulative spent work and history.
+Zero-byte reservations, attempts, holdings and delegations still remain current;
+the generated predicate alone supplies the exclusions. Diagnostic decimal text
+preserves every original counter. No counter projection grants capacity or
+permission, resets spent facts, proves physical stop or replaces the existing
+Site/current/retirement duties and preparation-isolation checks.

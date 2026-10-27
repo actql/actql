@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {runtimeCore} from './runtime-core.mjs';
+import {runtimeCore, ledgerUsageSnapshot, ledgerUsageDiagnostic, ledgerUsageHasPendingResources} from './runtime-core.mjs';
 import {ledgerUsageFields} from '../host-node/ledger-contract.generated.mjs';
 
 const camel = name => name.replace(/_([a-z])/gu, (_, letter) => letter.toUpperCase());
@@ -37,5 +37,26 @@ test('strategy usage refuses a missing or extended runtime layout without paddin
     const core = runtimeCore({strategyRemoteManagedOutputEvidenceKind: () => 'unused fixture metadata',
       strategyHostUsage: () => values});
     assert.throws(() => core.usage({}), {name: 'TypeError', message: 'InvalidStrategyLedgerUsage'});
+  }
+});
+
+test('shared usage adapter preserves each pending counter and only Core-owned spent exclusions', () => {
+  const spent = new Set(['planning_work', 'attempts', 'transferred_bytes', 'peak_retention_bytes']);
+  for (const [index, {name}] of ledgerUsageFields.entries()) {
+    const values = Array(ledgerUsageFields.length).fill(0n);
+    values[index] = 17n;
+    assert.equal(ledgerUsageHasPendingResources(values), !spent.has(name), name);
+    assert.equal(ledgerUsageSnapshot(values)[camel(name)], 17n);
+    assert.equal(ledgerUsageDiagnostic(values)[camel(name)], '17');
+  }
+});
+
+test('all shared usage projections refuse old sparse noninteger and out-of-range layouts', () => {
+  const malformed = [Array(9).fill(0n), Array(14).fill(0n), Array(13), {}];
+  for (const [index, value] of [[0, 1], [0, -1n], [0, 2147483648n], [12, 9223372036854775808n]]) {
+    const values = Array(13).fill(0n); values[index] = value; malformed.push(values);
+  }
+  for (const value of malformed) for (const project of [ledgerUsageSnapshot, ledgerUsageDiagnostic, ledgerUsageHasPendingResources]) {
+    assert.throws(() => project(value), {name:'TypeError', message:'InvalidStrategyLedgerUsage'});
   }
 });

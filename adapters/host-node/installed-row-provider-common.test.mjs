@@ -117,7 +117,7 @@ test('actual Common provider projection and original reader retain one reservati
     catch (error) {assert.equal(error.code, 'MoonBitHostFailure');}
   }
   assert.equal(closed, true);
-  assert.equal(f.usage()[6], 0n); assert.equal(f.usage()[7], 0n);
+  assert.equal(ledgerUsageSnapshot(f.usage()).reservedRetentionBytes, 0n); assert.equal(ledgerUsageSnapshot(f.usage()).reservedExecutionBytes, 0n);
   assert.equal(f.counts().stops, 1);
 });
 

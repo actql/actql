@@ -1,3 +1,5 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 // Shared actual GitHub Credential/SQLite/HTTPS caller fixture. It exercises
 // existing Owners with explicit fixture authority; it is not normal funding.
 import assert from 'node:assert/strict';
@@ -131,10 +133,10 @@ export async function accountedGitHubRows(verifyTransport, resource = 'issues') 
     },
     counts: () => ({charges, observations}),
     receivedBytes: () => receivedBytes,
-    transferredBytes: () => commonMoon.clientProgramMultiCapturedLedgerUsage(ledger)[3],
+    transferredBytes: () => ledgerUsageSnapshot(commonMoon.clientProgramMultiCapturedLedgerUsage(ledger)).transferredBytes,
     close() {
       checked(commonMoon.clientProgramRowSourceCloseAccounted(run));
-      assert.deepEqual(commonMoon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+      assert.deepEqual(ledgerUsageFieldsFor(commonMoon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
     },
   };
 }

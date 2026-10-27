@@ -1,3 +1,4 @@
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {DatabaseSync} from 'node:sqlite';
@@ -21,7 +22,7 @@ for(const format of ['sql','aql'])test(`ordinary installed Calendar ${format} ca
   assert(paths.every(p=>p.searchParams.get('fields').includes('accessRole')));
   assert.equal(source.sourceReadAccesses[0].resource,'calendars');
   opened.close();
-  assert.deepEqual(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger).slice(4,8),[0n,0n,0n,0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),[0n,0n,0n,0n]);
   assert.throws(()=>opened.capture.originalRead(),{code:'InstalledSourceClosed'});
   assert.equal(f.state.requests.length,2);
 });
@@ -38,7 +39,7 @@ test('ordinary installed Calendar refuses a malformed unselected cell before cap
   const source=await f.load(),preparation=await f.prepare(source,{selection:'id'});
   await assert.rejects(source.openCapture(preparation));
   assert.equal(f.state.requests.length,1);
-  assert.deepEqual(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger).slice(4,8),[0n,0n,0n,0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),[0n,0n,0n,0n]);
 });
 
 test('ordinary installed Calendar rechecks stop before the next page and does not resend',async t=>{
@@ -47,7 +48,7 @@ test('ordinary installed Calendar rechecks stop before the next page and does no
   const source=await f.load(),preparation=await f.prepare(source);
   await assert.rejects(source.openCapture({...preparation,signal:stop.signal}));
   assert.equal(f.state.requests.length,1);
-  assert.deepEqual(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger).slice(4,8),[0n,0n,0n,0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),[0n,0n,0n,0n]);
 });
 
 test('ordinary installed Calendar preserves the lost-response Credential Unknown after physical close',async t=>{
@@ -55,7 +56,7 @@ test('ordinary installed Calendar preserves the lost-response Credential Unknown
   const source=await f.load(),preparation=await f.prepare(source);let original;
   await assert.rejects(source.openCapture(preparation),cause=>{original=cause;return true;});
   assert.equal(f.state.requests.length,1);
-  assert.deepEqual(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger).slice(4,8),[0n,0n,0n,0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),[0n,0n,0n,0n]);
   // Physical transport cleanup does not replace the durable use's outcome.
   const database=new DatabaseSync(join(f.root,'installed-journal','credential-journal.sqlite3'),{readOnly:true});
   try{assert.deepEqual(database.prepare('SELECT outcome FROM credential_uses ORDER BY use_ordinal').all().map(row=>row.outcome),[3]);}

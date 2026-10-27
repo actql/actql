@@ -1,3 +1,6 @@
+
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {gzipSync} from 'node:zlib';
@@ -31,8 +34,8 @@ test('actual TLS POST, same-handle GET and gzip partition feed the original Host
   assert.equal(result.pages, 2); assert.equal(result.rows, 2n); assert.equal(result.exchanges, 3);
   assert.equal(result.wireBytes, BigInt(wire.reduce((n, b) => n + b.byteLength, 0)));
   assert.equal(result.decodedBytes, BigInt(bodies.reduce((n, b) => n + b.byteLength, 0)));
-  assert.equal(f.row.usage()[3], result.wireBytes, 'wire is charged once, never inflated bytes');
-  assert.ok(f.row.usage()[6] > 0n && f.row.usage()[7] > 0n,
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, result.wireBytes, 'wire is charged once, never inflated bytes');
+  assert.ok(ledgerUsageSnapshot(f.row.usage()).reservedRetentionBytes > 0n && ledgerUsageSnapshot(f.row.usage()).reservedExecutionBytes > 0n,
     'transport retirement is not original Host reservation retirement');
   assert.deepEqual(f.journal.recover().map(r => r.outcome), ['succeeded', 'succeeded', 'succeeded']);
   const rows = f.row.captureRows();
@@ -57,7 +60,7 @@ test('current Account denial refuses before credential resolution or provider re
   await assert.rejects(f.read(), {code: 'ExecutionAuthorizationDenied', outcome: 'not_started'});
   assert.equal(f.state.requests.length, 0); assert.equal(f.state.resolutions, 0);
   assert.deepEqual(f.journal.recover(), []);
-  assert.equal(f.row.usage()[3], 0n); f.row.assertNoCapture();
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, 0n); f.row.assertNoCapture();
 });
 
 test('Account replacement during the resolver await is fenced before physical send', async t => {
@@ -66,7 +69,7 @@ test('Account replacement during the resolver await is fenced before physical se
   await assert.rejects(f.read(), {code: 'AuthorizationCurrentAccountChanged'});
   assert.equal(f.state.resolutions, 1); assert.equal(f.state.requests.length, 0);
   assert.equal(f.journal.recover()[0].outcome, 'failed');
-  assert.equal(f.row.usage()[3], 0n); f.row.assertNoCapture();
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, 0n); f.row.assertNoCapture();
 });
 
 test('Account replacement across an actual reply retains and charges bytes without Source acceptance', async t => {
@@ -78,7 +81,7 @@ test('Account replacement across an actual reply retains and charges bytes witho
     assert.equal(Object.keys(error).includes('observation'), false);
     return true;
   });
-  assert.equal(f.row.usage()[3], BigInt(resultBody().byteLength));
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, BigInt(resultBody().byteLength));
   assert.equal(f.journal.recover()[0].outcome, 'succeeded');
   f.row.assertNoCapture();
 });
@@ -89,7 +92,7 @@ test('foreign original scope is rejected before secret, claim or network I/O', a
     scope: {...f.scope, dispatchRequestCid: `sha256:${'e'.repeat(64)}`}, useId: 'foreign'})}),
   {code: 'ForeignSnowflakeReadAuthorization'});
   assert.equal(f.state.requests.length, 0); assert.equal(f.state.resolutions, 0);
-  assert.deepEqual(f.journal.recover(), []); assert.equal(f.row.usage()[3], 0n);
+  assert.deepEqual(f.journal.recover(), []); assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, 0n);
 });
 
 test('revoked original credential cannot send or create a replacement use', async t => {
@@ -98,7 +101,7 @@ test('revoked original credential cannot send or create a replacement use', asyn
   await assert.rejects(f.read());
   assert.equal(f.state.requests.length, 0); assert.equal(f.state.resolutions, 1);
   assert.equal(f.journal.recover()[0].outcome, 'failed');
-  assert.equal(f.row.usage()[3], 0n); f.row.assertNoCapture();
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, 0n); f.row.assertNoCapture();
 });
 
 test('lost POST reply keeps original request and Unknown without resending on the same run', async t => {
@@ -115,7 +118,7 @@ test('lost POST reply keeps original request and Unknown without resending on th
   assert.equal(f.journal.recover()[0].outcome, 'unknown');
   await assert.rejects(f.read(), {code: 'MoonBitHostFailure'});
   assert.equal(f.state.requests.length, 1); assert.equal(f.state.resolutions, 1);
-  assert.equal(f.row.usage()[3], 0n, 'a lost complete body is not fabricated as observed bytes');
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, 0n, 'a lost complete body is not fabricated as observed bytes');
   f.row.assertNoCapture();
 });
 
@@ -129,7 +132,7 @@ test('dot and dot-dot observed handles retain charge and identity but issue no n
       assert.equal(error.outcome, 'unknown'); return true;
     });
     assert.equal(f.state.requests.length, 1);
-    assert.equal(f.row.usage()[3], BigInt(pending(handle).byteLength));
+    assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, BigInt(pending(handle).byteLength));
     assert.equal(f.journal.recover()[0].outcome, 'succeeded');
     f.row.assertNoCapture();
   }
@@ -144,7 +147,7 @@ test('HTTP refusal is an original charged observation, never a row or commit ACK
     assert.equal(error.outcome, 'stopped'); return true;
   });
   assert.equal(f.state.requests.length, 1);
-  assert.equal(f.row.usage()[3], BigInt(Buffer.byteLength('{"message":"denied"}')));
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, BigInt(Buffer.byteLength('{"message":"denied"}')));
   assert.equal(f.journal.recover()[0].outcome, 'failed'); f.row.assertNoCapture();
 });
 
@@ -168,7 +171,7 @@ test('accepted statement followed by a status refusal keeps its original Unknown
     assert.deepEqual(f.state.requests.map(r => [r.method, r.path]), [
       ['POST', `/api/v2/statements?requestId=${f.frame.requestId}`],
       ['GET', `/api/v2/statements/${handle}`]]);
-    assert.equal(f.row.usage()[3], BigInt(accepted.byteLength + refused.byteLength));
+    assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, BigInt(accepted.byteLength + refused.byteLength));
     assert.deepEqual(f.journal.recover().map(r => r.outcome), ['succeeded', 'failed']);
     f.row.assertNoCapture();
     await assert.rejects(f.read(), {code: 'MoonBitHostFailure'});
@@ -184,7 +187,7 @@ test('gzip decoder refusal retains the exact charged wire and never accepts part
     await assert.rejects(f.read(), error => {
       assert.deepEqual(error.observation.body, body); return true;
     });
-    assert.equal(f.row.usage()[3], BigInt(body.byteLength));
+    assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, BigInt(body.byteLength));
     assert.equal(f.state.requests.length, 1); f.row.assertNoCapture();
   }
 });
@@ -194,7 +197,7 @@ test('foreign result schema is refused by the actual original Common Contract', 
   const body = resultBody({precision: 37});
   f.state.onRequest = () => ({body});
   await assert.rejects(f.read(), {code: 'MoonBitHostFailure'});
-  assert.equal(f.row.usage()[3], BigInt(body.byteLength));
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, BigInt(body.byteLength));
   assert.equal(f.state.requests.length, 1); f.row.assertNoCapture();
 });
 
@@ -220,11 +223,11 @@ test('parent close during secret resolution retains the same Root until physical
   const result = f.read();
   await started;
   assert.throws(f.row.close, {code: 'MoonBitHostFailure'});
-  assert.ok(f.row.usage()[6] > 0n && f.row.usage()[7] > 0n);
+  assert.ok(ledgerUsageSnapshot(f.row.usage()).reservedRetentionBytes > 0n && ledgerUsageSnapshot(f.row.usage()).reservedExecutionBytes > 0n);
   resume();
   await assert.rejects(result);
   f.row.close(); f.row.close();
-  assert.deepEqual(f.row.usage().slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(f.row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   assert.equal(f.state.requests.length, 0); assert.equal(f.state.resolutions, 1);
   assert.equal(f.journal.recover()[0].outcome, 'failed');
 });
@@ -235,14 +238,14 @@ test('in-flight response processing keeps the original Root after socket stop an
   f.state.beforeCurrent = async calls => {
     if (calls !== 4) return;
     try { f.row.close(); } catch (error) { closeFailure = error; }
-    heldAfterClose = f.row.usage()[7];
+    heldAfterClose = ledgerUsageSnapshot(f.row.usage()).reservedExecutionBytes;
   };
   await assert.rejects(f.read(), {code: 'MoonBitHostFailure'});
   assert.equal(closeFailure?.code, 'MoonBitHostFailure',
     'socket stop must not retire workspace still used by this driver');
   assert.ok(heldAfterClose > 0n);
   f.row.close();
-  assert.deepEqual(f.row.usage().slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(f.row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   assert.equal(f.state.requests.length, 1); f.row.assertNoCapture();
 });
 
@@ -262,7 +265,7 @@ test('in-flight decoder failure preserves its primary cause when original refusa
     return true;
   });
   f.row.close();
-  assert.deepEqual(f.row.usage().slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(f.row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   assert.equal(f.state.requests.length, 1); f.row.assertNoCapture();
 });
 
@@ -293,7 +296,7 @@ test('installed pure preparer cannot replace the original requirement with an eq
   const h = await genericHost(f, async () => {reads++;}, () => f.row.acquisition);
   await assert.rejects(h.adapter.prepare(h.preparation), {code: 'MoonBitHostFailure'});
   assert.equal(h.grants(), 0); assert.equal(reads, 0);
-  assert.equal(f.state.requests.length, 0); assert.equal(f.row.usage()[3], 0n);
+  assert.equal(f.state.requests.length, 0); assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, 0n);
 });
 
 for (const method of ['open', 'openCapture']) test(
@@ -328,12 +331,12 @@ for (const method of ['open', 'openCapture']) test(
       return true;
     });
     assert.equal(reads, 1); assert.equal(h.grants(), 1);
-    assert.ok(f.moon.clientProgramMultiCapturedLedgerUsage(ledger)[7] > 0n);
+    assert.ok(ledgerUsageSnapshot(f.moon.clientProgramMultiCapturedLedgerUsage(ledger)).reservedExecutionBytes > 0n);
     stopped = true;
     assert.equal(await failure.recovery.cleanup(), true);
     const observed = stopChecks;
     assert.equal(await failure.recovery.cleanup(), true);
     assert.equal(stopChecks, observed);
-    assert.deepEqual(f.moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+    assert.deepEqual(ledgerUsageFieldsFor(f.moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
     assert.equal(reads, 1); assert.equal(h.grants(), 1); assert.equal(f.state.requests.length, 0);
   });

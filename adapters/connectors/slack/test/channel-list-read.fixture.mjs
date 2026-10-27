@@ -1,3 +1,4 @@
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 // Actual Common/Credential/SQLite/TLS and legacy accounted canonical RowRun.
 // Explicit component bounds do not fund the retained reader graph, establish
 // normal physical retirement, or qualify a pristine installed Slack product.
@@ -103,7 +104,7 @@ export async function channelListFixture(t,{account='allow',format='sql',account
   t.after(async()=>{
     const errors=[];
     try{if(binding)assert.equal(closeHttpsCredentialBinding(binding),'closed');}catch(cause){errors.push(cause);}
-    try{if(row){row.close();assert.deepEqual(row.usage().slice(4,8),[0n,0n,0n,0n]);}}catch(cause){errors.push(cause);}
+    try{if(row){row.close();assert.deepEqual(ledgerUsageFieldsFor(row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),[0n,0n,0n,0n]);}}catch(cause){errors.push(cause);}
     try{journal?.close();}catch(cause){errors.push(cause);}
     try{await new Promise((resolve,reject)=>server.close(cause=>cause?reject(cause):resolve()));}catch(cause){errors.push(cause);}
     t.diagnostic(`Retained original Slack fixture: ${root}`);

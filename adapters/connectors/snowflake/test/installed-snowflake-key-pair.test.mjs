@@ -1,3 +1,4 @@
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 // Actual installed Host/Account/Credential/SQLite/RowRun with a disposable TLS
 // peer independently verifying real RSA JWT bytes. No live Snowflake account.
 import assert from 'node:assert/strict';
@@ -64,7 +65,7 @@ test('installed key-pair profile is lazy, scope-bound and uses one token for ori
     assert.equal(lookup.resourceOrigin, f.site.apiOrigin); assert.equal(lookup.namespaceId, f.site.namespaceId);
     assert.equal(lookup.siteGeneration, f.site.siteGeneration); assert.match(lookup.grantCid, /^sha256:/u);
   }
-  await opened.close(); assert.deepEqual(f.moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  await opened.close(); assert.deepEqual(ledgerUsageFieldsFor(f.moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   t.diagnostic(JSON.stringify({issuer: 'TESTORG-TESTACCOUNT.OPERATOR',
     tokenSha256: createHash('sha256').update(tokens[0]).digest('hex'),
     tokenBytes: Buffer.byteLength(tokens[0]), publicKeyFingerprint: 'SHA256:' + createHash('sha256')
@@ -83,7 +84,7 @@ test('actual key rotation after 202 cannot replace original token or resend the 
     assert.equal(error.outcome, 'unknown'); assert.equal(error.originalStatement.statementHandle, 'rotated-original'); return true;
   });
   assert.deepEqual(f.state.requests.map(r => r.method), ['POST']); assert.equal(f.lookups.length, 2);
-  assert.deepEqual(f.moon.clientProgramMultiCapturedLedgerUsage(ledger).slice(4, 8), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(ledgerUsageFieldsFor(f.moon.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });
 
 test('key-pair/token ambiguity and OAuth key-pair substitution refuse before material or Provider use', async t => {

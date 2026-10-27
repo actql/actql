@@ -1,3 +1,6 @@
+import {ledgerUsageFields} from './ledger-contract.generated.mjs';
+import {ledgerUsageSnapshot} from '../host-common/runtime-core.mjs';
+import {ledgerUsageFieldsFor} from './fixtures/ledger-usage.mjs';
 // Physical-accounting component cases using the real checked RowRun owner.
 // The in-process page driver is not an HTTP, credential, or installed artifact
 // acceptance fixture. Its observation does not issue an identity or permission.
@@ -73,14 +76,14 @@ test('accounted ordinary driver charges an observation without adding a captured
   assert.equal(moon.clientProgramCapturedSourceRowCount(capture.identity), 1);
   assert.notEqual(capture.capture.originalRead(), undefined);
   const usage = moon.clientProgramMultiCapturedLedgerUsage(value.ledger);
-  assert.equal(usage[3], BigInt(observation.byteLength + body.byteLength));
+  assert.equal(ledgerUsageSnapshot(usage).transferredBytes, BigInt(observation.byteLength + body.byteLength));
   // Ordinary capture moves the measured original allocation into its holding
   // and settles the remaining attempt capacity (file_listing_capacity.mbt).
   // The holding, rather than the settled scratch reservation, stays live.
-  assert.ok(usage[5] > 0n);
-  assert.deepEqual([usage[4], usage[6], usage[7]], [0n, 0n, 0n]);
+  assert.ok(ledgerUsageSnapshot(usage).heldBytes > 0n);
+  assert.deepEqual([ledgerUsageSnapshot(usage).reservedTransferBytes, ledgerUsageSnapshot(usage).reservedRetentionBytes, ledgerUsageSnapshot(usage).reservedExecutionBytes], [0n, 0n, 0n]);
   capture.close();
-  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(value.ledger).slice(4, 8),
+  assert.deepEqual(ledgerUsageFieldsFor(moon.clientProgramMultiCapturedLedgerUsage(value.ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),
     [0n, 0n, 0n, 0n]);
   assert.throws(() => retainedCallback(originalCharge), {code: 'MoonBitHostFailure'});
 });
@@ -97,8 +100,8 @@ test('omitting or replaying an observation ticket refuses capture and retires it
     await assert.rejects(value.adapter.openCapture({...value.inputs, ledger: value.ledger}),
       {code: 'MoonBitHostFailure'});
     const usage = moon.clientProgramMultiCapturedLedgerUsage(value.ledger);
-    assert.equal(usage[3], BigInt(observation.byteLength));
-    assert.deepEqual(usage.slice(4, 8), [0n, 0n, 0n, 0n]);
+    assert.equal(ledgerUsageSnapshot(usage).transferredBytes, BigInt(observation.byteLength));
+    assert.deepEqual(ledgerUsageFieldsFor(usage, ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   }
 });
 
@@ -114,5 +117,5 @@ test('unaccounted legacy driver receives no observation-consumption capability',
   assert.equal(moon.clientProgramCapturedSourceRowCount(capture.identity), 1);
   capture.close();
   assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(value.ledger),
-    Array(9).fill(0n));
+    Array(ledgerUsageFields.length).fill(0n));
 });

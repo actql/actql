@@ -170,11 +170,15 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "97e4fcbdae899ed955fbec149c294a1f9e3d66fcac61f21bc37c4eab56d111ce",
+      "sha256": "994e9d6878064fb2dba2399100637a0a92cee4cd6083ef6407885f19216b3733",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
         "contentGenerationControl",
+        "ledgerUsageDiagnostic",
+        "ledgerUsageHasPendingResources",
+        "ledgerUsageSnapshot",
+        "ledgerUsageSnapshotHasPendingResources",
         "runtimeCore"
       ],
       "operations": [
@@ -1093,6 +1097,80 @@
           "name": "inferQuantityCapacity/inferQuantityCapacity/inferQuantityCapacity",
           "parameters": [
             "quantity"
+          ],
+          "async": false
+        },
+        {
+          "name": "ledgerUsageDiagnostic",
+          "parameters": [
+            "counts"
+          ],
+          "async": false
+        },
+        {
+          "name": "ledgerUsageDiagnostic/ledgerUsageDiagnostic",
+          "parameters": [
+            "name",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "ledgerUsageHasPendingResources",
+          "parameters": [
+            "counts"
+          ],
+          "async": false
+        },
+        {
+          "name": "ledgerUsageHasPendingResources/ledgerUsageHasPendingResources",
+          "parameters": [
+            "name",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "ledgerUsageSnapshot",
+          "parameters": [
+            "counts"
+          ],
+          "async": false
+        },
+        {
+          "name": "ledgerUsageSnapshot/ledgerUsageSnapshot",
+          "parameters": [
+            "bits",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "ledgerUsageSnapshot/ledgerUsageSnapshot#2",
+          "parameters": [
+            "count",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "ledgerUsageSnapshotHasPendingResources",
+          "parameters": [
+            "usage"
+          ],
+          "async": false
+        },
+        {
+          "name": "ledgerUsageSnapshotHasPendingResources/ledgerUsageSnapshotHasPendingResources",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ledgerUsageSnapshotHasPendingResources/ledgerUsageSnapshotHasPendingResources#2",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -6965,14 +7043,6 @@
           "async": false
         },
         {
-          "name": "runtimeCore/runtimeCore/runtimeCore",
-          "parameters": [
-            "count",
-            "index"
-          ],
-          "async": false
-        },
-        {
           "name": "runtimeCore/runtimeCore#10",
           "parameters": [
             "value",
@@ -7200,6 +7270,21 @@
           "name": "siteControl/siteControl#3",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "spentUsageKeys/spentUsageKeys",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "spentUsageKeys/spentUsageKeys/spentUsageKeys",
+          "parameters": [
+            "_",
+            "letter"
           ],
           "async": false
         },
@@ -7984,7 +8069,6 @@
             "runtimeCore/runtimeCore#7",
             "runtimeCore/runtimeCore#8",
             "runtimeCore/runtimeCore#9",
-            "runtimeCore/runtimeCore/runtimeCore",
             "siteControl",
             "siteControl/siteControl",
             "siteControl/siteControl#2",
@@ -8392,7 +8476,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9183,7 +9267,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -9830,6 +9914,90 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "test('typed retained chain and commit consume original contracts without numeric limit relay'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "ledgerUsageDiagnostic",
+            "ledgerUsageDiagnostic/ledgerUsageDiagnostic",
+            "ledgerUsageHasPendingResources",
+            "ledgerUsageHasPendingResources/ledgerUsageHasPendingResources",
+            "ledgerUsageSnapshot",
+            "ledgerUsageSnapshot/ledgerUsageSnapshot",
+            "ledgerUsageSnapshot/ledgerUsageSnapshot#2",
+            "ledgerUsageSnapshotHasPendingResources",
+            "ledgerUsageSnapshotHasPendingResources/ledgerUsageSnapshotHasPendingResources",
+            "ledgerUsageSnapshotHasPendingResources/ledgerUsageSnapshotHasPendingResources#2",
+            "spentUsageKeys/spentUsageKeys",
+            "spentUsageKeys/spentUsageKeys/spentUsageKeys"
+          ],
+          "exports": [
+            "ledgerUsageDiagnostic",
+            "ledgerUsageHasPendingResources",
+            "ledgerUsageSnapshot",
+            "ledgerUsageSnapshotHasPendingResources"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ledger usage observations"
               }
             ]
           }
@@ -11832,7 +12000,7 @@
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
-      "sha256": "204d7697f4effe3a54b2dd4f3301ca95de4c27b2ae92c653f8e8d12892770472",
+      "sha256": "7634cf832d43a599214f2f267def78f6963de4fb8c8389ae0557172c9565bede",
       "role": "physical-io",
       "exports": [
         "runInstalledComposedInfers"
@@ -11909,13 +12077,6 @@
           "name": "runInstalledComposedInfers/cleanup",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "runInstalledComposedInfers/cleanup/cleanup",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         },
         {
           "name": "runInstalledComposedInfers/declaredResults/declaredResults",
@@ -12123,7 +12284,6 @@
             "runInstalledComposedInfers/candidates/candidates",
             "runInstalledComposedInfers/children/children",
             "runInstalledComposedInfers/cleanup",
-            "runInstalledComposedInfers/cleanup/cleanup",
             "runInstalledComposedInfers/declaredResults/declaredResults",
             "runInstalledComposedInfers/historical/historical",
             "runInstalledComposedInfers/init:retainCopy/init:retainCopy",
@@ -12548,6 +12708,7 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/completed-run-publication.mjs",
         "../host-common/private-publication-holding.mjs",
+        "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
         "../local-node/retained-store.mjs",
         "./acquired-effect-continuation.mjs",

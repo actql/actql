@@ -78,7 +78,9 @@ export function renderLedgerAccountingValues(source) {
     '///|\npub fn ledger_limits_usage_values(ledger : Ledger) -> Array[Int64] {\n' +
     '  let limits = ledger_limits(ledger)\n  let usage = ledger_usage(ledger)\n  [\n' +
     [...values('limits', contract.limits), ...values('usage', contract.usage)].join('\n') +
-    '\n  ]\n}\n';
+    '\n  ]\n}\n\n' +
+    '///|\npub fn ledger_usage_values(usage : LedgerUsage) -> Array[Int64] {\n  [\n' +
+    values('usage', contract.usage).join('\n') + '\n  ]\n}\n';
 }
 
 export function renderLedgerTransportContract(source) {

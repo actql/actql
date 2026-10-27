@@ -1,3 +1,4 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createGmailThreadReader, GmailThreadReadFailure, GMAIL_THREAD_GET_OPERATION,
@@ -15,7 +16,7 @@ test('Gmail actual SQL and Pipe Source retain empty continued lists and dependen
     const result = await f.read();
     assert.equal(result.pages,3);assert.equal(result.rowCount,1);assert.deepEqual(f.state.rows,[expected]);
     assert.equal(f.state.requests.length,4);assert.equal(f.state.charges,4);
-    assert.equal(f.row.usage()[3],result.observations.reduce((sum,response)=>sum+BigInt(response.body.length),0n));
+    assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes,result.observations.reduce((sum,response)=>sum+BigInt(response.body.length),0n));
     const targets = f.state.requests.map(request=>new URL(request.path,'https://fixture.invalid'));
     assert.equal(targets[0].searchParams.get('pageToken'),null);
     assert.equal(targets[1].searchParams.get('pageToken'),'opaque/+ =');

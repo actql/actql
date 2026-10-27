@@ -1,3 +1,4 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as moon from '../../../../_build/js/release/build/connectors/hubspot/host_node/host_node.js';
@@ -79,7 +80,7 @@ test('real Credential Account SQLite and TLS target read correlates reordered re
   assert.equal(f.state.consumed, 4); assert.equal(f.targetState.schemaReads, 2);
   assert.equal(f.targetState.targetReads, 1);
   assert.deepEqual(f.targetState.bodies, ['{"inputs":[{"id":"first"},{"id":"second"}],"idProperty":"external_key","properties":["amount","hs_lastmodifieddate","external_key"]}']);
-  assert.equal(f.row.usage()[3], result.observations.reduce((sum, r) => sum + BigInt(r.body.length), 0n));
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, result.observations.reduce((sum, r) => sum + BigInt(r.body.length), 0n));
   assert.equal(f.journal.recover().filter(r => r.outcome === 'succeeded').length, 4);
   f.row.assertNoCapture();
 });
@@ -219,7 +220,7 @@ test('active target socket binding cleanup stays pending until original physical
   };
   const pending = f.read(); await started;
   assert.equal(closeHttpsCredentialBinding(f.binding), 'pending');
-  assert.ok(f.row.usage()[6] > 0n && f.row.usage()[7] > 0n);
+  assert.ok(ledgerUsageSnapshot(f.row.usage()).reservedRetentionBytes > 0n && ledgerUsageSnapshot(f.row.usage()).reservedExecutionBytes > 0n);
   resume();
   await assert.rejects(pending, error => {
     assert.equal(error.code, 'RemoteCredentialBindingRetiring'); assert.equal(error.observations.length, 2); return true;

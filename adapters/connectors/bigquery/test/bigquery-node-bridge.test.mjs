@@ -1,3 +1,4 @@
+import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {checked} from '../../../host-common/runtime-result.mjs';
@@ -49,8 +50,8 @@ test('same runtime nominal response cannot be consumed by a foreign original Rea
  const response=checked(moon.clientProgramBigQueryChargeResponse(f.session,request,200,body));
  assert.throws(()=>checked(moon.clientProgramBigQueryAcceptResponse(foreign.session,response,body)),{code:'MoonBitHostFailure'});
  checked(moon.clientProgramBigQueryAcceptResponse(f.session,response,body));
- assert.equal(f.row.usage()[3],BigInt(body.byteLength));
- assert.equal(foreign.row.usage()[3],0n);
+ assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes,BigInt(body.byteLength));
+ assert.equal(ledgerUsageSnapshot(foreign.row.usage()).transferredBytes,0n);
  f.row.assertNoCapture();foreign.row.assertNoCapture();
 });
 
@@ -74,7 +75,7 @@ test('recorded original response loss is Unit only for that original one-shot re
  checked(moon.clientProgramBigQueryRecordResponseLoss(f.session,request));
  assert.equal(moon.clientProgramBigQueryJobRemoteDone(f.session),false);
  assert.throws(()=>checked(moon.clientProgramBigQueryNextRequest(f.session)),{code:'MoonBitHostFailure'});
- assert.equal(f.row.usage()[3],0n);f.row.assertNoCapture();
+ assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes,0n);f.row.assertNoCapture();
 });
 
 test('normal compiled original Job record preserves actual first request before its attempt',async t=>{
@@ -93,7 +94,7 @@ test('normal compiled original Job record preserves actual first request before 
  assert.deepEqual([0,1,2,3,4,5].map(n=>runtimeField(material,n)),['acme-project',f.row.requestId,'EU','POST',
   '/bigquery/v2/projects/acme-project/jobs',expectedBody]);
  assert.equal(runtimeField(moon.clientProgramBigQueryRequestMaterial(request),2),expectedBody);
- assert.equal(f.row.usage()[3],0n);
+ assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes,0n);
  checked(moon.clientProgramBigQueryAttemptRequest(f.session,request));
  assert.equal(moon.clientProgramBigQueryJobOriginalRecordMatchesRequest(f.session,request,cold),false);
  assert.throws(()=>checked(moon.clientProgramBigQueryJobOriginalRecord(f.session,limits)),{code:'MoonBitHostFailure'});
@@ -119,7 +120,7 @@ test('normal compiled cold Job record refuses variants and cannot replace foreig
   const value=JSON.parse(wire);change(value);
   assert.throws(()=>checked(moon.clientProgramBigQueryReadJobOriginalRecord(Buffer.from(JSON.stringify(value)),limits)),{code:'MoonBitHostFailure'});
  }
- assert.equal(f.row.usage()[3],0n);assert.equal(foreign.row.usage()[3],0n);
+ assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes,0n);assert.equal(ledgerUsageSnapshot(foreign.row.usage()).transferredBytes,0n);
  f.row.assertNoCapture();foreign.row.assertNoCapture();
 });
 

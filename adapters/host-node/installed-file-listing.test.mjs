@@ -1,3 +1,4 @@
+import {ledgerUsageSnapshot} from '../host-common/runtime-core.mjs';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {inspect} from 'node:util';
@@ -126,14 +127,14 @@ for (const empty of [true, false]) {
         version: '9007199254740993', reported_media_type: rawMedia,
         media_type: 'text/plain;label="e\u0301"'}]});
     const live = moon.clientProgramMultiCapturedLedgerUsage(ledger);
-    assert.equal(live[1], 1n);
-    assert.ok(live[6] > 0n && live[7] > 0n,
+    assert.equal(ledgerUsageSnapshot(live).attempts, 1n);
+    assert.ok(ledgerUsageSnapshot(live).reservedRetentionBytes > 0n && ledgerUsageSnapshot(live).reservedExecutionBytes > 0n,
       'report reservation remains live after capture and evidence encoding');
     captured.close();
     const retired = moon.clientProgramMultiCapturedLedgerUsage(ledger);
-    assert.equal(retired[5], 0n);
-    assert.equal(retired[6], 0n);
-    assert.equal(retired[7], 0n);
+    assert.equal(ledgerUsageSnapshot(retired).heldBytes, 0n);
+    assert.equal(ledgerUsageSnapshot(retired).reservedRetentionBytes, 0n);
+    assert.equal(ledgerUsageSnapshot(retired).reservedExecutionBytes, 0n);
     await assert.rejects(captured.issueSourceEvidence({authorityScopeCid: token('b'),
       effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid}),
     {code: 'MoonBitHostFailure'});
@@ -186,22 +187,22 @@ test('actual installed report cleanup keeps the original reservation until all t
       resource_ref_cid: token(ch), version: '1',
       reported_media_type: null, media_type: null}))});
   const live = moon.clientProgramMultiCapturedLedgerUsage(ledger);
-  assert.ok(live[6] > 0n && live[7] > 0n);
+  assert.ok(ledgerUsageSnapshot(live).reservedRetentionBytes > 0n && ledgerUsageSnapshot(live).reservedExecutionBytes > 0n);
   for (let attempt = 0; attempt < 2; attempt++) {
     assert.throws(() => captured.close(), {code: 'MoonBitHostFailure'});
     const pending = moon.clientProgramMultiCapturedLedgerUsage(ledger);
-    assert.equal(pending[5], live[5], 'original holding stays reserved');
-    assert.equal(pending[6], live[6], 'retention is not refunded by partial reclaim');
-    assert.equal(pending[7], live[7], 'encoding/cleanup workspace stays reserved');
+    assert.equal(ledgerUsageSnapshot(pending).heldBytes, ledgerUsageSnapshot(live).heldBytes, 'original holding stays reserved');
+    assert.equal(ledgerUsageSnapshot(pending).reservedRetentionBytes, ledgerUsageSnapshot(live).reservedRetentionBytes, 'retention is not refunded by partial reclaim');
+    assert.equal(ledgerUsageSnapshot(pending).reservedExecutionBytes, ledgerUsageSnapshot(live).reservedExecutionBytes, 'encoding/cleanup workspace stays reserved');
     await assert.rejects(captured.issueSourceEvidence({authorityScopeCid: token('b'),
       effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid}),
     {code: 'MoonBitHostFailure'});
   }
   captured.close();
   const retired = moon.clientProgramMultiCapturedLedgerUsage(ledger);
-  assert.equal(retired[5], 0n);
-  assert.equal(retired[6], 0n);
-  assert.equal(retired[7], 0n);
+  assert.equal(ledgerUsageSnapshot(retired).heldBytes, 0n);
+  assert.equal(ledgerUsageSnapshot(retired).reservedRetentionBytes, 0n);
+  assert.equal(ledgerUsageSnapshot(retired).reservedExecutionBytes, 0n);
   captured.close();
   assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger), retired);
   assert.equal(reads, 1, 'cleanup retries never reacquire the Source');

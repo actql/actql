@@ -1,3 +1,4 @@
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {credentialInvocationBindingKeys} from '../../../host-common/credential-scope-fields.generated.mjs';
@@ -147,9 +148,9 @@ test('original binding and reservation stay held until physical request and asyn
   };
   await assert.rejects(f.send(), {code: 'RemoteCredentialBindingRetiring'});
   assert.equal(pending, 'pending'); assert.equal(rootRefused?.code, 'MoonBitHostFailure');
-  assert.ok(f.row.usage().slice(4, 8).some(value => value > 0n));
+  assert.ok(ledgerUsageFieldsFor(f.row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]).some(value => value > 0n));
   assert.equal(closeHttpsCredentialBinding(f.binding), 'closed');
-  f.closeRoot(); assert.deepEqual(f.row.usage().slice(4, 8), [0n, 0n, 0n, 0n]);
+  f.closeRoot(); assert.deepEqual(ledgerUsageFieldsFor(f.row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
   assert.equal(f.journal.recover().filter(row => row.outcome === 'unknown').length, 1);
   assert.equal(f.state.writes, 1);
 });
@@ -165,5 +166,5 @@ test('retiring the original root during awaited current cannot start another phy
   await assert.rejects(f.send(), {code: 'OriginalAcquisitionRetiring'});
   assert.equal(rootRefused?.code, 'MoonBitHostFailure');
   assert.equal(f.state.writes, 0); assert.equal(f.tls.seen().length, 2);
-  f.closeRoot(); assert.deepEqual(f.row.usage().slice(4, 8), [0n, 0n, 0n, 0n]);
+  f.closeRoot(); assert.deepEqual(ledgerUsageFieldsFor(f.row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 });

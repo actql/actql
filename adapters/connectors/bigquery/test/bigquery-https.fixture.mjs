@@ -1,3 +1,4 @@
+import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 // Actual Common/Account/Credential/SQLite-use/TLS boundary. The original-Job
 // callback is an explicit assembly double, not a durable Run Journal supplier.
 import assert from 'node:assert/strict';
@@ -66,7 +67,7 @@ export async function bigqueryHttpsFixture(t, {accountOutcome = 'allow'} = {}) {
   let row, journal;
   t.after(async () => {
     row?.close();
-    if (row) assert.deepEqual(row.usage().slice(4, 8), [0n, 0n, 0n, 0n]);
+    if (row) assert.deepEqual(ledgerUsageFieldsFor(row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
     journal?.close();
     const stopped = Promise.all([...state.sockets].map(socket =>
       new Promise(resolve => socket.once('close', resolve))));
