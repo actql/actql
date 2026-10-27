@@ -60,6 +60,16 @@ pub fn check_local_program(@stage_parameters.Source, LocalProgramLimits, environ
 
 pub fn collect_checked(@stage_parameters.CollectedOperations, Array[@relation_results.CheckedResults], CollectionLimits, table_inputs? : Array[@relation_results.CheckedTableInputs?]?) -> Result[Checked, CollectionIssue]
 
+pub fn effect_command_checked_input_binding(EffectCommandCheckedInput) -> EffectCommandInputBinding
+
+pub fn effect_command_checked_input_field_at(EffectCommandCheckedInput, Int) -> (String, @value_admission.CheckedValue)?
+
+pub fn effect_command_checked_input_field_count(EffectCommandCheckedInput) -> Int
+
+pub fn effect_command_checked_input_row_index(EffectCommandCheckedInput) -> Int
+
+pub fn effect_command_checked_input_value(EffectCommandCheckedInput) -> @value_admission.CheckedValue
+
 pub fn effect_command_input_at(EffectCommandInputs, Int) -> EffectCommandInputBinding?
 
 pub fn effect_command_input_count(EffectCommandInputs) -> Int
@@ -316,6 +326,8 @@ pub fn prepare_local_program(@stage_parameters.Source, LocalProgramLimits, envir
 
 pub fn prepare_local_source(@stage_syntax.Program, @decode_core.Cursor?, max_parameters~ : Int, LocalProgramLimits, environment? : @check_environment.WireEnvironment?, calendar_profile? : @calendar_profile.Profile?, model_tasks? : @check_environment.ModelTasks?) -> Result[PreparedLocalSource, LocalSourceIssue]
 
+pub fn project_effect_command_checked_input(EffectCommandInputBinding, Int, (String, Int, @value_admission.Limits) -> (@value_admission.CheckedValue, Int, Int, Int)?, Int, Int, @value_admission.Limits) -> Result[EffectCommandCheckedInput, EffectCommandCheckedInputIssue]
+
 pub fn project_effect_command_row(EffectCommandInputBinding, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, published_target? : EffectPublishedStoreTarget?) -> Result[(String, String), EffectCommandRowIssue]
 
 pub fn project_effect_plan_checked_row(EffectPlanTerminal, EffectMappingLiterals, Int, (String, Int, @value_admission.Limits) -> (@value_admission.CheckedValue, Int, Int, Int)?, Int, Int, @value_admission.Limits) -> Result[EffectPlanCheckedRow, EffectPlanCheckedRowIssue]
@@ -431,6 +443,19 @@ pub(all) struct CollectionLimits {
   max_work : Int
   max_nodes : Int
   max_text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+type EffectCommandCheckedInput
+
+pub(all) enum EffectCommandCheckedInputIssue {
+  InvalidLimits
+  FieldLimit
+  WorkLimit
+  MissingSourceField(String)
+  ForeignSourceContract(String)
+  InvalidReadUsage
+  InvalidInputContract
+  ValueLimit
 } derive(Eq, @debug.Debug)
 
 pub struct EffectCommandInputBinding {
