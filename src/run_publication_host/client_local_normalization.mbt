@@ -12,6 +12,9 @@ pub(all) enum ClientLocalNormalizationIssue {
 /// Original preparation owns the completion inventory and its issued bytes.
 /// The normative journal preimage has no additional Program binding fields;
 /// this opaque projection and the original materials chain own those links.
+// Legacy variants remain the independent whitebox journal oracle after the
+// legacy issuer moved out of production. Common is the production issuer.
+#warnings("-unused_constructor")
 priv enum ClientLocalNormalizationInventory {
   Common(@checked.LocalCommonNormalizationInventory)
   CompletionFree(@checked.LocalCompletionFreeInventory)
