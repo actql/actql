@@ -14,9 +14,9 @@ import {openClientRequestJournal, observeOriginalClientRequestJournalCustody,
   assertOriginalClientRequestJournalFacilityCurrent} from './client-request-journal.mjs';
 
 const limits = Object.freeze({maxDatabaseBytes: 1048576,
-  primarySqlLimits: {maxCalls: 1000, maxPreparedStatements: 256,
+  primarySqlLimits: {maxPreparedStatements: 256,
     maxSqlBytes: 8192, maxTotalSqlBytes: 262144},
-  primaryExecutionLimits: {maxStatementCalls: 1000, maxParameters: 32,
+  primaryExecutionLimits: {maxParameters: 32,
     maxParameterBytes: 262144, maxResultRows: 128}});
 const nativeBindings = () => Object.freeze(Object.fromEntries(
   [['fs',fs],['promises',fs.promises],['crypto',crypto],['constants',fs.constants],['directory',fs.Dir.prototype],

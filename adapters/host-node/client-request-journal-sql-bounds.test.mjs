@@ -7,7 +7,7 @@ import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 
-const defaults = {maxCalls: 1000, maxPreparedStatements: 1000,
+const defaults = {maxPreparedStatements: 1000,
   maxSqlBytes: 65536, maxTotalSqlBytes: 1024 * 1024};
 const ref = {namespaceId: 'missing', authorityScopeCid: 'sha256:' + 'a'.repeat(64),
   runDefinitionCid: 'sha256:' + 'b'.repeat(64)};
@@ -24,7 +24,8 @@ function observe(action) {
   const open = DatabaseSync.prototype.open, exec = DatabaseSync.prototype.exec;
   const prepare = DatabaseSync.prototype.prepare;
   const byteLength = Buffer.byteLength;
-  const state = {database: undefined, calls: 0, prepared: 0, bytes: 0};
+  const state = {database: undefined, calls: 0, prepared: 0, bytes: 0,
+    preparedBytes: 0, successfulPreparations: 0};
   DatabaseSync.prototype.open = function() {
     state.database = this; return Reflect.apply(open, this, []);
   };
@@ -34,9 +35,12 @@ function observe(action) {
   };
   DatabaseSync.prototype.prepare = function(sql) {
     state.calls++; state.prepared++;
-    state.bytes += Reflect.apply(byteLength, Buffer, [sql, 'utf8']);
+    const size = Reflect.apply(byteLength, Buffer, [sql, 'utf8']);
+    state.bytes += size; state.preparedBytes += size;
     if (state.failPrepare !== undefined) throw state.failPrepare;
-    return Reflect.apply(prepare, this, [sql]);
+    const statement = Reflect.apply(prepare, this, [sql]);
+    state.successfulPreparations++;
+    return statement;
   };
   try { action(state); }
   finally {
@@ -46,10 +50,10 @@ function observe(action) {
   return state;
 }
 
-test('primary SQL call and byte ceilings refuse before the next native compilation and still close', async () => {
+test('retained statement and SQL byte ceilings refuse before another native preparation and still close', async () => {
   const {scratch, directory} = await fixture();
-  const cases = [{maxCalls: 1}, {maxSqlBytes: 1},
-    {maxTotalSqlBytes: Buffer.byteLength('PRAGMA journal_mode = WAL')}];
+  const cases = [{maxPreparedStatements: 1}, {maxSqlBytes: 1},
+    {maxTotalSqlBytes: 1}];
   for (const [index, selected] of cases.entries()) {
     observe(state => {
       let journal;
@@ -57,7 +61,8 @@ test('primary SQL call and byte ceilings refuse before the next native compilati
         assert.throws(() => { journal = openClientRequestJournal(directory + index,
           {primarySqlLimits: {...defaults, ...selected}}); },
         {code: 'ClientRequestJournalSqlUnavailable'});
-        assert.equal(state.calls, index === 1 ? 0 : 1);
+        assert.equal(state.prepared, index === 0 ? 1 : 0);
+        if (index === 1) assert.equal(state.calls, 0);
         assert.equal(state.database.isOpen, false);
       } finally { journal?.close(); }
     });
@@ -70,7 +75,7 @@ test(`later byteLength replacement (${label}) cannot bypass the primary aggregat
   const {scratch, directory} = await fixture();
     observe(state => {
       const journal = openClientRequestJournal(directory,
-        {primarySqlLimits: {...defaults, maxCalls: 10000,
+        {primarySqlLimits: {...defaults,
           maxPreparedStatements: 10000, maxTotalSqlBytes: 65536}});
       const byteLength = Buffer.byteLength;
       let failure, nativeCalls;
@@ -85,14 +90,15 @@ test(`later byteLength replacement (${label}) cannot bypass the primary aggregat
       } finally { Buffer.byteLength = byteLength; journal.close(); }
       assert.equal(failure?.code, 'ClientRequestJournalSqlUnavailable');
       assert.equal(state.calls, nativeCalls);
-      assert.ok(state.bytes <= 65536);
+      assert.ok(state.preparedBytes <= 65536,
+        'transient exec text is separate from retained prepared SQL');
       assert.equal(state.database.isOpen, false);
     });
   scratch.passed();
 });
 }
 
-test('repeated actual Journal prepares consume one lifetime allowance without GC refunds', async () => {
+test('actual Journal retains each returned statement within its original population until native close', async () => {
   const {scratch, directory} = await fixture();
   observe(state => {
     const primarySqlLimits = {...defaults, maxPreparedStatements: 70};
@@ -119,7 +125,7 @@ test('repeated actual Journal prepares consume one lifetime allowance without GC
   scratch.passed();
 });
 
-test('native prepare failure consumes the same primary lifetime allowance and cannot refill it', async () => {
+test('failed native preparation retains no returned statement and cannot enlarge the retained population', async () => {
   const {scratch, directory} = await fixture();
   observe(state => {
     const journal = openClientRequestJournal(directory,
@@ -127,8 +133,14 @@ test('native prepare failure consumes the same primary lifetime allowance and ca
     try {
       const cause = new Error('explicit original native prepare failure');
       state.failPrepare = cause;
-      while (state.prepared < 70) {
+      const retained = state.successfulPreparations;
+      for (let index = 0; index < 80; index++) {
         assert.throws(() => journal.lookupReconciliationState(ref), error => error === cause);
+      }
+      assert.equal(state.successfulPreparations, retained);
+      state.failPrepare = undefined;
+      while (state.successfulPreparations < 70) {
+        assert.equal(journal.lookupReconciliationState(ref), undefined);
       }
       const before = state.calls;
       assert.throws(() => journal.lookupReconciliationState(ref),
