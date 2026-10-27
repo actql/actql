@@ -32,7 +32,9 @@ test "canonical material retains exact immutable children and complete usage" {
   assert_eq(usage.1, 7)
   assert_eq(usage.2, 4)
   assert_true(value.closed && value.frames.is_empty() && value.value is None)
-  assert_true((try? finish_material(value)) is Err(_))
+  assert_true(
+    (Ok(finish_material(value)) catch { error => Err(error) }) is Err(_),
+  )
 }
 
 ///|
@@ -45,20 +47,26 @@ test "canonical material rejects order malformed text aggregate limits and parti
     material_text(value, "first")
     material_test_drain(value)
     material_key(value, key)
-    assert_true((try? material_test_drain(value)) is Err(_))
+    assert_true(
+      (Ok(material_test_drain(value)) catch { error => Err(error) }) is Err(_),
+    )
     assert_true(value.closed && value.frames.is_empty())
-    assert_true((try? finish_material(value)) is Err(_))
+    assert_true(
+      (Ok(finish_material(value)) catch { error => Err(error) }) is Err(_),
+    )
   }
   let original = from_json([1, 2], 3, 1, 100)
   for (bytes, nodes, depth) in [(6, 4, 2), (7, 3, 2), (7, 4, 1)] {
     let value = start_material(bytes, nodes, depth)
     material_begin_array(value)
     material_value(value, original)
-    let completed = try? ({
+    let completed = try {
       material_test_drain(value)
       material_end_array(value)
-      finish_material(value)
-    })
+      Ok(finish_material(value))
+    } catch {
+      error => Err(error)
+    }
     assert_true(completed is Err(_))
     assert_true(value.closed && value.frames.is_empty())
   }
@@ -75,8 +83,12 @@ test "canonical material rejects order malformed text aggregate limits and parti
   cancel_material(partial)
   cancel_material(partial)
   assert_true(partial.closed && partial.frames.is_empty())
-  assert_true((try? advance_material(partial)) is Err(_))
-  assert_true((try? finish_material(partial)) is Err(_))
+  assert_true(
+    (Ok(advance_material(partial)) catch { error => Err(error) }) is Err(_),
+  )
+  assert_true(
+    (Ok(finish_material(partial)) catch { error => Err(error) }) is Err(_),
+  )
 }
 
 ///|
