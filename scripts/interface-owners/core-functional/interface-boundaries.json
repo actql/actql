@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "994e9d6878064fb2dba2399100637a0a92cee4cd6083ef6407885f19216b3733",
+      "sha256": "d943ba91bff32dff8da20481cdbdb78921f400b2bf585ac56c60fc179a9dc169",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -10005,9 +10005,9 @@
       ],
       "imports": [
         "../../packages/client-wire/index.mjs",
-        "../host-node/ledger-contract.generated.mjs",
         "./compiler-binding.generated.mjs",
         "./installation-preparation-metadata.mjs",
+        "./ledger-contract.generated.mjs",
         "./local-signing-metadata.mjs",
         "./publication-action.mjs",
         "./result-output-limits.mjs",

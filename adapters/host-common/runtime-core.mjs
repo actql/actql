@@ -4,7 +4,7 @@ import {createLocalSigningMetadata} from './local-signing-metadata.mjs';
 import {createInstallationPreparationMetadata} from './installation-preparation-metadata.mjs';
 import {publicationAction} from './publication-action.mjs';
 import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
-import {ledgerUsageFields, ledgerUsageSpentFields} from '../host-node/ledger-contract.generated.mjs';
+import {ledgerUsageFields, ledgerUsageSpentFields} from './ledger-contract.generated.mjs';
 import {
   resultOutputLimitFields,
   validOutputLimits,

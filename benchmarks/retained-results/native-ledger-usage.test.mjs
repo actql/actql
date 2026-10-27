@@ -1,7 +1,7 @@
 // Synthetic diagnostic admission controls, not a Native execution or stop ACK.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {ledgerUsageFields} from '../../adapters/host-node/ledger-contract.generated.mjs';
+import {ledgerUsageFields} from '../../adapters/host-common/ledger-contract.generated.mjs';
 import {admitNativeDiagnosticLedgerUsage} from './native-ledger-usage.mjs';
 
 const empty = () => Object.fromEntries(ledgerUsageFields.map(({name}) => [name, 0]));

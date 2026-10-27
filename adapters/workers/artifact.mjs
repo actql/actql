@@ -76,6 +76,8 @@ export function checkWorkersArtifact(metafile, source, allowedModules) {
 // Publication capacity accounting has no imports. It validates byte bounds
 // and computes a frozen DATA extent with TextEncoder/Map; it opens no Store,
 // issues no Resource or permission, and performs no physical operation.
+// The canonical Ledger field vectors are an import-free frozen Core projection.
+// Reviewing this exact shared leaf admits no Node adapter, I/O or resource issuer.
 export const conformanceModules = [
   '_build/workers/modules/bridge.mjs',
   '_build/workers/modules/fixture.mjs',
@@ -107,6 +109,7 @@ export const conformanceModules = [
   'adapters/host-common/publication-capacity.mjs',
   'adapters/host-common/publication-action.mjs',
   'adapters/host-common/runtime-core.mjs',
+  'adapters/host-common/ledger-contract.generated.mjs',
   'adapters/host-common/local-signing-metadata.mjs',
   'adapters/host-common/installation-preparation-metadata.mjs',
   'adapters/host-common/installation-preparation-fields.generated.mjs',
@@ -155,6 +158,7 @@ export const hostModules = [
   'adapters/host-common/publication-capacity.mjs',
   'adapters/host-common/publication-action.mjs',
   'adapters/host-common/runtime-core.mjs',
+  'adapters/host-common/ledger-contract.generated.mjs',
   'adapters/host-common/local-signing-metadata.mjs',
   'adapters/host-common/installation-preparation-metadata.mjs',
   'adapters/host-common/installation-preparation-fields.generated.mjs',

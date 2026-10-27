@@ -1,7 +1,7 @@
 // Native probe accounting DATA. The original Core record owns every field;
 // the original physical close path owns its separate stop acknowledgement.
 import assert from 'node:assert/strict';
-import {ledgerUsageFields, ledgerUsageSpentFields} from '../../adapters/host-node/ledger-contract.generated.mjs';
+import {ledgerUsageFields, ledgerUsageSpentFields} from '../../adapters/host-common/ledger-contract.generated.mjs';
 
 // The same Core pending-resource predicate owns the spent-field projection.
 // Every other declared field remains pending until its lifetime is reviewed.
