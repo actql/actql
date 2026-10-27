@@ -823,3 +823,28 @@ selection. The metadata/quotation frame, original input/limits and actual
 registration/Context continuation need their own same-parent backing and
 retirement. A constructor envelope alone supplies neither that funding nor a
 physical cleanup acknowledgement.
+
+
+## Original Source registration continuation
+
+Source registration retains the original Source, Catalog and selected limits in
+one semantic read. The existing synchronous entrance advances that same read;
+it has no alternative collector/resolver implementation. Its four boundaries
+are declaration collection, original Catalog selection, pipeline registration
+and Local environment preparation. Collection's charged work includes partial
+refusal; that observation does not stand for later pass work or CPU.
+
+The exact collected Inputs survives through selection and registration and is
+supplied as the Local partition. Next phases cannot substitute equal Source,
+Catalog, limits or a freshly collected partition. Existing selection/Local
+budget conventions and typed failures remain owned by those original readers.
+A terminal phase is not run again. Taking either success or failure transfers
+its same backing once; clear drops only this read's aliases and preserves an
+actual handoff. It never clears returned arrays, refunds work or acknowledges
+physical/current/borrower retirement.
+
+Staging exposes constructor boundaries; it does not fund them. The initial
+read, each metadata/quotation frame, selection/registration/Local overlap,
+original input and borrowed successor need same-parent backing before their
+constructors execute. The pure phase API adds no Resource owner, current
+callback, permission, ordinary runtime enablement or replacement capacity law.
