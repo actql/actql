@@ -171,3 +171,59 @@ test "request JSON caller keeps the same source while its actual domain consumer
   child.busy = false
   abort_request_preparation_after_cleanup(parent).unwrap()
 }
+
+///|
+test "request bootstrap independently covers generic JSON entry allocated carriers before domain grow" {
+  // Independent expansion of the original request bootstrap92H173R148W,
+  // plus debit tuple/Ok2H1R3W, two checked-add Some2H0R4W and conservative
+  // error alternatives6H6R6W. No domain Source packet is pre-added here.
+  let (retained, execution) = client_request_preparation_control_capacity(
+    client_local_resource_policy(),
+  ).unwrap()
+  assert_eq(retained, 4360L)
+  assert_eq(execution, 0L)
+  assert_eq(16L * 10L + 8L * 7L + 8L * 13L, 320L)
+}
+
+///|
+test "original request bootstrap entry carriers are already debited at the sole domain current callback" {
+  let input = [1]
+  let selected : Ref[ClientRequestPreparation[Array[Int]]?] = Ref(None)
+  let armed = Ref(false)
+  let calls = Ref(0)
+  let backed_before_resize = Ref(false)
+  let initial = request_parent_fixture(input, current=() => {
+    if armed.val {
+      calls.val = calls.val + 1
+      let parent = selected.val.unwrap()
+      let usage = @resources.ledger_usage(parent.ledger)
+      backed_before_resize.val = parent.phase == Selecting &&
+        parent.program_json is None &&
+        usage.reserved_retention_bytes == 4360L &&
+        usage.reserved_execution_bytes == 0L
+    }
+    true
+  })
+  let parent = begin_request_preparation(
+    initial,
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  selected.val = Some(parent)
+  armed.val = true
+  let limits = @publication_host.client_standard_program_preparation_limits().checking.input
+  let child = prepare_request_program_json_preparation(
+    parent, input, request_json_effect_source, limits,
+  ).unwrap()
+  armed.val = false
+  assert_eq(calls.val, 1)
+  assert_true(backed_before_resize.val)
+  let usage = @resources.ledger_usage(parent.ledger)
+  // Existing B prefix inventory559H203R1208W=20232, once. It neither
+  // replaces nor supplies the pre-entry carriers observed by that callback.
+  assert_eq(usage.reserved_retention_bytes, 24592L)
+  assert_eq(usage.reserved_execution_bytes, 20232L)
+  assert_true(physical_equal(child.capacity, parent.capacity))
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).reserved_retention_bytes, 0L)
+}

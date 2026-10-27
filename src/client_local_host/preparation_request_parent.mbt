@@ -81,6 +81,15 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
   let ledger_headers = 1L + 1L + 2L + 4L + 1L + 1L + 1L
   let ledger_refs = 7L + 3L + 5L + 1L
   let ledger_words = 4L + 6L + 20L + 9L + 6L + 3L
+  // Generic JSON entrance allocates before its first domain grow. Fund these
+  // independently in the original bootstrap: debit tuple+Ok2H1R3W; two
+  // checked-add Some2H0R4W; conservative error alternatives6H6R6W
+  // (debit Err/Capacity/Err3, overflow Err1, resize Capacity/Err2).
+  // Sum10H7R13W=320 logical bytes, held until original parent retirement.
+  // This is not the B initial Source packet or a subset subtracted from it.
+  // Original current/resize objects use the same declared scratch below;
+  // fixed nonrecursive VM frames stay installed baseline. Borrowed input,
+  // limits/path and external callback backing still belong to their owners.
   // Capacity: six reference fields and four scalars. Parent: six references
   // and phase. Live Some/Result carriers conservatively cover eight headers,
   // eight references and eight tags. Original-current/resize scratch has
@@ -95,9 +104,24 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
     2L +
     8L +
     16L +
-    4L,
-    reference_slots: js_refs + import_refs + ledger_refs + 12L + 8L + 32L + 5L,
-    scalar_words: js_words + import_words + ledger_words + 5L + 8L + 24L + 4L,
+    4L +
+    10L,
+    reference_slots: js_refs +
+    import_refs +
+    ledger_refs +
+    12L +
+    8L +
+    32L +
+    5L +
+    7L,
+    scalar_words: js_words +
+    import_words +
+    ledger_words +
+    5L +
+    8L +
+    24L +
+    4L +
+    13L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
