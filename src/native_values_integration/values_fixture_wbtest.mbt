@@ -102,7 +102,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   )
   let setup = @client_local_host.open_source_free_local_host(
     prepared,
-    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    registered_installed_contracts(),
     @identity.stringify_value(registered_values(), 100000, 10000, 100),
     1L,
     0L,
@@ -123,7 +123,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   )
   let limited_setup = @client_local_host.open_source_free_local_host(
     prepared,
-    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    registered_installed_contracts(),
     @identity.stringify_value(registered_values(), 100000, 10000, 100),
     1L,
     0L,
@@ -397,7 +397,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     admission,
     definition,
     input_binding,
-    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    registered_installed_contracts(),
     @identity.stringify_value(registered_values(), 100000, 10000, 100),
     1L,
     0L,
@@ -863,7 +863,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   ).unwrap()
   let computed_setup = @client_local_host.open_source_free_local_host(
     computed_prepared,
-    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    registered_installed_contracts(),
     @identity.stringify_value(registered_values(), 100000, 10000, 100),
     1L,
     0L,
@@ -913,4 +913,14 @@ fn registered_relation_contracts() -> @execution.RegisteredRelationContracts rai
 ///|
 fn registry_limits() -> @execution.RegistryLimits {
   { max_body_bytes: 100000, max_body_nodes: 10000, max_body_depth: 100, }
+}
+
+///|
+fn registered_installed_contracts() -> @client_local_host.ClientInstalledSequenceContracts raise {
+  @client_local_host.prepare_installed_sequence_contracts(
+    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    @identity.stringify_value(registered_values(), 100000, 10000, 100),
+    None,
+    None,
+  ).unwrap()
 }

@@ -20,7 +20,12 @@ fn retained_source_sequence(
     prepared,
     0,
     0,
-    retained_source_registry,
+    @local_host.prepare_installed_sequence_contracts(
+      retained_source_registry,
+      retained_source_values,
+      Some(retained_source_fragment),
+      None,
+    ).unwrap(),
     retained_source_values,
     Some(retained_source_fragment),
     None,

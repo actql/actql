@@ -126,7 +126,7 @@ fn effect_source_dispatch_admit(
     fixture.wire,
     fixture.binding,
     now,
-    resident_effect_source_registry,
+    resident_effect_source_contracts(),
     resident_effect_source_values,
     resident_effect_source_fragment,
   )

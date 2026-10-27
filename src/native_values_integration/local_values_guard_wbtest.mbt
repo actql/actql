@@ -32,7 +32,7 @@ fn local_values_guard_setup() -> @builtin.ConfiguredComputeHost[
   let prepared = local_values_guard_prepared()
   @client_local_host.open_source_free_local_retained_host(
     prepared,
-    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    registered_installed_contracts(),
     @identity.stringify_value(registered_values(), 100000, 10000, 100),
     1L,
     0L,

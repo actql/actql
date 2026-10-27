@@ -40,13 +40,12 @@ fn resident_effect_source_requirement(
   contract? : String = "sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3",
   task? : Int = 0,
   source_index? : Int = 0,
-  registry? : String = resident_effect_source_registry,
 ) -> Result[@planning.QueryRequirement, ResidentSourceIssue] {
   prepare_resident_effect_source_requirement(
     resident_effect_source_prepared(),
     task,
     source_index,
-    registry,
+    resident_effect_source_contracts(),
     resident_effect_source_values,
     Some(resident_effect_source_fragment),
     source_ref,
@@ -106,6 +105,21 @@ test "Effect Source refuses a nonexistent source occurrence" {
 ///|
 test "Effect Source rejects an invalid execution registry without a physical fallback" {
   assert_true(
-    resident_effect_source_requirement(registry="{}") is Err(Query(_)),
+    @local.prepare_installed_sequence_contracts(
+      "{}",
+      resident_effect_source_values,
+      Some(resident_effect_source_fragment),
+      None,
+    ) is Err(@local.Unsupported),
   )
+}
+
+///|
+fn resident_effect_source_contracts() -> @local.ClientInstalledSequenceContracts {
+  @local.prepare_installed_sequence_contracts(
+    resident_effect_source_registry,
+    resident_effect_source_values,
+    Some(resident_effect_source_fragment),
+    None,
+  ).unwrap()
 }
