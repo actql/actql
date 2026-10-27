@@ -20,6 +20,7 @@ import {
   "actql/actql/query_planning",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
+  "actql/actql/source_value",
   "actql/actql/stage_syntax",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
@@ -48,6 +49,8 @@ pub fn advance_client_original_keyed_prefix_input(ClientOriginalKeyedPrefixInput
 pub fn advance_client_serialization_prefix(ClientSerializationPrefix, Int) -> Result[@local.ManagedProviderPoll, @connector_sdk.FixedComputeIssue]
 
 pub fn[I] advance_program_capture(ClientProgramCapture[I], Int) -> Result[(Bool, Int), ClientClosedValuesPreparationIssue]
+
+pub fn[I, P] advance_program_json_preparation(ClientProgramJsonPreparation[I, P], Int) -> Result[@source_value.JsonSourcePreflightPoll, ClientProgramJsonPreparationIssue]
 
 pub fn[I] advance_program_snapshot(ClientProgramSnapshot[I], Int) -> Result[(Bool, Int), ClientClosedValuesPreparationIssue]
 
@@ -94,6 +97,8 @@ pub fn begin_prepared_installed_effect_managed_run(@physical_resources.NodeManag
 pub fn begin_prepared_installed_effect_mock_model_managed_run(@physical_resources.NodeManagedRunAdmission[ClientInstalledEffectManagedPlan], @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[(ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope), ClientInstalledManagedRunIssue]
 
 pub fn begin_prepared_installed_managed_source_free_run(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, ClientInstalledManagedSourceFreePreparation) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
+
+pub fn[I, P] begin_program_json_preparation(@physical_resources.PreparationCapacity[I, P], I, String, @stage_syntax.Limits, source_path? : String) -> Result[ClientProgramJsonPreparation[I, P], ClientProgramJsonPreparationIssue]
 
 pub fn[I] begin_program_snapshot(ClientProgramPublication[I], @run_publication_host.PublicationOutputExport) -> Result[ClientProgramSnapshot[I], ClientClosedValuesPreparationIssue]
 
@@ -142,6 +147,8 @@ pub fn cleanup_client_infer_input(ClientInferInputExecution) -> Result[Bool, Cli
 pub fn cleanup_client_original_keyed_prefix_input(ClientOriginalKeyedPrefixInput) -> Result[Bool, ClientSerializationPrefixIssue]
 
 pub fn cleanup_client_serialization_prefix(ClientSerializationPrefix) -> Result[Bool, ClientSerializationPrefixIssue]
+
+pub fn[I, P] clear_program_json_preparation(ClientProgramJsonPreparation[I, P]) -> Result[Unit, ClientProgramJsonPreparationIssue]
 
 pub fn client_acquired_serialization_prefix_capacity(@run_publication_host.PreparedClientProgram, Int, Int, ClientInstalledSequenceContracts, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> @execution_relation.ExecutionCapacity?
 
@@ -257,6 +264,8 @@ pub fn[I] complete_closed_values_body(ClientClosedValuesPreparation[I]) -> Resul
 
 pub fn configure_source_free_effect_local_retained_host(@run_publication_host.PreparedClientEffectRun, @physical_strategy_host.CapturedEffectRunDAG, ClientInstalledSequenceContracts, String, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
+pub fn[I, P] construct_program_json_preparation(ClientProgramJsonPreparation[I, P]) -> Result[Unit, ClientProgramJsonPreparationIssue]
+
 pub fn execute_source_free_local_tasks_guarded(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, Int, () -> Bool, require_live? : (() -> Bool)?) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
 pub fn execute_source_free_values(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, Int) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
@@ -274,6 +283,8 @@ pub fn[I] finish_closed_values_scan(ClientClosedValuesPreparation[I]) -> Result[
 pub fn[I] finish_closed_values_text_check(ClientClosedValuesPreparation[I]) -> Result[Unit, ClientClosedValuesPreparationIssue]
 
 pub fn[I] finish_program_capture(ClientProgramCapture[I]) -> Result[@run_publication.PublicationContract, ClientClosedValuesPreparationIssue]
+
+pub fn[I, P] finish_program_json_preparation(ClientProgramJsonPreparation[I, P]) -> Result[Unit, ClientProgramJsonPreparationIssue]
 
 pub fn[I] finish_program_snapshot(ClientProgramSnapshot[I]) -> Result[@run_publication.CapturedResultSnapshot, ClientClosedValuesPreparationIssue]
 
@@ -487,9 +498,13 @@ pub fn prepared_installed_managed_source_free_requirements(ClientInstalledManage
 
 pub fn[I] program_capture_limits(ClientProgramCapture[I]) -> Result[(Int, Int, Int), ClientClosedValuesPreparationIssue]
 
+pub fn program_json_preparation_initial_inventory() -> @execution_relation.PreparationRepresentationUnits
+
 pub fn read_client_infer_retained_input_descriptor(String) -> Result[@execution_relation.RetainedCompletionDescriptor, ClientInferRetainedInputIssue]
 
 pub fn read_client_source_capture_descriptor(String) -> Result[@execution_relation.RetainedCompletionDescriptor, ClientSourceCaptureIssue]
+
+pub fn[I, P] reconcile_program_json_preparation_structure(ClientProgramJsonPreparation[I, P]) -> Result[Unit, ClientProgramJsonPreparationIssue]
 
 pub fn[I] reserve_closed_values_snapshot(ClientClosedValuesPreparation[I], ClientClosedValuesInputEnvelope, Int) -> Result[Unit, ClientClosedValuesPreparationIssue]
 
@@ -578,6 +593,10 @@ pub fn start_installed_source_read_rows(ClientInstalledSourceRead, @client_row_s
 pub fn[I] start_program_capture(ClientProgramCapture[I]) -> Result[ClientProgramCapture[I], ClientClosedValuesPreparationIssue]
 
 pub fn[I] start_program_validation(ClientProgramValidation[I]) -> Result[ClientProgramValidation[I], ClientProgramValidationIssue]
+
+pub fn[I, P] take_program_json_preparation_input(ClientProgramJsonPreparation[I, P]) -> Result[@stage_syntax.ParsedProgramInput, ClientProgramJsonPreparationIssue]
+
+pub fn[I, P] take_program_json_preparation_program(ClientProgramJsonPreparation[I, P]) -> Result[@stage_syntax.Program, ClientProgramJsonPreparationIssue]
 
 // Errors
 
@@ -779,6 +798,18 @@ pub(all) struct ClientPreparationCapacityRefusal {
 } derive(Eq, @debug.Debug)
 
 type ClientProgramCapture[I]
+
+type ClientProgramJsonPreparation[I, P]
+
+pub(all) enum ClientProgramJsonPreparationIssue {
+  Capacity(@physical_resources.PreparationCapacityIssue)
+  Syntax(@stage_syntax.SyntaxError)
+  Source(@stage_syntax.ProgramJsonInputIssue)
+  Control(@source_value.JsonSourcePreflightIssue)
+  WrongPhase
+  Overflow
+  Work(@physical_resources.PreparationWorkIssue)
+} derive(Eq, @debug.Debug)
 
 type ClientProgramPublication[I]
 

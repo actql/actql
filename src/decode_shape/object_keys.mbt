@@ -44,7 +44,11 @@ pub fn check_object_keys(
 ) -> Result[Unit, ObjectKeyIssue] {
   // Most protocol records are tiny. Keep their bounded scans allocation-free;
   // use indices for wide objects instead of introducing quadratic wide work.
-  if keys.length() <= 8 && required.length() <= 8 && allowed.length() <= 8 {
+  if object_keys_use_linear_scan(
+      keys.length(),
+      required.length(),
+      allowed.length(),
+    ) {
     for name in required {
       if !keys.contains(name) {
         return Err(MissingKey(name))
@@ -80,4 +84,45 @@ pub fn check_object_keys(
     seen[name] = ()
   }
   Ok(())
+}
+
+///|
+fn object_keys_use_linear_scan(
+  keys : Int,
+  required : Int,
+  allowed : Int,
+) -> Bool {
+  keys <= 8 && required <= 8 && allowed <= 8
+}
+
+///|
+/// Constructor DATA for the same selected key-check path, not a key verdict.
+/// Pairs and map entries borrow the supplied original names. All maps are
+/// counted together, including partially built maps on refusal.
+pub(all) struct ObjectKeyConstructionCounts {
+  maps : Int
+  map_entries : Int64
+  pair_arrays : Int
+  pairs : Int64
+} derive(Eq, Debug)
+
+///|
+pub fn object_key_construction_counts(
+  keys : Int,
+  required : Int,
+  allowed : Int,
+) -> ObjectKeyConstructionCounts? {
+  if keys < 0 || required < 0 || allowed < 0 {
+    return None
+  }
+  if object_keys_use_linear_scan(keys, required, allowed) {
+    Some({ maps: 0, map_entries: 0L, pair_arrays: 0, pairs: 0L, })
+  } else {
+    Some({
+      maps: 3,
+      map_entries: 2L * keys.to_int64() + allowed.to_int64(),
+      pair_arrays: 2,
+      pairs: keys.to_int64() + allowed.to_int64(),
+    })
+  }
 }

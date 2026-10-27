@@ -533,3 +533,44 @@ The prospective Core cases cover same-capacity Unicode Effect syntax, foreign
 and repeated inputs, one-short reservation and busy cleanup. They are authored
 against the existing domain signatures and remain unexecuted until the genuine
 minimal dependency is connected; they establish no ordinary acceptance now.
+
+## Public generic JSON constructor continuation
+
+The generic JSON prefix retains the existing `PreparationCapacity[I, P]`:
+Source preflight, normalized Source/index coexistence, the checked structural
+quantity observation and the original Program envelope decoder all use that
+same reservation and original input. The current public phase may be either
+working form. Reading its existing debit invokes no callback. Entering new
+constructor work uses the existing original-current fence once, with its
+reentry latch and a callback-free original-census retirement check afterward.
+No debit observation grants headroom or substitutes for currentness.
+
+The finite prefix holder includes only Source/index/Program fields. Binding,
+semantic prelude, Catalog and request-domain holders are later continuations;
+they are not fabricated by Program construction. A failed grow retains the
+same source or completed structural inventory and immutable quote. It does
+not repeat the previous observer or reset consumed work. Reconciliation may
+remove only the synchronous constructor scratch after its original frame has
+returned. Taking a Program transfers its DATA once; it neither completes a
+fake final prepared body nor acknowledges backend or physical cleanup.
+
+The public Int work and Program-extent interfaces remain available. Explicit
+wide interfaces use Int64 quantities over the same original work state and
+quantity implementation, preserving the entire Int-sized input domain without
+saturation. Narrow Program extent projection is a compatibility DATA record,
+not a second scan. Its construction is not an admission or a resource grant.
+Literal and normalized JSON use the same construction recipe and original
+parser modes; Program literal-key exceptions and general Unicode/NFC behavior
+remain unchanged. Shared collection and canonical-text owners supply their
+own representation quantities; only the existing representation tariff prices
+them.
+
+The original physical caller must supply the backend's first-prelude, input,
+limits, source-path and outer-frame backing before entering Core. The domain
+initial-inventory getter describes the Source/index/Program controls. The
+begin operation adds those controls once to the same capacity's already-live
+outside debit; a caller must not pre-add a second copy to that outside debit.
+This logical reservation sequence alone does not establish that a backend has
+provided the complete first-prelude or physical backing. Source/index/Program
+completion does not fund subsequent checking, Catalog, serialization, Content,
+compilation, restoration or another backend implicitly.

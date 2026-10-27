@@ -35,6 +35,24 @@ struct PreparationPhaseWork {
 }
 
 ///|
+/// Same fixed Common phase work, not dispatch/session quota. Callers select
+/// the phase and a checked construction-derived bound; input DATA is no grant.
+/// Same original phase meter with explicit wide DATA quantities. This distinct
+/// receipt cannot be passed to the unchanged public Int-only consumer.
+struct PreparationPhaseWork64 {
+  spend_original : (Int64) -> Result[Unit, PreparationWorkIssue]
+  finish_original : () -> Result[Int64, PreparationWorkIssue]
+}
+
+///|
+priv struct PreparationPhaseWorkState[I, P] {
+  owner : PreparationCapacity[I, P]
+  live : Ref[Bool]
+  maximum : Int64
+  mut remaining : Int64
+}
+
+///|
 fn preparation_work_ordinal(phase : PreparationWorkPhase) -> Int {
   match phase {
     HeaderInspection => 0
@@ -54,18 +72,14 @@ fn preparation_work_ordinal(phase : PreparationWorkPhase) -> Int {
 }
 
 ///|
-/// Only the fixed Common phase plan supplies maximum_work, from original-input
-/// inspection/construction proof and applicable installed phase restrictions.
-/// No Node caller receives a raw constructor with caller-selected quotas.
-/// This is independent of Ledger.planning_work (dispatch work); it neither
-/// debits nor resets that counter, and makes no aggregate CPU quota claim.
-/// All receipt/closure/control allocations must be funded before this call.
-pub fn[I, P] begin_preparation_phase_work(
+// Sole admission rule for narrow/wide receipts. The original input, phase,
+// active cell and stopping checks are unchanged; no callback or grant is added.
+fn[I, P] begin_preparation_work_state(
   owner : PreparationCapacity[I, P],
   input : I,
   phase : PreparationWorkPhase,
-  maximum_work : Int,
-) -> Result[PreparationPhaseWork, PreparationWorkIssue] {
+  maximum : Int64,
+) -> Result[PreparationPhaseWorkState[I, P], PreparationWorkIssue] {
   if !(owner.input is Some(original) && physical_equal(original, input)) {
     return Err(ForeignOriginal)
   }
@@ -73,7 +87,7 @@ pub fn[I, P] begin_preparation_phase_work(
     owner.active_phase_work is Some(_) {
     return Err(WrongPhase)
   }
-  if maximum_work < 0 {
+  if maximum < 0L {
     return Err(InvalidWork)
   }
   let ordinal = preparation_work_ordinal(phase)
@@ -84,40 +98,74 @@ pub fn[I, P] begin_preparation_phase_work(
     return Err(Stopping)
   }
   let live = Ref(true)
-  let remaining = Ref(maximum_work)
   owner.last_work_phase = ordinal
   owner.active_phase_work = Some(live)
+  Ok({ owner, live, maximum, remaining: maximum, })
+}
+
+///|
+fn[I, P] spend_preparation_work_state(
+  state : PreparationPhaseWorkState[I, P],
+  amount : Int64,
+) -> Result[Unit, PreparationWorkIssue] {
+  if !state.live.val {
+    return Err(Closed)
+  }
+  if !preparation_capacity_phase_is_working(state.owner.phase) {
+    return Err(WrongPhase)
+  }
+  if state.owner.ledger.imported_child is Some(origin) && origin.stopping {
+    return Err(Stopping)
+  }
+  if amount < 0L {
+    return Err(InvalidWork)
+  }
+  if amount > state.remaining {
+    return Err(WorkLimit)
+  }
+  state.remaining -= amount
+  Ok(())
+}
+
+///|
+fn[I, P] finish_preparation_work_state(
+  state : PreparationPhaseWorkState[I, P],
+) -> Result[Int64, PreparationWorkIssue] {
+  if !state.live.val {
+    return Err(Closed)
+  }
+  if !(state.owner.active_phase_work is Some(active) &&
+    physical_equal(active, state.live)) {
+    return Err(ForeignOriginal)
+  }
+  state.live.val = false
+  state.owner.active_phase_work = None
+  Ok(state.maximum - state.remaining)
+}
+
+///|
+/// Existing public Int contract. The shared state never receives a larger
+/// maximum through this constructor; its exact finished usage fits Int.
+pub fn[I, P] begin_preparation_phase_work(
+  owner : PreparationCapacity[I, P],
+  input : I,
+  phase : PreparationWorkPhase,
+  maximum_work : Int,
+) -> Result[PreparationPhaseWork, PreparationWorkIssue] {
+  let state = match
+    begin_preparation_work_state(owner, input, phase, maximum_work.to_int64()) {
+    Err(issue) => return Err(issue)
+    Ok(state) => state
+  }
   Ok({
     spend_original: amount => {
-      if !live.val {
-        return Err(Closed)
-      }
-      if !preparation_capacity_phase_is_working(owner.phase) {
-        return Err(WrongPhase)
-      }
-      if owner.ledger.imported_child is Some(origin) && origin.stopping {
-        return Err(Stopping)
-      }
-      if amount < 0 {
-        return Err(InvalidWork)
-      }
-      if amount > remaining.val {
-        return Err(WorkLimit)
-      }
-      remaining.val -= amount
-      Ok(())
+      spend_preparation_work_state(state, amount.to_int64())
     },
     finish_original: () => {
-      if !live.val {
-        return Err(Closed)
+      match finish_preparation_work_state(state) {
+        Err(issue) => Err(issue)
+        Ok(value) => Ok(value.to_int())
       }
-      if !(owner.active_phase_work is Some(active) &&
-        physical_equal(active, live)) {
-        return Err(ForeignOriginal)
-      }
-      live.val = false
-      owner.active_phase_work = None
-      Ok(maximum_work - remaining.val)
     },
   })
 }
@@ -131,11 +179,43 @@ pub fn spend_preparation_phase_work(
 }
 
 ///|
-/// The fixed synchronous phase owner closes this only after its constructor
-/// or failed constructor unwinds. Closing is not physical cancellation ACK,
-/// memory release or permission to replay/refill the same named phase.
+/// Close only after the original synchronous constructor has unwound. This
+/// reports work, never physical stop, freed backing or a refill allowance.
 pub fn finish_preparation_phase_work(
   receipt : PreparationPhaseWork,
 ) -> Result[Int, PreparationWorkIssue] {
+  (receipt.finish_original)()
+}
+
+///|
+pub fn[I, P] begin_preparation_phase_work64(
+  owner : PreparationCapacity[I, P],
+  input : I,
+  phase : PreparationWorkPhase,
+  maximum_work : Int64,
+) -> Result[PreparationPhaseWork64, PreparationWorkIssue] {
+  let state = match
+    begin_preparation_work_state(owner, input, phase, maximum_work) {
+    Err(issue) => return Err(issue)
+    Ok(state) => state
+  }
+  Ok({
+    spend_original: amount => spend_preparation_work_state(state, amount),
+    finish_original: () => finish_preparation_work_state(state),
+  })
+}
+
+///|
+pub fn spend_preparation_phase_work64(
+  receipt : PreparationPhaseWork64,
+  amount : Int64,
+) -> Result[Unit, PreparationWorkIssue] {
+  (receipt.spend_original)(amount)
+}
+
+///|
+pub fn finish_preparation_phase_work64(
+  receipt : PreparationPhaseWork64,
+) -> Result[Int64, PreparationWorkIssue] {
   (receipt.finish_original)()
 }

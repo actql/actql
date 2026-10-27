@@ -122,14 +122,16 @@ fn closed_values_initial_control_units(
   // Maximum live work receipts is max(3,1,1), not lifetime issuance count:
   // header/scan/text coexist until the synchronous input callback returns;
   // later snapshot lexical and intent callbacks each own one, with no saved
-  // receipt alias from the prior callback. Each has two
-  // Ref cells, two closures, one record, active Some and returned Ok carrier.
-  let driver_headers = 1L + 1L + 12L + 3L * 7L + 1L
+  // receipt alias from the prior callback. Each retains one live Ref, the
+  // shared original phase state, two closures, one receipt and active Some.
+  // The shared state return/finish Result overlaps the public typed carrier:
+  //8H10R6W replaces7H10R5W; this is actual constructor support, not body slack.
+  let driver_headers = 1L + 1L + 12L + 3L * 8L + 1L
   // The staged compilation slot exists before artifact construction.
   // One extra reference borrows the immutable selected-backend unit recipe.
   let driver_refs = 5L + 15L + 12L + 3L * 10L + 2L + 1L + 1L
   // One synchronous module-constructor latch remains on this original owner.
-  let driver_words = 5L + 10L + 12L + 3L * 5L + 1L + 1L
+  let driver_words = 5L + 10L + 12L + 3L * 6L + 1L + 1L
   // Six actual fixed live roles, not a historical issuance limit: manager,
   // registry handler/dispatch, Node admission, Run, configured Host. The Host
   // covers transitive outputs/readers until real drain, not one borrow/output.
