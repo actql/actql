@@ -17,7 +17,7 @@ fn resident_source_dispatch_fixture(
 ) {
   let environment = @host.admit_client_check_environment(
     resident_effect_source_environment,
-    "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
+    "sha256:4ea01561b9ac9815baaf04a81cff8260c8a47c56f19828b5889cf45ec1436e78",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
