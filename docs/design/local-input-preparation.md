@@ -718,3 +718,11 @@ output. Repeated clear is idempotent and neither refunds work nor observes a
 physical acknowledgement. Pre-transfer clear retains its ordinary retirement
 path. The real parent/successor owns the later alias and backing retirement;
 this Source-local transition supplies no replacement cleanup authority.
+
+The later Check/Catalog controller follows the same rule for its original
+parsed input or Catalog output. Its internal alias-drop helper is also used by
+actual take operations, so clear records the real prior handoff before calling
+that helper. Clearing an untransferred failed or incomplete controller remains
+ordinary retirement; the helper's transient assignment cannot manufacture a
+transfer. Neither path releases parent backing or acknowledges successor
+cleanup.
