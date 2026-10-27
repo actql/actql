@@ -44,6 +44,8 @@ pub fn emit_value_identity(BoundParameter, @encode_core.Writer) -> Unit raise @e
 
 pub fn emit_values(BoundValues, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn finish_declaration_read(DeclarationReadInput) -> Result[Declarations, Issue]
+
 pub fn has_default(Declaration) -> Bool
 
 pub fn measure_values(BoundValues, Int, Int, Int) -> Int raise @encode_core.EncodeFailure
@@ -56,7 +58,11 @@ pub fn missing_declaration_owner(MissingNames) -> Declarations
 
 pub fn missing_names(MissingNames) -> Array[String]
 
+pub fn observe_declarations(@decode_core.Cursor?, DeclarationLimits) -> (Result[Declarations, Issue], Int, Int)
+
 pub fn parameter_values_cid(BoundValues, Int, Int, Int) -> String raise @encode_core.EncodeFailure
+
+pub fn prepare_declaration_read(@decode_core.Cursor?, DeclarationLimits) -> (Result[DeclarationReadInput, Issue], Int, Int)
 
 pub fn read_declarations(@decode_core.Cursor?, DeclarationLimits) -> Result[Declarations, Issue]
 
@@ -92,6 +98,8 @@ pub(all) struct DeclarationLimits {
   max_depth : Int
   max_text_bytes : Int
 } derive(Eq, @debug.Debug)
+
+type DeclarationReadInput
 
 type Declarations
 

@@ -3,7 +3,9 @@ package "actql/actql/value_admission"
 
 import {
   "actql/actql/canonical_json",
+  "actql/actql/canonical_value",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "actql/actql/source_span",
   "actql/actql/source_value",
@@ -157,6 +159,8 @@ pub fn null_value() -> Value
 pub fn number_value(Double) -> Value?
 
 pub fn object_value(Array[(String, Value)]) -> Value?
+
+pub fn parameter_value_body_construction_inventory(@value_contract.ParameterType, @decode_core.SubtreeConstructionGeometry) -> ParameterValueBodyConstructionInventory?
 
 pub fn prepare_array_value(Int) -> ArrayBuilder?
 
@@ -363,6 +367,15 @@ pub(all) struct Limits {
 } derive(Eq, @debug.Debug)
 
 type ObjectBuilder
+
+pub(all) struct ParameterValueBodyConstructionInventory {
+  values : @decode_shape.CollectionConstructionInventory
+  traversal : @decode_shape.CollectionConstructionInventory
+  decimal_scratch : @decode_shape.CollectionConstructionExtent
+  owned_value_utf16_units : Int64
+  owned_decimal_scratch_utf16_units : Int64
+  key_normalization : @canonical_value.NormalizationConstructionExtent?
+} derive(Eq, @debug.Debug)
 
 type RecheckCursor
 

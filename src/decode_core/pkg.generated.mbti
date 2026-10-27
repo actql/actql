@@ -63,6 +63,10 @@ pub fn object_field_names(Cursor) -> Result[Array[String], Issue]
 
 pub fn object_length(Cursor) -> Int?
 
+pub fn observe_subtree_construction_geometry(Cursor) -> SubtreeConstructionGeometry
+
+pub fn observe_subtree_size(Cursor) -> (Int, Int64)
+
 pub fn open_object(Cursor) -> Result[ObjectView, Issue]
 
 pub fn required(ObjectView, String) -> Result[Cursor, Issue]
@@ -148,6 +152,20 @@ pub(all) enum Presence[T] {
   ExplicitNull
   Present(T)
 }
+
+pub(all) struct SubtreeConstructionGeometry {
+  nodes : Int
+  arrays : Int
+  array_items : Int
+  objects : Int
+  fields : Int
+  texts : Int
+  max_object_fields : Int
+  max_key_utf16 : Int
+  max_text_utf16 : Int
+  total_utf16 : Int64
+  work : Int64
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ValueView {
   NullValue
