@@ -2,7 +2,7 @@
 /// Canonical finite Number/Boolean rows only. The pinned binary64 formatter
 /// emits at most 25 ASCII bytes (the negative fixed-notation -6 exponent case).
 /// Decimal, strings, references and nested values never enter this proof.
-fn client_local_scalar_wire_bytes(
+fn _client_local_scalar_wire_bytes(
   sequences : Array[@execution.GeneratedSequence],
   max_rows : Int,
 ) -> Int? {

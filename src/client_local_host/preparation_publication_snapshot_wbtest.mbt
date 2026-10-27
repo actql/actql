@@ -1,6 +1,6 @@
 ///|
 test "typed snapshot wrapper retains one shared-tariff control packet" {
-  assert_eq(publication_snapshot_wrapper_retained, 96L)
+  assert_eq(_publication_snapshot_wrapper_retained, 96L)
   assert_eq(
     preparation_representation_cost(publication_snapshot_wrapper_units),
     Some(96L),

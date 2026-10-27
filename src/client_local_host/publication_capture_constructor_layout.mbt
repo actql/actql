@@ -4,7 +4,7 @@
 /// or Store re-admission. Scalar row objects have at most max_fields keys;
 /// metadata_nodes bounds all non-row metadata occurrences in the capture.
 /// Inputs must come from original publication owners/plan, never caller grants.
-struct PublicationCaptureConstructorLayout {
+priv struct PublicationCaptureConstructorLayout {
   retained : PreparationRepresentationUnits
   temporary : PreparationRepresentationUnits
 }

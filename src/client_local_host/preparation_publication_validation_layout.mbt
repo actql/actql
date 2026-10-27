@@ -1,5 +1,5 @@
 ///|
-struct ProgramRetainedValidationLayout {
+priv struct ProgramRetainedValidationLayout {
   retained : PreparationRepresentationUnits
   temporary : PreparationRepresentationUnits
 }

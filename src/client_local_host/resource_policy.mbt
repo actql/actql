@@ -66,12 +66,12 @@ pub fn client_local_materialized_row_ceiling(
 }
 
 ///|
-fn client_local_dispatch_planning_work() -> Int {
+fn _client_local_dispatch_planning_work() -> Int {
   local_materialization_policy.dispatch_planning_work
 }
 
 ///|
-fn client_local_relation_wire_bytes() -> Int {
+fn _client_local_relation_wire_bytes() -> Int {
   local_materialization_policy.relation_wire_bytes
 }
 

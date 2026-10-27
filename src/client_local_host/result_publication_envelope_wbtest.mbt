@@ -1,5 +1,5 @@
 ///|
-fn result_envelope_fixture() -> @publication_host.PreparedClientProgram raise {
+fn result_envelope_fixture() -> @publication_host.PreparedClientProgram {
   let assets = @publication_host.client_local_product_assets()
   let environment = @publication_host.admit_client_check_environment(
     assets.environment,

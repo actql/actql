@@ -2,7 +2,7 @@
 /// Constructor facts for canonical_json::from_source on already canonical ASCII
 /// keys. Source AST/text/UTF8 wire and parser owners are separate dependencies.
 /// This is a representation projection, never a permit to admit another tree.
-struct CompilationCanonicalShape {
+priv struct CompilationCanonicalShape {
   nodes : Int
   arrays : Int
   objects : Int
@@ -12,7 +12,7 @@ struct CompilationCanonicalShape {
 }
 
 ///|
-struct CompilationCanonicalLayout {
+priv struct CompilationCanonicalLayout {
   tree : PreparationRepresentationUnits
   temporary : PreparationRepresentationUnits
 }

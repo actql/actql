@@ -2,7 +2,7 @@
 /// One numeric Values, no authored evidence, no input or parameters. Operation
 /// metadata only: graph-control, Unit publication, resolution-index copies and
 /// encode/hash writer workspaces have distinct owners in the Context plan.
-struct ClosedValuesOperationCapacityLayout {
+priv struct ClosedValuesOperationCapacityLayout {
   retained : PreparationRepresentationUnits
   temporary : PreparationRepresentationUnits
 }

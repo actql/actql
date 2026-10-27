@@ -2,8 +2,8 @@
 fn materialization_test_inventory() -> ClientLocalSchemaProofInventory {
   {
     original_count: 1,
-    owner_count: 1,
-    work_used: 2,
+    _observed_owner_count: 1,
+    _observed_work_used: 2,
     max_node_width: 2L,
     max_name_width: 2L,
     fields: 1,
@@ -40,11 +40,11 @@ test "scalar materialization demand separates original inventory from numeric pr
 
 ///|
 test "scalar materialization demand rejects representation overflow not arbitrary row ceilings" {
-  assert_eq(client_local_scalar_node_limit(2, 100000), Some(200000))
-  assert_eq(client_local_scalar_node_limit(100, 201), Some(20100))
-  assert_eq(client_local_scalar_node_limit(1, 20001), Some(20001))
-  assert_eq(client_local_scalar_node_limit(1, 2147483644), Some(2147483644))
-  assert_eq(client_local_scalar_node_limit(1, 2147483645), None)
+  assert_eq(_client_local_scalar_node_limit(2, 100000), Some(200000))
+  assert_eq(_client_local_scalar_node_limit(100, 201), Some(20100))
+  assert_eq(_client_local_scalar_node_limit(1, 20001), Some(20001))
+  assert_eq(_client_local_scalar_node_limit(1, 2147483644), Some(2147483644))
+  assert_eq(_client_local_scalar_node_limit(1, 2147483645), None)
   assert_eq(
     client_local_scalar_wire_byte_bound(2147483647, 2147483647, 2147483647),
     None,

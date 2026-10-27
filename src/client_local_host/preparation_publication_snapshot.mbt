@@ -18,7 +18,7 @@ let publication_snapshot_wrapper_units : PreparationRepresentationUnits = {
 }
 
 ///|
-let publication_snapshot_wrapper_retained : Int64 = preparation_representation_cost(
+let _publication_snapshot_wrapper_retained : Int64 = preparation_representation_cost(
   publication_snapshot_wrapper_units,
 ).unwrap()
 

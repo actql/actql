@@ -101,7 +101,7 @@ fn preparation_cost_add(total : Int64, count : Int64, price : Int64) -> Int64? {
 /// inventory itself is borrowed, not allocated here. Equal content is not
 /// identity: distinct copied owners are charged separately. Repeated identity
 /// with different extents is not a valid immutable snapshot and refuses.
-fn[T] preparation_owned_representation_cost(
+fn[T] _preparation_owned_representation_cost(
   owners : Array[(T, PreparationRepresentationUnits)],
   max_work : Int,
 ) -> Int64? {
@@ -198,7 +198,10 @@ fn preparation_node_own_data_header_cost() -> Int64? {
 /// Domain callers supply storage/slot inventories, never another tariff or
 /// an already guessed budget. Workspace is simultaneous with retained state;
 /// ExecutionCapacity therefore includes both components in its execution peak.
-struct PreparationExecutionInventory {
+// This private recipe argument is constructed by white-box layout checks;
+// no production path fabricates an unfunded constructor merely to use it.
+#warnings("-struct_never_constructed")
+priv struct PreparationExecutionInventory {
   retained : PreparationRepresentationUnits
   workspace : PreparationRepresentationUnits
   retained_nodes : Int64
@@ -208,7 +211,7 @@ struct PreparationExecutionInventory {
 }
 
 ///|
-fn preparation_execution_capacity(
+fn _preparation_execution_capacity(
   inventory : PreparationExecutionInventory,
 ) -> @execution.ExecutionCapacity? {
   let node = @execution.execution_capacity_node_bytes()
