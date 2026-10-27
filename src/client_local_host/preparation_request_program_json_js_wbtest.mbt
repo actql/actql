@@ -40,14 +40,14 @@ test "original request parent continues into generic Unicode Effect source and P
     before.reserved_execution_bytes + entry,
   )
   let ready = Ref(false)
-  for _ in (0..<request_json_effect_source.length()) + 1 {
+  for _ in 0..<(request_json_effect_source.length() + 1) {
     match advance_program_json_preparation(child, 64).unwrap() {
       @source.JsonSourceContinue(..) => ()
-      @source.JsonSourceReady(..) => {
+      @source.JsonSourceReady(_, ..) => {
         ready.val = true
         break
       }
-      @source.JsonSourceFailed(..) =>
+      @source.JsonSourceFailed(_, ..) =>
         fail("original Effect JSON preflight refused")
     }
   }
