@@ -23,10 +23,13 @@ function fixture() {
     clientProgramInstalledManagedRunRetire() {}, clientProgramNodeEffectManagedPlanCleanup() {},
     clientProgramInstalledEffectManagedRunCheck(value, p, r) {
       assert.strictEqual(this, runtime); assert.strictEqual(value, parent);
-      assert.strictEqual(p, prepared); assert.strictEqual(r, request); checkCallback(); return ok();
+      assert.strictEqual(p, prepared); assert.strictEqual(r, request); return ok();
     },
-    clientProgramInstalledEffectManagedOperationPlan(value) {
-      assert.strictEqual(this, runtime); assert.strictEqual(value, parent); return ok(plan);
+    // The bound Core getter now owns currentness; keep the same original
+    // callback fixture inside that port rather than a duplicate check call.
+    clientProgramInstalledEffectManagedOperationPlan(value, p, r) {
+      assert.strictEqual(this, runtime); assert.strictEqual(value, parent);
+      assert.strictEqual(p, prepared); assert.strictEqual(r, request); checkCallback(); return ok(plan);
     },
     clientProgramNodeEffectManagedPlanPrepare(value, scope) {
       assert.strictEqual(this, runtime); assert.strictEqual(value, original); assert.strictEqual(scope, plan);

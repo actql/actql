@@ -65,7 +65,10 @@ test('actual acquired Effect custody receives the Content failure cleanup throug
   const moon = {...f.options.moon,
     clientProgramEffectSerializationOccurrences: () => [{}],
     clientProgramInstalledEffectManagedRunCheck: () => ok(),
-    clientProgramInstalledEffectManagedOperationPlan: () => ok(plan),
+    clientProgramInstalledEffectManagedOperationPlan(value, prepared, request) {
+      assert.equal(this, moon); assert.equal(value, parent);
+      assert.equal(prepared, acquired.prepared); assert.equal(request, acquired.requestIdentity); return ok(plan);
+    },
     clientProgramInstalledEffectManagedHostOpen() {assert.fail('no Compute after constructor failure');},
   };
   const selected = {provider: f.options.control.effectFamily};
