@@ -24,7 +24,8 @@ for (const [name, paths] of Object.entries(expected)) {
   for (const path of paths) rmSync(join(root, 'packages', name, path), {force: true});
 }
 for (const [name, paths] of Object.entries(expected)) {
-  const output = execFileSync('npm', ['pack', '--json', '--pack-destination', destination],
+  const output = execFileSync('npm', ['pack', '--json', '--pack-destination', destination,
+    '--foreground-scripts=false'],
     {cwd: join(root, 'packages', name), encoding: 'utf8', timeout: 180000,
       maxBuffer: 16 * 1024 * 1024});
   const metadata = JSON.parse(output);

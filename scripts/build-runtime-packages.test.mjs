@@ -12,6 +12,7 @@ import {localModuleGraphInputs} from './adapter-module-graph.mjs';
 import {finiteRuntimeModules} from '../adapters/workers/artifact.mjs';
 // Keep the deferred-initialization regressions in the ordinary cold-pack gate.
 import './deferred-function-runtime.test.mjs';
+import './runtime-package-pack-json.test.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 
@@ -645,6 +646,6 @@ test('the existing cold pack runner executes this regression and still packs all
   assert.match(source, /'dist\/workers_finite_payload\.js'/);
   assert.match(source, /execFileSync\(process\.execPath, \['--test', 'scripts\/build-runtime-packages\.test\.mjs'\]/);
   assert.match(source, /for \(const \[name, paths\] of Object\.entries\(expected\)\)/);
-  assert.match(source, /execFileSync\('npm', \['pack', '--json', '--pack-destination', destination\]/);
+  assert.match(source, /execFileSync\('npm', \['pack', '--json', '--pack-destination', destination,\s*'--foreground-scripts=false'\]/);
   assert.doesNotMatch(source, /--ignore-scripts/);
 });
