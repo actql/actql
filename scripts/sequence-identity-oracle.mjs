@@ -20,7 +20,12 @@ export function sequenceIdentityOracle() {
  const start=language.indexOf('<a id="expression-text"></a>');
  const end=language.indexOf('<a id="predicates"></a>',start);
  assert(start>=0&&end>start);
- const updated={...body,expression_contract_cid:signatureRoleCid(expression),
+ const protocol=read('spec/contracts/actql-protocol-schemas.json');
+ const updated={...body,
+  source_grammar_cid:signatureRoleCid(protocol.artifact_schemas.executable_plan.properties.execution_material.properties.program),
+  structural_text_grammar_sha256:sha('spec/grammar/actql-text-0.1.ebnf'),
+  structural_text_rules_sha256:sha('docs/spec/structural-text.md'),
+  expression_contract_cid:signatureRoleCid(expression),
   expression_text_grammar_sha256:sha(expression.grammar),
   expression_text_rules_sha256:createHash('sha256').update(language.slice(start,end)).digest('hex'),
   query_text_grammar_sha256:sha('spec/grammar/actql-query-0.1.ebnf'),query_text_rules_sha256:sha('docs/spec/query-text.md')};

@@ -98,7 +98,7 @@ fn acquisition_runtime_transfer_consumer(
         @site.site_generation(site),
         intent,
         at,
-        configuration.registry_body,
+        configuration.installed_contracts,
         configuration.values_body,
         configuration.source.fragment_contract_body,
       ).unwrap()
@@ -118,7 +118,7 @@ fn acquisition_runtime_transfer_consumer(
         @site.site_generation(site) + 1,
         intent,
         at,
-        configuration.registry_body,
+        configuration.installed_contracts,
         configuration.values_body,
         configuration.source.fragment_contract_body,
       )
@@ -136,7 +136,7 @@ fn acquisition_runtime_transfer_consumer(
         @site.site_generation(site),
         intent,
         at,
-        configuration.registry_body,
+        configuration.installed_contracts,
         configuration.values_body,
         configuration.source.fragment_contract_body,
       )
@@ -151,7 +151,7 @@ fn acquisition_runtime_transfer_consumer(
         @site.site_generation(site),
         intent,
         "2100-01-01T00:00:00.000Z",
-        configuration.registry_body,
+        configuration.installed_contracts,
         configuration.values_body,
         configuration.source.fragment_contract_body,
       )

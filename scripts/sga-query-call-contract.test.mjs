@@ -483,7 +483,8 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(cid(sequenceBody), sequenceCid);
   assert.equal(sequenceBody.query_text_grammar_sha256, fileDigest('reviews/2026-10-12-frontend-sequence-predicate-ast/preimages/submitted-query-grammar.ebnf'));
   assert.equal(sequenceBody.query_text_rules_sha256, fileDigest('reviews/2026-10-12-frontend-sequence-predicate-ast/preimages/submitted-query-rules.md'));
-  const {grammar_manifest_cid: currentSequenceCid, ...currentSequenceBody} = read('scripts/fixtures/current-sequence-values-identities.json').grammar;
+  const {grammar_manifest_cid: currentSequenceCid, ...currentSequenceBody} =
+    JSON.parse(historicalSourceBytes('scripts/fixtures/current-sequence-values-identities.json')).grammar;
   assert.equal(cid(currentSequenceBody), currentSequenceCid);
   // This full snapshot belongs to its original merged normative closure.
   // Current rules remain checked independently against currentBody above.

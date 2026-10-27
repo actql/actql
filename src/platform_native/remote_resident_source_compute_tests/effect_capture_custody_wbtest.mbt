@@ -193,6 +193,8 @@ fn retained_effect_capture_store(
         BodyTooLarge => "sqlite-body"
         CapacityExceeded => "sqlite-capacity"
         Physical(_) => "sqlite-physical"
+        OperationRoutingBefore(_) => "sqlite-routing-before"
+        OperationRoutingAfter(_, _) => "sqlite-routing-after"
       }
     Err({ issue: Store(PrivateEvidence(issue)), .. }) =>
       match issue {

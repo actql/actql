@@ -88,7 +88,12 @@ fn resident_compute_configuration(
         execution_bytes: 1073741824L,
       },
     },
-    registry_body: resident_effect_source_registry,
+    installed_contracts: @local.prepare_installed_sequence_contracts(
+      resident_effect_source_registry,
+      resident_effect_source_values,
+      Some(resident_effect_source_fragment),
+      None,
+    ).unwrap(),
     values_body: resident_effect_source_values,
     dispatch: {
       input_entries: 100,
