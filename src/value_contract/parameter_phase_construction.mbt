@@ -28,11 +28,12 @@ pub fn parameter_read_phase_construction_inventory(
     return None
   }
   // Syntax3R; its two optional original default/meta Cursors4R2W and
-  // their Some2R2W. The caller's own syntax attachment is a separate owner.
+  // their Some2R2W; retained maximum Decimal precision1W. The caller's
+  // own syntax attachment is a separate owner.
   let syntax : @shape.CollectionConstructionExtent = {
     record_headers: 5L,
     reference_slots: 9L,
-    scalar_words: 4L,
+    scalar_words: 5L,
   }
   guard @shape.add_collection_construction_extents(returned, syntax)
     is Some(returned) else {

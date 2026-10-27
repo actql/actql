@@ -42,6 +42,7 @@ pub struct ParameterSyntax {
   parameter_type : ParameterType
   default_value : @decode.Cursor?
   metadata : @decode.Cursor?
+  priv maximum_decimal_precision : Int
 }
 
 ///|
@@ -96,6 +97,7 @@ fn parameter_decode(
   let values : Array[ParameterType] = []
   let mut default_value = None
   let mut metadata = None
+  let mut maximum_decimal_precision = 0
   while !work.is_empty() {
     match work.pop().unwrap() {
       ParameterArray(nullable, max_items, length) => {
@@ -198,6 +200,10 @@ fn parameter_decode(
             if scale < 0L || scale > precision {
               invalid(s, InvalidRange)
             }
+            maximum_decimal_precision = Int::max(
+              maximum_decimal_precision,
+              precision.to_int(),
+            )
             Decimal(precision=precision.to_int(), scale=scale.to_int())
           }
           "array" => {
@@ -255,7 +261,12 @@ fn parameter_decode(
       }
     }
   }
-  { parameter_type: values.pop().unwrap(), default_value, metadata, }
+  {
+    parameter_type: values.pop().unwrap(),
+    default_value,
+    metadata,
+    maximum_decimal_precision,
+  }
 }
 
 ///|
@@ -270,4 +281,14 @@ pub fn read_parameter_syntax(
   Ok(parameter_decode(cursor, limits)) catch {
     Abort(error) => Err(error)
   }
+}
+
+///|
+/// Borrow a completed constructor fact from the SAME original syntax. The
+/// semantic reader records it while admitting each original Decimal type;
+/// no type/default traversal, callback, admission or resource grant occurs here.
+pub fn parameter_syntax_maximum_decimal_precision(
+  original : ParameterSyntax,
+) -> Int {
+  original.maximum_decimal_precision
 }

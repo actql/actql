@@ -7,14 +7,14 @@ test "Parameter Type phase funds original views work two paths and normalization
     1L,
     { max_nodes: 100, max_depth: 2, max_text_bytes: 1000, },
   ).unwrap()
-  // Existing type6H10R12W plus actual syntax/default/meta carrier5H9R4W.
+  // Existing type6H10R12W plus actual syntax/default/meta carrier5H9R5W.
   assert_eq(
     (
       inventory.returned.record_headers,
       inventory.returned.reference_slots,
       inventory.returned.scalar_words,
     ),
-    (11L, 19L, 16L),
+    (11L, 19L, 17L),
   )
   assert_eq(
     (
@@ -54,7 +54,7 @@ test "wide Parameter fields retain actual builtin key-check branch and field mul
       inventory.returned.reference_slots,
       inventory.returned.scalar_words,
     ),
-    (273L, 685L, 404L),
+    (273L, 685L, 405L),
   )
   assert_eq(inventory.sort_fields, 32)
   let keys = @shape.object_key_construction_counts(32, 0, 32).unwrap()

@@ -268,9 +268,8 @@ test "staged original type feeds the existing default Value constructor inventor
     syntax.default_value.unwrap(),
   )
   assert_eq((geometry.nodes, geometry.max_text_utf16), (1, 4096))
-  let inventory = @value.parameter_value_body_construction_inventory(
-    syntax.parameter_type,
-    geometry,
+  let inventory = @value.parameter_syntax_value_body_construction_inventory(
+    syntax, geometry,
   ).unwrap()
   assert_eq(inventory.owned_value_utf16_units, 0L)
   assert_eq(inventory.owned_decimal_scratch_utf16_units, 0L)
@@ -291,8 +290,8 @@ test "staged original type feeds the existing default Value constructor inventor
   @parameter_binding.advance_declaration_read(original)
   @parameter_binding.advance_declaration_read(original)
   let syntax = @parameter_binding.declaration_read_pending_syntax(original).unwrap()
-  let inventory = @value.parameter_value_body_construction_inventory(
-    syntax.parameter_type,
+  let inventory = @value.parameter_syntax_value_body_construction_inventory(
+    syntax,
     @decode.observe_subtree_construction_geometry(syntax.default_value.unwrap()),
   ).unwrap()
   // Actual checked precision4 and original default length4, never a second

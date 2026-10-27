@@ -34,13 +34,14 @@ test "actual Parameter Type builder waits for same-parent grow and preserves ori
   let cursor = @parameters.declaration_read_type_cursor(reader)
   let facts = @parameters.declaration_read_current_construction(reader)
   let work = @parameters.declaration_read_construction_work(reader)
-  assert_eq(parameter_type_construction_bytes(reader, 0), Some((488L, 15980L)))
+  // Existing returned488 plus ONE8-byte logical scalar word; tariff unchanged.
+  assert_eq(parameter_type_construction_bytes(reader, 0), Some((496L, 15980L)))
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
     Ok((9577L, 9595L)),
   )
-  let sibling = @resources.reserve_capacity(ledger, 23956L, 23956L).unwrap()
-  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 33533L)
+  let sibling = @resources.reserve_capacity(ledger, 23948L, 23948L).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 33525L)
   assert_true(
     prepare_parameter_declaration_type(owner)
     is Err(Capacity(Resource(RetentionLimit))),
@@ -54,7 +55,7 @@ test "actual Parameter Type builder waits for same-parent grow and preserves ori
   assert_true(physical_equal(owner.current_type, cursor))
   assert_true(physical_equal(owner.current_type_facts, facts))
   let quote = owner.quote.unwrap()
-  assert_eq(quote, (26045L, 26063L))
+  assert_eq(quote, (26053L, 26071L))
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
     Ok((9577L, 9595L)),
@@ -88,7 +89,7 @@ test "actual Parameter Type builder waits for same-parent grow and preserves ori
   )
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((26045L, 26063L)),
+    Ok((26053L, 26071L)),
   )
   assert_true(prepare_parameter_declaration_type(owner) is Err(WrongPhase))
   assert_true(
@@ -98,7 +99,7 @@ test "actual Parameter Type builder waits for same-parent grow and preserves ori
   assert_true(owner.current_type is None && owner.current_type_facts is None)
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((26045L, 26063L)),
+    Ok((26053L, 26071L)),
   )
   assert_eq(@resources.ledger_usage(ledger).attempts, 0)
 }

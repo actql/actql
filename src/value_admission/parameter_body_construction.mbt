@@ -45,31 +45,42 @@ pub fn parameter_value_body_construction_inventory(
   parameter : @contract.ParameterType,
   geometry : @decode.SubtreeConstructionGeometry,
 ) -> ParameterValueBodyConstructionInventory? {
-  let g = geometry
-  if g.nodes < 1 ||
-    g.arrays < 0 ||
-    g.array_items < 0 ||
-    g.objects < 0 ||
-    g.fields < 0 ||
-    g.texts < 0 ||
-    g.max_object_fields < 0 ||
-    g.max_key_utf16 < 0 ||
-    g.max_text_utf16 < 0 ||
-    g.total_utf16 < 0L ||
-    g.work < 0L ||
-    g.arrays.to_int64() + g.objects.to_int64() + g.texts.to_int64() >
-    g.nodes.to_int64() ||
-    g.array_items.to_int64() + g.fields.to_int64() != g.nodes.to_int64() - 1L ||
-    g.max_object_fields > g.fields ||
-    g.max_key_utf16.to_int64() > g.total_utf16 ||
-    g.max_text_utf16.to_int64() > g.total_utf16 {
+  if !parameter_value_body_geometry_valid(geometry) {
     return None
   }
+  parameter_value_body_construction_inventory_owned(
+    parameter_body_decimal_precision(parameter.contract),
+    geometry,
+  )
+}
+
+///|
+/// Same constructor inventory using the SAME completed ParameterSyntax's
+/// retained Decimal fact. The ordinary declaration continuation already owns
+/// this nominal syntax; it needs no new graph walk or caller precision hint.
+pub fn parameter_syntax_value_body_construction_inventory(
+  original : @contract.ParameterSyntax,
+  geometry : @decode.SubtreeConstructionGeometry,
+) -> ParameterValueBodyConstructionInventory? {
+  if !parameter_value_body_geometry_valid(geometry) {
+    return None
+  }
+  parameter_value_body_construction_inventory_owned(
+    @contract.parameter_syntax_maximum_decimal_precision(original),
+    geometry,
+  )
+}
+
+///|
+fn parameter_value_body_construction_inventory_owned(
+  precision : Int,
+  geometry : @decode.SubtreeConstructionGeometry,
+) -> ParameterValueBodyConstructionInventory? {
+  let g = geometry
   let n = g.nodes.to_int64()
   let a = g.arrays.to_int64()
   let o = g.objects.to_int64()
   let f = g.fields.to_int64()
-  let precision = parameter_body_decimal_precision(parameter.contract)
   let t = if precision == 0 { 0L } else { g.texts.to_int64() }
   let containers = a + o
   // A Value alternative owns at most1H1R2W. A possible Decimal text adds its
@@ -161,4 +172,29 @@ pub fn parameter_value_body_construction_inventory(
     },
     key_normalization,
   })
+}
+
+///|
+// Preserve the original malformed-geometry boundary before either metadata
+// source is consulted. Both public routes use this same closed DATA rule.
+fn parameter_value_body_geometry_valid(
+  g : @decode.SubtreeConstructionGeometry,
+) -> Bool {
+  !(g.nodes < 1 ||
+  g.arrays < 0 ||
+  g.array_items < 0 ||
+  g.objects < 0 ||
+  g.fields < 0 ||
+  g.texts < 0 ||
+  g.max_object_fields < 0 ||
+  g.max_key_utf16 < 0 ||
+  g.max_text_utf16 < 0 ||
+  g.total_utf16 < 0L ||
+  g.work < 0L ||
+  g.arrays.to_int64() + g.objects.to_int64() + g.texts.to_int64() >
+  g.nodes.to_int64() ||
+  g.array_items.to_int64() + g.fields.to_int64() != g.nodes.to_int64() - 1L ||
+  g.max_object_fields > g.fields ||
+  g.max_key_utf16.to_int64() > g.total_utf16 ||
+  g.max_text_utf16.to_int64() > g.total_utf16)
 }

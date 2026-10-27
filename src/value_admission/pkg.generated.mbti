@@ -160,6 +160,8 @@ pub fn number_value(Double) -> Value?
 
 pub fn object_value(Array[(String, Value)]) -> Value?
 
+pub fn parameter_syntax_value_body_construction_inventory(@value_contract.ParameterSyntax, @decode_core.SubtreeConstructionGeometry) -> ParameterValueBodyConstructionInventory?
+
 pub fn parameter_value_body_construction_inventory(@value_contract.ParameterType, @decode_core.SubtreeConstructionGeometry) -> ParameterValueBodyConstructionInventory?
 
 pub fn prepare_array_value(Int) -> ArrayBuilder?

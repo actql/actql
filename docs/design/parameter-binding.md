@@ -404,8 +404,34 @@ Sequential quotation constructors share only their source-derived control
 maximum. The current Type quote also retains its two original-association
 references in the existing continuation. This is domain construction DATA,
 not spare capacity, a minimum, RSS or a numerical physical-entry supplier.
-Type scratch is not reconciled yet: later Value quotation must first fund its
-walk over the original admitted type while those dependencies coexist. Clearing
+Type scratch is not reconciled yet: the later metadata/default constructor
+still requires its complete coexistence quote. The same syntax retains the
+Decimal fact needed by Value quantity projection, so that selected route does
+not traverse the admitted type again. Clearing
 local references keeps the parent's charge; it neither refunds work/attempts
 nor acknowledges cleanup. Full metadata/default funding, final declaration
 construction and actual backend entrance remain subsequent obligations.
+
+
+### Completed type facts in the default quantity projection
+
+The original Parameter syntax reader retains the maximum Decimal precision as
+it admits the same recursive type. The scalar is updated only after that
+Decimal's existing precision/scale guards, and is returned only with a complete
+ParameterSyntax. Default and metadata contents cannot supply this fact. The
+original private syntax holds it alongside the same ParameterType and source
+Cursors; no caller-provided precision, equal wrapper or global table is read.
+Its extra scalar word belongs to the Type return inventory under the existing
+representation tariff.
+
+The syntax-based Value construction inventory consumes that completed fact
+without another Contract traversal. Its quantity arithmetic and malformed
+geometry rule remain shared with the existing direct checked-Type entry. A
+consumer possessing only a checked ParameterType still funds that entry's
+actual metadata walk; the syntax-based route needs none. Neither route admits
+a default, reconstructs its type or grants capacity. The same original syntax
+can therefore supply the complete later default quotation without an unfunded
+pre-quotation type graph walk. Metadata checks, actual Value admission and
+Parameter constraints remain their existing semantic owners and ordering.
+Their full same-parent construction envelope and backend adoption are still
+required before the funded reader can advance that Value phase.
