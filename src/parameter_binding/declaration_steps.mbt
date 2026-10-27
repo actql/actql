@@ -104,11 +104,9 @@ fn declaration_read_header(original : DeclarationReadInput) -> Unit raise Abort 
     Some(root) => {
       let object = decoded(@decode.open_object(root))
       let names = decoded(@decode.object_field_names(root))
-      if names.is_empty() {
-        invalid(root, EmptyDeclarations)
-      }
-      if names.length() > original.limits.max_parameters {
-        invalid(root, ParameterLimit)
+      if declaration_header_issue(names.length(), original.limits)
+        is Some(issue) {
+        invalid(root, issue)
       }
       names.sort_by(@canonical.compare_utf16)
       // Every name comes from this SAME immutable admitted object's fields;

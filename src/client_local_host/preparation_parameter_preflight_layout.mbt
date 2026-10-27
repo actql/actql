@@ -33,7 +33,7 @@ let parameter_preflight_driver_controls : @execution.PreparationRepresentationUn
 let parameter_preflight_initial_controls : @execution.PreparationRepresentationUnits = {
   let work = @resources.preparation_phase_work_construction_inventory()
   @execution.compose_preparation_representation([
-    parameter_preflight_quote_controls,
+    parameter_declaration_quote_controls,
     parameter_preflight_driver_controls,
     {
       record_headers: work.record_headers,

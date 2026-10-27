@@ -294,3 +294,39 @@ covers only the initial four-reference read input; its state field replaces
 the former optional-result field without adding a parallel owner. Backend
 entrance frames and full later-phase funding remain the actual consumer's
 responsibility, rather than implied by a successful pure reader step.
+
+### Funded Header on the original preparation
+
+After successful preflight scratch has returned and reconciled,
+`prepare_parameter_declaration_header` grows the same original reservation
+before advancing that read input's Header. The Header constructs its actual
+ObjectView Map and name vector before the semantic parameter-count guard.
+Their storage therefore uses the complete original field count, including a
+count that will subsequently refuse; it cannot use the configured count as a
+shortcut for already required construction.
+
+The original empty/count rule also selects whether the Header can reach its
+name sort. It remains one semantic definition in Parameter binding. Actual
+sorting frames use the existing pinned builtin sort constructor inventory;
+Maps, Arrays, indexed lookup and failure paths use their existing owners.
+Header and sort storage are priced once each by the same representation tariff.
+The independent quotation-control inventories share only their source-proved
+sequential maximum after earlier synchronous quotes have returned. Neither a
+previous quote nor a free byte observation is construction credit.
+
+A failed Header grow retains its exact quote and leaves the semantic input at
+Header. A successful retry advances that same input once. Resource currentness
+may call out, so the driver checks the same read phase again after growth;
+that is a cheap internal state check without another current callback. Header
+success still means either its original typed refusal/completion or readiness
+for Type, never a completed type/default check. Preflight reconciliation cannot
+shrink a now-live Header, and clearing local references does not return its
+parent debit or acknowledge physical cleanup.
+
+The shared indexed-read quantities include the original boxed Option tags,
+consistent with the existing logical representation model. The child carrier
+owns an Int payload, Cursor index and two tags; the field carrier owns its
+Cursor index and two tags. This corrects representation quantities at their
+Decode owner without changing tariffs, semantic bounds or backend allocation
+claims. Type, metadata, default, retained-result and actual backend entrance
+funding remain subsequent obligations on this same parent.

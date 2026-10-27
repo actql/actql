@@ -23,8 +23,8 @@ fn funded_parameter_limits() -> @parameters.DeclarationLimits {
 ///|
 test "Parameter preflight grows same parent once and retains exact metadata across one-short refusal" {
   let root = funded_parameter_cursor("{\"x\":{\"type\":\"number\"}}")
-  // Independent3nodes/2fields/maxKey4/wholeDepth2. Traversal19H43R13W,
-  // full refusal11H32R13W, SAME NFC100H123R668W/162U =>9540 logicalB.
+  // Independent3nodes/2fields/maxKey4/wholeDepth2. Traversal19H43R17W,
+  // full refusal11H32R13W, SAME NFC100H123R668W/162U =>9572 logicalB.
   // Fixed quote/driver/receipt142H62R297W =>5144 logicalB.
   assert_true(
     parameter_declaration_preflight_initial_inventory() ==
@@ -43,10 +43,10 @@ test "Parameter preflight grows same parent once and retains exact metadata acro
       0,
       funded_parameter_limits(),
     ),
-    Some(9540L),
+    Some(9572L),
   )
   assert_eq(program_json_initial_control_bytes, 20232L)
-  let core = 14684L
+  let core = 14716L
   let ledger = @resources.create_ledger({
     planning_work: 7,
     attempts: 2,
@@ -202,11 +202,11 @@ test "Parameter constructor quote uses original node budget and exact cursor anc
       inventory.traversal.reference_slots,
       inventory.traversal.scalar_words,
     ),
-    (15L, 31L, 9L),
+    (15L, 31L, 13L),
   )
   assert_eq(
     parameter_preflight_construction_bytes(geometry.unwrap(), depth, limits),
-    Some(1096L),
+    Some(1128L),
   )
   let whole = funded_parameter_cursor(
     "{\"outside\":" +
@@ -230,7 +230,7 @@ test "Parameter constructor quote uses original node budget and exact cursor anc
       depth,
       funded_parameter_limits(),
     ),
-    Some(9604L),
+    Some(9636L),
   )
 }
 

@@ -4,6 +4,8 @@ priv enum ParameterPreflightPhase {
   Inspected
   Preflighted
   RetainedPreflight
+  HeaderQuoted
+  HeaderPrepared
   Failed
   Retired
 } derive(Eq)
@@ -222,7 +224,11 @@ pub fn[I, P] parameter_declaration_preflight_outcome(
   owner : ClientParameterDeclarationPreflight[I, P],
 ) -> (Result[@parameters.DeclarationReadInput, @parameters.Issue], Int, Int)? {
   guard !owner.busy &&
-    (owner.phase == Preflighted || owner.phase == RetainedPreflight) &&
+    (
+      owner.phase == Preflighted ||
+      owner.phase == RetainedPreflight ||
+      owner.phase == HeaderPrepared
+    ) &&
     owner.prepared is Some(_) else {
     return None
   }

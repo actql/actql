@@ -36,6 +36,8 @@ pub fn declaration_at(Declarations, Int) -> Declaration?
 
 pub fn declaration_count(Declarations) -> Int
 
+pub fn declaration_header_construction_inventory(@decode_core.Cursor?, Int, DeclarationLimits) -> DeclarationHeaderConstructionInventory?
+
 pub fn declaration_preflight_construction_inventory(@decode_core.SubtreeConstructionGeometry, Int, DeclarationLimits) -> DeclarationPreflightConstructionInventory?
 
 pub fn declaration_read_pending_syntax(DeclarationReadInput) -> @value_contract.ParameterSyntax?
@@ -105,6 +107,11 @@ pub struct Declaration {
   metadata : @decode_core.Cursor?
   // private fields
 }
+
+pub(all) struct DeclarationHeaderConstructionInventory {
+  storage : @decode_shape.CollectionConstructionExtent
+  sort_fields : Int
+} derive(Eq, @debug.Debug)
 
 pub(all) struct DeclarationLimits {
   max_parameters : Int

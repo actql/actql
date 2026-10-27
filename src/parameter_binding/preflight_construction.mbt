@@ -74,13 +74,7 @@ pub fn declaration_preflight_construction_inventory(
     is Some(path) else {
     return None
   }
-  let failure : @shape.CollectionConstructionExtent = {
-    // Typed Decode/Parameter issue, Abort/Result carriers; direct original
-    // child/key spans replace all failure-only key arrays and lookup Maps.
-    record_headers: 5L,
-    reference_slots: 7L,
-    scalar_words: 5L,
-  }
+  let failure = parameter_issue_construction_extent()
   guard @shape.collection_construction_extent(traversal) is Some(traversal) &&
     @shape.add_collection_construction_extents(
       traversal,
