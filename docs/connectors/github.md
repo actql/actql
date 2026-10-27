@@ -17,8 +17,9 @@ generated files.
   Key `number`.
 - `github.issue_comments` — comments on issues and pull requests: `id`,
   `subject_number`, `author`, `body`, `created_at`, `updated_at`. Key `id`.
-- `github.repositories` — the connection's repository and, with an
-  organisation token, the organisation's repositories: `name`, `full_name`,
+- `github.repositories` — the bound repository's metadata, or the organisation's
+  repository listing under an explicitly admitted organisation read scope:
+  `name`, `full_name`,
   `default_branch`, `visibility`, `pushed_at`, `open_issues`. Key `full_name`.
 - `github.commits` — commits on a branch: `sha`, `message`, `author`,
   `committed_at`, `parents`, `files` (an array of path and change kind).
@@ -30,8 +31,31 @@ generated files.
   `version`, `media_type`, `content`. Join it on `resource` and `version`
   from `github.files`; the Connector fetches only the blobs the join names.
 
-A connection is scoped to one repository (`owner`/`repo`); use a second
-connection for another repository.
+### Connection scope
+
+A repository connection is scoped to one original repository (`owner`/`repo`
+and its admitted stable identity). Its `github.repositories` Source reads that
+repository's metadata. A token that can access other repositories does not
+enlarge this connection's scope. Use another repository connection for
+repository-specific Sources, Content or Effects in another repository.
+
+Organisation repository enumeration requires a separately admitted
+organisation-scoped Source connection that explicitly identifies the
+organisation. Its publication, Account and Site must retain that same original
+organisation and the authority for the bounded repository-listing read. The
+token's type, accessible repositories or ownership of the configured repository
+cannot select this scope implicitly. The `owner`/`repo` setup below selects
+repository scope only.
+
+The organisation Source lists repository metadata within its admitted scope and
+the provider's actual visibility. Those rows do not grant permission to read
+each repository's issues, files or content, or to perform Effects there. Provider
+visibility is not proof that inaccessible repositories do not exist. Pagination,
+current checks and bounded-read obligations still apply; a failed or incomplete
+listing is not a complete empty result. An implementation without the admitted
+organisation scope must refuse that selection, rather than return only the
+configured repository as if it had enumerated the organisation. Organisation
+enumeration remains part of the connector's target behaviour.
 
 ## Types
 
