@@ -797,3 +797,29 @@ synchronous lifetime; exporting a function does not fund backend input, VM,
 callback or argument backing, register a later output consumer, or enable a
 normal Source/Effect profile by itself. Original current/abort, pending/Unknown,
 and physical retirement obligations remain with their existing owners.
+
+
+## Source input constructor quantities
+
+Collection observes dimensions on the same immutable Source before the owned
+reader runs. Direct indexed metadata probes retain neither detached recursive
+values nor a second input-name Map. Connector, resource and optional view text
+supply normalization quantities; opaque request/meta text contributes traversal
+work and borrowed input backing, never a normalization size. Actual supplied
+widths govern open/closed Object construction, including malformed wide policy
+and order records. The shared Decode, collection, NFC and order owners supply
+their original construction units; this layer introduces no byte tariff.
+
+The reader's existing preflight/field/order charges bound its constructed
+prefix. A failed charge cannot allocate later maps or order arrays. Temporary
+backing includes every created pending Cursor and the growable array storage
+through return. In particular Native pop/clear can leave references in vacated
+slots; logical emptiness is not physical retirement. Returned declarations,
+normalization outputs, order keys and the name index retain their original
+associations. Partial failure remains only the original typed failure.
+
+These quantities do not perform collection or authorize Source/Catalog
+selection. The metadata/quotation frame, original input/limits and actual
+registration/Context continuation need their own same-parent backing and
+retirement. A constructor envelope alone supplies neither that funding nor a
+physical cleanup acknowledgement.

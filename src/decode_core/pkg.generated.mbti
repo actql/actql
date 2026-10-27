@@ -31,6 +31,8 @@ pub fn closed_object(Cursor, Array[String]) -> Result[ObjectView, Issue]
 
 pub fn closed_object_construction_extent(Cursor, Int, Int) -> @decode_shape.CollectionConstructionExtent?
 
+pub fn closed_object_field_construction_extent(Int?, Int, Int64) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn cursor_key_span(Cursor) -> @source_span.Span?
 
 pub fn cursor_path(Cursor) -> Array[@source_value.PathSegment]
@@ -63,6 +65,8 @@ pub fn is_text(Cursor) -> Bool
 
 pub fn issue_construction_extent(Int) -> @decode_shape.CollectionConstructionExtent?
 
+pub fn issue_path_construction_extent(Int64) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn lookup(ObjectView, String) -> Cursor?
 
 pub fn object_field_names(Cursor) -> Result[Array[String], Issue]
@@ -78,6 +82,8 @@ pub fn observe_subtree_geometry(Cursor, Array[String]) -> SubtreeGeometry
 pub fn observe_subtree_size(Cursor) -> (Int, Int64)
 
 pub fn open_object(Cursor) -> Result[ObjectView, Issue]
+
+pub fn open_object_construction_extent(Int) -> @decode_shape.CollectionConstructionExtent?
 
 pub fn require_non_null_cursor(Cursor) -> Result[Cursor, Issue]
 

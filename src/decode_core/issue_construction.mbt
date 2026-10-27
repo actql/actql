@@ -9,18 +9,26 @@ pub fn issue_construction_extent(
   if max_path_segments < 0 {
     return None
   }
-  let d = max_path_segments.to_int64()
-  // A segment can retain a Key reference or an Index payload. Componentwise
-  // bounds keep both alternatives without copying their original backing.
-  @shape.collection_construction_extent({
-    records: 2L + d,
-    record_references: 3L + d,
-    record_words: 2L + 2L * d,
-    reference_arrays: 1L,
-    reference_items: d,
-    scalar_arrays: 0L,
-    scalar_items: 0L,
-    maps: 0L,
-    map_entries: 0L,
+  issue_path_construction_extent(max_path_segments.to_int64())
+}
+
+///|
+/// Same Issue/Err/path owner with checked wide quantity DATA. This does not
+/// allocate a path or assert that a Cursor or semantic Issue exists.
+pub fn issue_path_construction_extent(
+  max_path_segments : Int64,
+) -> @shape.CollectionConstructionExtent? {
+  if max_path_segments < 0L {
+    return None
+  }
+  guard cursor_path_construction_extent(max_path_segments) is Some(path) else {
+    return None
+  }
+  // The SAME path owner checks every wide product/addition. Issue1H2R and
+  // returned Err1H1R2W overlap that one path; names/tree remain borrowed.
+  @shape.add_collection_construction_extents(path, {
+    record_headers: 2L,
+    reference_slots: 3L,
+    scalar_words: 2L,
   })
 }

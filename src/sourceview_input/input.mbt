@@ -248,7 +248,7 @@ fn collect_owned(
   limits : Limits,
   work_out? : Ref[Int]? = None,
 ) -> Result[Inputs, Issue] {
-  if limits.max_work < 0 || limits.max_order_keys < 0 {
+  if collection_limits_invalid(limits) {
     return Err(InvalidLimits)
   }
   let b : Budget = { work: limits.max_work, orders: limits.max_order_keys, }
@@ -316,4 +316,9 @@ pub fn work(v : Inputs) -> Int {
 ///|
 pub fn first_by_order(v : Declaration) -> Array[@order.Key]? {
   v.order.map(xs => xs.copy())
+}
+
+///|
+fn collection_limits_invalid(limits : Limits) -> Bool {
+  limits.max_work < 0 || limits.max_order_keys < 0
 }
