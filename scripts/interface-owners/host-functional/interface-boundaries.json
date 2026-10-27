@@ -76493,7 +76493,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "083255f115796479e5697c18b1629286935c0839406c41917021c34059e8630e",
+      "sha256": "c49865ca261b21b507948f5e0f04d3ede10e0ac8a3b213a2682c02a610ef0c8c",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -81602,8 +81602,9 @@
     },
     {
       "module": "adapters/local-node/closed-values-preparation-adapter.mjs",
-      "sha256": "046411b0dd2bff9ab2f21266ad6fca5feccf1b33a406960ea5963499d0f23186",
+      "sha256": "852305cdcff349565e2d991a392872fa48df87e71f15a00690e63cc51387d034",
       "exports": [
+        "assertRequestPreparationControl",
         "beginClosedValuesInput",
         "bindClosedValuesSnapshot",
         "checkedPreparation",
@@ -81611,6 +81612,13 @@
         "closedValuesPreparationAvailable"
       ],
       "operations": [
+        {
+          "name": "assertRequestPreparationControl",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
         {
           "name": "beginClosedValuesInput",
           "parameters": [
@@ -81926,6 +81934,76 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Original ModuleBody preparation mode"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "assertRequestPreparationControl"
+          ],
+          "exports": [
+            "assertRequestPreparationControl"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
               }
             ]
           }

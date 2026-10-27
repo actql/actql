@@ -421,3 +421,52 @@ parked inventory and retirement. An await, external callback or actual mutation
 starts a distinct boundary; resource reservation, before-use checks and cleanup
 keep their existing obligations. Plan/sequence preparation and capacity quoting
 are not repeated by lookup.
+
+## Unselected request preparation bootstrap
+
+The ordinary request manager checks the installed Local policy's fixed control
+quote before creating its producer receipt or visiting the caller's input. The
+same original preparation-purpose Node admission then starts one Ledger and
+reserves the independently inventoried producer, imported-child, Ledger and
+bootstrap controls. `ClientRequestPreparation` retains that admission, input,
+Ledger and an uncompleted `PreparationCapacity[I, Unit]`. Unit is never completed,
+exported as a prepared body or converted into an Effect value. No snapshot,
+parser, relation, provider, Command-selection or Model inventory is included in
+this control quote. The policy's numerical ceilings are necessary limits, not
+credit for any of those representations.
+
+The first consumer is the existing closed Values preparation. Before constructing
+its typed driver, the bootstrap resizes the same reservation for the complete
+existing Values control recipe plus the simultaneous old bootstrap. Its one typed
+continuation preserves the original input, child, Ledger, reservation, borrower
+bound and work history. The Node adapter stores the returned driver before
+cutting its consumed bootstrap link. The driver's ordinary header/scan/snapshot
+phases and retirement then use that same capacity. The installed backend's exact
+module-container inventory is still supplied by the original Node bridge, not
+by JavaScript dimensions or a combined provider profile.
+
+### Preparation output selection
+
+Only a working capacity with no body, borrow, active phase work or retirement may
+select its eventual output type. The original handle is latched before a current
+callback and consumed only when continuation succeeds. It cannot select twice,
+settle the successor's shared token or claim cleanup. A failure retains the same
+working original and its actual charge. No completed value is cast between types,
+and this transition creates neither a Root nor an additional allowance.
+
+A declined constructor keeps the same parent responsible for cleanup. The caller
+must unwind its scratch before the fixed abort entrance; original current,
+report, stop and uncertainty remain separate. In particular, a failed original
+stop stays unknown even if a later callback reports no children. Neither a
+completed Promise nor that callback is a new physical acknowledgement.
+
+This connects the real request manager to its first typed consumer. It does not
+yet fund general Effect request serialization, parsing, lowering, prepared
+material, Command selections, overlapping restore readers or the installed Plan.
+Those phases must quote their own complete representations on this same original
+parent before construction. Native JSON getter/toJSON/boxing/omission semantics
+are unchanged; a replacer visit or the final wire length is not a preconstruction
+funding proof. The existing Source/Effect original and currentness checks remain
+in force. Focused Core tests exercise the actual original Node supplier and next
+Values header, while Node caller tests retain explicit Core phase ports. Neither
+scope certifies a normal installed runtime or physical operation.

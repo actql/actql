@@ -24391,6 +24391,201 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/physical_resources/preparation_capacity_continuation.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "ef1aca5169c112b9a56d6f776f7b751aced68620e123d3300de67bf6e4b7676b",
+      "role": "common-semantics",
+      "owner": "Existing physical_resources preparation state machine",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P,Q]continue_preparation_capacity",
+          "declaration": "[ I , P , Q ] continue_preparation_capacity ( owner : PreparationCapacity [ I , P ] , input : I , ) - > Result [ PreparationCapacity [ I , Q ] , PreparationCapacityIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "[I,P,Q]continue_preparation_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-parent preparation control/continuation and first Values consumer only; not an Effect body recipe, installed runtime admission or physical acknowledgement."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_parent.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "b1b366203e26afbdf12a7e294db197f7b05fb734c7b73af0cd524b929d46e323",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]abort_request_preparation_after_cleanup",
+          "declaration": "[ I ] abort_request_preparation_after_cleanup ( owner : ClientRequestPreparation [ I ] , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]begin_request_preparation",
+          "declaration": "[ I ] begin_request_preparation ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , policy : ClientLocalResourcePolicy , ) - > Result [ ClientRequestPreparation [ I ] , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]make_closed_values_preparation",
+          "declaration": "[ I ] make_closed_values_preparation ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , policy : ClientLocalResourcePolicy , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , retained : Int64 , execution : Int64 , module_containers : @ execution . PreparationRepresentationUnits , ) - > ClientClosedValuesPreparation [ I ]"
+        },
+        {
+          "name": "[I]select_closed_values_preparation",
+          "declaration": "[ I ] select_closed_values_preparation ( owner : ClientRequestPreparation [ I ] , input : I , module_containers ~ : @ execution . PreparationRepresentationUnits , ) - > Result [ ClientClosedValuesPreparation [ I ] , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_request_preparation_control_capacity",
+          "declaration": "client_request_preparation_control_capacity ( policy : ClientLocalResourcePolicy , ) - > ( Int64 , Int64 ) ?"
+        },
+        {
+          "name": "request_preparation_control_units",
+          "declaration": "request_preparation_control_units ( ) - > @ execution . PreparationRepresentationUnits"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "[I]abort_request_preparation_after_cleanup",
+            "[I]begin_request_preparation",
+            "[I]make_closed_values_preparation",
+            "[I]select_closed_values_preparation",
+            "client_request_preparation_control_capacity",
+            "request_preparation_control_units"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-parent preparation control/continuation and first Values consumer only; not an Effect body recipe, installed runtime admission or physical acknowledgement."
     }
   ]
 }
