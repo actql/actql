@@ -2862,6 +2862,17 @@ of currentness. Initial and cold admission retain their complete path. Unrelated
 historical payload integrity is a separate inspection rather than this selected
 ordinary read's prerequisite.
 
+Within that completed holder, the same original Snapshot can be reobserved as
+immutable DATA when both fresh Submission and Run keys, revisions and complete
+bodies are byte-exact. This preserves the original nested validator's result;
+it does not assert that a different validator ran. The caller binds the actual
+completed source identity, original admission relationship and fixed limits
+before selecting this route. Missing or changed correspondence takes the full
+existing selected-row reader, including all nested Policy, evidence and saved
+state admission. Cancellation still runs before confirmed absence is returned,
+and all current, publication-row and physical Reader fences remain independent.
+Initial, incomplete and cold holders cannot select original-data reobservation.
+
 The Host registers its operation carrier before acquiring children. It restores
 the saved allocation directory and opens the committed generation in the
 installation's Result Root with no-follow, identity, size and digest checks. It
