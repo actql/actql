@@ -177,7 +177,7 @@ fn decode(
         }
         budget.nodes -= 1
         let initial = decoded(@decode.open_object(cursor))
-        let type_cursor = required(initial, "type")
+        let type_cursor = required(initial, read_contract_type_field)
         let kind = text(type_cursor, budget)
         let extras = match kind {
           "string" =>
@@ -205,7 +205,7 @@ fn decode(
           "content_ref" => ["media_type"]
           _ => invalid(type_cursor, UnknownType(kind))
         }
-        let allowed = ["type", "nullable"]
+        let allowed = [read_contract_type_field, "nullable"]
         for key in extras {
           allowed.push(key)
         }

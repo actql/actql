@@ -45,6 +45,13 @@ pub struct ParameterSyntax {
 }
 
 ///|
+// The reader and its quantity-only observer share these exact original roles.
+let parameter_items_field : String = "items"
+
+///|
+let parameter_fields_field : String = "fields"
+
+///|
 priv enum ParameterWork {
   ReadParameter(@decode.Cursor, Int)
   ParameterArray(Bool, Int64?, Int64?)
@@ -114,18 +121,18 @@ fn parameter_decode(
         }
         budget.nodes -= 1
         let initial = decoded(@decode.open_object(cursor))
-        let type_cursor = required(initial, "type")
+        let type_cursor = required(initial, read_contract_type_field)
         let kind = text(type_cursor, budget)
         let extras = match kind {
           "number" => ["integer", "minimum", "maximum"]
           "string" => ["format", "enum"]
           "boolean" | "date" | "timestamp" | "int64" => []
           "decimal" => ["precision", "scale"]
-          "array" => ["items", "length", "max_items"]
-          "object" => ["fields"]
+          "array" => [parameter_items_field, "length", "max_items"]
+          "object" => [parameter_fields_field]
           _ => invalid(type_cursor, UnknownType(kind))
         }
-        let allowed = ["type", "nullable"]
+        let allowed = [read_contract_type_field, "nullable"]
         for key in extras {
           allowed.push(key)
         }
@@ -193,7 +200,7 @@ fn parameter_decode(
               invalid(required(view, "length"), InvalidRange)
             }
             let max_items = bound(view, "max_items")
-            let child = required(view, "items")
+            let child = required(view, parameter_items_field)
             if budget.nodes == budget.scheduled || depth == budget.max_depth {
               invalid(child, BudgetExceeded)
             }
@@ -203,7 +210,7 @@ fn parameter_decode(
             continue
           }
           "object" => {
-            let f = required(view, "fields")
+            let f = required(view, parameter_fields_field)
             let children = decoded(@decode.open_object(f))
             let names = decoded(@decode.object_field_names(f))
             if names.length() > budget.nodes - budget.scheduled ||

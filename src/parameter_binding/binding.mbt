@@ -4,21 +4,35 @@ pub fn read_declarations(
   root : @decode.Cursor?,
   limits : DeclarationLimits,
 ) -> Result[Declarations, Issue] {
-  if limits.max_parameters < 0 ||
-    limits.max_nodes < 0 ||
-    limits.max_depth < 0 ||
-    limits.max_text_bytes < 0 {
-    return Err(InvalidLimits)
+  observe_declarations(root, limits).0
+}
+
+///|
+/// One original declaration preflight, followed by the same typed reader.
+/// The split holder retains only immutable input/limits, original source usage
+/// and at most one completed semantic outcome; it carries no resource grant.
+pub fn observe_declarations(
+  root : @decode.Cursor?,
+  limits : DeclarationLimits,
+) -> (Result[Declarations, Issue], Int, Int) {
+  // Ordinary synchronous callers do not allocate a retained continuation.
+  let (preflight, nodes, text) = preflight_declaration_read(root, limits)
+  let result = match preflight {
+    Err(issue) => Err(issue)
+    Ok(_) => finish_declaration_read_owned(root, limits, (nodes, text))
   }
+  (result, nodes, text)
+}
+
+///|
+fn finish_declaration_read_owned(
+  root : @decode.Cursor?,
+  limits : DeclarationLimits,
+  usage : (Int, Int),
+) -> Result[Declarations, Issue] {
   try {
     let entries : Array[Declaration] = []
-    let budget : Budget = {
-      nodes: limits.max_nodes,
-      text: limits.max_text_bytes,
-      depth: limits.max_depth,
-    }
     if root is Some(root) {
-      preflight(root, budget)
       let object = decoded(@decode.open_object(root))
       let names = decoded(@decode.object_field_names(root))
       if names.is_empty() {
@@ -76,13 +90,7 @@ pub fn read_declarations(
         })
       }
     }
-    Ok({
-      entries,
-      usage: (
-        limits.max_nodes - budget.nodes,
-        limits.max_text_bytes - budget.text,
-      ),
-    })
+    Ok({ entries, usage, })
   } catch {
     Abort(issue) => Err(issue)
   }
