@@ -21,10 +21,12 @@ let parameter_preflight_quote_controls : @execution.PreparationRepresentationUni
 // original preflight/read-input/Budget/usage/Results/tuples7H7R11W;
 // retained outcome Some1H1R1W and active work Some1H1R1W. Co-counted
 // alternatives cover absent input and failure, not only the success branch.
+// Original Program/Source2R, their retained Some carriers2H2R2W, and
+// fixed original Source work bound1W add2H4R3W. No body storage is prepaid.
 let parameter_preflight_driver_controls : @execution.PreparationRepresentationUnits = {
-  record_headers: 23L + 2L,
-  reference_slots: 25L + 1L + 3L,
-  scalar_words: 45L + 4L + 1L,
+  record_headers: 23L + 2L + 2L,
+  reference_slots: 25L + 1L + 3L + 4L,
+  scalar_words: 45L + 4L + 1L + 3L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }

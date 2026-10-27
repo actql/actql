@@ -69,15 +69,15 @@ test "confirmed binding inventory scratch is not regrown for a smaller original 
   let original = binding_body_prefix(owner)
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((14033L, 14051L)),
+    Ok((14113L, 14131L)),
   )
-  let sibling = @resources.reserve_capacity(ledger, 5800L, 5800L).unwrap()
+  let sibling = @resources.reserve_capacity(ledger, 5720L, 5720L).unwrap()
   // Only the32-byte original declaration Option is new. Regrowing the old
   //344-byte completed inventory scratch would incorrectly refuse this entry.
   prepare_parameter_binding_selection(owner).unwrap()
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((14065L, 14083L)),
+    Ok((14145L, 14163L)),
   )
   assert_eq(
     @parameters.binding_read_phase(original),
@@ -87,13 +87,13 @@ test "confirmed binding inventory scratch is not regrown for a smaller original 
   clear_parameter_binding_preparation(owner).unwrap()
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((14065L, 14083L)),
+    Ok((14145L, 14163L)),
   )
 }
 
 ///|
 test "actual supplied binding Value waits one byte short then reuses original source facts and quote" {
-  assert_eq(parameter_binding_initial_bytes, 10592L)
+  assert_eq(parameter_binding_initial_bytes, 10672L)
   let definitions = binding_body_definitions(
     "{\"x\":{\"type\":\"array\",\"items\":{\"type\":\"number\"}}}",
   )
@@ -135,8 +135,8 @@ test "actual supplied binding Value waits one byte short then reuses original so
     Some((6904L, 29024L)),
   )
   let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
-  assert_eq(before, (25409L, 25427L))
-  let sibling = @resources.reserve_capacity(ledger, 150008L, 150008L).unwrap()
+  assert_eq(before, (25489L, 25507L))
+  let sibling = @resources.reserve_capacity(ledger, 149928L, 149928L).unwrap()
   assert_true(
     prepare_parameter_binding_value(owner)
     is Err(Capacity(Resource(RetentionLimit))),
@@ -153,7 +153,7 @@ test "actual supplied binding Value waits one byte short then reuses original so
     physical_equal(work, @parameters.binding_read_construction_work(original)),
   )
   let quote = owner.quote.unwrap()
-  assert_eq(quote, (49993L, 50011L))
+  assert_eq(quote, (50073L, 50091L))
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
     Ok(before),
@@ -175,12 +175,12 @@ test "actual supplied binding Value waits one byte short then reuses original so
   reconcile_parameter_bindings(owner).unwrap()
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((20969L, 20987L)),
+    Ok((21049L, 21067L)),
   )
   clear_parameter_binding_preparation(owner).unwrap()
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((20969L, 20987L)),
+    Ok((21049L, 21067L)),
   )
   let usage = @resources.ledger_usage(ledger)
   assert_eq((usage.attempts, usage.live_reservations), (0, 1))

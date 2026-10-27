@@ -68,29 +68,29 @@ test "actual complete Value phase waits for one-byte parent growth and retries o
     Some(root),
     funded_value_limits(),
   ).unwrap()
-  assert_eq(parameter_preflight_initial_bytes, 11728L)
+  assert_eq(parameter_preflight_initial_bytes, 11816L)
   let reader = prepare_funded_value_prefix(owner)
   prepare_parameter_declaration_type(owner).unwrap()
   let syntax = @parameters.declaration_read_pending_syntax(reader)
   let facts = @parameters.declaration_read_current_construction(reader)
   let work = @parameters.declaration_read_construction_work(reader)
   // Header1808+own fact vector616+actual Array Type768. Value113H435R209W
-  // is6960; its maximum sequential temporary410H1626R1198W is28936.
+  // is6960; its maximum sequential temporary410H1626R1198W is29152.
   assert_eq(owner.body_bytes, 3192L)
   assert_eq(
     parameter_value_construction_bytes(reader, 0),
     Some((6960L, 29152L)),
   )
   let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
-  let sibling = @resources.reserve_capacity(ledger, 148896L, 148896L).unwrap()
-  // R0=73 + domain11256 + retained10152 + next temporary28936=51105.
-  // The SAME unused sibling makes50409+148896=200001, exactly one short.
+  let sibling = @resources.reserve_capacity(ledger, 148808L, 148808L).unwrap()
+  // R0=73 + domain11816 + retained10152 + next temporary29152=51193.
+  // The SAME unused sibling makes51193+148808=200001, exactly one short.
   assert_true(
     prepare_parameter_declaration_value(owner)
     is Err(Capacity(Resource(RetentionLimit))),
   )
   assert_true(owner.phase == ValueQuoted)
-  assert_eq(owner.quote, Some((51105L, 51123L)))
+  assert_eq(owner.quote, Some((51193L, 51211L)))
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
     Ok(before),
@@ -156,7 +156,7 @@ test "actual complete Value phase waits for one-byte parent growth and retries o
   reconcile_parameter_declarations(owner).unwrap()
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((21953L, 21971L)),
+    Ok((22041L, 22059L)),
   )
   assert_true(
     physical_equal(completed, @parameters.finish_declaration_read(reader)),
@@ -166,7 +166,7 @@ test "actual complete Value phase waits for one-byte parent growth and retries o
   assert_true(owner.current_syntax is None && owner.current_type_facts is None)
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((21953L, 21971L)),
+    Ok((22041L, 22059L)),
   )
   assert_eq(
     (
@@ -388,7 +388,7 @@ test "complete absent original declarations reconcile while empty original refus
     match root {
       None => {
         assert_eq(@parameters.declaration_count(result.unwrap()), 0)
-        assert_eq(before, Ok((12905L, 12923L)))
+        assert_eq(before, Ok((12993L, 13011L)))
         reconcile_parameter_declarations(owner).unwrap()
         assert_eq(
           @resources.preparation_capacity_working_extents(capacity, input),

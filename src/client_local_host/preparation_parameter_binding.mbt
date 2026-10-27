@@ -8,6 +8,9 @@ priv enum ParameterBindingPreparationPhase {
   BindingSteps
   BindingStepQuoted
   BindingRetained
+  BindingSourceQuoted
+  BindingSourcePrepared
+  BindingSourceRetained
   BindingFailed
   BindingRetired
 } derive(Eq)
@@ -26,6 +29,8 @@ struct ClientParameterBindingPreparation[I, P] {
   mut step : @parameters.BindingReadPhase
   mut body_bytes : Int64
   mut maximum_work : Int64
+  mut source_input : @stages.Source?
+  mut source : Result[@stages.Source, @stages.Issue]?
   base_retained : Int64
   base_execution : Int64
   depth : Int
@@ -119,6 +124,8 @@ pub fn[I, P] begin_parameter_binding_preparation(
     step: @parameters.BindingHeader,
     body_bytes: 0L,
     maximum_work: 0L,
+    source_input: None,
+    source: None,
     base_retained,
     base_execution,
     depth,
@@ -215,6 +222,8 @@ pub fn[I, P] clear_parameter_binding_preparation(
   owner.prepared = None
   owner.quote = None
   owner.current = None
+  owner.source_input = None
+  owner.source = None
   owner.phase = BindingRetired
   Ok(())
 }

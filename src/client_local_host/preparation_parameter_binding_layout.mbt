@@ -23,11 +23,12 @@ let parameter_binding_header_quote_controls : @execution.PreparationRepresentati
 // coexist with the separately owned complete work-receipt packet below.
 // Retained work/current2R and step/body/work bound3W plus the active work
 // Some1H1R1W and one sequential semantic selection/Value tuple1H1R1W
-// give23H22R35W. They issue no new Resource permission or work allowance.
+// give23H22R35W. Source input/output2R and their retained Some carriers
+//2H2R2W add2H4R2W. No body storage is prepaid and no new grant is issued.
 let parameter_binding_driver_controls : @execution.PreparationRepresentationUnits = {
-  record_headers: 23L,
-  reference_slots: 22L,
-  scalar_words: 35L,
+  record_headers: 25L,
+  reference_slots: 26L,
+  scalar_words: 37L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }

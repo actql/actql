@@ -37,3 +37,20 @@ pub fn reuse_binding_read(
     _ => None
   }
 }
+
+///|
+/// Borrow the completed original Result for its SAME declaration owner. The
+/// consumer retains this reader, including its actual supplied input/limits;
+/// later reuse still checks those inputs. No pending work is advanced here.
+pub fn completed_binding_read(
+  original : BindingReadInput,
+  declarations : Declarations,
+) -> Result[BindingResult, Issue]? {
+  if !physical_equal(original.declarations, declarations) {
+    return None
+  }
+  match original.state {
+    BindingCompleted(result) => Some(result)
+    _ => None
+  }
+}

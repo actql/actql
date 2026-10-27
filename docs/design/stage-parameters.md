@@ -52,6 +52,30 @@ is empty on that path. A retained nonempty binding reader and Source snapshot
 remain part of the enclosing preparation consumer's actual live inventory;
 semantic reuse alone does not establish physical backing or settlement.
 
+`prepare_from_declaration_read` consumes only a completed reader whose original
+source position is this Program's actual `params` field. It shares the ordinary
+Source constructor and retains the reader's original limits and declarations.
+Pending or foreign readers are not advanced, and completed typed refusals remain
+refusals. `retain_completed_binding` similarly assembles the existing Source
+snapshot from a completed reader belonging to the same declaration owner. It
+does not bind values again or turn a failed binding into effective values.
+
+The enclosing Parameter construction driver grows its existing parent before
+the Source root Map, correspondence carriers and Stage copy. The Source owns
+their [constructor inventory](../../src/stage_parameters/source_construction.mbt),
+using the generic collection owner's Map/Array growth rules and the actual
+Program width. This inventory does not borrow a Values execution layout. One
+original work receipt covers the root fields and Stage copy; capacity retries
+retain the same Program, reader and quote. The binding driver separately grows
+before the Source snapshot while the original Source, declarations, values and
+reader remain charged. Reconciliation returns only the synchronous scratch of
+a successful constructor. Clearing either driver drops its references without
+settling the parent, refunding work or asserting a physical cleanup ACK.
+
+The entering caller still supplies backing for the admitted Program/input and
+the pre-resize/current/getter frame. These Source phases do not supply numerical
+first-entry backing, complete checker/Context funding or an execution grant.
+
 After these checks, the
 [local pipeline collector](pipeline-parameters.md) derives operation references
 relative to the stage body. `/steps/0/...` coordinates do not include the stage's

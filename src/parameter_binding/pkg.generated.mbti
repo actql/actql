@@ -58,6 +58,10 @@ pub fn bound_value_declaration(BoundValues, Int) -> Declaration?
 
 pub fn bound_values(BoundValues) -> Array[BoundParameter]
 
+pub fn completed_binding_read(BindingReadInput, Declarations) -> Result[BindingResult, Issue]?
+
+pub fn completed_declaration_read(DeclarationReadInput, @decode_core.Cursor?) -> Result[Declarations, Issue]?
+
 pub fn declaration_at(Declarations, Int) -> Declaration?
 
 pub fn declaration_count(Declarations) -> Int
@@ -71,6 +75,8 @@ pub fn declaration_read_construction_inventory(Int, Int) -> DeclarationReadConst
 pub fn declaration_read_construction_work(DeclarationReadInput) -> Int64?
 
 pub fn declaration_read_current_construction(DeclarationReadInput) -> DeclarationReadConstructionFacts?
+
+pub fn declaration_read_limits(DeclarationReadInput) -> DeclarationLimits
 
 pub fn declaration_read_pending_syntax(DeclarationReadInput) -> @value_contract.ParameterSyntax?
 

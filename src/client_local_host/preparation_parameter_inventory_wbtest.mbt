@@ -6,8 +6,8 @@ test "Parameter quantity stack is funded before observation and same-parent retr
     attempts: 2,
     holdings: 0,
     transfer_bytes: 0L,
-    retained_bytes: 21373L,
-    execution_bytes: 21391L,
+    retained_bytes: 21461L,
+    execution_bytes: 21479L,
   }).unwrap()
   let input = ["original quantity stack"]
   let capacity : @resources.PreparationCapacity[Array[String], Array[Int]] = @resources.reserve_preparation_capacity(
@@ -23,7 +23,7 @@ test "Parameter quantity stack is funded before observation and same-parent retr
     Some(root),
     funded_parameter_limits(),
   ).unwrap()
-  assert_eq(parameter_preflight_initial_bytes, 11728L)
+  assert_eq(parameter_preflight_initial_bytes, 11816L)
   prepare_parameter_declaration_preflight(owner).unwrap()
   let original = parameter_declaration_preflight_outcome(owner)
   let reader = original.unwrap().0.unwrap()
@@ -43,10 +43,10 @@ test "Parameter quantity stack is funded before observation and same-parent retr
   assert_true(@parameters.declaration_read_current_construction(reader) is None)
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((14297L, 14315L)),
+    Ok((14385L, 14403L)),
   )
   let quote = owner.quote.unwrap()
-  assert_eq(quote, (15305L, 15323L))
+  assert_eq(quote, (15393L, 15411L))
   @resources.settle_capacity(ledger, sibling).unwrap()
   prepare_parameter_declaration_inventory(owner).unwrap()
   assert_true(physical_equal(quote, owner.quote.unwrap()))
@@ -68,12 +68,12 @@ test "Parameter quantity stack is funded before observation and same-parent retr
   assert_true(@parameters.declaration_read_pending_syntax(reader) is None)
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((15305L, 15323L)),
+    Ok((15393L, 15411L)),
   )
   reconcile_parameter_declaration_inventory(owner).unwrap()
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((14225L, 14243L)),
+    Ok((14313L, 14331L)),
   )
   assert_true(
     physical_equal(work, @parameters.declaration_read_construction_work(reader)),
@@ -97,7 +97,7 @@ test "Parameter quantity stack is funded before observation and same-parent retr
   clear_parameter_declaration_preflight(owner).unwrap()
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((14225L, 14243L)),
+    Ok((14313L, 14331L)),
   )
   assert_eq(@resources.ledger_usage(ledger).attempts, 0)
 }

@@ -7,6 +7,7 @@ import {
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/pipeline_parameters" @collection,
   "actql/actql/decode_core" @decode,
+  "actql/actql/decode_shape" @shape,
   "actql/actql/parameter_references" @references,
   "actql/actql/expression_syntax" @expression,
 }

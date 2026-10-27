@@ -49,15 +49,23 @@ pub fn prepare(
   let root = @decode.open_object(@stage.program_body(program)).unwrap()
   match @parameter.read_declarations(@decode.lookup(root, "params"), limits) {
     Err(e) => Err(Declarations(e))
-    Ok(declarations) =>
-      Ok({
-        program: Some(program),
-        prefix: None,
-        stages: @stage.stages(program),
-        declarations,
-        declaration_limits: limits,
-        binding_read: None,
-      })
+    Ok(declarations) => Ok(complete_source(program, declarations, limits))
+  }
+}
+
+///|
+fn complete_source(
+  program : @stage.Program,
+  declarations : @parameter.Declarations,
+  limits : @parameter.DeclarationLimits,
+) -> Source {
+  {
+    program: Some(program),
+    prefix: None,
+    stages: @stage.stages(program),
+    declarations,
+    declaration_limits: limits,
+    binding_read: None,
   }
 }
 

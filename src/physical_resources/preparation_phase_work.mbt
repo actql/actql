@@ -13,6 +13,7 @@ pub(all) enum PreparationWorkPhase {
   ProgramStructure
   ParameterDeclarationInventory
   ParameterDeclarationBodyInventory
+  ParameterSourceConstruction
   ParameterBindingHeaderInventory
   ParameterBindingBodyInventory
   SemanticCheck
@@ -92,12 +93,13 @@ fn preparation_work_ordinal(phase : PreparationWorkPhase) -> Int {
     ProgramStructure => 8
     ParameterDeclarationInventory => 9
     ParameterDeclarationBodyInventory => 10
-    ParameterBindingHeaderInventory => 11
-    ParameterBindingBodyInventory => 12
-    SemanticCheck => 13
-    LowerAndGraph => 14
-    ExecutionPlan => 15
-    PublicationProof => 16
+    ParameterSourceConstruction => 11
+    ParameterBindingHeaderInventory => 12
+    ParameterBindingBodyInventory => 13
+    SemanticCheck => 14
+    LowerAndGraph => 15
+    ExecutionPlan => 16
+    PublicationProof => 17
   }
 }
 

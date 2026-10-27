@@ -23,7 +23,7 @@ test "actual Parameter Type builder waits for same-parent grow and preserves ori
     Some(root),
     funded_parameter_limits(),
   ).unwrap()
-  assert_eq(parameter_preflight_initial_bytes, 11728L)
+  assert_eq(parameter_preflight_initial_bytes, 11816L)
   prepare_parameter_declaration_preflight(owner).unwrap()
   let original = parameter_declaration_preflight_outcome(owner)
   let reader = original.unwrap().0.unwrap()
@@ -38,9 +38,9 @@ test "actual Parameter Type builder waits for same-parent grow and preserves ori
   assert_eq(parameter_type_construction_bytes(reader, 0), Some((496L, 15980L)))
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((14225L, 14243L)),
+    Ok((14313L, 14331L)),
   )
-  let sibling = @resources.reserve_capacity(ledger, 19300L, 19300L).unwrap()
+  let sibling = @resources.reserve_capacity(ledger, 19212L, 19212L).unwrap()
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 33525L)
   assert_true(
     prepare_parameter_declaration_type(owner)
@@ -55,10 +55,10 @@ test "actual Parameter Type builder waits for same-parent grow and preserves ori
   assert_true(physical_equal(owner.current_type, cursor))
   assert_true(physical_equal(owner.current_type_facts, facts))
   let quote = owner.quote.unwrap()
-  assert_eq(quote, (30701L, 30719L))
+  assert_eq(quote, (30789L, 30807L))
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((14225L, 14243L)),
+    Ok((14313L, 14331L)),
   )
   @resources.settle_capacity(ledger, sibling).unwrap()
   prepare_parameter_declaration_type(owner).unwrap()
@@ -89,7 +89,7 @@ test "actual Parameter Type builder waits for same-parent grow and preserves ori
   )
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((30701L, 30719L)),
+    Ok((30789L, 30807L)),
   )
   assert_true(prepare_parameter_declaration_type(owner) is Err(WrongPhase))
   assert_true(
@@ -99,7 +99,7 @@ test "actual Parameter Type builder waits for same-parent grow and preserves ori
   assert_true(owner.current_type is None && owner.current_type_facts is None)
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((30701L, 30719L)),
+    Ok((30789L, 30807L)),
   )
   assert_eq(@resources.ledger_usage(ledger).attempts, 0)
 }

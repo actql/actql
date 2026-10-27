@@ -14,6 +14,9 @@ priv enum ParameterPreflightPhase {
   ValueQuoted
   ValuePrepared
   RetainedDeclarations
+  SourceQuoted
+  SourcePrepared
+  RetainedSource
   Failed
   Retired
 } derive(Eq)
@@ -43,6 +46,9 @@ struct ClientParameterDeclarationPreflight[I, P] {
   mut current_type : @decode.Cursor?
   mut current_type_facts : @parameters.DeclarationReadConstructionFacts?
   mut current_syntax : @contract.ParameterSyntax?
+  mut program : @syntax.Program?
+  mut source : Result[@stages.Source, @stages.Issue]?
+  mut source_maximum_work : Int64
   mut busy : Bool
   mut phase : ParameterPreflightPhase
 }
@@ -103,6 +109,9 @@ pub fn[I, P] begin_parameter_declaration_preflight(
     current_type: None,
     current_type_facts: None,
     current_syntax: None,
+    program: None,
+    source: None,
+    source_maximum_work: 0L,
     busy: false,
     phase: Initial,
   })
@@ -250,7 +259,10 @@ pub fn[I, P] parameter_declaration_preflight_outcome(
       owner.phase == RetainedInventory ||
       owner.phase == TypePrepared ||
       owner.phase == ValuePrepared ||
-      owner.phase == RetainedDeclarations
+      owner.phase == RetainedDeclarations ||
+      owner.phase == SourceQuoted ||
+      owner.phase == SourcePrepared ||
+      owner.phase == RetainedSource
     ) &&
     owner.prepared is Some(_) else {
     return None
@@ -321,6 +333,8 @@ pub fn[I, P] clear_parameter_declaration_preflight(
   owner.current_type = None
   owner.current_type_facts = None
   owner.current_syntax = None
+  owner.program = None
+  owner.source = None
   owner.phase = Retired
   Ok(())
 }

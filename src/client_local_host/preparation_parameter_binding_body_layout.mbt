@@ -52,7 +52,10 @@ let parameter_binding_value_quote_controls : @execution.PreparationRepresentatio
 ///|
 let parameter_binding_quote_controls : @execution.PreparationRepresentationUnits = {
   record_headers: Int64::max(
-    parameter_binding_value_quote_controls.record_headers,
+    Int64::max(
+      parameter_binding_value_quote_controls.record_headers,
+      parameter_source_binding_quote_controls.record_headers,
+    ),
     Int64::max(
       parameter_binding_preflight_quote_controls.record_headers,
       Int64::max(
@@ -65,7 +68,10 @@ let parameter_binding_quote_controls : @execution.PreparationRepresentationUnits
     ),
   ),
   reference_slots: Int64::max(
-    parameter_binding_value_quote_controls.reference_slots,
+    Int64::max(
+      parameter_binding_value_quote_controls.reference_slots,
+      parameter_source_binding_quote_controls.reference_slots,
+    ),
     Int64::max(
       parameter_binding_preflight_quote_controls.reference_slots,
       Int64::max(
@@ -78,7 +84,10 @@ let parameter_binding_quote_controls : @execution.PreparationRepresentationUnits
     ),
   ),
   scalar_words: Int64::max(
-    parameter_binding_value_quote_controls.scalar_words,
+    Int64::max(
+      parameter_binding_value_quote_controls.scalar_words,
+      parameter_source_binding_quote_controls.scalar_words,
+    ),
     Int64::max(
       parameter_binding_preflight_quote_controls.scalar_words,
       Int64::max(

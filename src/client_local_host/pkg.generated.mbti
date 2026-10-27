@@ -23,6 +23,7 @@ import {
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
   "actql/actql/source_value",
+  "actql/actql/stage_parameters",
   "actql/actql/stage_syntax",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
@@ -388,9 +389,13 @@ pub fn parameter_binding_preparation_initial_inventory() -> @execution_relation.
 
 pub fn[I, P] parameter_binding_preparation_outcome(ClientParameterBindingPreparation[I, P]) -> Result[@parameter_binding.BindingReadInput, @parameter_binding.Issue]?
 
+pub fn[I, P] parameter_binding_source_outcome(ClientParameterBindingPreparation[I, P]) -> Result[@stage_parameters.Source, @stage_parameters.Issue]?
+
 pub fn parameter_declaration_preflight_initial_inventory() -> @execution_relation.PreparationRepresentationUnits
 
 pub fn[I, P] parameter_declaration_preflight_outcome(ClientParameterDeclarationPreflight[I, P]) -> (Result[@parameter_binding.DeclarationReadInput, @parameter_binding.Issue], Int, Int)?
+
+pub fn[I, P] parameter_declaration_source_outcome(ClientParameterDeclarationPreflight[I, P]) -> Result[@stage_parameters.Source, @stage_parameters.Issue]?
 
 pub fn[I] parse_closed_values_document(ClientClosedValuesPreparation[I]) -> Result[Unit, ClientClosedValuesPreparationIssue]
 
@@ -496,6 +501,8 @@ pub fn[I, P] prepare_parameter_binding_preflight(ClientParameterBindingPreparati
 
 pub fn[I, P] prepare_parameter_binding_selection(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
 
+pub fn[I, P] prepare_parameter_binding_source(ClientParameterBindingPreparation[I, P], @stage_parameters.Source) -> Result[Unit, ClientParameterBindingPreparationIssue]
+
 pub fn[I, P] prepare_parameter_binding_value(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
 
 pub fn[I, P] prepare_parameter_declaration_header(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
@@ -503,6 +510,8 @@ pub fn[I, P] prepare_parameter_declaration_header(ClientParameterDeclarationPref
 pub fn[I, P] prepare_parameter_declaration_inventory(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
 
 pub fn[I, P] prepare_parameter_declaration_preflight(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
+
+pub fn[I, P] prepare_parameter_declaration_source(ClientParameterDeclarationPreflight[I, P], @stage_syntax.Program) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
 
 pub fn[I, P] prepare_parameter_declaration_type(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
 
@@ -544,11 +553,15 @@ pub fn read_client_source_capture_descriptor(String) -> Result[@execution_relati
 
 pub fn[I, P] reconcile_parameter_binding_inventory(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
 
+pub fn[I, P] reconcile_parameter_binding_source(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
+
 pub fn[I, P] reconcile_parameter_bindings(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
 
 pub fn[I, P] reconcile_parameter_declaration_inventory(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
 
 pub fn[I, P] reconcile_parameter_declaration_preflight(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
+
+pub fn[I, P] reconcile_parameter_declaration_source(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
 
 pub fn[I, P] reconcile_parameter_declarations(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
 

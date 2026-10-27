@@ -21,9 +21,17 @@ pub fn prepare_bindings(
     Err(issue) => (source, Err(issue))
     Ok(original) => {
       let completed = @parameter.finish_binding_read(original)
-      ({ ..source, binding_read: Some(original), }, completed)
+      (complete_source_binding(source, original), completed)
     }
   }
+}
+
+///|
+fn complete_source_binding(
+  source : Source,
+  original : @parameter.BindingReadInput,
+) -> Source {
+  { ..source, binding_read: Some(original), }
 }
 
 ///|
