@@ -49,3 +49,52 @@ test "typed default object uses original Contract builder without generic name r
   assert_eq(generic, 0)
   assert_eq(closed, 3)
 }
+
+///|
+test "typed Unicode Object retains exact original Contract fields across output and cancel" {
+  let contract = typed_steps_contract(
+    (
+      #|{"type":"object","nullable":false,"fields":{"é":{"type":"number","nullable":false},"雪":{"type":"string","nullable":false}}}
+    ),
+  )
+  guard contract.shape is @contract.Object(original_fields) else {
+    abort("object contract")
+  }
+  let source = json_steps_cursor("{\"雪\":\"ok\",\"é\":1}")
+  let admission = start_typed_admission(contract, source, {
+    max_nodes: 3,
+    max_depth: 1,
+    max_text_bytes: 7,
+  }).unwrap()
+  let mut seen = false
+  let mut completed : CheckedValue? = None
+  for _ in 0..<128 {
+    for frame in admission.frames {
+      if frame is TypedObjectNext(object, builder, _) {
+        assert_true(physical_equal(object.contract, contract))
+        assert_true(
+          physical_equal(typed_object_fields(object), original_fields),
+        )
+        guard builder.contract_fields is Some(fields) else {
+          abort("unbound typed builder")
+        }
+        assert_true(physical_equal(fields, original_fields))
+        seen = true
+      }
+    }
+    match advance_typed_admission(admission) {
+      TypedAdmissionContinue => ()
+      TypedAdmissionComplete(value, nodes, text) => {
+        assert_eq((nodes, text), (3, 7))
+        completed = Some(value)
+        break
+      }
+      _ => abort("unexpected Unicode typed admission refusal")
+    }
+  }
+  assert_true(seen)
+  let checked = completed.unwrap()
+  cancel_typed_admission(admission)
+  assert_eq(typed_steps_wire(checked), "{\"é\":1,\"雪\":\"ok\"}")
+  assert_true(physical_equal(checked.contract, contract))
+}

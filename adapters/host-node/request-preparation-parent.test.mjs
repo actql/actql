@@ -81,3 +81,16 @@ test('invalid bootstrap quote refuses before producer slots or original input ca
   assert.equal(getters,0);assert.equal(f.original,undefined);assert.equal(f.calls.every(x=>x==='control'),true);
   assert.deepEqual(await f.view.close(),{pending:false});
 });
+
+
+test('native snapshot fence authenticates the actual ordinary producer receipt and retained Node original', async () => {
+  const f = await fixture(), program = input();
+  const receipt = f.view.beforeSourceSnapshot('program', program, undefined, connection);
+  assert.throws(() => f.view.assertSourceSnapshotCurrent({}), {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(f.view.assertSourceSnapshotCurrent(receipt), undefined);
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, false);
+  f.view.finishSourceProducer(receipt, 'failed');
+  assert.throws(() => f.view.assertSourceSnapshotCurrent(receipt), {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+  assert.deepEqual(await f.view.close(), {pending: false});
+});

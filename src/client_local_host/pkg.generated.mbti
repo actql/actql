@@ -548,6 +548,8 @@ pub fn[I, P] prepare_program_check_views(ClientProgramCheckPreparation[I, P]) ->
 
 pub fn[I] prepare_program_commit_validation(ClientProgramCapture[I], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Result[ClientProgramValidation[I], ClientProgramValidationIssue]
 
+pub fn[I] prepare_request_program_json_preparation(ClientRequestPreparation[I], I, String, @stage_syntax.Limits) -> Result[ClientProgramJsonPreparation[I, Unit], ClientRequestPreparationIssue]
+
 pub fn prepare_serialization_captured_ledger(@run_publication_host.PreparedClientProgram, Int, ClientInstalledCaptureCapacity, Int64, Int64, Int64, Int64, ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn prepare_single_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, ClientInstalledCaptureCapacity, Int64, Int64, ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
@@ -982,6 +984,7 @@ pub(all) enum ClientRequestPreparationIssue {
   Policy
   Initial(@physical_resources.ImportedChildLedgerIssue)
   Capacity(@physical_resources.PreparationCapacityIssue)
+  ProgramJson(ClientProgramJsonPreparationIssue)
 } derive(@debug.Debug)
 
 pub struct ClientRetainedContentOutput {

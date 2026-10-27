@@ -40,6 +40,7 @@ fn observe_submission_lookup(
   value : Instance,
   record : StoredSubmissionProjection,
   configuration : StoredRunConfiguration,
+  original? : @host.ClientSavedSubmissionSnapshot? = None,
 ) -> Result[@host.ClientSavedSubmissionSnapshot?, Int] {
   match submission_lookup_current(value, record, configuration) {
     Ok(_) => ()
@@ -66,6 +67,20 @@ fn observe_submission_lookup(
       1024, scan, read, -31, -42,
     )
   }
+  // Reuse only immutable request/Definition DATA from this already completed
+  // saved source. Initial inventory rows and selected revalidation rows are
+  // still physically read; foreign/changed identity takes full admission.
+  // Nested policies/evidence and all current/cancellation checks remain fresh.
+  let identity = record.saved_result.bind(saved => {
+    if saved.complete {
+      saved.source.map(@local_run.local_sdk_read_source_run_identity)
+    } else {
+      None
+    }
+  })
+  let inspect_run = row => {
+    submission_run_inspection_with_identity(row, identity)
+  }
   if record.kind == 5 || record.kind == 6 {
     guard @decode.closed_object(
         cursor,
@@ -85,9 +100,8 @@ fn observe_submission_lookup(
       scope != configuration.authority_scope_cid {
       return Err(-32)
     }
-    let observed = @host.inspect_client_saved_run_reference(
-      run_namespace, scope, definition, 1024, scan, read, submission_append_run_inspection,
-      cancellation, -31,
+    let observed = submission_run_reference_snapshot(
+      run_namespace, scope, definition, original, scan, read, inspect_run, cancellation,
     )
     return match check() {
       Ok(_) => observed
@@ -107,8 +121,7 @@ fn observe_submission_lookup(
     return Err(-32)
   }
   let observed = @host.inspect_client_saved_submission(
-    reference, 1024, scan, read, submission_append_run_inspection, cancellation,
-    -31,
+    reference, 1024, scan, read, inspect_run, cancellation, -31,
   )
   if observed is Ok(Some(snapshot)) &&
     @host.client_saved_submission_run_row(snapshot) is Some(row) {
@@ -125,6 +138,75 @@ fn observe_submission_lookup(
     Ok(_) => observed
     Err(code) => Err(code)
   }
+}
+
+///|
+// Only a completed same-holder caller supplies original. It selects DATA;
+// fresh target rows, nested admission and cancellation still come from the
+// current physical snapshot. Initial/cold callers keep complete admission.
+fn submission_run_reference_snapshot(
+  namespace : String,
+  scope : String,
+  definition : String,
+  original : @host.ClientSavedSubmissionSnapshot?,
+  scan : (String, String) -> Result[@host.ClientJournalPhysicalRow?, Int],
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, Int],
+  inspect_run : (@host.ClientJournalPhysicalRow) -> Result[
+    @host.ClientRunJournalInspection,
+    Int,
+  ],
+  cancellation : () -> Result[Unit, Int],
+) -> Result[@host.ClientSavedSubmissionSnapshot?, Int] {
+  guard original is Some(before) else {
+    return @host.inspect_client_saved_run_reference(
+      namespace, scope, definition, 1024, scan, read, inspect_run, cancellation,
+      -31,
+    )
+  }
+  let reference = @host.client_saved_submission_record(before).reference
+  let observed = match
+    @host.read_client_saved_submission(
+      reference,
+      read,
+      row => {
+        let run = match inspect_run(row) {
+          Ok(value) => value
+          Err(code) => return Err(code)
+        }
+        if @host.client_request_authority_scope_cid(run.request) != scope ||
+          @publication.publication_contract_identity(run.definition) !=
+          definition ||
+          @publication.run_definition_namespace(run.definition) !=
+          Some(namespace) {
+          return Err(-32)
+        }
+        Ok(run)
+      },
+      -31,
+    ) {
+    Ok(value) => value
+    Err(code) => return Err(code)
+  }
+  match cancellation() {
+    Ok(_) => ()
+    Err(code) => return Err(code)
+  }
+  guard observed is Some(actual) else { return Ok(None) }
+  let before_submission = @host.client_saved_submission_row(before)
+  let after_submission = @host.client_saved_submission_row(actual)
+  if before_submission.key != after_submission.key ||
+    before_submission.revision != after_submission.revision ||
+    before_submission.body != after_submission.body {
+    return Err(-32)
+  }
+  guard @host.client_saved_submission_run_row(before) is Some(before_run) &&
+    @host.client_saved_submission_run_row(actual) is Some(after_run) &&
+    before_run.key == after_run.key &&
+    before_run.revision == after_run.revision &&
+    before_run.body == after_run.body else {
+    return Err(-32)
+  }
+  Ok(Some(actual))
 }
 
 ///|

@@ -494,6 +494,53 @@ input or issuing a successor. Its original reservation and actual usage remain
 charged until the same original cleanup completes. This callback-free fence is
 not another current observation, an unpark operation or a physical ACK.
 
+## Request-owned generic Program JSON caller
+
+The original request parent retains the existing generic Program JSON holder on
+its uncompleted `PreparationCapacity[I, Unit]`. The same input, Ledger,
+reservation and original Node admission enter the domain constructor. The caller
+receives the same already selected immutable Program source limits and forwards
+that original DATA to the domain driver. It substitutes no standard default and
+adds no capacity or public request option.
+The domain driver owns its Source/NFC/index/Program construction inventory and
+reserves it on that same capacity before constructing those roles. The caller
+does not pre-add another copy of that domain packet.
+
+The request bootstrap separately inventories only its new resident reference,
+Some and returned result/error carriers. The real backend first-prelude/input
+and outer holder backing remains required before entry; a policy ceiling, a
+literal fixture or these caller-only controls do not establish it. The precise
+pre-entry backing contract and minimal public domain dependency must be qualified
+before enabling a normal SDK consumer. Native JSON snapshot semantics and their
+separate preconstruction funding are unchanged by this Core caller.
+
+The same request bootstrap independently includes the allocated Core entrance
+carriers before that grow: the original debit tuple/result, two checked-add
+results and conservative failure alternatives total `10H7R13W` under the
+existing representation tariff. This is a caller inventory, not a prepaid
+copy of the domain packet or a subtraction from its conservative quote. It
+stays charged until the original parent retires. The unchanged original
+current/resize scratch remains with its existing owner. Fixed nonrecursive VM
+frames belong to the installed runtime baseline; native input/limits/path,
+external callback and outer backing still need their actual original supply.
+This logical carrier inventory alone does not prove that backend supply.
+
+The parent latches before entering the domain's original current/grow boundary.
+A failed entrance retains its exact input and charge for cleanup and cannot be
+silently retried as another body. A successful entrance retains the returned
+original holder before returning it. Source preflight, indexing, structural
+Program construction and reconciliation use the existing domain methods. No
+Unit body is completed, no Pure value is reclassified as Effect, and no new Root,
+Ledger, borrower cache, permission or cleanup engine is introduced.
+
+After the fixed consumer's scratch and untransferred aliases unwind, parent
+cleanup first clears that same domain holder. A busy domain refuses without
+settling the reservation. An explicitly transferred output belongs to its real
+next consumer; parent abort cannot infer that consumer's alias retirement.
+Underlying current, stop, pending report and Unknown remain original obligations.
+Binding/check/prelude/Catalog/Requests, effect compilation and material/restore
+overlap are later required phases, not completion claims of this first caller.
+
 ## Public generic JSON constructor continuation
 
 The generic JSON prefix retains the existing `PreparationCapacity[I, P]`:
@@ -629,3 +676,33 @@ retains all backing and cleanup obligations. No active work receipt is carried
 through a grow, and no new allocator, tariff, Ledger or physical cleanup owner
 is introduced. Native/Node caller integration, physical first-entry backing and
 subsequent full Context/compiler/material funding remain distinct obligations.
+
+## Native Source snapshot currentness
+
+A selected private Source receiver may expose the own-DATA synchronous
+`assertSourceSnapshotCurrent(receipt)` operation. The SDK captures that method
+and its original receiver once. A present accessor, nonfunction or asynchronous
+result refuses; an absent legacy method retains its previous snapshot/bind
+path. No public request option, wire field, grant or capacity issuer is added.
+
+The ordinary preparation manager authenticates that same original producer
+receipt, retained preparation and Node Resource before and after its current
+callbacks. A copied, finished or already-bound producer cannot enter this
+snapshot phase. SDK connection closure also refuses new use. These checks do
+not replace the original current/claim paths of later operations.
+
+The SDK invokes the fence before its existing native stringify/parse and again
+after that one snapshot returns, before recursive clone freezing. A getter,
+`toJSON` or coercion may retire the original while native capture runs; that
+loss stops the next phase. Trusted fence failures remain outside the catch
+which classifies ordinary native serialization failures, retaining the exact
+original primary and cleanup carrier, including a thrown `undefined`. Failed
+producer cleanup stays on the same existing lifecycle retry owner. It neither
+repeats submission nor infers physical cleanup from Promise settlement.
+
+The snapshot still uses the same native serialization owner, numeric checks,
+property/coercion order and parse. The original body is frozen before it is
+bound or published; a mutable clone is never offered to a Host callback as an
+identity substitute. This current fence is not preconstruction funding for
+native string/parse/freeze storage. The actual input, VM baseline, callback and
+simultaneous snapshot/backing inventories remain separate original obligations.

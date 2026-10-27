@@ -119,8 +119,18 @@ resent. Updates and upserts write the same marker into the declared marker
 field in the same request and are reconciled by reading the record for that
 marker; a higher `$revision` or the approved values alone are not evidence. A
 delete leaves no marker kintone keeps, so a lost reply to a delete stays
-`unknown`. Nothing is resent. An `update_status` ends `accepted` when kintone returns the new
-revision and `applied` once the record read-back shows the next status.
+`unknown`. Nothing is resent.
+
+For `update_status`, the synchronous revision response is retained provider
+evidence, not an `accepted` EffectOutcome or a terminal Outcome Receipt. The
+Connector records `applied` only after an actual authorized read-back of the
+same app and record confirms the returned revision and the declared next status.
+The saved response must belong to that same original request; a later status or
+higher revision alone is insufficient. Process eligibility, filters and assignee
+rules do not prove that the transition has completed. Missing confirmation keeps
+the evidence and uncertainty pending; a lost response remains `unknown`, with
+no automatic resend. A revision number is not an OperationRef and does not
+supply an asynchronous poll or cancellation capability.
 
 ## Limits and cost
 

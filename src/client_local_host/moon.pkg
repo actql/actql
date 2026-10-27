@@ -55,6 +55,7 @@ options(
   targets: {
     "preparation_program_check_current_js_wbtest.mbt": [ "js" ],
     "preparation_request_parent_js_wbtest.mbt": [ "js" ],
+    "preparation_request_program_json_js_wbtest.mbt": [ "js" ],
     "preparation_closed_values_module_call_js.mbt": [ "js" ],
     "preparation_closed_values_module_call_portable.mbt": [
       "wasm",

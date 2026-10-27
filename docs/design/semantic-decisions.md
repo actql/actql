@@ -820,3 +820,78 @@ receipt, reconciliation, no automatic resend and physical cleanup obligations
 remain unchanged. The generic outcome schema and synchronous Command declaration
 do not change. Provider implementation and ordinary execution evidence remain
 separate from this resolution of the documentation conflict.
+
+
+## GitHub creation confirmation and outcome names
+
+The GitHub guide requires an original request marker and confirming read-back,
+but formerly named an HTTP 2xx response `accepted`. The common
+[Effect outcome contract](../spec/execution.md#reconciliation) gives that name
+to a pending provider operation with a genuine OperationRef and its admitted
+status, result, cancellation and reconciliation contracts. GitHub's
+[createIssue](https://docs.github.com/en/graphql/reference/issues#createissue)
+and [createPullRequest](https://docs.github.com/en/graphql/reference/pulls#createpullrequest)
+mutations return the created object. Its ID and `clientMutationId` are not
+provider-operation authority.
+
+Retain the connector's stronger read-back requirement. A correlated synchronous
+creation response is provider evidence; the existing owner may finalize
+`applied` only after the actual read-back confirms the original scoped object,
+content and marker. This is a bounded synchronous driver sequence, not an
+invented asynchronous operation. A direct-response projection alone cannot issue
+a terminal row Outcome Receipt. Missing confirmation preserves evidence and
+uncertainty through the existing reconciliation path, without another send or
+a fabricated failure claiming that creation did not occur. Equal unmarked
+content and later equivalent state do not establish the original operation.
+
+The physical body appends two LF characters and the original marker to an
+existing logical body; an absent body uses only that marker. Explicitly empty
+and absent bodies remain distinct. Keep the logical input and original tag
+independently retained. Cold restoration compares the complete saved physical
+wire against those originals and the existing protocol CID/origin context; it
+does not prepare a new request or learn authority from the saved wire. Historical
+wire and component evidence keep their original scope.
+
+This resolves the outcome-name conflict without dropping the documented
+confirmation step, changing the generic outcome schema or inventing a tag,
+grant or cleanup owner. It does not transfer Gmail's submission-only completion
+postcondition to GitHub. Actual request/marker/read-back construction overlap,
+read authority, currentness, claim, receipt and physical cleanup remain required
+implementation duties. Provider-only classification is not installed or ordinary
+execution evidence.
+
+
+## Kintone process-status response and confirmation
+
+The kintone guide formerly named a revision response `accepted`. The common
+[Effect outcome contract](../spec/execution.md#reconciliation) requires a genuine
+OperationRef and its admitted operation contracts for that variant. The
+[synchronous status API](https://kintone.dev/en/docs/kintone/rest-api/records/update-status/)
+returns a record revision, not such an operation. Keep the existing requirement
+to confirm the declared next status by read-back, and correct the outcome name.
+
+The selected `update_status` Command is synchronous. Its original revision
+response is retained provider evidence; it is not a terminal row Outcome Receipt.
+Only an actual authorized read of the same scoped app and record, matching the
+saved original response's revision and declared next status, permits `applied`.
+A missing response or unconfirmed transition preserves uncertainty through the
+existing owner. Do not infer a failure claiming the action did not occur, resend
+the mutation, or turn a record ID or revision into an OperationRef. A later equal
+status or higher revision without the saved original response proves no earlier
+attempt. This does not add a generic asynchronous provider-operation contract.
+
+A declaration for this endpoint must use the existing synchronous outcome and
+omit a fabricated asynchronous poll role. Actual confirmation remains an ordinary
+bounded read with its original authority, current checks and capacity; removing
+poll metadata does not remove the read-back duty. Retain full-diff Preview,
+original revision conflict checks, process-definition correspondence and all
+ALL/ANY/ONE, filter and assignee obligations. Eligibility or a predicted next
+state is not observed completion.
+
+The documented provider revision increment does not by itself select a new
+ActQL acceptance restriction; this decision leaves the existing bounded revision
+admission and exact returned-revision read-back correspondence intact. Provider
+projections, independent declaration preimages/CIDs and dependent fixtures must
+be updated together before adoption. Generic outcome schemas, approval, durable
+claim, receipt, recovery, no-resend and physical cleanup laws remain unchanged.
+This documentation resolution is not installed or ordinary execution evidence.

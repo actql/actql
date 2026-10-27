@@ -215,6 +215,26 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
   }
   const view = Object.freeze({
     assertCurrent: current,
+    assertSourceSnapshotCurrent(receipt) {
+      current();
+      const producer = producerFor(receipt), preparation = producer.preparation;
+      if (producer.finished || producer.body !== undefined) fail('ForeignInstalledSourceProducer');
+      if (preparation !== undefined) {
+        const original = preparation.original;
+        if (original === undefined || preparation.adopting ||
+            preparation.parent === undefined && preparation.phase === undefined) {
+          fail('ForeignInstalledSourceProducer');
+        }
+        resourceRuntime.assertOrdinaryManagedRunCurrent(original, receipt);
+        if (producer.preparation !== preparation || preparation.original !== original) {
+          fail('ForeignInstalledSourceProducer');
+        }
+      }
+      // A current callback may synchronously retire this same producer. Its
+      // original receipt/Resource tuple must still own this pre-freeze phase.
+      if (closing || closed || receipts.get(receipt) !== producer ||
+          producer.finished || producer.body !== undefined) fail('ForeignInstalledSourceProducer');
+    },
     beforeSourceSnapshot(kind, input, options, originalConnection) {
       current();
       // A selected funded context cannot fall back to an unfunded snapshot

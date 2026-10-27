@@ -20,6 +20,10 @@ export function createTransport(selected, port, isClosed, directLoopback) {
   // Check the connection lifetime before entering either original Host method.
   const sourcePreparation = capturedSourcePreparation === undefined ? undefined
     : Object.freeze({...capturedSourcePreparation,
+      assertSourceSnapshotCurrent(receipt) {
+        if (isClosed()) fail('ClientClosed');
+        return capturedSourcePreparation.assertSourceSnapshotCurrent(receipt);
+      },
       beforeResultRead(...args) {
         if (isClosed()) fail('ClientClosed');
         return capturedSourcePreparation.beforeResultRead(...args);

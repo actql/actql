@@ -5731,7 +5731,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "00c4346bdf43d38c6cc3f92d304963abdb7e8273bacc5762eb6bea4170e42c6d",
+      "sha256": "6b07de00a6ab16e26ea38bcdd7fc95e12470b7c704e07975b3c8f5a08aa8e4af",
       "role": "connector-semantics",
       "owner": "GitHub comment installation and Mapping/subject wiring under Common row Effect, Preview and Ledger",
       "exports": [
@@ -6065,6 +6065,10 @@
               {
                 "path": "adapters/host-node/connector-configuration-bounds.test.mjs",
                 "anchor": "GitHub Source and Effect identity"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-installed-comment-outcome.test.mjs",
+                "anchor": "installed comment Created remains provider evidence pending actual confirmation"
               }
             ]
           }

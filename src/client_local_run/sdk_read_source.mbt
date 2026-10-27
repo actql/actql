@@ -166,6 +166,16 @@ fn LocalSDKReadSource::definition(
 }
 
 ///|
+/// Immutable identity DATA already retained by this read source. This neither
+/// observes current authority nor replaces a fresh physical row, the full
+/// journal decoder's limits/canonical checks, or nested-original validation.
+pub fn local_sdk_read_source_run_identity(
+  source : LocalSDKReadSource,
+) -> (@host.ClientRequestIdentity, @publication.PublicationContract) {
+  (source.request(), source.definition())
+}
+
+///|
 fn LocalSDKReadSource::publication_request_cid(
   self : LocalSDKReadSource,
 ) -> String {
