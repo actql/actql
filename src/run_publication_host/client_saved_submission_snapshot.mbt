@@ -52,6 +52,41 @@ pub fn client_saved_submission_state_original(
 }
 
 ///|
+/// Reobserve only this original snapshot's immutable admitted DATA. This does
+/// not run a different validator or claim its success. The caller must retain
+/// the same completed issuer/purpose and independently check current scope,
+/// cancellation and all publication/File fences. None means no exact original
+/// correspondence, not confirmed missing history: use the full existing reader.
+pub fn[E] reobserve_client_saved_submission_original(
+  original : ClientSavedSubmissionSnapshot,
+  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+) -> Result[ClientSavedSubmissionSnapshot?, E] {
+  guard original.record.run_admission is Some(_) &&
+    original.run is Some(run) &&
+    original.inspection is Some(_) else {
+    return Ok(None)
+  }
+  let submission = match
+    read("client_submitted_intents", original.submission.key) {
+    Err(issue) => return Err(issue)
+    Ok(Some(row)) => row
+    Ok(None) => return Ok(None)
+  }
+  if submission.key != original.submission.key ||
+    submission.revision != original.submission.revision ||
+    submission.body != original.submission.body {
+    return Ok(None)
+  }
+  match read("client_runs", run.key) {
+    Err(issue) => Err(issue)
+    Ok(Some(row)) if row.key == run.key &&
+      row.revision == run.revision &&
+      row.body == run.body => Ok(Some(original))
+    _ => Ok(None)
+  }
+}
+
+///|
 fn[E] read_client_saved_submission_row(
   row : ClientJournalPhysicalRow,
   read : (String, String) -> Result[ClientJournalPhysicalRow?, E],

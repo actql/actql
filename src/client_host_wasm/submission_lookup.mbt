@@ -101,7 +101,15 @@ fn observe_submission_lookup(
       return Err(-32)
     }
     let observed = submission_run_reference_snapshot(
-      namespace, scope, definition, original, scan, read, inspect_run, cancellation,
+      namespace,
+      scope,
+      definition,
+      original,
+      scan,
+      read,
+      inspect_run,
+      cancellation,
+      original_identity=identity,
     )
     return match check() {
       Ok(_) => observed
@@ -156,6 +164,10 @@ fn submission_run_reference_snapshot(
     Int,
   ],
   cancellation : () -> Result[Unit, Int],
+  original_identity? : (
+    @host.ClientRequestIdentity,
+    @publication.PublicationContract,
+  )? = None,
 ) -> Result[@host.ClientSavedSubmissionSnapshot?, Int] {
   guard original is Some(before) else {
     return @host.inspect_client_saved_run_reference(
@@ -164,7 +176,45 @@ fn submission_run_reference_snapshot(
     )
   }
   let reference = @host.client_saved_submission_record(before).reference
-  let observed = match
+  // Only the actual completed saved source supplies this original identity.
+  // A generic Snapshot does not certify this caller's full nested validator.
+  // Reuse preserves that original result; it never certifies a new validator.
+  let reobserved = match original_identity {
+    Some((request, original_definition)) => {
+      let record = @host.client_saved_submission_record(before)
+      let run = @host.client_saved_submission_run_row(before)
+      if @host.client_request_authority_scope_cid(request) == scope &&
+        @publication.publication_contract_identity(original_definition) ==
+        definition &&
+        @publication.run_definition_namespace(original_definition) ==
+        Some(namespace) &&
+        @publication.publication_contract_check_limits(
+          original_definition, 65536, 4096, 64,
+        )
+        is Ok(_) &&
+        record.run_admission is Some(admission) &&
+        run is Some(row) &&
+        @host.validate_client_submitted_retained_run(
+          reference,
+          admission,
+          request,
+          original_definition,
+          row.revision,
+        )
+        is Ok(_) {
+        match @host.reobserve_client_saved_submission_original(before, read) {
+          Ok(value) => value
+          Err(code) => return Err(code)
+        }
+      } else {
+        None
+      }
+    }
+    None => None
+  }
+  let observation = if reobserved is Some(actual) {
+    Ok(Some(actual))
+  } else {
     @host.read_client_saved_submission(
       reference,
       read,
@@ -183,7 +233,9 @@ fn submission_run_reference_snapshot(
         Ok(run)
       },
       -31,
-    ) {
+    )
+  }
+  let observed = match observation {
     Ok(value) => value
     Err(code) => return Err(code)
   }
