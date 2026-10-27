@@ -4,7 +4,7 @@
 extern "js" fn capture_parent_original(
   loader : PublicationTestLoader,
   prepared : @publication_host.PreparedClientProgram,
-  quote : Array[Int64],
+  quote : FixedArray[Int64],
 ) -> @resources.OriginalNodeManagedRunReference =
   #|(loader,prepared,quote) => loader('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs').retainOrdinaryManagedRun(prepared,{planningWork:Number(quote[0]),attempts:Number(quote[1]),holdings:Number(quote[2]),transferBytes:quote[3],retainedBytes:quote[4],executionBytes:quote[5]},()=>{},()=>false)
 
@@ -51,7 +51,11 @@ test "ordinary DuckDB capture demand uses the same admitted parent Ledger and re
     "capture-parent",
     "sha256:" + "b".repeat(64),
   ).unwrap()
-  let original = capture_parent_original(loader, prepared, quote)
+  let original = capture_parent_original(
+    loader,
+    prepared,
+    FixedArray::makei(quote.length(), i => quote[i]),
+  )
   let admission = @resources.prepare_node_managed_run_admission(
     original, prepared,
   ).unwrap()
@@ -94,7 +98,11 @@ test "ordinary DuckDB capture demand uses the same admitted parent Ledger and re
   assert_true(require_installed_managed_run(run) is Err(Retired))
   let short_quote = quote.map(value => value)
   short_quote[4] -= 1L
-  let short_original = capture_parent_original(loader, prepared, short_quote)
+  let short_original = capture_parent_original(
+    loader,
+    prepared,
+    FixedArray::makei(short_quote.length(), i => short_quote[i]),
+  )
   let short_admission = @resources.prepare_node_managed_run_admission(
     short_original, prepared,
   ).unwrap()
@@ -150,7 +158,7 @@ test "ordinary captured parent preserves RowSource binding and pending-child ret
   let original = capture_parent_original(
     publication_test_loader(publication_test_url()),
     prepared,
-    quote,
+    FixedArray::makei(quote.length(), i => quote[i]),
   )
   let admission = @resources.prepare_node_managed_run_admission(
     original, prepared,

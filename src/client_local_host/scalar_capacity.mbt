@@ -28,7 +28,7 @@ fn client_local_scalar_nodes(
 }
 
 ///|
-fn client_local_scalar_node_limit(width : Int, max_rows : Int) -> Int? {
+fn _client_local_scalar_node_limit(width : Int, max_rows : Int) -> Int? {
   if width < 1 {
     return None
   }

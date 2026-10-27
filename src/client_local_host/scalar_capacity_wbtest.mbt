@@ -59,12 +59,12 @@ test "scalar capacity cannot replace absent evidence or the retained ceiling" {
 
 ///|
 test "scalar capacity node product derives finite demand without representation overflow" {
-  assert_eq(client_local_scalar_node_limit(2, 100), Some(200))
-  assert_eq(client_local_scalar_node_limit(100, 200), Some(20000))
-  assert_eq(client_local_scalar_node_limit(100, 201), Some(20100))
-  assert_eq(client_local_scalar_node_limit(1, 20000), Some(20000))
-  assert_eq(client_local_scalar_node_limit(1, 20001), Some(20001))
-  assert_eq(client_local_scalar_node_limit(2147483647, 2147483647), None)
-  assert_eq(client_local_scalar_node_limit(1, 0), None)
-  assert_eq(client_local_scalar_node_limit(0, 100), None)
+  assert_eq(_client_local_scalar_node_limit(2, 100), Some(200))
+  assert_eq(_client_local_scalar_node_limit(100, 200), Some(20000))
+  assert_eq(_client_local_scalar_node_limit(100, 201), Some(20100))
+  assert_eq(_client_local_scalar_node_limit(1, 20000), Some(20000))
+  assert_eq(_client_local_scalar_node_limit(1, 20001), Some(20001))
+  assert_eq(_client_local_scalar_node_limit(2147483647, 2147483647), None)
+  assert_eq(_client_local_scalar_node_limit(1, 0), None)
+  assert_eq(_client_local_scalar_node_limit(0, 100), None)
 }

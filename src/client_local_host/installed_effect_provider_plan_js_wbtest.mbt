@@ -34,13 +34,13 @@ test "provider Source Plan retains the original reader capacity in its complete 
       owned_wire_bytes: 0L,
     }).unwrap()
     assert_eq(
-      plan.compute_limits.retained_bytes,
-      plain.compute_limits.retained_bytes + 1111L,
+      plan._observed_compute_limits.retained_bytes,
+      plain._observed_compute_limits.retained_bytes + 1111L,
     )
     assert_eq(
-      plan.compute_limits.execution_bytes,
+      plan._observed_compute_limits.execution_bytes,
       Int64::max(
-        plain.compute_limits.execution_bytes,
+        plain._observed_compute_limits.execution_bytes,
         capacity.execution_bytes + plan.transport_execution_bytes[0],
       ),
     )
@@ -52,8 +52,8 @@ test "provider Source Plan retains the original reader capacity in its complete 
       plan.limits.execution_bytes,
       plain.limits.execution_bytes +
       (
-        plan.compute_limits.execution_bytes -
-        plain.compute_limits.execution_bytes
+        plan._observed_compute_limits.execution_bytes -
+        plain._observed_compute_limits.execution_bytes
       ) +
       retained_controls +
       scratch_controls,

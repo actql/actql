@@ -1,7 +1,7 @@
 ///|
 /// Variable proof ownership for the single Number-Values preparation plan.
 /// Fixed GeneratedSequence/cache/limits records are a separate component.
-struct ClosedValuesPlanProofLayout {
+priv struct ClosedValuesPlanProofLayout {
   retained : PreparationRepresentationUnits
   temporary : PreparationRepresentationUnits
 }

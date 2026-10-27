@@ -2,9 +2,9 @@
 /// Real nominal but deliberately unadvanced issuer: lifecycle-only fixture,
 /// never evidence that the publication contract chain is semantically valid.
 fn validation_custody_capture(
-  value : ClientProgramPublication[Array[Int]],
-) -> ClientProgramCapture[Array[Int]] raise {
-  let capture : ClientProgramCapture[Array[Int]] = {
+  value : ClientProgramPublication[FixedArray[Int]],
+) -> ClientProgramCapture[FixedArray[Int]] {
+  let capture : ClientProgramCapture[FixedArray[Int]] = {
     publication: value,
     plan: None,
     issuer: Some(publication_custody_issuer(publication_custody_contract())),
@@ -18,7 +18,7 @@ fn validation_custody_capture(
 
 ///|
 fn validation_custody_retire(
-  value : ClientProgramPublication[Array[Int]],
+  value : ClientProgramPublication[FixedArray[Int]],
   ledger : @resources.Ledger,
 ) -> Unit raise {
   assert_false(
@@ -60,8 +60,8 @@ test "retained validation one active slot and serial reuse share same reservatio
 
 ///|
 test "retained validation callback cancellation cannot authorize constructor" {
-  let armed = Ref::new(false)
-  let selected : Ref[ClientProgramValidation[Array[Int]]?] = Ref::new(None)
+  let armed = Ref(false)
+  let selected : Ref[ClientProgramValidation[FixedArray[Int]]?] = Ref(None)
   let (publication, ledger) = publication_custody_fixture(() => {
     if armed.val {
       armed.val = false

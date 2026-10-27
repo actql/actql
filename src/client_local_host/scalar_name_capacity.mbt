@@ -1,6 +1,6 @@
 ///|
 /// Scalar cells still charge original UTF-8 field names per row occurrence.
-fn client_local_scalar_name_bytes(
+fn _client_local_scalar_name_bytes(
   sequences : Array[@execution.GeneratedSequence],
   max_rows : Int,
 ) -> Int? {

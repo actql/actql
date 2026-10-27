@@ -5,7 +5,7 @@ priv enum PreparationRefusalPhase {
   SourceParsing
   ProgramConstruction
   CheckLowerAndPlan
-} derive(Eq, Debug)
+}
 
 ///|
 /// Immutable explanation DATA. It conveys no owner, reservation or authority.

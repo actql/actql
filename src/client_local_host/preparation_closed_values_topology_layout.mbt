@@ -2,7 +2,7 @@
 /// Strict, one-stage Closed Values topology only. This is a component vector,
 /// not a grant or a second tariff. The original guarded input, source trees,
 /// compiler/result graph and context components remain separate dependencies.
-struct ClosedValuesTopologyLayout {
+priv struct ClosedValuesTopologyLayout {
   retained : PreparationRepresentationUnits
   temporary : PreparationRepresentationUnits
 }

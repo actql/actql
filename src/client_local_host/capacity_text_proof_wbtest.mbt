@@ -76,7 +76,7 @@ test "text-free capacity proof checks every typed child and original step" {
     if expected {
       assert_eq(
         plan.execution.rows.output_values.max_text_bytes,
-        client_local_scalar_name_bytes(sequences, plan.execution.rows.max_rows).unwrap(),
+        _client_local_scalar_name_bytes(sequences, plan.execution.rows.max_rows).unwrap(),
       )
     } else {
       assert_eq(plan.execution.rows.output_values.max_text_bytes, 500000)

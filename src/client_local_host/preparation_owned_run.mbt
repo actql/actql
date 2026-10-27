@@ -2,7 +2,7 @@
 /// Fixed Local cleanup custody, not a new Resource or callback authority.
 /// The holder owns this Run's heavy fields; its admission owns a separate
 /// original holder. Existing output/operation/handler holders remain distinct.
-struct ClientManagedPreparationRetirement {
+priv struct ClientManagedPreparationRetirement {
   retirement : @resources.PreparationRetirement
   admission : @resources.NodeManagedRunAdmission[
     @publication_host.PreparedClientProgram,

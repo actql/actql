@@ -191,7 +191,7 @@ fn effect_operation_source_plan_fixture(
     capabilities,
   )
   guard base["connector_manifest"] is Object(manifest) &&
-    manifest["connectors"] is Array(connectors) else {
+    manifest["connectors"] is Array(_connectors) else {
     fail("fixture connector manifest")
   }
   manifest["connectors"] = effect_plan_fixture_members(manifest["connectors"], [
@@ -243,7 +243,7 @@ fn effect_operation_source_plan_fixture(
         "fixture Source Effect Computation: " +
         effect_plan_fixture_failure(cause),
       )
-    Err(Candidate(@checked.Headers(issue))) =>
+    Err(Candidate(@checked.Headers(_issue))) =>
       fail("fixture Source Effect Headers")
     Err(Candidate(_)) => fail("fixture Source Effect Candidate")
     Err(Mapping(_)) => fail("fixture Source Effect Mapping")
@@ -399,18 +399,20 @@ test "selected Effect operations add actual occurrence demand to the same Comput
   let (prepared, request, contracts) = effect_operation_plan_inputs()
   let plan = effect_operation_plan_fixture(prepared, request, contracts)
   assert_eq(plan.rows, 1)
-  assert_eq(plan.limits.attempts - plan.compute_limits.attempts, 3)
+  assert_eq(plan.limits.attempts - plan._observed_compute_limits.attempts, 3)
   assert_eq(
-    plan.limits.transfer_bytes - plan.compute_limits.transfer_bytes,
+    plan.limits.transfer_bytes - plan._observed_compute_limits.transfer_bytes,
     43L,
   )
   // Equal send-extent references at two occurrences remain two holdings/uses.
   assert_eq(prepared_installed_effect_managed_capture_children(plan), 4)
   assert_true(
-    plan.limits.retained_bytes >= plan.compute_limits.retained_bytes + 750L,
+    plan.limits.retained_bytes >=
+    plan._observed_compute_limits.retained_bytes + 750L,
   )
   assert_true(
-    plan.limits.execution_bytes >= plan.compute_limits.execution_bytes + 1270L,
+    plan.limits.execution_bytes >=
+    plan._observed_compute_limits.execution_bytes + 1270L,
   )
   assert_true(
     physical_equal(plan.source_free.unwrap().sequences, plan.sequences),
@@ -642,7 +644,7 @@ test "Source Effect plan retains original declaration requirement acquisition ca
       installed_managed_owner_graph(Effect(plan.prepared)),
     ),
   )
-  assert_true(plan.limits.attempts > plan.compute_limits.attempts)
+  assert_true(plan.limits.attempts > plan._observed_compute_limits.attempts)
 }
 
 ///|
@@ -767,11 +769,11 @@ test "operation demand follows checked zero or three rows and both ordered Effec
     ).unwrap()
     assert_eq(plan.rows, count)
     assert_eq(
-      plan.limits.attempts - plan.compute_limits.attempts,
+      plan.limits.attempts - plan._observed_compute_limits.attempts,
       2 + 2 * count,
     )
     assert_eq(
-      plan.limits.transfer_bytes - plan.compute_limits.transfer_bytes,
+      plan.limits.transfer_bytes - plan._observed_compute_limits.transfer_bytes,
       (2 + 2 * count).to_int64() * 3L,
     )
     assert_eq(

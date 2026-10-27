@@ -1,7 +1,7 @@
 ///|
 /// One funded compiler phase on the existing prepared owner. This component is
 /// Node JS only; its closed-builder String sharing is pinned to concat backend.
-struct ClosedValuesCompilationLayout {
+priv struct ClosedValuesCompilationLayout {
   retained : PreparationRepresentationUnits
   temporary : PreparationRepresentationUnits
   max_wire_bytes : Int
