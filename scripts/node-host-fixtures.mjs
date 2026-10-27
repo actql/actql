@@ -6,6 +6,11 @@ import {execFileSync} from 'node:child_process';
 import {packageImports} from './portable-core.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
+// Refuse stale shared preparation before reading or writing Node projections.
+// Only the existing owner validates its inputs; --write does not bless them.
+execFileSync(process.execPath, [join(root, 'scripts/workers-fixtures.mjs')], {
+  cwd: root, stdio: 'inherit',
+});
 const source = readFileSync(join(root,'src/workers_conformance/fixture.generated.mbt'),'utf8');
 const aliases = new Set([...source.matchAll(/@(\w+)/g)].map(x => x[1]));
 const queryManifest = readFileSync(join(root,'src/query_integration/moon.pkg'),'utf8');
