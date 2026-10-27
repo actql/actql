@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {windowGroupSourceSuccesses as normal, windowGroupSourceRefusals as refused,
   windowGroupSourceRows} from './fixtures/window-group-source-input.mjs';
 import {sequenceIdentityOracle} from './sequence-identity-oracle.mjs';
@@ -71,15 +72,34 @@ const windowSource = '76ad7a71f078a53db76965c33a6d9717c06254ed';
 const windowHistory = path => JSON.parse(execFileSync('git', ['show', `${windowSource}:${path}`],
   {encoding: 'utf8', maxBuffer: 4 * 1024 * 1024}));
 
-test('window group registration changes only its declared nine controls and nine refusals', async () => {
+test('window group registration changes only its declared nine controls and nine refusals', () => {
   const before = JSON.parse(readFileSync('scripts/fixtures/pre-window-group-public-query-inventory.json', 'utf8'));
-  const {registeredPublicQueryInventory} = await import('./public-query-inventory.mjs');
-  const actual = await registeredPublicQueryInventory();
-  assert.equal(actual.totalCases, before.totalCases + 18);
-  assert.deepEqual(actual.counts, {...before.counts,
+  // Exact submitted inventory from 76ad7a71f078a53db76965c33a6d9717c06254ed.
+  // Later registrations belong to the independently checked current pin.
+  const submitted = readFileSync('scripts/fixtures/submitted-window-group-public-query-inventory.json');
+  assert.equal(createHash('sha256').update(submitted).digest('hex'),
+    '0821f649f37a036e489e556ca27566a150bcb15777225b7504408b82b34eb97b');
+  const after = JSON.parse(submitted);
+  assert.equal(after.version, before.version);
+  assert.equal(after.sourceBaseline, before.sourceBaseline);
+  assert.equal(after.totalCases, before.totalCases + 18);
+  assert.deepEqual(after.counts, {...before.counts,
     successes: before.counts.successes + 9, refusals: before.counts.refusals + 9});
-  assert.deepEqual(actual.profiles.slice(1), before.profiles.slice(1));
-  assert.deepEqual(actual.repeatedFailures, before.repeatedFailures);
+  assert.deepEqual(after.profiles[0], {name: before.profiles[0].name,
+    counts: {...before.profiles[0].counts,
+      successes: before.profiles[0].counts.successes + 9,
+      refusals: before.profiles[0].counts.refusals + 9}});
+  assert.deepEqual(after.profiles.slice(1), before.profiles.slice(1));
+  assert.deepEqual(after.repeatedFailures, before.repeatedFailures);
+});
+
+test('window group history does not replace the exact current full registration pin', async () => {
+  const {version, sourceBaseline, ...expected} = JSON.parse(
+    readFileSync('scripts/fixtures/public-query-inventory.json', 'utf8'));
+  assert.equal(version, 'actql-public-query-fixture-inventory/0.1');
+  assert.equal(sourceBaseline, '76916b2b57ca8e06d9e74099349b17c263ccb411');
+  const {registeredPublicQueryInventory} = await import('./public-query-inventory.mjs');
+  assert.deepEqual(await registeredPublicQueryInventory(), expected);
 });
 
 test('window source rules change containing grammar and Run identity without rewriting parent preimages', () => {
