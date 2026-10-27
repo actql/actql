@@ -2,11 +2,14 @@
 /// Construction DATA for the existing Parameter-supported Value body. The
 /// caller keeps the original admitted ParameterType and its default Cursor;
 /// these quantities do not check either, authorize a read, reserve resources
-/// or describe Json/Vector/reference/authored-field admission. Fixed entry,
-/// indexed-read and refusal-path controls belong to the caller's full recipe.
+/// or describe Json/Vector/reference/authored-field admission. The complete
+/// Value phase adds entry/indexed/refusal controls; its caller still adds its
+/// own metadata, Parameter constraints and declaration construction.
 pub(all) struct ParameterValueBodyConstructionInventory {
   values : @shape.CollectionConstructionInventory
   traversal : @shape.CollectionConstructionInventory
+  value_extent : @shape.CollectionConstructionExtent
+  traversal_extent : @shape.CollectionConstructionExtent
   decimal_scratch : @shape.CollectionConstructionExtent
   owned_value_utf16_units : Int64
   owned_decimal_scratch_utf16_units : Int64
@@ -119,8 +122,8 @@ fn parameter_value_body_construction_inventory_owned(
     maps: o,
     map_entries: f,
   }
-  guard @shape.collection_construction_extent(values) is Some(_) &&
-    @shape.collection_construction_extent(traversal) is Some(_) &&
+  guard @shape.collection_construction_extent(values) is Some(value_extent) &&
+    @shape.collection_construction_extent(traversal) is Some(traversal_extent) &&
     @counts.checked_nonnegative_add_product(
       2L,
       Int::min(g.max_text_utf16, precision).to_int64(),
@@ -159,6 +162,8 @@ fn parameter_value_body_construction_inventory_owned(
   Some({
     values,
     traversal,
+    value_extent,
+    traversal_extent,
     decimal_scratch,
     owned_value_utf16_units: if g.total_utf16 < coefficient_units {
       g.total_utf16

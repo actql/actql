@@ -11,6 +11,9 @@ priv enum ParameterPreflightPhase {
   RetainedInventory
   TypeQuoted
   TypePrepared
+  ValueQuoted
+  ValuePrepared
+  RetainedDeclarations
   Failed
   Retired
 } derive(Eq)
@@ -19,7 +22,7 @@ priv enum ParameterPreflightPhase {
 /// A domain continuation over the SAME preparation reservation, never another
 /// Resource Owner. Its source/default/meta backing remains with the entering
 /// caller. Each actual constructor phase requires its own complete funding;
-/// the current continuation stops before default/metadata body construction.
+/// each completed constructor retains its original result for the next phase.
 struct ClientParameterDeclarationPreflight[I, P] {
   capacity : @resources.PreparationCapacity[I, P]
   mut input : I?
@@ -39,6 +42,7 @@ struct ClientParameterDeclarationPreflight[I, P] {
   mut body_bytes : Int64
   mut current_type : @decode.Cursor?
   mut current_type_facts : @parameters.DeclarationReadConstructionFacts?
+  mut current_syntax : @contract.ParameterSyntax?
   mut busy : Bool
   mut phase : ParameterPreflightPhase
 }
@@ -98,6 +102,7 @@ pub fn[I, P] begin_parameter_declaration_preflight(
     body_bytes: 0L,
     current_type: None,
     current_type_facts: None,
+    current_syntax: None,
     busy: false,
     phase: Initial,
   })
@@ -230,8 +235,9 @@ fn[I, P] prepare_parameter_declaration_preflight_owned(
 
 ///|
 /// Borrow the SAME semantic continuation/outcome and original partial usage.
-/// It still needs the next complete type/default/metadata reservation before
-/// finish_declaration_read. This is not a complete declaration/Program check.
+/// An incomplete reader still needs its next constructor reservation before
+/// advancing. A complete reader returns its original cached semantic result;
+/// this observation itself supplies no construction or Program admission.
 pub fn[I, P] parameter_declaration_preflight_outcome(
   owner : ClientParameterDeclarationPreflight[I, P],
 ) -> (Result[@parameters.DeclarationReadInput, @parameters.Issue], Int, Int)? {
@@ -242,7 +248,9 @@ pub fn[I, P] parameter_declaration_preflight_outcome(
       owner.phase == HeaderPrepared ||
       owner.phase == InventoryPrepared ||
       owner.phase == RetainedInventory ||
-      owner.phase == TypePrepared
+      owner.phase == TypePrepared ||
+      owner.phase == ValuePrepared ||
+      owner.phase == RetainedDeclarations
     ) &&
     owner.prepared is Some(_) else {
     return None
@@ -312,6 +320,7 @@ pub fn[I, P] clear_parameter_declaration_preflight(
   owner.prepared = None
   owner.current_type = None
   owner.current_type_facts = None
+  owner.current_syntax = None
   owner.phase = Retired
   Ok(())
 }

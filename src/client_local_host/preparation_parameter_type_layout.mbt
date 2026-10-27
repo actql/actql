@@ -6,11 +6,12 @@
 //109H17R241W. Parameter limits/attachment/issues/copy15H6R31W gives
 //124H23R272W. Three conversions3H15W; four tariffs20H40W; same sort2H1R6W;
 // two sums2H4W; returned split2H1R3W; five debit adds5H10W; stored quote2H1R3W:
-//160H26R353W. All are constructor controls, not type/default bodies.
+// The next-entry peak maximum adds one temporary tuple1H2W:
+//161H26R355W. All are constructor controls, not type/default bodies.
 let parameter_type_quote_controls : @execution.PreparationRepresentationUnits = {
-  record_headers: 160L,
+  record_headers: 161L,
   reference_slots: 26L,
-  scalar_words: 353L,
+  scalar_words: 355L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }

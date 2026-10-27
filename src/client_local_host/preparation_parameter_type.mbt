@@ -6,7 +6,11 @@ pub fn[I, P] prepare_parameter_declaration_type(
   owner : ClientParameterDeclarationPreflight[I, P],
 ) -> Result[Unit, ClientParameterDeclarationPreflightIssue] {
   guard !owner.busy &&
-    (owner.phase == RetainedInventory || owner.phase == TypeQuoted) &&
+    (
+      owner.phase == RetainedInventory ||
+      owner.phase == ValuePrepared ||
+      owner.phase == TypeQuoted
+    ) &&
     owner.input is Some(input) &&
     owner.prepared is Some((Ok(original), _, _)) &&
     @parameters.declaration_read_phase(original) == @parameters.DeclarationType else {
@@ -15,7 +19,8 @@ pub fn[I, P] prepare_parameter_declaration_type(
   let cursor = @parameters.declaration_read_type_cursor(original)
   let facts = @parameters.declaration_read_current_construction(original)
   guard cursor is Some(_) && facts is Some(_) else { return Err(WrongPhase) }
-  if owner.phase == RetainedInventory {
+  if owner.phase == RetainedInventory || owner.phase == ValuePrepared {
+    owner.current_syntax = None
     owner.current_type = cursor
     owner.current_type_facts = facts
   } else if !physical_equal(owner.current_type, cursor) ||
@@ -34,7 +39,7 @@ fn[I, P] prepare_parameter_declaration_type_owned(
   input : I,
   original : @parameters.DeclarationReadInput,
 ) -> Result[Unit, ClientParameterDeclarationPreflightIssue] {
-  if owner.phase == RetainedInventory {
+  if owner.phase == RetainedInventory || owner.phase == ValuePrepared {
     guard parameter_type_construction_bytes(original, owner.depth)
       is Some((returned, temporary)) &&
       @execution.checked_preparation_add_product(owner.body_bytes, returned, 1L)
@@ -50,6 +55,14 @@ fn[I, P] prepare_parameter_declaration_type_owned(
       @execution.checked_preparation_add_product(owner.base_execution, peak, 1L)
       is Some(e) else {
       return Err(Overflow)
+    }
+    // Prior synchronous constructors returned, but their original reservation
+    // is not silently shrunk. Fund this independently derived peak and retain
+    // the larger charged peak until final successful reconciliation.
+    let (r, e) = match owner.quote {
+      None => (r, e)
+      Some((prior_r, prior_e)) =>
+        (Int64::max(r, prior_r), Int64::max(e, prior_e))
     }
     owner.body_bytes = body
     owner.quote = Some((r, e))

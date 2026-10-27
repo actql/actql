@@ -58,6 +58,8 @@ pub fn declaration_type_construction_inventory(DeclarationReadInput, Int) -> @va
 
 pub fn declaration_usage(Declarations) -> (Int, Int)
 
+pub fn declaration_value_construction_inventory(DeclarationReadInput, Int) -> DeclarationValueConstructionInventory?
+
 pub fn declarations(Declarations) -> Array[Declaration]
 
 pub fn emit_declaration(Declaration, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -154,6 +156,13 @@ pub(all) enum DeclarationReadPhase {
   DeclarationType
   DeclarationValue
   DeclarationComplete
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DeclarationValueConstructionInventory {
+  returned : @decode_shape.CollectionConstructionExtent
+  metadata : @decode_shape.CollectionConstructionExtent
+  constraints : @decode_shape.CollectionConstructionExtent
+  value : @value_admission.ParameterValuePhaseConstructionInventory?
 } derive(Eq, @debug.Debug)
 
 type Declarations

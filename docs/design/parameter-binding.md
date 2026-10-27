@@ -409,8 +409,9 @@ still requires its complete coexistence quote. The same syntax retains the
 Decimal fact needed by Value quantity projection, so that selected route does
 not traverse the admitted type again. Clearing
 local references keeps the parent's charge; it neither refunds work/attempts
-nor acknowledges cleanup. Full metadata/default funding, final declaration
-construction and actual backend entrance remain subsequent obligations.
+nor acknowledges cleanup. The Value continuation below funds the next
+metadata/default and final declaration constructors. Actual backend entrance
+backing remains an obligation of the original caller.
 
 
 ### Completed type facts in the default quantity projection
@@ -435,3 +436,51 @@ pre-quotation type graph walk. Metadata checks, actual Value admission and
 Parameter constraints remain their existing semantic owners and ordering.
 Their full same-parent construction envelope and backend adoption are still
 required before the funded reader can advance that Value phase.
+
+
+### Funded metadata, defaults and completed declarations
+
+`prepare_parameter_declaration_value` selects the same reader's completed
+ParameterSyntax and retained current construction facts. The original syntax
+supplies the already admitted type and Decimal quantity. The original default
+subtree supplies its own geometry; absent and wrong-kind metadata remain
+separately observable facts. Neither a caller ordinal nor a copied quantity
+record can select another declaration in this continuation.
+
+Value admission owns its returned Value/CheckedValue and complete traversal,
+scalar, indexed-child, normalization and refusal construction families. Its
+body inventory retains the collection extents it already computed; the full
+phase forwards those extents instead of expanding the same Arrays/Maps again.
+Parameter binding adds its own Value Limits and outer refusal carriers while
+that call is active. Those caller records cannot be charged only to a later
+phase or treated as already backed by the callee. Parameter binding also owns
+its unchanged metadata reader, subsequent constraints, declaration records and
+incremental slots in Header's original entries Array.
+
+The original semantic step runs metadata before Value admission before
+Parameter constraints. Each synchronous family has returned before the next
+begins, so the quotation selects the maximum of their complete temporary
+families. Already constructed types/defaults and the next returned declaration
+coexist with that maximum. The initial control packet funds the source-derived
+sequential quotation maximum, including its original association references;
+it is not an additional grant or an assumption of spare capacity.
+
+The same preparation grows before the semantic Value step advances once.
+A failed grow retains its exact quote, original syntax and facts. Retry makes
+no second quantity scan or type read. Original associations and the read phase
+must still hold after resource currentness returns; these comparisons call no
+second external current callback. Repeated declarations reuse the same retained
+fact inventory and original work receipt. New Type/Value peaks preserve the
+larger already charged peak until an explicit final reconciliation, rather
+than silently shrinking a previous phase or refunding its work.
+
+`reconcile_parameter_declarations` accepts only the original reader's complete
+successful cached result, including absent declarations completed at Header.
+All synchronous constructor scratch has returned, while original source and
+escaped output aliases remain in the retained envelope. An original refusal
+keeps its full diagnostic backing and cannot take this success-only shrink.
+Repeated finishing returns the same semantic result. Clearing the continuation
+drops only its references; it neither settles the parent nor reports physical
+cleanup. Binding supplied/default values into a later binding result, Program
+and Context consumers, actual backend entrance frames and physical preparation
+supply remain distinct original-owner obligations.
