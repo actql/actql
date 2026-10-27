@@ -12,6 +12,7 @@ pub(all) enum PreparationWorkPhase {
   ShapeInspection
   ProgramStructure
   ParameterDeclarationInventory
+  ParameterDeclarationBodyInventory
   SemanticCheck
   LowerAndGraph
   ExecutionPlan
@@ -88,10 +89,11 @@ fn preparation_work_ordinal(phase : PreparationWorkPhase) -> Int {
     ShapeInspection => 7
     ProgramStructure => 8
     ParameterDeclarationInventory => 9
-    SemanticCheck => 10
-    LowerAndGraph => 11
-    ExecutionPlan => 12
-    PublicationProof => 13
+    ParameterDeclarationBodyInventory => 10
+    SemanticCheck => 11
+    LowerAndGraph => 12
+    ExecutionPlan => 13
+    PublicationProof => 14
   }
 }
 

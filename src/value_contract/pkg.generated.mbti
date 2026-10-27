@@ -60,6 +60,8 @@ pub fn object_contract(Array[(String, Contract)], nullable~ : Bool, max_fields~ 
 
 pub fn observe_parameter_read_construction_geometry(@decode_core.Cursor) -> ParameterReadConstructionGeometry
 
+pub fn observe_parameter_read_construction_sources(@decode_core.Cursor) -> ParameterReadConstructionSources
+
 pub fn parameter_field_at(ParameterFields, Int) -> (String, ParameterType)?
 
 pub fn parameter_fields(ParameterFields) -> Array[(String, ParameterType)]
@@ -179,6 +181,13 @@ pub(all) struct ParameterReadConstructionGeometry {
   max_identifier_units : Int
   work : Int64
 } derive(Eq, @debug.Debug)
+
+pub struct ParameterReadConstructionSources {
+  geometry : ParameterReadConstructionGeometry
+  default_value : @decode_core.Cursor?
+  metadata : @decode_core.Cursor?
+  work : Int64
+}
 
 pub enum ParameterRule {
   Plain

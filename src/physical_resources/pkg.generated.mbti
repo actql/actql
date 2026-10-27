@@ -919,6 +919,7 @@ pub(all) enum PreparationWorkPhase {
   ShapeInspection
   ProgramStructure
   ParameterDeclarationInventory
+  ParameterDeclarationBodyInventory
   SemanticCheck
   LowerAndGraph
   ExecutionPlan

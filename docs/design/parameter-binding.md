@@ -330,3 +330,43 @@ Cursor index and two tags. This corrects representation quantities at their
 Decode owner without changing tariffs, semantic bounds or backend allocation
 claims. Type, metadata, default, retained-result and actual backend entrance
 funding remain subsequent obligations on this same parent.
+
+### Original declaration quantities before Type
+
+After Header, one fixed phase observes constructor quantities for all original
+declarations before their Type/default bodies are constructed. The caller first
+funds the complete original-Cursor work stack and retained fact vector on the
+same reservation. The selected admitted subtree's node count bounds that stack;
+the actual Header declaration count bounds retained observations. This is a
+structural construction bound, not a wire-byte guess or per-field allowance.
+
+The Parameter syntax owner supplies its original type-role geometry and the
+actual root default/meta Cursors using the same role constants as its reader.
+Default/meta descendants do not become type constructors. Parameter binding
+retains their own quantity observations in Header's canonical declaration order.
+Only its private current ordinal selects a retained fact. No caller ordinal,
+equal record, path or CID can replace that association. Work and fact projections
+return the same stored optional records; absence is not reported as zero.
+
+One existing phase-work receipt bounds the complete quantity walk, with actual
+metadata visits reported once. Per source node, type/control selection, indexed
+field reads and default-tree observations have a source-derived bound of32
+visits. This is not CPU time or a count of full validations. A failed initial
+grow performs no observation; retry retains the original quote. Once observed,
+repeated access forwards the same facts and cumulative work without rescanning
+or obtaining another receipt. Semantic null/name/type/metadata/default refusal
+ordering remains in the original reader, separate from these DATA observations.
+
+Only after the synchronous walk and its original receipt returned may
+reconciliation remove its Cursor-stack scratch. The same Header, original
+Source, fact vector and outside debits remain funded. The Header's completed
+sort scratch can be reused only after that Header invocation returned; it is
+not retained as another logical owner. The preparation's extra retained-body
+scalar and Header's fact-reference slot are included in their respective
+constructor inventories. Neither clearing references nor retaining facts
+settles the parent or proves physical cleanup.
+
+The next Type and default phases must use these original facts with the actual
+admitted ParameterType and complete constructor coexistence. Observing quantities
+does not prepare a type, validate a default, admit a Program, fund a backend
+entrance frame or authorize execution.

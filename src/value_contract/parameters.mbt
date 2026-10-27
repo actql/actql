@@ -52,6 +52,12 @@ let parameter_items_field : String = "items"
 let parameter_fields_field : String = "fields"
 
 ///|
+let parameter_default_field : String = "default"
+
+///|
+let parameter_metadata_field : String = "meta"
+
+///|
 priv enum ParameterWork {
   ReadParameter(@decode.Cursor, Int)
   ParameterArray(Bool, Int64?, Int64?)
@@ -137,13 +143,13 @@ fn parameter_decode(
           allowed.push(key)
         }
         if depth == 0 {
-          allowed.push("default")
-          allowed.push("meta")
+          allowed.push(parameter_default_field)
+          allowed.push(parameter_metadata_field)
         }
         let view = decoded(@decode.closed_object(cursor, allowed))
         if depth == 0 {
-          default_value = @decode.lookup(view, "default")
-          metadata = @decode.lookup(view, "meta")
+          default_value = @decode.lookup(view, parameter_default_field)
+          metadata = @decode.lookup(view, parameter_metadata_field)
         }
         let nullable = match @decode.lookup(view, "nullable") {
           None => false

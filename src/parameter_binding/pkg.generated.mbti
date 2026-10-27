@@ -40,6 +40,12 @@ pub fn declaration_header_construction_inventory(@decode_core.Cursor?, Int, Decl
 
 pub fn declaration_preflight_construction_inventory(@decode_core.SubtreeConstructionGeometry, Int, DeclarationLimits) -> DeclarationPreflightConstructionInventory?
 
+pub fn declaration_read_construction_inventory(Int, Int) -> DeclarationReadConstructionInventory?
+
+pub fn declaration_read_construction_work(DeclarationReadInput) -> Int64?
+
+pub fn declaration_read_current_construction(DeclarationReadInput) -> DeclarationReadConstructionFacts?
+
 pub fn declaration_read_pending_syntax(DeclarationReadInput) -> @value_contract.ParameterSyntax?
 
 pub fn declaration_read_phase(DeclarationReadInput) -> DeclarationReadPhase
@@ -73,6 +79,8 @@ pub fn missing_declaration_owner(MissingNames) -> Declarations
 pub fn missing_names(MissingNames) -> Array[String]
 
 pub fn observe_declaration_preflight_construction(@decode_core.Cursor?, DeclarationLimits) -> (@decode_core.SubtreeConstructionGeometry?, Int, Int64)
+
+pub fn observe_declaration_read_construction(DeclarationReadInput) -> Int64?
 
 pub fn observe_declarations(@decode_core.Cursor?, DeclarationLimits) -> (Result[Declarations, Issue], Int, Int)
 
@@ -124,6 +132,17 @@ pub(all) struct DeclarationPreflightConstructionInventory {
   traversal : @decode_shape.CollectionConstructionExtent
   refusal : @decode_shape.CollectionConstructionExtent
   key_normalization : @canonical_value.NormalizationConstructionExtent?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DeclarationReadConstructionFacts {
+  type_syntax : @value_contract.ParameterReadConstructionGeometry
+  default_value : @decode_core.SubtreeConstructionGeometry?
+  metadata_fields : Int?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DeclarationReadConstructionInventory {
+  retained : @decode_shape.CollectionConstructionExtent
+  temporary : @decode_shape.CollectionConstructionExtent
 } derive(Eq, @debug.Debug)
 
 type DeclarationReadInput

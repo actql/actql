@@ -28,12 +28,12 @@ fn[I, P] prepare_parameter_declaration_header_owned(
   original : @parameters.DeclarationReadInput,
 ) -> Result[Unit, ClientParameterDeclarationPreflightIssue] {
   if owner.phase == RetainedPreflight {
-    guard parameter_header_construction_bytes(
+    guard parameter_header_construction_split(
         owner.root,
         owner.depth,
         owner.limits,
       )
-      is Some(bytes) &&
+      is Some((retained, bytes)) &&
       @execution.checked_preparation_add_product(
         parameter_preflight_initial_bytes, bytes, 1L,
       )
@@ -48,6 +48,7 @@ fn[I, P] prepare_parameter_declaration_header_owned(
       is Some(e) else {
       return Err(Overflow)
     }
+    owner.body_bytes = retained
     owner.quote = Some((r, e))
     owner.phase = HeaderQuoted
   }

@@ -5,12 +5,12 @@
 // shared issue extent1H3W; returned inventory/Some2H2R2W:65H9R143W.
 // Conversion1H5W; SAME existing builtin sort record/Some2H1R6W; two
 // distinct tariff calls10H20W; sum+three outside-debit adds4H8W;
-// stored quote tuple/Some2H1R3W =>84H11R185W. Phase quotes run only
+// returned split tuple/Some2H1R3W; stored quote tuple/Some2H1R3W =>86H12R188W. Phase quotes run only
 // after the prior synchronous quote returned, never as simultaneous peaks.
 let parameter_header_quote_controls : @execution.PreparationRepresentationUnits = {
-  record_headers: 84L,
-  reference_slots: 11L,
-  scalar_words: 185L,
+  record_headers: 86L,
+  reference_slots: 12L,
+  scalar_words: 188L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
@@ -22,26 +22,35 @@ let parameter_header_quote_controls : @execution.PreparationRepresentationUnits 
 let parameter_declaration_quote_controls : @execution.PreparationRepresentationUnits = {
   record_headers: Int64::max(
     parameter_preflight_quote_controls.record_headers,
-    parameter_header_quote_controls.record_headers,
+    Int64::max(
+      parameter_header_quote_controls.record_headers,
+      parameter_inventory_quote_controls.record_headers,
+    ),
   ),
   reference_slots: Int64::max(
     parameter_preflight_quote_controls.reference_slots,
-    parameter_header_quote_controls.reference_slots,
+    Int64::max(
+      parameter_header_quote_controls.reference_slots,
+      parameter_inventory_quote_controls.reference_slots,
+    ),
   ),
   scalar_words: Int64::max(
     parameter_preflight_quote_controls.scalar_words,
-    parameter_header_quote_controls.scalar_words,
+    Int64::max(
+      parameter_header_quote_controls.scalar_words,
+      parameter_inventory_quote_controls.scalar_words,
+    ),
   ),
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
 
 ///|
-fn parameter_header_construction_bytes(
+fn parameter_header_construction_split(
   root : @decode.Cursor?,
   root_path_depth : Int,
   limits : @parameters.DeclarationLimits,
-) -> Int64? {
+) -> (Int64, Int64)? {
   guard @parameters.declaration_header_construction_inventory(
       root, root_path_depth, limits,
     )
@@ -69,5 +78,9 @@ fn parameter_header_construction_bytes(
     }
     bytes
   }
-  @execution.checked_preparation_add_product(storage, sort, 1L)
+  guard @execution.checked_preparation_add_product(storage, sort, 1L)
+    is Some(total) else {
+    return None
+  }
+  Some((storage, total))
 }

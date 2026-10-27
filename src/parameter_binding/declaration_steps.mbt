@@ -26,6 +26,7 @@ priv struct DeclarationReadBody {
   mut current : @decode.Cursor?
   mut syntax : @contract.ParameterSyntax?
   mut index : Int
+  mut construction : DeclarationReadConstruction?
 }
 
 ///|
@@ -120,6 +121,7 @@ fn declaration_read_header(original : DeclarationReadInput) -> Unit raise Abort 
         current,
         syntax: None,
         index: 0,
+        construction: None,
       })
     }
   }

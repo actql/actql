@@ -6,6 +6,9 @@ priv enum ParameterPreflightPhase {
   RetainedPreflight
   HeaderQuoted
   HeaderPrepared
+  InventoryQuoted
+  InventoryPrepared
+  RetainedInventory
   Failed
   Retired
 } derive(Eq)
@@ -30,6 +33,7 @@ struct ClientParameterDeclarationPreflight[I, P] {
   base_retained : Int64
   base_execution : Int64
   mut depth : Int
+  mut body_bytes : Int64
   mut busy : Bool
   mut phase : ParameterPreflightPhase
 }
@@ -86,6 +90,7 @@ pub fn[I, P] begin_parameter_declaration_preflight(
     base_retained,
     base_execution,
     depth: 0,
+    body_bytes: 0L,
     busy: false,
     phase: Initial,
   })
@@ -227,7 +232,9 @@ pub fn[I, P] parameter_declaration_preflight_outcome(
     (
       owner.phase == Preflighted ||
       owner.phase == RetainedPreflight ||
-      owner.phase == HeaderPrepared
+      owner.phase == HeaderPrepared ||
+      owner.phase == InventoryPrepared ||
+      owner.phase == RetainedInventory
     ) &&
     owner.prepared is Some(_) else {
     return None

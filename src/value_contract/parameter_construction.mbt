@@ -121,3 +121,27 @@ pub fn observe_parameter_read_construction_geometry(
     work: meter.used,
   }
 }
+
+///|
+/// Original constructor-role observations, not an admitted ParameterSyntax.
+/// Defaults/meta are borrowed at their actual declaration root; their type
+/// interpretation stays solely with the unchanged Parameter syntax reader.
+pub struct ParameterReadConstructionSources {
+  geometry : ParameterReadConstructionGeometry
+  default_value : @decode.Cursor?
+  metadata : @decode.Cursor?
+  work : Int64
+}
+
+///|
+pub fn observe_parameter_read_construction_sources(
+  root : @decode.Cursor,
+) -> ParameterReadConstructionSources {
+  let geometry = observe_parameter_read_construction_geometry(root)
+  let meter : ParameterQuantityWork = { used: 0L, max_fields: 0, max_name: 0, }
+  let default_value = parameter_quantity_child(
+    root, parameter_default_field, meter,
+  )
+  let metadata = parameter_quantity_child(root, parameter_metadata_field, meter)
+  { geometry, default_value, metadata, work: geometry.work + meter.used, }
+}

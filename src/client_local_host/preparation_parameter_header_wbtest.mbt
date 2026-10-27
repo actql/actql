@@ -2,13 +2,13 @@
 test "Parameter Header grows SAME reservation before Map names and reader construction with one-short retry" {
   let root = funded_parameter_cursor("{\"x\":{\"type\":\"number\"}}")
   let limits = funded_parameter_limits()
-  // Header storage37H95R56W=1800B; SAME sort16H18R36W=688B.
+  // Header storage37H96R56W=1808B; SAME sort16H18R36W=688B.
   // Original preflight quote9572B includes both boxed indexed Option tags.
   assert_eq(
     parameter_header_construction_bytes(Some(root), 0, limits),
-    Some(2488L),
+    Some(2496L),
   )
-  assert_eq(parameter_preflight_initial_bytes, 5144L)
+  assert_eq(parameter_preflight_initial_bytes, 5152L)
   assert_true(
     parameter_declaration_quote_controls == parameter_preflight_quote_controls,
   )
@@ -17,8 +17,8 @@ test "Parameter Header grows SAME reservation before Map names and reader constr
     attempts: 2,
     holdings: 0,
     transfer_bytes: 0L,
-    retained_bytes: 73L + 5144L + 9572L,
-    execution_bytes: 91L + 5144L + 9572L,
+    retained_bytes: 73L + 5152L + 9572L,
+    execution_bytes: 91L + 5152L + 9572L,
   }).unwrap()
   let input = ["same original Header"]
   let capacity : @resources.PreparationCapacity[Array[String], Array[Int]] = @resources.reserve_preparation_capacity(
@@ -53,10 +53,10 @@ test "Parameter Header grows SAME reservation before Map names and reader constr
   assert_true(@parameters.declaration_read_type_cursor(reader) is None)
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((5217L, 5235L)),
+    Ok((5225L, 5243L)),
   )
   let quoted = owner.quote.unwrap()
-  assert_eq(quoted, (7705L, 7723L))
+  assert_eq(quoted, (7721L, 7739L))
   // Only unused sibling bytes return; no work or physical attempt is refunded.
   @resources.settle_capacity(ledger, sibling).unwrap()
   prepare_parameter_declaration_header(owner).unwrap()
@@ -72,7 +72,7 @@ test "Parameter Header grows SAME reservation before Map names and reader constr
   assert_true(@parameters.declaration_read_type_cursor(reader) is Some(_))
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((7705L, 7723L)),
+    Ok((7721L, 7739L)),
   )
   assert_true(prepare_parameter_declaration_header(owner) is Err(WrongPhase))
   assert_true(
@@ -82,7 +82,7 @@ test "Parameter Header grows SAME reservation before Map names and reader constr
   assert_true(parameter_declaration_preflight_outcome(owner) is None)
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((7705L, 7723L)),
+    Ok((7721L, 7739L)),
   )
   let usage = @resources.ledger_usage(ledger)
   assert_eq((usage.attempts, usage.live_reservations), (0, 1))
@@ -111,12 +111,12 @@ test "Parameter Header funds all original fields BEFORE count refusal and skips 
       inventory.storage.reference_slots,
       inventory.storage.scalar_words,
     ),
-    (161L, 529L, 459L),
+    (161L, 530L, 459L),
   )
   assert_eq(inventory.sort_fields, 0)
   assert_eq(
     parameter_header_construction_bytes(Some(root), 0, limits),
-    Some(10480L),
+    Some(10488L),
   )
   let ledger = @resources.create_ledger({
     planning_work: 7,
@@ -146,7 +146,7 @@ test "Parameter Header funds all original fields BEFORE count refusal and skips 
   prepare_parameter_declaration_header(owner).unwrap()
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((15697L, 15715L)),
+    Ok((15713L, 15731L)),
   )
   assert_eq(
     @parameters.declaration_read_phase(reader),
@@ -207,7 +207,7 @@ test "Parameter Header preserves absent wrong-kind and NULL child boundaries wit
       None => {
         assert_eq(
           @resources.preparation_capacity_working_extents(capacity, input),
-          Ok((6313L, 6331L)),
+          Ok((6329L, 6347L)),
         )
         assert_eq(
           @parameters.declaration_count(
@@ -249,5 +249,17 @@ test "Parameter Header preserves absent wrong-kind and NULL child boundaries wit
       @resources.preparation_capacity_working_extents(capacity, input),
       retained,
     )
+  }
+}
+
+///|
+fn parameter_header_construction_bytes(
+  root : @decode.Cursor?,
+  root_path_depth : Int,
+  limits : @parameters.DeclarationLimits,
+) -> Int64? {
+  match parameter_header_construction_split(root, root_path_depth, limits) {
+    None => None
+    Some((_, total)) => Some(total)
   }
 }

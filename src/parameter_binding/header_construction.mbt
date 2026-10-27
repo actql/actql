@@ -54,13 +54,13 @@ pub fn declaration_header_construction_inventory(
   } else {
     0
   }
-  // Reader5R1W; state1R1W; ObjectView2R; object/name Results2R2W;
+  // Reader6R1W; state1R1W; ObjectView2R; object/name Results2R2W;
   // absent Declarations2R/Ok1R1W; scalar issue-selection Some2W. Their
-  // disjoint alternative headers are co-counted:8H13R7W. Lookup carriers
+  // disjoint alternative headers are co-counted:8H14R7W. Lookup carriers
   // come from Decode below. Two Arrays are names plus initially empty entries.
   let header : @shape.CollectionConstructionInventory = {
     records: 8L,
-    record_references: 13L,
+    record_references: 14L,
     record_words: 7L,
     reference_arrays: 2L,
     reference_items: count.to_int64(),
