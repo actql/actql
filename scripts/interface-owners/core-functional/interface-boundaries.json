@@ -24545,6 +24545,116 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/stage_results/effect_command_checked_input.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "8e631c306e4b2f15f8be732672a5faecb819a182d386f1968f9813bcb7cc281f",
+      "role": "common-semantics",
+      "owner": "Existing Common source-bound Effect input and typed Result semantic Owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "effect_command_checked_input_binding",
+          "declaration": "effect_command_checked_input_binding ( input : EffectCommandCheckedInput , ) - > EffectCommandInputBinding"
+        },
+        {
+          "name": "effect_command_checked_input_field_at",
+          "declaration": "effect_command_checked_input_field_at ( input : EffectCommandCheckedInput , index : Int , ) - > ( String , @ value . CheckedValue ) ?"
+        },
+        {
+          "name": "effect_command_checked_input_field_count",
+          "declaration": "effect_command_checked_input_field_count ( input : EffectCommandCheckedInput , ) - > Int"
+        },
+        {
+          "name": "effect_command_checked_input_row_index",
+          "declaration": "effect_command_checked_input_row_index ( input : EffectCommandCheckedInput , ) - > Int"
+        },
+        {
+          "name": "effect_command_checked_input_value",
+          "declaration": "effect_command_checked_input_value ( input : EffectCommandCheckedInput , ) - > @ value . CheckedValue"
+        },
+        {
+          "name": "project_effect_command_checked_input",
+          "declaration": "project_effect_command_checked_input ( binding : EffectCommandInputBinding , source_row_index : Int , read : ( String , Int , @ value . Limits ) - > ( @ value . CheckedValue , Int , Int , Int ) ? , max_fields : Int , max_work : Int , values : @ value . Limits , ) - > Result [ EffectCommandCheckedInput , EffectCommandCheckedInputIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "effect_command_checked_input_binding",
+            "effect_command_checked_input_field_at",
+            "effect_command_checked_input_field_count",
+            "effect_command_checked_input_row_index",
+            "effect_command_checked_input_value",
+            "project_effect_command_checked_input"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/stage-results.md",
+                "anchor": "- Command input responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/stage-results.md",
+                "anchor": "- Command input inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/stage-results.md",
+                "anchor": "- Command input identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/stage-results.md",
+                "anchor": "- Command input ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/stage-results.md",
+                "anchor": "- Command input synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/stage-results.md",
+                "anchor": "- Command input failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/stage-results.md",
+                "anchor": "- Command input cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/stage-results.md",
+                "anchor": "- Command input resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/stage-results.md",
+                "anchor": "- Command input extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/stage-results.md",
+                "anchor": "- Command input verification:"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
