@@ -69,8 +69,10 @@ test "checked Command input retains exact typed Result and literal children" {
   ).unwrap()
   assert_true(valid_arguments.val)
   assert_eq(calls.val, 1)
-  assert_true(physical_equal(input.binding, binding))
-  assert_eq(input.source_row_index, 7)
+  assert_true(
+    physical_equal(effect_command_checked_input_binding(input), binding),
+  )
+  assert_eq(effect_command_checked_input_row_index(input), 7)
   assert_eq(effect_command_checked_input_field_count(input), 2)
   let (name, actual) = effect_command_checked_input_field_at(input, 0).unwrap()
   assert_eq(name, "a")

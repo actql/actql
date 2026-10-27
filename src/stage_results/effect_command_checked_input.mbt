@@ -2,7 +2,7 @@
 /// A composite Command input and its original typed children. The enclosing
 /// captured owner must bind the reader to the exact Result row and retain it.
 /// This pure DATA projection supplies no target, key, custody or authority.
-pub struct EffectCommandCheckedInput {
+struct EffectCommandCheckedInput {
   binding : EffectCommandInputBinding
   source_row_index : Int
   fields : Array[(String, @value.CheckedValue)]
@@ -194,6 +194,20 @@ pub fn effect_command_checked_input_value(
   input : EffectCommandCheckedInput,
 ) -> @value.CheckedValue {
   input.checked
+}
+
+///|
+pub fn effect_command_checked_input_binding(
+  input : EffectCommandCheckedInput,
+) -> EffectCommandInputBinding {
+  input.binding
+}
+
+///|
+pub fn effect_command_checked_input_row_index(
+  input : EffectCommandCheckedInput,
+) -> Int {
+  input.source_row_index
 }
 
 ///|
