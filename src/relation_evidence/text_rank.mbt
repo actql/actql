@@ -160,7 +160,12 @@ fn text_role(
   let at = @checking.decoded(@decode.required(root, key))
   let rows = match input {
     @carrier.Relation(r) => r
-    _ => @checking.fail(at, WrongCarrier(@carrier.kind(input)))
+    @carrier.Opaque(RelationKind) => @checking.fail(at, IncompleteRankingInput)
+    _ =>
+      @checking.fail(
+        at,
+        WrongRelationCarrier(@carrier.RelationKind, @carrier.kind(input)),
+      )
   }
   @checking.spend(b, at, 1)
   @checking.charge(b, at, @row.reference_name(name))

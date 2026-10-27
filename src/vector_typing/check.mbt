@@ -113,7 +113,7 @@ pub fn check(
       @carrier.VectorsKind
     }
     if @carrier.kind(input) != expected {
-      @checking.fail(source, WrongCarrier(@carrier.kind(input)))
+      @checking.fail(source, WrongCarrier(expected, @carrier.kind(input)))
     }
     let params : Map[String, @contract.ParameterType] = Map([])
     if parameters is Some(ds) {
