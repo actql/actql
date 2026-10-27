@@ -574,3 +574,20 @@ This logical reservation sequence alone does not establish that a backend has
 provided the complete first-prelude or physical backing. Source/index/Program
 completion does not fund subsequent checking, Catalog, serialization, Content,
 compilation, restoration or another backend implicitly.
+
+The existing entrance is additive, not prepaid. For the exact original
+`PreparationCapacity[I, P]` and `input`, let `(R, E)` be the callback-free
+working-debit observation and `I` the shared tariff of the installed domain
+initial inventory. `begin_program_json_preparation(capacity, input, document,
+limits, source_path?)` requests `(R + I, E + I)` on that same capacity before
+starting the Source constructor. Passing a debit already containing that same
+`I` would add it twice. There is no separate prepaid-original entrance or token
+in this API. The inventory getter returns installed DATA and is not admission.
+
+Before that grow returns, the existing debit getter's returned tuple/carrier,
+checked-add outcomes, original reservation/current/resize call frame and typed
+failure paths already exist. Their actual first-prelude backing must therefore
+come from the original caller's independently inventoried supply. The generic
+Core packet is not evidence that this pre-entry backing is present, and a
+later successful resize cannot retroactively provide it. No numerical backend
+first-prelude claim follows from the finite Core prefix qualification.
