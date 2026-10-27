@@ -89,11 +89,23 @@ pub fn bind_capacity_inputs(
   entries : Array[StageCapacityInput],
   max_work : Int,
 ) -> Result[ProgramCapacityInputs, CapacityInputsIssue] {
+  let (result, _) = observe_capacity_input_binding(program, entries, max_work)
+  result
+}
+
+///|
+/// The SAME binder, with its original charged work on success OR typed refusal.
+/// No maximum is substituted for performed work, and no evidence is rebound.
+pub fn observe_capacity_input_binding(
+  program : @syntax.Program,
+  entries : Array[StageCapacityInput],
+  max_work : Int,
+) -> (Result[ProgramCapacityInputs, CapacityInputsIssue], Int) {
   if max_work < 0 {
-    return Err(InvalidLimits)
+    return (Err(InvalidLimits), 0)
   }
   let b = { capacity_remaining: max_work, }
-  try {
+  let result = try {
     capacity_input_spend(b, 4)
     let count = @syntax.stage_count(program)
     // Reserve the Stage copy, retained slots, and caller entry visits.
@@ -195,6 +207,7 @@ pub fn bind_capacity_inputs(
   } catch {
     CapacityInputStop(issue) => Err(issue)
   }
+  (result, max_work - b.capacity_remaining)
 }
 
 ///|

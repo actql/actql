@@ -113,15 +113,7 @@ fn reuse_source_catalog_with_reader(
     @environment.CatalogReferences,
   ) raise EnvironmentFailure,
 ) -> (@environment.SourceRequestContracts, @environment.CatalogReferences) raise EnvironmentFailure {
-  if !physical_equal(prepared.environment.wire, environment) {
-    raise ForeignPreparedCatalog
-  }
-  if !source_catalog_replay_accounting(
-      prepared.usage,
-      prepared.depth_limit,
-      budget,
-      prepared.require_reuse,
-    ) {
+  if !try_reuse_source_catalog_accounting(prepared, environment, budget) {
     return read(environment, budget)
   }
   (prepared.catalog, prepared.references)
@@ -246,4 +238,21 @@ pub fn source_catalog_closed_values_dependencies(
     return None
   }
   @environment.closed_values_catalog_dependencies(prepared.references, max_work)
+}
+
+///|
+fn try_reuse_source_catalog_accounting(
+  prepared : PreparedSourceCatalog,
+  environment : @environment.WireEnvironment,
+  budget : IdentityBudget,
+) -> Bool raise EnvironmentFailure {
+  if !physical_equal(prepared.environment.wire, environment) {
+    raise ForeignPreparedCatalog
+  }
+  source_catalog_replay_accounting(
+    prepared.usage,
+    prepared.depth_limit,
+    budget,
+    prepared.require_reuse,
+  )
 }

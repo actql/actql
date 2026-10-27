@@ -580,3 +580,21 @@ selected limits, parent and completed domain holders, quote before constructing
 each domain, reconcile its actual consumed prefix, and retire storage only
 through its real borrowers. Constructing an inventory alone does not perform
 those transitions or fund the later Context, compiler, module or Content work.
+
+The staged semantic entrance retains the original Program, selected check
+environment, supplied values, already bound capacity evidence and optional
+original Source/Catalog in one parsed input. Completion uses those exact
+holders. It does not bind a caller's registration array again, reparse a
+Program, or discard completed Parameter declaration/value facts between the
+prelude, Catalog and ordinary checker. The direct entrance shares the same
+post-declaration and post-Catalog implementation.
+
+Catalog progress retains its original budget and typed domain state. Each
+explicit transition consumes the expected prior state once, including the
+retained-Catalog accounting branch; fresh-reader fallback under tighter
+unproved bounds retains the existing rules. Actual reader failure keeps its
+charged prefix and does not issue a partial admitted domain. The input,
+prelude and domain control/geometry records remain DATA continuations: their
+caller must supply all constructor overlap before entry and retain actual
+borrowed backing. These APIs do not supply a physical prelude, final Context
+funding, a CheckedProgram verdict or an execution grant by themselves.

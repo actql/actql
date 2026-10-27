@@ -582,6 +582,8 @@ pub fn numeric_slots_requirements(ProgramNumericSlots) -> ProgramOperationRequir
 
 pub fn numeric_slots_work(ProgramNumericSlots) -> Int
 
+pub fn observe_capacity_input_binding(@stage_syntax.Program, Array[StageCapacityInput], Int) -> (Result[ProgramCapacityInputs, CapacityInputsIssue], Int)
+
 pub fn operation_calendar_at(ProgramOperationCalendar, Int) -> OperationCalendarResolution?
 
 pub fn operation_calendar_count(ProgramOperationCalendar) -> Int

@@ -32,21 +32,38 @@ pub suberror SourceFailure {
 // Source identity emission can represent these declarations without checking
 // their semantics. Do not mistake serialization support for static admission.
 // Scan indexed source fields before allocation; diagnostics retain the cursor.
+priv struct DeclarationAuditWork {
+  mut declaration_remaining : Int
+}
+
+///|
 fn audit_declarations(
   program : @syntax.Program,
   max_work : Int,
   effect_headers? : @syntax.EffectHeaders? = None,
 ) -> Int raise SourceFailure {
+  let state = DeclarationAuditWork::{ declaration_remaining: max_work, }
+  audit_declarations_owned(program, state, effect_headers~)
+  max_work - state.declaration_remaining
+}
+
+///|
+// SAME audit and declaration_remaining-work cell on success and failure. The observer does
+// not walk a second copy or substitute the allowed maximum for performed work.
+fn audit_declarations_owned(
+  program : @syntax.Program,
+  state : DeclarationAuditWork,
+  effect_headers? : @syntax.EffectHeaders? = None,
+) -> Unit raise SourceFailure {
   if effect_headers is Some(headers) &&
     !physical_equal(@syntax.effect_headers_owner(headers), program) {
     raise UnsupportedEffects(@syntax.program_body(program))
   }
-  let mut remaining = max_work
   let charge = () => {
-    if remaining <= 0 {
+    if state.declaration_remaining <= 0 {
       raise DeclarationWorkLimit
     }
-    remaining -= 1
+    state.declaration_remaining -= 1
   }
   charge()
   let root = @syntax.program_body(program)
@@ -72,7 +89,7 @@ fn audit_declarations(
       }
     }
   }
-  max_work - remaining
+  ()
 }
 
 ///|

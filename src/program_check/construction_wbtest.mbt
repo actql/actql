@@ -1,4 +1,69 @@
 ///|
+// Internal construction result only. Complete semantic-role selection and
+// execution-binding coverage must precede the future CheckedProgram seal.
+fn construct_local(
+  program : @syntax.Program,
+  supplied : @decode.Cursor?,
+  environment : SourceEnvironment,
+  material : Array[Array[@context.CapacityMaterial]],
+  expression_profiles : @context.ExpressionProfiles,
+  operation_profiles : @context.PureOperationProfiles,
+  limits : SourceLimits,
+  budget : IdentityBudget,
+  numeric_profile? : @numeric.Profile? = None,
+  calendar? : @environment.SelectedCalendarProfile? = None,
+  text_rank? : @environment.SelectedTextRankProfile? = None,
+  conversion_out? : Array[ProofConversion]? = None,
+  references_out? : Array[@environment.CatalogReferences]? = None,
+  capacity_inputs? : @context.ProgramCapacityInputs? = None,
+  effect_headers? : @syntax.EffectHeaders? = None,
+  graph? : Bool = false,
+  model_tasks? : @environment.ModelTasks? = None,
+  request_value_policies? : Array[HostRequestValuePolicyEvidence] = [],
+  source_catalog? : PreparedSourceCatalog? = None,
+  source_preparation? : @stages.Source? = None,
+) -> (
+  @context.ProgramSourceIdentity,
+  @context.StageRequirementClosure,
+  @context.ProgramIncomingGates,
+  @context.CoreContractInventory,
+  Array[BuiltUnit],
+) raise LocalConstructionFailure {
+  if budget.work < 0 || budget.bytes < 0 || budget.nodes < 0 || budget.depth < 0 {
+    raise InvalidLimits
+  }
+  let declaration_work = audit_declarations(
+    program,
+    budget.work,
+    effect_headers~,
+  ) catch {
+    e => raise Source(e)
+  }
+  construct_local_after_declarations(
+    program,
+    supplied,
+    environment,
+    material,
+    expression_profiles,
+    operation_profiles,
+    limits,
+    budget,
+    declaration_work,
+    numeric_profile~,
+    calendar~,
+    text_rank~,
+    conversion_out~,
+    references_out~,
+    capacity_inputs~,
+    graph~,
+    model_tasks~,
+    request_value_policies~,
+    source_catalog~,
+    source_preparation~,
+  )
+}
+
+///|
 // This exercises private construction from real source, not a CheckedProgram
 // success contract. Final semantic dependency coverage is still required.
 fn local_construction_fixture(

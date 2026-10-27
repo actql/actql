@@ -11,6 +11,7 @@ import {
   "actql/actql/capacity_witness",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "actql/actql/expression_text",
   "actql/actql/expression_typing",
@@ -246,6 +247,12 @@ pub fn expression_execution_owner(ExpressionExecution) -> @pipeline_check_contex
 
 pub fn expression_execution_requirement_index(ExpressionExecution) -> Int
 
+pub fn finish_parsed_check_input(ParsedCheckInput) -> CheckOutcome
+
+pub fn finish_parsed_check_prelude(ParsedCheckPrelude) -> Result[CheckOutcome, ParsedCheckPreludeIssue]
+
+pub fn finish_parsed_check_registry(ParsedCheckRegistry) -> Result[CheckOutcome, ParsedCheckPreludeIssue]
+
 pub fn graph_proof_application(ReidentifiedGraphInput) -> @capacity_graph_input.InputBound
 
 pub fn graph_proof_limit(ReidentifiedGraphInput) -> @capacity_witness.LimitClaim
@@ -442,6 +449,134 @@ pub fn nest_resource_subject(NestResourceSource, NestResourceScope, Int) -> Stri
 
 pub fn numeric_slot_for_requirement(CheckedProgram, Int) -> GroupNumericSlot?
 
+pub fn observe_parsed_check_carriers(ParsedCarriersInput) -> (Result[Unit, ParsedCatalogPreparationIssue], Int)
+
+pub fn observe_parsed_check_contents(ParsedContentsInput) -> (Result[Unit, ParsedCatalogPreparationIssue], Int)
+
+pub fn observe_parsed_check_input_preparation(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, source_catalog? : PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> (Result[ParsedCheckInput, LocalConstructionFailure], Int)
+
+pub fn observe_parsed_check_policies(ParsedPoliciesInput) -> (Result[Unit, ParsedCatalogPreparationIssue], Int)
+
+pub fn observe_parsed_check_prelude(ParsedCheckInput) -> (Result[ParsedCheckPrelude, LocalConstructionFailure], Int)
+
+pub fn observe_parsed_check_references(ParsedReferencesInput) -> (Result[Unit, ParsedCatalogPreparationIssue], Int)
+
+pub fn observe_parsed_check_registry(ParsedCatalogInput) -> (Result[ParsedCheckRegistry, ParsedCatalogPreparationIssue], Int)
+
+pub fn observe_parsed_check_requests(ParsedRequestsInput) -> (Result[Unit, ParsedCatalogPreparationIssue], Int)
+
+pub fn observe_parsed_check_values(ParsedValuesInput) -> (Result[Unit, ParsedCatalogPreparationIssue], Int)
+
+pub fn observe_parsed_check_views(ParsedViewsInput) -> (Result[Unit, ParsedCatalogPreparationIssue], Int)
+
+pub fn parsed_carriers_construction_extent(ParsedCarriersInput) -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_carriers_inspection_extent(ParsedCheckRegistry) -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_carriers_inspection_retained_extent() -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_carriers_inspection_work(ParsedCarriersInput) -> Int64
+
+pub fn parsed_carriers_retained_extent(ParsedCarriersInput) -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_carriers_semantic_work(ParsedCarriersInput) -> Int
+
+pub fn parsed_catalog_construction_extent(ParsedCatalogInput) -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_catalog_inspection_work(ParsedCatalogInput) -> Int
+
+pub fn parsed_catalog_retained_extent(ParsedCatalogInput) -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_catalog_semantic_work(ParsedCatalogInput) -> Int
+
+pub fn parsed_check_carriers_inspection_bound(ParsedCheckRegistry) -> Int64
+
+pub fn parsed_check_contents_inspection_bound(ParsedCheckRegistry) -> Int64
+
+pub fn parsed_check_input_binding_work(ParsedCheckInput) -> Int
+
+pub fn parsed_check_input_retained_control_extent() -> ParsedCheckInputRetainedControlExtent
+
+pub fn parsed_check_input_semantic_work(ParsedCheckInput) -> Int
+
+pub fn parsed_check_policies_inspection_bound(ParsedCheckRegistry) -> Int64
+
+pub fn parsed_check_prelude_construction_inventory(ParsedCheckInput) -> @decode_shape.CollectionConstructionInventory
+
+pub fn parsed_check_prelude_registry_members(ParsedCheckPrelude) -> Int
+
+pub fn parsed_check_prelude_remaining_work(ParsedCheckPrelude) -> Result[Int, ParsedCheckPreludeIssue]
+
+pub fn parsed_check_references_inspection_bound(ParsedCheckRegistry) -> Int64
+
+pub fn parsed_check_registry_remaining_work(ParsedCheckRegistry) -> Result[Int, ParsedCheckPreludeIssue]
+
+pub fn parsed_check_requests_inspection_bound(ParsedCheckRegistry) -> Int64
+
+pub fn parsed_check_values_inspection_bound(ParsedCheckRegistry) -> Int64
+
+pub fn parsed_check_views_inspection_bound(ParsedCheckRegistry) -> Int64
+
+pub fn parsed_contents_construction_extent(ParsedContentsInput) -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_contents_inspection_work(ParsedContentsInput) -> Int64
+
+pub fn parsed_contents_retained_extent(ParsedContentsInput) -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_contents_semantic_work(ParsedContentsInput) -> Int
+
+pub fn parsed_policies_construction_extent(ParsedPoliciesInput) -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_policies_inspection_work(ParsedPoliciesInput) -> Int64
+
+pub fn parsed_policies_retained_extent(ParsedPoliciesInput) -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_policies_semantic_work(ParsedPoliciesInput) -> Int
+
+pub fn parsed_references_construction_extent(ParsedReferencesInput) -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_references_inspection_work(ParsedReferencesInput) -> Int64
+
+pub fn parsed_references_retained_extent(ParsedReferencesInput) -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_references_semantic_work(ParsedReferencesInput) -> Int
+
+pub fn parsed_requests_construction_extent(ParsedRequestsInput) -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_requests_inspection_extent(ParsedCheckRegistry) -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_requests_inspection_retained_extent() -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_requests_inspection_work(ParsedRequestsInput) -> Int64
+
+pub fn parsed_requests_retained_extent(ParsedRequestsInput) -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_requests_semantic_work(ParsedRequestsInput) -> Int
+
+pub fn parsed_values_construction_extent(ParsedValuesInput) -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_values_inspection_extent() -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_values_inspection_retained_extent() -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_values_inspection_work(ParsedValuesInput) -> Int64
+
+pub fn parsed_values_retained_extent(ParsedValuesInput) -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_values_semantic_work(ParsedValuesInput) -> Int
+
+pub fn parsed_views_construction_extent(ParsedViewsInput) -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_views_inspection_extent() -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_views_inspection_retained_extent() -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_views_inspection_work(ParsedViewsInput) -> Int64
+
+pub fn parsed_views_retained_extent(ParsedViewsInput) -> @check_environment.RegistryConstructionExtent
+
+pub fn parsed_views_semantic_work(ParsedViewsInput) -> Int
+
 pub fn pivot_numeric_slot_at(PivotNumericSlots, Int) -> PivotNumericSlot?
 
 pub fn pivot_numeric_slot_cid(PivotNumericSlot) -> String
@@ -467,6 +602,24 @@ pub fn prepare_effect_computation_candidate(@stage_syntax.Program, CheckEnvironm
 pub fn prepare_infer_input_source_policy(CheckedProgram, Int, Int, Int, Int, Int, Int) -> PublicationSourcePolicy? raise UnitBuildFailure
 
 pub fn prepare_infer_item_limit(CheckedProgram, Int, Int, Int, Int, Int, Int) -> InferItemLimit raise UnitBuildFailure
+
+pub fn prepare_parsed_carriers_input(ParsedCheckRegistry) -> Result[ParsedCarriersInput, ParsedCheckPreludeIssue]
+
+pub fn prepare_parsed_catalog_input(ParsedCheckPrelude) -> Result[ParsedCatalogInput, ParsedCheckPreludeIssue]
+
+pub fn prepare_parsed_check_input(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, source_catalog? : PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> Result[ParsedCheckInput, LocalConstructionFailure]
+
+pub fn prepare_parsed_contents_input(ParsedCheckRegistry) -> Result[ParsedContentsInput, ParsedCheckPreludeIssue]
+
+pub fn prepare_parsed_policies_input(ParsedCheckRegistry) -> Result[ParsedPoliciesInput, ParsedCheckPreludeIssue]
+
+pub fn prepare_parsed_references_input(ParsedCheckRegistry) -> Result[ParsedReferencesInput, ParsedCheckPreludeIssue]
+
+pub fn prepare_parsed_requests_input(ParsedCheckRegistry) -> Result[ParsedRequestsInput, ParsedCheckPreludeIssue]
+
+pub fn prepare_parsed_values_input(ParsedCheckRegistry) -> Result[ParsedValuesInput, ParsedCheckPreludeIssue]
+
+pub fn prepare_parsed_views_input(ParsedCheckRegistry) -> Result[ParsedViewsInput, ParsedCheckPreludeIssue]
 
 pub fn prepare_serialization_output_source_policy(CheckedProgram, Int, Int, Int, Int, Int, Int) -> PublicationSourcePolicy? raise UnitBuildFailure
 
@@ -896,6 +1049,11 @@ pub suberror LocalConstructionFailure {
   Template(TemplateDeclarationPreparation, TemplateConstructionIssue)
 }
 
+pub suberror ParsedCatalogPreparationIssue {
+  Prelude(ParsedCheckPreludeIssue)
+  Check(LocalConstructionFailure)
+}
+
 pub suberror SourceFailure {
   DeclarationWorkLimit
   CapacityMetadataBudget
@@ -1255,6 +1413,62 @@ pub(all) enum NestResourceScope {
 pub struct NestResourceSource {
   operation : UnitOperationSource
   nest : @relation_nest.CheckedNest
+  // private fields
+}
+
+pub struct ParsedCarriersInput {
+  // private fields
+}
+
+pub struct ParsedCatalogInput {
+  // private fields
+}
+
+pub struct ParsedCheckInput {
+  program : @stage_syntax.Program
+  environment : CheckEnvironment
+  // private fields
+}
+
+pub(all) struct ParsedCheckInputRetainedControlExtent {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+} derive(Eq, @debug.Debug)
+
+pub struct ParsedCheckPrelude {
+  // private fields
+}
+
+pub(all) enum ParsedCheckPreludeIssue {
+  AlreadyConsumed
+} derive(Eq, @debug.Debug)
+
+pub struct ParsedCheckRegistry {
+  // private fields
+}
+
+pub struct ParsedContentsInput {
+  // private fields
+}
+
+pub struct ParsedPoliciesInput {
+  // private fields
+}
+
+pub struct ParsedReferencesInput {
+  // private fields
+}
+
+pub struct ParsedRequestsInput {
+  // private fields
+}
+
+pub struct ParsedValuesInput {
+  // private fields
+}
+
+pub struct ParsedViewsInput {
   // private fields
 }
 

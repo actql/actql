@@ -11,9 +11,7 @@ pub suberror LocalConstructionFailure {
 }
 
 ///|
-// Internal construction result only. Complete semantic-role selection and
-// execution-binding coverage must precede the future CheckedProgram seal.
-fn construct_local(
+fn construct_local_after_declarations(
   program : @syntax.Program,
   supplied : @decode.Cursor?,
   environment : SourceEnvironment,
@@ -22,18 +20,19 @@ fn construct_local(
   operation_profiles : @context.PureOperationProfiles,
   limits : SourceLimits,
   budget : IdentityBudget,
+  declaration_work : Int,
   numeric_profile? : @numeric.Profile? = None,
   calendar? : @environment.SelectedCalendarProfile? = None,
   text_rank? : @environment.SelectedTextRankProfile? = None,
   conversion_out? : Array[ProofConversion]? = None,
   references_out? : Array[@environment.CatalogReferences]? = None,
   capacity_inputs? : @context.ProgramCapacityInputs? = None,
-  effect_headers? : @syntax.EffectHeaders? = None,
   graph? : Bool = false,
   model_tasks? : @environment.ModelTasks? = None,
   request_value_policies? : Array[HostRequestValuePolicyEvidence] = [],
   source_catalog? : PreparedSourceCatalog? = None,
   source_preparation? : @stages.Source? = None,
+  environment_start? : EnvironmentAdmissionStart? = None,
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -41,16 +40,6 @@ fn construct_local(
   @context.CoreContractInventory,
   Array[BuiltUnit],
 ) raise LocalConstructionFailure {
-  if budget.work < 0 || budget.bytes < 0 || budget.nodes < 0 || budget.depth < 0 {
-    raise InvalidLimits
-  }
-  let declaration_work = audit_declarations(
-    program,
-    budget.work,
-    effect_headers~,
-  ) catch {
-    e => raise Source(e)
-  }
   let work_limit = budget.work - declaration_work
   let admission = IdentityBudget::{
     work: work_limit,
@@ -60,9 +49,13 @@ fn construct_local(
   }
   let wire = environment.wire
   let (catalog, references) = try {
-    match source_catalog {
-      Some(prepared) => reuse_source_catalog(prepared, wire, admission)
-      None => prepare_environment(wire, admission)
+    match environment_start {
+      Some(start) => finish_environment_admission(start, admission)
+      None =>
+        match source_catalog {
+          Some(prepared) => reuse_source_catalog(prepared, wire, admission)
+          None => prepare_environment(wire, admission)
+        }
     }
   } catch {
     e => raise Environment(e)
