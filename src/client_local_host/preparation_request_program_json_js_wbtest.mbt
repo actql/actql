@@ -1,0 +1,167 @@
+///|
+// Authored prospective consumer tests against B's existing domain signatures.
+// The original Node fixture owns only logical admission/current/cleanup; these
+// are not SDK snapshot, Account, physical backing or ordinary Effect tests.
+let request_json_effect_source : String =
+  #|{"version":"actql/0.1","id":"request-json-é","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"seed"}],"results":{"rows":{"from":"seed","fields":["id"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
+
+///|
+test "original request parent continues into generic Unicode Effect source and Program on the same capacity" {
+  let input = [1]
+  let initial = request_parent_fixture(input)
+  let parent = begin_request_preparation(
+    initial,
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  let before = @resources.ledger_usage(parent.ledger)
+  let entry = @execution.preparation_representation_cost(
+    program_json_preparation_initial_inventory(),
+  ).unwrap()
+  let child = prepare_request_program_json_preparation(
+    parent, input, request_json_effect_source,
+  ).unwrap()
+  assert_true(physical_equal(child.capacity, parent.capacity))
+  assert_true(physical_equal(parent.program_json.unwrap(), child))
+  assert_true(physical_equal(parent.initial, initial))
+  assert_true(parent.phase == ProgramJson)
+  assert_eq(child.base_retained, before.reserved_retention_bytes)
+  assert_eq(child.base_execution, before.reserved_execution_bytes)
+  let after = @resources.ledger_usage(parent.ledger)
+  // This is the original domain recipe once, never a second pre-added copy.
+  assert_eq(
+    after.reserved_retention_bytes,
+    before.reserved_retention_bytes + entry,
+  )
+  assert_eq(
+    after.reserved_execution_bytes,
+    before.reserved_execution_bytes + entry,
+  )
+  let ready = Ref(false)
+  for _ in (0..<request_json_effect_source.length()) + 1 {
+    match advance_program_json_preparation(child, 64).unwrap() {
+      @source.JsonSourceContinue(..) => ()
+      @source.JsonSourceReady(..) => {
+        ready.val = true
+        break
+      }
+      @source.JsonSourceFailed(..) =>
+        fail("original Effect JSON preflight refused")
+    }
+  }
+  assert_true(ready.val)
+  finish_program_json_preparation(child).unwrap()
+  construct_program_json_preparation(child).unwrap()
+  reconcile_program_json_preparation_structure(child).unwrap()
+  assert_eq(child.program.unwrap().id, "request-json-é")
+  assert_eq(@syntax.stage_count(child.program.unwrap()), 1)
+  assert_true(physical_equal(child.capacity, parent.capacity))
+  // No Program/output is transferred: the fixed consumer has finished using
+  // these borrowed fields before its same original cleanup boundary.
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(child.phase == Retired && parent.phase == Closed)
+  assert_true(parent.program_json is None)
+  assert_eq(@resources.ledger_usage(parent.ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(parent.ledger).reserved_execution_bytes, 0L)
+}
+
+///|
+test "request JSON caller refuses foreign and repeated originals before a second domain constructor" {
+  let input = [1]
+  let parent = begin_request_preparation(
+    request_parent_fixture(input),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  let before = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    prepare_request_program_json_preparation(
+      parent,
+      [1],
+      request_json_effect_source,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  let child = prepare_request_program_json_preparation(
+    parent, input, request_json_effect_source,
+  ).unwrap()
+  let admitted = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    prepare_request_program_json_preparation(
+      parent, input, request_json_effect_source,
+    )
+    is Err(WrongPhase),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), admitted)
+  assert_true(physical_equal(parent.program_json.unwrap(), child))
+  abort_request_preparation_after_cleanup(parent).unwrap()
+}
+
+///|
+test "request JSON caller one-short domain grow keeps its original input and debit for cleanup" {
+  let input = [1]
+  let parent = begin_request_preparation(
+    request_parent_fixture(input),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  let before = @resources.ledger_usage(parent.ledger)
+  let entry = @execution.preparation_representation_cost(
+    program_json_preparation_initial_inventory(),
+  ).unwrap()
+  let sibling = @resources.reserve_capacity(
+    parent.ledger,
+    @resources.ledger_limits(parent.ledger).retained_bytes -
+    before.reserved_retention_bytes -
+    entry +
+    1L,
+    0L,
+  ).unwrap()
+  let held = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    prepare_request_program_json_preparation(
+      parent, input, request_json_effect_source,
+    )
+    is Err(
+      ProgramJson(
+        Capacity(
+          @resources.PreparationCapacityIssue::Resource(
+            @resources.LedgerIssue::RetentionLimit
+          )
+        )
+      )
+    ),
+  )
+  assert_true(parent.phase == ProgramJsonFailed && parent.program_json is None)
+  assert_true(parent.input is Some(original) && physical_equal(original, input))
+  assert_eq(@resources.ledger_usage(parent.ledger), held)
+  @resources.settle_capacity(parent.ledger, sibling).unwrap()
+  abort_request_preparation_after_cleanup(parent).unwrap()
+}
+
+///|
+test "request JSON caller keeps the same source while its actual domain consumer is busy" {
+  let input = [1]
+  let parent = begin_request_preparation(
+    request_parent_fixture(input),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  let child = prepare_request_program_json_preparation(
+    parent, input, request_json_effect_source,
+  ).unwrap()
+  let before = @resources.ledger_usage(parent.ledger)
+  // Private component control models the existing domain's active quantum;
+  // it is not a physical cleanup receipt or an independently issued reader.
+  child.busy = true
+  assert_true(
+    abort_request_preparation_after_cleanup(parent)
+    is Err(ProgramJson(WrongPhase)),
+  )
+  assert_true(parent.phase == ProgramJson)
+  assert_true(physical_equal(parent.program_json.unwrap(), child))
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  child.busy = false
+  abort_request_preparation_after_cleanup(parent).unwrap()
+}

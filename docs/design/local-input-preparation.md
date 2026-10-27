@@ -493,3 +493,42 @@ returning a current observation. After the callback returns, continuation refuse
 input or issuing a successor. Its original reservation and actual usage remain
 charged until the same original cleanup completes. This callback-free fence is
 not another current observation, an unpark operation or a physical ACK.
+
+## Request-owned generic Program JSON caller
+
+The original request parent retains the existing generic Program JSON holder on
+its uncompleted `PreparationCapacity[I, Unit]`. The same input, Ledger,
+reservation and original Node admission enter the domain constructor. The caller
+uses the existing standard Program source limits, which are also the source
+limits of the standard Effect profile; it adds no capacity or request option.
+The domain driver owns its Source/NFC/index/Program construction inventory and
+reserves it on that same capacity before constructing those roles. The caller
+does not pre-add another copy of that domain packet.
+
+The request bootstrap separately inventories only its new resident reference,
+Some and returned result/error carriers. The real backend first-prelude/input
+and outer holder backing remains required before entry; a policy ceiling, a
+literal fixture or these caller-only controls do not establish it. The precise
+pre-entry backing contract and minimal public domain dependency must be qualified
+before enabling a normal SDK consumer. Native JSON snapshot semantics and their
+separate preconstruction funding are unchanged by this Core caller.
+
+The parent latches before entering the domain's original current/grow boundary.
+A failed entrance retains its exact input and charge for cleanup and cannot be
+silently retried as another body. A successful entrance retains the returned
+original holder before returning it. Source preflight, indexing, structural
+Program construction and reconciliation use the existing domain methods. No
+Unit body is completed, no Pure value is reclassified as Effect, and no new Root,
+Ledger, borrower cache, permission or cleanup engine is introduced.
+
+After the fixed consumer's scratch and untransferred aliases unwind, parent
+cleanup first clears that same domain holder. A busy domain refuses without
+settling the reservation. An explicitly transferred output belongs to its real
+next consumer; parent abort cannot infer that consumer's alias retirement.
+Underlying current, stop, pending report and Unknown remain original obligations.
+Binding/check/prelude/Catalog/Requests, effect compilation and material/restore
+overlap are later required phases, not completion claims of this first caller.
+The prospective Core cases cover same-capacity Unicode Effect syntax, foreign
+and repeated inputs, one-short reservation and busy cleanup. They are authored
+against the existing domain signatures and remain unexecuted until the genuine
+minimal dependency is connected; they establish no ordinary acceptance now.
