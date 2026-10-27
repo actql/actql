@@ -76,6 +76,334 @@ pub fn client_program_begin_request_preparation(
 }
 
 ///|
+/// The existing parent retains this exact Source child on the same original input.
+#export_name("clientProgramPrepareRequestProgramJson")
+pub fn client_program_prepare_request_program_json(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  document : String,
+  limits : @stage_syntax.Limits,
+) -> Result[
+  @client_local_host.ClientProgramJsonPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+  @client_local_host.ClientRequestPreparationIssue,
+] {
+  @client_local_host.prepare_request_program_json_preparation(
+    parent, input, document, limits,
+  )
+}
+
+///|
+#export_name("clientProgramAdvanceProgramJsonPreparation")
+pub fn client_program_advance_program_json_preparation(
+  owner : @client_local_host.ClientProgramJsonPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+  quantum : Int,
+) -> Result[
+  @source.JsonSourcePreflightPoll,
+  @client_local_host.ClientProgramJsonPreparationIssue,
+] {
+  @client_local_host.advance_program_json_preparation(owner, quantum)
+}
+
+///|
+#export_name("clientProgramFinishProgramJsonPreparation")
+pub fn client_program_finish_program_json_preparation(
+  owner : @client_local_host.ClientProgramJsonPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[Unit, @client_local_host.ClientProgramJsonPreparationIssue] {
+  @client_local_host.finish_program_json_preparation(owner)
+}
+
+///|
+#export_name("clientProgramConstructProgramJsonPreparation")
+pub fn client_program_construct_program_json_preparation(
+  owner : @client_local_host.ClientProgramJsonPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[Unit, @client_local_host.ClientProgramJsonPreparationIssue] {
+  @client_local_host.construct_program_json_preparation(owner)
+}
+
+///|
+#export_name("clientProgramReconcileProgramJsonPreparationStructure")
+pub fn client_program_reconcile_program_json_preparation_structure(
+  owner : @client_local_host.ClientProgramJsonPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[Unit, @client_local_host.ClientProgramJsonPreparationIssue] {
+  @client_local_host.reconcile_program_json_preparation_structure(owner)
+}
+
+///|
+/// The parent takes and retains its original Program; no capacity or replacement body escapes.
+#export_name("clientProgramPrepareRequestProgramCheck")
+pub fn client_program_prepare_request_program_check(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  environment : @program_check.CheckEnvironment,
+  supplied : @decode.Cursor?,
+  evidence : Array[@context.StageCapacityInput],
+  limits : @program_check.CheckLimits,
+  source_catalog : @program_check.PreparedSourceCatalog?,
+  source_preparation : @stage_parameters.Source?,
+) -> Result[
+  @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+  @client_local_host.ClientRequestPreparationIssue,
+] {
+  @client_local_host.prepare_request_program_check_preparation(
+    parent,
+    input,
+    environment,
+    supplied,
+    evidence,
+    limits,
+    source_catalog~,
+    source_preparation~,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareProgramCheckInput")
+pub fn client_program_prepare_program_check_input(
+  owner : @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[Unit, @client_local_host.ClientProgramCheckPreparationIssue] {
+  @client_local_host.prepare_program_check_input(owner)
+}
+
+///|
+#export_name("clientProgramPrepareProgramCheckPrelude")
+pub fn client_program_prepare_program_check_prelude(
+  owner : @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[
+  @program_check.ParsedCheckPrelude,
+  @client_local_host.ClientProgramCheckPreparationIssue,
+] {
+  @client_local_host.prepare_program_check_prelude(owner)
+}
+
+///|
+#export_name("clientProgramPrepareProgramCheckRegistry")
+pub fn client_program_prepare_program_check_registry(
+  owner : @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[
+  @program_check.ParsedCheckRegistry,
+  @client_local_host.ClientProgramCheckPreparationIssue,
+] {
+  @client_local_host.prepare_program_check_registry(owner)
+}
+
+///|
+#export_name("clientProgramPrepareProgramCheckContents")
+pub fn client_program_prepare_program_check_contents(
+  owner : @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[
+  @program_check.ParsedCheckRegistry,
+  @client_local_host.ClientProgramCheckPreparationIssue,
+] {
+  @client_local_host.prepare_program_check_contents(owner)
+}
+
+///|
+#export_name("clientProgramPrepareProgramCheckReferences")
+pub fn client_program_prepare_program_check_references(
+  owner : @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[
+  @program_check.ParsedCheckRegistry,
+  @client_local_host.ClientProgramCheckPreparationIssue,
+] {
+  @client_local_host.prepare_program_check_references(owner)
+}
+
+///|
+#export_name("clientProgramPrepareProgramCheckPolicies")
+pub fn client_program_prepare_program_check_policies(
+  owner : @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[
+  @program_check.ParsedCheckRegistry,
+  @client_local_host.ClientProgramCheckPreparationIssue,
+] {
+  @client_local_host.prepare_program_check_policies(owner)
+}
+
+///|
+#export_name("clientProgramPrepareProgramCheckValues")
+pub fn client_program_prepare_program_check_values(
+  owner : @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[
+  @program_check.ParsedCheckRegistry,
+  @client_local_host.ClientProgramCheckPreparationIssue,
+] {
+  @client_local_host.prepare_program_check_values(owner)
+}
+
+///|
+#export_name("clientProgramPrepareProgramCheckViews")
+pub fn client_program_prepare_program_check_views(
+  owner : @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[
+  @program_check.ParsedCheckRegistry,
+  @client_local_host.ClientProgramCheckPreparationIssue,
+] {
+  @client_local_host.prepare_program_check_views(owner)
+}
+
+///|
+#export_name("clientProgramPrepareProgramCheckCarriers")
+pub fn client_program_prepare_program_check_carriers(
+  owner : @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[
+  @program_check.ParsedCheckRegistry,
+  @client_local_host.ClientProgramCheckPreparationIssue,
+] {
+  @client_local_host.prepare_program_check_carriers(owner)
+}
+
+///|
+#export_name("clientProgramPrepareProgramCheckRequests")
+pub fn client_program_prepare_program_check_requests(
+  owner : @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[
+  @program_check.ParsedCheckRegistry,
+  @client_local_host.ClientProgramCheckPreparationIssue,
+] {
+  @client_local_host.prepare_program_check_requests(owner)
+}
+
+///|
+#export_name("clientProgramReconcileProgramCheckRegistry")
+pub fn client_program_reconcile_program_check_registry(
+  owner : @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[Unit, @client_local_host.ClientProgramCheckPreparationIssue] {
+  @client_local_host.reconcile_program_check_registry(owner)
+}
+
+///|
+#export_name("clientProgramReconcileProgramCheckContents")
+pub fn client_program_reconcile_program_check_contents(
+  owner : @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[Unit, @client_local_host.ClientProgramCheckPreparationIssue] {
+  @client_local_host.reconcile_program_check_contents(owner)
+}
+
+///|
+#export_name("clientProgramReconcileProgramCheckReferences")
+pub fn client_program_reconcile_program_check_references(
+  owner : @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[Unit, @client_local_host.ClientProgramCheckPreparationIssue] {
+  @client_local_host.reconcile_program_check_references(owner)
+}
+
+///|
+#export_name("clientProgramReconcileProgramCheckPolicies")
+pub fn client_program_reconcile_program_check_policies(
+  owner : @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[Unit, @client_local_host.ClientProgramCheckPreparationIssue] {
+  @client_local_host.reconcile_program_check_policies(owner)
+}
+
+///|
+#export_name("clientProgramReconcileProgramCheckValues")
+pub fn client_program_reconcile_program_check_values(
+  owner : @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[Unit, @client_local_host.ClientProgramCheckPreparationIssue] {
+  @client_local_host.reconcile_program_check_values(owner)
+}
+
+///|
+#export_name("clientProgramReconcileProgramCheckViews")
+pub fn client_program_reconcile_program_check_views(
+  owner : @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[Unit, @client_local_host.ClientProgramCheckPreparationIssue] {
+  @client_local_host.reconcile_program_check_views(owner)
+}
+
+///|
+#export_name("clientProgramReconcileProgramCheckCarriers")
+pub fn client_program_reconcile_program_check_carriers(
+  owner : @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[Unit, @client_local_host.ClientProgramCheckPreparationIssue] {
+  @client_local_host.reconcile_program_check_carriers(owner)
+}
+
+///|
+#export_name("clientProgramReconcileProgramCheckRequests")
+pub fn client_program_reconcile_program_check_requests(
+  owner : @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+) -> Result[Unit, @client_local_host.ClientProgramCheckPreparationIssue] {
+  @client_local_host.reconcile_program_check_requests(owner)
+}
+
+///|
 #export_name("clientProgramSelectClosedValuesPreparation")
 pub fn client_program_select_closed_values_preparation(
   parent : @client_local_host.ClientRequestPreparation[

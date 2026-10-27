@@ -780,3 +780,20 @@ does not fund the collector's traversal, original Cursor/input, array/Map,
 normalization or order construction. A later preparation phase must supply all
 of that backing before calling it and retain the same Source and output through
 the actual registration/Context continuation and its retirement.
+
+## Node request-parent preparation ports
+
+The Node ports forward the existing original request parent, opaque input,
+selected syntax/check limits, environment, evidence and optional original
+Catalog/Source directly to the Core constructors. Source progression and each
+Check preparation/reconciliation use those same retained child holders. The
+ports perform no second current observation, semantic preparation or capacity
+calculation, and introduce no replacement wrapper, grant or Resource owner.
+
+The bridge exposes no raw capacity constructor/getter, independent child clear
+or output take. The original parent remains the only cleanup entrance for this
+fixed caller. Returned phase DATA is borrowed under that caller's actual
+synchronous lifetime; exporting a function does not fund backend input, VM,
+callback or argument backing, register a later output consumer, or enable a
+normal Source/Effect profile by itself. Original current/abort, pending/Unknown,
+and physical retirement obligations remain with their existing owners.
