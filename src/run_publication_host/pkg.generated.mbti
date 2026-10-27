@@ -2000,6 +2000,8 @@ pub fn release_client_effect_command_content(ClientEffectCommandContent) -> Unit
 
 pub fn release_recovered_client_effect_command_content(RecoveredClientEffectCommandContent) -> Unit
 
+pub fn[E] reobserve_client_saved_submission_original(ClientSavedSubmissionSnapshot, (String, String) -> Result[ClientJournalPhysicalRow?, E]) -> Result[ClientSavedSubmissionSnapshot?, E]
+
 pub fn[A] reserve_client_keyed_acquisition_attempt(@query_planning.QueryEvidenceRegistration[@sourceview_resolution.KeyedSourceFacts, @program_check.KeyedExecution, A], @query_planning.AcquisitionChoice[@program_check.KeyedExecution], @query_planning.PreparedAcquisition[@program_check.KeyedExecution, ClientKeyedAcquisition]) -> Result[(ClientKeyedAcquisition, @query_planning.QueryEvidenceAttemptAuthority[@sourceview_resolution.KeyedSourceFacts, @program_check.KeyedExecution, A]), @query_planning.QueryEvidenceCustodyIssue]
 
 pub fn resolve_client_model_provider_defaults(ClientModelProviderDefaults, String?, Int64?, Int) -> Result[@check_environment.ResolvedModelProviderDefaults, @check_environment.ModelProviderDefaultsResolutionIssue]
