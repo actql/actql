@@ -31,14 +31,14 @@ test "GCS upload declares exact optional presence and independent role preimages
   )
   assert_eq(
     command["contract_cid"],
-    "sha256:01b4437a23e585b15309e958d28d7069d58f3f9002ec6fffe8458dc24b58fa39".to_json(),
+    "sha256:faa1d52507efc3722752d36a72aef759e84fedfa14ddcd9528ace59d9ba4ace2".to_json(),
   )
   assert_eq(command["input_schema"], upload_declaration_reference(contracts[0]))
   assert_eq(command["target"], {
     "resource_kind": "file_collection",
     "cardinality": "single",
   })
-  assert_eq(command["minimum_approval"], "required".to_json())
+  assert_true(command.get("minimum_approval") is None)
   assert_eq(command["permissions"], [
     "storage.objects.create", "storage.objects.delete", "storage.objects.get",
   ])
@@ -242,7 +242,7 @@ test "GCS upload Mapping preserves full ContentRef contract and exact original C
   assert_eq(pair["command_ref"], "command:exports.gcs.upload.v1".to_json())
   assert_eq(
     pair["command_contract_cid"],
-    "sha256:01b4437a23e585b15309e958d28d7069d58f3f9002ec6fffe8458dc24b58fa39".to_json(),
+    "sha256:faa1d52507efc3722752d36a72aef759e84fedfa14ddcd9528ace59d9ba4ace2".to_json(),
   )
   assert_eq(rules.length(), 4)
   for rule in rules {

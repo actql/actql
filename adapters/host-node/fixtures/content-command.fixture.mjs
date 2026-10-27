@@ -42,7 +42,7 @@ export function contentCommandFixture({contentMime = 'application/pdf',
     version: 'fixture', target: {resource_kind: targetKind, cardinality: 'single'},
     input_schema: reference(input), output_schema: reference(output),
     input_contract: {additional_properties: false, fields},
-    permissions: ['files.write'], minimum_approval: 'required',
+    permissions: ['files.write'],
     preview: {strength: 'exact'}, outcome: 'synchronous',
     idempotency: {support: 'unsupported'}, reversibility: 'unknown',
     atomicity: 'single_target'};

@@ -2,7 +2,7 @@
 test "generated protocol table shares identical immutable rules without merging constraints" {
   let first = generated_protocol_schema_nodes()
   let second = generated_protocol_schema_nodes()
-  assert_eq(first.length(), 7300)
+  assert_eq(first.length(), 7306)
   assert_eq(second.length(), first.length())
   // These historical slots describe the same nonempty String rule. The CID
   // pattern at slot 2 is distinct, and another construction owns its own data.

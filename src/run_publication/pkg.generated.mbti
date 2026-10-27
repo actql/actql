@@ -1477,7 +1477,7 @@ pub struct EffectPreviewIdentity {
   member_max_items : Array[Int64]
   member_contracts : Array[EffectPreviewResolvedContract]
   member_failure_policies : Array[String]
-  member_approvals : Array[String]
+  member_approvals : Array[String?]
   member_footprints : Array[EffectPreviewFootprintIdentity]
   row_keys : Array[Array[String]]
   row_cids : Array[Array[String]]

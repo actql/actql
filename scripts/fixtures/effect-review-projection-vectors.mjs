@@ -50,7 +50,7 @@ function vector(name, kind, strength, target, rowTarget, values) {
     write_footprint: {kind: 'exact_targets', resource_identity_scheme_cid: C('a'),
       provider_namespace: 'fixture', provider_boundary_cid: C('c'), resource_kind: 'file',
       provider_object_identity_cids: [C('d')]}, count: 1, max_items: 1,
-    required_permissions: ['write'], approval: 'required', on_item_failure: 'halt',
+    required_permissions: ['write'], ...(kind === 'command' ? {} : {approval: 'required'}), on_item_failure: 'halt',
     changes: [row], row_order: [row.row_preview_cid], executed: false};
   const member = {...memberBody, effect_member_preview_cid: hash({
     version: 'actql-effect-member-preview/0.1', member: memberBody})};
@@ -97,7 +97,7 @@ export const expectedCids = [
   'sha256:78a38561db4024a12d1269cb5ca6e69aeba24a7516dfe04052e648aa4b53e152',
   'sha256:61f5851f0fa58a8a91b2314e204a71fbfbfb00881ad5159d207644fa00463766',
   'sha256:15e6eb2ba487f9350a6909300defb23de18bb0d31749f51ff4fc1379c09aa655',
-  'sha256:65d5eba02275b8471fafaf8d6930729379624ac2ee1322b081ee8c9162805214',
+  'sha256:8054a90144f0ef05ea54b779abc9e91ce159ac2fc2aaf1378cf79fc53904dcba',
   'sha256:069e220e25f61baed146575925e7a40c9c1895cd258d039c61beee6d17ac2bf5',
   'sha256:1ecc3251def806992ada589a1503a8912a28c3690fba532a9aef74f939613426',
   'sha256:6beeebbee9948fc51d7b820e85df2d30029bf8ba5866f4d04a1c476ad309b807',

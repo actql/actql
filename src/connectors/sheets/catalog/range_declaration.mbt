@@ -108,7 +108,6 @@ pub fn range_command_json(
     "output_schema": range_contract_ref(output),
     "input_contract": { "additional_properties": false, "fields": input_fields },
     "permissions": ["sheets:cells:update"],
-    "minimum_approval": "required",
     "preview": { "strength": "exact" },
     "outcome": "synchronous",
     "idempotency": { "support": "unsupported" },

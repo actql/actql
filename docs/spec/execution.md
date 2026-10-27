@@ -1808,6 +1808,13 @@ approval evidence. When the account outcome is `allow`, the receipt instead
 records the account configuration identity and that no approval attestation or
 risk claim was required.
 
+<!-- requirement-block: effect-application.command-preview-contract-minimum-absence -->
+A Command Preview member MUST omit `approval`; that field is forbidden for
+Command members. This absence represents no contract approval minimum and is
+not an Account outcome or permission. Existing Mapping Preview carriage is
+unchanged. The original admitted Account and delegated Host decision select
+whether the exact Set requires a Checkpoint and Resolution before dispatch.
+
 A Connector contract cannot raise or lower account routing, and no Host answer
 converts an account `deny` into permission. The absence of approval syntax does
 not grant permission to bypass account evaluation; a configuration without a
