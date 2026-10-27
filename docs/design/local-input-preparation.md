@@ -529,10 +529,6 @@ next consumer; parent abort cannot infer that consumer's alias retirement.
 Underlying current, stop, pending report and Unknown remain original obligations.
 Binding/check/prelude/Catalog/Requests, effect compilation and material/restore
 overlap are later required phases, not completion claims of this first caller.
-The prospective Core cases cover same-capacity Unicode Effect syntax, foreign
-and repeated inputs, one-short reservation and busy cleanup. They are authored
-against the existing domain signatures and remain unexecuted until the genuine
-minimal dependency is connected; they establish no ordinary acceptance now.
 
 ## Public generic JSON constructor continuation
 
