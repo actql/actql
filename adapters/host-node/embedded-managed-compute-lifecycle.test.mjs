@@ -46,6 +46,7 @@ function opening() {
 function preparedEnvironmentLifetime({missing = false, retire = () => {},
   consumerRetire = () => {}, install = true} = {}) {
   const opening = declared('openInstalledHost');
+  assert.deepEqual(opening.params.map(node => node.name), ['originalInstallation', 'preparation']);
   const functions = new Map(opening.body.body.filter(node => node.type === 'FunctionDeclaration')
     .map(node => [node.id.name,node]));
   let getter;
@@ -81,7 +82,7 @@ function preparedEnvironmentLifetime({missing = false, retire = () => {},
     assert.strictEqual(publication,original.publication);retirements++;retire();
   };
   const consumer = {calls:0,retained:true,retire:consumerRetire};
-  const create = new Function('original','sourceAliasPublicationOriginal','retireSourceAliasPublicationOriginal','consumer',`
+  const create = new Function('original','sourceAliasPublicationOriginal','retireSourceAliasPublicationOriginal','consumer','preparation',`
     const host=original.host,moon=original.moon;
     let environment=original.environment,sourcePublication=original.publication;
     let preparedSourceEnvironment,clientProgramPreparationReferences,modelRuntimeClosing=false;
@@ -115,7 +116,7 @@ function preparedEnvironmentLifetime({missing = false, retire = () => {},
       stop(){modelRuntimeClosing=true;},replaceEnvironment(value){environment=value;},
       replacePublication(value){sourcePublication=value;}};
   `);
-  return {fixture:create(original,sourceAliasPublicationOriginal,retireSourceAliasPublicationOriginal,consumer),original,consumer,
+  return {fixture:create(original,sourceAliasPublicationOriginal,retireSourceAliasPublicationOriginal,consumer,undefined),original,consumer,
     get reads(){return reads;},get retirements(){return retirements;}};
 }
 
@@ -123,6 +124,7 @@ test('Host prepared Environment keeps one original and forwards only its cheap l
   const f = preparedEnvironmentLifetime();
   assert.equal(f.reads,1);
   assert.strictEqual(f.fixture.options.getPreparedSourceEnvironment,f.fixture.get);
+  assert.equal(Object.hasOwn(f.fixture.options,'getFundedPreparation'),false, 'The actual optional preparation argument is absent, not a fabricated funded parent');
   for (let index=0;index<8;index++) assert.strictEqual(f.fixture.get(),f.original.preparedEnvironment);
   assert.equal(f.reads,1,'unchanged Host use does not re-read, encode or prepare its publication');
   assert.equal(f.retirements,0);
@@ -660,12 +662,19 @@ function sourceFreeOpening() {
         '!acquiring && !inferring && !serializing') matches.push(node);
   });
   assert.equal(matches.length, 1);
-  return new Function('held', 'moon', 'preparedProgram', 'requested', 'retainedRelationOutput', 'checked', `
+  const helper = name => {
+    const matches = dispatchAst.body.filter(node => node.type === 'FunctionDeclaration' && node.id.name === name);
+    assert.equal(matches.length, 1, name);
+    return dispatchSource.slice(matches[0].start, matches[0].end);
+  };
+  return new Function('held', 'moon', 'preparedProgram', 'requested', 'retainedRelationOutput', 'checked', 'preparationLease', `
+    ${helper('releaseDispatchPreparationHost')}
+    ${helper('retainDispatchPreparationHost')}
     const acquiring=false, inferring=false, serializing=false;
     const managedComputeRequired=true;
     const registry='registry',values='values',fragment='fragment',ordered='ordered',entry={};let setup;
     ${dispatchSource.slice(matches[0].start, matches[0].end)}
-    return {setup,entry};`);
+    return {setup,entry,release:()=>releaseDispatchPreparationHost(entry)};`);
 }
 
 test('actual dispatcher opens its opaque Run without the legacy accounting constructor', () => {
@@ -833,4 +842,57 @@ test('managed accounting refuses old Usage capability before any sample', () => 
   assert.equal(typeof read,'function');
   assert.equal(read(),undefined,'An older same-size layout cannot be interpreted by the new capability');
   assert.equal(oldReads,0,'No legacy fallback or speculative second sample');
+});
+
+
+test('actual dispatcher retains and returns the captured original preparation borrow', () => {
+  const managedRun = {}, prepared = {}, request = {}, holder = {}, lease = {}, setup = {}, calls = [];
+  const moon = {
+    clientProgramInstalledManagedPreparationBorrow(run, value, requested) {
+      assert.strictEqual(this, moon); assert.strictEqual(run, managedRun);
+      assert.strictEqual(value, prepared); assert.strictEqual(requested, request);
+      calls.push('borrow'); return holder;
+    },
+    clientProgramPreparationBorrowRead(value) {
+      assert.strictEqual(this, moon); assert.strictEqual(value, holder);
+      calls.push('read'); return prepared;
+    },
+    clientProgramPreparationBorrowReturn(value) {
+      assert.strictEqual(this, moon); assert.strictEqual(value, holder); calls.push('return');
+    },
+    clientProgramOpenInstalledManagedSourceFreeHost() {calls.push('open'); return setup;},
+  };
+  const result = sourceFreeOpening()({managedRun}, moon, prepared, request, false, value => value, lease);
+  assert.strictEqual(result.setup, setup); assert.strictEqual(result.entry.preparationHostBorrow, holder);
+  assert.strictEqual(result.entry.preparationHostRuntime, moon);
+  moon.clientProgramPreparationBorrowReturn = () => assert.fail('No replacement return receiver');
+  result.release(); result.release();
+  assert.deepEqual(calls, ['borrow', 'read', 'open', 'return']);
+  assert.equal(result.entry.preparationHostBorrow, undefined);
+  assert.equal(result.entry.preparationHostReturn, undefined);
+  assert.equal(result.entry.preparationHostRuntime, undefined);
+});
+
+test('actual dispatcher refuses foreign or missing preparation custody and returns only its same borrow', () => {
+  for (const hasLease of [false, true]) {
+    const managedRun = {}, prepared = {}, request = {}, holder = {}, calls = [];
+    const moon = {
+      clientProgramInstalledManagedPreparationBorrow(run, value, requested) {
+        assert.strictEqual(this, moon); assert.strictEqual(run, managedRun);
+        assert.strictEqual(value, prepared); assert.strictEqual(requested, request);
+        calls.push('borrow'); return holder;
+      },
+      clientProgramPreparationBorrowRead(value) {
+        assert.strictEqual(this, moon); assert.strictEqual(value, holder);
+        calls.push('read'); return {}; // Another prepared original cannot borrow this owner.
+      },
+      clientProgramPreparationBorrowReturn(value) {
+        assert.strictEqual(this, moon); assert.strictEqual(value, holder); calls.push('return');
+      },
+      clientProgramOpenInstalledManagedSourceFreeHost() {assert.fail('No Host open after custody refusal');},
+    };
+    assert.throws(() => sourceFreeOpening()({managedRun}, moon, prepared, request, false,
+      value => value, hasLease ? {} : undefined), /ForeignPreparationHostCustody/u);
+    assert.deepEqual(calls, hasLease ? ['borrow', 'read', 'return'] : ['borrow', 'return']);
+  }
 });
