@@ -29,6 +29,8 @@ pub fn cancel_admission(Admission) -> Unit
 
 pub fn closed_object(Cursor, Array[String]) -> Result[ObjectView, Issue]
 
+pub fn closed_object_construction_extent(Cursor, Int, Int) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn cursor_key_span(Cursor) -> @source_span.Span?
 
 pub fn cursor_path(Cursor) -> Array[@source_value.PathSegment]

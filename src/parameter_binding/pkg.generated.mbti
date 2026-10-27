@@ -20,6 +20,8 @@ pub fn advance_declaration_read(DeclarationReadInput) -> Unit
 
 pub fn bind(Declarations, @decode_core.Cursor?, @value_admission.Limits) -> Result[BindingResult, Issue]
 
+pub fn binding_header_construction_extent(BindingReadInput, Int) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn binding_read_origin(BindingReadInput) -> Origin
 
 pub fn binding_read_pending_declaration(BindingReadInput) -> Declaration?

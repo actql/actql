@@ -519,3 +519,31 @@ returns that same Result and does no binding work. Semantic boundaries alone
 do not fund construction: Header, selected-source preflight, supplied Value,
 output/diagnostic coexistence and actual Program/Context/backend consumers
 still require their corresponding original-parent resource connection.
+
+
+## Original binding Header reservation
+
+The binding continuation uses the same existing preparation reservation. Its
+initial immutable control packet is added once to the actual outside debit;
+the entering caller separately owns borrowed declarations, input and limits,
+and the frame used to read/current-check/resize that reservation. The Header
+ancestry observer claims one original work phase, spends its actual parent-node
+visits and closes the receipt before any later resize; it does not refill work
+for each field. Invalid original fixed limits retain their direct refusal
+without starting that metadata walk.
+
+Header construction accounts for the actual supplied object width, including
+invalid unknown fields, rather than clipping it to the declaration count. The
+Decoder owns the composite `closed_object` Map, key-check, pair-array and refusal
+path construction. Its key-check quantities come from the same structural owner
+that chooses the actual key-check implementation. ParameterBinding adds only
+its names, original reader/Budget, empty entry/missing arrays and result carriers.
+No second key threshold, semantic verdict or byte tariff is introduced.
+
+The fixed Host continuation retains one original reader and quote. It grows the
+same parent before advancing Header, retains both on refusal to grow, and checks
+the original reader boundary after the resource call can reenter. Completion of
+that reservation call is distinct from the reader's original semantic result.
+Clearing local references does not settle the parent or acknowledge physical
+cleanup. Selected-source preflight, provided Value and final binding inventories
+require their own later construction backing; Header is not their allowance.

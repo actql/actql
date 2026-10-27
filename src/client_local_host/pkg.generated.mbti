@@ -90,6 +90,8 @@ pub fn begin_installed_mock_model_managed_run(@physical_resources.NodeManagedRun
 
 pub fn begin_installed_source_read(@physical_resources.ImportedChildLedger) -> Result[ClientInstalledSourceRead, ClientInstalledSourceReadIssue]
 
+pub fn[I, P] begin_parameter_binding_preparation(@physical_resources.PreparationCapacity[I, P], I, @parameter_binding.Declarations, @decode_core.Cursor?, @value_admission.Limits) -> Result[ClientParameterBindingPreparation[I, P], ClientParameterBindingPreparationIssue]
+
 pub fn[I, P] begin_parameter_declaration_preflight(@physical_resources.PreparationCapacity[I, P], I, @decode_core.Cursor?, @parameter_binding.DeclarationLimits) -> Result[ClientParameterDeclarationPreflight[I, P], ClientParameterDeclarationPreflightIssue]
 
 pub fn[I] begin_preparation_owned_installed_effect_managed_run(@physical_resources.NodePreparationAdmission[I], I, @physical_resources.PreparationCapacity[I, ClientInstalledEffectManagedPlan], @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
@@ -151,6 +153,8 @@ pub fn cleanup_client_infer_input(ClientInferInputExecution) -> Result[Bool, Cli
 pub fn cleanup_client_original_keyed_prefix_input(ClientOriginalKeyedPrefixInput) -> Result[Bool, ClientSerializationPrefixIssue]
 
 pub fn cleanup_client_serialization_prefix(ClientSerializationPrefix) -> Result[Bool, ClientSerializationPrefixIssue]
+
+pub fn[I, P] clear_parameter_binding_preparation(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
 
 pub fn[I, P] clear_parameter_declaration_preflight(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
 
@@ -380,6 +384,10 @@ pub fn open_source_free_local_retained_host(@run_publication_host.PreparedClient
 
 pub fn open_source_free_local_retained_host_on_ledger(@run_publication_host.PreparedClientProgram, @physical_resources.Ledger, ClientInstalledSequenceContracts, String, String?, String?, requirements? : ClientLocalRequirements?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
+pub fn parameter_binding_preparation_initial_inventory() -> @execution_relation.PreparationRepresentationUnits
+
+pub fn[I, P] parameter_binding_preparation_outcome(ClientParameterBindingPreparation[I, P]) -> Result[@parameter_binding.BindingReadInput, @parameter_binding.Issue]?
+
 pub fn parameter_declaration_preflight_initial_inventory() -> @execution_relation.PreparationRepresentationUnits
 
 pub fn[I, P] parameter_declaration_preflight_outcome(ClientParameterDeclarationPreflight[I, P]) -> (Result[@parameter_binding.DeclarationReadInput, @parameter_binding.Issue], Int, Int)?
@@ -479,6 +487,8 @@ pub fn prepare_multi_captured_local_capacity_ledger(@run_publication_host.Prepar
 pub fn prepare_multi_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, Array[ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@host.NativeHostConfiguration], Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
+
+pub fn[I, P] prepare_parameter_binding_header(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
 
 pub fn[I, P] prepare_parameter_declaration_header(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
 
@@ -813,6 +823,15 @@ pub(all) enum ClientOriginalRowAcquisitionIssue {
   Original(@run_publication_host.ClientModelReadPreparationIssue)
   Acquisition(@client_row_source_host.RowHostIssue)
 }
+
+type ClientParameterBindingPreparation[I, P]
+
+pub(all) enum ClientParameterBindingPreparationIssue {
+  Capacity(@physical_resources.PreparationCapacityIssue)
+  Work(@physical_resources.PreparationWorkIssue)
+  WrongPhase
+  Overflow
+} derive(Eq, @debug.Debug)
 
 type ClientParameterDeclarationPreflight[I, P]
 

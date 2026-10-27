@@ -920,6 +920,7 @@ pub(all) enum PreparationWorkPhase {
   ProgramStructure
   ParameterDeclarationInventory
   ParameterDeclarationBodyInventory
+  ParameterBindingHeaderInventory
   SemanticCheck
   LowerAndGraph
   ExecutionPlan
