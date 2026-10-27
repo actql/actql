@@ -329,25 +329,13 @@ fn validate_saved_result_read(
     Err(code) => return Err(code)
     Ok(_) => ()
   }
-  let actual = match observe_submission_lookup(value, record, configuration) {
-    Ok(Some(value)) => value
+  match
+    observe_submission_lookup(
+      value, record, configuration, original=Some(retained.snapshot),
+    ) {
+    Ok(Some(_)) => ()
     Ok(None) => return Err(-42)
     Err(code) => return Err(code)
-  }
-  let before = @host.client_saved_submission_row(retained.snapshot)
-  let after = @host.client_saved_submission_row(actual)
-  if before.key != after.key ||
-    before.revision != after.revision ||
-    before.body != after.body {
-    return Err(-32)
-  }
-  guard @host.client_saved_submission_run_row(retained.snapshot)
-    is Some(before_run) &&
-    @host.client_saved_submission_run_row(actual) is Some(after_run) &&
-    before_run.key == after_run.key &&
-    before_run.revision == after_run.revision &&
-    before_run.body == after_run.body else {
-    return Err(-32)
   }
   for (table, key, revision, body) in retained.fences {
     match physical_journal_row(current.physical, check, 1, table, key) {

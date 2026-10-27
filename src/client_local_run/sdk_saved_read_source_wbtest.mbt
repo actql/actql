@@ -107,6 +107,29 @@ fn sdk_saved_source(
 }
 
 ///|
+test "SDK read identity projection borrows the existing live and saved originals" {
+  let fixture = sdk_read_fixture(bound_scope=true)
+  defer (fixture.cleanup)()
+  let live = local_sdk_read_source(fixture.preflight)
+  let saved = sdk_saved_source(fixture).unwrap()
+  for source in [live, saved] {
+    let (request, definition) = local_sdk_read_source_run_identity(source)
+    assert_true(physical_equal(request, source.request()))
+    assert_true(physical_equal(definition, source.definition()))
+  }
+  let (request, definition) = local_sdk_read_source_run_identity(saved)
+  let snapshot = sdk_saved_source_snapshot(fixture)
+  let row = @host.client_saved_submission_run_row(snapshot).unwrap()
+  let (decoded, _, _) = @host.decode_client_run_journal_row_with_retained_identity(
+    row.body,
+    request,
+    definition,
+  ).unwrap()
+  assert_true(physical_equal(decoded.request, request))
+  assert_true(physical_equal(decoded.definition, definition))
+}
+
+///|
 test "saved SDK read source preserves original evidence and delivery formulas without a new plan" {
   let fixture = sdk_read_fixture(bound_scope=true)
   let source = sdk_saved_source(fixture).unwrap()

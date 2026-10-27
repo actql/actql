@@ -2850,6 +2850,18 @@ acknowledgment. Live publication preparation and writes cannot use this saved
 source. Delivery-attempt lookup only observes the original attempt in the same
 snapshot and creates no grant, payload Reader or first delivery.
 
+The completed saved source may project only its already retained immutable
+request and Run Definition into the existing exact-wire bounded row decoder.
+Foreign or changed identity and the full nested row retain original admission.
+During same-holder revalidation, its original typed Submission reference selects
+fresh submitted and linked Run rows through the existing Common reader. Both
+keys, revisions and bodies must match the retained originals. Current Run and
+Result permissions, cancellation inspection, publication fences and physical
+snapshot/cleanup duties remain; the reference is DATA, never an Allow or proof
+of currentness. Initial and cold admission retain their complete path. Unrelated
+historical payload integrity is a separate inspection rather than this selected
+ordinary read's prerequisite.
+
 The Host registers its operation carrier before acquiring children. It restores
 the saved allocation directory and opens the committed generation in the
 installation's Result Root with no-follow, identity, size and digest checks. It
