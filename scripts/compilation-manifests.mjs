@@ -3,7 +3,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
-import {operationInventory} from './bound-transfer-laws.mjs';
+import {operationInventory} from './operation-inventory.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {verifyInferenceBarrierSchema} from './inference-barrier-contract.mjs';
 import {verifyContentSerializationSchemas} from './content-serialization-contract.mjs';

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
 import {parameterPrograms} from './parameter-schema.mjs';
-import {operationInventory} from './bound-transfer-laws.mjs';
+import {operationInventory} from './operation-inventory.mjs';
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const scope = read('docs/design/pure-operation-checking.md');
