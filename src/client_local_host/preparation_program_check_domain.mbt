@@ -222,7 +222,12 @@ pub fn[I, P] clear_program_check_preparation(
       Ok(_) => owner.work = None
     }
   }
+  // The alias-drop helper marks Transferred for its actual take callers.
+  // Clearing must preserve only a real handoff that preceded this helper.
+  let transferred = owner.phase == Transferred
   transfer_program_check_input(owner)
-  owner.phase = Retired
+  if !transferred {
+    owner.phase = Retired
+  }
   Ok(())
 }
