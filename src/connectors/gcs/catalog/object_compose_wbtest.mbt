@@ -477,3 +477,63 @@ test "GCS compose response matching requires original marker checksum exact prop
     object_compose_response_matches(compose_binding(), request, read(answer)),
   )
 }
+
+///|
+test "GCS compose accepts a distinct lower generation without weakening response correlation" {
+  // Generation is a version identity, not a monotonic counter. These Int64
+  // values are independently authored beyond the exact JavaScript Number range.
+  let binding = compose_binding()
+  let request = compose_request(binding, before=Some(compose_existing(binding))).unwrap()
+  let answer =
+    #|{"bucket":"bucket","name":"in/é%2F.bin","generation":"9007199254740992","metageneration":"1","size":"10","crc32c":"ml8N0A==","storageClass":"STANDARD","contentType":"text/csv","metadata":{"":"","é":"=exact\r\n","actql-request":"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}}
+  let response = admit_object_metadata(
+    @utf8.encode(answer),
+    "bucket",
+    "in/",
+    None,
+    metadata_limits(),
+  ).unwrap()
+  assert_true(object_compose_response_matches(binding, request, response))
+  assert_eq(
+    object_compose_response_projection_json(
+      binding,
+      request,
+      200,
+      @utf8.encode(answer),
+      1024,
+    ),
+    Ok(
+      "{\"kind\":\"typed-success-response\",\"outcome\":{\"result\":{},\"state\":\"applied\"}}",
+    ),
+  )
+  for
+    body in [
+      answer.replace(old="9007199254740992", new="9007199254740993"),
+      answer.replace(
+        old="\"metageneration\":\"1\"",
+        new="\"metageneration\":\"2\"",
+      ),
+      answer.replace(old="sha256:dddd", new="sha256:aaaa"),
+    ] {
+    assert_eq(
+      object_compose_response_projection_json(
+        binding,
+        request,
+        200,
+        @utf8.encode(body),
+        1024,
+      ),
+      Ok("{\"kind\":\"provider-response\"}"),
+    )
+  }
+  assert_eq(
+    object_compose_response_projection_json(
+      compose_binding(),
+      request,
+      200,
+      @utf8.encode(answer),
+      1024,
+    ),
+    Err(ForeignBinding),
+  )
+}

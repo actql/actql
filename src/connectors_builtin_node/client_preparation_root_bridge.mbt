@@ -48,6 +48,64 @@ pub fn client_program_closed_values_initial_control(
 }
 
 ///|
+#export_name("clientProgramRequestPreparationControl")
+pub fn client_program_request_preparation_control(
+  policy : @client_local_host.ClientLocalResourcePolicy,
+) -> Array[Int64] {
+  match @client_local_host.client_request_preparation_control_capacity(policy) {
+    Some((retained, execution)) => [retained, execution]
+    None => []
+  }
+}
+
+///|
+#export_name("clientProgramBeginRequestPreparation")
+pub fn client_program_begin_request_preparation(
+  initial : @resources.NodePreparationAdmission[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  policy : @client_local_host.ClientLocalResourcePolicy,
+) -> Result[
+  @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  @client_local_host.ClientRequestPreparationIssue,
+] {
+  @client_local_host.begin_request_preparation(initial, input, policy)
+}
+
+///|
+#export_name("clientProgramSelectClosedValuesPreparation")
+pub fn client_program_select_closed_values_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[
+  @client_local_host.ClientClosedValuesPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  @client_local_host.ClientRequestPreparationIssue,
+] {
+  @client_local_host.select_closed_values_preparation(
+    parent,
+    input,
+    module_containers=installed_client_module_container_units,
+  )
+}
+
+///|
+#export_name("clientProgramAbortRequestPreparation")
+pub fn client_program_abort_request_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.abort_request_preparation_after_cleanup(parent)
+}
+
+///|
 #export_name("clientProgramBeginClosedValuesPreparation")
 pub fn client_program_begin_closed_values_preparation(
   initial : @resources.NodePreparationAdmission[

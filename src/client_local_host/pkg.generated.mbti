@@ -29,6 +29,8 @@ import {
 // Values
 pub fn[I] abort_closed_values_preparation_after_cleanup(ClientClosedValuesPreparation[I]) -> Result[Unit, ClientClosedValuesPreparationIssue]
 
+pub fn[I] abort_request_preparation_after_cleanup(ClientRequestPreparation[I]) -> Result[Unit, ClientRequestPreparationIssue]
+
 pub fn accounted_client_source_capture_cleanup_pending(ClientAccountedSourceCapture) -> Bool
 
 pub fn accounted_client_source_capture_source(ClientAccountedSourceCapture) -> @execution_query.CapturedInputSource?
@@ -94,6 +96,8 @@ pub fn begin_prepared_installed_effect_mock_model_managed_run(@physical_resource
 pub fn begin_prepared_installed_managed_source_free_run(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, ClientInstalledManagedSourceFreePreparation) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
 pub fn[I] begin_program_snapshot(ClientProgramPublication[I], @run_publication_host.PublicationOutputExport) -> Result[ClientProgramSnapshot[I], ClientClosedValuesPreparationIssue]
+
+pub fn[I] begin_request_preparation(@physical_resources.NodePreparationAdmission[I], I, ClientLocalResourcePolicy) -> Result[ClientRequestPreparation[I], ClientRequestPreparationIssue]
 
 pub fn[I] bind_closed_values_document(ClientClosedValuesPreparation[I], String) -> Result[Unit, ClientClosedValuesPreparationIssue]
 
@@ -208,6 +212,8 @@ pub fn client_original_keyed_serialization_suffix_capacity(@run_publication_host
 pub fn client_query_residual_execution(ClientQueryResidual) -> @local.ManagedProviderExecution
 
 pub fn client_query_residual_output(ClientQueryResidual, @execution_query.QuerySequence, @execution_query.QueryReceipt, Int, Int) -> @execution_relation.CompletedOutput?
+
+pub fn client_request_preparation_control_capacity(ClientLocalResourcePolicy) -> (Int64, Int64)?
 
 pub fn client_serialization_prefix_capacity(@run_publication_host.PreparedClientProgram, Int, Int, ClientInstalledSequenceContracts, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> @execution_relation.ExecutionCapacity?
 
@@ -505,6 +511,8 @@ pub fn retry_local_values_execution_failure_cleanup(LocalValuesExecutionFailure)
 
 pub fn select_client_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String, ClientDuckDBAcquisitionEstimate, ClientDuckDBAcquisitionEstimate, host_priority? : Array[String]?) -> Result[ClientDuckDBAcquisitionSelection, ClientDuckDBAcquisitionIssue]
 
+pub fn[I] select_closed_values_preparation(ClientRequestPreparation[I], I, module_containers~ : @execution_relation.PreparationRepresentationUnits) -> Result[ClientClosedValuesPreparation[I], ClientRequestPreparationIssue]
+
 pub fn[I] sever_closed_values_body(ClientClosedValuesPreparation[I], @physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram]) -> Bool
 
 pub fn single_captured_local_ledger_limits(@run_publication_host.PreparedClientProgram, @host.NativeHostConfiguration, ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.LedgerLimits?
@@ -796,6 +804,16 @@ pub(all) enum ClientQueryResidualIssue {
   Guard(@execution_relation.FixedInputGuardIssue)
   Acquisition(@host.BroadHostIssue)
 }
+
+type ClientRequestPreparation[I]
+
+pub(all) enum ClientRequestPreparationIssue {
+  ForeignOriginal
+  WrongPhase
+  Policy
+  Initial(@physical_resources.ImportedChildLedgerIssue)
+  Capacity(@physical_resources.PreparationCapacityIssue)
+} derive(@debug.Debug)
 
 pub struct ClientRetainedContentOutput {
   generation : @run_publication_host.ClientSerializationGeneration

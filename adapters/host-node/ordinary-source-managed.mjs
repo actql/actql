@@ -1,4 +1,4 @@
-import {closedValuesPreparationAvailable,beginClosedValuesInput,bindClosedValuesSnapshot,cleanupClosedValuesInput,checkedPreparation} from '../local-node/closed-values-preparation-adapter.mjs';
+import {closedValuesPreparationAvailable,assertRequestPreparationControl,beginClosedValuesInput,bindClosedValuesSnapshot,cleanupClosedValuesInput,checkedPreparation} from '../local-node/closed-values-preparation-adapter.mjs';
 import {matchesPublishedSubmissionSnapshot} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {open} from 'node:fs/promises';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -225,6 +225,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (context !== undefined && !closedValuesPreparationAvailable(context)) {
         fail('NodeLocalPreparationAdmissionUnavailable');
       }
+      if (context !== undefined) assertRequestPreparationControl(context);
       if (producers.size === 32) fail('InstalledSourceProducerLimit');
       const receipt = Object.freeze({});
       const producer = {receipt, kind, body: undefined, request: undefined, finished: false, liveRuns: 0, snapshotPublication: undefined, preparation: undefined};
@@ -232,7 +233,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       // One preparation protocol; the narrow shape adapter is staged until
       // every supported frontend has a construction proof for this owner.
       if (context !== undefined) {
-        const state = {context, original: undefined, admission: undefined,
+        const state = {context, original: undefined, admission: undefined, parent: undefined,
           phase: undefined, prepared: undefined, holder: undefined, adopting: false};
         producer.preparation = state;
         try {

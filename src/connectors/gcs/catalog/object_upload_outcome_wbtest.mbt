@@ -135,3 +135,28 @@ test "GCS malformed outcome retains unknown and bounded parsing rejects foreign 
     Err(CapacityExceeded),
   )
 }
+
+///|
+test "GCS upload replacement accepts a distinct lower generation with original response bytes" {
+  let binding = upload_request_binding()
+  let request = upload_request(
+    binding,
+    upload_existing(binding),
+    overwrite=Some(true),
+  ).unwrap()
+  // Exact independent version identities straddle the JS safe-integer bound;
+  // their ordering cannot establish whether the replacement is a new version.
+  let response = upload_answer(generation="9007199254740992")
+  assert_eq(
+    classify_object_upload_response(binding, request, 200, response),
+    Ok(Applied),
+  )
+  assert_eq(
+    object_upload_response_projection_json(
+      binding, request, 200, response, 1024,
+    ),
+    Ok(
+      "{\"kind\":\"typed-success-response\",\"outcome\":{\"result\":{},\"state\":\"applied\"}}",
+    ),
+  )
+}

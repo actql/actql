@@ -69,7 +69,8 @@ pub fn[I, P] begin_preparation_phase_work(
   if !(owner.input is Some(original) && physical_equal(original, input)) {
     return Err(ForeignOriginal)
   }
-  if owner.phase != Working || owner.active_phase_work is Some(_) {
+  if !preparation_capacity_phase_is_working(owner.phase) ||
+    owner.active_phase_work is Some(_) {
     return Err(WrongPhase)
   }
   if maximum_work < 0 {
@@ -91,7 +92,7 @@ pub fn[I, P] begin_preparation_phase_work(
       if !live.val {
         return Err(Closed)
       }
-      if owner.phase != Working {
+      if !preparation_capacity_phase_is_working(owner.phase) {
         return Err(WrongPhase)
       }
       if owner.ledger.imported_child is Some(origin) && origin.stopping {
