@@ -33,7 +33,7 @@ function fixture() {
     clientProgramInstalledEffectManagedRunCheck(p, value, r) {
       assert.equal(this, runtime); same([p, value, r], [parent, prepared, request]); return ok();
     },
-    clientProgramInstalledEffectManagedOperationPlan(p) {assert.equal(p, parent); return ok(plan);},
+    clientProgramInstalledEffectManagedOperationPlan(p, value, r) {assert.equal(p, parent); assert.equal(value, prepared); assert.equal(r, request); return ok(plan);},
     clientProgramInstalledManagedRunRetire() {calls.push('retire-parent'); return ok();},
     clientProgramNodeEffectManagedPlanCleanup(a) {assert.equal(a, admission); calls.push('cleanup-admission'); return ok();},
     clientProgramFinishInferOriginalReadScope(s, compiled, definition, graph, complete) {

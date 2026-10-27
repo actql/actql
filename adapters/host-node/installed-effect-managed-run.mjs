@@ -10,32 +10,21 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
   prepared, request, selection, facts, inputs, sourceProfile, model, assertCurrent, checked}) {
   assertCurrent();
   const same = run => {
-    if (run.failure !== undefined) throw run.failure;
+    if (Object.hasOwn(run, 'failure')) throw run.failure;
     if (run.closed || run.preparationKind !== 'effect-plan' || run.runtime !== runtime ||
         run.manager !== manager || run.prepared !== prepared || run.request !== request || run.model !== model ||
         run.definitionOriginal === undefined || run.value === undefined || run.selection !== selection || run.sourceProfile !== sourceProfile ||
         ['prepared', 'identity', 'compilation', 'allowed', 'definition', 'queryTimePreparation', 'modelCompiled']
           .some(name => run.definitionOriginal[name] !== facts[name]) ||
         run.value === undefined) fail('ForeignInstalledEffectManagedRun');
-    const parent = run.value, operationPlan = run.operationPlan;
-    checked(Reflect.apply(run.check, runtime, [parent, prepared, request]));
-    if (run.failure !== undefined) throw run.failure;
-    if (run.value !== parent) fail('ForeignInstalledEffectManagedRun');
-    if (checked(Reflect.apply(run.readPlan, runtime, [parent])) !== operationPlan) {
-      fail('ForeignInstalledEffectManagedRun');
-    }
-    assertCurrent();
-    if (runs.get(prepared) !== run || !liveRuns.has(run) || run.closed ||
-        run.value !== parent || run.operationPlan !== operationPlan) fail('ForeignInstalledEffectManagedRun');
-    if (run.failure !== undefined) throw run.failure;
-    return parent;
+    return readCurrentPlanParent(run, runs, liveRuns, runtime, prepared, request, assertCurrent, checked);
   };
   const old = runs.get(prepared);
   if (old !== undefined) return same(old);
   if (liveRuns.size >= 4096) fail('InstalledComputeRunLimit');
   const run = {preparationKind: 'effect-plan', runtime, manager, prepared, request, selection, model,
     definitionOriginal: undefined, operationPlan: undefined, sourceProfile, original: undefined, admission: undefined, value: undefined,
-    failure: undefined, closed: false, selecting: false};
+    closed: false, selecting: false};
   runs.set(prepared, run);
   liveRuns.add(run);
   try {
@@ -131,16 +120,42 @@ export function readInstalledEffectManagedPlanRun({runs, liveRuns, runtime,
       run.closed || run.runtime !== runtime || run.prepared !== prepared || run.request !== request) {
     fail('InstalledEffectPlanUnavailable');
   }
-  if (run.failure !== undefined) throw run.failure;
+  if (Object.hasOwn(run, 'failure')) throw run.failure;
   const parent = run.value, plan = run.operationPlan;
   if (parent === undefined || plan === undefined) fail('InstalledEffectPlanUnavailable');
-  checked(Reflect.apply(run.check, runtime, [parent, prepared, request]));
-  if (run.failure !== undefined) throw run.failure;
-  if (run.value !== parent) fail('ForeignInstalledEffectManagedRun');
-  if (checked(Reflect.apply(run.readPlan, runtime, [parent])) !== plan) fail('ForeignInstalledEffectManagedRun');
-  assertCurrent();
-  if (runs.get(prepared) !== run || !liveRuns.has(run) || run.closed ||
-      run.value !== parent || run.operationPlan !== plan) fail('ForeignInstalledEffectManagedRun');
-  if (run.failure !== undefined) throw run.failure;
+  readCurrentPlanParent(run, runs, liveRuns, runtime, prepared, request, assertCurrent, checked);
   return run;
+}
+
+// A single bound Core getter owns currentness at this boundary. Fixed locals
+// retain the original tuple without a second snapshot object or proof cache.
+function readCurrentPlanParent(run, runs, liveRuns, runtime, prepared, request, assertCurrent, checked) {
+  const parent = run.value, plan = run.operationPlan, readPlan = run.readPlan;
+  const definition = run.definitionOriginal, manager = run.manager, selection = run.selection;
+  const sourceProfile = run.sourceProfile, model = run.model, demand = run.modelDemand, scope = run.modelScope;
+  const admission = run.admission, original = run.original;
+  assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, plan, readPlan,
+    definition, manager, selection, sourceProfile, model, demand, scope, admission, original);
+  const actualPlan = checked(Reflect.apply(readPlan, runtime, [parent, prepared, request]));
+  assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, plan, readPlan,
+    definition, manager, selection, sourceProfile, model, demand, scope, admission, original);
+  if (actualPlan !== plan) fail('ForeignInstalledEffectManagedRun');
+  assertCurrent();
+  assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, plan, readPlan,
+    definition, manager, selection, sourceProfile, model, demand, scope, admission, original);
+  return parent;
+}
+
+// Callback-free fences preserve the original Model Scope and cleanup lineage.
+// Failure presence keeps even an original thrown undefined failed on retry.
+function assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, plan, readPlan,
+  definition, manager, selection, sourceProfile, model, demand, scope, admission, original) {
+  if (Object.hasOwn(run, 'failure')) throw run.failure;
+  if (runs.get(prepared) !== run || !liveRuns.has(run) || run.closed ||
+      run.preparationKind !== 'effect-plan' || run.runtime !== runtime ||
+      run.prepared !== prepared || run.request !== request || run.value !== parent ||
+      run.operationPlan !== plan || run.readPlan !== readPlan || run.definitionOriginal !== definition ||
+      run.manager !== manager || run.selection !== selection || run.sourceProfile !== sourceProfile ||
+      run.model !== model || run.modelDemand !== demand || run.modelScope !== scope ||
+      run.admission !== admission || run.original !== original) fail('ForeignInstalledEffectManagedRun');
 }
