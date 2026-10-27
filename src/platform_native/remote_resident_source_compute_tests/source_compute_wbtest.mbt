@@ -377,6 +377,7 @@ test "resident captured Source survives consumer failure until its existing clea
   )
   assert_true(owner.execute_task(1) is Err(Compute(_)))
   let failed = owner.usage()
+  assert_eq(failed.attempts, 2)
   assert_true(failed.held_bytes > 0L)
   assert_true(owner.execute_task(1) is Err(Unavailable))
   assert_eq(owner.usage().attempts, failed.attempts)
