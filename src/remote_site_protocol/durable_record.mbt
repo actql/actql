@@ -135,7 +135,10 @@ fn admit_dispatch_request_body(
     Ok(value) => value
     Err(_) => raise DurableRecordStop
   }
-  if dispatch_request_json(request) != Ok(body) {
+  // Preparation above already validates these immutable fields and computes
+  // their identity. Canonical byte comparison needs emission, not a second
+  // identity validation of that same newly admitted request.
+  if emit_dispatch_request_body(request) != Ok(body) {
     raise DurableRecordStop
   }
   request

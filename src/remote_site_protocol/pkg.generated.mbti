@@ -50,6 +50,10 @@ pub fn admit_remote_execution_evidence(String, String, String, String, String, S
 
 pub fn admit_remote_execution_evidence_json(String, String, DispatchRequest) -> Result[RemoteExecutionEvidence, DispatchIssue]
 
+pub fn admit_remote_holder_terminal_reply_json(String, RemoteHolderTerminalReport) -> Result[RemoteHolderTerminalReply, DispatchIssue]
+
+pub fn admit_remote_holder_terminal_report_json(String, Int) -> Result[RemoteHolderTerminalReport, DispatchIssue]
+
 pub fn admit_remote_managed_output_measurement(Int, Int, Int, Int, Array[Int], Array[Int], Array[Int], Array[Int], Array[Int], Array[Int], String) -> Result[RemoteManagedOutputMeasurement, DispatchIssue]
 
 pub fn admit_remote_managed_output_measurement_json(String, String) -> Result[RemoteManagedOutputMeasurement, DispatchIssue]
@@ -404,6 +408,10 @@ pub fn prepare_remote_effect_current_reply(RemoteEffectCurrentQuery, String?, In
 
 pub fn prepare_remote_effect_resume_delivery(RemoteEffectCheckpointReport, @checkpoint_runtime.VerifiedResolution, @checkpoint_runtime.ResumeClaim, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectResumeDelivery, DispatchIssue]
 
+pub fn prepare_remote_holder_terminal_reply(RemoteHolderTerminalReport) -> Result[RemoteHolderTerminalReply, DispatchIssue]
+
+pub fn prepare_remote_holder_terminal_report(DispatchRequest, Array[DispatchRequest], Int) -> Result[RemoteHolderTerminalReport, DispatchIssue]
+
 pub fn prepare_remote_input_binding(String, Int) -> Result[RemoteInputBinding, DispatchIssue]
 
 pub fn prepare_remote_managed_output_measurement(Int, Int, Int, Int, Array[Int], Array[Int], Array[Int], Array[Int], Array[Int], Array[Int]) -> Result[RemoteManagedOutputMeasurement, DispatchIssue]
@@ -525,6 +533,18 @@ pub fn remote_execution_evidence_cid(RemoteExecutionEvidence) -> String
 pub fn remote_execution_evidence_json(RemoteExecutionEvidence) -> Result[String, DispatchIssue]
 
 pub fn remote_execution_evidence_matches_dispatch(RemoteExecutionEvidence, DispatchRequest) -> Bool
+
+pub fn remote_holder_terminal_reply_json(RemoteHolderTerminalReply) -> String
+
+pub fn remote_holder_terminal_reply_matches(RemoteHolderTerminalReply, RemoteHolderTerminalReport) -> Bool
+
+pub fn remote_holder_terminal_report_identity(RemoteHolderTerminalReport) -> String
+
+pub fn remote_holder_terminal_report_json(RemoteHolderTerminalReport) -> String
+
+pub fn remote_holder_terminal_report_requests(RemoteHolderTerminalReport) -> Array[DispatchRequest]
+
+pub fn remote_holder_terminal_report_root(RemoteHolderTerminalReport) -> DispatchRequest
 
 pub fn remote_input_binding_body(RemoteInputBinding) -> String
 
@@ -969,6 +989,10 @@ pub(all) enum RemoteExecutionState {
   ExecutionCancelled
   ExecutionUnknown
 } derive(Eq, @debug.Debug)
+
+type RemoteHolderTerminalReply
+
+type RemoteHolderTerminalReport
 
 type RemoteInputBinding
 
