@@ -110,7 +110,8 @@ test "Effect Source rejects an invalid execution registry without a physical fal
       resident_effect_source_values,
       Some(resident_effect_source_fragment),
       None,
-    ) is Err(@local.Unsupported),
+    )
+    is Err(@local.Unsupported),
   )
 }
 
