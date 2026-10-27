@@ -485,3 +485,11 @@ funding proof. The existing Source/Effect original and currentness checks remain
 in force. Focused Core tests exercise the actual original Node supplier and next
 Values header, while Node caller tests retain explicit Core phase ports. Neither
 scope certifies a normal installed runtime or physical operation.
+
+The typed continuation also retains the original resource census retirement
+fence. The trusted current callback may begin closing that same census while
+returning a current observation. After the callback returns, continuation refuses
+`ClosedReservation` without consuming the old working capacity, changing its
+input or issuing a successor. Its original reservation and actual usage remain
+charged until the same original cleanup completes. This callback-free fence is
+not another current observation, an unpark operation or a physical ACK.

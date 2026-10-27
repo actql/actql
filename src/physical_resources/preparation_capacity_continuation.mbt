@@ -45,6 +45,12 @@ pub fn[I, P, Q] continue_preparation_capacity(
     }
     Ok(_) => ()
   }
+  // The same original census can begin retirement inside the current callback.
+  // Do not transfer its working token after that callback-free lifetime fence.
+  if owner.ledger.original_inventory is Some(inventory) && inventory.closing {
+    owner.phase = Working
+    return Err(Resource(ClosedReservation))
+  }
   let next : PreparationCapacity[I, Q] = {
     ledger: owner.ledger,
     reservation: owner.reservation,
