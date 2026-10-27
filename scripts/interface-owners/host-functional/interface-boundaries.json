@@ -60256,7 +60256,7 @@
     {
       "module": "adapters/host-node/process-accounting.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1e5379526facc16f70598f88e7067b5a328030a5e1f7b16373f8876b91e7656c",
+      "sha256": "a0008296dc4637400f698ea48282b82b01353656c3170a94cef9d4f055258adb",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
       "exports": [
@@ -60536,7 +60536,7 @@
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
-        "./ledger-contract.generated.mjs"
+        "../host-common/ledger-contract.generated.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -82713,7 +82713,7 @@
       "referenceQualification": "Source contract references only; component ports are not ordinary runtime, backing, permission or cleanup ACK evidence."
     },
     {
-      "module": "adapters/host-node/ledger-contract.generated.mjs",
+      "module": "adapters/host-common/ledger-contract.generated.mjs",
       "responsibilityFacet": "primary",
       "sha256": "23bdb836dbb0b1b9f93762785b3cc2dff875b1b48f5a0faea641bd4afac9e493",
       "role": "common-semantics",
@@ -82748,7 +82748,7 @@
                 "anchor": "export function projectCoreLedger(source) {"
               },
               {
-                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
               },
               {
@@ -82760,7 +82760,7 @@
                 "anchor": "export function projectLedgerUsageSpentFields(source) {"
               },
               {
-                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
@@ -82774,7 +82774,7 @@
                 "anchor": "export function projectCoreLedger(source) {"
               },
               {
-                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
               },
               {
@@ -82786,7 +82786,7 @@
                 "anchor": "export function projectLedgerUsageSpentFields(source) {"
               },
               {
-                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
@@ -82800,7 +82800,7 @@
                 "anchor": "export function projectCoreLedger(source) {"
               },
               {
-                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
               },
               {
@@ -82812,7 +82812,7 @@
                 "anchor": "export function projectLedgerUsageSpentFields(source) {"
               },
               {
-                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
@@ -82826,7 +82826,7 @@
                 "anchor": "export function projectCoreLedger(source) {"
               },
               {
-                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
               },
               {
@@ -82838,7 +82838,7 @@
                 "anchor": "export function projectLedgerUsageSpentFields(source) {"
               },
               {
-                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
@@ -82852,7 +82852,7 @@
                 "anchor": "export function projectCoreLedger(source) {"
               },
               {
-                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
               },
               {
@@ -82864,7 +82864,7 @@
                 "anchor": "export function projectLedgerUsageSpentFields(source) {"
               },
               {
-                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
@@ -82878,7 +82878,7 @@
                 "anchor": "export function projectCoreLedger(source) {"
               },
               {
-                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
               },
               {
@@ -82890,7 +82890,7 @@
                 "anchor": "export function projectLedgerUsageSpentFields(source) {"
               },
               {
-                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
@@ -82904,7 +82904,7 @@
                 "anchor": "export function projectCoreLedger(source) {"
               },
               {
-                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
               },
               {
@@ -82916,7 +82916,7 @@
                 "anchor": "export function projectLedgerUsageSpentFields(source) {"
               },
               {
-                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
@@ -82930,7 +82930,7 @@
                 "anchor": "export function projectCoreLedger(source) {"
               },
               {
-                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
               },
               {
@@ -82942,7 +82942,7 @@
                 "anchor": "export function projectLedgerUsageSpentFields(source) {"
               },
               {
-                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
@@ -82956,7 +82956,7 @@
                 "anchor": "export function projectCoreLedger(source) {"
               },
               {
-                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageFields = Object.freeze("
               },
               {
@@ -82968,7 +82968,7 @@
                 "anchor": "export function projectLedgerUsageSpentFields(source) {"
               },
               {
-                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               }
             ],
@@ -82994,7 +82994,7 @@
                 "anchor": "export function projectLedgerUsageSpentFields(source) {"
               },
               {
-                "path": "adapters/host-node/ledger-contract.generated.mjs",
+                "path": "adapters/host-common/ledger-contract.generated.mjs",
                 "anchor": "export const ledgerUsageSpentFields = Object.freeze("
               },
               {

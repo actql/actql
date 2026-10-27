@@ -1,4 +1,4 @@
-import {ledgerUsageFields} from './ledger-contract.generated.mjs';
+import {ledgerUsageFields} from '../host-common/ledger-contract.generated.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {execFileSync} from 'node:child_process';
