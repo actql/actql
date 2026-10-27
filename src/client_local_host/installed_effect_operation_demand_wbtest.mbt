@@ -846,3 +846,64 @@ test "actual retained module provider envelopes determine the same checked task 
     300L * tasks,
   )
 }
+
+///|
+// Actual Effect inventory multiplicity is Int. Full Int64 count products keep
+// their independent accepted boundary cases in capacity_arithmetic.
+test "Effect extent preserves zero-byte domains and shares exact positive composition" {
+  let maximum = 9223372036854775807L
+  let maximum_copies = 2147483647
+  assert_eq(
+    @execution.execution_capacity_inventory_add(
+      maximum,
+      QuotedBytes,
+      0L,
+      maximum_copies,
+    ),
+    Some(maximum),
+  )
+  assert_eq(
+    @execution.execution_capacity_inventory_add(
+      0L,
+      QuotedBytes,
+      0L,
+      maximum_copies,
+    ),
+    Some(0L),
+  )
+  assert_true(
+    @execution.execution_capacity_inventory_add(-1L, QuotedBytes, 0L, 0) is None,
+  )
+  assert_true(
+    @execution.execution_capacity_inventory_add(0L, QuotedBytes, -1L, 0) is None,
+  )
+  assert_true(
+    @execution.execution_capacity_inventory_add(0L, QuotedBytes, 0L, -1) is None,
+  )
+  for coefficient in [1L, 2L, 8L, 256L, maximum] {
+    for total in [0L, 1L, maximum - 1L, maximum] {
+      let boundary = (maximum - total) / coefficient
+      let count = Int64::min(boundary, maximum_copies.to_int64()).to_int()
+      assert_eq(
+        @execution.execution_capacity_inventory_add(
+          total,
+          QuotedBytes,
+          coefficient,
+          count,
+        ),
+        Some(total + count.to_int64() * coefficient),
+      )
+      if boundary < maximum_copies.to_int64() {
+        assert_true(
+          @execution.execution_capacity_inventory_add(
+            total,
+            QuotedBytes,
+            coefficient,
+            count + 1,
+          )
+          is None,
+        )
+      }
+    }
+  }
+}

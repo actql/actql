@@ -27223,7 +27223,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "c7274fdba908d9db1958b8aeaf71ea140b9d4f201d9b65e07cb964bba738a99b",
+      "sha256": "880456e656988eaf2a98d22e2fa0b03971769b8a6f76dafb44e14eaaaf700009",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -27327,6 +27327,13 @@
         {
           "name": "openAcquiredEffectComputation/init:observeAccount/init:observeAccount",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openAcquiredEffectComputation/init:retainCleanup/init:retainCleanup",
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -27709,6 +27716,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "identity": [
@@ -27719,6 +27734,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "ownership": [
@@ -27729,6 +27752,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "synchronization": [
@@ -27739,6 +27770,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "failure": [
@@ -27749,6 +27788,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "cancellation": [
@@ -27759,6 +27806,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "resources": [
@@ -27769,6 +27824,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ],
             "extension": [
@@ -27793,6 +27856,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
               }
             ]
           }
@@ -27859,6 +27930,114 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Original query evaluation time"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openAcquiredEffectComputation/init:retainCleanup/init:retainCleanup"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "retainCleanup(value) {contentFamilyCleanup = value;}"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "retainCleanup(value) {contentFamilyCleanup = value;}"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "retainCleanup(value) {contentFamilyCleanup = value;}"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "retainCleanup(value) {contentFamilyCleanup = value;}"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "retainCleanup(value) {contentFamilyCleanup = value;}"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "retainCleanup(value) {contentFamilyCleanup = value;}"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "retainCleanup(value) {contentFamilyCleanup = value;}"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "retainCleanup(value) {contentFamilyCleanup = value;}"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "retainCleanup(value) {contentFamilyCleanup = value;}"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Content family constructor cleanup custody"
               }
             ]
           }

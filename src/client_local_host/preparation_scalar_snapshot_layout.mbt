@@ -304,46 +304,27 @@ fn scalar_snapshot_layout(
 }
 
 ///|
-/// Fields are already canonical but NFC_QC=Maybe still takes the full path.
-/// One field at a time; total schema-name UTF8 bounds its UTF16 length. Unicode
-/// 16 canonical decomposition <=4 scalars/input scalar (Hangul<=3), recursion4.
-/// Existing pinned table/conformance proof owns that coefficient. This is the
-/// same logical JS layout, not an allocator/native-builder claim.
+/// A canonical field may still be NFC_QC=Maybe. Borrow the canonical owner's
+/// actual construction inventory; only the shared owner prices its units.
 fn scalar_snapshot_name_normalization_layout(
   units : Int,
 ) -> @execution.PreparationRepresentationUnits? {
-  if units < 0 {
+  guard @canonical.nfc_lf_construction_extent(units) is Some(extent) else {
     return None
   }
-  let u = units.to_int64()
-  // Scalars/decomposed/composed growing arrays +classes/run/256-offset arrays.
-  // Sum all backing overlaps conservatively; only one run's sorted array lives.
-  // All six arrays are scalar-backed, not reference-backed.
-  let arrays : @execution.PreparationRepresentationUnits = {
-    record_headers: 15L,
-    reference_slots: 6L,
-    scalar_words: 12L + 36L + 35L * u + 256L,
-    owned_utf16_units: 0L,
+  Some(canonical_normalization_preparation_units(extent))
+}
+
+///|
+/// Project domain-owned counts; the shared representation tariff owns pricing.
+fn canonical_normalization_preparation_units(
+  extent : @canonical.NormalizationConstructionExtent,
+) -> @execution.PreparationRepresentationUnits {
+  {
+    record_headers: extent.record_headers,
+    reference_slots: extent.reference_slots,
+    scalar_words: extent.scalar_words,
+    owned_utf16_units: extent.owned_utf16_units,
     owned_wire_bytes: 0L,
   }
-  // Builder +old/new rendered strings and LF pass strings/views. Up to8U NFC
-  // UTF16 units, LF nonexpanding. Source canonical field String is borrowed.
-  let text : @execution.PreparationRepresentationUnits = {
-    record_headers: 10L,
-    reference_slots: 8L,
-    scalar_words: 6L,
-    owned_utf16_units: 40L * u + 2L,
-    owned_wire_bytes: 0L,
-  }
-  // Canonical owner control extent: conservative SUM of seven named phases
-  // quickcheck/extract/decompose/order/compose/render/LF, including one tagged
-  // result per frame plus transition; fixed builtin VM frames are baseline.
-  let controls : @execution.PreparationRepresentationUnits = {
-    record_headers: 75L,
-    reference_slots: 109L,
-    scalar_words: 218L,
-    owned_utf16_units: 0L,
-    owned_wire_bytes: 0L,
-  }
-  @execution.compose_preparation_representation([arrays, text, controls])
 }

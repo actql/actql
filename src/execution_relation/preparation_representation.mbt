@@ -101,14 +101,7 @@ pub fn checked_preparation_add_product(
   count : Int64,
   price : Int64,
 ) -> Int64? {
-  if total < 0L ||
-    count < 0L ||
-    price <= 0L ||
-    count > (9223372036854775807L - total) / price {
-    None
-  } else {
-    Some(total + count * price)
-  }
+  @preparation_counts.checked_nonnegative_add_product(total, count, price)
 }
 
 ///|

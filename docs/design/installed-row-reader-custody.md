@@ -366,3 +366,18 @@ This typed handoff issues no Account decision, Credential grant or physical
 read. Original request authority, current checks, pending cleanup and capture
 retirement remain required at the consuming Host. Model and Content families
 retain their separate complete demand and original-holder requirements.
+
+## Content family constructor cleanup custody
+
+The installed Content family transfers its original cleanup methods to the
+existing acquired-Effect custody before calling the fallible provider
+constructor. Its enclosing Content owner forwards that same callback. A failed
+constructor therefore cannot leave cleanup dependent on a returned family.
+The completed family exposes those same cleanup functions; this transfer
+creates no additional physical owner, Root, Ledger, grant or cleanup ACK.
+
+The parent closes and retries that retained duty using its existing ordering.
+A pending append remains joined, and temporary writers, stored readers and
+unpublished holdings retain their existing release requirements. The original
+constructor error is preserved. This lifetime rule supplies no capacity and
+does not replace the complete Content demand required before Plan admission.
