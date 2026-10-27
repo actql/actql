@@ -548,6 +548,8 @@ pub fn[I, P] prepare_program_check_views(ClientProgramCheckPreparation[I, P]) ->
 
 pub fn[I] prepare_program_commit_validation(ClientProgramCapture[I], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Result[ClientProgramValidation[I], ClientProgramValidationIssue]
 
+pub fn[I] prepare_request_program_check_preparation(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @program_check.CheckLimits, source_catalog? : @program_check.PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> Result[ClientProgramCheckPreparation[I, Unit], ClientRequestPreparationIssue]
+
 pub fn[I] prepare_request_program_json_preparation(ClientRequestPreparation[I], I, String, @stage_syntax.Limits) -> Result[ClientProgramJsonPreparation[I, Unit], ClientRequestPreparationIssue]
 
 pub fn prepare_serialization_captured_ledger(@run_publication_host.PreparedClientProgram, Int, ClientInstalledCaptureCapacity, Int64, Int64, Int64, Int64, ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
@@ -719,6 +721,7 @@ pub suberror ClientProgramCheckPreparationIssue {
   WrongPhase
   Overflow
 }
+pub impl @debug.Debug for ClientProgramCheckPreparationIssue
 
 // Types and methods
 type ClientAccountedSourceCapture
@@ -985,6 +988,7 @@ pub(all) enum ClientRequestPreparationIssue {
   Initial(@physical_resources.ImportedChildLedgerIssue)
   Capacity(@physical_resources.PreparationCapacityIssue)
   ProgramJson(ClientProgramJsonPreparationIssue)
+  ProgramCheck(ClientProgramCheckPreparationIssue)
 } derive(@debug.Debug)
 
 pub struct ClientRetainedContentOutput {

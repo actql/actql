@@ -24641,7 +24641,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d3a21b19c476cd11b7db9d81a90904a9d44bf978bc18d7e2c49cbf934ad2c67e",
+      "sha256": "722bf8b9925e6f4b5c78998c0cdbc674f22fca7f40b3865392ed0f9fb701158f",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -24659,6 +24659,10 @@
           "declaration": "[ I ] make_closed_values_preparation ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , policy : ClientLocalResourcePolicy , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , retained : Int64 , execution : Int64 , module_containers : @ execution . PreparationRepresentationUnits , ) - > ClientClosedValuesPreparation [ I ]"
         },
         {
+          "name": "[I]prepare_request_program_check_preparation",
+          "declaration": "[ I ] prepare_request_program_check_preparation ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : @ checked . CheckLimits , source_catalog ? : @ checked . PreparedSourceCatalog ?"
+        },
+        {
           "name": "[I]prepare_request_program_json_preparation",
           "declaration": "[ I ] prepare_request_program_json_preparation ( owner : ClientRequestPreparation [ I ] , input : I , document : String , limits : @ syntax . Limits , ) - > Result [ ClientProgramJsonPreparation [ I , Unit ] , ClientRequestPreparationIssue , ]"
         },
@@ -24673,6 +24677,10 @@
         {
           "name": "request_preparation_control_units",
           "declaration": "request_preparation_control_units ( ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "to_repr",
+          "declaration": "to_repr ( self )"
         }
       ],
       "contracts": [
@@ -24691,60 +24699,100 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
               }
             ]
           }
@@ -24813,6 +24861,75 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[I]prepare_request_program_check_preparation",
+            "to_repr"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned Program to Check handoff"
               }
             ]
           }
