@@ -61241,7 +61241,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "68d54acf318e6f7cfbbdd813c9100ee853297e877278c47bb805e162757710f0",
+      "sha256": "7d6aca5d0115cdac1bbcaecd1e7aacd1cd16409e424029093bc1dc7e0ba57198",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -62747,7 +62747,8 @@
             "member",
             "rows",
             "current",
-            "contentOf"
+            "contentOf",
+            "createRows"
           ],
           "async": false
         },
@@ -64230,6 +64231,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Responsibility: the existing installed Row Effect routes recovery"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage responsibility:"
               }
             ],
             "inputsOutputs": [
@@ -64264,6 +64269,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Inputs and outputs: optional `recoverMemberRequests` receives"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage inputs and outputs:"
               }
             ],
             "identity": [
@@ -64302,6 +64311,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Identity: each selected position belongs"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage identity:"
               }
             ],
             "ownership": [
@@ -64340,6 +64353,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Ownership: original installations retain their Sites"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage ownership:"
               }
             ],
             "synchronization": [
@@ -64378,6 +64395,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Synchronization: reconstruction is synchronous"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage synchronization:"
               }
             ],
             "failure": [
@@ -64416,6 +64437,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Failure: missing scoped recovery support"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage failure:"
               }
             ],
             "cancellation": [
@@ -64450,6 +64475,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Cancellation: successful reconstruction neither cancels"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage cancellation:"
               }
             ],
             "resources": [
@@ -64496,6 +64525,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Resources: selection is bounded"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage resources:"
               }
             ],
             "extension": [
@@ -64530,6 +64563,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Extension: this composition profile remains"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage extension:"
               }
             ],
             "verification": [
@@ -64612,6 +64649,14 @@
               {
                 "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
                 "anchor": "test('actual Local STORE authored Content captures Preview with its original published target'"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- CREATE carriage verification:"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "test('create original occurrence reaches synchronous provider"
               }
             ]
           }
