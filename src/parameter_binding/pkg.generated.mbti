@@ -2,7 +2,9 @@
 package "actql/actql/parameter_binding"
 
 import {
+  "actql/actql/canonical_value",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "actql/actql/source_span",
   "actql/actql/source_value",
@@ -32,6 +34,8 @@ pub fn declaration_at(Declarations, Int) -> Declaration?
 
 pub fn declaration_count(Declarations) -> Int
 
+pub fn declaration_preflight_construction_inventory(@decode_core.SubtreeConstructionGeometry, Int, DeclarationLimits) -> DeclarationPreflightConstructionInventory?
+
 pub fn declaration_source(Declaration) -> @decode_core.Cursor
 
 pub fn declaration_usage(Declarations) -> (Int, Int)
@@ -57,6 +61,8 @@ pub fn missing_count(MissingNames) -> Int
 pub fn missing_declaration_owner(MissingNames) -> Declarations
 
 pub fn missing_names(MissingNames) -> Array[String]
+
+pub fn observe_declaration_preflight_construction(@decode_core.Cursor?, DeclarationLimits) -> (@decode_core.SubtreeConstructionGeometry?, Int, Int64)
 
 pub fn observe_declarations(@decode_core.Cursor?, DeclarationLimits) -> (Result[Declarations, Issue], Int, Int)
 
@@ -97,6 +103,12 @@ pub(all) struct DeclarationLimits {
   max_nodes : Int
   max_depth : Int
   max_text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DeclarationPreflightConstructionInventory {
+  traversal : @decode_shape.CollectionConstructionExtent
+  refusal : @decode_shape.CollectionConstructionExtent
+  key_normalization : @canonical_value.NormalizationConstructionExtent?
 } derive(Eq, @debug.Debug)
 
 type DeclarationReadInput

@@ -312,6 +312,8 @@ pub fn[I, P] preparation_capacity_borrow_value(PreparationCapacityBorrow[I, P]) 
 
 pub fn[I, P] preparation_capacity_working_extents(PreparationCapacity[I, P], I) -> Result[(Int64, Int64), PreparationCapacityIssue]
 
+pub fn preparation_phase_work_construction_inventory() -> PreparationWorkConstructionInventory
+
 pub fn[P, C, R] prepare_backed_original_child_ledger(BackedExecutionLiveProjection[P, C, R], R) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
 
 pub fn prepare_imported_child_ledger(Int64) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
@@ -890,6 +892,12 @@ type PreparationPhaseWork64
 
 type PreparationRetirement
 
+pub(all) struct PreparationWorkConstructionInventory {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+} derive(Eq, @debug.Debug)
+
 pub(all) enum PreparationWorkIssue {
   ForeignOriginal
   WrongPhase
@@ -910,6 +918,7 @@ pub(all) enum PreparationWorkPhase {
   SourceAndIndex
   ShapeInspection
   ProgramStructure
+  ParameterDeclarationInventory
   SemanticCheck
   LowerAndGraph
   ExecutionPlan

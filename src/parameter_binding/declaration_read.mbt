@@ -34,10 +34,7 @@ fn preflight_declaration_read(
   root : @decode.Cursor?,
   limits : DeclarationLimits,
 ) -> (Result[Unit, Issue], Int, Int) {
-  if limits.max_parameters < 0 ||
-    limits.max_nodes < 0 ||
-    limits.max_depth < 0 ||
-    limits.max_text_bytes < 0 {
+  if declaration_limits_invalid(limits) {
     return (Err(InvalidLimits), 0, 0)
   }
   let budget : Budget = {
@@ -79,4 +76,14 @@ pub fn finish_declaration_read(
       outcome
     }
   }
+}
+
+///|
+// Sole original fixed-limits rule. Constructor metadata shares this predicate;
+// no input, semantic verdict, resource supplier or authority is constructed.
+fn declaration_limits_invalid(limits : DeclarationLimits) -> Bool {
+  limits.max_parameters < 0 ||
+  limits.max_nodes < 0 ||
+  limits.max_depth < 0 ||
+  limits.max_text_bytes < 0
 }

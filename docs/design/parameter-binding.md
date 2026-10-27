@@ -220,3 +220,43 @@ text/hash parity in addition to these fixed identities.
 Product tests additionally exercise whole-set budgets, metadata, source locations,
 ownership, wide maps and deep recursive declarations on JS, Wasm and native.
 They do not establish full compiler, Run or reference conformance.
+
+
+## Same-parent declaration preflight
+
+The split declaration reader has one preflight implementation. Its admitted
+Cursor supplies immutable indexed children, key spans and scalar views. Container
+length and depth refusals precede child construction; keys are charged in original
+source order before descendants. A key refusal retains its original child path
+and selects that child's original key span. It does not reconstruct a detached
+object, field map or second path to recover the same location. Type, default,
+metadata and binding rules remain with their existing semantic owners.
+
+`begin_parameter_declaration_preflight` retains the original input, Cursor and
+DeclarationLimits over the same `PreparationCapacity`. It reads the actual
+outside retained/execution debits and adds its fixed constructor packet once.
+The entering caller must already back the borrowed source, limits and the
+getter/current/resize call frame; the packet is neither prepaid entrance credit
+nor proof that a backend has supplied that backing.
+
+Preparation observes only the selected subtree's constructor metadata and its
+original ancestry, closes the existing phase-work receipt, then grows that same
+reservation before calling the original declaration preflight. Pending children
+are bounded by the original node budget, refusal paths by the selected root's
+actual ancestry and original depth limit, and key normalization by the same raw
+text guard. The Decode, collection, normalization and Resource owners supply
+their own representation quantities; this domain adds only its constructor and
+quotation controls through the existing representation tariff.
+
+A failed grow retains the original metadata and quotation. Retrying that grow
+does not repeat the observation or reclaim spent work. Success retains the same
+original declaration-read continuation and partial usage tuple. Finishing the
+original type/default/metadata body still requires that next phase's complete
+reservation; preflight success alone is not a complete Program check.
+
+Only after a successful synchronous preflight returns may reconciliation retire
+its temporary traversal and normalization backing. A refusal retains its full
+original diagnostic location. Clearing this continuation drops its references;
+it does not settle the parent, release escaped source/outcome aliases, refund
+attempts or acknowledge physical stop. Actual backend entrance funding and the
+remaining type/default/metadata constructors must consume this same parent.

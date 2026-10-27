@@ -33,6 +33,8 @@ pub fn cursor_key_span(Cursor) -> @source_span.Span?
 
 pub fn cursor_path(Cursor) -> Array[@source_value.PathSegment]
 
+pub fn cursor_path_construction_extent(Int64) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn cursor_span(Cursor) -> @source_span.Span
 
 pub fn decimal_int64(Cursor) -> Result[Int64, Issue]
@@ -62,6 +64,8 @@ pub fn lookup(ObjectView, String) -> Cursor?
 pub fn object_field_names(Cursor) -> Result[Array[String], Issue]
 
 pub fn object_length(Cursor) -> Int?
+
+pub fn observe_cursor_path_depth(Cursor) -> (Int, Int64)
 
 pub fn observe_subtree_construction_geometry(Cursor) -> SubtreeConstructionGeometry
 

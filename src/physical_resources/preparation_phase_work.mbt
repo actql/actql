@@ -11,6 +11,7 @@ pub(all) enum PreparationWorkPhase {
   SourceAndIndex
   ShapeInspection
   ProgramStructure
+  ParameterDeclarationInventory
   SemanticCheck
   LowerAndGraph
   ExecutionPlan
@@ -27,6 +28,28 @@ pub(all) enum PreparationWorkIssue {
   WorkLimit
   Stopping
 } derive(Eq, Debug)
+
+///|
+/// Same narrow/wide phase-work construction envelope: original state/live
+/// cell, two original closures, receipt, active Some and returned carriers.
+/// This is constructor DATA, not work credit, a tariff or a Resource Owner.
+pub(all) struct PreparationWorkConstructionInventory {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+} derive(Eq, Debug)
+
+///|
+let preparation_work_construction : PreparationWorkConstructionInventory = {
+  record_headers: 12L,
+  reference_slots: 16L,
+  scalar_words: 18L,
+}
+
+///|
+pub fn preparation_phase_work_construction_inventory() -> PreparationWorkConstructionInventory {
+  preparation_work_construction
+}
 
 ///|
 struct PreparationPhaseWork {
@@ -64,10 +87,11 @@ fn preparation_work_ordinal(phase : PreparationWorkPhase) -> Int {
     SourceAndIndex => 6
     ShapeInspection => 7
     ProgramStructure => 8
-    SemanticCheck => 9
-    LowerAndGraph => 10
-    ExecutionPlan => 11
-    PublicationProof => 12
+    ParameterDeclarationInventory => 9
+    SemanticCheck => 10
+    LowerAndGraph => 11
+    ExecutionPlan => 12
+    PublicationProof => 13
   }
 }
 
