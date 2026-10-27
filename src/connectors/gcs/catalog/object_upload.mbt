@@ -522,12 +522,13 @@ pub fn object_upload_response_matches(
     return false
   }
   let fields = response.fields
-  let newer = request.before.original
-    .map(original => fields.generation > original.fields.generation)
+  // A replacement has a distinct generation; numeric ordering is not promised.
+  let distinct_generation = request.before.original
+    .map(original => fields.generation != original.fields.generation)
     .unwrap_or(true)
   fields.bucket == binding.bucket &&
   fields.name == request.before.name &&
-  newer &&
+  distinct_generation &&
   fields.metageneration == 1L &&
   fields.size == request.content_size.to_int64() &&
   fields.content_type == Some(request.content_type) &&
