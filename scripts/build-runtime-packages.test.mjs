@@ -6,12 +6,25 @@ import {basename, dirname, join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {buildSync} from 'esbuild';
+import {parse} from 'yaml';
 import {readHostBundles, generateInstallations} from './connector-node-bundles.mjs';
 import {finiteRuntimeModules} from '../adapters/workers/artifact.mjs';
 // Keep the deferred-initialization regressions in the ordinary cold-pack gate.
 import './deferred-function-runtime.test.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
+
+test('holder terminal facade runs after the existing prepared Remote Site CI gate', () => {
+  const workflow = parse(readFileSync(join(root, '.github/workflows/ci.yml'), 'utf8'));
+  const steps = Object.values(workflow.jobs).flatMap(job => job.steps ?? []);
+  const selected = steps.filter(step => step.name === 'Test durable Remote Site dispatch admission');
+  assert.equal(selected.length, 1);
+  assert.deepEqual(selected[0].run.split(' && '), ['npm run check:remote-site-runtime',
+    'node --test packages/coordinator-core/holder-terminal.test.mjs']);
+  const gate = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts['check:remote-site-runtime'];
+  assert(gate.includes('node scripts/build-runtime-packages.mjs coordinator-core'));
+});
+
 // Independent command inventory: runtime preparation keeps its build, type,
 // unit and asset checks. Moving packed acceptance to another CI job also
 // requires the fixed scheduling assertions in client-ci.test.mjs.

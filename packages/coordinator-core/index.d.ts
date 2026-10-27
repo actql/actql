@@ -441,3 +441,15 @@ export const sitePlanning: Readonly<{
   }>): Readonly<{code: number; durationMilliseconds: bigint | null}>;
   select(durations: readonly bigint[], keys: readonly string[]): number;
 }>;
+
+/** Canonical inventory DATA; no current permission or physical stop witness. */
+export type HolderTerminalReport = {readonly [ownerHandle]: 'holder-terminal-report'};
+export const holderTerminalReports: Readonly<{
+  admit(body: string, maximum: number): HolderTerminalReport;
+  facts(report: HolderTerminalReport): Readonly<{reportCid: string; rootDispatchCid: string}>;
+  requests(report: HolderTerminalReport): readonly DispatchRequest[];
+  /** Call only after durable exact original association. Partial Run inventory
+   * receipt does not acknowledge whole-Run stop, Result or resource release. */
+  acceptedJson(report: HolderTerminalReport): string;
+  admitReplyJson(report: HolderTerminalReport, body: string): void;
+}>;

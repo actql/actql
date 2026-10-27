@@ -19529,7 +19529,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -19648,7 +19648,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -67409,7 +67409,7 @@
     {
       "module": "packages/coordinator-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "2d8f16293002f0e66b38c5a650f6b9e6a0e75aa2b4deb2354b2442944b9884d6",
+      "sha256": "13d776169d1f6f7fb2dcc5abbeb0166c087fca0525b0b7ecee081aaa7c02533c",
       "role": "common-semantics",
       "owner": "Existing remote_coordinator_abi/Site/Bundle Owners; public same-process type projection",
       "exports": [
@@ -67434,6 +67434,7 @@
         "EffectCheckpointReport",
         "EffectCurrentQuery",
         "EffectCurrentReply",
+        "HolderTerminalReport",
         "InitialDeliveryContext",
         "IntentAdmission",
         "IntentRecord",
@@ -67489,6 +67490,7 @@
         "effectCurrentObservations",
         "effectResumeDeliveries",
         "exactRetransmissionEligible",
+        "holderTerminalReports",
         "initialDeliveryEligible",
         "intentIsNew",
         "issueOutputPlanPollJson",
@@ -67552,6 +67554,13 @@
           "result": "string"
         },
         {
+          "name": "acceptedJson#2",
+          "parameters": [
+            "report: HolderTerminalReport"
+          ],
+          "result": "string"
+        },
+        {
           "name": "acceptedSiteOutput",
           "parameters": [
             "durable: DurableRecord"
@@ -67580,6 +67589,14 @@
             "limits: Readonly<{\n    maxWireBytes: number; maxNodes: number; maxDepth: number}>"
           ],
           "result": "EffectCheckpointReport"
+        },
+        {
+          "name": "admit#2",
+          "parameters": [
+            "body: string",
+            "maximum: number"
+          ],
+          "result": "HolderTerminalReport"
         },
         {
           "name": "admitCheckedOutputPlan",
@@ -67707,6 +67724,14 @@
             "body: string"
           ],
           "result": "EffectCheckpointReply"
+        },
+        {
+          "name": "admitReplyJson#3",
+          "parameters": [
+            "report: HolderTerminalReport",
+            "body: string"
+          ],
+          "result": "void"
         },
         {
           "name": "admitResponseJson",
@@ -68020,6 +68045,13 @@
             "report: EffectCheckpointReport"
           ],
           "result": "Readonly<{reportCid: string;\n    dispatchCid: string; checkpointCid: string; checkpointWire: string}>"
+        },
+        {
+          "name": "facts#2",
+          "parameters": [
+            "report: HolderTerminalReport"
+          ],
+          "result": "Readonly<{reportCid: string; rootDispatchCid: string}>"
         },
         {
           "name": "holdBindingIdentity",
@@ -68520,6 +68552,13 @@
           "result": "Readonly<{queryCid: string; reportCid: string;\n    dispatchCid: string; checkpointCid: string; effectId: string; queryId: string; replyCid: string;\n    ledgerHeadCid?: string; recoveryAction: number; responseSaved: boolean;\n    unknownEffects: readonly string[]}>"
         },
         {
+          "name": "requests",
+          "parameters": [
+            "report: HolderTerminalReport"
+          ],
+          "result": "readonly DispatchRequest[]"
+        },
+        {
           "name": "responseDurableJson",
           "parameters": [
             "durable: DurableRecord",
@@ -68587,10 +68626,12 @@
           "operations": [
             "<module>",
             "acceptedJson",
+            "acceptedJson#2",
             "acceptedSiteOutput",
             "acceptedSourceObservation",
             "admissionDurableJson",
             "admit",
+            "admit#2",
             "admitCheckedOutputPlan",
             "admitCustodyRequestJson",
             "admitCustodyResponseJson",
@@ -68606,6 +68647,7 @@
             "admitPollNotSeen",
             "admitReplyJson",
             "admitReplyJson#2",
+            "admitReplyJson#3",
             "admitResponseJson",
             "canRetireCancellationDelivery",
             "checkedOutputIntentCid",
@@ -68650,6 +68692,7 @@
             "durableRevision",
             "exactRetransmissionEligible",
             "facts",
+            "facts#2",
             "holdBindingIdentity",
             "holdBindingJson",
             "holdBindingProjection",
@@ -68715,6 +68758,7 @@
             "redeliveryEligible",
             "refusedJson",
             "replyFacts",
+            "requests",
             "responseDurableJson",
             "restoreDurable",
             "restoreDurableOutput",
@@ -68746,6 +68790,7 @@
             "EffectCheckpointReport",
             "EffectCurrentQuery",
             "EffectCurrentReply",
+            "HolderTerminalReport",
             "InitialDeliveryContext",
             "IntentAdmission",
             "IntentRecord",
@@ -68801,6 +68846,7 @@
             "effectCurrentObservations",
             "effectResumeDeliveries",
             "exactRetransmissionEligible",
+            "holderTerminalReports",
             "initialDeliveryEligible",
             "intentIsNew",
             "issueOutputPlanPollJson",
@@ -68868,6 +68914,10 @@
               {
                 "path": "src/remote_coordinator_abi/pkg.generated.mbti",
                 "anchor": "pub fn coordinator_accepted_site_output(@remote_site_protocol.DurableCoordinatorDispatchRecord) -> Result[Array[String]?, @remote_site_protocol.DispatchIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original holder terminal reports"
               }
             ],
             "inputsOutputs": [
@@ -68882,6 +68932,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "## Remote Site internal wire"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original holder terminal reports"
               }
             ],
             "identity": [
@@ -68896,6 +68950,10 @@
               {
                 "path": "src/remote_coordinator_abi/pkg.generated.mbti",
                 "anchor": "pub fn coordinator_accepted_site_output(@remote_site_protocol.DurableCoordinatorDispatchRecord) -> Result[Array[String]?, @remote_site_protocol.DispatchIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original holder terminal reports"
               }
             ],
             "ownership": [
@@ -68910,6 +68968,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "# Remote Site execution"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original holder terminal reports"
               }
             ],
             "synchronization": [
@@ -68924,6 +68986,10 @@
               {
                 "path": "src/remote_coordinator_abi/pkg.generated.mbti",
                 "anchor": "pub fn coordinator_accepted_site_output(@remote_site_protocol.DurableCoordinatorDispatchRecord) -> Result[Array[String]?, @remote_site_protocol.DispatchIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original holder terminal reports"
               }
             ],
             "failure": [
@@ -68938,6 +69004,10 @@
               {
                 "path": "src/remote_coordinator_abi/pkg.generated.mbti",
                 "anchor": "pub fn coordinator_accepted_site_output(@remote_site_protocol.DurableCoordinatorDispatchRecord) -> Result[Array[String]?, @remote_site_protocol.DispatchIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original holder terminal reports"
               }
             ],
             "cancellation": [
@@ -68952,6 +69022,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "## Remote Site internal wire"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original holder terminal reports"
               }
             ],
             "resources": [
@@ -68966,6 +69040,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "# Remote Site execution"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original holder terminal reports"
               }
             ],
             "extension": [
@@ -68980,6 +69058,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "## Remote Site internal wire"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original holder terminal reports"
               }
             ],
             "verification": [
@@ -68998,6 +69080,10 @@
               {
                 "path": "src/remote_coordinator_abi/pkg.generated.mbti",
                 "anchor": "pub fn coordinator_accepted_site_output(@remote_site_protocol.DurableCoordinatorDispatchRecord) -> Result[Array[String]?, @remote_site_protocol.DispatchIssue]"
+              },
+              {
+                "path": "packages/coordinator-core/holder-terminal.test.mjs",
+                "anchor": "test('holder terminal facade consumes the original shared canonical report in one namespace', () => {"
               }
             ]
           }
