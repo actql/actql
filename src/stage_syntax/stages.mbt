@@ -273,7 +273,7 @@ fn decode_envelope(
     for input_name in input_names {
       let input = required(inputs_view, input_name)
       // Local Input shorthand is a string; Carrier resolution belongs downstream.
-      if @wire.view(input) is TextValue(_) {
+      if @wire.is_text(input) {
         continue
       }
       let input_fields = names(input, false)

@@ -95,6 +95,12 @@ pub fn is_null(cursor : Cursor) -> Bool {
 }
 
 ///|
+/// Inspect the original scalar kind without allocating a container view.
+pub fn is_text(cursor : Cursor) -> Bool {
+  cursor.tree[cursor.index].value is Text(_)
+}
+
+///|
 pub fn field(object : ObjectView, name : String) -> Presence[Cursor] {
   match lookup(object, name) {
     None => Missing

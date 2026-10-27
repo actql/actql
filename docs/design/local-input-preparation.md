@@ -523,3 +523,97 @@ returning a current observation. After the callback returns, continuation refuse
 input or issuing a successor. Its original reservation and actual usage remain
 charged until the same original cleanup completes. This callback-free fence is
 not another current observation, an unpark operation or a physical ACK.
+
+## Request-owned generic Program JSON caller
+
+The original request parent retains the existing generic Program JSON holder on
+its uncompleted `PreparationCapacity[I, Unit]`. The same input, Ledger,
+reservation and original Node admission enter the domain constructor. The caller
+receives the same already selected immutable Program source limits and forwards
+that original DATA to the domain driver. It substitutes no standard default and
+adds no capacity or public request option.
+The domain driver owns its Source/NFC/index/Program construction inventory and
+reserves it on that same capacity before constructing those roles. The caller
+does not pre-add another copy of that domain packet.
+
+The request bootstrap separately inventories only its new resident reference,
+Some and returned result/error carriers. The real backend first-prelude/input
+and outer holder backing remains required before entry; a policy ceiling, a
+literal fixture or these caller-only controls do not establish it. The precise
+pre-entry backing contract and minimal public domain dependency must be qualified
+before enabling a normal SDK consumer. Native JSON snapshot semantics and their
+separate preconstruction funding are unchanged by this Core caller.
+
+The parent latches before entering the domain's original current/grow boundary.
+A failed entrance retains its exact input and charge for cleanup and cannot be
+silently retried as another body. A successful entrance retains the returned
+original holder before returning it. Source preflight, indexing, structural
+Program construction and reconciliation use the existing domain methods. No
+Unit body is completed, no Pure value is reclassified as Effect, and no new Root,
+Ledger, borrower cache, permission or cleanup engine is introduced.
+
+After the fixed consumer's scratch and untransferred aliases unwind, parent
+cleanup first clears that same domain holder. A busy domain refuses without
+settling the reservation. An explicitly transferred output belongs to its real
+next consumer; parent abort cannot infer that consumer's alias retirement.
+Underlying current, stop, pending report and Unknown remain original obligations.
+Binding/check/prelude/Catalog/Requests, effect compilation and material/restore
+overlap are later required phases, not completion claims of this first caller.
+
+## Public generic JSON constructor continuation
+
+The generic JSON prefix retains the existing `PreparationCapacity[I, P]`:
+Source preflight, normalized Source/index coexistence, the checked structural
+quantity observation and the original Program envelope decoder all use that
+same reservation and original input. The current public phase may be either
+working form. Reading its existing debit invokes no callback. Entering new
+constructor work uses the existing original-current fence once, with its
+reentry latch and a callback-free original-census retirement check afterward.
+No debit observation grants headroom or substitutes for currentness.
+
+The finite prefix holder includes only Source/index/Program fields. Binding,
+semantic prelude, Catalog and request-domain holders are later continuations;
+they are not fabricated by Program construction. A failed grow retains the
+same source or completed structural inventory and immutable quote. It does
+not repeat the previous observer or reset consumed work. Reconciliation may
+remove only the synchronous constructor scratch after its original frame has
+returned. Taking a Program transfers its DATA once; it neither completes a
+fake final prepared body nor acknowledges backend or physical cleanup.
+
+The public Int work and Program-extent interfaces remain available. Explicit
+wide interfaces use Int64 quantities over the same original work state and
+quantity implementation, preserving the entire Int-sized input domain without
+saturation. Narrow Program extent projection is a compatibility DATA record,
+not a second scan. Its construction is not an admission or a resource grant.
+Literal and normalized JSON use the same construction recipe and original
+parser modes; Program literal-key exceptions and general Unicode/NFC behavior
+remain unchanged. Shared collection and canonical-text owners supply their
+own representation quantities; only the existing representation tariff prices
+them.
+
+The original physical caller must supply the backend's first-prelude, input,
+limits, source-path and outer-frame backing before entering Core. The domain
+initial-inventory getter describes the Source/index/Program controls. The
+begin operation adds those controls once to the same capacity's already-live
+outside debit; a caller must not pre-add a second copy to that outside debit.
+This logical reservation sequence alone does not establish that a backend has
+provided the complete first-prelude or physical backing. Source/index/Program
+completion does not fund subsequent checking, Catalog, serialization, Content,
+compilation, restoration or another backend implicitly.
+
+The existing entrance is additive, not prepaid. For the exact original
+`PreparationCapacity[I, P]` and `input`, let `(R, E)` be the callback-free
+working-debit observation and `I` the shared tariff of the installed domain
+initial inventory. `begin_program_json_preparation(capacity, input, document,
+limits, source_path?)` requests `(R + I, E + I)` on that same capacity before
+starting the Source constructor. Passing a debit already containing that same
+`I` would add it twice. There is no separate prepaid-original entrance or token
+in this API. The inventory getter returns installed DATA and is not admission.
+
+Before that grow returns, the existing debit getter's returned tuple/carrier,
+checked-add outcomes, original reservation/current/resize call frame and typed
+failure paths already exist. Their actual first-prelude backing must therefore
+come from the original caller's independently inventoried supply. The generic
+Core packet is not evidence that this pre-entry backing is present, and a
+later successful resize cannot retroactively provide it. No numerical backend
+first-prelude claim follows from the finite Core prefix qualification.

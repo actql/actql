@@ -24641,7 +24641,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "b1b366203e26afbdf12a7e294db197f7b05fb734c7b73af0cd524b929d46e323",
+      "sha256": "d211bd0756880238421bb2dd2d4cee830d1164604eb10ee3e74e3cf998f73ce7",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -24657,6 +24657,10 @@
         {
           "name": "[I]make_closed_values_preparation",
           "declaration": "[ I ] make_closed_values_preparation ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , policy : ClientLocalResourcePolicy , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , retained : Int64 , execution : Int64 , module_containers : @ execution . PreparationRepresentationUnits , ) - > ClientClosedValuesPreparation [ I ]"
+        },
+        {
+          "name": "[I]prepare_request_program_json_preparation",
+          "declaration": "[ I ] prepare_request_program_json_preparation ( owner : ClientRequestPreparation [ I ] , input : I , document : String , limits : @ syntax . Limits , ) - > Result [ ClientProgramJsonPreparation [ I , Unit ] , ClientRequestPreparationIssue , ]"
         },
         {
           "name": "[I]select_closed_values_preparation",
@@ -24741,6 +24745,74 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[I]prepare_request_program_json_preparation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
               }
             ]
           }

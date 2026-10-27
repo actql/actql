@@ -2,6 +2,8 @@
 priv enum ClientRequestPreparationPhase {
   Open
   Selecting
+  ProgramJson
+  ProgramJsonFailed
   Selected
   Retiring
   Closed
@@ -17,6 +19,9 @@ struct ClientRequestPreparation[I] {
   ledger : @resources.Ledger
   capacity : @resources.PreparationCapacity[I, Unit]
   mut input : I?
+  // The same generic domain holder owns its source/index/Program aliases.
+  // Unit remains uncompleted until the actual output-type continuation.
+  mut program_json : ClientProgramJsonPreparation[I, Unit]?
   mut phase : ClientRequestPreparationPhase
 }
 
@@ -27,6 +32,7 @@ pub(all) enum ClientRequestPreparationIssue {
   Policy
   Initial(@resources.ImportedChildLedgerIssue)
   Capacity(@resources.PreparationCapacityIssue)
+  ProgramJson(ClientProgramJsonPreparationIssue)
 } derive(Debug)
 
 ///|
@@ -80,9 +86,18 @@ fn request_preparation_control_units() -> @execution.PreparationRepresentationUn
   // eight references and eight tags. Original-current/resize scratch has
   // sixteen headers, thirty-two references and twenty-four scalar slots.
   {
-    record_headers: js_headers + import_headers + ledger_headers + 2L + 8L + 16L,
-    reference_slots: js_refs + import_refs + ledger_refs + 12L + 8L + 32L,
-    scalar_words: js_words + import_words + ledger_words + 5L + 8L + 24L,
+    // One resident domain link; its Some(1H1R1W), and conservative sum of
+    // returned Ok plus Err/ProgramJson carriers(3H3R3W). No domain payload
+    // or B initial recipe is represented by these caller-only controls.
+    record_headers: js_headers +
+    import_headers +
+    ledger_headers +
+    2L +
+    8L +
+    16L +
+    4L,
+    reference_slots: js_refs + import_refs + ledger_refs + 12L + 8L + 32L + 5L,
+    scalar_words: js_words + import_words + ledger_words + 5L + 8L + 24L + 4L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
@@ -141,7 +156,58 @@ pub fn[I] begin_request_preparation(
     Ok(value) => value
   }
   // The manager stores this original before any shape-specific constructor.
-  Ok({ initial, policy, ledger, capacity, input: Some(input), phase: Open, })
+  Ok({
+    initial,
+    policy,
+    ledger,
+    capacity,
+    input: Some(input),
+    program_json: None,
+    phase: Open,
+  })
+}
+
+///|
+/// Caller connection to the existing generic domain driver. The SAME original
+/// working capacity/input enter B's constructor; Unit is never completed or
+/// converted into a prepared Program or Effect. The constructor itself adds
+/// its initial domain inventory once, before creating its Source cursor.
+///
+/// This caller declares only its own resident link and return carriers above.
+/// The backend's real first-prelude/input/outer backing is a separate required
+/// precondition. The same already selected immutable syntax limits are DATA,
+/// not another resource allowance or a new public request option. No standard
+/// default is substituted here. Normal SDK snapshot admission is not enabled.
+pub fn[I] prepare_request_program_json_preparation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  document : String,
+  limits : @syntax.Limits,
+) -> Result[
+  ClientProgramJsonPreparation[I, Unit],
+  ClientRequestPreparationIssue,
+] {
+  if owner.phase != Open || owner.program_json is Some(_) {
+    return Err(WrongPhase)
+  }
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(ForeignOriginal)
+  }
+  // Retain the exact parent before B's original current/reservation boundary.
+  // No second current call, copied byte quota or pre-reservation is inserted.
+  owner.phase = Selecting
+  match
+    begin_program_json_preparation(owner.capacity, input, document, limits) {
+    Err(issue) => {
+      owner.phase = ProgramJsonFailed
+      Err(ProgramJson(issue))
+    }
+    Ok(child) => {
+      owner.program_json = Some(child)
+      owner.phase = ProgramJson
+      Ok(child)
+    }
+  }
 }
 
 ///|
@@ -221,6 +287,23 @@ pub fn[I] abort_request_preparation_after_cleanup(
   }
   if owner.phase == Closed {
     return Ok(())
+  }
+  if owner.program_json is Some(child) {
+    // A handed-off heavy output belongs to the next real consumer. This
+    // abort boundary cannot infer that consumer's alias retirement.
+    if child.phase == Transferred {
+      return Err(WrongPhase)
+    }
+    let previous = owner.phase
+    owner.phase = Selecting
+    match clear_program_json_preparation(child) {
+      Err(issue) => {
+        owner.phase = previous
+        return Err(ProgramJson(issue))
+      }
+      Ok(_) => owner.program_json = None
+    }
+    owner.phase = previous
   }
   let retiring = owner.phase == Retiring
   owner.phase = Retiring

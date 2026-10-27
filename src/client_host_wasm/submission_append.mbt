@@ -30,8 +30,28 @@ fn submission_append_current(
 fn submission_append_run_inspection(
   row : @host.ClientJournalPhysicalRow,
 ) -> Result[@host.ClientRunJournalInspection, Int] {
-  let (record, local_policy, observation_originals) = match
-    @host.decode_client_run_journal_row_with_observation_originals(row.body) {
+  submission_run_inspection_with_identity(row, None)
+}
+
+///|
+fn submission_run_inspection_with_identity(
+  row : @host.ClientJournalPhysicalRow,
+  retained_identity : (
+    @host.ClientRequestIdentity,
+    @publication.PublicationContract,
+  )?,
+) -> Result[@host.ClientRunJournalInspection, Int] {
+  let decoded = match retained_identity {
+    None =>
+      @host.decode_client_run_journal_row_with_observation_originals(row.body)
+    Some((request, definition)) =>
+      @host.decode_client_run_journal_row_with_retained_identity(
+        row.body,
+        request,
+        definition,
+      )
+  }
+  let (record, local_policy, observation_originals) = match decoded {
     Ok(value) => value
     Err(_) => return Err(-31)
   }

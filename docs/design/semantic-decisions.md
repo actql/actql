@@ -820,3 +820,42 @@ receipt, reconciliation, no automatic resend and physical cleanup obligations
 remain unchanged. The generic outcome schema and synchronous Command declaration
 do not change. Provider implementation and ordinary execution evidence remain
 separate from this resolution of the documentation conflict.
+
+
+## GitHub creation confirmation and outcome names
+
+The GitHub guide requires an original request marker and confirming read-back,
+but formerly named an HTTP 2xx response `accepted`. The common
+[Effect outcome contract](../spec/execution.md#reconciliation) gives that name
+to a pending provider operation with a genuine OperationRef and its admitted
+status, result, cancellation and reconciliation contracts. GitHub's
+[createIssue](https://docs.github.com/en/graphql/reference/issues#createissue)
+and [createPullRequest](https://docs.github.com/en/graphql/reference/pulls#createpullrequest)
+mutations return the created object. Its ID and `clientMutationId` are not
+provider-operation authority.
+
+Retain the connector's stronger read-back requirement. A correlated synchronous
+creation response is provider evidence; the existing owner may finalize
+`applied` only after the actual read-back confirms the original scoped object,
+content and marker. This is a bounded synchronous driver sequence, not an
+invented asynchronous operation. A direct-response projection alone cannot issue
+a terminal row Outcome Receipt. Missing confirmation preserves evidence and
+uncertainty through the existing reconciliation path, without another send or
+a fabricated failure claiming that creation did not occur. Equal unmarked
+content and later equivalent state do not establish the original operation.
+
+The physical body appends two LF characters and the original marker to an
+existing logical body; an absent body uses only that marker. Explicitly empty
+and absent bodies remain distinct. Keep the logical input and original tag
+independently retained. Cold restoration compares the complete saved physical
+wire against those originals and the existing protocol CID/origin context; it
+does not prepare a new request or learn authority from the saved wire. Historical
+wire and component evidence keep their original scope.
+
+This resolves the outcome-name conflict without dropping the documented
+confirmation step, changing the generic outcome schema or inventing a tag,
+grant or cleanup owner. It does not transfer Gmail's submission-only completion
+postcondition to GitHub. Actual request/marker/read-back construction overlap,
+read authority, currentness, claim, receipt and physical cleanup remain required
+implementation duties. Provider-only classification is not installed or ordinary
+execution evidence.
