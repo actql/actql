@@ -23502,15 +23502,15 @@
             "verification": [
               {
                 "path": "adapters/host-node/client-request-journal-operation-bounds.test.mjs",
-                "anchor": "failed pre-SQL operations consume the original lifetime before another argument read"
+                "anchor": "failed pre-SQL operations keep current checks and do not create lifetime call debt"
               },
               {
                 "path": "adapters/host-node/client-request-journal-operation-bounds.test.mjs",
-                "anchor": "exhausted operations retain both original connections through pending close and same-receiver retry"
+                "anchor": "current-refused operations retain both original connections through pending close and same-receiver retry"
               },
               {
                 "path": "adapters/host-node/client-request-journal-operation-bounds.test.mjs",
-                "anchor": "failed original currentness consumes its operation before argument access without blocking close"
+                "anchor": "each original current refusal precedes argument access without blocking close"
               }
             ]
           }
