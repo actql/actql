@@ -34,15 +34,40 @@ pub fn start_json_parse(
   if !valid_limits(limits) {
     return Err(input_error(InvalidLimits, source_path, Unavailable))
   }
-  Ok({
+  Ok(
+    make_json_parse(
+      source,
+      source_path,
+      limits,
+      normalize_text=!data_keys,
+      effect_literal_keys=false,
+    ),
+  )
+}
+
+///|
+fn make_json_parse(
+  source : String,
+  source_path : String,
+  limits : ParseLimits,
+  normalize_text~ : Bool,
+  effect_literal_keys~ : Bool,
+) -> JsonParse {
+  {
     document: JsonDocument::make(
-      Parser::make(source, source_path, limits, normalize_text=!data_keys),
+      Parser::make(
+        source,
+        source_path,
+        limits,
+        normalize_text~,
+        effect_literal_keys~,
+      ),
     ),
     preflight_offset: 0,
     preflight_bytes: 0,
     preflight_done: false,
     terminal: false,
-  })
+  }
 }
 
 ///|

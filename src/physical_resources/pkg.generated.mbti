@@ -54,6 +54,8 @@ pub fn[I, P] begin_preparation_capacity_phase(PreparationCapacity[I, P], I, P, I
 
 pub fn[I, P] begin_preparation_phase_work(PreparationCapacity[I, P], I, PreparationWorkPhase, Int) -> Result[PreparationPhaseWork, PreparationWorkIssue]
 
+pub fn[I, P] begin_preparation_phase_work64(PreparationCapacity[I, P], I, PreparationWorkPhase, Int64) -> Result[PreparationPhaseWork64, PreparationWorkIssue]
+
 pub fn[P, C] borrow_backed_execution_read_use(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C]) -> Result[BackedExecutionReadUse[P, C], BackedExecutionIssue]
 
 pub fn[T] borrow_original_read_workspace_claim(OriginalReadWorkspaceBinding[T], T, SharedCapacity) -> FundedReadClaim[T]?
@@ -120,6 +122,8 @@ pub fn check_original_resources_mutable(Ledger) -> Result[Unit, LedgerIssue]
 
 pub fn check_original_state_write_preparation(OriginalLedgerIdentity) -> Result[Unit, OriginalStateWriteIssue]
 
+pub fn[I, P] check_working_preparation_capacity_current(PreparationCapacity[I, P], I) -> Result[Unit, PreparationCapacityIssue]
+
 pub fn[T] claim_funded_read_preparation(FundedReadClaim[T], T, Int64, Int64) -> Result[FundedReadConsumer[T], OriginalReadIssue]
 
 pub fn claim_model_io_access(ModelIoAccess, Ledger, Reservation, Int, Int) -> Result[ModelIoLease, ModelIoAdmissionIssue]
@@ -165,6 +169,8 @@ pub fn[T] finish_funded_read_inventory(FundedReadClaim[T], T, Bool) -> Result[Bo
 pub fn finish_original_ledger_inventory(Ledger, Bool) -> Result[Bool, OriginalReadIssue]
 
 pub fn finish_preparation_phase_work(PreparationPhaseWork) -> Result[Int, PreparationWorkIssue]
+
+pub fn finish_preparation_phase_work64(PreparationPhaseWork64) -> Result[Int64, PreparationWorkIssue]
 
 pub fn[T] fund_original_read(Ledger, T, OriginalLedgerDescriptor[T], Int64, Int64) -> Result[FundedReadClaim[T], OriginalReadIssue]
 
@@ -303,6 +309,8 @@ pub fn[I, P] preparation_capacity_accounting(PreparationCapacity[I, P]) -> (Int6
 pub fn[I, P] preparation_capacity_available(PreparationCapacity[I, P], I) -> Result[(Int64, Int64), PreparationCapacityIssue]
 
 pub fn[I, P] preparation_capacity_borrow_value(PreparationCapacityBorrow[I, P]) -> P?
+
+pub fn[I, P] preparation_capacity_working_extents(PreparationCapacity[I, P], I) -> Result[(Int64, Int64), PreparationCapacityIssue]
 
 pub fn[P, C, R] prepare_backed_original_child_ledger(BackedExecutionLiveProjection[P, C, R], R) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
 
@@ -447,6 +455,8 @@ pub fn shared_capacity_matches_ledger(SharedCapacity, Ledger) -> Bool
 pub fn shared_capacity_usage(SharedCapacity) -> SharedCapacityUsage
 
 pub fn spend_preparation_phase_work(PreparationPhaseWork, Int) -> Result[Unit, PreparationWorkIssue]
+
+pub fn spend_preparation_phase_work64(PreparationPhaseWork64, Int64) -> Result[Unit, PreparationWorkIssue]
 
 pub fn start_imported_child_ledger(ImportedChildLedger) -> Result[Unit, ImportedChildLedgerIssue]
 
@@ -875,6 +885,8 @@ pub(all) enum PreparationCapacityIssue {
 } derive(Eq, @debug.Debug)
 
 type PreparationPhaseWork
+
+type PreparationPhaseWork64
 
 type PreparationRetirement
 

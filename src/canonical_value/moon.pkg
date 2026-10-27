@@ -8,3 +8,7 @@ formatter(
     "normalization_conformance_wbtest.mbt",
   ],
 )
+
+import {
+  "actql/actql/capacity_arithmetic" @counts,
+}

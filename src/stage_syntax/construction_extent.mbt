@@ -14,8 +14,20 @@ pub(all) struct ProgramConstructionExtent {
 } derive(Eq, Debug)
 
 ///|
+pub(all) struct ProgramConstructionExtent64 {
+  stage_records : Int
+  import_tuple_bound : Int64
+  export_tuples : Int
+  name_index_entries : Int64
+  retained_array_capacity_bound : Int64
+  retained_map_capacity_bound : Int64
+  inspection_work : Int64
+} derive(Eq, Debug)
+
+///|
 priv struct ConstructionExtentWork {
-  mut remaining : Int
+  mut remaining : Int64
+  mut exhausted : Bool
 }
 
 ///|
@@ -27,11 +39,11 @@ fn construction_field(
   work : ConstructionExtentWork,
 ) -> @wire.Cursor? {
   guard @wire.object_length(cursor) is Some(count) else { return None }
-  if count > work.remaining {
-    work.remaining = -1
+  if count.to_int64() > work.remaining {
+    work.exhausted = true
     return None
   }
-  work.remaining -= count
+  work.remaining -= count.to_int64()
   for index in 0..<count {
     guard @wire.field_at(cursor, index) is Some((key, value)) else {
       return None
@@ -44,14 +56,36 @@ fn construction_field(
 }
 
 ///|
+/// Existing public Int interface over the same one-pass quantity observer.
+/// The original Int maximum bounds spent work, so this conversion is exact.
+/// Projection adds one narrow DATA record/Some, not another source scan.
 pub fn program_construction_extent(
   root : @wire.Cursor,
   max_work : Int,
 ) -> ProgramConstructionExtent? {
+  program_construction_extent64(root, max_work.to_int64()).map(value => {
+    stage_records: value.stage_records,
+    import_tuple_bound: value.import_tuple_bound,
+    export_tuples: value.export_tuples,
+    name_index_entries: value.name_index_entries,
+    retained_array_capacity_bound: value.retained_array_capacity_bound,
+    retained_map_capacity_bound: value.retained_map_capacity_bound,
+    inspection_work: value.inspection_work.to_int(),
+  })
+}
+
+///|
+pub fn program_construction_extent64(
+  root : @wire.Cursor,
+  max_work : Int64,
+) -> ProgramConstructionExtent64? {
   if max_work < 1 {
     return None
   }
-  let work : ConstructionExtentWork = { remaining: max_work - 1, }
+  let work : ConstructionExtentWork = {
+    remaining: max_work - 1,
+    exhausted: false,
+  }
   guard construction_field(root, "stages", work) is Some(stages) else {
     return None
   }
@@ -60,10 +94,10 @@ pub fn program_construction_extent(
   }
   guard @wire.array_length(stages) is Some(stage_count) else { return None }
   guard @wire.object_length(exports) is Some(export_count) else { return None }
-  if stage_count > work.remaining {
+  if stage_count.to_int64() > work.remaining {
     return None
   }
-  work.remaining -= stage_count
+  work.remaining -= stage_count.to_int64()
   let mut imports = 0L
   let mut names = 0L
   for index in 0..<stage_count {
@@ -74,10 +108,10 @@ pub fn program_construction_extent(
     guard @wire.object_length(inputs) is Some(input_count) else { return None }
     // An admitted input declaration can contain at most result and receipt
     // imports. Malformed declarations remain the actual decoder's concern.
-    if input_count > work.remaining {
+    if input_count.to_int64() > work.remaining {
       return None
     }
-    work.remaining -= input_count
+    work.remaining -= input_count.to_int64()
     imports += 2L * input_count.to_int64()
     guard construction_field(stage, "results", work) is Some(results) else {
       return None
@@ -85,22 +119,22 @@ pub fn program_construction_extent(
     guard @wire.object_length(results) is Some(result_count) else {
       return None
     }
-    if result_count > work.remaining {
+    if result_count.to_int64() > work.remaining {
       return None
     }
-    work.remaining -= result_count
+    work.remaining -= result_count.to_int64()
     names += result_count.to_int64()
     for name in ["effects", "table_inputs"] {
       match construction_field(stage, name, work) {
         Some(value) => {
           guard @wire.object_length(value) is Some(count) else { return None }
-          if count > work.remaining {
+          if count.to_int64() > work.remaining {
             return None
           }
-          work.remaining -= count
+          work.remaining -= count.to_int64()
           names += count.to_int64()
         }
-        None => if work.remaining < 0 { return None }
+        None => if work.exhausted { return None }
       }
     }
   }
@@ -144,31 +178,67 @@ pub(all) struct ProgramContainerConstructionExtent {
 pub fn program_container_construction_extent(
   value : ProgramConstructionExtent,
 ) -> ProgramContainerConstructionExtent? {
-  // The producer charges every Stage, input and indexed name to an Int work
-  // budget. Each input contributes at most two imports. These range checks
+  program_container_construction_extent_fields(
+    value.stage_records,
+    value.import_tuple_bound,
+    value.export_tuples,
+    value.name_index_entries,
+    value.retained_array_capacity_bound,
+    value.retained_map_capacity_bound,
+    value.inspection_work.to_int64(),
+  )
+}
+
+///|
+pub fn program_container_construction_extent64(
+  value : ProgramConstructionExtent64,
+) -> ProgramContainerConstructionExtent? {
+  program_container_construction_extent_fields(
+    value.stage_records,
+    value.import_tuple_bound,
+    value.export_tuples,
+    value.name_index_entries,
+    value.retained_array_capacity_bound,
+    value.retained_map_capacity_bound,
+    value.inspection_work,
+  )
+}
+
+///|
+fn program_container_construction_extent_fields(
+  stage_records : Int,
+  import_tuple_bound : Int64,
+  export_tuples : Int,
+  name_index_entries : Int64,
+  retained_array_capacity_bound : Int64,
+  retained_map_capacity_bound : Int64,
+  inspection_work : Int64,
+) -> ProgramContainerConstructionExtent? {
+  // The original indexed tree bounds every Stage, input and name by its
+  // Int-sized node/field domain. Inspection work itself is exact Int64. Each input contributes at most two imports. These range checks
   // also make all following linear products provably fit signed Int64.
   let max_count = 2147483647L
-  if value.stage_records < 0 ||
-    value.export_tuples < 0 ||
-    value.inspection_work < 0 ||
-    value.import_tuple_bound < 0L ||
-    value.import_tuple_bound > 2L * max_count ||
-    value.name_index_entries < 0L ||
-    value.name_index_entries > max_count {
+  if stage_records < 0 ||
+    export_tuples < 0 ||
+    inspection_work < 0 ||
+    import_tuple_bound < 0L ||
+    import_tuple_bound > 2L * max_count ||
+    name_index_entries < 0L ||
+    name_index_entries > max_count {
     return None
   }
-  let stages = value.stage_records.to_int64()
-  let imports = value.import_tuple_bound
-  let exports = value.export_tuples.to_int64()
-  let names = value.name_index_entries
+  let stages = stage_records.to_int64()
+  let imports = import_tuple_bound
+  let exports = export_tuples.to_int64()
+  let names = name_index_entries
   let predecessors = Int64::max(0L, stages - 1L)
   let arrays = 2L + 4L * stages
   let items = stages + exports + imports + names
   let array_capacity = 8L * arrays + 2L * items
   let maps = 3L * stages
   let map_capacity = 8L * maps + 4L * names
-  if value.retained_array_capacity_bound != array_capacity ||
-    value.retained_map_capacity_bound != map_capacity {
+  if retained_array_capacity_bound != array_capacity ||
+    retained_map_capacity_bound != map_capacity {
     return None
   }
   // Program(1H5R); Stage(1H9R plus predecessor tag/ref); each noninitial

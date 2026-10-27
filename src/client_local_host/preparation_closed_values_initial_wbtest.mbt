@@ -87,13 +87,14 @@ test "closed preparation control inventory includes exactly one typed custody ch
     empty_family_module_containers,
   )
   // Prior241H/446R/292W plus custody1H/1R/1W, Local packet1H/5R/1W,
-  // four containers8H/11R/8W, one recipe reference and one construction latch. Text/wire unchanged.
-  assert_eq(units.record_headers, 251L)
+  // four containers8H/11R/8W, one recipe reference and one construction latch.
+  // Three shared phase-state return packets add3H0R3W=72B; text/wire unchanged.
+  assert_eq(units.record_headers, 254L)
   assert_eq(units.reference_slots, 464L)
-  assert_eq(units.scalar_words, 303L)
+  assert_eq(units.scalar_words, 306L)
   assert_eq(units.owned_utf16_units, 80L)
   assert_eq(units.owned_wire_bytes, 0L)
-  assert_eq(@execution.preparation_representation_cost(units), Some(10312L))
+  assert_eq(@execution.preparation_representation_cost(units), Some(10384L))
 }
 
 ///|
@@ -103,8 +104,8 @@ test "initial original reservation funds all module containers with selected bac
   assert_true(@local.local_module_container_inventory(1, -1) is None)
   for
     (providers, expected_containers, required) in [
-      (0, 280L, 10312L),
-      (9, 352L, 10384L),
+      (0, 280L, 10384L),
+      (9, 352L, 10456L),
     ] {
     let containers = @local.local_module_container_inventory(1, providers).unwrap()
     assert_eq(
@@ -115,7 +116,7 @@ test "initial original reservation funds all module containers with selected bac
       policy,
       module_containers=containers,
     ).unwrap()
-    // Independent fixed controls10024 +recipe link8 +four arrays280/352.
+    // Independent fixed controls10096 +recipe link8 +four arrays280/352.
     assert_eq(retained, required)
     for available in [required - 1L, required] {
       let ledger = @resources.create_ledger({
