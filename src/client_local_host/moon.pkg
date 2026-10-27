@@ -49,7 +49,11 @@ import {
 options(
   targets: {
     "preparation_closed_values_module_call_js.mbt": [ "js" ],
-    "preparation_closed_values_module_call_portable.mbt": [ "wasm", "wasm-gc", "native" ],
+    "preparation_closed_values_module_call_portable.mbt": [
+      "wasm",
+      "wasm-gc",
+      "native",
+    ],
     "preparation_closed_values_module_wbtest.mbt": [ "js" ],
     "preparation_closed_values_module_fault_wbtest.mbt": [ "js" ],
     "preparation_closed_values_module_controls_wbtest.mbt": [ "js" ],

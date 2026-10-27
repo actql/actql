@@ -231,4 +231,3 @@ test "managed source-free preparation refuses a foreign owner or changed contrac
     is Err(Unsupported),
   )
 }
-
