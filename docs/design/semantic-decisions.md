@@ -859,3 +859,39 @@ postcondition to GitHub. Actual request/marker/read-back construction overlap,
 read authority, currentness, claim, receipt and physical cleanup remain required
 implementation duties. Provider-only classification is not installed or ordinary
 execution evidence.
+
+
+## Kintone process-status response and confirmation
+
+The kintone guide formerly named a revision response `accepted`. The common
+[Effect outcome contract](../spec/execution.md#reconciliation) requires a genuine
+OperationRef and its admitted operation contracts for that variant. The
+[synchronous status API](https://kintone.dev/en/docs/kintone/rest-api/records/update-status/)
+returns a record revision, not such an operation. Keep the existing requirement
+to confirm the declared next status by read-back, and correct the outcome name.
+
+The selected `update_status` Command is synchronous. Its original revision
+response is retained provider evidence; it is not a terminal row Outcome Receipt.
+Only an actual authorized read of the same scoped app and record, matching the
+saved original response's revision and declared next status, permits `applied`.
+A missing response or unconfirmed transition preserves uncertainty through the
+existing owner. Do not infer a failure claiming the action did not occur, resend
+the mutation, or turn a record ID or revision into an OperationRef. A later equal
+status or higher revision without the saved original response proves no earlier
+attempt. This does not add a generic asynchronous provider-operation contract.
+
+A declaration for this endpoint must use the existing synchronous outcome and
+omit a fabricated asynchronous poll role. Actual confirmation remains an ordinary
+bounded read with its original authority, current checks and capacity; removing
+poll metadata does not remove the read-back duty. Retain full-diff Preview,
+original revision conflict checks, process-definition correspondence and all
+ALL/ANY/ONE, filter and assignee obligations. Eligibility or a predicted next
+state is not observed completion.
+
+The documented provider revision increment does not by itself select a new
+ActQL acceptance restriction; this decision leaves the existing bounded revision
+admission and exact returned-revision read-back correspondence intact. Provider
+projections, independent declaration preimages/CIDs and dependent fixtures must
+be updated together before adoption. Generic outcome schemas, approval, durable
+claim, receipt, recovery, no-resend and physical cleanup laws remain unchanged.
+This documentation resolution is not installed or ordinary execution evidence.

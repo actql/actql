@@ -544,6 +544,17 @@ pre-entry backing contract and minimal public domain dependency must be qualifie
 before enabling a normal SDK consumer. Native JSON snapshot semantics and their
 separate preconstruction funding are unchanged by this Core caller.
 
+The same request bootstrap independently includes the allocated Core entrance
+carriers before that grow: the original debit tuple/result, two checked-add
+results and conservative failure alternatives total `10H7R13W` under the
+existing representation tariff. This is a caller inventory, not a prepaid
+copy of the domain packet or a subtraction from its conservative quote. It
+stays charged until the original parent retires. The unchanged original
+current/resize scratch remains with its existing owner. Fixed nonrecursive VM
+frames belong to the installed runtime baseline; native input/limits/path,
+external callback and outer backing still need their actual original supply.
+This logical carrier inventory alone does not prove that backend supply.
+
 The parent latches before entering the domain's original current/grow boundary.
 A failed entrance retains its exact input and charge for cleanup and cannot be
 silently retried as another body. A successful entrance retains the returned
