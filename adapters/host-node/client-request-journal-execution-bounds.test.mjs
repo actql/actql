@@ -472,25 +472,31 @@ test('failed original cursor close and pending database close retain the same na
 test('selected preparation current callback cannot reenter the same Journal before native preparation', async () => {
   const {scratch, directory} = await fixture();
   instrument(state => {
-    let journal, armed = false, currentReads = 0, nestedFailure, nestedAttempts = 0;
+    let journal, armed = false, inputRead = false, currentReads = 0, nestedFailure, nestedAttempts = 0;
+    const selectedRef = {...ref, get namespaceId() {
+      // The facade and ensureOpen current checks precede argument access.
+      // Arm once here so the next callback is inside selected preparation,
+      // rather than relying on a count of those separate outer checks.
+      if (!inputRead) {inputRead = true; armed = true;}
+      return ref.namespaceId;
+    }};
     journal = openClientRequestJournal(directory, {...options(), primaryCurrent() {
       if (!armed) return;
-      // ensureOpen has a current boundary before a SQL operation exists.
-      // Target the following consume current, inside actual preparation.
-      if (++currentReads === 1) return;
+      currentReads++;
       armed = false;
       nestedAttempts++;
       try { journal.lookupReconciliationState(ref); }
       catch (cause) { nestedFailure = cause; }
     }});
     try {
-      const before = state.nativeCalls;
-      armed = true;
-      assert.equal(journal.lookupReconciliationState(ref), undefined);
+      const before = state.nativeCalls, prepared = state.preparations.length;
+      assert.equal(journal.lookupReconciliationState(selectedRef), undefined);
+      assert.equal(inputRead, true);
       assert.equal(nestedAttempts, 1);
-      assert.equal(currentReads, 2);
+      assert.equal(currentReads, 1);
       assert.equal(nestedFailure?.code, 'ClientRequestJournalSqlCleanupPending');
       assert.equal(state.nativeCalls, before + 1);
+      assert.equal(state.preparations.length, prepared + 1);
       assert.equal(journal.lookupReconciliationState(ref), undefined);
       assert.equal(state.nativeCalls, before + 2);
     } finally { journal.close(); }
