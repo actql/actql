@@ -12,7 +12,7 @@ import {sheetsRangeCommand, sheetsRangeReference, createSheetsRangeDriver,
 const baseline = JSON.parse(readFileSync(new URL('./fixtures/range-owned-baseline.json', import.meta.url)));
 const carriage = JSON.parse(readFileSync(new URL('./fixtures/range-command-approval-carriage.json', import.meta.url)));
 const hash = value => `sha256:${createHash('sha256').update(canonicalJson(value)).digest('hex')}`;
-test('Sheets authority move preserves request bytes and explicit Command-law identity lineage', () => {
+test('Sheets authority move preserves the original request bytes and explicit Command-law identity lineage', () => {
   const command = sheetsRangeCommand(baseline.connectorId, baseline.site, moon);
   const target = sheetsRangeReference({site: baseline.site,
     catalogCid: baseline.catalogCid, bindingCid: baseline.bindingCid, moon});
