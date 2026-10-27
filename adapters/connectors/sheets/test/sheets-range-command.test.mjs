@@ -74,7 +74,7 @@ test('Sheets range Catalog and bounded Command input reach the existing common c
   assert.deepEqual(range.command.input_contract.fields.rows.items.fields, {
     text: {type: 'string', nullable: false}, flag: {type: 'boolean', nullable: false}});
   assert.equal(range.command.input_contract.fields.rows.max_items, 2);
-  assert.equal(range.command.minimum_approval, 'required');
+  assert.equal(Object.hasOwn(range.command, 'minimum_approval'), false);
   assert.equal(range.command.command_id, 'command:sheets-book.sheets.update_range.v0');
   assert.equal(range.command.target.resource_kind, 'sheet_range');
   assert.equal(range.command.idempotency.support, 'unsupported');

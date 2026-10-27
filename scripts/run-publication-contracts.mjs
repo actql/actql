@@ -128,6 +128,18 @@ function withResourceTarget(existing, resourceRef) {
 export function effectPreviewSchema(existing, resourceRef = referenceSchemas.resource_ref) {
   const preview = clone(existing);
   const member = preview.properties.effects.items;
+  // Command technical contracts carry no approval minimum. Absence is DATA,
+  // not Account allow; the original authorization gate still decides dispatch.
+  member.required = member.required.filter(field => field !== 'approval');
+  const selection = member.allOf.find(rule => rule.oneOf?.some(branch =>
+    branch.properties?.effect_kind?.const === 'command'));
+  for (const branch of selection.oneOf) {
+    if (branch.properties?.effect_kind?.const === 'command') {
+      branch.not = {required: ['approval']};
+    } else if (!branch.required.includes('approval')) {
+      branch.required.push('approval');
+    }
+  }
   // A concrete original ResourceRef and an authored field selector are
   // different scope alternatives. Never substitute a representative row.
   member.properties.target = withResourceTarget(member.properties.target, resourceRef);

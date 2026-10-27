@@ -134,7 +134,6 @@ fn upload_command_bundle(
         "permissions": [
           "storage.objects.create", "storage.objects.delete", "storage.objects.get",
         ],
-        "minimum_approval": "required",
         "preview": { "strength": "exact" },
         "outcome": "synchronous",
         "idempotency": { "support": "unsupported" },

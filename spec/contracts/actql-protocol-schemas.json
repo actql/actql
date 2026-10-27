@@ -17279,7 +17279,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:64ce1076453e8a8ca412dcad58f559e24a6c72ff123e6c66d466900f7227330c",
+  "artifact_registry_cid": "sha256:2f1637329c5a75bece53210e58a8fffb21d00d3fe8edc1fce167201b5e8451ee",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77",
@@ -17293,7 +17293,7 @@
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
-    "effect_preview": "sha256:d61a28ce5eb88ef7195d0557114339c53af92d93878e1c816882f13720cb208d",
+    "effect_preview": "sha256:8b96ef58002bd3dcf7404fba1d692f1e5baf1b7decb54fc493756a08f8e825e1",
     "review_projection": "sha256:99680abc66cdaa569fb44ac546fd1f814ed128e5d1ed3002d38d3a885acfe87b",
     "approval_attestation": "sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9",
     "effect_apply_receipt": "sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62",
@@ -46560,7 +46560,6 @@
               "count",
               "max_items",
               "required_permissions",
-              "approval",
               "on_item_failure",
               "changes",
               "row_order",
@@ -46982,7 +46981,12 @@
                     "required": [
                       "contract",
                       "resolved_command_contract_cid"
-                    ]
+                    ],
+                    "not": {
+                      "required": [
+                        "approval"
+                      ]
+                    }
                   },
                   {
                     "properties": {
@@ -46998,7 +47002,8 @@
                     },
                     "required": [
                       "mapping",
-                      "resolved_mapping_contract_cid"
+                      "resolved_mapping_contract_cid",
+                      "approval"
                     ]
                   }
                 ]
