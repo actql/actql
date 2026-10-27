@@ -132,7 +132,12 @@ would follow.
 **Reconciliation.** Creating an issue, a pull request or a comment is not
 idempotent on GitHub's side, so every body the Connector writes ends with an
 HTML comment carrying the request marker (`<!-- actql:effect:… -->`, which
-GitHub does not render). A lost reply is reconciled by listing recent issues,
+GitHub does not render). The physical body preserves the original logical body
+and appends two LF characters followed by
+`<!-- actql:effect:<original-request-tag> -->`. An absent body uses only the
+marker; an explicitly empty body retains the two LF characters. The tag is the
+same original request tag, not a newly issued identifier, and the logical row
+remains separate from the physical body. A lost reply is reconciled by listing recent issues,
 pull requests or comments for that marker; a body with the same text but no
 marker is not evidence. File commits are reconciled by reading the branch
 head: a commit whose message carries the marker and whose tree holds the
@@ -143,8 +148,16 @@ the request window that produced the approved state settles the outcome,
 while the item merely being in that state does not. A merge is settled by
 the pull request's `merged` timeline event by this installation in the
 request window; a merge commit alone is not. Without evidence the item stays
-`unknown` and nothing is sent again. An operation ends `accepted` when GitHub
-returned 2xx and `applied` once the read-back confirms the state.
+`unknown` and nothing is sent again. A successful mutation response is retained
+as provider evidence pending the confirming read-back; HTTP 2xx alone does not
+establish a successful mutation. A synchronous operation ends `applied` only
+once the read-back confirms the required original state and evidence above.
+Until that confirmation is admitted, retain the evidence and uncertainty.
+The common [Effect outcome contract](../spec/execution.md#reconciliation)
+reserves `accepted` for a pending provider operation with a genuine OperationRef
+and its status, result, cancellation and reconciliation contracts. An issue,
+pull request or comment ID, `clientMutationId`, or request marker is not such
+an operation handle.
 
 ## Limits and cost
 
