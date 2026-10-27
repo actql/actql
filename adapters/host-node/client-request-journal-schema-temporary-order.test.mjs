@@ -8,9 +8,9 @@ import {openClientRequestJournal, observeOriginalClientRequestJournalCustody}
   from './client-request-journal.mjs';
 
 const options = {maxDatabaseBytes: 1024 * 1024, maxWalFrames: 200000,
-  primarySqlLimits: {maxCalls: 1000, maxPreparedStatements: 1000,
+  primarySqlLimits: {maxPreparedStatements: 1000,
     maxSqlBytes: 65536, maxTotalSqlBytes: 1024 * 1024},
-  primaryExecutionLimits: {maxStatementCalls: 1000, maxParameters: 64,
+  primaryExecutionLimits: {maxParameters: 64,
     maxParameterBytes: 65536, maxResultRows: 1000}};
 
 for (const phase of ['primary', 'observation']) {

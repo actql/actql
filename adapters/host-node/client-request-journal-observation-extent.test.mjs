@@ -66,9 +66,9 @@ test('both execution-bounded Journal connections select original in-memory tempo
   try {
     journal = openClientRequestJournal(join(scratch.path, 'requests'), {
       maxDatabaseBytes: 1024 * 1024,
-      primarySqlLimits: {maxCalls: 1000, maxPreparedStatements: 1000,
+      primarySqlLimits: {maxPreparedStatements: 1000,
         maxSqlBytes: 65536, maxTotalSqlBytes: 1024 * 1024},
-      primaryExecutionLimits: {maxStatementCalls: 1000, maxParameters: 64,
+      primaryExecutionLimits: {maxParameters: 64,
         maxParameterBytes: 65536, maxResultRows: 1000},
     });
     journal.observationStorage();
@@ -116,9 +116,9 @@ test(`temporary-store ${refusal} refuses before Journal DDL and closes the origi
   try {
     assert.throws(() => openClientRequestJournal(join(scratch.path, 'requests'), {
       maxDatabaseBytes: 1024 * 1024,
-      primarySqlLimits: {maxCalls: 1000, maxPreparedStatements: 1000,
+      primarySqlLimits: {maxPreparedStatements: 1000,
         maxSqlBytes: 65536, maxTotalSqlBytes: 1024 * 1024},
-      primaryExecutionLimits: {maxStatementCalls: 1000, maxParameters: 64,
+      primaryExecutionLimits: {maxParameters: 64,
         maxParameterBytes: 65536, maxResultRows: 1000},
     }), {code: 'ClientRequestJournalTemporaryUnavailable'});
     assert.equal(ddl, 0);
