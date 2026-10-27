@@ -973,3 +973,67 @@ before that route is claimed as supported. Existing repository identities,
 Source/current/Account duties and Effect approval remain unchanged. A finite
 repository metadata reader does not establish organisation enumeration or full
 connector acceptance.
+
+## Explicit organisation repository listing
+
+`ROOT-GITHUB-ORGANIZATION-SOURCE-01` completes the configuration choice left
+open by `ROOT-GITHUB-REPOSITORY-SCOPE-01`. The normative owner is
+[GitHub connection scope](../connectors/github.md#connection-scope). Choose an
+explicit `organization` connection, mutually exclusive with `owner`/`repo`,
+with a separate closed publication that offers only repository metadata.
+Existing repository profiles and identities retain their meaning.
+
+The earlier scope decision already limited enumeration to admitted authority
+and actual provider visibility. Validated pagination completes that visible
+dataset; it does not need a new whole-organisation coverage prerequisite. Nor
+does it prove hidden repositories absent or establish an atomic snapshot. A
+stronger coverage claim requires its own admitted original and contract.
+
+GitHub's [Organisation repositories arguments](https://docs.github.com/en/graphql/reference/orgs#organization)
+default `ownerAffiliations` to include collaborators. Select `[OWNER]` explicitly
+and retain the observed Organisation ID and login through pagination, checking
+each repository's owner against them. Viewer `affiliations` is a different
+filter. Neither metadata nor token breadth grants per-repository rights.
+
+This selects a new configuration alternative, not a new grant or permission
+issuer. Its actual schema, profile, publication and consumers must move together
+under the existing admission owner; no partially enabled route or second profile
+table is sufficient. Provider DTO tests do not qualify ordinary organisation
+Source execution. Bounded construction, currentness, Account/Site authority,
+retention, cold recovery and failure cleanup remain implementation obligations.
+
+## Gmail mutation currentness and provider concurrency
+
+`ROOT-GMAIL-MUTATION-CURRENT-01` corrects an unsupported atomicity promise in
+[Gmail Preview and reconciliation](../connectors/gmail.md#preview-and-reconciliation).
+The former wording implied that transmitting `history_id` would make Gmail
+reject every intervening label change. Google's documented
+[modify request](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages/modify)
+has label deltas but no history precondition; the
+[trash request](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages/trash)
+has an empty body. A generic performance-guide ETag example does not establish
+a conditional contract for either method.
+
+Keep the exact approved before version and mutation, and require a current
+authorized read before sending. A mismatch is an unsent conflict. Do not
+rebuild the approved delta, put history metadata in an unsupported API field,
+or claim that the read closes the later concurrency window. This explicitly
+replaces the connector's overstrong promise with observed-version checking and
+truthful capability disclosure. A consumer requiring atomic enforcement must
+refuse until an actual conditional provider contract is qualified.
+
+The common [mutation capability rules](../spec/execution.md#effect-application)
+already require exact atomicity and reconciliation disclosure before dispatch;
+the [approved target guard](../spec/protocols/run.md#preview-row-state) still
+binds the original version and intended change. Their schemas, canonical
+identities, approval and risk-acceptance rules do not change. No synthetic
+conditional header, OperationRef or automatic risk approval is selected.
+
+An authentic correlated complete response may establish the declared mutation
+postcondition through the existing owner; no blanket extra confirmation read is
+selected merely by analogy with another connector. Any needed read has its own
+funded authority. Once sending is possible, missing or insufficient evidence
+stays uncertain, not a fabricated unsent conflict. Later labels or history alone
+cannot settle a lost reply, and automatic resend remains forbidden. Actual
+provider correlation, claim/receipt, current checks, bounded construction,
+cold recovery and physical cleanup remain required before normal adoption.

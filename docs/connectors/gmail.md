@@ -194,9 +194,33 @@ search`.
 
 **Preview.** Label changes and trashing are `full_diff`: the Connector reads
 the message, records its current labels and `history_id`, and the Preview
-shows current and new label sets. The request carries that `history_id`; a
-message whose labels changed in between makes the item `failed` with
-`conflict`. Draft creation and attachments are `targeted` (the draft's
+shows current and new label sets. The approved internal request retains that
+original version guard. Immediately before sending, an authorized read of the
+same message must still match the original `history_id` and before state. A
+mismatch refuses without sending and makes the item `failed` with `conflict`.
+The Connector uses the fixed approved mutation; it does not recompute it from
+the newly read labels.
+
+This is an observed-version check, not an atomic provider compare-and-swap.
+The documented `messages.modify` body has label deltas, not a `historyId`
+precondition; `messages.trash` has an empty body. Do not insert a fictitious
+history field or assume an undocumented `If-Match` guarantee. The Connector must
+advertise the remaining race between the read and mutation before dispatch,
+under the common mutation-capability rules. A caller requiring atomic target
+version enforcement must refuse this route unless a qualified provider
+conditional operation supplies it. A successful pre-send read cannot certify
+that stronger capability or accept business risk on the caller's behalf.
+
+After a possible send, only an authentic complete response correlated with the
+same request, scoped target and approved postcondition can support `applied`
+through the existing claim and Outcome Receipt owner. A status alone does not
+prove it. If additional confirmation is needed, its actual read must be
+authorized and backed; it is not an implicit read grant. A partial, mismatched
+or lost response preserves uncertainty rather than becoming a conflict claiming
+that no mutation occurred. Trashing confirms the declared trash transition,
+not permanent deletion. No asynchronous OperationRef is invented.
+
+Draft creation and attachments are `targeted` (the draft's
 recipients, subject, body and the attachment's name, media type and size).
 Sends, replies and forwards are `targeted`: the Preview lists every message
 that would go out — recipients, subject and body — and nothing is sent until
