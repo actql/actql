@@ -919,6 +919,37 @@ destinations together; independent positive, negative and boundary fixtures and
 actual funded caller integration remain implementation obligations. Documentation
 alone does not qualify an installed reply or ordinary execution.
 
+## Gmail forwarding content
+
+`ROOT-GMAIL-FORWARD-CONTENT-01` resolves the previously unspecified content and
+addressing behind `gmail.forward(message, to[, body])`. The normative choice is
+owned by [Gmail forward content and addressing](../connectors/gmail.md#forward-content-and-addressing).
+This is an explicit application decision: the earlier guide selected neither
+inline text reduction nor a MIME-preserving representation, subject prefix or
+note placement. The Source's plain-text projection does not decide how a whole
+message is forwarded.
+
+Choose lossless encapsulation so the optional note cannot overwrite the
+original body or silently discard its attachments and MIME relationships.
+[RFC 2046, section 5.2](https://www.rfc-editor.org/rfc/rfc2046.html#section-5.2)
+describes this forwarding composition; internationalized messages retain the
+[RFC 6532 message type](https://www.rfc-editor.org/rfc/rfc6532.html#section-3.7).
+[RFC 5322, section 3.6.6](https://www.rfc-editor.org/rfc/rfc5322.html#section-3.6.6)
+distinguishes a new message from the forwarder from resending. These standards
+support the representation; they do not mandate ActQL's subject or note choice.
+Gmail exposes the complete message in
+[raw format](https://developers.google.com/workspace/gmail/api/reference/rest/v1/Format)
+and accepts [MIME message submissions](https://developers.google.com/workspace/gmail/api/guides/sending).
+That provider capability is not an ActQL read grant or completed implementation.
+
+The existing Command inputs and submission outcome remain unchanged; no new
+identity domain, permission, operation handle or public machine-schema field
+is selected. Request bytes and their existing CID must include the complete
+chosen material. Actual original acquisition, independent MIME/subject/note
+fixtures, bounded construction overlap, current/approval/claim/receipt, cold
+restoration and ordinary execution remain implementation obligations. Neither
+a declaration nor a metadata-only reader establishes forward support.
+
 ## GitHub repository and organisation Source scopes
 
 `ROOT-GITHUB-REPOSITORY-SCOPE-01` resolves conflicting wording: the GitHub guide

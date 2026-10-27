@@ -67,7 +67,8 @@ Operations — sending is an operation, not a record write:
 - **reply** — `EFFECT COMMAND gmail.reply ID key INPUT (in_reply_to = message_id, body = …)`
   replies to the visible participants within the thread, using the
   [recipient and threading rules below](#reply-recipients-and-threading).
-- **forward** — `EFFECT COMMAND gmail.forward ID key INPUT (message = message_id, to = …[, body = …])`.
+- **forward** — `EFFECT COMMAND gmail.forward ID key INPUT (message = message_id, to = …[, body = …])`,
+  using the [content and addressing rules below](#forward-content-and-addressing).
 - **purge** — `EFFECT COMMAND gmail.purge TARGET message_id ID key` deletes a
   message permanently, bypassing the trash. It needs the full `mail.google.com`
   scope and is `applied` once Gmail confirms the deletion.
@@ -114,6 +115,48 @@ the same targeted Preview and approved immutable request. Header data confers
 no send authority, and changed originals require the existing current and
 correspondence checks. This recipient rule does not change submission outcomes
 or permit a resend after response loss.
+
+### Forward content and addressing
+
+`gmail.forward` creates a new message from the configured mailbox to exactly
+the explicit `to` input, using the same address rules as `gmail.send`. Do not
+import the original message's `To`, `Cc`, `Bcc`, reply destinations, message ID
+or threading headers into the outgoing envelope, and do not supply its Gmail
+`threadId` to force a reply. The new subject is `Fwd: ` followed by the original
+logical Subject value; a missing or empty original Subject produces `Fwd:`.
+Do not strip existing prefixes or rewrite the original value.
+
+Carry the complete original message as an encapsulated message part inside
+`multipart/mixed`, preserving the whole-message octets after Gmail's `raw`
+base64url decoding. This retains its original headers, MIME structure, body
+alternatives, inline parts and attachments. Use `message/rfc822`, or
+`message/global` for an internationalized original under
+[RFC 6532](https://www.rfc-editor.org/rfc/rfc6532.html#section-3.7), with the
+applicable MIME transfer encoding. The Gmail API's outer base64url transport
+is a separate encoding layer. Original headers inside this part are content,
+not outgoing destinations or authority. Do not substitute `body_text`, an
+HTML-to-text projection, a snippet or an attachment listing for the message.
+
+When `body` is present, put its exact logical text in a separate UTF-8
+`text/plain` part before the original message. When absent, omit that note part;
+an explicitly empty note remains present. Do not insert the note into the
+original MIME body, flatten its parts or drop attachments. MIME boundaries
+must not collide with the retained content. The ordered multipart and
+encapsulation rules follow
+[RFC 2046](https://www.rfc-editor.org/rfc/rfc2046.html#section-5.2).
+
+Capture the complete message from the same original mailbox/message and check
+its identity, version and currentness through the existing read owner. The
+bounded read, original bytes, note, MIME construction and encoded request must
+be backed before construction and sending. Missing, foreign, incomplete or
+over-budget material refuses; it never becomes a partial forward. The targeted
+Preview and approved immutable request bind the destinations, derived subject,
+note and complete original message content, including its headers and nested
+attachments. A metadata row alone does not supply that content or read authority.
+
+The existing submission, approval and reconciliation rules above remain in
+force. Put this request's original marker in the new message's outer header;
+a marker inside the forwarded content is not evidence of this submission.
 
 ## Setup
 
@@ -180,8 +223,9 @@ re-sent.
 - Attachments count against the Program's byte limit; an attachment larger
   than what remains is refused, not truncated. Messages themselves are capped
   by Gmail at 25 MB including attachments.
-- Bodies are read as plain text; HTML-only mail is converted, which drops
-  formatting and inline images.
+- The `body_text` Source projection is plain text; HTML-only mail is converted,
+  which drops formatting and inline images. This projection does not supply
+  the complete message required by [forward](#forward-content-and-addressing).
 
 ## Example
 
