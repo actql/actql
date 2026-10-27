@@ -794,3 +794,29 @@ source-acceptance change, not a change to canonical Number wire admission;
 negative-zero JSON values and Parameter values remain invalid. Source expression
 normalization retains the existing numeric-literal lowering owner. No identity
 equivalence for arbitrary arithmetic or implicit non-null coercion is added.
+
+
+## Gmail message submission completion
+
+The Gmail connector guide formerly called a successful message submission
+`accepted`, while the normative
+[Effect outcome contract](../spec/execution.md#reconciliation) reserves that
+variant for a pending provider operation with a genuine OperationRef and its
+status, cancellation, result and reconciliation bindings. These statements
+conflicted; a message ID or thread ID supplies none of that operation authority.
+
+The selected contract makes a confirmed synchronous send, reply or forward
+submission `applied`. The completed operation is submission to Gmail, not
+delivery to a recipient or a read receipt. Google's
+[send API](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages/send)
+returns a Message on success. This is consistent with a synchronous submission
+Command and does not justify inventing a polling operation.
+
+A provider projection must validate the complete bounded response against the
+same original request before producing that outcome. This is not a common
+`accepted`-to-`applied` conversion or success-status whitelist. Lost or otherwise
+unproved responses remain `unknown`; authorization, approval, durable claim,
+receipt, reconciliation, no automatic resend and physical cleanup obligations
+remain unchanged. The generic outcome schema and synchronous Command declaration
+do not change. Provider implementation and ordinary execution evidence remain
+separate from this resolution of the documentation conflict.
