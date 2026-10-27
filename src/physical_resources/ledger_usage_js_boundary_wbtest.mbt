@@ -47,7 +47,7 @@ fn usage_boundary_check(
   loader : UsageBoundaryLoader,
   ledger : Ledger,
   phase : Int,
-) raise {
+) -> Unit raise {
   let usage = ledger_usage(ledger)
   assert_true(
     usage_boundary_observe(
