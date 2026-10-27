@@ -10,6 +10,7 @@ from actql_sdk._local_core import (
     LocalCore, LocalCoreError, _Input, _PhysicalInput, _CURRENT_SIGNATURES, LOCAL_CORE_ABI,
 )
 from actql_sdk._local_storage import LocalByteStore, ByteFence, _NamespaceReader
+from test_local_journal_port import scalar_reader_check
 
 
 class LocalHostCurrentTests(unittest.TestCase):
@@ -104,7 +105,7 @@ class LocalHostCurrentTests(unittest.TestCase):
         original_count = len(calls)
         with self.assertRaises(ValueError):
             core.bind_host_current(copy.copy(loan))
-        foreign = _NamespaceReader(lambda *a: None, lambda *a: None, object(), lambda: None, check_fences=lambda *_: None)
+        foreign = _NamespaceReader(lambda *a: None, lambda *a: None, object(), lambda: None, check_fences=lambda *_: None, check_fences_and_current=scalar_reader_check)
         with self.assertRaises(ValueError):
             with core.host_current_frame(loan, foreign):
                 pass

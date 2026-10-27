@@ -193,7 +193,7 @@ class OriginalSavedResultRead:
         with installation.binding.fenced() as fences:
             store.inspect_bounded_record_inspected(key, 65536, fences,
                 inspect=lambda reader, take: installation.binding.inspect_reader(reader, lambda _: take()),
-                consume=take_row, current=installation.binding.current)
+                consume=take_row, current=installation.binding._current_observer)
             if len(rows) != 1:
                 raise ValueError('Incomplete original saved payload row')
             capacities: list[CapacityReservation] = []
@@ -205,7 +205,7 @@ class OriginalSavedResultRead:
                 capacities.append(capacity)
             store.inspect_capacity_inspected('publication_payload', key, (*fences, rows[0]),
                 inspect=lambda reader, take: installation.binding.inspect_reader(reader, lambda _: take()),
-                consume=take_capacity, current=installation.binding.current)
+                consume=take_capacity, current=installation.binding._current_observer)
         if len(capacities) != 1:
             raise ValueError('Incomplete original saved payload capacity observation')
         identity = PhysicalFileIdentity(_original_decimal(packet['allocation_device'], 2**64 - 1),

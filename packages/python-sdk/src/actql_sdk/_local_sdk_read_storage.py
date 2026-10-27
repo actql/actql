@@ -154,7 +154,7 @@ class OriginalSDKReadEvidenceStore:
                             1, project, observation._originals, fences,
                             inspect=lambda reader, consume: binding.inspect_reader(reader,
                                 lambda _: self._consume_current(consume)),
-                            current=binding.current, before_commit=observation._before_lookup)
+                            current=binding._current_observer, before_commit=observation._before_lookup)
                     finally:
                         self._active = False
                 if result is None:

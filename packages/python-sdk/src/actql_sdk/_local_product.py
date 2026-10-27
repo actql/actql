@@ -595,7 +595,7 @@ class InstalledLocalHost:
                         held.write_attempted = True
                         result = store.compare_exchange_many_inspected(
                             writes, (*fences, *(row for row, _ in observation._originals)),
-                            inspect=inspect, current=installation.binding.current)
+                            inspect=inspect, current=installation.binding._current_observer)
                     if result is None:
                         raise LocalStorageError('Original SDK state metadata conflict; lookup is required')
                 # Physical COMMIT and candidate fields are not confirmation.
@@ -886,7 +886,7 @@ class InstalledLocalHost:
                     installation.binding.inspect_reader(reader, lambda current:
                         self._core.validate_submission_append(output, current))
                 result = store.compare_exchange_many_inspected(
-                    writes, fences, inspect=inspect, current=installation.binding.current)
+                    writes, fences, inspect=inspect, current=installation.binding._current_observer)
             if result is None:
                 raise LocalStorageError('Original Local submitted intent write conflicted; lookup is required')
             return output
@@ -1144,7 +1144,7 @@ class InstalledLocalHost:
                 raise ValueError('Original saved Local rows are unavailable')
             journal = self._reserve(lambda: self._core.reserve_journal_observation(
                 held[0], configuration.handle, store=store,
-                current=installation.binding.current, cleanup=lambda: True))
+                current=installation.binding._current_observer, cleanup=lambda: True))
             self._journal_outputs.append(journal)
             self._admission_observations[run.handle] = journal
             admission: list[bytes] = []
@@ -1154,7 +1154,7 @@ class InstalledLocalHost:
                         self._core.inspect_journal_observation(journal, reader)
                         admission.append(self._core.read_journal_admission(journal, reader))
                     installation.binding.inspect_reader(reader, consume)
-                store.inspect_namespaces(fences, inspect=inspect, current=installation.binding.current)
+                store.inspect_namespaces(fences, inspect=inspect, current=installation.binding._current_observer)
             if not self._core.close_journal_observation(journal):
                 raise LocalProductCleanupPending(self)
             self._journal_outputs.remove(journal)
@@ -1212,7 +1212,7 @@ class InstalledLocalHost:
                 self._row_write_attempts.add(output.ticket)
                 self._pending_run_write = output
                 result = store.compare_exchange_many_inspected(
-                    writes, fences, inspect=inspect, current=installation.binding.current)
+                    writes, fences, inspect=inspect, current=installation.binding._current_observer)
             if result is None:
                 raise LocalStorageError('Original Local Run write conflicted; lookup is required')
 
@@ -1250,7 +1250,7 @@ class InstalledLocalHost:
                 self._step_write_attempts.add(output.ticket)
                 self._pending_start_write = output
                 result = store.compare_exchange_many_inspected(
-                    writes, fences, inspect=inspect, current=installation.binding.current)
+                    writes, fences, inspect=inspect, current=installation.binding._current_observer)
             if result is None:
                 raise LocalStorageError('Original Local start write conflicted; lookup is required')
             # Owner confirmation is a separate same-Store observation. No
@@ -1305,7 +1305,7 @@ class InstalledLocalHost:
                     self._binding_write_attempts.add(output.ticket)
                     self._pending_binding_write = output
                     result = store.compare_exchange_many_inspected(
-                        writes, fences, inspect=inspect, current=installation.binding.current)
+                        writes, fences, inspect=inspect, current=installation.binding._current_observer)
                 if result is None:
                     raise LocalStorageError('Original publication binding conflicted; lookup is required')
             # The physical response is not sufficient. Core reads and adopts
@@ -1701,7 +1701,7 @@ class InstalledLocalHost:
                         self._core.begin_payload_record(record, configuration.handle))
                 self._payload_write_attempts.add(record.ticket)
                 result = store.compare_exchange_many_inspected(
-                    (write,), fences, inspect=inspect, current=installation.binding.current)
+                    (write,), fences, inspect=inspect, current=installation.binding._current_observer)
             if result is None:
                 raise LocalStorageError('Original payload Intent conflicted; lookup is required')
             self._observe_original_payload_intent(held)
@@ -1736,7 +1736,7 @@ class InstalledLocalHost:
                     store.namespaced_key('payload_record', held.generation), 65536, fences,
                     inspect=lambda reader, take:
                         installation.binding.inspect_reader(reader, lambda _: take()),
-                    consume=consume, current=installation.binding.current)
+                    consume=consume, current=installation.binding._current_observer)
 
             held.row = observed[0]
 
@@ -1762,7 +1762,7 @@ class InstalledLocalHost:
                 # Neither inserted nor already-present is a Core transition.
                 store.reserve_capacity_inspected('publication_payload', held.row.key,
                     held.maximum, 1, store._max_payload_bytes, results._max_files,
-                    (*metadata, held.row), inspect=inspect, current=installation.binding.current)
+                    (*metadata, held.row), inspect=inspect, current=installation.binding._current_observer)
             self._observe_original_payload_capacity(held)
 
     def _observe_original_payload_capacity(self, held: _PayloadCustody) -> None:
@@ -1795,7 +1795,7 @@ class InstalledLocalHost:
                 store.inspect_capacity_inspected('publication_payload', held.row.key, (*metadata, held.row),
                     inspect=lambda reader, take:
                         installation.binding.inspect_reader(reader, lambda _: take()),
-                    consume=consume, current=installation.binding.current)
+                    consume=consume, current=installation.binding._current_observer)
             held.capacity = observed[0]
 
     def _save_original_payload_reserved(self, held: _PayloadCustody) -> None:
@@ -1828,7 +1828,7 @@ class InstalledLocalHost:
             result = store.compare_exchange_reserved_inspected(write, held.capacity,
                 (*metadata, held.row), inspect=lambda reader:
                     installation.binding.inspect_reader(reader, lambda _: begin()),
-                current=installation.binding.current)
+                current=installation.binding._current_observer)
         if result is None:
             raise LocalStorageError('Original payload transition conflicted; lookup is required')
 
@@ -1860,7 +1860,7 @@ class InstalledLocalHost:
             store.inspect_bounded_record_inspected(store.namespaced_key('payload_record', held.generation),
                 65536, metadata, inspect=lambda reader, take:
                     installation.binding.inspect_reader(reader, lambda _: take()),
-                consume=consume, current=installation.binding.current)
+                consume=consume, current=installation.binding._current_observer)
         held.row = observed[0]
 
     def _observe_original_payload_reserved(self, held: _PayloadCustody) -> None:
@@ -1942,7 +1942,7 @@ class InstalledLocalHost:
                     store.namespaced_key('publication_payload_allocation', held.generation), 65536,
                     (*metadata, held.row), inspect=lambda reader, take:
                         installation.binding.inspect_reader(reader, lambda _: take()),
-                    consume=consume, current=installation.binding.current)
+                    consume=consume, current=installation.binding._current_observer)
 
     def _save_original_allocation(self, held: _PayloadCustody) -> None:
         """Forward the original Core allocation CAS under original capacity/current."""
@@ -1983,7 +1983,7 @@ class InstalledLocalHost:
                         self._core.begin_payload_allocation(child, configuration.handle))
                 held.allocation_attempts.add(child.ticket)
                 result = store.compare_exchange_attached_inspected(write, held.row, held.capacity,
-                    metadata, inspect=inspect, current=installation.binding.current)
+                    metadata, inspect=inspect, current=installation.binding._current_observer)
             if result is None:
                 raise LocalStorageError('Original allocation CAS conflicted; lookup is required')
             self._observe_original_allocation(held)
@@ -2018,7 +2018,7 @@ class InstalledLocalHost:
                 store.inspect_bounded_record_inspected(key, 65536, (*metadata, held.row),
                     inspect=lambda reader, take:
                         installation.binding.inspect_reader(reader, lambda _: take()),
-                    consume=consume, current=installation.binding.current)
+                    consume=consume, current=installation.binding._current_observer)
             held.allocation_row = observed[0]
 
     def _close_original_allocation_child(self, held: _PayloadCustody) -> None:
@@ -2742,7 +2742,7 @@ class InstalledLocalHost:
                         counts[0], projection.project_storage_entry, originals, fences,
                         inspect=lambda reader, consume:
                             installation.binding.inspect_reader(reader, lambda _: consume()),
-                        current=installation.binding.current, before_commit=before_commit)
+                        current=installation.binding._current_observer, before_commit=before_commit)
                 if generations is None:
                     raise LocalStorageError('Original publication write conflicted; lookup is required')
 

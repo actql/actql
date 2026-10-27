@@ -24382,7 +24382,7 @@
           "async": false
         }
       ],
-      "sha256": "17e2bfe2211728635242858e9230c72d44b79648ca5ab115ef54b28b5558356f",
+      "sha256": "ab609dbde341a4b56823b69859fd5791563fd17b97a3d24f819c693df92dcb0b",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -27127,7 +27127,7 @@
           ]
         }
       ],
-      "sha256": "9d376a7aa7d1ac481939d266d563cd8ca67b5b6d84369497a810daec49d91768",
+      "sha256": "a8cb0c1de48b990217f942fbb130edcb02b2728dfd348b61aee555f904ad6bf6",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -47742,7 +47742,7 @@
           ]
         }
       ],
-      "sha256": "a69a4885ccfa7405a19ccf9de69ba9a899d329b5b5fec77e3440fb61d40d2786",
+      "sha256": "40ccca896096a0bc8a1b822162e55957ef8efa325f0df82df95cb7bf6cdf31b5",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -51794,7 +51794,7 @@
           ]
         }
       ],
-      "sha256": "1f76ab3ac1b75f16cbc3145de77212f245cf5c5c957d45ed16d8dc9a9775da53",
+      "sha256": "807b11baf0f9646c016915777ae11cf5f4610ca410e41d0f02ab665b688b77c1",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -53351,7 +53351,7 @@
           ]
         }
       ],
-      "sha256": "6ab6cdba2bb6205db9cf7be446f42efa05bd179c46e0dbcac2ff46756fd1aabf",
+      "sha256": "01579866f79df5d0ee4882feaebfaa4de700f8f19e744d2de5945ea1099c8d88",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -55570,6 +55570,15 @@
         },
         {
           "async": false,
+          "name": "LocalByteStore/_inspect_namespace_locked/check_fences_and_current",
+          "parameters": [
+            "view",
+            "required",
+            "required_current"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalByteStore/_inspect_namespace_locked/current_snapshot",
           "parameters": []
         },
@@ -56186,7 +56195,7 @@
           "parameters": []
         }
       ],
-      "sha256": "0e66f067d0cca8e5c16801317b3512dc63539937c2fef9b3cf7be94351d6920f",
+      "sha256": "83c856f8753e97d6bf9dfd94a232bc028edb9bfc8c602376e36613c133c1253d",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -56743,6 +56752,7 @@
             "LocalByteStore/_file_generation",
             "LocalByteStore/_inspect_namespace_locked",
             "LocalByteStore/_inspect_namespace_locked/check_fences",
+            "LocalByteStore/_inspect_namespace_locked/check_fences_and_current",
             "LocalByteStore/_inspect_namespace_locked/current_snapshot",
             "LocalByteStore/_inspect_namespace_locked/fence",
             "LocalByteStore/_inspect_namespace_locked/observe",
@@ -58170,7 +58180,7 @@
           ]
         }
       ],
-      "sha256": "c62cdad23fa4c09885f7544e2948eb2e68dd7641e595cf6c40c89578c3c2bd82",
+      "sha256": "4fb8247d7bc4f1ed429bc4ca4a7633f4b11069cd4ac4f8f8e170d1937fd06302",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -68665,7 +68675,7 @@
           ]
         }
       ],
-      "sha256": "f3b1d84d4c69e9029187806126749b0f0674896d30b500e1a09c5d7882b918f5",
+      "sha256": "3192b86a0d199dc94b8e10359d307427852b730b991ef331f89d64b1728bfbcc",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Python Local Host, Core read, File and Store Owners",
