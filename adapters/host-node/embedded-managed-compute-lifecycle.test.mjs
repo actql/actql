@@ -426,21 +426,43 @@ test('generic Source service begins once on the existing Host Run inventory and 
     {code: 'ForeignInstalledComputeRun'});
 });
 
+function installedSequencePorts(runtime) {
+  const manifests = {}, admission = {}, calls = [];
+  const aoa = '{"execution_contracts":{"REL.values":{},"ACTQL.expression_fragment/0.1":{},"REL.derive.ordered":{}}}';
+  runtime.clientPrepareInstalledCompilationManifests = function(...args) {
+    assert.strictEqual(this, runtime); assert.deepEqual(args, []);
+    calls.push('manifests'); return manifests;
+  };
+  runtime.clientPrepareInstalledSequenceContracts = function(...args) {
+    assert.strictEqual(this, runtime); assert.equal(calls.at(-1), 'manifests');
+    assert.deepEqual(args, ['registry-original', '{}', '{}', '{}']);
+    calls.push('sequence'); return admission;
+  };
+  return {manifests, admission, calls, asset(_control, _originals, path) {
+    assert(['spec/contracts/actql-aoa.json', 'spec/dependencies/aoa-pipeline-registry.json'].includes(path));
+    return path === 'spec/contracts/actql-aoa.json' ? aoa : 'registry-original';
+  }};
+}
+
 test('actual requirements and begin share the retained typed original before Resource admission', async () => {
   const p = managedRunPorts(), original = {}, sequences = {}, prepared = {}, request = {};
   let f, sequencePreparations = 0;
+  const installed = installedSequencePorts(p.runtime);
   const read = new Function('assertSourceManagedHostPreparation', 'originalSourceManagedHostRequest',
     'readInitialControlInstallationAsset', 'checked', 'clientOperationError', 'runtimeIsError',
     text(declared('installedManagedRunContracts')) + '\n' +
+    text(declared('prepareInstalledSequenceContractOriginal')) + '\n' +
     text(declared('readManagedComputeRunRequirements')) + ';return readManagedComputeRunRequirements;')(
     held => assert.strictEqual(held, f.originals),
     (held, value) => {assert.strictEqual(held, f.originals); assert.strictEqual(value, prepared); return request;},
-    () => '{"execution_contracts":{"REL.values":{},"ACTQL.expression_fragment/0.1":{},"REL.derive.ordered":{}}}',
+    installed.asset,
     value => value, code => Object.assign(new Error(code), {code}), () => false);
   p.runtime.clientProgramInstalledManagedRunIssueIsUnsupported = () => false;
   p.runtime.clientProgramInstalledManagedRunRequirements = () => assert.fail('No regeneration');
-  p.runtime.clientProgramPrepareInstalledManagedSourceFree = value => {
-    assert.strictEqual(value, prepared); sequencePreparations++; return sequences;
+  p.runtime.clientProgramPrepareInstalledManagedSourceFreeWithContracts = (...args) => {
+    assert.strictEqual(args[0], prepared); assert.strictEqual(args[1], installed.admission);
+    assert.deepEqual(args.slice(2), ['{}', '{}', '{}']);
+    sequencePreparations++; return sequences;
   };
   p.runtime.clientProgramPreparedInstalledManagedSourceFreeRequirements = held => {
     assert.strictEqual(held, sequences);
@@ -464,6 +486,8 @@ test('actual requirements and begin share the retained typed original before Res
   assert.strictEqual(f.preparation.prepareManagedComputeRun(p.runtime, prepared, request), p.value);
   assert.strictEqual(f.preparation.prepareManagedComputeRun(p.runtime, prepared, request), p.value);
   assert.equal(sequencePreparations, 1);
+  assert.deepEqual(installed.calls, ['manifests', 'sequence']);
+  assert.strictEqual(f.originals.installation.sequenceContractOriginal.admission, installed.admission);
   assert.strictEqual(f.record.computeRuns.get(prepared).original, original);
   assert.strictEqual(f.record.computeRuns.get(prepared).preparedSequences, undefined);
   await f.initialControl.close();
@@ -514,20 +538,24 @@ test('failed begin retains the admission and original cleanup through Unknown wi
 test('pure preparation refusal belongs only to its original pre-Resource Run holder', async () => {
   const p = managedRunPorts(), prepared = {}, request = {}, issue = {}, result = {};
   let f, failure, preparations = 0, current = true;
+  const installed = installedSequencePorts(p.runtime);
   const read = new Function('assertSourceManagedHostPreparation', 'originalSourceManagedHostRequest',
     'readInitialControlInstallationAsset', 'checked', 'clientOperationError', 'runtimeIsError', 'runtimeField',
-    text(declared('installedManagedRunContracts')) + '\n' + text(declared('readManagedComputeRunRequirements')) +
+    text(declared('installedManagedRunContracts')) + '\n' +
+    text(declared('prepareInstalledSequenceContractOriginal')) + '\n' + text(declared('readManagedComputeRunRequirements')) +
     ';return readManagedComputeRunRequirements;')(
     held => {assert.strictEqual(held, f.originals); assert(current);},
     (held, value) => {assert.strictEqual(held, f.originals); assert.strictEqual(value, prepared); return request;},
-    () => '{"execution_contracts":{"REL.values":{},"ACTQL.expression_fragment/0.1":{},"REL.derive.ordered":{}}}',
-    () => assert.fail('Unsupported must remain the original typed failure'),
+    installed.asset,
+    value => {assert(value === installed.manifests || value === installed.admission); return value;},
     (code, cause) => Object.assign(new Error(code, {cause}), {code}),
     value => {assert.strictEqual(value, result); return true;},
     (value, index) => {assert.strictEqual(value, result); assert.equal(index, 0); return issue;});
   p.runtime.clientProgramInstalledManagedRunRequirements = () => assert.fail('No second preparation');
-  p.runtime.clientProgramPrepareInstalledManagedSourceFree = value => {
-    assert.strictEqual(value, prepared); preparations++; return result;
+  p.runtime.clientProgramPrepareInstalledManagedSourceFreeWithContracts = (...args) => {
+    assert.strictEqual(args[0], prepared); assert.strictEqual(args[1], installed.admission);
+    assert.deepEqual(args.slice(2), ['{}', '{}', '{}']);
+    preparations++; return result;
   };
   p.runtime.clientProgramInstalledManagedRunIssueIsUnsupported = value => {
     assert.strictEqual(value, issue); return true;
@@ -559,6 +587,8 @@ test('pure preparation refusal belongs only to its original pre-Resource Run hol
   assert.equal(project(), true);
   assert.throws(() => f.preparation.prepareManagedComputeRun(p.runtime, prepared, request), error => error === failure);
   assert.equal(preparations, 1); assert.deepEqual(p.log, []);
+  assert.deepEqual(installed.calls, ['manifests', 'sequence']);
+  assert.strictEqual(f.originals.installation.sequenceContractOriginal.admission, installed.admission);
   await f.initialControl.close();
   assert.equal(project(), false, 'Actual successful retirement cuts the nominal refusal holder');
 });

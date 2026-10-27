@@ -22,9 +22,19 @@ function fixture() {
   let current = true;
   const calls = [];
   const limits = [7n, 2n, 3n, 0n, 32n, 64n];
-  const contractAdmission = {};
+  const contractAdmission = {}, manifestAdmission = {}, installationCalls = [];
   const moon = {
-    clientPrepareInstalledSequenceContracts: () => contractAdmission,
+    clientPrepareInstalledCompilationManifests(...args) {
+      assert.strictEqual(this, moon); assert.deepEqual(args, []);
+      installationCalls.push('manifests'); return manifestAdmission;
+    },
+    clientPrepareInstalledSequenceContracts(...args) {
+      assert.strictEqual(this, moon);
+      assert.equal(installationCalls.at(-1), 'manifests');
+      assert.deepEqual(args, ['registry-original', '{"kind":"values"}',
+        '{"kind":"expression"}', '{"kind":"derive"}']);
+      installationCalls.push('sequence'); return contractAdmission;
+    },
     clientProgramInstalledManagedRunRequirements(...args) {calls.push(['requirements', args]); return limits;},
     clientSubmittedIntent(wire, ...bounds) {calls.push(['intent', wire, bounds]); return wire;},
     clientSubmittedIntentCid(intent) {calls.push(['cid', intent]); return 'sha256:' + 'a'.repeat(64);},
@@ -59,6 +69,7 @@ function fixture() {
     clientOperationError: code => Object.assign(new Error(code), {code}),
   };
   return {prepared, request, raw, originals, moon, calls, limits, ports, assets, contractAdmission,
+    manifestAdmission, installationCalls,
     stop: () => {current = false;},
     requirements: () => actual('readManagedComputeRunRequirements', ports),
     intent: () => actual('managedComputeSubmittedIntentCid', ports)};
@@ -311,7 +322,6 @@ test('Unsupported after Resource or a retained failure never issues a new pure r
 
 test('installed Source demand retains actual checked occurrence capacities before the same Resource admission', () => {
   const f = fixture(), requirements = [{}, {}], capacities = [{}, {}], seen = [];
-  f.moon.clientPrepareInstalledCompilationManifests = () => {};
   const adapters = capacities.map((capacity, index) => ({managedCaptureCapacity(requirement) {
     assert.strictEqual(requirement, requirements[index]); seen.push(index);
     return {capacity, transferBytes: BigInt(index + 5), executionBytes: BigInt(index + 9)};
@@ -343,4 +353,49 @@ test('installed Source demand retains actual checked occurrence capacities befor
   run.sourceProfile = {...profile};
   assert.throws(() => read(f.originals, f.prepared), {code: 'NodeManagedRunRuntimeUnavailable'});
   assert.deepEqual(seen, [0, 1]);
+});
+
+test('installed manifest admission precedes sequence preparation and retains the same original', () => {
+  const f = fixture(), prepare = actual('prepareInstalledSequenceContractOriginal', f.ports);
+  const original = prepare(f.originals);
+  assert.deepEqual(f.installationCalls, ['manifests', 'sequence']);
+  assert.strictEqual(original.admission, f.contractAdmission);
+  assert.strictEqual(original.moon, f.moon);
+  assert.strictEqual(original.control, f.originals.installation.initialControl);
+  assert.strictEqual(original.contracts, f.originals.installation.managedRunContracts);
+  assert.strictEqual(prepare(f.originals), original);
+  assert.deepEqual(f.installationCalls, ['manifests', 'sequence'], 'No repeated installed preparation');
+  f.originals.installation.projectRuntime = {};
+  assert.throws(() => prepare(f.originals), {code: 'ForeignInstalledManagedRunContracts'});
+  f.originals.installation.projectRuntime = f.moon;
+  f.stop(); assert.throws(() => prepare(f.originals), /CurrentRefused/u);
+  assert.deepEqual(f.installationCalls, ['manifests', 'sequence']);
+});
+
+test('original manifest or sequence refusal cannot publish a partial installed admission', () => {
+  for (const phase of ['manifests', 'sequence']) {
+    const f = fixture(), failure = new Error('OriginalInstalledPreparationRefusal');
+    const rejected = phase === 'manifests' ? f.manifestAdmission : f.contractAdmission;
+    f.ports.checked = value => {if (value === rejected) throw failure; return value;};
+    const prepare = actual('prepareInstalledSequenceContractOriginal', f.ports);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      assert.throws(() => prepare(f.originals), error => error === failure);
+      assert.equal(f.originals.installation.sequenceContractOriginal, undefined);
+    }
+    assert.deepEqual(f.installationCalls, phase === 'manifests'
+      ? ['manifests', 'manifests'] : ['manifests', 'sequence', 'manifests', 'sequence']);
+    assert.equal(f.originals.installation.managedRunContracts === undefined, phase === 'manifests');
+    assert.deepEqual(f.calls, [], 'No Run requirement or Resource replacement after refusal');
+  }
+});
+
+test('missing installed manifest or sequence port refuses before reading contract assets', () => {
+  for (const field of ['clientPrepareInstalledCompilationManifests', 'clientPrepareInstalledSequenceContracts']) {
+    const f = fixture(); f.moon[field] = undefined;
+    f.ports.readInitialControlInstallationAsset = () => assert.fail('No assets after a missing runtime port');
+    assert.throws(() => actual('prepareInstalledSequenceContractOriginal', f.ports)(f.originals),
+      {code: 'NodeManagedRunRuntimeUnavailable'});
+    assert.deepEqual(f.installationCalls, []);
+    assert.equal(f.originals.installation.sequenceContractOriginal, undefined);
+  }
 });
