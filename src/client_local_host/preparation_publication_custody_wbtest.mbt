@@ -11,9 +11,11 @@ extern "js" fn publication_test_url() -> String =
   #|() => import.meta.url
 
 ///|
+// Preserve the original Array FFI/input boundary under this declaration only.
+#warnings("-deprecated")
 extern "js" fn publication_test_original(
   loader : PublicationTestLoader,
-  input : FixedArray[Int],
+  input : Array[Int],
   current : () -> Unit,
 ) -> @resources.OriginalNodeManagedRunReference =
   #|(loader,input,current) => loader('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs').retainOrdinaryManagedRun(input,{planningWork:0,attempts:0,holdings:0,transferBytes:0n,retainedBytes:536870912n,executionBytes:536870912n},current,()=>false,'local-preparation')
@@ -21,8 +23,8 @@ extern "js" fn publication_test_original(
 ///|
 fn publication_custody_fixture(
   current : () -> Unit,
-) -> (ClientProgramPublication[FixedArray[Int]], @resources.Ledger) {
-  let input : FixedArray[Int] = [1]
+) -> (ClientProgramPublication[Array[Int]], @resources.Ledger) {
+  let input = [1]
   let original = publication_test_original(
     publication_test_loader(publication_test_url()),
     input,
@@ -34,7 +36,7 @@ fn publication_custody_fixture(
   let ledger = @resources.start_node_preparation_admission(initial).unwrap()
   let prepared = result_envelope_fixture()
   let capacity : @resources.PreparationCapacity[
-    FixedArray[Int],
+    Array[Int],
     @publication_host.PreparedClientProgram,
   ] = @resources.reserve_preparation_capacity(
     ledger,
@@ -53,7 +55,7 @@ fn publication_custody_fixture(
   @resources.reserve_preparation_publication_phase(
     capacity, input, prepared, 1000000L, publication_projection_execution,
   ).unwrap()
-  let owner : ClientClosedValuesPreparation[FixedArray[Int]] = {
+  let owner : ClientClosedValuesPreparation[Array[Int]] = {
     original: None,
     input: Some(input),
     initial,
@@ -89,7 +91,7 @@ fn publication_custody_fixture(
     publication_invocation: None,
   }
   owner.original = Some(owner)
-  let value : ClientProgramPublication[FixedArray[Int]] = {
+  let value : ClientProgramPublication[Array[Int]] = {
     owner,
     holder,
     _observed_base_retained: 1000000L,
@@ -197,7 +199,7 @@ fn publication_custody_issuer(
 test "publication capture handle retirement cancels private issuer before zero" {
   let (value, ledger) = publication_custody_fixture(() => ())
   let issuer = publication_custody_issuer(publication_custody_contract())
-  let capture : ClientProgramCapture[FixedArray[Int]] = {
+  let capture : ClientProgramCapture[Array[Int]] = {
     publication: value,
     plan: None,
     issuer: Some(issuer),
@@ -225,7 +227,7 @@ test "publication capture handle retirement cancels private issuer before zero" 
 ///|
 test "publication capture handle callback cancellation cannot resume escaped issuer" {
   let armed = Ref(false)
-  let selected : Ref[ClientProgramCapture[FixedArray[Int]]?] = Ref(None)
+  let selected : Ref[ClientProgramCapture[Array[Int]]?] = Ref(None)
   let (value, ledger) = publication_custody_fixture(() => {
     if armed.val {
       armed.val = false
@@ -235,7 +237,7 @@ test "publication capture handle callback cancellation cannot resume escaped iss
     }
   })
   let issuer = publication_custody_issuer(publication_custody_contract())
-  let capture : ClientProgramCapture[FixedArray[Int]] = {
+  let capture : ClientProgramCapture[Array[Int]] = {
     publication: value,
     plan: None,
     issuer: Some(issuer),
@@ -366,7 +368,7 @@ test "publication capture handle failed payload growth retains owned plan until 
     authoring,
     [],
   ).unwrap()
-  let capture : ClientProgramCapture[FixedArray[Int]] = {
+  let capture : ClientProgramCapture[Array[Int]] = {
     publication: value,
     plan: Some(plan),
     issuer: None,

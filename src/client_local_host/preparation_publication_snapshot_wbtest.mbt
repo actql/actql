@@ -13,11 +13,11 @@ test "typed snapshot wrapper retains one shared-tariff control packet" {
 /// the ordinary public publication suite, not claimed by this custody test.
 test "typed snapshot foreign terminal handle cannot cut the original slot" {
   let (publication, ledger) = publication_custody_fixture(() => ())
-  let original : ClientProgramSnapshot[FixedArray[Int]] = {
+  let original : ClientProgramSnapshot[Array[Int]] = {
     publication,
     issuer: None,
   }
-  let foreign : ClientProgramSnapshot[FixedArray[Int]] = {
+  let foreign : ClientProgramSnapshot[Array[Int]] = {
     publication,
     issuer: None,
   }

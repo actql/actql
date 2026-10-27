@@ -2,10 +2,12 @@
 // Existing ordinary managed Root with explicit no-I/O current/cleanup ports.
 // This is a source-component connection, not an installed artifact, physical
 // backing, Account/Effect grant or successful provider operation.
+// Preserve the original Array FFI/input boundary under this declaration only.
+#warnings("-deprecated")
 extern "js" fn effect_parent_test_original(
   loader : PublicationTestLoader,
   plan : ClientInstalledEffectManagedPlan,
-  quote : FixedArray[Int64],
+  quote : Array[Int64],
   current : () -> Unit,
 ) -> @resources.OriginalNodeManagedRunReference =
   #|(loader,plan,quote,current) => loader('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs').retainOrdinaryManagedRun(plan,{planningWork:Number(quote[0]),attempts:Number(quote[1]),holdings:Number(quote[2]),transferBytes:quote[3],retainedBytes:quote[4],executionBytes:quote[5]},current,()=>false)
@@ -19,7 +21,7 @@ fn effect_parent_test_admission(
   let original = effect_parent_test_original(
     publication_test_loader(publication_test_url()),
     plan,
-    FixedArray::makei(quote.length(), i => quote[i]),
+    quote,
     current,
   )
   @resources.prepare_node_managed_run_admission(original, plan).unwrap()

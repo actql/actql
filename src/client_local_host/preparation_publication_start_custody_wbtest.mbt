@@ -1,7 +1,7 @@
 ///|
 test "publication capture start rechecks exact plan after callback cancellation" {
   let armed = Ref(false)
-  let selected : Ref[ClientProgramCapture[FixedArray[Int]]?] = Ref(None)
+  let selected : Ref[ClientProgramCapture[Array[Int]]?] = Ref(None)
   let (value, ledger) = publication_custody_fixture(() => {
     if armed.val {
       armed.val = false
@@ -31,7 +31,7 @@ test "publication capture start rechecks exact plan after callback cancellation"
     authoring,
     [],
   ).unwrap()
-  let capture : ClientProgramCapture[FixedArray[Int]] = {
+  let capture : ClientProgramCapture[Array[Int]] = {
     publication: value,
     plan: Some(plan),
     issuer: None,
