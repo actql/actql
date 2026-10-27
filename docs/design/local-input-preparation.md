@@ -404,3 +404,20 @@ nonnegative original count adds no bytes to a nonnegative total. Its positive
 products delegate to the same checked arithmetic owner as the Local preparation
 tariff. That domain case does not change the shared operation's requirement
 that its coefficient be positive, nor grant capacity or refund consumed work.
+
+## Bound managed Plan lookup and currentness
+
+An installed Effect Plan lookup receives the original prepared computation and
+request alongside the original managed Run. It checks those immutable
+associations and borrows the Plan through one synchronous Resource-owner
+current boundary. A caller does not separately check the Run and then perform
+another checked getter for the same lookup. This does not retain an Allow,
+currentness proof or mutable-state snapshot across operations.
+
+The Resource owner checks original admission, currentness and mutable inventory
+in one call. After the external current callback returns, callback-free checks
+still fence the same child, preparation, Ledger and live Run tuple, including
+parked inventory and retirement. An await, external callback or actual mutation
+starts a distinct boundary; resource reservation, before-use checks and cleanup
+keep their existing obligations. Plan/sequence preparation and capacity quoting
+are not repeated by lookup.

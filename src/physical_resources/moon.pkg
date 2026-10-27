@@ -16,6 +16,7 @@ options(
     "node_preparation_cleanup.mbt": [ "js" ],
     "node_managed_run_bootstrap_wbtest.mbt": [ "js" ],
     "node_managed_run_admission_wbtest.mbt": [ "js" ],
+    "node_managed_run_current_wbtest.mbt": [ "js" ],
     "node_managed_run_continuation_wbtest.mbt": [ "js" ],
     "node_managed_run_preparation_lifetime_wbtest.mbt": [ "js" ],
     "node_managed_run_unsupported.mbt": [ "not", "js" ],

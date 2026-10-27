@@ -243,11 +243,15 @@ pub fn client_program_installed_effect_managed_plan_begin(
 #export_name("clientProgramInstalledEffectManagedOperationPlan")
 pub fn client_program_installed_effect_managed_operation_plan(
   value : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
 ) -> Result[
   @client_local_host.ClientInstalledEffectManagedPlan,
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
-  @client_local_host.installed_effect_managed_operation_plan(value)
+  @client_local_host.installed_effect_managed_operation_plan(
+    value, prepared, request,
+  )
 }
 
 ///|

@@ -315,6 +315,38 @@ pub fn[P] check_node_managed_run_admission(
 }
 
 ///|
+/// Check the same prepared original and mutable parent at one synchronous
+/// boundary. The physical owner's current callback runs once; the following
+/// checks inspect its resulting original state without invoking it again.
+/// This returns no reusable proof, capacity, permission or bare Ledger.
+pub fn[P] check_node_managed_run_mutable_admission(
+  value : NodeManagedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+) -> Result[Unit, ImportedChildLedgerIssue] {
+  match check_node_managed_run_preparation(value, prepared) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match check_node_managed_run_admission(value, ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // A synchronous original current callback can retire this exact admission.
+  // Recheck only its immutable association and mutable lifetime afterwards.
+  match check_node_managed_run_preparation(value, prepared) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard value.ledger is Some(original) && physical_equal(original, ledger) else {
+    return Err(ForeignOriginal)
+  }
+  check_original_resources_mutable_current(ledger).map_err(issue => {
+    Resource(issue)
+  })
+}
+
+///|
 /// Keep the opaque checked preparation fixed by the actual Root. Equal CIDs
 /// or an independently checked copy cannot replace this original afterwards.
 pub fn[P] check_node_managed_run_preparation(

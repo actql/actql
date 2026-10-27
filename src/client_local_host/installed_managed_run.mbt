@@ -684,14 +684,34 @@ fn require_installed_managed_run(
       }
   }
   match checked {
+    // Preserve the original parked-inventory error boundary. The same Core
+    // check now reads that state after its one physical current callback.
+    Err(Resource(ResourceParked)) => return Err(Ledger(ResourceParked))
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
   }
-  // Import currentness is not permission to mutate a parked inventory. Keep
-  // the same fence as the original Source-only path for every shared borrow.
-  match @resources.check_original_resources_mutable(ledger) {
-    Err(issue) => Err(Ledger(issue))
-    Ok(_) => Ok(ledger)
+  guard value.original is Some(original) &&
+    physical_equal(value, original) &&
+    value.ledger is Some(current_ledger) &&
+    physical_equal(current_ledger, ledger) &&
+    value.preparation is Some(current_preparation) else {
+    return Err(Retired)
+  }
+  let same = match (preparation, current_preparation) {
+    (PureManaged(a, p), PureManaged(b, q)) =>
+      physical_equal(a, b) && physical_equal(p, q)
+    (EffectManaged(a, p), EffectManaged(b, q)) =>
+      physical_equal(a, b) && physical_equal(p, q)
+    (PlannedEffectManaged(a, p), PlannedEffectManaged(b, q)) =>
+      physical_equal(a, b) && physical_equal(p, q)
+    (ContentManaged(a, p), ContentManaged(b, q)) =>
+      physical_equal(a, b) && physical_equal(p, q)
+    _ => false
+  }
+  if same {
+    Ok(ledger)
+  } else {
+    Err(Retired)
   }
 }
 
@@ -728,10 +748,9 @@ fn[P] check_installed_managed_run_admission(
   prepared : P,
   ledger : @resources.Ledger,
 ) -> Result[Unit, @resources.ImportedChildLedgerIssue] {
-  match @resources.check_node_managed_run_preparation(admission, prepared) {
-    Err(issue) => Err(issue)
-    Ok(_) => @resources.check_node_managed_run_admission(admission, ledger)
-  }
+  @resources.check_node_managed_run_mutable_admission(
+    admission, prepared, ledger,
+  )
 }
 
 ///|
