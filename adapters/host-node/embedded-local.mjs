@@ -3285,7 +3285,8 @@ async function openInstalledHost(originalInstallation, preparation) {
                     preparedEffect: facts.prepared, sourceProfile,
                     registry, values, fragment, ordered,
                     queryTimePreparation: facts.queryTimePreparation, requestIdentity: facts.identity,
-                    managedPlan: checked(moon.clientProgramInstalledEffectManagedOperationPlan(managedRun))});
+                    managedPlan: checked(moon.clientProgramInstalledEffectManagedOperationPlan(
+                      managedRun, facts.prepared, facts.identity))});
                   const sourceContinuation = acquiredEffectContinuation({
                     checkpoints: (selectedSources.length === 0 ||
                       selectedSources.every(({adapter}) => typeof adapter.retainedCapture === 'function'))

@@ -8,11 +8,20 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "880456e656988eaf2a98d22e2fa0b03971769b8a6f76dafb44e14eaaaf700009",
+      "sha256": "57dccd079b634de93b4ec2c29c21439760b3aceca1cbd32df1a36334d55ddb81",
       "exports": [
         "openAcquiredEffectComputation"
       ],
       "operations": [
+        {
+          "name": "assertAcquiredEffectOriginal",
+          "parameters": [
+            "acquired",
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
         {
           "name": "openAcquiredEffectComputation",
           "parameters": [
@@ -709,6 +718,78 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "## Content family constructor cleanup custody"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "assertAcquiredEffectOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "### Bound Effect Plan currentness"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "### Bound Effect Plan currentness"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "### Bound Effect Plan currentness"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "if (acquired.prepared !== prepared || acquired.requestIdentity !== request) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "### Bound Effect Plan currentness"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "### Bound Effect Plan currentness"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "### Bound Effect Plan currentness"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "### Bound Effect Plan currentness"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "### Bound Effect Plan currentness"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "### Bound Effect Plan currentness"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-plan-current.test.mjs",
+                "anchor": "test('actual public acquired owner refuses a prepared identity replaced by its bound getter'"
               }
             ]
           }
@@ -4996,7 +5077,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "8ead12c773d00202ffb06c4e0d25b63db2edb20b5437bd605e69f01c660e05f8",
+      "sha256": "17020c4484cc2eb014911add1ddbf83925732138bd94d4250a9b3847d2f45a73",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
