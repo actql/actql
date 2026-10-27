@@ -441,4 +441,7 @@ tools) is where contributions are welcome broadly.
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE).
+The source code is licensed under the Apache License 2.0; see [LICENSE](LICENSE).
+The documentation in [docs](docs/README.md), including the specification, is
+licensed under CC BY 4.0, with its code samples under the Apache License 2.0;
+see [docs/LICENSE](docs/LICENSE).

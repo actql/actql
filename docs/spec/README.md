@@ -59,3 +59,9 @@ machine-contract section.
 
 Changing a normative statement is described in
 [Development](../contributing/README.md#changing-the-specification).
+
+## License
+
+The specification is licensed under CC BY 4.0: it may be copied, translated
+and adapted, including for other implementations, with attribution. Code
+samples in it are under the Apache License 2.0. See [LICENSE](../LICENSE).
