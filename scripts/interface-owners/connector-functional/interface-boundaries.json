@@ -9480,7 +9480,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "managed HTTP reader"
+                "anchor": "Managed HTTP Source reader"
               }
             ],
             "inputsOutputs": [
@@ -9492,7 +9492,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "original Site"
+                "anchor": "original receiver-bound methods"
               }
             ],
             "ownership": [
@@ -9510,7 +9510,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "original failure"
+                "anchor": "The original failure"
               }
             ],
             "cancellation": [
