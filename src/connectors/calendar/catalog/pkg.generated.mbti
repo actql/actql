@@ -32,7 +32,15 @@ pub fn calendar_list_rows_wire(CalendarListPage, Array[String], Int, Int, Int) -
 
 pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, CalendarListIssue]
 
+pub fn calendar_respond_body(CalendarRespondRequest) -> String
+
+pub fn calendar_respond_info(CalendarRespondRequest) -> CalendarRespondInfo
+
+pub fn calendar_respond_matches_target(CalendarRespondRequest, Bytes) -> Bool
+
 pub fn prepare_calendar_free_busy_query(Array[String], String, String, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyQuery, CalendarFreeBusyIssue]
+
+pub fn prepare_calendar_respond(Bytes, String, String, String, String, String, CalendarRespondLimits) -> Result[CalendarRespondRequest, CalendarRespondIssue]
 
 pub fn project_calendar_free_busy(Bytes, CalendarFreeBusyQuery, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyPage, CalendarFreeBusyIssue]
 
@@ -95,6 +103,40 @@ pub(all) struct CalendarListLimits {
 pub struct CalendarListPage {
   response_sha256 : String
   next_page_token : String?
+  // private fields
+}
+
+pub(all) struct CalendarRespondInfo {
+  calendar_id : String
+  event_id : String
+  etag : String
+  participant : String
+  response : String
+  marker : String
+  target_sha256 : String
+} derive(Eq, @debug.Debug)
+
+pub(all) enum CalendarRespondIssue {
+  InvalidLimits
+  CapacityExceeded
+  InvalidTarget
+  ForeignEvent
+  IncompleteAttendees
+  MissingParticipant
+  AmbiguousParticipant
+  InvalidResponse
+  InvalidMarker
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CalendarRespondLimits {
+  max_target_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_attendees : Int
+  max_body_bytes : Int
+}
+
+pub struct CalendarRespondRequest {
   // private fields
 }
 
