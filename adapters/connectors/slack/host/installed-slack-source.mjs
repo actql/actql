@@ -161,7 +161,6 @@ export async function loadInstalledSlackSource(profile,{root,principalId,moon,pr
           return Reflect.apply(factory.prepare,factory,[options]);
         }});
         return reader;
-      })(),
-      readPages(){fail('InstalledSlackLegacyReaderUnavailable');}});
+      })()});
   }catch(cause){throw await retainInstalledHostInitializationFailure(cause,{sourceProfile:site});}
 }
