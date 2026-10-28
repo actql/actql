@@ -1294,6 +1294,13 @@ kind, selector class, or write scope. Preview and apply MUST reject a mapping
 unless exactly one `permission_rules` entry matches all three dimensions.
 Neither compiler nor author may broaden that exact rule.
 
+For a logical key UPSERT that may create or update, the single matching rule
+MUST carry the complete technical requirements of both branches. Selecting a
+branch from the original lookup does not merge separate create/update rules or
+narrow the UPSERT's permission set. The same non-null selector may supply a
+required create key without duplicating it in inline `set`; other required
+create values remain mandatory.
+
 The resolved mapping contract owns a complete target row mapping for
 `create` and `store` from a named result. It specifies every target field
 as one explicit result field or literal, null behavior, writable/required
