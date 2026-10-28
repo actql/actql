@@ -132,9 +132,9 @@ test('reviewed module options retain dependency target and package metadata refu
   writeFileSync(modulePath, source);
   const resolved = resolveConnectorBuildInputs(f.configuration);
   // Module format DATA is not permission to accept package-level linker data.
-  f.put(join(core, 'src/connector_sdk/moon.pkg'), 'supported_targets = "js"\n' + option);
+  f.put(join(core, 'src/connector_sdk/moon.pkg'), 'supported_targets = "+js+wasm+native"\n' + option);
   assert.throws(() => resolved.resolvePackage('actql/actql/connector_sdk'), /Unsupported package metadata: options/);
-  assert.throws(() => inspectCore(core, ['connector_sdk']), /UnknownManifestDirective: options/);
+  assert.throws(() => inspectCore(core, ['connector_sdk']), /UnknownManifestSyntax/);
 });
 
 test('shared module recognition leaves Core source purity and foreign file checks intact', t => {
