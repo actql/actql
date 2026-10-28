@@ -1,6 +1,8 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/decode_shape" @shape,
+  "actql/actql/capacity_arithmetic" @counts,
   "actql/actql/decode_core" @decode,
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/canonical_value" @canonical,

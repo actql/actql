@@ -136,3 +136,20 @@ pub fn add_collection_construction_extents(
   }
   Some({ record_headers: h, reference_slots: r, scalar_words: w, })
 }
+
+///|
+// Fixed call-expanded quotation controls: map_construction_extent performs
+// six checked sums and returns its record/Some (8H1R16W); this expansion
+// performs eleven checked sums and returns its record/Some (13H1R26W).
+// These are logical constructor controls, not the described collection body,
+// per-element multiplicity, measured allocations or a physical grant.
+let collection_quote_controls : CollectionConstructionExtent = {
+  record_headers: 21L,
+  reference_slots: 2L,
+  scalar_words: 42L,
+}
+
+///|
+pub fn collection_construction_quotation_extent() -> CollectionConstructionExtent {
+  collection_quote_controls
+}

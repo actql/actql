@@ -49,15 +49,30 @@ pub fn check_parsed_scoped(
   scope : CheckScope,
   supplied : @decode.Cursor?,
   limits : CheckLimits,
+  source_preparation? : @stages.Source? = None,
 ) -> ScopedCheckOutcome {
   match scope {
     BoundInput =>
-      BoundInput(check_parsed(program, environment, supplied, limits))
+      BoundInput(
+        check_parsed(
+          program,
+          environment,
+          supplied,
+          limits,
+          source_preparation~,
+        ),
+      )
     TemplateOnly => {
       if supplied is Some(_) {
         return InvalidRequest(BindingsInTemplateScope)
       }
-      match prepare_template_declarations(program, environment, limits) {
+      match
+        prepare_template_declarations(
+          program,
+          environment,
+          limits,
+          source_preparation~,
+        ) {
         Ok(prepared) =>
           match complete_template_check(prepared) {
             Ok(checked) => TemplateOnly(Verified(checked))

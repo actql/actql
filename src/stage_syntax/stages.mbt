@@ -241,9 +241,7 @@ fn decode_envelope(
   let stages : Array[Stage] = []
   let seen : Map[String, Stage] = Map([])
   for node in nodes {
-    let stage = object(node, [
-      "id", "meta", "after", "inputs", "from", "steps", "results", "effects", "table_inputs",
-    ])
+    let stage = object(node, stage_closed_field_names)
     let stage_id = name(required(stage, "id"))
     metadata(stage)
     if seen.contains(stage_id) {
@@ -460,4 +458,18 @@ pub fn prefix_body(prefix : Prefix) -> @wire.Cursor {
 ///|
 pub fn prefix_stages(prefix : Prefix) -> Array[Stage] {
   prefix.stages.copy()
+}
+
+///|
+// One immutable list is used by actual Stage admission and constructor
+// inspection bounds. It is never returned as a mutable caller-owned Array.
+let stage_closed_field_names : Array[String] = [
+  "id", "meta", "after", "inputs", "from", "steps", "results", "effects", "table_inputs",
+]
+
+///|
+/// The actual closed Stage contract's field count, not an acceptance override
+/// or caller policy. Admitted original Stage bodies cannot exceed this count.
+pub fn stage_closed_field_count() -> Int {
+  stage_closed_field_names.length()
 }

@@ -10,17 +10,21 @@ import {
   "actql/actql/connectors/local",
   "actql/actql/connectors/local/driver",
   "actql/actql/connectors_builtin",
+  "actql/actql/decode_core",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/parameter_binding",
   "actql/actql/physical_cost",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy_host",
+  "actql/actql/pipeline_check_context",
   "actql/actql/program_check",
   "actql/actql/query_planning",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
   "actql/actql/source_value",
+  "actql/actql/stage_parameters",
   "actql/actql/stage_syntax",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
@@ -64,8 +68,6 @@ pub fn[I] begin_closed_values_header(ClientClosedValuesPreparation[I]) -> Result
 
 pub fn[I] begin_closed_values_owned_run(ClientClosedValuesPreparation[I], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
-pub fn[I] begin_closed_values_preparation(@physical_resources.NodePreparationAdmission[I], I, ClientLocalResourcePolicy, module_containers~ : @execution_relation.PreparationRepresentationUnits) -> Result[ClientClosedValuesPreparation[I], ClientClosedValuesPreparationIssue]
-
 pub fn[I] begin_closed_values_scan(ClientClosedValuesPreparation[I], Int, Int) -> Result[@physical_resources.PreparationPhaseWork, ClientClosedValuesPreparationIssue]
 
 pub fn[I] begin_closed_values_text_check(ClientClosedValuesPreparation[I], Int) -> Result[@physical_resources.PreparationPhaseWork, ClientClosedValuesPreparationIssue]
@@ -88,6 +90,10 @@ pub fn begin_installed_mock_model_managed_run(@physical_resources.NodeManagedRun
 
 pub fn begin_installed_source_read(@physical_resources.ImportedChildLedger) -> Result[ClientInstalledSourceRead, ClientInstalledSourceReadIssue]
 
+pub fn[I, P] begin_parameter_binding_preparation(@physical_resources.PreparationCapacity[I, P], I, @parameter_binding.Declarations, @decode_core.Cursor?, @value_admission.Limits) -> Result[ClientParameterBindingPreparation[I, P], ClientParameterBindingPreparationIssue]
+
+pub fn[I, P] begin_parameter_declaration_preflight(@physical_resources.PreparationCapacity[I, P], I, @decode_core.Cursor?, @parameter_binding.DeclarationLimits) -> Result[ClientParameterDeclarationPreflight[I, P], ClientParameterDeclarationPreflightIssue]
+
 pub fn[I] begin_preparation_owned_installed_effect_managed_run(@physical_resources.NodePreparationAdmission[I], I, @physical_resources.PreparationCapacity[I, ClientInstalledEffectManagedPlan], @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
 pub fn[I] begin_preparation_owned_installed_managed_run(@physical_resources.NodePreparationAdmission[I], I, @physical_resources.PreparationCapacity[I, @run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, ClientInstalledManagedSourceFreePreparation) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
@@ -97,6 +103,8 @@ pub fn begin_prepared_installed_effect_managed_run(@physical_resources.NodeManag
 pub fn begin_prepared_installed_effect_mock_model_managed_run(@physical_resources.NodeManagedRunAdmission[ClientInstalledEffectManagedPlan], @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[(ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope), ClientInstalledManagedRunIssue]
 
 pub fn begin_prepared_installed_managed_source_free_run(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, ClientInstalledManagedSourceFreePreparation) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
+
+pub fn[I, P] begin_program_check_preparation(@physical_resources.PreparationCapacity[I, P], I, @stage_syntax.Program, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @program_check.CheckLimits, source_catalog? : @program_check.PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> Result[ClientProgramCheckPreparation[I, P], ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] begin_program_json_preparation(@physical_resources.PreparationCapacity[I, P], I, String, @stage_syntax.Limits, source_path? : String) -> Result[ClientProgramJsonPreparation[I, P], ClientProgramJsonPreparationIssue]
 
@@ -147,6 +155,12 @@ pub fn cleanup_client_infer_input(ClientInferInputExecution) -> Result[Bool, Cli
 pub fn cleanup_client_original_keyed_prefix_input(ClientOriginalKeyedPrefixInput) -> Result[Bool, ClientSerializationPrefixIssue]
 
 pub fn cleanup_client_serialization_prefix(ClientSerializationPrefix) -> Result[Bool, ClientSerializationPrefixIssue]
+
+pub fn[I, P] clear_parameter_binding_preparation(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
+
+pub fn[I, P] clear_parameter_declaration_preflight(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
+
+pub fn[I, P] clear_program_check_preparation(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] clear_program_json_preparation(ClientProgramJsonPreparation[I, P]) -> Result[Unit, ClientProgramJsonPreparationIssue]
 
@@ -290,6 +304,16 @@ pub fn[I] finish_program_snapshot(ClientProgramSnapshot[I]) -> Result[@run_publi
 
 pub fn[I] finish_program_validation(ClientProgramValidation[I]) -> Result[Unit, ClientProgramValidationIssue]
 
+pub fn[I, P] inspect_program_check_source_collection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] inspect_program_check_source_local_index(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] inspect_program_check_source_local_snapshot(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] inspect_program_check_source_local_snapshot_reference(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] inspect_program_check_source_resolution(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
 pub fn installed_capture_capacity_values(ClientInstalledCaptureCapacity) -> Array[Int64]
 
 pub fn installed_duckdb_capture_capacity(@host.CaptureConfiguration) -> ClientInstalledCaptureCapacity?
@@ -373,6 +397,18 @@ pub fn open_source_free_local_host(@run_publication_host.PreparedClientProgram, 
 pub fn open_source_free_local_retained_host(@run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, Int64, Int64, Int64, Int64, requirements? : ClientLocalRequirements?, fragment_body? : String?, ordered_body? : String?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
 pub fn open_source_free_local_retained_host_on_ledger(@run_publication_host.PreparedClientProgram, @physical_resources.Ledger, ClientInstalledSequenceContracts, String, String?, String?, requirements? : ClientLocalRequirements?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
+
+pub fn parameter_binding_preparation_initial_inventory() -> @execution_relation.PreparationRepresentationUnits
+
+pub fn[I, P] parameter_binding_preparation_outcome(ClientParameterBindingPreparation[I, P]) -> Result[@parameter_binding.BindingReadInput, @parameter_binding.Issue]?
+
+pub fn[I, P] parameter_binding_source_outcome(ClientParameterBindingPreparation[I, P]) -> Result[@stage_parameters.Source, @stage_parameters.Issue]?
+
+pub fn parameter_declaration_preflight_initial_inventory() -> @execution_relation.PreparationRepresentationUnits
+
+pub fn[I, P] parameter_declaration_preflight_outcome(ClientParameterDeclarationPreflight[I, P]) -> (Result[@parameter_binding.DeclarationReadInput, @parameter_binding.Issue], Int, Int)?
+
+pub fn[I, P] parameter_declaration_source_outcome(ClientParameterDeclarationPreflight[I, P]) -> Result[@stage_parameters.Source, @stage_parameters.Issue]?
 
 pub fn[I] parse_closed_values_document(ClientClosedValuesPreparation[I]) -> Result[Unit, ClientClosedValuesPreparationIssue]
 
@@ -470,11 +506,71 @@ pub fn prepare_multi_captured_local_installed_ledger(@run_publication_host.Prepa
 
 pub fn prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@host.NativeHostConfiguration], Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
 
+pub fn[I, P] prepare_parameter_binding_header(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
+
+pub fn[I, P] prepare_parameter_binding_inventory(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
+
+pub fn[I, P] prepare_parameter_binding_preflight(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
+
+pub fn[I, P] prepare_parameter_binding_selection(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
+
+pub fn[I, P] prepare_parameter_binding_source(ClientParameterBindingPreparation[I, P], @stage_parameters.Source) -> Result[Unit, ClientParameterBindingPreparationIssue]
+
+pub fn[I, P] prepare_parameter_binding_value(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
+
+pub fn[I, P] prepare_parameter_declaration_header(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
+
+pub fn[I, P] prepare_parameter_declaration_inventory(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
+
+pub fn[I, P] prepare_parameter_declaration_preflight(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
+
+pub fn[I, P] prepare_parameter_declaration_source(ClientParameterDeclarationPreflight[I, P], @stage_syntax.Program) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
+
+pub fn[I, P] prepare_parameter_declaration_type(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
+
+pub fn[I, P] prepare_parameter_declaration_value(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
+
 pub fn[I] prepare_program_capture(ClientProgramPublication[I], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue]) -> Result[ClientProgramCapture[I], ClientClosedValuesPreparationIssue]
 
 pub fn[I] prepare_program_chain_validation(ClientProgramCapture[I], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Result[ClientProgramValidation[I], ClientProgramValidationIssue]
 
+pub fn[I, P] prepare_program_check_carriers(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_contents(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_input(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_policies(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_prelude(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckPrelude, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_references(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_registry(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_requests(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_source_collection(ClientProgramCheckPreparation[I, P]) -> Result[@pipeline_check_context.SourceRegistrationPhase, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_source_local_entry(ClientProgramCheckPreparation[I, P]) -> Result[@pipeline_check_context.SourceRegistrationPhase, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_source_local_groups(ClientProgramCheckPreparation[I, P]) -> Result[@pipeline_check_context.SourceRegistrationPhase, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_source_local_index(ClientProgramCheckPreparation[I, P]) -> Result[@pipeline_check_context.SourceRegistrationPhase, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_source_pipeline(ClientProgramCheckPreparation[I, P]) -> Result[@pipeline_check_context.SourceRegistrationPhase, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_source_registration(ClientProgramCheckPreparation[I, P], @stage_parameters.Source) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_source_resolution(ClientProgramCheckPreparation[I, P]) -> Result[@pipeline_check_context.SourceRegistrationPhase, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_values(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_views(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
+
 pub fn[I] prepare_program_commit_validation(ClientProgramCapture[I], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Result[ClientProgramValidation[I], ClientProgramValidationIssue]
+
+pub fn[I] prepare_request_program_check_preparation(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @program_check.CheckLimits, source_catalog? : @program_check.PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> Result[ClientProgramCheckPreparation[I, Unit], ClientRequestPreparationIssue]
 
 pub fn[I] prepare_request_program_json_preparation(ClientRequestPreparation[I], I, String, @stage_syntax.Limits) -> Result[ClientProgramJsonPreparation[I, Unit], ClientRequestPreparationIssue]
 
@@ -500,11 +596,67 @@ pub fn prepared_installed_managed_source_free_requirements(ClientInstalledManage
 
 pub fn[I] program_capture_limits(ClientProgramCapture[I]) -> Result[(Int, Int, Int), ClientClosedValuesPreparationIssue]
 
+pub fn program_check_preparation_initial_inventory() -> @execution_relation.PreparationRepresentationUnits
+
 pub fn program_json_preparation_initial_inventory() -> @execution_relation.PreparationRepresentationUnits
 
 pub fn read_client_infer_retained_input_descriptor(String) -> Result[@execution_relation.RetainedCompletionDescriptor, ClientInferRetainedInputIssue]
 
 pub fn read_client_source_capture_descriptor(String) -> Result[@execution_relation.RetainedCompletionDescriptor, ClientSourceCaptureIssue]
+
+pub fn[I, P] reconcile_parameter_binding_inventory(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
+
+pub fn[I, P] reconcile_parameter_binding_source(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
+
+pub fn[I, P] reconcile_parameter_bindings(ClientParameterBindingPreparation[I, P]) -> Result[Unit, ClientParameterBindingPreparationIssue]
+
+pub fn[I, P] reconcile_parameter_declaration_inventory(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
+
+pub fn[I, P] reconcile_parameter_declaration_preflight(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
+
+pub fn[I, P] reconcile_parameter_declaration_source(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
+
+pub fn[I, P] reconcile_parameter_declarations(ClientParameterDeclarationPreflight[I, P]) -> Result[Unit, ClientParameterDeclarationPreflightIssue]
+
+pub fn[I, P] reconcile_program_check_carriers(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_contents(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_policies(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_references(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_registry(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_requests(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_collection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_collection_inspection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_local_entry(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_local_groups(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_local_index(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_local_index_inspection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_local_snapshot_inspection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_local_snapshot_reference(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_pipeline(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_registration(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_resolution(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_resolution_inspection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_values(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_views(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] reconcile_program_json_preparation_structure(ClientProgramJsonPreparation[I, P]) -> Result[Unit, ClientProgramJsonPreparationIssue]
 
@@ -596,11 +748,29 @@ pub fn[I] start_program_capture(ClientProgramCapture[I]) -> Result[ClientProgram
 
 pub fn[I] start_program_validation(ClientProgramValidation[I]) -> Result[ClientProgramValidation[I], ClientProgramValidationIssue]
 
+pub fn[I, P] take_program_check_input(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckInput, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] take_program_check_registry(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] take_program_check_source_registration(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedSourceRegistration, ClientProgramCheckPreparationIssue]
+
 pub fn[I, P] take_program_json_preparation_input(ClientProgramJsonPreparation[I, P]) -> Result[@stage_syntax.ParsedProgramInput, ClientProgramJsonPreparationIssue]
 
 pub fn[I, P] take_program_json_preparation_program(ClientProgramJsonPreparation[I, P]) -> Result[@stage_syntax.Program, ClientProgramJsonPreparationIssue]
 
 // Errors
+pub suberror ClientProgramCheckPreparationIssue {
+  Capacity(@physical_resources.PreparationCapacityIssue)
+  Check(@program_check.LocalConstructionFailure)
+  Catalog(@program_check.ParsedCatalogPreparationIssue)
+  SourceRegistration(@program_check.ParsedSourceRegistrationIssue)
+  Prelude(@program_check.ParsedCheckPreludeIssue)
+  Work(@physical_resources.PreparationWorkIssue)
+  ChangedInputs
+  WrongPhase
+  Overflow
+}
+pub impl @debug.Debug for ClientProgramCheckPreparationIssue
 
 // Types and methods
 type ClientAccountedSourceCapture
@@ -790,6 +960,24 @@ pub(all) enum ClientOriginalRowAcquisitionIssue {
   Acquisition(@client_row_source_host.RowHostIssue)
 }
 
+type ClientParameterBindingPreparation[I, P]
+
+pub(all) enum ClientParameterBindingPreparationIssue {
+  Capacity(@physical_resources.PreparationCapacityIssue)
+  Work(@physical_resources.PreparationWorkIssue)
+  WrongPhase
+  Overflow
+} derive(Eq, @debug.Debug)
+
+type ClientParameterDeclarationPreflight[I, P]
+
+pub(all) enum ClientParameterDeclarationPreflightIssue {
+  Capacity(@physical_resources.PreparationCapacityIssue)
+  Work(@physical_resources.PreparationWorkIssue)
+  WrongPhase
+  Overflow
+} derive(Eq, @debug.Debug)
+
 pub(all) struct ClientPreparationCapacityRefusal {
   phase : String
   dimension : String
@@ -800,6 +988,8 @@ pub(all) struct ClientPreparationCapacityRefusal {
 } derive(Eq, @debug.Debug)
 
 type ClientProgramCapture[I]
+
+type ClientProgramCheckPreparation[I, P]
 
 type ClientProgramJsonPreparation[I, P]
 
@@ -847,6 +1037,7 @@ pub(all) enum ClientRequestPreparationIssue {
   Initial(@physical_resources.ImportedChildLedgerIssue)
   Capacity(@physical_resources.PreparationCapacityIssue)
   ProgramJson(ClientProgramJsonPreparationIssue)
+  ProgramCheck(ClientProgramCheckPreparationIssue)
 } derive(@debug.Debug)
 
 pub struct ClientRetainedContentOutput {

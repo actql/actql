@@ -9,7 +9,8 @@ priv struct ClosedValuesTopologyLayout {
 
 ///|
 /// Constructor inventory (headers, reference slots, scalar words):
-/// stage_parameters.Source + Some(program) + stages.copy():       4, 6, 4
+/// stage_parameters.Source + retained declaration Limits,
+///   Some(program) + stages.copy() (binding reader is None):      5, 8, 8
 /// original empty Declarations, entries, usage:                  4, 3, 4
 /// original empty BoundValues, entries, usage:                   4, 4, 4
 /// CollectedStage (collection internals belong to context):      1, 2, 2
@@ -30,9 +31,9 @@ priv struct ClosedValuesTopologyLayout {
 /// topology is duplicated here. Empty parameter owners are real, not None.
 fn closed_values_topology_retained_layout() -> @execution.PreparationRepresentationUnits {
   {
-    record_headers: 52L,
-    reference_slots: 137L,
-    scalar_words: 73L,
+    record_headers: 53L,
+    reference_slots: 139L,
+    scalar_words: 77L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }

@@ -176,11 +176,12 @@ test "request JSON caller keeps the same source while its actual domain consumer
 test "request bootstrap independently covers generic JSON entry allocated carriers before domain grow" {
   // Independent expansion of the original request bootstrap92H173R148W,
   // plus debit tuple/Ok2H1R3W, two checked-add Some2H0R4W and conservative
-  // error alternatives6H6R6W. No domain Source packet is pre-added here.
+  // error alternatives6H6R6W and later caller links9H11R9W. No domain
+  // Source or Check packet is pre-added here.
   let (retained, execution) = client_request_preparation_control_capacity(
     client_local_resource_policy(),
   ).unwrap()
-  assert_eq(retained, 4360L)
+  assert_eq(retained, 4664L)
   assert_eq(execution, 0L)
   assert_eq(16L * 10L + 8L * 7L + 8L * 13L, 320L)
 }
@@ -199,7 +200,7 @@ test "original request bootstrap entry carriers are already debited at the sole 
       let usage = @resources.ledger_usage(parent.ledger)
       backed_before_resize.val = parent.phase == Selecting &&
         parent.program_json is None &&
-        usage.reserved_retention_bytes == 4360L &&
+        usage.reserved_retention_bytes == 4664L &&
         usage.reserved_execution_bytes == 0L
     }
     true
@@ -221,7 +222,7 @@ test "original request bootstrap entry carriers are already debited at the sole 
   let usage = @resources.ledger_usage(parent.ledger)
   // Existing B prefix inventory559H203R1208W=20232, once. It neither
   // replaces nor supplies the pre-entry carriers observed by that callback.
-  assert_eq(usage.reserved_retention_bytes, 24592L)
+  assert_eq(usage.reserved_retention_bytes, 24896L)
   assert_eq(usage.reserved_execution_bytes, 20232L)
   assert_true(physical_equal(child.capacity, parent.capacity))
   abort_request_preparation_after_cleanup(parent).unwrap()

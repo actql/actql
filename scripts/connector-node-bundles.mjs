@@ -339,6 +339,12 @@ if (existsSync(join(sourceRoot, bridgePackage,
   dependencies.set('actql/actql/decode_core', 'decode');
   dependencies.set('moonbitlang/core/encoding/utf8', 'utf8');
 }
+// Only the request-parent bridge forwards the existing original Source DATA.
+// Other generated bridge packages do not gain an unused preparation import.
+if (existsSync(join(sourceRoot, bridgePackage,
+  'client_preparation_root_bridge.mbt'))) {
+  dependencies.set('actql/actql/stage_parameters', 'stage_parameters');
+}
 // A bridge package may also contain the handwritten Carrier adapter. Keep its
 // runtime dependency after generated connector aliases so their stable names
 // continue to match that adapter. Other generated bridge packages do not gain

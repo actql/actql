@@ -36,3 +36,20 @@ test "indexed child reads preserve null ownership source order and coordinates" 
   assert_true(field_at(child, 0) is None)
   assert_true(element_at(child, 0) is None)
 }
+
+///|
+test "indexed construction counts both original boxed Option tags" {
+  // Logical model: scalar Int Some owns payload+tag2W; Cursor index1W;
+  // returned Cursor Some tag1W. Ref-valued field input Some and returned
+  // pair Some own one tag each, plus the same Cursor index1W.
+  let child = indexed_child_construction_extent()
+  let field = indexed_field_construction_extent()
+  assert_eq(
+    (child.record_headers, child.reference_slots, child.scalar_words),
+    (4L, 4L, 4L),
+  )
+  assert_eq(
+    (field.record_headers, field.reference_slots, field.scalar_words),
+    (5L, 7L, 3L),
+  )
+}

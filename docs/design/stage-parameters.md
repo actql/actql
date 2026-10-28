@@ -16,8 +16,65 @@ is absent. Preparation does not accept an independently supplied declaration map
 
 Equal text, equal paths or equivalent declaration values do not substitute for
 these owners. A separately prepared owner is distinct even when it uses the same
-Program. This is an API composition requirement, not an additional restriction
+Program unless preparation explicitly forwards that original Source. This is
+an API composition requirement, not an additional restriction
 on the language's accepted source documents.
+
+## Completed declaration and binding reuse
+
+The Source retains the declaration limits that admitted its private declaration
+owner. `prepare(..., original=...)` returns that same Source only for the same
+opaque complete Program and component-wise equal or relaxed declaration
+ceilings. A foreign Program, a prefix, or reduced limits goes through the same
+ordinary declaration reader. Equal source text or a matching CID is insufficient.
+
+`prepare_bindings` retains the existing completed `BindingReadInput` in a new
+immutable Source snapshot. The parameter owner matches the exact declaration
+owner, supplied tree and node, and current value limits. An accepted binding may
+be forwarded under equal or relaxed resource ceilings; a failed outcome is
+forwarded only under identical limits because a different budget can change the
+first refusal. Absent input remains distinct from supplied NULL. Pending readers
+are never advanced by reuse. Other inputs use the same semantic binding engine.
+Neither entry accepts a caller-authored successful Result or proof.
+
+The public Program check passes this same Source into the actual bound or
+template checker. Catalog admission and visibility still precede their original
+disclosure boundaries. The topology's binder forwards completed values while
+charging their original node/text usage against its remaining allowance.
+Template scope never binds supplied values and still rejects a supplied object
+before preparing its declarations. No Run, Account, clock, permission, resource
+currentness or external callback is part of these immutable facts.
+
+The Source adds two reference fields and retains the original four-word
+declaration-limits record. The strict Closed Values topology inventory includes
+that additional header, two references and four words. Its binding-reader field
+is empty on that path. A retained nonempty binding reader and Source snapshot
+remain part of the enclosing preparation consumer's actual live inventory;
+semantic reuse alone does not establish physical backing or settlement.
+
+`prepare_from_declaration_read` consumes only a completed reader whose original
+source position is this Program's actual `params` field. It shares the ordinary
+Source constructor and retains the reader's original limits and declarations.
+Pending or foreign readers are not advanced, and completed typed refusals remain
+refusals. `retain_completed_binding` similarly assembles the existing Source
+snapshot from a completed reader belonging to the same declaration owner. It
+does not bind values again or turn a failed binding into effective values.
+
+The enclosing Parameter construction driver grows its existing parent before
+the Source root Map, correspondence carriers and Stage copy. The Source owns
+their [constructor inventory](../../src/stage_parameters/source_construction.mbt),
+using the generic collection owner's Map/Array growth rules and the actual
+Program width. This inventory does not borrow a Values execution layout. One
+original work receipt covers the root fields and Stage copy; capacity retries
+retain the same Program, reader and quote. The binding driver separately grows
+before the Source snapshot while the original Source, declarations, values and
+reader remain charged. Reconciliation returns only the synchronous scratch of
+a successful constructor. Clearing either driver drops its references without
+settling the parent, refunding work or asserting a physical cleanup ACK.
+
+The entering caller still supplies backing for the admitted Program/input and
+the pre-resize/current/getter frame. These Source phases do not supply numerical
+first-entry backing, complete checker/Context funding or an execution grant.
 
 After these checks, the
 [local pipeline collector](pipeline-parameters.md) derives operation references

@@ -1673,6 +1673,8 @@ pub fn prepare_all_captured_result_publication_exports(@physical_strategy_host.C
 
 pub fn prepare_captured_result_publication_export(@physical_strategy_host.CapturedDAG, Int, PublicationOutputExportLimits, converted_output? : @execution_relation.CompletedOutput, max_pins? : Int) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
 
+pub fn prepare_checked_effect_free_client_program(@program_check.CheckedProgram, @lowering_relation.Limits, max_parameters~ : Int, max_parameter_name_bytes~ : Int, max_tasks~ : Int, max_graph_work~ : Int) -> Result[PreparedClientProgram, ClientProgramPreparationIssue]
+
 pub fn prepare_client_cancellation_identity(String, String, String, @run_publication.PublicationContract, Int) -> Result[ClientCancellationIdentity, ClientCancellationIdentityIssue]
 
 pub fn prepare_client_cancellation_operation(ClientCancellationIdentity, ClientCancellationIdentity?, @run_publication.PublicationContract, Int, Bool, Bool, Bool) -> Result[ClientCancellationOperationAction, ClientCancellationOperationIssue]

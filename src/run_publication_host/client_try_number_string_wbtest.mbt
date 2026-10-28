@@ -143,7 +143,12 @@ test "TRY_NUMBER original String closure binds only the same pipeline and Parame
     Checked(value) => value
     _ => fail("original String check must close")
   }
-  let owners = prepare_client_stage_owners(checked, limits).unwrap()
+  let owners = prepare_client_stage_owners(
+    checked,
+    limits.lowering,
+    max_parameters=limits.max_parameters,
+    max_parameter_name_bytes=limits.max_parameter_name_bytes,
+  ).unwrap()
   let owner = owners[0]
   let closure = @checked.expression_closure(checked).unwrap()
   let rebound = @lower.bind_program_expression_closure(

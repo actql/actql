@@ -13,12 +13,14 @@ import {
   "actql/actql/capacity_witness",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "actql/actql/event_typing",
   "actql/actql/expression_typing",
   "actql/actql/graph_typing",
   "actql/actql/local_relation_input",
   "actql/actql/local_relation_snapshot",
+  "actql/actql/local_source_ref",
   "actql/actql/numeric_reduction",
   "actql/actql/parameter_binding",
   "actql/actql/parameter_references",
@@ -44,6 +46,7 @@ import {
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
   "actql/actql/stage_source",
+  "actql/actql/stage_source_refs",
   "actql/actql/stage_syntax",
   "actql/actql/temporal_window",
   "actql/actql/text_time_bounds",
@@ -56,6 +59,8 @@ import {
 }
 
 // Values
+pub fn advance_source_registration(SourceRegistrationRead) -> SourceRegistrationPhase
+
 pub fn analytic_envelope_frame_memberships(AnalyticEnvelopeCheck) -> Int64
 
 pub fn analytic_envelope_input_wire_bytes(AnalyticEnvelopeCheck) -> Int64
@@ -162,6 +167,8 @@ pub fn authoring_values_step(AuthoringValuesPublicationCheck) -> Int
 
 pub fn authoring_values_work(AuthoringValuesPublicationCheck) -> Int
 
+pub fn begin_source_registration(@stage_parameters.Source, @check_environment.SourceRequestContracts, @stage_local_inputs.Limits, max_inputs~ : Int, max_views~ : Int, max_order_keys~ : Int) -> Result[SourceRegistrationRead, SourceRegistrationIssue]
+
 pub fn bind_capacity_inputs(@stage_syntax.Program, Array[StageCapacityInput], Int) -> Result[ProgramCapacityInputs, CapacityInputsIssue]
 
 pub fn bind_capacity_policy(ReconciledContexts, @check_environment.Capacity, max_work~ : Int, max_text_bytes~ : Int, max_policy_nodes~ : Int) -> Result[SelectedPolicyContext, SelectedPolicyIssue]
@@ -177,6 +184,10 @@ pub fn bind_source_policy(SourceRowContexts, SelectedPolicyContext, Int) -> Resu
 pub fn bind_source_producers(SourceCapacityContext, Array[Array[(Int, Int)]], Int) -> Result[SourceProducerContext, SourceProducerIssue]
 
 pub fn bound_guards(PipelineContext) -> @pipeline_typing.BoundGuardClosure
+
+pub fn capacity_input_construction_inventory(@stage_syntax.Program, Array[StageCapacityInput]) -> @decode_shape.CollectionConstructionInventory?
+
+pub fn capacity_input_construction_observation_inventory() -> @decode_shape.CollectionConstructionInventory
 
 pub fn capacity_inputs_work(ProgramCapacityInputs) -> Int
 
@@ -239,6 +250,8 @@ pub fn checked_capacity(PipelineContext) -> @capacity_graph_preflight.Applicatio
 pub fn checked_orders(PipelineContext) -> @relation_results.CheckedOrders
 
 pub fn checked_results(PipelineContext) -> @relation_results.CheckedResults
+
+pub fn clear_source_registration(SourceRegistrationRead) -> Unit
 
 pub fn close_pipeline_authoring(PipelineOperationProfileChecks, @check_environment.Capacity, Array[AuthoringValuesPublicationCheck], Int, Int, Int) -> Result[PipelineAuthoringClosure, PipelineAuthoringIssue]
 
@@ -581,6 +594,20 @@ pub fn numeric_slot_count(ProgramNumericSlots) -> Int
 pub fn numeric_slots_requirements(ProgramNumericSlots) -> ProgramOperationRequirements
 
 pub fn numeric_slots_work(ProgramNumericSlots) -> Int
+
+pub fn observe_capacity_input_binding(@stage_syntax.Program, Array[StageCapacityInput], Int) -> (Result[ProgramCapacityInputs, CapacityInputsIssue], Int)
+
+pub fn observe_capacity_input_construction_inventory(@stage_syntax.Program, Array[StageCapacityInput]) -> (@decode_shape.CollectionConstructionInventory?, Int64)
+
+pub fn observe_source_registration_collection_construction(SourceRegistrationRead) -> Int64?
+
+pub fn observe_source_registration_local_index_construction(SourceRegistrationRead) -> Int64?
+
+pub fn observe_source_registration_local_snapshot_construction(SourceRegistrationRead) -> (Int, Int, Int)?
+
+pub fn observe_source_registration_local_snapshot_reference_construction(SourceRegistrationRead) -> (@local_source_ref.ReferenceReadConstructionInventory?, Int64)?
+
+pub fn observe_source_registration_resolution_construction(SourceRegistrationRead) -> Int64?
 
 pub fn operation_calendar_at(ProgramOperationCalendar, Int) -> OperationCalendarResolution?
 
@@ -1114,6 +1141,136 @@ pub fn source_producer_work(SourceProducerContext) -> Int
 
 pub fn source_program_diagnostic_issue(SourceViewProgramIssue) -> SourceViewContextIssue
 
+pub fn source_registration_collected_inputs(SourceRegistrationRead) -> @sourceview_input.Inputs?
+
+pub fn source_registration_collection_construction(SourceRegistrationRead) -> @sourceview_input.CollectionConstructionInventory?
+
+pub fn source_registration_collection_driver_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_collection_driver_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_collection_inspection_bound(SourceRegistrationRead) -> Int64?
+
+pub fn source_registration_collection_inspection_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_collection_inspection_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_collection_inspection_work(SourceRegistrationRead) -> Int64?
+
+pub fn source_registration_collection_quotation_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_collection_work(SourceRegistrationRead) -> Int
+
+pub fn source_registration_collection_work_bound(SourceRegistrationRead) -> Int?
+
+pub fn source_registration_initial_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_local_entry_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_local_entry_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_local_entry_work(SourceRegistrationRead) -> Int?
+
+pub fn source_registration_local_entry_work_bound(SourceRegistrationRead) -> Int?
+
+pub fn source_registration_local_failure_phase(SourceRegistrationRead) -> @stage_local_inputs.LocalEnvironmentPhase?
+
+pub fn source_registration_local_groups_construction(SourceRegistrationRead) -> @decode_shape.CollectionConstructionInventory?
+
+pub fn source_registration_local_groups_driver_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_local_groups_quotation_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_local_groups_work(SourceRegistrationRead) -> Int?
+
+pub fn source_registration_local_groups_work_bound(SourceRegistrationRead) -> Int?
+
+pub fn source_registration_local_index_construction(SourceRegistrationRead) -> @stage_source_refs.IndexConstructionInventory?
+
+pub fn source_registration_local_index_driver_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_local_index_driver_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_local_index_inspection_bound(SourceRegistrationRead) -> Int64?
+
+pub fn source_registration_local_index_inspection_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_local_index_inspection_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_local_index_inspection_work(SourceRegistrationRead) -> Int64?
+
+pub fn source_registration_local_index_quotation_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_local_index_usage(SourceRegistrationRead) -> @stage_source_refs.Usage?
+
+pub fn source_registration_local_index_work_bound(SourceRegistrationRead) -> Int?
+
+pub fn source_registration_local_phase(SourceRegistrationRead) -> @stage_local_inputs.LocalEnvironmentPhase?
+
+pub fn source_registration_local_snapshot_construction_geometry(SourceRegistrationRead) -> (Int, Int, Int)?
+
+pub fn source_registration_local_snapshot_emission(SourceRegistrationRead) -> (Int, (Int, Int, Int)?)?
+
+pub fn source_registration_local_snapshot_inspection_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_local_snapshot_inspection_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_local_snapshot_limits(SourceRegistrationRead) -> @local_relation_snapshot.Limits?
+
+pub fn source_registration_local_snapshot_reference_construction(SourceRegistrationRead) -> (@local_source_ref.ReferenceReadConstructionInventory?, Int64)?
+
+pub fn source_registration_local_snapshot_reference_inspection_bound(SourceRegistrationRead) -> Int64?
+
+pub fn source_registration_local_snapshot_reference_inspection_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_local_snapshot_reference_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_local_snapshot_selector_construction(SourceRegistrationRead) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn source_registration_local_snapshot_text_construction(SourceRegistrationRead) -> @check_environment.RegistryConstructionExtent?
+
+pub fn source_registration_local_snapshot_work(SourceRegistrationRead) -> Int?
+
+pub fn source_registration_local_snapshot_work_observation_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_local_snapshots_work_bound(SourceRegistrationRead) -> Int?
+
+pub fn source_registration_phase(SourceRegistrationRead) -> SourceRegistrationPhase
+
+pub fn source_registration_pipeline_construction(SourceRegistrationRead) -> @sourceview_resolution.PipelinePreparationConstruction?
+
+pub fn source_registration_pipeline_driver_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_pipeline_driver_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_pipeline_quotation_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_pipeline_work(SourceRegistrationRead) -> Int
+
+pub fn source_registration_pipeline_work_bound(SourceRegistrationRead) -> Int?
+
+pub fn source_registration_resolution_construction(SourceRegistrationRead) -> @sourceview_resolution.ResolutionConstructionInventory?
+
+pub fn source_registration_resolution_driver_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_resolution_driver_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_resolution_inspection_bound(SourceRegistrationRead) -> Int64?
+
+pub fn source_registration_resolution_inspection_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_resolution_inspection_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_resolution_inspection_work(SourceRegistrationRead) -> Int64?
+
+pub fn source_registration_resolution_quotation_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_resolution_work_bound(SourceRegistrationRead) -> Int?
+
+pub fn source_registration_retained_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_selection_work(SourceRegistrationRead) -> Int
+
 pub fn source_request_bindings_diagnostic_issue(@binding_declarations.Issue) -> PrepareSourcesIssue
 
 pub fn source_request_context_diagnostic_issue(@sourceview_resolution.RequestIssue) -> PrepareSourcesIssue
@@ -1199,6 +1356,8 @@ pub fn stage_requirement_usage(StageRequirementClosure) -> (Int, Int)
 pub fn stage_results(StageContexts) -> @stage_results.Checked
 
 pub fn stage_usage(StageContexts) -> (Int, Int)
+
+pub fn take_source_registration_result(SourceRegistrationRead) -> Result[(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs), SourceRegistrationIssue]?
 
 pub fn text_bound_at(TextBoundsChecks, Int) -> TextBoundResolution?
 
@@ -3398,6 +3557,19 @@ pub enum SourceRegistrationIssue {
   Registration(@sourceview_resolution.PipelineIssue)
   LocalInputs(@stage_local_inputs.PrepareEnvironmentIssue)
 }
+
+pub(all) enum SourceRegistrationPhase {
+  RegistrationCollect
+  RegistrationSelect
+  RegistrationPipeline
+  RegistrationLocal
+  RegistrationComplete
+  RegistrationFailed
+  RegistrationTransferred
+  RegistrationRetired
+} derive(Eq, @debug.Debug)
+
+type SourceRegistrationRead
 
 type SourceRequestContexts
 

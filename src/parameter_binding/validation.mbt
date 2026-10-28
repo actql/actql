@@ -43,19 +43,20 @@ fn charge_text(
 ///|
 fn charge_key(
   key : String,
-  names : Array[String],
-  object : @decode.Cursor,
+  child : @decode.Cursor,
   budget : Budget,
 ) -> Unit raise Abort {
-  charge_text(key, object, budget, identifier=true) catch {
-    Abort(ParameterIssue(kind, ..)) =>
-      match @decode.closed_object(object, names.filter(n => n != key)) {
-        Err(location) =>
-          raise Abort(
-            ParameterIssue(kind, path=location.path, span=location.span),
-          )
-        Ok(_) => invalid(object, kind)
-      }
+  charge_text(key, child, budget, identifier=true) catch {
+    Abort(ParameterIssue(kind, path~, ..)) =>
+      raise Abort(
+        ParameterIssue(
+          kind,
+          path~,
+          span=@decode.cursor_key_span(child).unwrap_or(
+            @decode.cursor_span(child),
+          ),
+        ),
+      )
     error => raise error
   }
 }
@@ -71,40 +72,48 @@ fn preflight(root : @decode.Cursor, budget : Budget) -> Unit raise Abort {
   let work : Array[(@decode.Cursor, Int)] = [(root, 0)]
   while !work.is_empty() {
     let (cursor, parent_depth) = work.pop().unwrap()
-    let view = @decode.view(cursor)
-    let container = view is (@decode.ArrayValue(_) | @decode.ObjectValue(_))
+    let array = @decode.array_length(cursor)
+    let object = @decode.object_length(cursor)
+    let container = array is Some(_) || object is Some(_)
     if container && parent_depth >= budget.depth {
       invalid(cursor, BudgetExceeded)
     }
     let depth = parent_depth + (if container { 1 } else { 0 })
-    match view {
-      @decode.NullValue | @decode.BoolValue(_) => ()
-      @decode.NumberValue(n) =>
-        if @scalar.read_finite_number(n) is None || (n == 0.0 && 1.0 / n < 0.0) {
-          invalid(cursor, InvalidNumber)
-        }
-      @decode.TextValue(text) => charge_text(text, cursor, budget)
-      @decode.ArrayValue(items) => {
-        if items.length() > budget.nodes {
-          invalid(cursor, BudgetExceeded)
-        }
-        budget.nodes -= items.length()
-        for index = items.length() - 1; index >= 0; index = index - 1 {
-          work.push((items[index], depth))
-        }
+    if array is Some(count) {
+      if count > budget.nodes {
+        invalid(cursor, BudgetExceeded)
       }
-      @decode.ObjectValue(object) => {
-        let names = decoded(@decode.object_field_names(cursor))
-        if names.length() > budget.nodes {
-          invalid(cursor, BudgetExceeded)
-        }
-        budget.nodes -= names.length()
-        for name in names {
-          charge_key(name, names, cursor, budget)
-        }
-        for index = names.length() - 1; index >= 0; index = index - 1 {
-          work.push((@decode.lookup(object, names[index]).unwrap(), depth))
-        }
+      budget.nodes -= count
+      for index = count - 1; index >= 0; index = index - 1 {
+        work.push((@decode.element_at(cursor, index).unwrap(), depth))
+      }
+    } else if object is Some(count) {
+      if count > budget.nodes {
+        invalid(cursor, BudgetExceeded)
+      }
+      budget.nodes -= count
+      // Charge every original key before visiting children, in source order.
+      // Immutable admission already owns exact child/key spans; no detached
+      // names array, ObjectView/Map or closed-object recheck is needed here.
+      for index in 0..<count {
+        let (name, child) = @decode.field_at(cursor, index).unwrap()
+        charge_key(name, child, budget)
+      }
+      for index = count - 1; index >= 0; index = index - 1 {
+        work.push((@decode.field_at(cursor, index).unwrap().1, depth))
+      }
+    } else {
+      // Container branches returned above. This original scalar view never
+      // copies child Cursors, names or field Maps before a budget refusal.
+      match @decode.view(cursor) {
+        @decode.NullValue | @decode.BoolValue(_) => ()
+        @decode.NumberValue(n) =>
+          if @scalar.read_finite_number(n) is None ||
+            (n == 0.0 && 1.0 / n < 0.0) {
+            invalid(cursor, InvalidNumber)
+          }
+        @decode.TextValue(text) => charge_text(text, cursor, budget)
+        _ => abort("immutable scalar cursor changed kind")
       }
     }
   }

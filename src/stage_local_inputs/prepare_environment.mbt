@@ -24,149 +24,30 @@ pub fn prepare_environment(
   limits : Limits,
   sourceviews? : @sourceviews.Inputs? = None,
 ) -> Result[ProgramEnvironmentInputs, PrepareEnvironmentIssue] {
-  if limits.max_work < 0 ||
-    limits.max_nodes < 0 ||
-    limits.max_text_bytes < 0 ||
-    limits.max_depth < 0 {
-    return Err(InvalidLimits)
-  }
-  if sourceviews is Some(views) &&
-    !physical_equal(@sourceviews.source(views), source) {
-    return Err(ForeignSourceViews)
-  }
-  let count = @stages.stage_count(source)
-  let members = @environment.member_count(
-    environment,
-    @environment.SchemaSnapshots,
-  )
-  if count >= limits.max_work || members > limits.max_work - count - 1 {
-    return Err(BudgetExceeded)
-  }
-  let mut work = limits.max_work - count - members - 1
-  let mut nodes = limits.max_nodes
-  let mut text = limits.max_text_bytes
-  let index = match
-    @refs.prepare(source, { max_work: work, max_text_bytes: text, }) {
-    Ok(v) => v
-    Err(e) => return Err(Index(e))
-  }
-  // Reconciliation reports the exact retained index prefix per Stage, as does
-  // assemble_environment. Do not add an extra index prefix here.
-  let names : Map[String, Int] = Map([])
-  let by_stage : Array[Array[@snapshot.EnvironmentSnapshot]] = Array::makei(
-    count,
-    _ => [],
-  )
-  for i in 0..<count {
-    let name = @stages.stage_at(source, i).unwrap().id
-    if name.length() > work {
-      return Err(BudgetExceeded)
-    }
-    work -= name.length()
-    names[name] = i
-  }
-  for i in 0..<members {
-    let entry = @environment.member_at(
+  let read = match
+    begin_local_environment_preparation(
+      source,
       environment,
-      @environment.SchemaSnapshots,
-      i,
-    ).unwrap()
-    match @environment.connector_source_snapshot_selector(entry) {
-      Ok(Some(_)) => {
-        let (bytes, n) = @environment.member_usage(entry)
-        if bytes > text || n > nodes || n > work {
-          return Err(BudgetExceeded)
-        }
-        text -= bytes
-        nodes -= n
-        work -= n
-        continue
-      }
-      Ok(None) => ()
-      Err(issue) => return Err(ConnectorSnapshot(i, issue))
-    }
-    let admitted = match
-      @snapshot.read_member(entry, {
-        max_bytes: text,
-        max_nodes: if nodes < work {
-          nodes
-        } else {
-          work
-        },
-        max_depth: limits.max_depth,
-      }) {
-      Ok(v) => v
-      Err(e) => return Err(Snapshot(i, e))
-    }
-    let snapshot = @snapshot.environment_snapshot(admitted)
-    let (bytes, n) = @snapshot.usage(snapshot)
-    text -= bytes
-    nodes -= n
-    work -= n
-    let name = @source_ref.stage_name(@snapshot.source_reference(snapshot))
-    if name.length() > work {
-      return Err(BudgetExceeded)
-    }
-    work -= name.length()
-    let at = match names.get(name) {
-      Some(at) => at
-      None => return Err(UnknownStage(i, name))
-    }
-    by_stage[at].push(admitted)
+      limits,
+      sourceviews~,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(read) => read
   }
-  let mut stage_work = 0
-  let mut stage_nodes = 0
-  let mut stage_text = 0
-  let stages = []
-  for i in 0..<count {
-    let remaining : Limits = {
-      max_work: work,
-      max_nodes: nodes,
-      max_text_bytes: text,
-      max_depth: limits.max_depth,
+  while true {
+    match advance_local_environment_preparation(read) {
+      LocalEnvironmentComplete | LocalEnvironmentFailed =>
+        return take_local_environment_preparation_result(read).unwrap()
+      LocalEnvironmentIndex
+      | LocalEnvironmentGroups
+      | LocalEnvironmentSnapshot
+      | LocalEnvironmentDeclaration
+      | LocalEnvironmentReconciliation
+      | LocalEnvironmentAssembly => ()
+      LocalEnvironmentTransferred | LocalEnvironmentRetired =>
+        abort("unexposed original Local read cannot retire externally")
     }
-    let prepared = match prepare(source, i, remaining, sourceviews~) {
-      Ok(v) => v
-      Err(e) => return Err(Stage(i, e))
-    }
-    // Reconciliation already includes declaration preparation in its usage.
-    let checked = match
-      reconcile_environment(
-        prepared,
-        index,
-        environment,
-        by_stage[i],
-        remaining,
-      ) {
-      Ok(v) => v
-      Err(e) => return Err(Environment(i, e))
-    }
-    let used = environment_usage(checked)
-    work -= used.work
-    nodes -= used.nodes
-    text -= used.text_bytes
-    stage_work += used.work
-    stage_nodes += used.nodes
-    stage_text += used.text_bytes
-    stages.push(checked)
+  } nobreak {
+    abort("original Local preparation returns at a terminal phase")
   }
-  let result = match
-    assemble_environment(source, environment, stages, {
-      max_work: work + stage_work,
-      max_nodes: nodes + stage_nodes,
-      max_text_bytes: text + stage_text,
-      max_depth: limits.max_depth,
-    }) {
-    Ok(v) => v
-    Err(e) => return Err(Collection(e))
-  }
-  let used = program_environment_usage(result)
-  Ok({
-    ..result,
-    usage: {
-      work: limits.max_work - work + (used.work - stage_work),
-      nodes: limits.max_nodes - nodes + (used.nodes - stage_nodes),
-      text_bytes: limits.max_text_bytes - text + (used.text_bytes - stage_text),
-    },
-  })
 }

@@ -22,7 +22,7 @@ test "compilation ancestry quote retains full semantic node authority separately
   assert_eq(
     @execution.preparation_representation_cost(general).unwrap() -
     @execution.preparation_representation_cost(narrow).unwrap(),
-    224L * (500308L - 140L),
+    256L * (500308L - 140L),
   )
   assert_true(compilation_canonical_emitter_layout(10) is Some(_))
   assert_true(compilation_canonical_emitter_layout(-1) is None)

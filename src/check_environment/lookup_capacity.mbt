@@ -83,6 +83,14 @@ fn[T] lookup_invalid(c : @decode.Cursor) -> T raise LookupCapacityStop {
 }
 
 ///|
+// Same closed five-field interpreter: its budget, four live scalar Some
+// values and returned LookupCapacity. Child/result/error cursor controls are
+// supplied by the calling reader's original decoder frame; no String copy.
+fn lookup_capacity_body_construction_extent() -> @shape.CollectionConstructionExtent {
+  { record_headers: 6L, reference_slots: 1L, scalar_words: 13L, }
+}
+
+///|
 fn lookup_capacity_body(
   c : @decode.Cursor,
   b : LookupCapacityBudget,

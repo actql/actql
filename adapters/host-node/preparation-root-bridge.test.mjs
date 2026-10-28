@@ -36,7 +36,9 @@ test('actual Root funds header and 9900-cell scan then aborts same child', async
  const [planning,attempts,holdings,transfer,retained,execution]=moon.clientLocalPreparationResourceLimits(policy);
  const original=resources.retainOrdinaryManagedRun(input,{planningWork:Number(planning),attempts:Number(attempts),holdings:Number(holdings),transferBytes:transfer,retainedBytes:retained,executionBytes:execution},()=>{},()=>false,'local-preparation');
  const admission=checked(moon.clientProgramPrepareLocalPreparationAdmission(original,input));
- const owner=checked(moon.clientProgramBeginClosedValuesPreparation(admission,input,policy));
+ assert.equal(Object.hasOwn(moon,'clientProgramBeginClosedValuesPreparation'),false);
+ const parent=checked(moon.clientProgramBeginRequestPreparation(admission,input,policy));
+ const owner=checked(moon.clientProgramSelectClosedValuesPreparation(parent,input));
  const headerWork=checked(moon.clientProgramBeginClosedValuesHeader(owner));
  const phase=token=>({spendWork(n){checked(moon.clientProgramSpendPreparationPhaseWork(token,n));}});
  const header=s.probeClosedValuesOwnDataHeader(p,undefined,phase(headerWork));assert.ok(header);
@@ -59,7 +61,9 @@ test('actual preparation accounting observes one original reservation and zero a
  const [planning,attempts,holdings,transfer,retained,execution]=moon.clientLocalPreparationResourceLimits(policy);
  const original=resources.retainOrdinaryManagedRun(input,{planningWork:Number(planning),attempts:Number(attempts),holdings:Number(holdings),transferBytes:transfer,retainedBytes:retained,executionBytes:execution},()=>{},()=>false,'local-preparation');
  const admission=checked(moon.clientProgramPrepareLocalPreparationAdmission(original,input));
- const owner=checked(moon.clientProgramBeginClosedValuesPreparation(admission,input,policy));
+ assert.equal(Object.hasOwn(moon,'clientProgramBeginClosedValuesPreparation'),false);
+ const parent=checked(moon.clientProgramBeginRequestPreparation(admission,input,policy));
+ const owner=checked(moon.clientProgramSelectClosedValuesPreparation(parent,input));
  const fields=()=>{const q=checked(moon.clientProgramClosedValuesPreparationAccounting(owner));return Array.from({length:6},(_,i)=>q[`_${i}`]);};
  const initial=fields();
  assert.ok(initial.every(v=>typeof v==='bigint'));

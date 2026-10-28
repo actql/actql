@@ -6,6 +6,7 @@ import {
   "actql/actql/capacity_program_step",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
@@ -192,6 +193,12 @@ pub fn mode_source(DirectMode) -> @decode_core.Cursor
 
 pub fn mode_work(DirectMode) -> Int
 
+pub fn observe_prepare_pipeline_inputs(Resolved, Int) -> (Result[PipelineInputs, PipelineIssue], Int)
+
+pub fn observe_resolution_construction_geometry(@sourceview_input.Inputs, @check_environment.SourceRequestContracts, Limits) -> ResolutionConstructionGeometry
+
+pub fn observe_resolve(@sourceview_input.Inputs, @check_environment.SourceRequestContracts, Limits) -> (Result[Resolved, Issue], Int)
+
 pub fn parameterized_keyed_request(ParameterizedKeyedRequest) -> KeyedRequest
 
 pub fn parameterized_keyed_request_field_at(ParameterizedKeyedRequest, Int) -> ParameterizedRequestField?
@@ -231,6 +238,14 @@ pub fn pipeline_input_count(PipelineInputs, Int) -> Int?
 pub fn pipeline_input_source(PipelineInputs, Int, Int) -> ResolvedInput?
 
 pub fn pipeline_inputs_work(PipelineInputs) -> Int
+
+pub fn pipeline_preparation_construction(Resolved, Int) -> PipelinePreparationConstruction?
+
+pub fn pipeline_preparation_observation_control_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn pipeline_preparation_quotation_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn pipeline_preparation_work_bound(Resolved, Int) -> Int
 
 pub fn pipeline_request_at(PipelineRequests, Int) -> AcquisitionRequest?
 
@@ -327,6 +342,20 @@ pub fn request_parameter_values(RequestParameters) -> @parameter_binding.BoundVa
 pub fn request_parameter_work(RequestParameters) -> Int
 
 pub fn request_usage(DirectRequest) -> (Int, Int, Int, Int)
+
+pub fn resolution_construction_geometry_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn resolution_construction_inspection_bound(@sourceview_input.Inputs, Limits) -> Int64
+
+pub fn resolution_construction_inspection_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn resolution_construction_inventory(ResolutionConstructionGeometry, Limits) -> ResolutionConstructionInventory?
+
+pub fn resolution_construction_quotation_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn resolution_observation_control_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn resolution_work_bound(@sourceview_input.Inputs, Int) -> Int
 
 pub fn resolve(@sourceview_input.Inputs, @check_environment.SourceRequestContracts, Limits) -> Result[Resolved, Issue]
 
@@ -568,6 +597,11 @@ pub(all) enum PipelineIssue {
   ForeignInput(String)
 } derive(Eq, @debug.Debug)
 
+pub(all) struct PipelinePreparationConstruction {
+  returned : @decode_shape.CollectionConstructionExtent
+  temporary : @decode_shape.CollectionConstructionExtent
+} derive(Eq, @debug.Debug)
+
 type PipelineRequests
 
 type PipelineUses
@@ -669,6 +703,30 @@ pub(all) enum RequestWireIssue {
   UnboundHostBinding
   Encoding(@encode_core.EncodeFailure)
 } derive(@debug.Debug)
+
+pub(all) struct ResolutionConstructionGeometry {
+  inputs : Int
+  views : Int
+  inherited_work : Int
+  candidate_inputs : Int
+  candidate_views : Int
+  max_view_fields : Int
+  max_declaration_fields : Int
+  identity_utf16 : Int64
+  max_identity_utf16 : Int
+  max_connector_utf16 : Int
+  max_view_utf16 : Int
+  reference_utf16 : Int64
+  max_reference_utf16 : Int
+  inspection_work : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ResolutionConstructionInventory {
+  returned : @decode_shape.CollectionConstructionExtent
+  temporary : @decode_shape.CollectionConstructionExtent
+  returned_utf16_units : Int64
+  temporary_utf16_units : Int64
+} derive(Eq, @debug.Debug)
 
 type Resolved
 

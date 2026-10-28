@@ -23,3 +23,13 @@ fn catalog_reference_routes() -> Array[ReferenceRoute] {
     ReferenceRoute(false, [RefField("cancel", false)], "cancel"),
   ]
 }
+
+///|
+fn catalog_reference_route_construction() -> ReferenceRouteConstruction {
+  {
+    routes: 19,
+    field_hops: 44,
+    all_hops: 47,
+    max_hops: 6,
+  }
+}

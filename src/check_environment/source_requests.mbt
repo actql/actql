@@ -218,11 +218,32 @@ pub fn check_source_request_contracts(
   carriers : CarrierSchemas,
   limits : SourceRequestLimits,
 ) -> Result[SourceRequestContracts, SourceRequestIssue] {
+  observe_source_request_contracts(carriers, limits).0
+}
+
+///|
+/// Observe the SAME reader's original budget cells, including on its first
+/// typed refusal. These are tracked semantic work/roles, not total CPU or
+/// accepted views, response rows, physical work or authority.
+pub fn observe_source_request_contracts(
+  carriers : CarrierSchemas,
+  limits : SourceRequestLimits,
+) -> (Result[SourceRequestContracts, SourceRequestIssue], Int, Int) {
   if limits.max_work < 0 || limits.max_roles < 0 {
-    return Err({ kind: InvalidLimits, source: None, })
+    return (Err({ kind: InvalidLimits, source: None, }), 0, 0)
   }
-  let values = carriers.modes.shapes.values
   let b = { work: limits.max_work, roles: limits.max_roles, }
+  let result = read_source_request_contracts(carriers, limits, b)
+  (result, limits.max_work - b.work, limits.max_roles - b.roles)
+}
+
+///|
+fn read_source_request_contracts(
+  carriers : CarrierSchemas,
+  limits : SourceRequestLimits,
+  b : SourceRequestBudget,
+) -> Result[SourceRequestContracts, SourceRequestIssue] {
+  let values = carriers.modes.shapes.values
   let requests : Map[Int, CatalogReference] = Map([])
   let views = []
   let by_view : Map[Int, SourceViewRequestContract] = Map([])

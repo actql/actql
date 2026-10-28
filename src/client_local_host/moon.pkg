@@ -1,10 +1,13 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/decode_shape" @shape,
+  "actql/actql/parameter_binding" @parameters,
   "actql/actql/client_source_publication" @source_publication,
   "actql/actql/expression_typing" @typing,
   "actql/actql/encode_core" @encode,
   "actql/actql/stage_syntax" @syntax,
+  "actql/actql/stage_parameters" @stages,
   "actql/actql/decode_core" @decode,
   "actql/actql/program_check" @checked,
   "actql/actql/pipeline_check_context" @context,
@@ -40,6 +43,8 @@ import {
 }
 
 import {
+  "actql/actql/capacity_host_witness" @binding_host,
+  "actql/actql/capacity_witness" @binding_wire,
   "actql/actql/local_veca_provider" @nearest_provider,
   "actql/actql/source_frontend" @frontend,
   "actql/actql/sha256" @sha,
@@ -48,8 +53,20 @@ import {
 
 options(
   targets: {
+    "preparation_program_check_current_js_wbtest.mbt": [ "js" ],
     "preparation_request_parent_js_wbtest.mbt": [ "js" ],
     "preparation_request_program_json_js_wbtest.mbt": [ "js" ],
+    "preparation_request_handoff_js_wbtest.mbt": [ "js" ],
+    "preparation_request_check_parent_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_source_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_collection_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_resolution_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_pipeline_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_local_entry_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_local_index_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_local_groups_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_local_snapshot_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_local_snapshot_reference_js_wbtest.mbt": [ "js" ],
     "preparation_closed_values_module_call_js.mbt": [ "js" ],
     "preparation_closed_values_module_call_portable.mbt": [
       "wasm",
