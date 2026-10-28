@@ -56,6 +56,8 @@ pub fn[I, P] begin_preparation_phase_work(PreparationCapacity[I, P], I, Preparat
 
 pub fn[I, P] begin_preparation_phase_work64(PreparationCapacity[I, P], I, PreparationWorkPhase, Int64) -> Result[PreparationPhaseWork64, PreparationWorkIssue]
 
+pub fn[I, P] begin_preparation_phase_work_continuation64(PreparationCapacity[I, P], I, PreparationWorkPhase, Int64) -> Result[PreparationPhaseWorkContinuation64, PreparationWorkIssue]
+
 pub fn[P, C] borrow_backed_execution_read_use(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C]) -> Result[BackedExecutionReadUse[P, C], BackedExecutionIssue]
 
 pub fn[T] borrow_original_read_workspace_claim(OriginalReadWorkspaceBinding[T], T, SharedCapacity) -> FundedReadClaim[T]?
@@ -171,6 +173,8 @@ pub fn finish_original_ledger_inventory(Ledger, Bool) -> Result[Bool, OriginalRe
 pub fn finish_preparation_phase_work(PreparationPhaseWork) -> Result[Int, PreparationWorkIssue]
 
 pub fn finish_preparation_phase_work64(PreparationPhaseWork64) -> Result[Int64, PreparationWorkIssue]
+
+pub fn finish_preparation_phase_work_continuation64(PreparationPhaseWorkContinuation64) -> Result[Int64, PreparationWorkIssue]
 
 pub fn[T] fund_original_read(Ledger, T, OriginalLedgerDescriptor[T], Int64, Int64) -> Result[FundedReadClaim[T], OriginalReadIssue]
 
@@ -314,6 +318,8 @@ pub fn[I, P] preparation_capacity_working_extents(PreparationCapacity[I, P], I) 
 
 pub fn preparation_phase_work_construction_inventory() -> PreparationWorkConstructionInventory
 
+pub fn preparation_phase_work_continuation64_construction_inventory() -> PreparationWorkConstructionInventory
+
 pub fn[P, C, R] prepare_backed_original_child_ledger(BackedExecutionLiveProjection[P, C, R], R) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
 
 pub fn prepare_imported_child_ledger(Int64) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
@@ -390,6 +396,8 @@ pub fn[P] restore_node_managed_run_admission(NodeManagedRunAdmission[P], P, Ledg
 
 pub fn restore_quiescent_ledger_state(Ledger, LedgerContinuationState) -> Result[Unit, LedgerContinuationIssue]
 
+pub fn resume_preparation_phase_work_continuation64(PreparationPhaseWorkContinuation64) -> Result[Unit, PreparationWorkIssue]
+
 pub fn retain_allocation(Ledger, Reservation, Int64) -> Result[Holding, LedgerIssue]
 
 pub fn[P, C, R] retire_backed_execution_live_child_after_owner_ack(BackedExecutionLiveAccess[P, C, R], R) -> Result[Unit, BackedExecutionIssue]
@@ -415,6 +423,8 @@ pub fn[P, C] return_backed_execution_read_use_after_owner_ack(BackedExecutionReg
 pub fn[P] return_preparation_body_borrow(PreparationBodyBorrow[P]) -> Result[Bool, PreparationCapacityIssue]
 
 pub fn[I, P] return_preparation_capacity_borrow(PreparationCapacityBorrow[I, P]) -> Result[Bool, PreparationCapacityIssue]
+
+pub fn return_preparation_phase_work_continuation64(PreparationPhaseWorkContinuation64) -> Result[Unit, PreparationWorkIssue]
 
 pub fn return_shared_capacity(SharedBorrow) -> Result[Unit, LedgerIssue]
 
@@ -459,6 +469,8 @@ pub fn shared_capacity_usage(SharedCapacity) -> SharedCapacityUsage
 pub fn spend_preparation_phase_work(PreparationPhaseWork, Int) -> Result[Unit, PreparationWorkIssue]
 
 pub fn spend_preparation_phase_work64(PreparationPhaseWork64, Int64) -> Result[Unit, PreparationWorkIssue]
+
+pub fn spend_preparation_phase_work_continuation64(PreparationPhaseWorkContinuation64, Int64) -> Result[Unit, PreparationWorkIssue]
 
 pub fn start_imported_child_ledger(ImportedChildLedger) -> Result[Unit, ImportedChildLedgerIssue]
 
@@ -889,6 +901,8 @@ pub(all) enum PreparationCapacityIssue {
 type PreparationPhaseWork
 
 type PreparationPhaseWork64
+
+type PreparationPhaseWorkContinuation64
 
 type PreparationRetirement
 

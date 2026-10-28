@@ -1553,3 +1553,27 @@ retires this pure entrance; its getters and retirement do not provide capacity,
 permission or physical cleanup acknowledgements. Funding the topology, actual
 binding constructors and final Local assembly remains the request parent's
 responsibility at their respective boundaries.
+
+## One work phase across returned constructors
+
+An incremental typed constructor can reveal the next required representation
+only after its current step returns. A staged phase receipt retains the same
+original phase state, maximum, remaining work and ordinal across that boundary.
+The fixed driver marks the constructor returned, backs the next overlap on the
+same reservation, then resumes that same receipt. Returning does not close the
+phase or issue new work credit. Ordinary narrow and wide receipts retain their
+original fields and construction envelope; only the selected staged receipt
+holds the return/resume operations.
+
+Executing work still blocks resize. Returned work cannot spend until resumed,
+and its pending receipt still blocks completion, typed ownership continuation,
+publication and abort. The resize's original current callback remains a reentry
+boundary: it cannot resume or finish that receipt while the owner is completing
+the resize. The callback-free resume checks the same owner and stopping state;
+it does not add another current observation.
+
+The driver may return a receipt only after its synchronous constructor has
+unwound, and may reconcile only disposed scratch. All original typed inputs and
+live intermediate outputs remain funded. Finishing during cleanup reports the
+same previously consumed work. None of these operations acknowledges physical
+cleanup, refunds work, changes a limit or authorizes another phase issuance.
