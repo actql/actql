@@ -1037,3 +1037,36 @@ stays uncertain, not a fabricated unsent conflict. Later labels or history alone
 cannot settle a lost reply, and automatic resend remains forbidden. Actual
 provider correlation, claim/receipt, current checks, bounded construction,
 cold recovery and physical cleanup remain required before normal adoption.
+
+## Calendar native move/delete confirmation
+
+`ROOT-CALENDAR-NATIVE-WRITE-CONFIRMATION-01` corrects the blanket marker rule in
+[Calendar Preview and reconciliation](../connectors/calendar.md#preview-and-reconciliation).
+Google's native [move](https://developers.google.com/workspace/calendar/api/v3/reference/events/move)
+and [delete](https://developers.google.com/workspace/calendar/api/v3/reference/events/delete)
+methods take no request body. Deleted events and moved-source tombstones do not
+guarantee retained private properties. Requiring these methods to write a new
+marker in that same request was therefore not an implementable native contract.
+
+Keep same-request markers for body-carrying writes. For native move/delete,
+distinguish an authentic response causally bound to the exact approved physical
+request from later state observations after a lost reply. A complete native
+response may establish the postcondition it actually proves; a remaining
+readback obligation has its own scoped authority and funded owner. Empty delete
+success is not a generic status whitelist. Neither a tombstone, absence,
+destination state nor an old marker alone proves this operation. Insufficient
+evidence stays Unknown, with no automatic resend or synthetic OperationRef.
+
+No marker-PATCH sequence or cancellation-PATCH substitute is selected. A future
+compound mutation must expose every write, permission, capacity and atomicity in
+its original Preview and operation inventory. All six documented Calendar
+operations remain required.
+
+The original full-diff version guard, exact mutation, common all-member
+preflight, approval, claim and cleanup duties remain. The documented
+[conditional update/delete](https://developers.google.com/workspace/calendar/api/guides/version-resources)
+contract does not by itself establish conditional move support. An unqualified
+backend refuses before sending; it must not silently weaken that guard or claim
+move support from these prose changes. No schema, CID, identity domain, grant or
+new outcome variant changes. Actual provider correlation, construction/backing,
+normal execution and cold recovery remain implementation obligations.
