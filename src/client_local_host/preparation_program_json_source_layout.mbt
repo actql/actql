@@ -21,9 +21,10 @@
 /// The begin operation reserves this packet before later projection and
 /// reconciliation calls. That reservation does not retroactively supply the
 /// begin operation's own pre-resize frame or the backend's borrowed inputs.
-// Generic structural continuation adds360H93R772W, funded BEFORE its first
+// Generic structural continuation adds386H118R818W, funded BEFORE its first
 // descriptor/receipt/observer allocation. Conservative call-expanded families:
-// - original Program base quote156,30,336 (same decoder/container/Map owners);
+// - original Program base quote182,55,382: unchanged152,28,322 plus
+//   the SAME one container quote30,26,60 and retained-original holder1R;
 // - aggregate +two canonical normalization descriptors/conversions14,2,56;
 // - three additional sum2/literal scopes60,15,120;
 // - original Resource work receipt/closures and slot12,16,18;
@@ -37,12 +38,21 @@
 //8H12R11W to the original driver below. No old quote slack is spent.
 let program_json_quote_controls : @execution.PreparationRepresentationUnits = {
   let work = @resources.preparation_phase_work_construction_inventory()
-  // Preserve the exact existing packet while the actual receipt owner now
-  // supplies its part. The remaining roles still belong to this domain.
+  let container = @syntax.program_container_quote_control_extent()
+  // Keep the unchanged Source/index/driver roles and use each original
+  // receipt/container owner for its quote-construction DATA exactly once.
   {
-    record_headers: 154L + 360L - 12L + work.record_headers,
-    reference_slots: 37L + 93L - 16L + work.reference_slots,
-    scalar_words: 335L + 772L - 18L + work.scalar_words,
+    record_headers: 154L +
+    356L +
+    container.record_headers -
+    12L +
+    work.record_headers,
+    reference_slots: 37L +
+    92L +
+    container.reference_slots -
+    16L +
+    work.reference_slots,
+    scalar_words: 335L + 758L + container.scalar_words - 18L + work.scalar_words,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }

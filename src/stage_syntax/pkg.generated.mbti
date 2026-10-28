@@ -111,7 +111,7 @@ pub fn program_construction_extent64(@decode_core.Cursor, Int64) -> ProgramConst
 
 pub fn program_constructor_container_extent(ProgramConstructorInventory) -> ProgramConstructorContainerExtent?
 
-pub fn program_constructor_control_extent(ProgramConstructorInventory) -> ProgramConstructorControlExtent?
+pub fn program_constructor_control_extent(ProgramConstructorContainerExtent) -> ProgramConstructorControlExtent?
 
 pub fn program_constructor_failure_extent(Int) -> ProgramConstructorControlExtent?
 
@@ -124,6 +124,8 @@ pub fn program_constructor_inventory(@decode_core.Cursor, Int64) -> ProgramConst
 pub fn program_container_construction_extent(ProgramConstructionExtent) -> ProgramContainerConstructionExtent?
 
 pub fn program_container_construction_extent64(ProgramConstructionExtent64) -> ProgramContainerConstructionExtent?
+
+pub fn program_container_quote_control_extent() -> ProgramConstructorControlExtent
 
 pub fn program_input_cursor(ParsedProgramInput) -> @decode_core.Cursor
 
@@ -146,6 +148,14 @@ pub fn stage_body(Stage) -> @decode_core.Cursor
 pub fn stage_closed_field_count() -> Int
 
 pub fn stage_count(Program) -> Int
+
+pub fn stage_input_declaration(Stage, String) -> @decode_core.Cursor?
+
+pub fn stage_input_declaration_count(Stage) -> Int
+
+pub fn stage_input_declaration_name_at(Stage, Int) -> String?
+
+pub fn stage_steps_source(Stage) -> @decode_core.Cursor
 
 pub fn stage_table_input_at(Stage, Int) -> String?
 
@@ -253,11 +263,12 @@ pub(all) struct ProgramConstructionExtent64 {
   inspection_work : Int64
 } derive(Eq, @debug.Debug)
 
-pub(all) struct ProgramConstructorContainerExtent {
+pub struct ProgramConstructorContainerExtent {
   retained : ProgramContainerConstructionExtent
   record_headers : Int64
   reference_slots : Int64
   scalar_words : Int64
+  // private fields
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ProgramConstructorControlExtent {
@@ -309,6 +320,7 @@ pub(all) enum ProgramJsonInputIssue {
 pub(all) struct ProgramRepresentationExtent {
   program_records : Int64
   stage_records : Int64
+  object_views : Int64
   array_owners : Int64
   array_backing_slots : Int64
   array_uninspected_slots : Int64

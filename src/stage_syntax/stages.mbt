@@ -23,6 +23,9 @@ pub struct Stage {
   priv table_input_index : Map[String, Bool]
   priv effect_index : Map[String, Bool]
   priv body : @wire.Cursor
+  priv original_inputs : @wire.ObjectView
+  priv original_input_names : Array[String]
+  priv original_steps : @wire.Cursor
 }
 
 ///|
@@ -309,8 +312,9 @@ fn decode_envelope(
         }
       None => ()
     }
+    let original_steps = required(stage, "steps")
     ignore(
-      match @wire.elements(required(stage, "steps")) {
+      match @wire.elements(original_steps) {
         Ok(value) => value
         Err(issue) => raise Abort(Decode(issue))
       },
@@ -346,6 +350,9 @@ fn decode_envelope(
       table_input_index: name_index(table_inputs),
       effect_index: name_index(effects),
       body: node,
+      original_inputs: inputs_view,
+      original_input_names: input_names,
+      original_steps,
     }
     stages.push(value)
     seen[stage_id] = value
@@ -432,6 +439,28 @@ pub fn export_at(program : Program, index : Int) -> (String, String, String)? {
 ///|
 pub fn stage_body(stage : Stage) -> @wire.Cursor {
   stage.body
+}
+
+///|
+/// Same structurally admitted declaration table, not semantic or resource
+/// admission. Names and source cursors stay in their original Stage lifetime.
+pub fn stage_input_declaration_count(stage : Stage) -> Int {
+  stage.original_input_names.length()
+}
+
+///|
+pub fn stage_input_declaration_name_at(stage : Stage, index : Int) -> String? {
+  stage.original_input_names.get(index)
+}
+
+///|
+pub fn stage_input_declaration(stage : Stage, name : String) -> @wire.Cursor? {
+  @wire.lookup(stage.original_inputs, name)
+}
+
+///|
+pub fn stage_steps_source(stage : Stage) -> @wire.Cursor {
+  stage.original_steps
 }
 
 ///|

@@ -1753,3 +1753,31 @@ with the original semantic body. Clearing removes pending element roots but
 does not make the stack's retained backing or its parent reservation disappear.
 Connecting this pending stack and its next child construction to the funded
 core input boundary remains an explicit caller obligation.
+
+
+### Original Stage declaration views
+
+Structural Stage admission retains the original input ObjectView, ordered name
+Array and steps Cursor that it already constructed. Pipeline Source binding
+reads those same originals instead of building Stage and declaration Maps again
+for each selected input. It still applies its original name/text/work budgets
+and checks the exact steps and retained declaration tree binding. Structural
+syntax does not become a checked Program, permission or resource admission.
+
+The same Program constructor inventory includes these newly retained lifetimes:
+Stage roots, the input view and its original inputs/steps Cursors, the names
+buffer and the view's name index. They were already part of construction work;
+retention moves them without counting that construction twice. Shared Array/Map
+owners provide their retained storage units, including actual spare capacities
+in post-observation. Input values, field-name Strings and source trees stay
+borrowed from their existing owners.
+
+The container quote is readonly and keeps its original immutable inventory.
+The control quote consumes that same holder; it does not recalculate the
+retained envelope first. Its additional quote-construction work is supplied
+by that same domain's named inventory before projection. Fixed closed-Values
+consumers borrow an immutable implementation descriptor for their proved
+one-Stage envelope; dynamic source, cells, normalization and invocation backing
+remain separate. This descriptor contains no Program, bound parameter, Run,
+current observation or authorization. Full input/operation/Context/Plan funding
+and ordinary backend adoption remain required subsequent connections.

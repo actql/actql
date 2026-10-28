@@ -21,11 +21,11 @@ test "program retained container extent keeps source dependencies separate" {
   assert_true(program_representation_extent(program, 1) is None)
   let extent = program_representation_extent(program, 2).unwrap()
   assert_eq(extent.stage_records, 1L)
-  assert_eq(extent.array_owners, 6L)
-  assert_eq(extent.map_owners, 3L)
+  assert_eq(extent.array_owners, 7L)
+  assert_eq(extent.map_owners, 4L)
   assert_eq(extent.map_entries, 1L)
   assert_eq(extent.export_tuples, 1L)
-  assert_eq(extent.cursor_references, 2L)
+  assert_eq(extent.cursor_references, 4L)
   assert_true(same_program_representation_owner(program, program))
   assert_true(extent.array_backing_slots >= 3L)
   assert_true(
@@ -43,19 +43,19 @@ test "generic Program container owner preserves the independent one-stage vector
     import_tuple_bound: 0L,
     export_tuples: 1,
     name_index_entries: 1L,
-    retained_array_capacity_bound: 54L,
-    retained_map_capacity_bound: 28L,
+    retained_array_capacity_bound: 62L,
+    retained_map_capacity_bound: 36L,
     inspection_work: 29,
   }
   assert_eq(
     program_container_construction_extent(extent),
     Some({
-      record_headers: 38L,
-      reference_slots: 130L,
-      scalar_words: 76L,
-      shallow_record_headers: 4L,
-      shallow_reference_slots: 19L,
-      shallow_scalar_words: 2L,
+      record_headers: 32L,
+      reference_slots: 146L,
+      scalar_words: 47L,
+      shallow_record_headers: 7L,
+      shallow_reference_slots: 28L,
+      shallow_scalar_words: 4L,
     }),
   )
   for
@@ -67,8 +67,8 @@ test "generic Program container owner preserves the independent one-stage vector
       { ..extent, import_tuple_bound: 4294967295L, },
       { ..extent, name_index_entries: -1L, },
       { ..extent, name_index_entries: 2147483648L, },
-      { ..extent, retained_array_capacity_bound: 53L, },
-      { ..extent, retained_map_capacity_bound: 27L, },
+      { ..extent, retained_array_capacity_bound: 61L, },
+      { ..extent, retained_map_capacity_bound: 35L, },
     ] {
     assert_true(program_container_construction_extent(bad) is None)
   }
@@ -94,18 +94,18 @@ test "generic Program construction covers multiple imports and public Results be
   assert_eq(bounds.stage_records, 2)
   assert_eq(bounds.import_tuple_bound, 4L)
   assert_eq(bounds.export_tuples, 2)
-  assert_eq(bounds.name_index_entries, 5L)
-  assert_eq(bounds.retained_array_capacity_bound, 106L)
-  assert_eq(bounds.retained_map_capacity_bound, 68L)
+  assert_eq(bounds.name_index_entries, 7L)
+  assert_eq(bounds.retained_array_capacity_bound, 126L)
+  assert_eq(bounds.retained_map_capacity_bound, 92L)
   assert_eq(
     program_container_construction_extent(bounds),
     Some({
-      record_headers: 92L,
-      reference_slots: 296L,
-      scalar_words: 185L,
-      shallow_record_headers: 16L,
-      shallow_reference_slots: 51L,
-      shallow_scalar_words: 8L,
+      record_headers: 83L,
+      reference_slots: 350L,
+      scalar_words: 119L,
+      shallow_record_headers: 22L,
+      shallow_reference_slots: 69L,
+      shallow_scalar_words: 12L,
     }),
   )
   assert_true(
@@ -120,7 +120,7 @@ test "generic Program construction covers multiple imports and public Results be
   assert_eq(actual.stage_records, 2L)
   assert_eq(actual.import_tuples, 2L)
   assert_eq(actual.export_tuples, 2L)
-  assert_eq(actual.map_entries, 5L)
+  assert_eq(actual.map_entries, 7L)
   assert_true(
     actual.array_backing_slots <= bounds.retained_array_capacity_bound,
   )
@@ -135,12 +135,12 @@ test "generic Program constructor linear count limits stay representable" {
     import_tuple_bound: 2L * n,
     export_tuples: 2147483647,
     name_index_entries: n,
-    retained_array_capacity_bound: 16L + 42L * n,
-    retained_map_capacity_bound: 28L * n,
+    retained_array_capacity_bound: 16L + 50L * n,
+    retained_map_capacity_bound: 36L * n,
     inspection_work: 2147483647,
   }
   let result = program_container_construction_extent(extent).unwrap()
-  assert_eq(result.record_headers, 81604378590L)
-  assert_eq(result.reference_slots, 259845521308L)
-  assert_eq(result.scalar_words, 158913789882L)
+  assert_eq(result.record_headers, 68719476708L)
+  assert_eq(result.reference_slots, 294205259660L)
+  assert_eq(result.scalar_words, 96636764119L)
 }

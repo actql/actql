@@ -75,6 +75,21 @@ fn closed_values_program_units_add(
 }
 
 ///|
+// Immutable implementation DATA for the already-proved fixed envelope only.
+// This has no input/parameter/current/permission/Run binding. The same syntax
+// owner computes it once, not again during each prepared Values request.
+let closed_values_program_container_extent : @syntax.ProgramContainerConstructionExtent = @syntax.program_container_construction_extent({
+    stage_records: 1,
+    import_tuple_bound: 0L,
+    export_tuples: 1,
+    name_index_entries: 1L,
+    retained_array_capacity_bound: 62L,
+    retained_map_capacity_bound: 36L,
+    inspection_work: 0,
+  },
+).unwrap()
+
+///|
 fn closed_values_program_inventories(
   _shape : ClosedValuesShape,
 ) -> ClosedValuesProgramInventories {
@@ -82,15 +97,7 @@ fn closed_values_program_inventories(
   // no input imports, one Result and one public export. The generic syntax
   // owner prices its actual shallow containers; source/name/scratch owners
   // below stay independent. No general Source is narrowed to Values facts.
-  let extent = @syntax.program_container_construction_extent({
-    stage_records: 1,
-    import_tuple_bound: 0L,
-    export_tuples: 1,
-    name_index_entries: 1L,
-    retained_array_capacity_bound: 54L,
-    retained_map_capacity_bound: 28L,
-    inspection_work: 0,
-  }).unwrap()
+  let extent = closed_values_program_container_extent
   let retained : @execution.PreparationRepresentationUnits = {
     record_headers: extent.record_headers,
     reference_slots: extent.reference_slots,
@@ -129,12 +136,13 @@ fn closed_values_program_inventories(
     3L + 2L + 1L + 19L + 11L + 0L + 2L + 13L,
     true,
   )
-  // Six ObjectViews; 13 key tuples in the indexed Stage checker; one
+  // Five temporary ObjectViews; the original input view is retained above.
+  // Thirteen key tuples in the indexed Stage checker; one
   // Envelope (5 refs) coexists with the final Program. Cursor/tag/control
   // call frames and failure path owners are separate phase dependencies.
   let additional : @execution.PreparationRepresentationUnits = {
-    record_headers: 6L + 13L + 1L,
-    reference_slots: 12L + 13L + 5L,
+    record_headers: 5L + 13L + 1L,
+    reference_slots: 10L + 13L + 5L,
     scalar_words: 0L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
@@ -149,12 +157,12 @@ fn closed_values_program_inventories(
   // Twelve required() sites each create a lookup Cursor/Some and returned
   // Ok; eight optional lookup sites are absent in this shape. Both create
   // their source-level lookup-map closure. Two elements() calls create one
-  // Cursor each; the Stage Cursor is already in retained records above.
+  // Cursor each; Stage/input/steps Cursors are retained above.
   // Result carriers: required12, open6, closed-key checks4, field-names3,
   // elements2, five names × (text/NFC quick/NFC/LF)4, finish1 =48. Some12.
   // Count these sequential carriers together conservatively. No VM frame or
   // copied String is invented: ASCII names return their original Strings.
-  let cursors = 12L + 2L - 1L
+  let cursors = 12L + 2L - 3L
   let tagged = 48L + 12L
   let closures = 20L + 2L + 1L // lookup, elements, export map
   let carriers_peak : @execution.PreparationRepresentationUnits = {

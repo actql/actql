@@ -43,7 +43,7 @@ fn program_structure_base_inventories(
 ) -> ProgramStructureInventories? {
   guard @syntax.program_constructor_container_extent(inventory)
     is Some(containers) &&
-    @syntax.program_constructor_control_extent(inventory) is Some(controls) &&
+    @syntax.program_constructor_control_extent(containers) is Some(controls) &&
     @syntax.program_constructor_failure_extent(source_depth) is Some(failure) else {
     return None
   }
