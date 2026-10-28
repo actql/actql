@@ -53,10 +53,12 @@ pub fn object_retained_construction_extent(
   }
   let f = fields.to_int64()
   let i = instances.to_int64()
+  // Contract nullable, Object payload tag and Fields name_bytes are three
+  // independent scalar words; child bodies remain borrowed.
   @shape.collection_construction_extent({
     records: 3L * i + f,
     record_references: 3L * i + 2L * f,
-    record_words: 2L * i,
+    record_words: 3L * i,
     reference_arrays: i,
     reference_items: f,
     scalar_arrays: 0L,

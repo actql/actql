@@ -4,17 +4,17 @@ test "original unqualified presence inventory counts each distinct retained sche
   assert_eq(q.retained, {
     record_headers: 17L,
     reference_slots: 55L,
-    scalar_words: 11L,
+    scalar_words: 13L,
   })
   assert_eq(q.scratch, {
     record_headers: 201L,
     reference_slots: 330L,
-    scalar_words: 715L,
+    scalar_words: 716L,
   })
   assert_eq(q.scratch_utf16_units, 42L)
   assert_eq(
     @relation_schema.unqualified_presence_retained_extent(2, 2),
-    Some({ record_headers: 28L, reference_slots: 86L, scalar_words: 20L, }),
+    Some({ record_headers: 28L, reference_slots: 86L, scalar_words: 24L, }),
   )
   let a = @contract.primitive(NumberType, nullable=false)
   let fields = @relation_schema.from_presence_fields(

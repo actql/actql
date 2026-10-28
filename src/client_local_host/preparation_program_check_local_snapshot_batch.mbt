@@ -114,7 +114,7 @@ fn[I, P] inspect_program_check_snapshot_batch_metadata(
 }
 
 ///|
-fn[I, P] grow_program_check_snapshot_batch(
+fn[I, P] grow_program_check_source_body(
   owner : ClientProgramCheckPreparation[I, P],
   input : I,
   added : Int64,
@@ -162,7 +162,7 @@ fn[I, P] inspect_program_check_snapshot_batch_metadata_owned(
       return Err(WrongPhase)
     }
     match
-      grow_program_check_snapshot_batch(
+      grow_program_check_source_body(
         owner, input, program_source_snapshot_batch_quote_bytes,
       ) {
       Err(issue) => return Err(issue)
@@ -190,7 +190,7 @@ fn[I, P] inspect_program_check_snapshot_batch_metadata_owned(
       owner.source_body_quote = Some((peak, held))
     }
     let (peak, held) = owner.source_body_quote.unwrap()
-    match grow_program_check_snapshot_batch(owner, input, peak) {
+    match grow_program_check_source_body(owner, input, peak) {
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
@@ -236,7 +236,7 @@ fn[I, P] inspect_program_check_snapshot_batch_metadata_owned(
   }
   if owner.phase == SourceLocalSnapshotBatchInspected {
     // No active work remains when the original parent/current is revisited.
-    match reconcile_program_check_snapshot_batch_metadata(owner, input) {
+    match reconcile_program_check_source_body_metadata(owner, input) {
       Err(issue) => return Err(issue)
       Ok(_) => owner.phase = SourceLocalSnapshotBatchRetained
     }
@@ -283,7 +283,7 @@ fn[I, P] prepare_program_check_source_local_snapshots_owned(
     Ok(_) => ()
   }
   let (peak, held) = owner.source_body_quote.unwrap()
-  match grow_program_check_snapshot_batch(owner, input, peak) {
+  match grow_program_check_source_body(owner, input, peak) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -365,7 +365,7 @@ pub fn[I, P] reconcile_program_check_source_local_snapshots(
 // Called only inside the original busy interval. Reentry remains blocked
 // through the existing reconciliation/current callback; no state is unlocked
 // to invoke another public wrapper or to grow while body work is active.
-fn[I, P] reconcile_program_check_snapshot_batch_metadata(
+fn[I, P] reconcile_program_check_source_body_metadata(
   owner : ClientProgramCheckPreparation[I, P],
   input : I,
 ) -> Result[Unit, ClientProgramCheckPreparationIssue] {
