@@ -1,0 +1,31 @@
+{
+  "version": "actql-rest-connector/0.1",
+  "id": "acme",
+  "origin": "https://api.acme.fixture.invalid",
+  "auth": {"kind": "bearer"},
+  "sources": {
+    "customers": {
+      "fields": [
+        {"name": "id", "type": "string", "nullable": false},
+        {"name": "amount", "type": "number", "nullable": false},
+        {"name": "note", "type": "string", "nullable": false}
+      ],
+      "read": {"method": "GET", "path": "/v1/customers"},
+      "pagination": {
+        "kind": "cursor",
+        "items": ["data"],
+        "next": ["next_cursor"],
+        "parameter": "after"
+      },
+      "limits": {
+        "maxPageRows": 2,
+        "maxPageBytes": 256,
+        "maxPages": 3,
+        "maxRows": 4,
+        "maxNodes": 64,
+        "maxDepth": 6,
+        "maxCursorBytes": 32
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 // Build-time author DATA projection. Existing Source declarations and Host
 // manifests remain the semantic and installation authorities.
 import {existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
-import {dirname, join, resolve} from 'node:path';
+import {dirname, join, parse, resolve, sep} from 'node:path';
 
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const shape = (value, required, optional = []) => record(value) &&
@@ -94,6 +94,21 @@ export function projectRestConnector(definition, {hostPackageVersion = selectedH
       destination: `adapters/connectors/${id}/host/transform.mjs`}})});
 }
 
+function unaliasedOutput(path) {
+  path = resolve(path);
+  let current = parse(path).root;
+  const parts = path.slice(current.length).split(sep).filter(Boolean);
+  for (let index = 0; index < parts.length; index++) {
+    current = join(current, parts[index]);
+    let info;
+    try { info = lstatSync(current); }
+    catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+    if (info.isSymbolicLink() || index < parts.length - 1 && !info.isDirectory()) {
+      fail('aliased output');
+    }
+  }
+}
+
 export function writeRestConnector({definitionPath, outputRoot, check = false}) {
   const authorRoot = dirname(resolve(definitionPath)), root = resolve(outputRoot);
   const host = JSON.parse(readFileSync(new URL('../packages/local-node/package.json', import.meta.url), 'utf8'));
@@ -108,14 +123,11 @@ export function writeRestConnector({definitionPath, outputRoot, check = false}) 
     }
     files[projection.transform.destination] = readFileSync(path, 'utf8');
   }
+  // Validate every selected destination before the first write, including
+  // dangling links and aliases above a new output directory.
+  for (const path of Object.keys(files)) unaliasedOutput(join(root, path));
   for (const [path, contents] of Object.entries(files)) {
-    let parent = root;
-    for (const part of path.split('/').slice(0, -1)) {
-      if (existsSync(parent) && lstatSync(parent).isSymbolicLink()) fail('aliased output');
-      parent = join(parent, part);
-    }
     const destination = join(root, path);
-    if ([parent, destination].some(path => existsSync(path) && lstatSync(path).isSymbolicLink())) fail('aliased output');
     if (check) {
       if (!existsSync(destination) || readFileSync(destination, 'utf8') !== contents) {
         throw new Error(`StaleRestConnectorProjection:${path}`);

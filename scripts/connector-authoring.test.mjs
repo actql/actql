@@ -153,3 +153,25 @@ test('npm-only route cannot disguise a compiled provider or inject an undeclared
     {...original.installation.source, module: '../outside.mjs'}}}));
   assert.throws(() => resolveConnectorBuildInputs(f.configuration), /module/);
 });
+
+
+test('projection refuses ancestor and dangling output links before writing any generated file', t => {
+  const f = fixture(t), physical = join(f.root, 'physical'), alias = join(f.root, 'alias');
+  mkdirSync(physical); symlinkSync(physical, alias);
+  assert.throws(() => writeRestConnector({definitionPath: f.input, outputRoot: join(alias, 'new')}), /aliased output/);
+  assert.deepEqual(readdirSync(physical), []);
+  mkdirSync(f.output);
+  symlinkSync(join(f.root, 'not-created'), join(f.output, 'src'));
+  assert.throws(f.build, /aliased output/);
+  assert.equal(existsSync(join(f.output, 'package.json')), false);
+  assert.equal(existsSync(join(f.root, 'not-created')), false);
+});
+
+test('optional transform copying refuses an original-path alias', t => {
+  const f = fixture(t), original = join(f.root, 'original.mjs');
+  writeFileSync(original, 'export function decodePage() { throw new Error("not executed"); }\n');
+  symlinkSync(original, join(dirname(f.input), 'transform.mjs'));
+  f.definition.transform = 'transform.mjs'; writeFileSync(f.input, JSON.stringify(f.definition));
+  assert.throws(f.build, /aliased transform/);
+  assert.equal(existsSync(f.output), false);
+});
