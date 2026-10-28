@@ -21,6 +21,7 @@ static char *fixture_dlerror(void) { return (char *)injected_detail; }
 #define malloc fixture_malloc
 #define dlopen fixture_dlopen
 #define dlerror fixture_dlerror
+#define ACTQL_SIGNATURE_RAW_DIAGNOSTIC
 #include "../../src/platform_native/signature/signature_stub.c"
 #undef malloc
 #undef dlopen
@@ -42,27 +43,27 @@ static void fixture_error_string(unsigned long code,char *target,size_t size) {
 int main(void) {
   actql_native_signature_library library={0};
   library.diagnostic_ceiling=4;
-  actql_replace_error(&library.error,library.diagnostic_ceiling,"abcd");
+  actql_replace_error(&library,"abcd");
   expect(actql_native_signature_library_error(&library),"abcd");
   puts("exact detail: PASS");
-  actql_replace_error(&library.error,library.diagnostic_ceiling,"abcde");
+  actql_replace_error(&library,"abcde");
   expect(actql_native_signature_library_error(&library),"");
   puts("one-over omits whole detail: PASS");
-  actql_replace_error(&library.error,library.diagnostic_ceiling,"\xc3\xa9\xc3\xa9");
+  actql_replace_error(&library,"\xc3\xa9\xc3\xa9");
   expect(actql_native_signature_library_error(&library),"\xc3\xa9\xc3\xa9");
-  actql_replace_error(&library.error,library.diagnostic_ceiling,"\xc3\xa9\xc3\xa9x");
+  actql_replace_error(&library,"\xc3\xa9\xc3\xa9x");
   expect(actql_native_signature_library_error(&library),"");
   puts("UTF8, no prefix: PASS");
   size_t page=(size_t)sysconf(_SC_PAGESIZE);
   char *pages=mmap(NULL,page*2,PROT_READ|PROT_WRITE,MAP_ANON|MAP_PRIVATE,-1,0);
   assert(pages!=MAP_FAILED && mprotect(pages+page,page,PROT_NONE)==0);
   char *end=pages+page-5;memset(end,'x',5);
-  actql_replace_error(&library.error,library.diagnostic_ceiling,end);
+  actql_replace_error(&library,end);
   expect(actql_native_signature_library_error(&library),"");
   assert(munmap(pages,page*2)==0);
   puts("bounded scan before first copy: PASS");
   allocation_failure=1;
-  actql_replace_error(&library.error,library.diagnostic_ceiling,"ok");
+  actql_replace_error(&library,"ok");
   allocation_failure=0;
   expect(actql_native_signature_library_error(&library),"");
   puts("diagnostic allocation failure: PASS");
@@ -83,7 +84,7 @@ int main(void) {
   expect(actql_native_signature_library_error(&library),"");
   puts("crypto refusal code preserved: PASS");
   actql_native_signature_library legacy={0};
-  actql_replace_error(&legacy.error,legacy.diagnostic_ceiling,"legacy detail exceeds four");
+  actql_replace_error(&legacy,"legacy detail exceeds four");
   expect(actql_native_signature_library_error(&legacy),"legacy detail exceeds four");
   free(legacy.error);free(library.error);
   puts("legacy diagnostic compatibility: PASS");

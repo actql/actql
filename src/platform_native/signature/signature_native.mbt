@@ -59,8 +59,8 @@ extern "C" fn library_close_ffi(library : Library) -> Int = "actql_native_signat
 extern "C" fn sha256_close_ffi(hash : Sha256Hasher) -> Bool = "actql_native_signature_sha256_close"
 
 ///|
-/// Cleanup only on this original Library. A live SHA-256 context keeps its
-/// original dynamic handle pending. Unconfirmed physical close stays sticky;
+/// Cleanup only on this original Library. A live SHA-256 context or original
+/// key-signing child keeps its dynamic handle pending. Unconfirmed close stays sticky;
 /// calling this again never loads a replacement or repeats that close.
 /// This ACK does not retire caller aliases, Host loans or numerical funding.
 pub fn Library::close_checked(

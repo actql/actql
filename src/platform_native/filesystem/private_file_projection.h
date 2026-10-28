@@ -13,6 +13,12 @@ typedef struct actql_native_private_file_projection
 int actql_native_private_file_projection_open(
   actql_native_private_file_projection *projection
 );
+/* Preserve even a rejected partial acquisition on the caller's existing
+ * receiver. Start with *descriptor == -1; any returned descriptor needs its
+ * actual close, regardless of the generation-match result. */
+bool actql_native_private_file_projection_open_with_custody(
+  actql_native_private_file_projection *projection, int *descriptor
+);
 bool actql_native_private_file_projection_matches(
   actql_native_private_file_projection *projection,
   int descriptor

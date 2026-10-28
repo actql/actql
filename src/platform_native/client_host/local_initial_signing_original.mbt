@@ -7,6 +7,8 @@ priv struct NativeLocalInitialSigningCapture {
   policy : @host.ClientLocalSigningBootstrapPolicy
   adoption : Bytes
   payload : Bytes
+  host_payload : Bytes
+  host_signing_subject_payload : Bytes?
 }
 
 ///|
@@ -72,25 +74,76 @@ fn NativeLocalAdoptionSession::prepare_initial_signing_capture(
     let adoption_cid = local_initial_signing_value(
       local_adoption_digest(crypto, adoption),
     )
+    let fields : @host.ClientLocalInitialSigningPayloadFields = {
+      adoption_cid,
+      initialization_intent_cid: self.intent_cid,
+      issuer_authority: issuer,
+      key_file: "local-signing-key.pem",
+      key_projection: @base64.encode(exported),
+      policy_cid: policy.cid(),
+      policy_original: policy.original_wire(),
+      public_key_cid: public_key.cid(),
+      public_key_original: public_key.json(),
+      public_key_pem: pem,
+      purpose: "reviewer_proof",
+      root_role: "store",
+      version: "actql-native-local-installation-original/0.1",
+    }
     let payload = local_initial_signing_value(
+      @host.client_local_initial_signing_payload_body(fields).map_err(_ => {
+        Encoding
+      }),
+    )
+    let host_pem = local_initial_signing_value(
+      self.initial_host_signing_public_key(material),
+    )
+    let host_raw = local_initial_signing_value(
+      crypto.ed25519_public_key_raw32(host_pem).map_err(issue => Crypto(issue)),
+    )
+    if host_raw == raw {
+      return Err(CustodyLost)
+    }
+    let host_public = local_initial_signing_value(
+      @credential.prepare_local_signing_public_key(host_raw).map_err(_ => {
+        Encoding
+      }),
+    )
+    let host_exported = local_initial_signing_value(
+      material.host_attestation.projection
+      .export_original()
+      .map_err(issue => Filesystem(issue)),
+    )
+    let host_payload = local_initial_signing_value(
       @host.client_local_initial_signing_payload_body({
-        adoption_cid,
-        initialization_intent_cid: self.intent_cid,
-        issuer_authority: issuer,
-        key_file: "local-signing-key.pem",
-        key_projection: @base64.encode(exported),
-        policy_cid: policy.cid(),
-        policy_original: policy.original_wire(),
-        public_key_cid: public_key.cid(),
-        public_key_original: public_key.json(),
-        public_key_pem: pem,
-        purpose: "reviewer_proof",
-        root_role: "store",
-        version: "actql-native-local-installation-original/0.1",
+        ..fields,
+        key_file: "local-host-attestation-key.pem",
+        key_projection: @base64.encode(host_exported),
+        public_key_cid: host_public.cid(),
+        public_key_original: host_public.json(),
+        public_key_pem: host_pem,
+        purpose: "host_attestation",
       }).map_err(_ => Encoding),
     )
+    let host_signing_subject_payload = match material.host_signing_subject {
+      None => None
+      Some(subject) => {
+        let bytes = local_initial_signing_value(
+          initial_host_signing_subject_payload(
+            self.intent_cid,
+            issuer,
+            policy.cid(),
+            host_public.cid(),
+            subject,
+          ),
+        )
+        if bytes.length() > 2048 {
+          return Err(ConfigurationLimit)
+        }
+        Some(bytes)
+      }
+    }
     // Existing installation HMAC payload bound, not another capacity grant.
-    if payload.length() > 2048 {
+    if payload.length() > 2048 || host_payload.length() > 2048 {
       return Err(ConfigurationLimit)
     }
     let captured : NativeLocalInitialSigningCapture = {
@@ -99,6 +152,8 @@ fn NativeLocalAdoptionSession::prepare_initial_signing_capture(
       policy,
       adoption,
       payload,
+      host_payload,
+      host_signing_subject_payload,
     }
     local_initial_signing_value(captured.check_current(crypto, adoption))
     Ok(captured)
@@ -135,7 +190,12 @@ fn NativeLocalInitialSigningCapture::control_body(
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
   try {
     local_initial_signing_value(self.check_current(crypto, adoption))
-    if self.payload.length() > 2048 {
+    if self.payload.length() > 2048 ||
+      self.host_payload.length() > 2048 ||
+      (
+        self.host_signing_subject_payload is Some(bytes) &&
+        bytes.length() > 2048
+      ) {
       return Err(ConfigurationLimit)
     }
     let packet = local_initial_signing_value(
@@ -146,14 +206,59 @@ fn NativeLocalInitialSigningCapture::control_body(
         reads~,
       ),
     )
+    let host_packet = local_initial_signing_value(
+      local_installation_packet_in_transaction(
+        database,
+        crypto,
+        self.host_payload,
+        reads~,
+      ),
+    )
     // Closed alternative in the same host control row. The legacy raw adoption
     // body, issued count, setting reservations and all existing rows are intact.
-    local_adoption_record([
+    let fields = [
       ("adoption_body", @base64.encode(adoption)),
       ("initial_signing_original", @base64.encode(packet)),
-    ])
+      ("initial_host_attestation_original", @base64.encode(host_packet)),
+    ]
+    if self.host_signing_subject_payload is Some(payload) {
+      let packet = local_initial_signing_value(
+        local_installation_packet_in_transaction(
+          database,
+          crypto,
+          payload,
+          reads~,
+        ),
+      )
+      fields.push(("initial_host_signing_subject", @base64.encode(packet)))
+    }
+    local_adoption_record(fields)
   } catch {
     LocalInstallationAdoptionStop(issue) => Err(issue)
+  }
+}
+
+///|
+fn local_initial_signing_control_header(
+  body : Bytes,
+) -> Result[Array[String], NativeLocalAdoptionIssue] {
+  match
+    local_adoption_fields(body, [
+      "adoption_body", "initial_signing_original", "initial_host_attestation_original",
+      "initial_host_signing_subject",
+    ]) {
+    Ok(value) => Ok(value)
+    Err(_) =>
+      match
+        local_adoption_fields(body, [
+          "adoption_body", "initial_signing_original", "initial_host_attestation_original",
+        ]) {
+        Ok(value) => Ok(value)
+        Err(_) =>
+          local_adoption_fields(body, [
+            "adoption_body", "initial_signing_original",
+          ])
+      }
   }
 }
 
@@ -167,7 +272,7 @@ fn read_local_initial_signing_control(
   }
   try {
     let header = local_initial_signing_value(
-      local_adoption_fields(body, ["adoption_body", "initial_signing_original"]),
+      local_initial_signing_control_header(body),
     )
     if header[0] != @base64.encode(host.adoption_body) {
       return Err(CustodyLost)
@@ -178,6 +283,57 @@ fn read_local_initial_signing_control(
     if @base64.encode(packet) != header[1] {
       return Err(CustodyLost)
     }
+    let reviewer = local_initial_signing_value(
+      read_local_initial_signing_packet(
+        host, packet, "reviewer_proof", "local-signing-key.pem",
+      ),
+    )
+    if header.length() >= 3 {
+      let host_packet = @base64.decode(header[2]) catch {
+        _ => return Err(CustodyLost)
+      }
+      if @base64.encode(host_packet) != header[2] {
+        return Err(CustodyLost)
+      }
+      let host_key = local_initial_signing_value(
+        read_local_initial_signing_packet(
+          host, host_packet, "host_attestation", "local-host-attestation-key.pem",
+        ),
+      )
+      guard reviewer.public_key.raw32() is Ok(reviewer_raw) &&
+        host_key.public_key.raw32() is Ok(host_raw) &&
+        reviewer_raw != host_raw &&
+        reviewer.exported[26:42].to_owned() !=
+        host_key.exported[26:42].to_owned() &&
+        reviewer.policy.cid() == host_key.policy.cid() &&
+        reviewer.issuer == host_key.issuer else {
+        return Err(CustodyLost)
+      }
+      if header.length() == 4 {
+        guard local_initial_signing_value(
+            read_initial_host_signing_subject(host, body, host_key),
+          )
+          is Some(_) else {
+          return Err(CustodyLost)
+        }
+      }
+    }
+    Ok(Some(reviewer))
+  } catch {
+    LocalInstallationAdoptionStop(issue) => Err(issue)
+  }
+}
+
+///|
+// The codec is unchanged DATA. This closed physical reader selects one exact
+// role/file and authenticates the same initialization, policy and projection.
+fn read_local_initial_signing_packet(
+  host : NativeLocalHostConnection,
+  packet : Bytes,
+  purpose : String,
+  key_file : String,
+) -> Result[NativeLocalInitialSigningFields, NativeLocalAdoptionIssue] {
+  try {
     let payload = local_initial_signing_value(
       read_local_installation_authenticated_payload(host, packet),
     )
@@ -201,8 +357,8 @@ fn read_local_initial_signing_control(
     if fields.adoption_cid != host.adoption_cid ||
       fields.initialization_intent_cid != host.session.intent_cid ||
       fields.issuer_authority != issuer ||
-      fields.key_file != "local-signing-key.pem" ||
-      fields.purpose != "reviewer_proof" ||
+      fields.key_file != key_file ||
+      fields.purpose != purpose ||
       fields.root_role != "store" ||
       fields.version != "actql-native-local-installation-original/0.1" {
       return Err(CustodyLost)
@@ -232,15 +388,13 @@ fn read_local_initial_signing_control(
     guard public_key.raw32() is Ok(expected_raw) && expected_raw == raw else {
       return Err(CustodyLost)
     }
-    Ok(
-      Some({
-        exported,
-        policy,
-        public_key,
-        public_key_pem: fields.public_key_pem,
-        issuer,
-      }),
-    )
+    Ok({
+      exported,
+      policy,
+      public_key,
+      public_key_pem: fields.public_key_pem,
+      issuer,
+    })
   } catch {
     LocalInstallationAdoptionStop(issue) => Err(issue)
   }

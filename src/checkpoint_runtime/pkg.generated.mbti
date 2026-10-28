@@ -126,6 +126,7 @@ pub struct AdmittedResolution {
   attestation_preimage : String
   // private fields
 }
+pub fn AdmittedResolution::prepared_wire(Self, WireLimits) -> Result[String, ResolutionIssue]
 
 pub struct AttestedEffectResolution {
   resolution : VerifiedResolution
@@ -240,6 +241,7 @@ pub struct PersistedCheckpoint {
 type PreparedResolutionProof
 pub fn PreparedResolutionProof::actor(Self) -> String
 pub fn PreparedResolutionProof::checkpoint(Self) -> SealedCheckpoint
+pub fn PreparedResolutionProof::decision(Self) -> ResolutionDecision
 pub fn PreparedResolutionProof::preimage(Self) -> String
 
 pub(all) enum ResolutionCommitAction {

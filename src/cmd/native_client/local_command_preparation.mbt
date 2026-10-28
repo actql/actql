@@ -1293,7 +1293,10 @@ fn LocalCommandPreparationOriginal::prepare_adopted_journal(
       let crypto = command_preparation_value(self.library(true))
       let material = command_preparation_value(
         session
-        .create_initial_signing_material(crypto)
+        .create_initial_signing_material(
+          crypto,
+          host_signing_subject=options.initial_host_signing,
+        )
         .map_err(original => CommandAdoption(original.issue())),
       )
       command_preparation_value(

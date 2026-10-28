@@ -7,6 +7,7 @@ fn initial_signing_cli_options(
     ttl_ms: 100.0,
     max_records: 8,
     max_snapshot_bytes: 8388608L,
+    initial_host_signing: None,
   }
 }
 
