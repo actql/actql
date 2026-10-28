@@ -137,3 +137,32 @@ test "Local captured original Member supplies text quantity before read and acro
     assert_true(quantity.owned_utf16_units > 0L)
   }
 }
+
+///|
+test "Local selector quantity requires the captured original member and clears with it" {
+  let source = two_stage_source()
+  let (environment, _) = environment_for([
+    snapshot_in_stage("s", "b", schema_fields()),
+  ])
+  let read = begin_local_environment_preparation(source, environment, caps()).unwrap()
+  assert_true(local_environment_snapshot_selector_construction(read) is None)
+  for _ in 0..<2 {
+    let _ = advance_local_environment_preparation(read)
+  }
+  assert_true(local_environment_snapshot_selector_construction(read) is None)
+  let _ = observe_local_environment_snapshot_construction(read).unwrap()
+  let original_member = @environment.member_at(environment, SchemaSnapshots, 0).unwrap()
+  assert_eq(
+    local_environment_snapshot_selector_construction(read),
+    Some(
+      @environment.connector_source_snapshot_selector_construction(
+        original_member,
+      ),
+    ),
+  )
+  // Quotation does not advance the original reader or issue an allowance.
+  assert_eq(local_environment_preparation_phase(read), LocalEnvironmentSnapshot)
+  clear_local_environment_preparation(read)
+  assert_true(local_environment_snapshot_selector_construction(read) is None)
+  assert_eq(local_environment_preparation_phase(read), LocalEnvironmentRetired)
+}

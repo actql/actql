@@ -19,8 +19,12 @@ test "Local member work observes each original step without recharging Index or 
   let mut total = 0
   for i in 0..<2 {
     let before = local_environment_snapshots_work_bound(read).unwrap()
-    let member = @environment.member_at(environment, SchemaSnapshots, i).unwrap()
-    let (_, nodes) = @environment.member_usage(member)
+    let original_member = @environment.member_at(
+      environment,
+      SchemaSnapshots,
+      i,
+    ).unwrap()
+    let (_, nodes) = @environment.member_usage(original_member)
     let (phase, work) = observe_advance_local_environment_snapshot(read)
     // Authored Stage names are s/t, each one UTF16 unit.
     assert_eq(work, Some(nodes + 1))
@@ -84,8 +88,8 @@ test "Local unknown Stage preserves the completed member and name debit before r
   let (environment, _) = environment_for([
     snapshot_in_stage("absent", "b", schema_fields()),
   ])
-  let member = @environment.member_at(environment, SchemaSnapshots, 0).unwrap()
-  let (_, nodes) = @environment.member_usage(member)
+  let original_member = @environment.member_at(environment, SchemaSnapshots, 0).unwrap()
+  let (_, nodes) = @environment.member_usage(original_member)
   let read = begin_local_environment_preparation(source, environment, caps()).unwrap()
   for _ in 0..<2 {
     let _ = advance_local_environment_preparation(read)

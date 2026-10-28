@@ -1338,3 +1338,22 @@ The existing prohibition on growing or shrinking backing while a work receipt
 is active remains intact; no new phase issuance, budget reset, nested Ledger
 or weaker resource gate is needed. Complete body quotation and the selected
 pass driver remain separate from this original observation boundary.
+
+## Original Snapshot partition construction
+
+The Snapshot partition selector receives the same admitted Environment Member.
+Its constructor envelope uses that Member's actual object width and detached
+error-path depth. The closed-shape declaration remains the semantic owner's
+single original list; its allowed width cannot bound malformed supplied input.
+The initial source-reference lookup and the subsequent closed-shape admission
+are separate sequential views. After closed-shape admission, the classification,
+carrier and read-mode readers borrow that same ObjectView and retain the
+original presence, scalar-kind and value rules. They do not rebuild field Maps.
+
+Local preparation exposes the partition quantity only through its captured
+original Member, and Source registration forwards that same association. This
+quantity carries no selector verdict, permission or resource authority. The
+caller must fund quotation and retained-result controls before requesting it,
+and compose it with the remaining emission, UTF8, parser, type/schema, identity,
+caller and work overlap before advancing the original Snapshot body. Dropping
+a quotation or completing a selector does not retire those later bodies.

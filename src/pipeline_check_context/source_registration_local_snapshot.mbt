@@ -37,3 +37,13 @@ pub fn source_registration_local_snapshots_work_bound(
 pub fn source_registration_local_snapshot_work_observation_extent() -> @shape.CollectionConstructionExtent {
   @local_inputs.local_environment_snapshot_work_observation_extent()
 }
+
+///|
+/// SAME captured Member quantity; not a selector verdict or body permission.
+pub fn source_registration_local_snapshot_selector_construction(
+  read : SourceRegistrationRead,
+) -> @shape.CollectionConstructionExtent? {
+  read.local_child.bind(
+    @local_inputs.local_environment_snapshot_selector_construction,
+  )
+}

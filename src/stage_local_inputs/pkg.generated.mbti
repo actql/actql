@@ -116,6 +116,8 @@ pub fn local_environment_snapshot_construction_retained_extent() -> @decode_shap
 
 pub fn local_environment_snapshot_emission_observation_extent() -> @decode_shape.CollectionConstructionExtent
 
+pub fn local_environment_snapshot_selector_construction(LocalEnvironmentPreparation) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn local_environment_snapshot_text_construction(LocalEnvironmentPreparation) -> @check_environment.RegistryConstructionExtent?
 
 pub fn local_environment_snapshot_work_observation_extent() -> @decode_shape.CollectionConstructionExtent

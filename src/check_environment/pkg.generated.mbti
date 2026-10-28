@@ -240,6 +240,8 @@ pub fn connector_source_evidence_supports(ConnectorSourceEvidenceMembers, Array[
 
 pub fn connector_source_snapshot_selector(Member) -> Result[ConnectorSourceEvidenceSelector?, SourceEvidenceMemberIssue]
 
+pub fn connector_source_snapshot_selector_construction(Member) -> @decode_shape.CollectionConstructionExtent
+
 pub fn contract_at(ContractRegistry, Int) -> ContractEnvelope?
 
 pub fn contract_body(ContractEnvelope) -> @decode_core.Cursor

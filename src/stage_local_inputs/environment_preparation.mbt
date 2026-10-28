@@ -790,3 +790,18 @@ pub fn local_environment_snapshot_construction_limits(
 ) -> @snapshot.Limits? {
   read.snapshot_construction.map(captured => captured.limits)
 }
+
+///|
+/// Quantity of the original selector only after this SAME Member was captured.
+/// The caller backs this quotation frame before entry and retains the returned
+/// DATA once across its own grow/current boundary. No selector, body read or
+/// resource admission runs here; remaining Snapshot phases stay separate.
+pub fn local_environment_snapshot_selector_construction(
+  read : LocalEnvironmentPreparation,
+) -> @shape.CollectionConstructionExtent? {
+  read.snapshot_construction.map(captured => {
+    @environment.connector_source_snapshot_selector_construction(
+      captured.original_member,
+    )
+  })
+}

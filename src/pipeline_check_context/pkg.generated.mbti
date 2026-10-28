@@ -1214,6 +1214,8 @@ pub fn source_registration_local_snapshot_inspection_retained_extent() -> @decod
 
 pub fn source_registration_local_snapshot_limits(SourceRegistrationRead) -> @local_relation_snapshot.Limits?
 
+pub fn source_registration_local_snapshot_selector_construction(SourceRegistrationRead) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn source_registration_local_snapshot_text_construction(SourceRegistrationRead) -> @check_environment.RegistryConstructionExtent?
 
 pub fn source_registration_local_snapshot_work(SourceRegistrationRead) -> Int?
