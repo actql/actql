@@ -52,6 +52,10 @@ test "Stage contract selections retain transitive dependencies without borrowing
   assert_true(stage_has_contract(v, 0, LocalSnapshotRules))
   assert_eq(
     core_contract_cid(LocalSnapshotRules),
+    "sha256:621725e41f803d118b749abf99a40f4c23e2bd3fb15078912c69ff7f82c6f85a",
+  )
+  assert_true(
+    core_contract_cid(LocalSnapshotRules) !=
     "sha256:b6757d1d2978133784f3b3cd464fa966e432dc0caa99b6cb05d618249ef1076c",
   )
   assert_true(
