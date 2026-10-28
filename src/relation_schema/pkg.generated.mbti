@@ -46,6 +46,8 @@ pub fn lookup_reference(Schema, String) -> Field?
 
 pub fn reference_name(FieldName) -> String
 
+pub fn reference_name_construction_extent(FieldName) -> SchemaConstructionInventory
+
 pub fn unqualified_presence_construction_inventory(Int, Int) -> SchemaConstructionInventory?
 
 pub fn unqualified_presence_retained_extent(Int, Int) -> @decode_shape.CollectionConstructionExtent?

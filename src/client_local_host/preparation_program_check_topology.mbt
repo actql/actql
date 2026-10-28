@@ -40,21 +40,25 @@ let program_topology_body_driver_bytes : Int64 = {
 // Fixed call-expanded metadata controls. Existing pre232/89/491 is below
 // the Source key/ranking path: common pipeline fold93/54/197 plus max of
 // key221/82/473 and ranking229/76/498, Stage observation8/6/16 and original
-// conversion/driver9/0/21. These are constructor controls, never input bytes.
+// conversion/driver9/0/21. Two compound original-position getters replace
+// scalar getters with extra2H2R2W. The evidence/Stage construction quotes now
+// each retain their original replaced-domain extent (+2R). These are control
+// fields, never another input body or allowance.
 let program_topology_quotation_bytes : Int64 = program_source_extent_cost({
-  record_headers: 339L,
-  reference_slots: 142L,
-  scalar_words: 732L,
+  record_headers: 341L,
+  reference_slots: 146L,
+  scalar_words: 734L,
 }).unwrap()
 
 ///|
 // Actual retained Source observation122/75/221, original conversion7/0/17
-// and added same-meter observed-work carriers4/2/8. Fields/keys/maps remain
+// and added same-meter observed-work carriers4/2/8. The new post-constructor
+// original-position tuple/Some adds2H1R3W. Fields/keys/maps remain
 // input-derived in their domain inventories, outside this fixed call frame.
 let program_topology_retained_observation_bytes : Int64 = program_source_extent_cost({
-    record_headers: 133L,
-    reference_slots: 77L,
-    scalar_words: 246L,
+    record_headers: 135L,
+    reference_slots: 78L,
+    scalar_words: 249L,
   },
 ).unwrap()
 
@@ -70,7 +74,8 @@ fn topology_phase_supported(
     | PipelineCarriers
     | PipelineKeys
     | PipelineRankings
-    | PipelineCore => true
+    | PipelineCore
+    | PipelineCoreInputs => true
     _ => false
   }
 }
@@ -81,8 +86,10 @@ fn[I, P] topology_quote_still_original(
   read : @stage_results.LocalProgramRead,
 ) -> Bool {
   @stage_results.local_program_read_phase(read) == owner.topology_quoted_phase &&
-  @stage_results.local_program_read_stage_index(read) is Some(position) &&
-  position == owner.topology_quoted_stage
+  @stage_results.local_program_read_constructor_position(read)
+  is Some((stage, position)) &&
+  stage == owner.topology_quoted_stage &&
+  position == owner.topology_quoted_constructor
 }
 
 ///|
@@ -120,12 +127,14 @@ fn[I, P] inspect_program_check_source_topology(
     owner.phase == SourceTopologyBodyRetained {
     let phase = @stage_results.local_program_read_phase(read)
     guard topology_phase_supported(phase) &&
-      @stage_results.local_program_read_stage_index(read) is Some(position) else {
+      @stage_results.local_program_read_constructor_position(read)
+      is Some((stage, position)) else {
       return Err(WrongPhase)
     }
     owner.source_body_quote = None
     owner.topology_quoted_phase = phase
-    owner.topology_quoted_stage = position
+    owner.topology_quoted_stage = stage
+    owner.topology_quoted_constructor = position
     owner.phase = SourceTopologyBodyInspectionInitial
   }
   if !topology_quote_still_original(owner, read) {
@@ -181,6 +190,7 @@ fn[I, P] inspect_program_check_source_topology_owned(
   }
   guard @stage_results.local_program_read_step_construction(read) is Some(q) &&
     program_topology_extent_cost(q.peak, q.peak_utf16_units) is Some(body) &&
+    program_topology_extent_cost(q.replaced, 0L) is Some(replaced) &&
     @execution.checked_preparation_add_product(
       body, program_topology_body_driver_bytes, 1L,
     )
@@ -221,6 +231,7 @@ fn[I, P] inspect_program_check_source_topology_owned(
   // Retained quantity is still unknown. Keep the whole peak until the original
   // constructor returns and its own actual retained buffers are observed.
   let peak = Int64::max(peak, program_topology_quotation_bytes)
+  owner.topology_replaced_bytes = replaced
   owner.source_body_quote = Some((peak, peak))
   owner.environment_scratch = None
   owner.phase = SourceTopologyBodyQuoted
@@ -230,8 +241,8 @@ fn[I, P] inspect_program_check_source_topology_owned(
 ///|
 /// Advance exactly the next backed original constructor. The SAME read and
 /// work receipt span Local selection, Result imports and input registration;
-/// original keys/rankings continue on that SAME receipt. Core typing, Result
-/// and Context bodies still need their own original recipes first.
+/// original keys/rankings and CoreInputs continue on that SAME receipt. Later
+/// core stages, Result and Context bodies still need their original recipes.
 pub fn[I, P] advance_program_check_source_topology(
   owner : ClientProgramCheckPreparation[I, P],
 ) -> Result[
@@ -314,6 +325,34 @@ fn[I, P] advance_program_check_source_topology_owned(
   let previous = owner.topology_quoted_phase
   let phase = @stage_results.advance_local_program_read(read)
   if phase == @stage_results.Failed {
+    // Only a retained original consumed-work fact can debit failed work. The
+    // input read shares its Budget with nested Carrier/Contract; other failed
+    // domains remain unknown, and no successful Usage/empty fact is invented.
+    if @stage_results.local_program_read_owned_work(read) is Some(observed) {
+      if observed < owner.topology_observed_work {
+        owner.phase = Failed
+        return Err(WrongPhase)
+      }
+      match
+        @resources.spend_preparation_phase_work_continuation64(
+          work,
+          observed - owner.topology_observed_work,
+        ) {
+        Err(issue) => {
+          owner.phase = Failed
+          return Err(Work(issue))
+        }
+        Ok(_) => owner.topology_observed_work = observed
+      }
+      match @resources.return_preparation_phase_work_continuation64(work) {
+        Err(issue) => {
+          owner.phase = Failed
+          return Err(Work(issue))
+        }
+        Ok(_) => ()
+      }
+    }
+    // The complete construction peak remains backed until actual clear.
     owner.phase = SourceTopologyBodyFailed
     return Ok(phase)
   }
@@ -326,12 +365,22 @@ fn[I, P] advance_program_check_source_topology_owned(
     PipelineKeys => @stage_results.PipelineRankings
     PipelineRankings => @stage_results.PipelineCore
     PipelineCore => @stage_results.PipelineCoreInputs
+    PipelineCoreInputs => phase
     _ => {
       owner.phase = Failed
       return Err(WrongPhase)
     }
   }
-  guard phase == expected &&
+  guard @stage_results.local_program_read_constructor_position(read)
+    is Some((stage, position)) &&
+    stage == owner.topology_quoted_stage &&
+    position == owner.topology_quoted_constructor + 1L &&
+    phase == expected &&
+    (
+      previous != @stage_results.PipelineCoreInputs ||
+      phase == @stage_results.PipelineCoreInputs ||
+      phase == @stage_results.PipelineCoreParameters
+    ) &&
     @stage_results.local_program_read_owned_work(read) is Some(spent) &&
     spent >= owner.topology_observed_work else {
     owner.phase = Failed
@@ -362,7 +411,13 @@ fn[I, P] advance_program_check_source_topology_owned(
       1L,
     )
     is Some(held) &&
-    held <= peak else {
+    @execution.checked_preparation_add_product(
+      peak,
+      owner.topology_replaced_bytes,
+      1L,
+    )
+    is Some(backed) &&
+    held <= backed else {
     owner.phase = Failed
     return Err(Overflow)
   }
@@ -379,7 +434,7 @@ fn[I, P] advance_program_check_source_topology_owned(
     Ok(_) => ()
   }
   owner.source_body_quote = Some((peak, held))
-  owner.environment_scratch = Some(peak - held)
+  owner.environment_scratch = Some(peak + owner.topology_replaced_bytes - held)
   owner.phase = SourceTopologyBodyReturned
   Ok(phase)
 }

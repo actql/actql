@@ -14,7 +14,10 @@ test "same Request parent backs original topology entrance once and retirement c
     )
     let read = @context.sourceview_context_topology_read(context).unwrap()
     assert_eq(@stage_results.local_program_read_phase(read), LocalInputs)
-    assert_eq(@stage_results.local_program_read_stage_index(read), Some(0))
+    assert_eq(
+      @stage_results.local_program_read_constructor_position(read).map(p => p.0),
+      Some(0),
+    )
     assert_eq(@stage_results.local_program_read_owned_work(read), Some(2L))
     assert_true(
       physical_equal(

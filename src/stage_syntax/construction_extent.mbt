@@ -1,7 +1,7 @@
 ///|
 /// Preconstruction structural facts from the already admitted indexed source.
 /// This is a bound on the stage envelope only, not semantic checking or a grant.
-/// The indexed tree, temporary ObjectViews/name arrays, strings and diagnostic
+/// The indexed tree, constructor scratch, strings and diagnostic
 /// paths need separate simultaneous owners. The caller funds this inspection.
 pub(all) struct ProgramConstructionExtent {
   stage_records : Int
@@ -123,6 +123,8 @@ pub fn program_construction_extent64(
       return None
     }
     work.remaining -= result_count.to_int64()
+    // Same retained input table names now belong to their original Stage.
+    names += input_count.to_int64()
     names += result_count.to_int64()
     for name in ["effects", "table_inputs"] {
       match construction_field(stage, name, work) {
@@ -139,9 +141,10 @@ pub fn program_construction_extent64(
     }
   }
   // Pinned grow-only arrays start at <=8 and double: capacity<=8+2n.
-  // Four retained arrays per stage, plus Program stages/exports. Maps grow
-  // below full occupancy: conservative capacity<=8+4n, with three per stage.
-  let arrays = 2L + 4L * stage_count.to_int64()
+  // Five retained arrays per stage, including original input names, plus
+  // Program stages/exports. Maps grow
+  // below full occupancy: conservative capacity<=8+4n, with four per stage.
+  let arrays = 2L + 5L * stage_count.to_int64()
   let array_items = stage_count.to_int64() +
     export_count.to_int64() +
     imports +
@@ -152,7 +155,7 @@ pub fn program_construction_extent64(
     export_tuples: export_count,
     name_index_entries: names,
     retained_array_capacity_bound: 8L * arrays + 2L * array_items,
-    retained_map_capacity_bound: 24L * stage_count.to_int64() + 4L * names,
+    retained_map_capacity_bound: 32L * stage_count.to_int64() + 4L * names,
     inspection_work: max_work - work.remaining,
   })
 }
@@ -232,36 +235,54 @@ fn program_container_construction_extent_fields(
   let exports = export_tuples.to_int64()
   let names = name_index_entries
   let predecessors = Int64::max(0L, stages - 1L)
-  let arrays = 2L + 4L * stages
+  let arrays = 2L + 5L * stages
   let items = stages + exports + imports + names
   let array_capacity = 8L * arrays + 2L * items
-  let maps = 3L * stages
+  let maps = 4L * stages
   let map_capacity = 8L * maps + 4L * names
   if retained_array_capacity_bound != array_capacity ||
     retained_map_capacity_bound != map_capacity {
     return None
   }
-  // Program(1H5R); Stage(1H9R plus predecessor tag/ref); each noninitial
-  // predecessor(1H1R1W); Stage Cursor(1H2R1W); import tuple and its payload
-  // variant(2H4R1W); export tuple(1H3R). Initial is an inline scalar tag.
-  let headers = 1L + 2L * stages + predecessors + 2L * imports + exports
-  let refs = 5L + 11L * stages + 2L * predecessors + 4L * imports + 3L * exports
-  let words = 2L * stages + imports
-  // Array wrapper/backing:2H1R2W plus capacity refs. Map record/backing,
-  // entries and tagged bucket/lookup controls:6H6R9W per map,4H5R7W per
-  // entry, plus backing reference/scalar slots. All element bodies borrow
-  // their original owner; no row, parameter value or source String is copied.
+  // Original Stage roots add inputs view/names/steps3R. The retained view
+  // owns1H2R and its original inputs/steps Cursors own2H4R2W. Neither the
+  // indexed source, field-name Strings nor semantic evidence is copied.
+  let headers = 1L + 5L * stages + predecessors + 2L * imports + exports
+  let refs = 5L + 20L * stages + 2L * predecessors + 4L * imports + 3L * exports
+  let words = 4L * stages + imports
+  guard @shape.reference_array_retained_extent(arrays, array_capacity)
+    is Some(array) &&
+    @shape.map_retained_extent(maps, map_capacity, names) is Some(map) &&
+    @shape.compose_collection_construction_extents([
+      { record_headers: headers, reference_slots: refs, scalar_words: words, },
+      array,
+      map,
+    ])
+    is Some(retained) else {
+    return None
+  }
   Some({
     shallow_record_headers: headers,
     shallow_reference_slots: refs,
     shallow_scalar_words: words,
-    record_headers: headers + 2L * arrays + 6L * maps + 4L * names,
-    reference_slots: refs +
-    arrays +
-    array_capacity +
-    6L * maps +
-    map_capacity +
-    5L * names,
-    scalar_words: words + 2L * arrays + 9L * maps + map_capacity + 7L * names,
+    record_headers: retained.record_headers,
+    reference_slots: retained.reference_slots,
+    scalar_words: retained.scalar_words,
   })
+}
+
+///|
+/// Call-expanded quotation work of this SAME retained container recipe:
+/// Array5H1R10W, Map8H1R16W, three-extent composition14H23R24W,
+/// shallow descriptor1H3W, final extent/Some2H1R7W. This immutable DATA
+/// excludes described Program/storage and grants no reservation or verdict.
+pub fn program_container_quote_control_extent() -> ProgramConstructorControlExtent {
+  program_container_quote_controls
+}
+
+///|
+let program_container_quote_controls : ProgramConstructorControlExtent = {
+  record_headers: 30L,
+  reference_slots: 26L,
+  scalar_words: 60L,
 }

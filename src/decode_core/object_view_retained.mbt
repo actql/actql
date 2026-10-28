@@ -18,3 +18,10 @@ pub fn object_view_retained_extent(
     scalar_words: 0L,
   })
 }
+
+///|
+/// Original selected Map capacity/entries only. The view and backing stay with
+/// their original owner; this tuple does not look up or admit any field.
+pub fn object_view_map_geometry(original : ObjectView) -> (Int, Int) {
+  (original.fields.capacity(), original.fields.length())
+}

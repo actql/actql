@@ -495,24 +495,6 @@ fn preflight(
 }
 
 ///|
-fn rows_preflight(
-  b : Budget,
-  source : @decode.Cursor,
-  rows : @carrier.Knowledge,
-) -> Unit raise Stop {
-  spend(b, source, 1)
-  let n = @carrier.field_count(rows)
-  spend(b, source, n)
-  for i in 0..<n {
-    let f = @carrier.field_at(rows, i).unwrap()
-    charge(b, source, @schema.reference_name(f.name))
-    if f.contract is Some(c) {
-      preflight(b, source, c, depth=1)
-    }
-  }
-}
-
-///|
 fn carrier(
   target : Target,
   inputs : Array[(String, @carrier.Carrier)],
@@ -525,92 +507,25 @@ fn carrier(
 }
 
 ///|
-fn graph_element_definition_preflight(
-  b : Budget,
-  source : @decode.Cursor,
-  value : @carrier.GraphNodeDefinition,
-) -> Unit raise Stop {
-  spend(b, source, 1)
-  charge(b, source, @carrier.graph_element_definition_name(value))
-  let keys = @carrier.graph_element_definition_key_count(value)
-  spend(b, source, keys)
-  for index in 0..<keys {
-    preflight(
-      b,
-      source,
-      @carrier.graph_element_definition_key_at(value, index).unwrap(),
-    )
-  }
-  rows_preflight(b, source, @carrier.graph_element_definition_properties(value))
-  let labels = @carrier.graph_element_definition_label_count(value)
-  spend(b, source, labels)
-  for index in 0..<labels {
-    let (label, properties) = @carrier.graph_element_definition_label_at(
-      value, index,
-    ).unwrap()
-    charge(b, source, label)
-    rows_preflight(b, source, properties)
-  }
-}
-
-///|
 fn carrier_preflight(
   b : Budget,
   source : @decode.Cursor,
   value : @carrier.Carrier,
 ) -> Unit raise Stop {
-  match value {
-    @carrier.Relation(rows) => rows_preflight(b, source, rows)
-    @carrier.Opaque(_) => spend(b, source, 1)
-    @carrier.GraphValue(graph) => {
-      spend(b, source, 1)
-      preflight(b, source, @carrier.graph_identity(graph))
-      let definition = @carrier.graph_definition(graph)
-      charge(b, source, @carrier.graph_domain(definition))
-      let nodes = @carrier.graph_node_count(definition)
-      let edges = @carrier.graph_edge_count(definition)
-      spend(b, source, nodes)
-      spend(b, source, edges)
-      for index in 0..<nodes {
-        graph_element_definition_preflight(
-          b,
-          source,
-          @carrier.graph_node_at(definition, index).unwrap(),
-        )
-      }
-      for index in 0..<edges {
-        let edge = @carrier.graph_edge_at(definition, index).unwrap()
-        graph_element_definition_preflight(
-          b,
-          source,
-          @carrier.graph_edge_element(edge),
-        )
-        let (from, to) = @carrier.graph_edge_endpoints(edge)
-        spend(b, source, 2)
-        charge(b, source, from)
-        charge(b, source, to)
-      }
+  let original = begin_carrier_preflight_read(b, source, value)
+  while original.state is Pending {
+    advance_carrier_preflight_read(original)
+  }
+  match original.state {
+    Complete => clear_carrier_preflight_read(original)
+    Rejected(issue) => {
+      clear_carrier_preflight_read(original)
+      raise Stop(issue)
     }
-    @carrier.EventValue(events) => {
-      rows_preflight(b, source, events.records)
-      spend(b, source, 2)
-      charge(b, source, @schema.reference_name(events.identity.name))
-      charge(b, source, @schema.reference_name(events.time.name))
-    }
-    @carrier.VectorValue(vectors) => {
-      rows_preflight(b, source, @carrier.vector_records(vectors))
-      let ids = @carrier.vector_identities(vectors)
-      spend(b, source, ids.length())
-      for field in ids {
-        charge(b, source, @schema.reference_name(field.name))
-      }
-      spend(b, source, 1)
-      charge(
-        b,
-        source,
-        @schema.reference_name(@carrier.vector_components(vectors).name),
+    _ =>
+      abort(
+        "original Carrier preflight was retired during its synchronous call",
       )
-    }
   }
 }
 

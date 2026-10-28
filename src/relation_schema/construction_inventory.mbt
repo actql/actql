@@ -89,3 +89,30 @@ pub fn from_object_construction_extent(
     scalar_words: 4L * i,
   })
 }
+
+///|
+/// The SAME reference_name spelling constructor, without constructing a String
+/// just to quote it. Unqualified names borrow text; qualification adds its
+/// original prefix and one transient String before the caller's charge returns.
+pub fn reference_name_construction_extent(
+  name : FieldName,
+) -> SchemaConstructionInventory {
+  let (prefix, text) = reference_parts(name)
+  {
+    retained: { record_headers: 0L, reference_slots: 0L, scalar_words: 0L, },
+    scratch: {
+      record_headers: if prefix == "" {
+        0L
+      } else {
+        1L
+      },
+      reference_slots: 0L,
+      scalar_words: 0L,
+    },
+    scratch_utf16_units: if prefix == "" {
+      0L
+    } else {
+      prefix.length().to_int64() + text.length().to_int64()
+    },
+  }
+}

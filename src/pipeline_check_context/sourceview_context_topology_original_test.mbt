@@ -13,7 +13,10 @@ test "Context finish consumes the same partially advanced topology rather than p
   ).unwrap()
   let read = begin_sourceview_context_topology_read(original).unwrap()
   assert_eq(@stage_results.advance_local_program_read(read), Imports)
-  assert_eq(@stage_results.local_program_read_stage_index(read), Some(0))
+  assert_eq(
+    @stage_results.local_program_read_constructor_position(read).map(p => p.0),
+    Some(0),
+  )
   assert_true(
     physical_equal(
       begin_sourceview_context_topology_read(original).unwrap(),

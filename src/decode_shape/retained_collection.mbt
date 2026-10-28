@@ -34,3 +34,26 @@ pub fn map_retained_extent(
   }
   Some({ record_headers: h, reference_slots: r, scalar_words: w, })
 }
+
+///|
+/// Additional backing for one push into the SAME pinned Array. The existing
+/// wrapper/current buffer stay charged to their original holder. A non-growing
+/// push allocates no backing; doubling/fallback and the empty minimum are
+/// bounded here, alongside the existing collection recipe. JS hidden backing
+/// is covered by the same logical bound, not measured by Array.capacity().
+pub fn reference_array_push_construction_extent(
+  length : Int,
+  capacity : Int,
+) -> CollectionConstructionExtent? {
+  if length < 0 || capacity < length {
+    return None
+  }
+  if length < capacity {
+    return Some({ record_headers: 0L, reference_slots: 0L, scalar_words: 0L, })
+  }
+  Some({
+    record_headers: 1L,
+    reference_slots: Int64::max(8L, 2L * (length.to_int64() + 1L)),
+    scalar_words: 0L,
+  })
+}
