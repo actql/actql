@@ -13,7 +13,7 @@ const deferred = () => {
 // Explicit grant/control and page ports isolate this Host lifecycle. They do
 // not qualify a normal Account, compiled Common, provider or public Source.
 function fixture({pages = [Buffer.from('one'), Buffer.from('two')],
-  charge, decode, current, authorize, call, resolveSecret} = {}) {
+  charge, decode, current, authorize, call, resolveSecret, prepareFailure} = {}) {
   const events = [], responses = [], delivered = [];
   const scope = Object.freeze({...Object.fromEntries(credentialInvocationBindingKeys.map(name =>
     [name, name])), operation: 'example:records:list', resourceOrigin: 'https://example.invalid'});
@@ -49,7 +49,7 @@ function fixture({pages = [Buffer.from('one'), Buffer.from('two')],
   const factory = createInstalledCredentialSourceReader({capacity, site,
     operation: scope.operation, maxResponses: pages.length, maxResponseBytes: 1024, maxSecretBytes: 64,
     preparePageReader(input) {
-      prepared++;assert.deepEqual(input, {resource: 'records', columns: ['id'], requestWire: 'original-request'});
+      prepared++;if (prepareFailure) throw prepareFailure;assert.deepEqual(input, {resource: 'records', columns: ['id'], requestWire: 'original-request'});
       const provider = {
         fetchPage(context) {
           assert.strictEqual(this, provider);assert.equal(context.pageIndex, decoded);
@@ -160,4 +160,15 @@ test('managed decoder forwards an original wide-number rows wire with the same c
   assert.deepEqual(f.delivered, []);
   reader.requestStop();f.reader.requestStop();
   assert.equal(reader.observe().cleanupConfirmed, true);
+});
+
+
+test('managed pure provider setup failure returns its original cleanup handle and sends nothing', async () => {
+  const cause = new Error('original decoder unavailable');
+  const f = fixture({prepareFailure:cause});
+  await assert.rejects(f.reader.read(), error => error === cause);
+  assert.equal(f.events.length, 0);
+  assert.equal(f.reader.observe().phase, 'failed');
+  f.reader.requestStop();
+  assert.equal(f.reader.observe().cleanupConfirmed, true);
 });
