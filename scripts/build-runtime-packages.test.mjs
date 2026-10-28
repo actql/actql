@@ -439,7 +439,7 @@ expectedGates['check:run-host-core'][2] +=
   ' packages/run-host-core/effect-checkpoint-retention.test.mjs packages/run-host-core/effect-checkpoint-binding.test.mjs';
 distribution[3] = distribution[3]
   .replace('node --test ',
-    'node --test adapters/host-common/source-response-custody.test.mjs adapters/host-node/installed-family-content.test.mjs scripts/packed-public-query-profile.test.mjs adapters/host-node/client-full-join-refusal.test.mjs ')
+    'node --test adapters/host-common/file-media-type-consumers.test.mjs adapters/host-common/source-response-custody.test.mjs adapters/host-node/installed-family-content.test.mjs scripts/packed-public-query-profile.test.mjs adapters/host-node/client-full-join-refusal.test.mjs ')
   .replace('adapters/host-node/installed-composed-infer-run.test.mjs ',
     'adapters/host-node/installed-composed-infer-run.test.mjs adapters/host-common/strategy-usage.test.mjs adapters/host-node/ledger-usage-consumers.test.mjs ')
   .replace('adapters/host-node/installed-effect-site.test.mjs ',

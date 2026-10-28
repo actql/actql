@@ -405,7 +405,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2f0393e3e4c6b68104059d04db6a48f4dd1aab5c3588b1a57b2ab4c5fb1e0b5e",
+      "sha256": "24be07e552aa90b7f2d80f94b3597dc25fdb810d0ee95f7c3addaee06356f411",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -762,13 +762,6 @@
           "async": false
         },
         {
-          "name": "mime/mime",
-          "parameters": [
-            "path"
-          ],
-          "async": false
-        },
-        {
           "name": "ownLimits",
           "parameters": [
             "input"
@@ -1024,12 +1017,12 @@
             "installPreparedProjectLocalFiles/init:ledgerCapacity/init:ledgerCapacity",
             "installPreparedProjectLocalFiles/init:prepare/init:prepare",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#2",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#3",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#4",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#5",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#6",
-            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
             "installPreparedProjectLocalFiles/issuer/issuer",
             "installPreparedProjectLocalFiles/issuer/issuer#2",
             "installPreparedProjectLocalFiles/keyedTransports/keyedTransports",
@@ -1043,7 +1036,6 @@
             "installPreparedProjectLocalFiles/queryAliases/queryAliases/view/view",
             "installPreparedProjectLocalFiles/resourceFor/resourceFor",
             "installPreparedProjectLocalFiles/sameRun/sameRun",
-            "mime/mime",
             "ownLimits",
             "ownLimits/ownLimits",
             "ownLimits/ownLimits#2",
@@ -1093,6 +1085,10 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files.mjs",
                 "anchor": "installPreparedProjectLocalFiles"
+              },
+              {
+                "path": "adapters/host-common/file-media-type.mjs",
+                "anchor": "export function defaultFileMediaType"
               }
             ],
             "identity": [
@@ -1193,6 +1189,10 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files-content.test.mjs",
                 "anchor": "test('Local Content"
+              },
+              {
+                "path": "adapters/host-common/file-media-type-consumers.test.mjs",
+                "anchor": "actual Local listing and Content defaults"
               }
             ]
           }

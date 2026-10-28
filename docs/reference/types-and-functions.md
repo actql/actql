@@ -28,6 +28,31 @@ where the schema says `nullable`. A column that an external system may omit
 is a separate notion from a nullable column; see
 [SQL compatibility](sql-compatibility.md#null-rules).
 
+## Default file media types
+
+Extension-derived file defaults use this shared profile when a provider-reported
+or explicitly configured media type does not apply. Only the suffix after a
+period in the final path component participates; ASCII extension matching is
+case-insensitive. A bare filename, an unknown suffix, or an inherited object
+property name does not supply a type: the default is `application/octet-stream`.
+
+| Extension | Default media type |
+| --- | --- |
+| `txt` | `text/plain` |
+| `md` | `text/markdown` |
+| `csv` | `text/csv` |
+| `json` | `application/json` |
+| `jsonl` | `application/x-ndjson` |
+| `pdf` | `application/pdf` |
+| `png` | `image/png` |
+| `jpg`, `jpeg` | `image/jpeg` |
+| `xml` | `application/xml` |
+
+This default is a hint derived from the name. It does not replace an original
+reported or configured media type, inspect the bytes, or establish a Resource,
+Content reference, permission or capture acknowledgment. The default lookup
+performs no I/O, admission or cleanup.
+
 ## Parameters
 
 A Program declares its parameters with a type, a nullability and an optional

@@ -38,6 +38,10 @@ Files are sources too, independent of any table declaration:
   `content`, a `content_ref`. Join it on `resource` and `version` from
   `LIST_FILES`.
 
+Extension-derived defaults use the shared [file media type profile](../reference/types-and-functions.md#default-file-media-types).
+In particular, Markdown defaults to `text/markdown`; a configured media type
+remains a separate original choice.
+
 A path can also point into a bucket (`gs://…`, `s3://…`) when the
 corresponding storage Connector is configured; the file is read through it.
 

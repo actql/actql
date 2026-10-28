@@ -83211,6 +83211,102 @@
         }
       ],
       "referenceQualification": "Exact generated implementation and selected Core API delta only; no whole-resource API, resource admission, physical stop or normal runtime acceptance."
+    },
+    {
+      "module": "adapters/host-common/file-media-type.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "f327006bff5db2d311b534343776f8a8dcbe92399636bb738861365b94cb0ed3",
+      "role": "common-semantics",
+      "owner": "Shared extension-derived default for validated file paths; actual Local listing and Content consumers, reported/configured values remain separate originals",
+      "exports": [
+        "defaultFileMediaType"
+      ],
+      "operations": [
+        {
+          "name": "defaultFileMediaType",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "defaultFileMediaType"
+          ],
+          "exports": [
+            "defaultFileMediaType"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/reference/types-and-functions.md",
+                "anchor": "## Default file media types"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/file-media-type.mjs",
+                "anchor": "export function defaultFileMediaType"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/reference/types-and-functions.md",
+                "anchor": "does not replace an original"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/file-media-type.mjs",
+                "anchor": "const mediaTypes = Object.freeze"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/file-media-type.mjs",
+                "anchor": "const name = path.slice"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/file-media-type.mjs",
+                "anchor": "throw new TypeError"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/reference/types-and-functions.md",
+                "anchor": "performs no I/O, admission or cleanup."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/file-media-type.mjs",
+                "anchor": "const suffix = name.slice"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/file-media-type.mjs",
+                "anchor": "Object.hasOwn(mediaTypes, extension)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/file-media-type-consumers.test.mjs",
+                "anchor": "actual Local listing and Content defaults"
+              },
+              {
+                "path": "adapters/host-common/file-media-type-consumers.test.mjs",
+                "anchor": "shared default profile uses own ASCII suffix"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "generated": [],
