@@ -5,6 +5,7 @@ import {dirname, join} from 'node:path';
 import test from 'node:test';
 import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
 import {readHostBundles} from './connector-node-bundles.mjs';
+import {inspectCore} from './portable-core.mjs';
 
 function fixture(t) {
   const root = mkdtempSync(join(realpathSync(tmpdir()), 'actql-connector-inputs-'));
@@ -72,6 +73,83 @@ function hostFixture(f, roles = ['source', 'effect'], name = 'numeric') {
   f.configuration.connectors.push(selection);
   return {installation, path, write, providerPath, selection};
 }
+
+test('shared reviewed module options preserve both consumers and original module identity', t => {
+  const f = fixture(t), core = f.modules[0].root;
+  const modulePath = join(core, 'moon.mod'), original = readFileSync(modulePath, 'utf8');
+  f.put(join(core, 'src/connector_sdk/main.mbt'), 'pub fn identity(x : Int) -> Int { x }\n');
+  const before = resolveConnectorBuildInputs(f.configuration);
+  for (const option of [
+    'options("link-flags": ["-js-format", "esm"])\n',
+    'options(\n  "link-flags": [ "-js-format", "esm" ],\n)\n',
+    'options(/* selected module format */ "link-flags": ["-js-format", "esm"],)\n',
+  ]) for (const source of [original + option, option + original]) {
+    writeFileSync(modulePath, source);
+    const after = resolveConnectorBuildInputs(f.configuration);
+    assert.deepEqual(after.modules, before.modules);
+    assert.deepEqual(after.computeEntries, before.computeEntries);
+    assert.deepEqual(inspectCore(core, ['connector_sdk']).packages, ['connector_sdk']);
+    assert.equal(readFileSync(modulePath, 'utf8'), source);
+  }
+});
+
+test('shared module option recognition refuses unknown malformed duplicate and extra flags', t => {
+  const f = fixture(t), core = f.modules[0].root;
+  const modulePath = join(core, 'moon.mod'), original = readFileSync(modulePath, 'utf8');
+  f.put(join(core, 'src/connector_sdk/main.mbt'), 'pub fn identity(x : Int) -> Int { x }\n');
+  const valid = 'options("link-flags": ["-js-format", "esm"])';
+  for (const invalid of [
+    'options("other": ["-js-format", "esm"])',
+    'options("pre-build": "node hidden.mjs")',
+    'options(deps: {"hidden/dependency": "1.0.0"})',
+    'options("link-flags": ["-js-format", "cjs"])',
+    'options("link-flags": ["esm", "-js-format"])',
+    'options("link-flags": ["-js-format", "esm", "-extra"])',
+    'options("link-flags": "esm")',
+    'options("link-flags": ["-js-format", "esm",])',
+    'options("link-flags": ["-js-format", "esm"],,)',
+    'options("link-flags": ["-js-format", "esm"], "link-flags": [])',
+    'options("link-flags": ["-js-format", "esm"]',
+    valid + '\n' + valid,
+    valid + '\nunknown = "hidden"',
+  ]) {
+    writeFileSync(modulePath, original + invalid);
+    assert.throws(() => resolveConnectorBuildInputs(f.configuration), undefined, invalid);
+    assert.throws(() => inspectCore(core, ['connector_sdk']), undefined, invalid);
+  }
+});
+
+test('reviewed module options retain dependency target and package metadata refusals', t => {
+  const f = fixture(t), core = f.modules[0].root;
+  const option = 'options("link-flags": ["-js-format", "esm"],)\n';
+  f.mod(0, [], option);
+  f.mod(1, ['actql/actql@0.0.1', 'hidden/dependency@1.0.0'], option);
+  assert.throws(() => resolveConnectorBuildInputs(f.configuration), /Missing or mismatched declared module dependency/);
+  f.mod(1, ['actql/actql@0.0.1'], option);
+  const modulePath = join(core, 'moon.mod'), source = readFileSync(modulePath, 'utf8');
+  writeFileSync(modulePath, source.replace('supported_targets = "+js+wasm+native"', 'supported_targets = "native"'));
+  assert.throws(() => resolveConnectorBuildInputs(f.configuration), /Incompatible JS target/);
+  writeFileSync(modulePath, source);
+  const resolved = resolveConnectorBuildInputs(f.configuration);
+  // Module format DATA is not permission to accept package-level linker data.
+  f.put(join(core, 'src/connector_sdk/moon.pkg'), 'supported_targets = "js"\n' + option);
+  assert.throws(() => resolved.resolvePackage('actql/actql/connector_sdk'), /Unsupported package metadata: options/);
+  assert.throws(() => inspectCore(core, ['connector_sdk']), /UnknownManifestDirective: options/);
+});
+
+test('shared module recognition leaves Core source purity and foreign file checks intact', t => {
+  const f = fixture(t), core = f.modules[0].root;
+  f.mod(0, [], 'options("link-flags": ["-js-format", "esm"],)\n');
+  const main = join(core, 'src/connector_sdk/main.mbt');
+  for (const source of ['extern "js" fn hidden() -> Int = "Date.now"',
+    'pub fn hidden() -> Unit { println("unrequested") }']) {
+    f.put(main, source);
+    assert.throws(() => inspectCore(core, ['connector_sdk']), /CoreEnvironmentAccess/);
+  }
+  f.put(main, 'pub fn identity(x : Int) -> Int { x }\n');
+  f.put(join(core, 'src/connector_sdk/hidden.c'), 'int hidden(void) { return 1; }\n');
+  assert.throws(() => inspectCore(core, ['connector_sdk']), /CoreForeignFile/);
+});
 
 test('external package references retain existing manifest ownership and immutable snapshots', t => {
   const f = fixture(t);
