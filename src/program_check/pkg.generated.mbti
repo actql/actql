@@ -204,6 +204,8 @@ pub fn effect_program_static_environment(EffectProgramStaticCandidate) -> @check
 
 pub fn effect_program_static_headers(EffectProgramStaticCandidate) -> @stage_syntax.EffectHeaders
 
+pub fn effect_program_static_original_input(EffectProgramStaticCandidate) -> (@stage_syntax.Program, @decode_core.Cursor?)
+
 pub fn effect_program_static_semantics_cid(EffectProgramStaticCandidate) -> String
 
 pub fn effect_program_static_stage_results(EffectProgramStaticCandidate) -> @stage_results.Checked

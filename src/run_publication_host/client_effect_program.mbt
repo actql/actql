@@ -176,12 +176,7 @@ pub fn prepare_static_client_effect_computation(
     return Err(TargetSelection(ForeignEnvironment))
   }
   compile_static_client_effect_computation(
-    candidate,
-    environment,
-    limits,
-    max_mapping_work,
-    update_targets,
-    store_targets,
+    candidate, environment, limits, max_mapping_work, update_targets, store_targets,
     command_targets,
   )
 }
@@ -233,7 +228,9 @@ fn compile_static_client_effect_computation(
     Ok(value) => value
     Err(issue) => return Err(Graph(issue))
   }
-  let (parsed, supplied) = @checked.effect_program_static_original_input(candidate)
+  let (parsed, supplied) = @checked.effect_program_static_original_input(
+    candidate,
+  )
   Ok({
     target_selections,
     command_targets,

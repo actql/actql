@@ -93,7 +93,12 @@ test "parsed Effect preparation preserves source and rejects an equal-CID foreig
 test "retained static Effect compilation preserves original Command environment and refusal order" {
   let (document, environment, limits) = local_update_normalization_fixture()
   let (_, foreign_environment, _) = local_update_normalization_fixture()
-  let candidate = retained_static_effect_fixture(document, environment, None, limits)
+  let candidate = retained_static_effect_fixture(
+    document,
+    environment,
+    None,
+    limits,
+  )
   let original = command_preparation_publication(environment, limits)
   let prepared = prepare_static_client_effect_computation(
     candidate,

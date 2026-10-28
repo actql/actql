@@ -93,7 +93,9 @@ fn retained_static_effect_fixture(
     limits.max_mapping_work,
   ).unwrap()
   @checked.close_effect_computation_static(
-    computation, mappings, limits.effects,
+    computation,
+    mappings,
+    limits.effects,
   ).unwrap()
 }
 
@@ -120,7 +122,10 @@ test "retained static Effect compilation preserves original supplied input witho
     max_total_string_bytes: 1024,
   }).unwrap()
   let candidate = retained_static_effect_fixture(
-    document, environment, Some(supplied), limits,
+    document,
+    environment,
+    Some(supplied),
+    limits,
   )
   let (parsed, original_supplied) = @checked.effect_program_static_original_input(
     candidate,
@@ -136,16 +141,15 @@ test "retained static Effect compilation preserves original supplied input witho
       ..limits.program.checking,
       input: {
         ..limits.program.checking.input,
-        source: {
-          ..limits.program.checking.input.source,
-          max_input_bytes: 0,
-        },
+        source: { ..limits.program.checking.input.source, max_input_bytes: 0, },
       },
       compilation: { ..limits.program.checking.compilation, work: 0, },
     },
   }
   let prepared = prepare_static_client_effect_computation(
-    candidate, compilation_limits, limits.max_mapping_work,
+    candidate,
+    compilation_limits,
+    limits.max_mapping_work,
   ).unwrap()
   assert_true(physical_equal(prepared.candidate, candidate))
   assert_true(physical_equal(prepared.source, parsed))
@@ -157,7 +161,9 @@ test "retained static Effect compilation preserves original supplied input witho
     @checked.checking_environment_cid(environment),
   )
   let (_, parameters, _) = client_effect_original_input_wires(prepared).unwrap()
-  let actual = decode_client_run_materials_parameters(parameters).unwrap().unwrap()
+  let actual = decode_client_run_materials_parameters(parameters)
+    .unwrap()
+    .unwrap()
   let object = @decode.open_object(actual).unwrap()
   assert_eq(
     @decode.text(@decode.lookup(object, "note").unwrap()).unwrap(),
@@ -168,7 +174,12 @@ test "retained static Effect compilation preserves original supplied input witho
 ///|
 test "retained static Effect compilation keeps actual task and graph bounds" {
   let (document, environment, limits) = client_composed_effect_base_fixture()
-  let candidate = retained_static_effect_fixture(document, environment, None, limits)
+  let candidate = retained_static_effect_fixture(
+    document,
+    environment,
+    None,
+    limits,
+  )
   assert_true(
     prepare_static_client_effect_computation(
       candidate,
