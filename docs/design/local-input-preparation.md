@@ -1357,3 +1357,22 @@ caller must fund quotation and retained-result controls before requesting it,
 and compose it with the remaining emission, UTF8, parser, type/schema, identity,
 caller and work overlap before advancing the original Snapshot body. Dropping
 a quotation or completing a selector does not retire those later bodies.
+
+## Source reference split lifetime
+
+The Local source-reference owner retains the original three-component format.
+Its reader checks the complete supplied String's Unicode and byte budget before
+constructing split views. A fourth component already proves the existing format
+invalid, so the split constructor holds at most that complete format plus one
+refusal component. The same original component-count declaration supplies both
+the reader's structural test and its parts-construction quantity. This bounds
+malformed-input holdings without introducing another user limit or bypassing
+errors in a later unconsumed portion of the String.
+
+Split views borrow their original String. The shared collection owner supplies
+Array growth/backing overlap, while iterator, untoken, NFC, token, Reference and
+caller frames retain their separate constructor lifetimes. The parts quantity
+alone is insufficient to fund the whole reference reader or Snapshot body.
+Input-document reuse must preserve existing typed diagnostic paths and spans;
+equal values in a surrounding Environment do not by themselves establish the
+member-relative provenance of an independently admitted Snapshot document.

@@ -2,6 +2,7 @@
 package "actql/actql/local_source_ref"
 
 import {
+  "actql/actql/decode_shape",
   "moonbitlang/core/debug",
 }
 
@@ -11,6 +12,8 @@ pub fn create(String, String, max_bytes~ : Int) -> Result[Reference, Issue]
 pub fn input_name(Reference) -> String
 
 pub fn read(String, max_bytes~ : Int) -> Result[Reference, Issue]
+
+pub fn reference_parts_construction_extent() -> @decode_shape.CollectionConstructionExtent
 
 pub fn stage_name(Reference) -> String
 
