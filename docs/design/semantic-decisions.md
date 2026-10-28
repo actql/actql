@@ -1101,3 +1101,37 @@ contract, retain the original fields, bound raw input plus output construction
 and connect Source/Resource/Content/cleanup before normal support is claimed.
 Its existing logical resource model is retained; this requires neither a new
 allocator nor preallocation of every object in the VM heap.
+
+## Kintone UPSERT permissions and original keys
+
+`ROOT-KINTONE-UPSERT-PERMISSIONS-01` applies the existing
+[single exact Mapping permission rule](../spec/protocols/contracts.md#mapping-contracts)
+to the complete logical UPSERT. One `upsert`/`key` rule for the exact write-field
+set carries both existing technical requirements, `kintone:records:create` and
+`kintone:records:update`. Choosing one physical branch from the original lookup
+does not combine two different Mapping rules or reduce the logical operation's
+requirements. Lookup/read authorization remains separate.
+
+The provider's [update-records requirements](https://kintone.dev/en/docs/kintone/rest-api/records/update-records/)
+include add-record permission when native UPSERT is selected, in addition to
+update and field rights. Its [add-record requirements](https://kintone.dev/en/docs/kintone/rest-api/records/add-record/)
+also require add and field rights. These facts support the complete permission
+set; they do not select a different transport, grant authority or qualify the
+connector's original lookup and conditional-write algorithm. No new permission
+token or approval-minimum field is introduced.
+
+The Mapping retains the same observed unique field as its target key, distinct
+from the Relation's native `$id` candidate key. Original Form uniqueness,
+declaration, publication, lookup and write-contract correspondence remain
+required; a CID or caller assertion alone is insufficient. The actual selector
+is non-null on both branches and may supply the required create key separately
+from `SET`. Other missing required create fields still fail. Existing field-type
+and nullability checks remain in force.
+
+This uses the existing closed Mapping representation. New complete Mapping,
+schema and identity-scheme bodies receive their own dependent CIDs and
+independent preimages; old CREATE/UPDATE bodies and read contracts are not
+rewritten. Existing checks for other operations remain. No hidden key field,
+new identity domain, registry, Owner, grant or default is selected. Typed/static
+admission, full construction/backing, current Account and target rights,
+approval, claim, cleanup and cold recovery remain implementation obligations.
