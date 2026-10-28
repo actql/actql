@@ -79,7 +79,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   let closed = false;
   let readerPrepared = false, readerStarted = false, readerReadPending = false;
   let readerStopRequested = false;
-  let reader, readerRead, readerStop, readerObserve;
+  let reader, readerRead, readerStop, readerObserve, readerRetry;
   let readerStopPending = false, readerStopFailure;
   const readerRetired = () => {
     if (readerObserve === undefined || readerReadPending || readerStopPending) return false;
@@ -88,7 +88,11 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     return Reflect.apply(readerObserve, reader, [])?.cleanupConfirmed === true;
   };
   const stopReader = () => {
-    if (readerStopRequested || readerStop === undefined) return;
+    if (readerStop === undefined) return;
+    if (readerStopRequested) {
+      if (readerRetry !== undefined) Reflect.apply(readerRetry, reader, []);
+      return;
+    }
     readerStopRequested = true;
     try {
       const stopping = Reflect.apply(readerStop, reader, []);
@@ -112,7 +116,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     if (originalRead !== undefined) checked(moon.clientProgramInstalledSourceReadRetire(originalRead));
     if (originalKeyedRead !== undefined) checked(moon.clientProgramInstalledKeyedSourceReadRetire(originalKeyedRead));
     closed = true;
-    reader = readerRead = readerStop = readerObserve = undefined;
+    reader = readerRead = readerStop = readerObserve = readerRetry = undefined;
     if (readerStopFailure !== undefined) throw readerStopFailure;
   };
 
@@ -139,6 +143,8 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     readerRead = reader?.read;
     readerStop = reader?.requestStop;
     readerObserve = reader?.observe;
+    readerRetry = reader?.retry;
+    if (readerRetry !== undefined && typeof readerRetry !== 'function') fail('InvalidInstalledSourceReader');
     if ([readerRead, readerStop, readerObserve].some(method => typeof method !== 'function')) {
       fail('InvalidInstalledSourceReader');
     }

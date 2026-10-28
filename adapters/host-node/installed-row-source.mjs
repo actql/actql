@@ -982,6 +982,11 @@ export async function createInstalledRowSource({moon, declaration,
   // Public packets/configuration cannot replace either after preparation.
   // The declaration is DATA; Core still reserves on the original Run Ledger.
   let originalReader;
+  // Managed and advanced page readers are distinct installation alternatives.
+  // A managed reader never needs a dummy or fallback unaccounted readPages.
+  if (providerReader === undefined ? typeof readPages !== 'function' : readPages !== undefined) {
+    fail('InvalidInstalledSourceReader');
+  }
   if ((prepareKeyedSourceRead !== undefined || closeKeyedSourceRead !== undefined) &&
       (typeof prepareKeyedSourceRead !== 'function' || typeof closeKeyedSourceRead !== 'function' ||
         providerReader !== undefined || listingReportCapacity !== undefined ||
