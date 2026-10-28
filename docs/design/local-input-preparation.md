@@ -27,7 +27,10 @@ contracts and resource children are separate identities.
 
 ## Identity and currentness
 
-Every transition checks its original preparation and original input/child.
+Admission, ownership transfer, external callbacks, execution and retirement
+check the original preparation and original input/child. Internal DATA access
+does not require another external current callback merely because it crosses a
+helper boundary. Checks around a callback that can reenter remain distinct.
 Equal-shaped objects, copied records and a different installed runtime cannot
 substitute for the original. The Common owner remains authoritative across
 the SDK's derived request associations and the Node manager/handler/dispatch
@@ -62,13 +65,55 @@ same preparation. A submission-journal failure before dispatch still requires
 retirement of that original owner. Uncertain outcomes retain their existing
 custody and retry identity rather than being converted into definitive refusal.
 
+## Accounting granularity and ordinary adoption
+
+Real files, FD/DB sessions, Store holdings, Buffer and transfer bytes, concurrent
+operations and physical attempts retain their actual reservation, consumption
+and retirement boundaries on the existing Ledger. Approval, currentness,
+cancellation, Unknown and physical cleanup retain their independent meanings.
+Neither an estimate nor a cleared language-level reference proves physical
+capacity or retirement. Native arenas and Wasm linear memory that actually
+reserve backing must continue to enforce that real capacity.
+
+Input-proportional data and work use conservative, explainable estimates from
+the original size, node, field, Stage, row and column counts and actual lifetime
+overlap. Existing shared inventories and arithmetic remain the owners of these
+calculations. Retain the original observed dimensions and quote once per
+semantic phase or actual expansion; do not reparse, recheck, recompile or
+reconstruct a Plan to recover them. Add simultaneous input/workspace/output
+holdings, use maxima for sequential retired scratch, and avoid double charging
+the same original backing.
+
+Small fixed Records, Some/Result wrappers, tuples, closures, getters and call
+frames are trusted Host/target overhead, not separate per-wrapper accounting
+or proof obligations. Do not add an inventory, work receipt, external current
+callback or phase solely for one such object. This overhead is internal policy;
+callers and connectors cannot provide numbers to manufacture capacity authority.
+Existing detailed control inventories are transitional implementation, not a
+requirement to extend their census for each helper change. Their logical charges
+do not certify V8 layout, operating-system allocation or RSS.
+
+The implementation priority is the ordinary same-original
+RequestPreparation -> CheckedProgram -> Plan -> Run -> Publication/cleanup
+connection, preserving supported inputs and removing migrated fallbacks.
+Missing fixed-wrapper census alone must not turn a valid feature into
+Unsupported. Complete that path with real variable-data/resource bounds before
+consolidating existing fixed accounting. This does not authorize bulk deletion,
+changed caps, a second allocator/tariff or a replacement permission owner.
+
+Acceptance uses one coherent source and matching artifacts: representative
+normal/error/cancel/restore behavior, original parse/check/compile/Plan and
+current/reserve/resize/FS/DB call counts, and separately qualified Node/Native/
+Python latency and memory observations. Narrow component checks and formula
+tables do not replace that ordinary acceptance.
+
 ## Work and storage units
 
-The representation policy prices named record headers, reference slots,
-scalar words, UTF-16 units and wire bytes using checked arithmetic. Constructor
-inventories and the runtime consume the same policy. A logical charge is not
-an operating-system allocation measurement or an RSS guarantee. Opaque engine
-and selected Host-service support must remain explicitly qualified.
+The existing representation policy supplies shared checked arithmetic for
+variable containers, UTF-16 units and wire bytes. Its historical record-header,
+reference-slot and scalar-word controls are subject to the granularity above;
+they are not a model of every VM allocation. Opaque engine and selected
+Host-service support must remain explicitly qualified.
 
 Wire length, parser node support, retained values, publication metadata and
 durable Store capacity are different quantities. For JSON value-node support,
@@ -1952,12 +1997,12 @@ replaced UTF16 units; no caller can silently price the latter as zero. The
 same Request subtracts the full old owned domain only after its original
 constructor returns and reconciles the actual new domain.
 
-Quote and retained-observation frames include their explicit adapter records,
-Some wrappers and work-observation return controls. A private domain's storage
-or observation bound does not by itself cover Pipeline/Stage adapters. Logical
-constructor tables, physical first-entry backing, and same-candidate ordinary
-backend behavior remain distinct obligations. Subsequent operations and final
-Result/Context/Plan/Run adoption require their own original lifetime recipes.
+Quote and retained-observation adapters are fixed trusted Host overhead, not
+another per-wrapper census gate. Variable domain storage and actually overlapping
+backing remain with their original owners. Logical estimates, physical
+first-entry backing and same-candidate ordinary backend behavior remain distinct.
+Subsequent operations and final Result/Context/Plan/Run adoption require the
+same original ownership and real input-proportional bounds.
 
 ### Original operation boundaries
 
@@ -1990,7 +2035,9 @@ entry drives this same body rather than a second transfer algorithm.
 The pending body retains the same compiler Budget, Source and checked operation
 until completion or clear. A failed charge keeps its original completed prefix;
 clear prevents further Map writes without mutating the borrowed prior evidence.
-The read, overwrite Map, iterator, pending pair, result Map and qualified String
-lifetimes still need their exact construction and retained recipes before
-Request adoption. This semantic continuation supplies no spare capacity or
-physical retirement acknowledgement.
+The input-proportional overwrite/result Maps and qualified Strings require
+shared size/count and real-overlap estimates before Request adoption. The
+small read, iterator and pending-pair controls belong to trusted Host overhead;
+their individual wrapper counts are not an additional adoption gate. This
+semantic continuation supplies no spare capacity or physical retirement
+acknowledgement.
