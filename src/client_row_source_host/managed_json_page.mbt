@@ -54,21 +54,31 @@ pub fn project_managed_json_page(
   max_rows : Int,
   max_cursor_bytes : Int,
 ) -> Result[ManagedJsonPage, ManagedJsonPageIssue] {
-  if max_bytes < 1 || max_nodes < 1 || max_depth < 1 || max_rows < 0 ||
-    max_cursor_bytes < 0 || items_path.length() > max_depth ||
-    cursor_path is Some(path) && path.length() > max_depth {
+  if max_bytes < 1 ||
+    max_nodes < 1 ||
+    max_depth < 1 ||
+    max_rows < 0 ||
+    max_cursor_bytes < 0 ||
+    items_path.length() > max_depth ||
+    (cursor_path is Some(path) && path.length() > max_depth) {
     return Err(InvalidLimits)
   }
-  let root = @source.parse_json_bytes_preserving(body, {
-    max_input_bytes: max_bytes,
-    max_nodes,
-    max_depth,
-  }).map_err(Parse)?
+  let root = match
+    @source.parse_json_bytes_preserving(body, {
+      max_input_bytes: max_bytes,
+      max_nodes,
+      max_depth,
+    }) {
+    Ok(root) => root
+    Err(issue) => return Err(Parse(issue))
+  }
   guard managed_json_path(root, items_path) is Some(selected) else {
     return Err(ItemsPath)
   }
   guard selected.value is Array(items) else { return Err(ItemsShape) }
-  if items.length() > max_rows { return Err(RowLimit) }
+  if items.length() > max_rows {
+    return Err(RowLimit)
+  }
   let next_cursor = match cursor_path {
     None => None
     Some(path) =>
@@ -87,12 +97,15 @@ pub fn project_managed_json_page(
       }
   }
   let span = selected.span
-  if span.start_byte < 0 || span.end_byte < span.start_byte ||
-    span.end_byte > body.length() { return Err(Wire) }
+  if span.start_byte < 0 ||
+    span.end_byte < span.start_byte ||
+    span.end_byte > body.length() {
+    return Err(Wire)
+  }
   let rows_wire = @utf8.decode(body[span.start_byte:span.end_byte]) catch {
     _ => return Err(Wire)
   }
-  Ok({ rows_wire, row_count: items.length(), next_cursor })
+  Ok({ rows_wire, row_count: items.length(), next_cursor, })
 }
 
 ///|
