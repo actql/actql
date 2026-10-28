@@ -174,18 +174,19 @@ priv enum LocalProgramReadState {
 struct LocalProgramRead {
   mut state : LocalProgramReadState
   borrowed_work : Int
+  mut inspection_work : Int64
 }
 
 ///|
 /// Fixed continuation controls only. Original typed pipelines, imports,
 /// collections, Result/ports bodies and the four staging Arrays are separate.
-/// Read1H1R1W; body1H11R11W; Reading/Completed/Failed alternatives3H4R3W;
+/// Read1H1R2W; body1H11R11W; Reading/Completed/Failed alternatives3H4R3W;
 /// two live Stage variants2H16R8W (component-wise payload maxima7R3W/8R1W,
 /// including their tags); advance Result/Some carriers4H4R4W; two owned-work
-/// and two position getters4H8W; take Some/error2H2R2W; entry Ok/error2H2R2W.
+/// getters10H6R12W and two position getters2H4W; take Some/error2H2R2W; entry Ok/error2H2R2W.
 /// These co-count constructor alternatives, not VM stack frames or a minimum.
 pub fn local_program_read_control_construction_extent() -> @shape.CollectionConstructionExtent {
-  { record_headers: 19L, reference_slots: 40L, scalar_words: 39L, }
+  { record_headers: 27L, reference_slots: 46L, scalar_words: 48L, }
 }
 
 ///|
@@ -302,7 +303,7 @@ fn begin_local_program_read_owned(
       LocalInputs
     },
   }
-  Ok({ state: Reading(body), borrowed_work, })
+  Ok({ state: Reading(body), borrowed_work, inspection_work: 0L, })
 }
 
 ///|
@@ -351,10 +352,11 @@ pub fn local_program_read_stage_index(original : LocalProgramRead) -> Int? {
 }
 
 ///|
-/// Original successful work excluding the SAME already-admitted environment
-/// prefix. A nested failure has no complete Usage and never becomes zero.
-pub fn local_program_read_owned_work(original : LocalProgramRead) -> Int? {
-  match original.state {
+/// Original successful semantic work and actual constructor-quantity visits,
+/// excluding the SAME already-admitted environment prefix. A nested failure
+/// has no complete Usage and never becomes zero.
+pub fn local_program_read_owned_work(original : LocalProgramRead) -> Int64? {
+  let semantic = match original.state {
     Reading(body) => {
       let prefix = match body.stage {
         PipelineRead(_, _, _, _, _, _, _, read) =>
@@ -367,6 +369,57 @@ pub fn local_program_read_owned_work(original : LocalProgramRead) -> Int? {
     }
     Completed(Ok((_, used))) => Some(used.work - original.borrowed_work)
     _ => None
+  }
+  semantic.bind(semantic => {
+    @counts.checked_nonnegative_add_product(
+      original.inspection_work,
+      semantic.to_int64(),
+      1L,
+    )
+  })
+}
+
+///|
+/// Actual named metadata visits and original semantic work share one meter.
+/// This is a work envelope, NEVER memory demand or a semantic limit increase.
+/// Input occurrences are bounded by their original Program nodes. Per input:
+/// four pre/post input visits +four optional original container visits; keys
+/// use at most three tuple and two retained-buffer visits per Environment node;
+/// ranking uses three geometry, two field/name and one retained-map visits.
+/// Original semantic caps still run unchanged in every actual callee.
+pub fn local_program_read_work_bound(original : LocalProgramRead) -> Int64? {
+  guard original.state is Reading(body) &&
+    !body.check_only &&
+    body.environment is Some(environment) else {
+    return None
+  }
+  let p = @decode.admission_usage(@parameters.source_body(body.source)).nodes.to_int64()
+  let e = @environment.usage(@local.program_environment(environment)).1.to_int64()
+  let per_environment = if e == 0L {
+    Some(0L)
+  } else {
+    @counts.checked_nonnegative_add_product(0L, p, e)
+  }
+  guard per_environment is Some(per_environment) &&
+    @counts.checked_nonnegative_add_product(body.work.to_int64(), p, 8L)
+    is Some(base) else {
+    return None
+  }
+  @counts.checked_nonnegative_add_product(base, per_environment, 11L)
+}
+
+///|
+fn record_local_program_read_inspection(
+  original : LocalProgramRead,
+  work : Int64,
+) -> Bool {
+  match
+    @counts.checked_nonnegative_add_product(original.inspection_work, work, 1L) {
+    Some(total) => {
+      original.inspection_work = total
+      true
+    }
+    None => false
   }
 }
 

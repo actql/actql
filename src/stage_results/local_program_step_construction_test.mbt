@@ -31,9 +31,9 @@ test "original two-stage repeated imports retain producer identity within their 
     assert_false(next == Failed)
     if quote is Some(q) {
       let held = local_program_read_step_retained_extent(read, before).unwrap()
-      assert_true(q.peak.record_headers >= held.record_headers)
-      assert_true(q.peak.reference_slots >= held.reference_slots)
-      assert_true(q.peak.scalar_words >= held.scalar_words)
+      assert_true(q.peak.record_headers >= held.extent.record_headers)
+      assert_true(q.peak.reference_slots >= held.extent.reference_slots)
+      assert_true(q.peak.scalar_words >= held.extent.scalar_words)
     }
   }
   assert_eq(peaks.length(), 2)

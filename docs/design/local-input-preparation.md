@@ -1679,3 +1679,34 @@ phase/Stage quote association continue across these steps. Key, ranking and
 core-check body construction still require their own domain inventories before
 this parent can advance them; policy work limits are not substituted for that
 missing backing.
+
+
+### Source key and ranking construction on the same parent
+
+The original Catalog key-facts reader retains each admitted tuple's maximum
+UTF16 name length while it already reads and charges those names. Its existing
+Carrier construction inventory includes that scalar word. The pipeline quote
+uses this original tuple width and retained name quantity; it does not normalize
+or validate the declaration again. Original key and score semantic admission,
+conditional obligations, selected semantic limits and original error precedence
+continue unchanged.
+
+Key and ranking construction sums the newly held evidence across actual input
+occurrences and reuses the largest sequential scratch. Input/producer/schema
+bodies stay borrowed. Primary-key name normalization and score-map key Strings
+use their existing constructor owners. After the original call returns, retention
+observes its actual witness, alias and Map buffers and owned text. It does not
+count consumed temporary buffers as live holdings.
+
+The same topology work receipt includes these quantity visits. Its wide envelope
+combines the unchanged remaining semantic work with named metadata walks bounded
+by the original admitted Program and Environment node inventories; those counts
+are work bounds, not memory demand or larger semantic limits. Input scans,
+Source containers, key tuples, score subtree/field observations and retained
+buffer visits are charged from the same successful read. Missing inventory or a
+failed observation supplies no completed work fact. A declined body grow retains
+the same quote and already consumed inspection work, so retry does not inspect
+or debit it again. Reentry cannot finish that receipt from a current callback.
+
+The completed core pipeline check, later Result/order/Context construction and
+Checked-to-Plan adoption remain distinct subsequent construction boundaries.

@@ -20,7 +20,7 @@ test "original staged topology retains Source Result producers and cumulative wo
     let read = begin_local_program_read(source, limits).unwrap()
     assert_true(take_local_program_read(read) is None)
     let mut spent = local_program_read_owned_work(read).unwrap()
-    assert_eq(spent, count)
+    assert_eq(spent, count.to_int64())
     for _ in 0..<100 {
       if local_program_read_phase(read) == Complete {
         break
@@ -42,7 +42,7 @@ test "original staged topology retains Source Result producers and cumulative wo
     guard completed is (Publication(wiring), used) else {
       fail("expected original publication wiring")
     }
-    assert_eq(spent, used.work)
+    assert_eq(spent, used.work.to_int64())
     assert_true(physical_equal(wiring_source(wiring), source))
     let (_, synchronous_usage) = prepare_local_program(source, limits).unwrap()
     assert_eq(used, synchronous_usage)
@@ -167,7 +167,7 @@ test "original staged topology borrows admitted Local inputs without rebilling t
     limits,
     environment=Some(environment),
   ).unwrap()
-  assert_eq(local_program_read_owned_work(read), Some(2))
+  assert_eq(local_program_read_owned_work(read), Some(2L))
   let prefix = @local.program_environment_usage(environment).work
   assert_true(prefix > 0)
   for _ in 0..<100 {
@@ -181,7 +181,7 @@ test "original staged topology borrows admitted Local inputs without rebilling t
     is Ok((Publication(wiring), used)) else {
     fail("expected original admitted environment")
   }
-  assert_eq(owned, Some(used.work - prefix))
+  assert_eq(owned, Some((used.work - prefix).to_int64()))
   assert_true(
     physical_equal(wiring_local_environment(wiring).unwrap(), environment),
   )

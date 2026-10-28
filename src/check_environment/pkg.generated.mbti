@@ -860,6 +860,8 @@ pub fn source_pushdown(PushdownContracts, Member) -> SourcePushdown?
 
 pub fn source_relation_key_at(SourceRelationKeys, Int) -> @decode_core.Cursor?
 
+pub fn source_relation_key_construction_geometry(SourceRelationKeys, Int) -> (Int, Int)?
+
 pub fn source_relation_key_count(SourceRelationKeys) -> Int
 
 pub fn source_relation_key_reference(SourceRelationKeys) -> CatalogReference

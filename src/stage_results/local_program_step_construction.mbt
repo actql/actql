@@ -3,6 +3,7 @@
 /// byte tariff. All counts come from the SAME current typed read state.
 pub(all) struct LocalProgramReadStepConstruction {
   peak : @shape.CollectionConstructionExtent
+  peak_utf16_units : Int64
 } derive(Eq, Debug)
 
 ///|
@@ -108,8 +109,9 @@ fn topology_input_peak(
 }
 
 ///|
-/// Inspect only original constant-time dimensions. No field walk, UTF8 scan,
-/// import resolution, schema checking or type construction is repeated here.
+/// Observe original constructor dimensions. Simple branches use constant-time
+/// getters; key/ranking metadata walks are counted on the SAME parent. No UTF8
+/// scan, import resolution, schema/key/type admission is repeated here.
 pub fn local_program_read_step_construction(
   original : LocalProgramRead,
 ) -> LocalProgramReadStepConstruction? {
@@ -117,6 +119,13 @@ pub fn local_program_read_step_construction(
     !body.check_only &&
     body.environment is Some(_) else {
     return None
+  }
+  if body.stage is PipelineRead(_, _, _, _, _, _, _, read) {
+    guard @pipeline.pipeline_evidence_read_step_construction(read) is Some(q) &&
+      record_local_program_read_inspection(original, q.inspection_work) else {
+      return None
+    }
+    return Some({ peak: q.peak, peak_utf16_units: q.peak_utf16_units, })
   }
   let peak = match body.stage {
     LocalInputs =>
@@ -168,18 +177,16 @@ pub fn local_program_read_step_construction(
         { record_headers: 6L, reference_slots: 5L, scalar_words: 12L, },
       ])
     }
-    PipelineRead(_, _, _, _, _, _, _, read) =>
-      @pipeline.pipeline_evidence_read_step_construction(read)
     _ => None
   }
-  peak.map(peak => { peak, })
+  peak.map(peak => { peak, peak_utf16_units: 0L, })
 }
 
 ///|
 /// Original successful post-constructor holdings only. Actual current buffer/
 /// bucket capacities are observed, never inferred from policy maxima. Prior
 /// holdings stay with the same read and are not counted again in this delta.
-pub fn local_program_read_step_retained_extent(
+fn local_program_read_step_retained_extent_owned(
   original : LocalProgramRead,
   previous : LocalProgramReadPhase,
 ) -> @shape.CollectionConstructionExtent? {
@@ -254,4 +261,32 @@ pub fn local_program_read_step_retained_extent(
       @pipeline.pipeline_evidence_read_carriers_retained_extent(read)
     _ => None
   }
+}
+
+///|
+pub(all) struct LocalProgramReadStepHoldings {
+  extent : @shape.CollectionConstructionExtent
+  owned_utf16_units : Int64
+}
+
+///|
+/// Same actual successful holdings and metadata work. Only returned original
+/// buffers are observed; this does not re-admit names, keys or score contracts.
+pub fn local_program_read_step_retained_extent(
+  original : LocalProgramRead,
+  previous : LocalProgramReadPhase,
+) -> LocalProgramReadStepHoldings? {
+  if previous == PipelineKeys || previous == PipelineRankings {
+    guard original.state is Reading(body) &&
+      body.stage is PipelineRead(_, _, _, _, _, _, _, read) &&
+      @pipeline.pipeline_evidence_read_step_holdings(read) is Some(q) &&
+      record_local_program_read_inspection(original, q.inspection_work) else {
+      return None
+    }
+    return Some({ extent: q.extent, owned_utf16_units: q.owned_utf16_units, })
+  }
+  local_program_read_step_retained_extent_owned(original, previous).map(extent => {
+    extent,
+    owned_utf16_units: 0L,
+  })
 }

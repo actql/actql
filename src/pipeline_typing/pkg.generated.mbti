@@ -350,7 +350,9 @@ pub fn pipeline_evidence_read_owned_work(PipelineEvidenceRead) -> Int?
 
 pub fn pipeline_evidence_read_phase(PipelineEvidenceRead) -> PipelineEvidenceReadPhase
 
-pub fn pipeline_evidence_read_step_construction(PipelineEvidenceRead) -> @decode_shape.CollectionConstructionExtent?
+pub fn pipeline_evidence_read_step_construction(PipelineEvidenceRead) -> PipelineEvidenceStepConstruction?
+
+pub fn pipeline_evidence_read_step_holdings(PipelineEvidenceRead) -> PipelineEvidenceStepHoldings?
 
 pub fn prepare_produced_publication(CheckedPipeline, Target, @relation_typing.CheckedOperation, @decode_core.Cursor?, Limits) -> Result[PublicationPreparation, Issue]
 
@@ -877,6 +879,18 @@ pub(all) enum PipelineEvidenceReadPhase {
   Taken
   Cleared
 } derive(Eq, @debug.Debug)
+
+pub(all) struct PipelineEvidenceStepConstruction {
+  peak : @decode_shape.CollectionConstructionExtent
+  peak_utf16_units : Int64
+  inspection_work : Int64
+}
+
+pub(all) struct PipelineEvidenceStepHoldings {
+  extent : @decode_shape.CollectionConstructionExtent
+  owned_utf16_units : Int64
+  inspection_work : Int64
+}
 
 type ProducedInput
 
