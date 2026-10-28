@@ -1395,3 +1395,24 @@ actual current/grow and composes returned/scratch with the complete Snapshot
 overlap. Failure keeps the appropriate original peak until the real caller's
 retirement cut; missing observations cannot become a zero-work or refund fact.
 The recipe does not supply physical backend, VM or work backing by itself.
+
+## Member-bound Reference construction observation
+
+Reference quantities bind to the same captured Environment Member. A metadata
+observer follows the original indexed source-reference field and its actual
+UTF16 length without constructing an ObjectView, copying text, normalizing it
+or admitting a Reference. Its work records field/scalar metadata visits, not
+character comparisons, full-reader calls or CPU instructions. Unavailable
+metadata remains distinct from zero demand or a semantic refusal.
+
+The existing per-member Local construction holder retains one completed
+quantity/work observation. Repeated getters and observers return that same
+observation; another Member gets another association. On a failed body read,
+the observation stays with the existing holder until explicit clear. A caller
+that retains an alias keeps its backing independently of the cache cut.
+
+The initial Member/limits/geometry entrance funds the added empty reference
+slot only. Before the explicit Reference metadata observer, its caller still
+backs quotation, returned observation and borrowed frames and admits the
+metadata work bound on the same parent. That observation does not by itself
+fund Snapshot emission, UTF8/parser/schema/hash, body work or physical supply.

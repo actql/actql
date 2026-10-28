@@ -20,6 +20,7 @@ import {
   "actql/actql/graph_typing",
   "actql/actql/local_relation_input",
   "actql/actql/local_relation_snapshot",
+  "actql/actql/local_source_ref",
   "actql/actql/numeric_reduction",
   "actql/actql/parameter_binding",
   "actql/actql/parameter_references",
@@ -603,6 +604,8 @@ pub fn observe_source_registration_collection_construction(SourceRegistrationRea
 pub fn observe_source_registration_local_index_construction(SourceRegistrationRead) -> Int64?
 
 pub fn observe_source_registration_local_snapshot_construction(SourceRegistrationRead) -> (Int, Int, Int)?
+
+pub fn observe_source_registration_local_snapshot_reference_construction(SourceRegistrationRead) -> (@local_source_ref.ReferenceReadConstructionInventory?, Int64)?
 
 pub fn observe_source_registration_resolution_construction(SourceRegistrationRead) -> Int64?
 
@@ -1213,6 +1216,10 @@ pub fn source_registration_local_snapshot_inspection_extent() -> @decode_shape.C
 pub fn source_registration_local_snapshot_inspection_retained_extent() -> @decode_shape.CollectionConstructionExtent
 
 pub fn source_registration_local_snapshot_limits(SourceRegistrationRead) -> @local_relation_snapshot.Limits?
+
+pub fn source_registration_local_snapshot_reference_construction(SourceRegistrationRead) -> (@local_source_ref.ReferenceReadConstructionInventory?, Int64)?
+
+pub fn source_registration_local_snapshot_reference_inspection_bound(SourceRegistrationRead) -> Int64?
 
 pub fn source_registration_local_snapshot_selector_construction(SourceRegistrationRead) -> @decode_shape.CollectionConstructionExtent?
 

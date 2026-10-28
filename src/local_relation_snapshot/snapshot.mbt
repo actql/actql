@@ -1,4 +1,7 @@
 ///|
+let snapshot_reference_field : String = "source_ref"
+
+///|
 pub(all) struct Limits {
   max_bytes : Int
   max_nodes : Int
@@ -169,8 +172,8 @@ pub fn read(
   try {
     let object = match
       @decode.closed_object(cursor, [
-        "version", "source_ref", "output_carrier", "schema", "input_cid", "completeness",
-        "integration_binding_cid", "score_contracts", "column_presence",
+        "version", snapshot_reference_field, "output_carrier", "schema", "input_cid",
+        "completeness", "integration_binding_cid", "score_contracts", "column_presence",
       ]) {
       Ok(v) => v
       Err(_) => raise Stop(InvalidSnapshot)
@@ -180,7 +183,10 @@ pub fn read(
       raise Stop(InvalidSnapshot)
     }
     let reference = match
-      @reference.read(string(object, "source_ref"), max_bytes=limits.max_bytes) {
+      @reference.read(
+        string(object, snapshot_reference_field),
+        max_bytes=limits.max_bytes,
+      ) {
       Ok(v) => v
       Err(_) => raise Stop(InvalidSnapshot)
     }

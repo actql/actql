@@ -48,6 +48,10 @@ priv struct LocalSnapshotConstruction {
   original_member : @environment.Member
   limits : @snapshot.Limits
   geometry : (Int, Int, Int)?
+  mut reference_construction : (
+    @source_ref.ReferenceReadConstructionInventory?,
+    Int64,
+  )?
 }
 
 ///|
@@ -276,6 +280,7 @@ pub fn observe_local_environment_snapshot_construction(
     original_member,
     limits: local_environment_snapshot_limits(read, original),
     geometry,
+    reference_construction: None,
   })
   geometry
 }
@@ -306,7 +311,7 @@ pub fn local_environment_snapshot_text_construction(
 
 ///|
 /// Member access controls plus Member1H2R2W, scalar tuple1H3W, its Some1H1R1W,
-/// captured record1H3R1W, its Some1H1R1W and SAME selected Limits1H3W.
+/// captured record1H4R1W, its Some1H1R1W and SAME selected Limits1H3W.
 /// No input-sized work container or second selection. The body borrows Limits.
 pub fn local_environment_snapshot_construction_inspection_extent() -> @shape.CollectionConstructionExtent {
   @shape.add_collection_construction_extents(
@@ -332,7 +337,7 @@ pub fn local_environment_snapshot_construction_metadata_extent() -> @shape.Colle
 ///|
 let local_snapshot_metadata_units : @shape.CollectionConstructionExtent = {
   record_headers: 5L,
-  reference_slots: 5L,
+  reference_slots: 6L,
   scalar_words: 9L,
 }
 
@@ -804,4 +809,54 @@ pub fn local_environment_snapshot_selector_construction(
       captured.original_member,
     )
   })
+}
+
+///|
+/// Additional original field/quotation observation requires its own backed
+/// frame and metadata work. The initial Member/geometry entrance does not fund
+/// this call. No replacement Member, String, limits or verdict is accepted.
+pub fn local_environment_snapshot_reference_inspection_bound(
+  read : LocalEnvironmentPreparation,
+) -> Int64? {
+  guard read.state is ReadSnapshot(_) &&
+    read.snapshot_construction is Some(captured) else {
+    return None
+  }
+  Some(
+    @snapshot.member_reference_construction_inspection_bound(
+      captured.original_member,
+    ),
+  )
+}
+
+///|
+/// Retain the SAME original completed inventory/work Option once, on the
+/// existing member holder. Repeats do not walk fields or reconstruct a recipe.
+/// This DATA owns no reservation, permission, body entry or cleanup witness.
+pub fn observe_local_environment_snapshot_reference_construction(
+  read : LocalEnvironmentPreparation,
+) -> (@source_ref.ReferenceReadConstructionInventory?, Int64)? {
+  guard read.state is ReadSnapshot(_) &&
+    read.snapshot_construction is Some(captured) else {
+    return None
+  }
+  if captured.reference_construction is Some(_) {
+    return captured.reference_construction
+  }
+  let observed = Some(
+    @snapshot.observe_member_reference_read_construction(
+      captured.original_member,
+    ),
+  )
+  captured.reference_construction = observed
+  observed
+}
+
+///|
+/// Borrow that SAME completed observation, including on failure until explicit
+/// clear. Dropping an alias is not a refund or physical retirement assertion.
+pub fn local_environment_snapshot_reference_construction(
+  read : LocalEnvironmentPreparation,
+) -> (@source_ref.ReferenceReadConstructionInventory?, Int64)? {
+  read.snapshot_construction.bind(captured => captured.reference_construction)
 }

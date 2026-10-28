@@ -833,3 +833,57 @@ test "Source text quantity follows its same captured Local Member without replac
     source_registration_local_snapshot_text_construction(read) is None,
   )
 }
+
+///|
+test "Source reference quote borrows the same original member observation once" {
+  let read = snapshot_emission_registration_read()
+  assert_true(
+    source_registration_local_snapshot_reference_inspection_bound(read) is None,
+  )
+  assert_true(
+    observe_source_registration_local_snapshot_reference_construction(read)
+    is None,
+  )
+  let mut steps = 0
+  while source_registration_local_phase(read) !=
+        Some(@local_inputs.LocalEnvironmentSnapshot) {
+    assert_true(steps < 10)
+    let _ = advance_source_registration(read)
+    steps += 1
+  }
+  assert_true(
+    source_registration_local_snapshot_reference_construction(read) is None,
+  )
+  let _ = observe_source_registration_local_snapshot_construction(read).unwrap()
+  let bound = source_registration_local_snapshot_reference_inspection_bound(
+    read,
+  ).unwrap()
+  let observed = observe_source_registration_local_snapshot_reference_construction(
+    read,
+  )
+  let (recipe, work) = observed.unwrap()
+  assert_eq(recipe.unwrap().retained_utf16_units, 38L)
+  assert_true(work > 0L && work <= bound)
+  assert_true(
+    physical_equal(
+      observed,
+      observe_source_registration_local_snapshot_reference_construction(read),
+    ),
+  )
+  assert_true(
+    physical_equal(
+      observed,
+      source_registration_local_snapshot_reference_construction(read),
+    ),
+  )
+  let _ = advance_source_registration(read)
+  assert_true(
+    source_registration_local_snapshot_reference_construction(read) is None,
+  )
+  assert_eq(complete_registration_local(read), RegistrationComplete)
+  let _ = take_source_registration_result(read).unwrap().unwrap()
+  clear_source_registration(read)
+  assert_true(
+    source_registration_local_snapshot_reference_construction(read) is None,
+  )
+}

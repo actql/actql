@@ -31,6 +31,10 @@ pub fn materialization(Snapshot) -> Materialization?
 
 pub fn member_emission_observation_extent() -> @decode_shape.CollectionConstructionExtent
 
+pub fn member_reference_construction_inspection_bound(@check_environment.Member) -> Int64
+
+pub fn observe_member_reference_read_construction(@check_environment.Member) -> (@local_source_ref.ReferenceReadConstructionInventory?, Int64)
+
 pub fn observe_read_member(@check_environment.Member, Limits) -> (Result[EnvironmentSnapshot, MembershipIssue], (Int, Int, Int)?)
 
 pub fn read(Bytes, String, Limits) -> Result[Snapshot, Issue]

@@ -47,3 +47,30 @@ pub fn source_registration_local_snapshot_selector_construction(
     @local_inputs.local_environment_snapshot_selector_construction,
   )
 }
+
+///|
+pub fn source_registration_local_snapshot_reference_inspection_bound(
+  read : SourceRegistrationRead,
+) -> Int64? {
+  read.local_child.bind(
+    @local_inputs.local_environment_snapshot_reference_inspection_bound,
+  )
+}
+
+///|
+pub fn observe_source_registration_local_snapshot_reference_construction(
+  read : SourceRegistrationRead,
+) -> (@local_ref.ReferenceReadConstructionInventory?, Int64)? {
+  read.local_child.bind(
+    @local_inputs.observe_local_environment_snapshot_reference_construction,
+  )
+}
+
+///|
+pub fn source_registration_local_snapshot_reference_construction(
+  read : SourceRegistrationRead,
+) -> (@local_ref.ReferenceReadConstructionInventory?, Int64)? {
+  read.local_child.bind(
+    @local_inputs.local_environment_snapshot_reference_construction,
+  )
+}

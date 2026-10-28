@@ -45,8 +45,8 @@ fn registration_local_snapshot_fixture(
 
 ///|
 test "same parent backs original Local member capture before either one-short metadata limit" {
-  assert_eq(program_source_local_snapshot_metadata_peak_bytes, 408L)
-  assert_eq(program_source_local_snapshot_metadata_retained_bytes, 240L)
+  assert_eq(program_source_local_snapshot_metadata_peak_bytes, 416L)
+  assert_eq(program_source_local_snapshot_metadata_retained_bytes, 248L)
   for retention in [true, false] {
     let (parent, owner, input) = registration_local_snapshot_fixture()
     let original = owner.source_registration.unwrap()
@@ -66,14 +66,14 @@ test "same parent backs original Local member capture before either one-short me
     let short = @resources.reserve_capacity(
       parent.ledger,
       if retention {
-        cap.retained_bytes - before.0 - 408L + 1L
+        cap.retained_bytes - before.0 - 416L + 1L
       } else {
         0L
       },
       if retention {
         0L
       } else {
-        cap.execution_bytes - before.1 - 408L + 1L
+        cap.execution_bytes - before.1 - 416L + 1L
       },
     ).unwrap()
     let refused = inspect_program_check_source_local_snapshot(owner)
@@ -108,7 +108,7 @@ test "same parent backs original Local member capture before either one-short me
     reconcile_program_check_source_local_snapshot_inspection(owner).unwrap()
     assert_eq(
       @resources.preparation_capacity_working_extents(parent.capacity, input),
-      Ok((before.0 + 240L, before.1 + 240L)),
+      Ok((before.0 + 248L, before.1 + 248L)),
     )
     assert_true(
       physical_equal(
