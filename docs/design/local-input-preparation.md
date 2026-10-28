@@ -1977,3 +1977,20 @@ the outer Budget alone cannot fabricate a complete failure receipt. This
 operation boundary does not supply construction/retained backing for its
 nested checkers. The Request driver continues to stop before operations until
 those original constructors and held evidence have their own complete recipe.
+
+The original Delta transfer is itself one retained semantic body, shared by
+operation/final evidence synchronization and the existing produced-projection
+consumer. Empty and value-preserving branches return the original evidence.
+Derive keeps the original overwrite-name Map, then iterates the same prior
+Map into its new result; projection keeps the selected original projection
+and charges each retained output spelling in its original order. Map entries
+continue to reference the original checked Graph contracts. The synchronous
+entry drives this same body rather than a second transfer algorithm.
+
+The pending body retains the same compiler Budget, Source and checked operation
+until completion or clear. A failed charge keeps its original completed prefix;
+clear prevents further Map writes without mutating the borrowed prior evidence.
+The read, overwrite Map, iterator, pending pair, result Map and qualified String
+lifetimes still need their exact construction and retained recipes before
+Request adoption. This semantic continuation supplies no spare capacity or
+physical retirement acknowledgement.
