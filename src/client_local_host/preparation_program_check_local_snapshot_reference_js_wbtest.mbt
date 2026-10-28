@@ -1,6 +1,6 @@
 ///|
 test "same parent funds first original Member Reference observation before either one-short limit" {
-  assert_eq(program_source_snapshot_reference_peak_bytes, 2328L)
+  assert_eq(program_source_snapshot_reference_peak_bytes, 2352L)
   assert_eq(program_source_snapshot_reference_retained_bytes, 184L)
   for retention in [true, false] {
     let (parent, owner, input) = registration_local_snapshot_fixture()
@@ -16,14 +16,14 @@ test "same parent funds first original Member Reference observation before eithe
     let short = @resources.reserve_capacity(
       parent.ledger,
       if retention {
-        cap.retained_bytes - before.0 - 2328L + 1L
+        cap.retained_bytes - before.0 - 2352L + 1L
       } else {
         0L
       },
       if retention {
         0L
       } else {
-        cap.execution_bytes - before.1 - 2328L + 1L
+        cap.execution_bytes - before.1 - 2352L + 1L
       },
     ).unwrap()
     let refused = inspect_program_check_source_local_snapshot_reference(owner)
@@ -52,7 +52,7 @@ test "same parent funds first original Member Reference observation before eithe
     assert_eq(observed.1, 9L)
     assert_eq(
       @resources.preparation_capacity_working_extents(parent.capacity, input),
-      Ok((before.0 + 2328L, before.1 + 2328L)),
+      Ok((before.0 + 2352L, before.1 + 2352L)),
     )
     assert_true(
       inspect_program_check_source_local_snapshot_reference(owner)

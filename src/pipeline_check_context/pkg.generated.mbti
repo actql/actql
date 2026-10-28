@@ -603,6 +603,8 @@ pub fn observe_source_registration_collection_construction(SourceRegistrationRea
 
 pub fn observe_source_registration_local_index_construction(SourceRegistrationRead) -> Int64?
 
+pub fn observe_source_registration_local_snapshot_batch_construction(SourceRegistrationRead) -> @local_relation_snapshot.MemberReadConstructionInventory?
+
 pub fn observe_source_registration_local_snapshot_construction(SourceRegistrationRead) -> (Int, Int, Int)?
 
 pub fn observe_source_registration_local_snapshot_reference_construction(SourceRegistrationRead) -> (@local_source_ref.ReferenceReadConstructionInventory?, Int64)?
@@ -1206,6 +1208,14 @@ pub fn source_registration_local_index_usage(SourceRegistrationRead) -> @stage_s
 pub fn source_registration_local_index_work_bound(SourceRegistrationRead) -> Int?
 
 pub fn source_registration_local_phase(SourceRegistrationRead) -> @stage_local_inputs.LocalEnvironmentPhase?
+
+pub fn source_registration_local_snapshot_batch_body_construction(SourceRegistrationRead) -> @local_relation_snapshot.MemberReadConstructionInventory?
+
+pub fn source_registration_local_snapshot_batch_inspection_bound(SourceRegistrationRead) -> Int64?
+
+pub fn source_registration_local_snapshot_batch_inspection_extent(SourceRegistrationRead) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn source_registration_local_snapshot_batch_retained_extent(SourceRegistrationRead) -> @decode_shape.CollectionConstructionExtent?
 
 pub fn source_registration_local_snapshot_construction_geometry(SourceRegistrationRead) -> (Int, Int, Int)?
 

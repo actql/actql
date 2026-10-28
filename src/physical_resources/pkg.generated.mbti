@@ -953,6 +953,8 @@ pub(all) enum PreparationWorkPhase {
   SourceLocalIndex
   SourceLocalGroups
   SourceLocalSnapshotReferenceInspection
+  SourceLocalSnapshotBodyInspection
+  SourceLocalSnapshotBody
   SemanticCheck
   LowerAndGraph
   ExecutionPlan
