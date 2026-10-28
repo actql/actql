@@ -12,7 +12,9 @@ const common = await import(process.env.ACTQL_TEST_COMMON_URL ?? new URL('../../
 const provider = await import(process.env.ACTQL_TEST_NOTION_URL ?? new URL('../../../../_build/js/release/build/connectors/notion/host_node/host_node.js', import.meta.url).href);
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {canonicalJson,createLocalAuthorizationGate} from '../../../host-node/local-account-config.mjs';
+import {canonicalJson,readAccountConfiguration} from '../../../host-node/local-account-config.mjs';
+import {createAuthorizationGate} from '../../../host-common/authorization-gate.mjs';
+import {readFileSync} from 'node:fs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 import {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
 import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
@@ -126,7 +128,10 @@ export async function userListFixture(t,{account='allow',format='sql',accounted=
     account_id:'fixture',entries:[{entry_id:'notion-read',outcome,principal:{all:true},connection:{any_of:['notion:fixture']},
       resource:{any_of:['users']},operation:{any_of:['read']},exclusions:[]}]}));
   await writeAccount(account);
-  const gate=await createLocalAuthorizationGate({accountConfig:accountPath,principal:'operator',context:{principal:'operator',contextCid:cid('d')}});
+  const configuration=await readAccountConfiguration(accountPath);
+  const gate=createAuthorizationGate({runtime:common,configuration:configuration.text,
+    configurationCid:configuration.configurationCid,readConfiguration:()=>readFileSync(accountPath,'utf8'),
+    context:{principal:'operator',contextCid:cid('d')}});
   const current=async()=>{const decision=await gate.authorize('acquisition',{connection:'notion:fixture',resource:'users',operation:'read'},
     {subjectCid:scope.runInvocationCid});if(decision.action!=='dispatch')throw Object.assign(new Error('NotionReadDenied'),{code:'NotionReadDenied'});};
   const credential={control,journal,ca:cert,resolveSecret:async()=>{state.resolutions++;await state.resolved?.();return state.secret;}};
