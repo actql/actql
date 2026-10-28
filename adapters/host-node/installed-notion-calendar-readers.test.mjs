@@ -34,7 +34,7 @@ function fixture(family,pages,{limits={},names=columns[family],status=200,consum
     const index=bodies.indexOf(body);assert(index>=0);events.push('decode');return pages[index];};
   let live=true;
   const site={credential,referenceCurrent(){assert.equal(this,site);return live;},
-    async callResource(input){assert.equal(this,site);requests.push(input);
+    async callResource(input){assert.equal(this,site);requests.push(input.operations.get(operation));
       const response={accepted:true,statusCode:status,body:bodies[requests.length-1]};
       assert(response.body);responses.push(response);events.push('send');return response;}};
   const moon = family === 'notion' ? {
