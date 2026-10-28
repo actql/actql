@@ -6,6 +6,12 @@ pub(all) enum PipelineEvidenceReadPhase {
   Keys
   Rankings
   Core
+  CoreInputs
+  CoreParameters
+  CoreImportedEvidence
+  CoreDeltaContracts
+  CoreSteps
+  CoreFinalEvidence
   Complete
   Failed
   Taken
@@ -22,6 +28,7 @@ priv enum PipelineEvidenceStep {
     Array[@evidence.KeySet?],
     Array[@vector.RankingInput?]
   )
+  CoreRunning(PipelineCoreRead)
 }
 
 ///|
@@ -41,6 +48,7 @@ priv struct PipelineEvidenceBody {
   mut key_text : Int
   mut score_nodes : Int
   mut carrier_wrappers : Int
+  mut core_produced_wrappers : Int
   mut step : PipelineEvidenceStep
 }
 
@@ -103,6 +111,7 @@ pub fn begin_pipeline_evidence_read(
       key_text: limits.max_text_bytes,
       score_nodes: limits.max_nodes,
       carrier_wrappers: 0,
+      core_produced_wrappers: 0,
       step: Carriers,
     }),
   })
@@ -119,6 +128,16 @@ pub fn pipeline_evidence_read_phase(
         Keys(_) => Keys
         Rankings(_, _) => Rankings
         Core(_, _, _) => Core
+        CoreRunning(read) =>
+          match pipeline_core_read_phase(read) {
+            Inputs => CoreInputs
+            Parameters => CoreParameters
+            ImportedEvidence => CoreImportedEvidence
+            DeltaContracts => CoreDeltaContracts
+            Steps => CoreSteps
+            FinalEvidence => CoreFinalEvidence
+            _ => Failed
+          }
       }
     Completed(_) => Complete
     Rejected(_, _) => Failed
@@ -134,7 +153,23 @@ pub fn pipeline_evidence_read_owned_work(
   original : PipelineEvidenceRead,
 ) -> Int? {
   match original.state {
-    Reading(body) => Some(body.limits.max_work - body.key_work)
+    Reading(body) =>
+      match body.step {
+        CoreRunning(read) =>
+          match read.state {
+            Reading(core) =>
+              Some(
+                body.limits.max_work -
+                body.key_work +
+                core.limits.max_work -
+                core.b.work,
+              )
+            Completed(checked) =>
+              Some(body.limits.max_work - body.key_work + checked.usage.work)
+            _ => None
+          }
+        _ => Some(body.limits.max_work - body.key_work)
+      }
     Completed(checked) => Some(checked.usage.work)
     _ => None
   }
@@ -176,7 +211,12 @@ pub fn take_pipeline_evidence_read(
 pub fn clear_pipeline_evidence_read(original : PipelineEvidenceRead) -> Unit {
   if !(original.state is Taken) {
     match original.state {
-      Reading(body) | Rejected(body, _) => body.step = Carriers
+      Reading(body) | Rejected(body, _) => {
+        if body.step is CoreRunning(read) {
+          clear_pipeline_core_read(read)
+        }
+        body.step = Carriers
+      }
       _ => ()
     }
     original.state = Cleared
@@ -307,33 +347,51 @@ fn advance_pipeline_evidence_read_owned(
       let key_work = original.key_work
       let key_text = original.key_text
       let score_nodes = original.score_nodes
-      let checked = check_impl(
-        source,
-        carriers,
-        parameters,
-        from,
-        {
-          ..limits,
-          max_work: key_work,
-          max_nodes: score_nodes,
-          max_text_bytes: key_text,
-        },
-        calendar_profile,
-        text_rank_profile,
-        delta_contracts,
-        keys,
-        rankings,
-        inputs.map(pair => {
-          match pair.1 {
-            ProducedInput(p) => Some(p)
-            _ => None
-          }
-        }),
-        inputs.map(pair => pair.1),
-        model_tasks,
-      ) catch {
-        Stop(issue) => return Err(issue)
+      let read = match
+        begin_pipeline_core_read(
+          source,
+          carriers,
+          parameters,
+          from,
+          {
+            ..limits,
+            max_work: key_work,
+            max_nodes: score_nodes,
+            max_text_bytes: key_text,
+          },
+          calendar_profile,
+          text_rank_profile,
+          delta_contracts,
+          keys,
+          rankings,
+          inputs.map(pair => {
+            match pair.1 {
+              ProducedInput(p) => {
+                original.core_produced_wrappers += 1
+                Some(p)
+              }
+              _ => None
+            }
+          }),
+          inputs.map(pair => pair.1),
+          model_tasks,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(read) => read
       }
+      original.step = CoreRunning(read)
+    }
+    CoreRunning(read) => {
+      let phase = advance_pipeline_core_read(read)
+      if phase != Complete && phase != Failed {
+        return Ok(None)
+      }
+      let checked = match take_pipeline_core_read(read).unwrap() {
+        Err(issue) => return Err(issue)
+        Ok(checked) => checked
+      }
+      let key_work = original.key_work
+      let key_text = original.key_text
       return Ok(
         Some({
           ..checked,

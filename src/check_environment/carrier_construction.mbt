@@ -314,11 +314,12 @@ fn carrier_metadata_facts(
   let t = tuples.to_int64()
   let f = fields.to_int64()
   // The original tuple Cursor, field-Array and tuple pair survive with Facts.
-  // Names are borrowed. Score facts retain only their original source cursor.
+  // Names are borrowed; each tuple also retains its already-read maximum
+  // UTF16 name length1W. Score facts retain only their original source cursor.
   let value = @shape.collection_construction_extent({
     records: 2L * key + 2L * t + 2L * score,
     record_references: 3L * key + 4L * t + 3L * score,
-    record_words: t,
+    record_words: 2L * t,
     reference_arrays: key + t,
     reference_items: t + f,
     scalar_arrays: 0L,

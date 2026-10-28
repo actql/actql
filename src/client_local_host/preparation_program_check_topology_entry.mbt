@@ -87,7 +87,7 @@ fn[I, P] prepare_program_check_source_topology_entry_owned(
     owner.phase = SourceTopologyEntryFailed
     return Err(WrongPhase)
   }
-  match finish_program_check_source_work(owner, work, spent.to_int64()) {
+  match finish_program_check_source_work(owner, work, spent) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }

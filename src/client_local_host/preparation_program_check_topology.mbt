@@ -37,23 +37,24 @@ let program_topology_body_driver_bytes : Int64 = {
 }
 
 ///|
-// Call-expanded pre-quotation: original domain recipes223H89R470W,
-// conversion/tariff6H15W and three checked sums3H6W. No input body is
-// included. This returned frame is reused instead of shrink/immediate grow.
+// Fixed call-expanded metadata controls. Existing pre232/89/491 is below
+// the Source key/ranking path: common pipeline fold93/54/197 plus max of
+// key221/82/473 and ranking229/76/498, Stage observation8/6/16 and original
+// conversion/driver9/0/21. These are constructor controls, never input bytes.
 let program_topology_quotation_bytes : Int64 = program_source_extent_cost({
-  record_headers: 232L,
-  reference_slots: 89L,
-  scalar_words: 491L,
+  record_headers: 339L,
+  reference_slots: 142L,
+  scalar_words: 732L,
 }).unwrap()
 
 ///|
-// Original retained observation: Local2H1R4W, imports26H25R50W,
-// inputs48H31R95W, conversion/tariff6H15W and held sum1H2W.
-// Pre/post quotation calls do not overlap; the caller uses that lifetime.
+// Actual retained Source observation122/75/221, original conversion7/0/17
+// and added same-meter observed-work carriers4/2/8. Fields/keys/maps remain
+// input-derived in their domain inventories, outside this fixed call frame.
 let program_topology_retained_observation_bytes : Int64 = program_source_extent_cost({
-    record_headers: 83L,
-    reference_slots: 57L,
-    scalar_words: 166L,
+    record_headers: 133L,
+    reference_slots: 77L,
+    scalar_words: 246L,
   },
 ).unwrap()
 
@@ -62,8 +63,14 @@ fn topology_phase_supported(
   phase : @stage_results.LocalProgramReadPhase,
 ) -> Bool {
   match phase {
-    LocalInputs | Imports | InputRegistration | Pipeline | PipelineCarriers =>
-      true
+    LocalInputs
+    | Imports
+    | InputRegistration
+    | Pipeline
+    | PipelineCarriers
+    | PipelineKeys
+    | PipelineRankings
+    | PipelineCore => true
     _ => false
   }
 }
@@ -158,8 +165,22 @@ fn[I, P] inspect_program_check_source_topology_owned(
     owner.phase = Failed
     return Err(WrongPhase)
   }
+  // Returned work can span quantity observation and the later capacity grow.
+  // Resume/return are internal original-state transitions, not current/I/O.
+  let inspect_work = owner.topology_quoted_phase == @stage_results.PipelineKeys ||
+    owner.topology_quoted_phase == @stage_results.PipelineRankings
+  if inspect_work {
+    guard owner.topology_work is Some(work) else { return Err(WrongPhase) }
+    match @resources.resume_preparation_phase_work_continuation64(work) {
+      Err(issue) => {
+        owner.phase = Failed
+        return Err(Work(issue))
+      }
+      Ok(_) => ()
+    }
+  }
   guard @stage_results.local_program_read_step_construction(read) is Some(q) &&
-    program_source_extent_cost(q.peak) is Some(body) &&
+    program_topology_extent_cost(q.peak, q.peak_utf16_units) is Some(body) &&
     @execution.checked_preparation_add_product(
       body, program_topology_body_driver_bytes, 1L,
     )
@@ -181,6 +202,22 @@ fn[I, P] inspect_program_check_source_topology_owned(
     owner.phase = Failed
     return Err(Overflow)
   }
+  if inspect_work {
+    match charge_program_topology_observed_work(owner, read) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    match
+      @resources.return_preparation_phase_work_continuation64(
+        owner.topology_work.unwrap(),
+      ) {
+      Err(issue) => {
+        owner.phase = Failed
+        return Err(Work(issue))
+      }
+      Ok(_) => ()
+    }
+  }
   // Retained quantity is still unknown. Keep the whole peak until the original
   // constructor returns and its own actual retained buffers are observed.
   let peak = Int64::max(peak, program_topology_quotation_bytes)
@@ -193,8 +230,8 @@ fn[I, P] inspect_program_check_source_topology_owned(
 ///|
 /// Advance exactly the next backed original constructor. The SAME read and
 /// work receipt span Local selection, Result imports and input registration;
-/// later key/ranking/core typing, Result and Context bodies need their own
-/// original recipes first.
+/// original keys/rankings continue on that SAME receipt. Core typing, Result
+/// and Context bodies still need their own original recipes first.
 pub fn[I, P] advance_program_check_source_topology(
   owner : ClientProgramCheckPreparation[I, P],
 ) -> Result[
@@ -251,8 +288,7 @@ fn[I, P] advance_program_check_source_topology_owned(
         Ok(_) => work
       }
     None => {
-      guard @stage_results.local_program_read_remaining_work(read)
-        is Some(bound) &&
+      guard @stage_results.local_program_read_work_bound(read) is Some(bound) &&
         @stage_results.local_program_read_owned_work(read) is Some(prior) else {
         owner.phase = Failed
         return Err(WrongPhase)
@@ -262,7 +298,7 @@ fn[I, P] advance_program_check_source_topology_owned(
           owner.capacity,
           input,
           @resources.SourceTopologyBody,
-          bound.to_int64(),
+          bound,
         ) {
         Err(issue) => {
           owner.phase = Failed
@@ -271,7 +307,7 @@ fn[I, P] advance_program_check_source_topology_owned(
         Ok(work) => work
       }
       owner.topology_work = Some(work)
-      owner.topology_observed_work = prior.to_int64()
+      owner.topology_observed_work = prior
       work
     }
   }
@@ -287,6 +323,9 @@ fn[I, P] advance_program_check_source_topology_owned(
     InputRegistration => @stage_results.Pipeline
     Pipeline => @stage_results.PipelineCarriers
     PipelineCarriers => @stage_results.PipelineKeys
+    PipelineKeys => @stage_results.PipelineRankings
+    PipelineRankings => @stage_results.PipelineCore
+    PipelineCore => @stage_results.PipelineCoreInputs
     _ => {
       owner.phase = Failed
       return Err(WrongPhase)
@@ -294,24 +333,25 @@ fn[I, P] advance_program_check_source_topology_owned(
   }
   guard phase == expected &&
     @stage_results.local_program_read_owned_work(read) is Some(spent) &&
-    spent.to_int64() >= owner.topology_observed_work else {
+    spent >= owner.topology_observed_work else {
     owner.phase = Failed
     return Err(WrongPhase)
   }
   match
     @resources.spend_preparation_phase_work_continuation64(
       work,
-      spent.to_int64() - owner.topology_observed_work,
+      spent - owner.topology_observed_work,
     ) {
     Err(issue) => {
       owner.phase = Failed
       return Err(Work(issue))
     }
-    Ok(_) => owner.topology_observed_work = spent.to_int64()
+    Ok(_) => owner.topology_observed_work = spent
   }
   guard @stage_results.local_program_read_step_retained_extent(read, previous)
     is Some(retained) &&
-    program_source_extent_cost(retained) is Some(held) &&
+    program_topology_extent_cost(retained.extent, retained.owned_utf16_units)
+    is Some(held) &&
     @execution.checked_preparation_add_product(
       held,
       if first {
@@ -325,6 +365,11 @@ fn[I, P] advance_program_check_source_topology_owned(
     held <= peak else {
     owner.phase = Failed
     return Err(Overflow)
+  }
+  // Retained-buffer observations also belong to the SAME original meter.
+  match charge_program_topology_observed_work(owner, read) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   match @resources.return_preparation_phase_work_continuation64(work) {
     Err(issue) => {
@@ -350,4 +395,45 @@ pub fn[I, P] reconcile_program_check_source_topology(
     SourceTopologyBodyReturned,
     SourceTopologyBodyRetained,
   )
+}
+
+///|
+fn program_topology_extent_cost(
+  extent : @shape.CollectionConstructionExtent,
+  text : Int64,
+) -> Int64? {
+  @execution.preparation_representation_cost({
+    record_headers: extent.record_headers,
+    reference_slots: extent.reference_slots,
+    scalar_words: extent.scalar_words,
+    owned_utf16_units: text,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
+fn[I, P] charge_program_topology_observed_work(
+  owner : ClientProgramCheckPreparation[I, P],
+  read : @stage_results.LocalProgramRead,
+) -> Result[Unit, ClientProgramCheckPreparationIssue] {
+  guard owner.topology_work is Some(work) &&
+    @stage_results.local_program_read_owned_work(read) is Some(observed) &&
+    observed >= owner.topology_observed_work else {
+    owner.phase = Failed
+    return Err(WrongPhase)
+  }
+  match
+    @resources.spend_preparation_phase_work_continuation64(
+      work,
+      observed - owner.topology_observed_work,
+    ) {
+    Err(issue) => {
+      owner.phase = Failed
+      Err(Work(issue))
+    }
+    Ok(_) => {
+      owner.topology_observed_work = observed
+      Ok(())
+    }
+  }
 }

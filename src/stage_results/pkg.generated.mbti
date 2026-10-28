@@ -317,7 +317,7 @@ pub fn local_program_binding_input_facts(LocalProgramBindingInput) -> (@stage_pa
 
 pub fn local_program_read_control_construction_extent() -> @decode_shape.CollectionConstructionExtent
 
-pub fn local_program_read_owned_work(LocalProgramRead) -> Int?
+pub fn local_program_read_owned_work(LocalProgramRead) -> Int64?
 
 pub fn local_program_read_phase(LocalProgramRead) -> LocalProgramReadPhase
 
@@ -331,7 +331,9 @@ pub fn local_program_read_stage_index(LocalProgramRead) -> Int?
 
 pub fn local_program_read_step_construction(LocalProgramRead) -> LocalProgramReadStepConstruction?
 
-pub fn local_program_read_step_retained_extent(LocalProgramRead, LocalProgramReadPhase) -> @decode_shape.CollectionConstructionExtent?
+pub fn local_program_read_step_retained_extent(LocalProgramRead, LocalProgramReadPhase) -> LocalProgramReadStepHoldings?
+
+pub fn local_program_read_work_bound(LocalProgramRead) -> Int64?
 
 pub fn local_source_context_prefix(PreparedLocalSource) -> (Int, Int)
 
@@ -987,6 +989,12 @@ pub(all) enum LocalProgramReadPhase {
   PipelineKeys
   PipelineRankings
   PipelineCore
+  PipelineCoreInputs
+  PipelineCoreParameters
+  PipelineCoreImportedEvidence
+  PipelineCoreDeltaContracts
+  PipelineCoreSteps
+  PipelineCoreFinalEvidence
   ParameterCollection
   LocalAttachment
   ImportAttachment
@@ -1003,7 +1011,13 @@ pub(all) enum LocalProgramReadPhase {
 
 pub(all) struct LocalProgramReadStepConstruction {
   peak : @decode_shape.CollectionConstructionExtent
+  peak_utf16_units : Int64
 } derive(Eq, @debug.Debug)
+
+pub(all) struct LocalProgramReadStepHoldings {
+  extent : @decode_shape.CollectionConstructionExtent
+  owned_utf16_units : Int64
+}
 
 pub(all) struct LocalProgramUsage {
   work : Int

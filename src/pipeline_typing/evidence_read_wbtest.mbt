@@ -71,9 +71,9 @@ test "original pipeline evidence read preserves borrowed inputs and actual carri
   let quote = pipeline_evidence_read_step_construction(read).unwrap()
   assert_eq(advance_pipeline_evidence_read(read), Keys)
   let held = pipeline_evidence_read_carriers_retained_extent(read).unwrap()
-  assert_true(held.record_headers <= quote.record_headers)
-  assert_true(held.reference_slots <= quote.reference_slots)
-  assert_true(held.scalar_words <= quote.scalar_words)
+  assert_true(held.record_headers <= quote.peak.record_headers)
+  assert_true(held.reference_slots <= quote.peak.reference_slots)
+  assert_true(held.scalar_words <= quote.peak.scalar_words)
   assert_eq(original.carrier_wrappers, 2)
   guard original.step is Keys(carriers) else { abort("same carriers expected") }
   assert_eq(carriers.length(), 3)
@@ -91,7 +91,7 @@ test "original pipeline evidence read preserves borrowed inputs and actual carri
     ),
   )
   assert_eq(pipeline_evidence_read_owned_work(read), Some(0))
-  assert_true(pipeline_evidence_read_step_construction(read) is None)
+  assert_true(pipeline_evidence_read_step_construction(read) is Some(_))
   assert_eq(advance_pipeline_evidence_read(read), Rankings)
   guard original.step is Rankings(same, retained_keys) else {
     abort("keys expected")
@@ -99,7 +99,18 @@ test "original pipeline evidence read preserves borrowed inputs and actual carri
   assert_true(physical_equal(same, carriers))
   assert_true(physical_equal(retained_keys[2].unwrap(), keys))
   assert_eq(advance_pipeline_evidence_read(read), Core)
-  assert_eq(advance_pipeline_evidence_read(read), Complete)
+  for
+    expected in [
+      CoreInputs,
+      CoreParameters,
+      CoreImportedEvidence,
+      CoreDeltaContracts,
+      CoreSteps,
+      CoreFinalEvidence,
+      Complete,
+    ] {
+    assert_eq(advance_pipeline_evidence_read(read), expected)
+  }
   let checked = take_pipeline_evidence_read(read).unwrap().unwrap()
   assert_eq(step_count(checked), 1)
   assert_eq(current(checked), Some(Step(0)))
