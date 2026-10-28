@@ -320,6 +320,8 @@ pub fn preparation_phase_work_construction_inventory() -> PreparationWorkConstru
 
 pub fn preparation_phase_work_continuation64_construction_inventory() -> PreparationWorkConstructionInventory
 
+pub fn preparation_phase_work_continuation64_retained_inventory() -> PreparationWorkConstructionInventory
+
 pub fn[P, C, R] prepare_backed_original_child_ledger(BackedExecutionLiveProjection[P, C, R], R) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
 
 pub fn prepare_imported_child_ledger(Int64) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
@@ -974,6 +976,7 @@ pub(all) enum PreparationWorkPhase {
   SourceContextInputInspection
   SourceContextInputBody
   SourceTopologyEntry
+  SourceTopologyBody
   SemanticCheck
   LowerAndGraph
   ExecutionPlan

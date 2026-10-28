@@ -1618,3 +1618,18 @@ borrowed unchanged. Later imports, pipeline typing, collection, Result projectio
 Stage capacities and final wiring still need their own input-derived backing and
 work on the same parent before advancing. An admitted entrance is not a complete
 Context, checked Program, Plan or physical backing acknowledgement.
+
+The topology caller retains one original phase-work continuation across its
+constructor boundaries. Successful boundaries debit only the delta in the
+original read's cumulative owned work; the initial Stage/environment prefixes
+are not charged again. Returning a constructor permits the same capacity to
+grow or reconcile, but cannot spend again until that same receipt resumes, and
+does not permit check completion, transfer, publication or parent settlement.
+
+Reconciled Local-input selection borrows its original prepared environment
+rather than constructing snapshots or schemas again. The original import
+getter's temporary unwinds on each iteration; original names, ports and tuples
+are shared. A failed nested constructor has no complete successful Usage:
+its original read, pending work and peak remain until the original cleanup.
+The work owner's retained-state inventory and the domain's retained input
+selection are separate from their temporary constructor frames.

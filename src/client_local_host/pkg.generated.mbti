@@ -25,6 +25,7 @@ import {
   "actql/actql/run_publication_host",
   "actql/actql/source_value",
   "actql/actql/stage_parameters",
+  "actql/actql/stage_results",
   "actql/actql/stage_syntax",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
@@ -572,6 +573,8 @@ pub fn[I, P] prepare_program_check_source_resolution(ClientProgramCheckPreparati
 
 pub fn[I, P] prepare_program_check_source_topology_entry(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
+pub fn[I, P] prepare_program_check_source_topology_locals(ClientProgramCheckPreparation[I, P]) -> Result[@stage_results.LocalProgramReadPhase, ClientProgramCheckPreparationIssue]
+
 pub fn[I, P] prepare_program_check_values(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] prepare_program_check_views(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
@@ -669,6 +672,8 @@ pub fn[I, P] reconcile_program_check_source_resolution(ClientProgramCheckPrepara
 pub fn[I, P] reconcile_program_check_source_resolution_inspection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] reconcile_program_check_source_topology_entry(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_topology_locals(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] reconcile_program_check_values(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 

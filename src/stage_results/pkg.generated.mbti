@@ -311,6 +311,12 @@ pub fn local_program_read_owned_work(LocalProgramRead) -> Int?
 
 pub fn local_program_read_phase(LocalProgramRead) -> LocalProgramReadPhase
 
+pub fn local_program_read_reconciled_input_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_program_read_reconciled_input_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_program_read_remaining_work(LocalProgramRead) -> Int?
+
 pub fn local_program_read_stage_index(LocalProgramRead) -> Int?
 
 pub fn local_source_context_prefix(PreparedLocalSource) -> (Int, Int)

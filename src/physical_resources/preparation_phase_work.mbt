@@ -53,6 +53,7 @@ pub(all) enum PreparationWorkPhase {
   SourceContextInputInspection
   SourceContextInputBody
   SourceTopologyEntry
+  SourceTopologyBody
   SemanticCheck
   LowerAndGraph
   ExecutionPlan
@@ -187,10 +188,11 @@ fn preparation_work_ordinal(phase : PreparationWorkPhase) -> Int {
     SourceContextInputInspection => 48
     SourceContextInputBody => 49
     SourceTopologyEntry => 50
-    SemanticCheck => 51
-    LowerAndGraph => 52
-    ExecutionPlan => 53
-    PublicationProof => 54
+    SourceTopologyBody => 51
+    SemanticCheck => 52
+    LowerAndGraph => 53
+    ExecutionPlan => 54
+    PublicationProof => 55
   }
 }
 
@@ -458,4 +460,13 @@ pub fn finish_preparation_phase_work_continuation64(
   receipt : PreparationPhaseWorkContinuation64,
 ) -> Result[Int64, PreparationWorkIssue] {
   (receipt.finish_original)()
+}
+
+///|
+/// Live portion of the SAME staged receipt: state1H2R2W, live Ref1H1W,
+/// four original state closures4H4R, receipt1H4R and active Some1H1R1W.
+/// Construction-return/argument carriers have unwound before reconciliation.
+/// The caller's own receipt Some stays with that caller's control inventory.
+pub fn preparation_phase_work_continuation64_retained_inventory() -> PreparationWorkConstructionInventory {
+  { record_headers: 8L, reference_slots: 11L, scalar_words: 4L, }
 }

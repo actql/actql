@@ -102,6 +102,10 @@ priv enum ProgramCheckPreparationPhase {
   SourceTopologyEntryPrepared
   SourceTopologyEntryComplete
   SourceTopologyEntryFailed
+  SourceTopologyBodyInitial
+  SourceTopologyBodyReturned
+  SourceTopologyBodyRetained
+  SourceTopologyBodyFailed
   Transferred
   Failed
   Retired
@@ -147,6 +151,8 @@ struct ClientProgramCheckPreparation[I, P] {
   mut binding_inventory : @shape.CollectionConstructionInventory?
   mut binding_quote : (Int64, Int64)?
   mut work : @resources.PreparationPhaseWork64?
+  mut topology_work : @resources.PreparationPhaseWorkContinuation64?
+  mut topology_spent : Int64
   base_retained : Int64
   base_execution : Int64
   mut busy : Bool
@@ -237,6 +243,8 @@ pub fn[I, P] begin_program_check_preparation(
     binding_inventory: None,
     binding_quote: None,
     work: None,
+    topology_work: None,
+    topology_spent: 0L,
     base_retained,
     base_execution,
     busy: false,
@@ -281,6 +289,8 @@ fn[I, P] transfer_program_check_input(
   owner.binding_inventory = None
   owner.binding_quote = None
   owner.environment_scratch = None
+  owner.topology_work = None
+  owner.topology_spent = 0L
   owner.input = None
   owner.phase = Transferred
 }
@@ -299,6 +309,12 @@ pub fn[I, P] clear_program_check_preparation(
     match @resources.finish_preparation_phase_work64(work) {
       Err(issue) => return Err(Work(issue))
       Ok(_) => owner.work = None
+    }
+  }
+  if owner.topology_work is Some(work) {
+    match @resources.finish_preparation_phase_work_continuation64(work) {
+      Err(issue) => return Err(Work(issue))
+      Ok(_) => owner.topology_work = None
     }
   }
   // The alias-drop helper marks Transferred for its actual take callers.

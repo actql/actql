@@ -973,3 +973,32 @@ fn finish_local_program_read_wiring(
     ),
   )
 }
+
+///|
+/// Remaining original semantic work, not memory demand or new work credit.
+/// The same successful read has already debited Stage/environment prefixes.
+pub fn local_program_read_remaining_work(original : LocalProgramRead) -> Int? {
+  match original.state {
+    Reading(body) => Some(body.work)
+    _ => None
+  }
+}
+
+///|
+/// Reconciled Local-input selection only. The original environment supplies
+/// the SAME prepared inputs; no schema/rows/snapshot constructor runs here.
+/// Stage/import getters2H2R2W, original map closure1H1W plus two Some2H2R2W,
+/// retained zero-owned-usage1H3W and original Receipt-issue alternative1H1R2W.
+/// Each import getter unwinds before the next: imported tuple/name/port bodies
+/// are borrowed, and no array or per-import body escapes this constructor.
+/// Read-state/result/phase carriers stay in the existing read-control packet.
+pub fn local_program_read_reconciled_input_construction_extent() -> @shape.CollectionConstructionExtent {
+  { record_headers: 7L, reference_slots: 5L, scalar_words: 10L, }
+}
+
+///|
+/// The SAME selected zero-owned-usage record remains in the next Stage variant;
+/// all lookup/map/return alternatives above have returned before reconcile.
+pub fn local_program_read_reconciled_input_retained_extent() -> @shape.CollectionConstructionExtent {
+  { record_headers: 1L, reference_slots: 0L, scalar_words: 3L, }
+}
