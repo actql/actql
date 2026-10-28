@@ -44,6 +44,8 @@ pub fn lookup(Schema, FieldName) -> @value_contract.Contract?
 
 pub fn lookup_reference(Schema, String) -> Field?
 
+pub fn reference_comparison_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
 pub fn reference_name(FieldName) -> String
 
 pub fn reference_name_construction_extent(FieldName) -> SchemaConstructionInventory

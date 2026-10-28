@@ -125,7 +125,14 @@ test "original reconciled-input constructor retains one returned work receipt on
     @stage_results.local_program_read_phase(read),
     PipelineCoreParameters,
   )
-  assert_true(advance_program_check_source_topology(owner) is Err(WrongPhase))
+  while @stage_results.local_program_read_phase(read) == PipelineCoreParameters {
+    advance_program_check_source_topology(owner).unwrap() |> ignore
+    reconcile_program_check_source_topology(owner).unwrap()
+  }
+  assert_eq(
+    @stage_results.local_program_read_phase(read),
+    PipelineCoreImportedEvidence,
+  )
   clear_program_check_preparation(owner).unwrap()
   assert_eq(
     @resources.finish_preparation_phase_work_continuation64(work),

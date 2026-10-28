@@ -1,4 +1,25 @@
 ///|
+fn preflight(
+  b : Budget,
+  source : @decode.Cursor,
+  root : @contract.Contract,
+  depth? : Int = 0,
+) -> Unit raise Stop {
+  let original = begin_contract_preflight_read(b, source, root, depth)
+  while original.state is Pending {
+    advance_contract_preflight_read(original)
+  }
+  match original.state {
+    Complete => clear_contract_preflight_read(original)
+    Rejected(issue) => {
+      clear_contract_preflight_read(original)
+      raise Stop(issue)
+    }
+    _ => abort("original preflight was retired during its synchronous call")
+  }
+}
+
+///|
 fn contract_preflight_original() -> @contract.Contract {
   let number = @contract.primitive(NumberType, nullable=false)
   let array = @contract.array_contract(number, nullable=false).unwrap()

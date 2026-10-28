@@ -1765,8 +1765,8 @@ read and consumed work. Clear retires that pending original and receipt; it is
 not a physical cleanup acknowledgement or a work refund.
 
 The initializer precedes input admission. The same Request driver now backs
-its original input continuation as described below. Subsequent Parameter,
-imported evidence, delta, nested operation and final-evidence constructors still
+its original input and Parameter continuations as described below. Subsequent
+nested operation and final-evidence constructors still
 need their own input-derived overlap and retained inventories before the parent
 can advance them. Pure synchronous consumers still drive all semantic
 boundaries and must back their complete call. A retained core or successful
@@ -1777,7 +1777,8 @@ complete successful Usage; it never supplies zero work as a success fact.
 The original nested Contract preflight has its own private continuation over
 that same compiler Budget and original LIFO stack. It returns after a popped
 Contract and after each original field-name charge, before the next child tuple
-and pending-buffer write. The synchronous preflight drives this same body. It does not introduce a second type traversal, a Contract-layout cache or
+and pending-buffer write. Synchronous Carrier and Parameter consumers drive
+this same body. It does not introduce a second type traversal, a Contract-layout cache or
 a new resource owner. Depth, field-order, work and partial text refusals remain
 with the original semantic body. Clearing removes pending element roots but
 does not make the stack's retained backing or its parent reservation disappear.
@@ -1870,12 +1871,139 @@ changes expose its immediate removals. No pending tuple is priced solely from
 the reduced logical length. This is representation accounting, not a physical
 cleanup acknowledgement, VM allocation measurement or RSS estimate.
 
-A rejected CoreInputs body still owns the same mutable Budget and original
-Carrier/Contract. Its actual consumed work can be observed through the failed
+A rejected CoreInputs or CoreParameters body still owns the same mutable Budget
+and original Carrier/Contract. Its actual consumed work can be observed through the failed
 read and charged before returning its original work receipt. That observation
 is not successful Usage or a checked Program. Other failed domains whose child
 owners have not supplied an actual consumed prefix remain unknown; neither
 None nor a generic exception supplies zero work. The whole admitted failed
-construction peak remains backed until actual clear. Subsequent Parameter,
-operation, Result/Context, checker/compiler and Plan/Run adoption, and matching
+construction peak remains backed until actual clear. Subsequent operations,
+Result/Context, checker/compiler and Plan/Run adoption, and matching
 ordinary/backend acceptance, retain their independent completion obligations.
+
+
+### Original Parameter and initial-selector continuation
+
+After the input domain, the same core read retains the original Parameter
+index and Contract continuation. It charges the original declaration count,
+names, Contract visits, depth and text budget in their existing order. The
+same parent backs each next tuple/buffer write and replaces only this pending
+Parameter domain after return. Declarations, default values and metadata remain
+borrowed from their completed original owner. This phase does not bind defaults,
+change nullable types, re-read declaration syntax or create a new capacity owner.
+
+Initial selection still follows all declarations. A raw selector completes
+NFC/LF once, then keeps the existing spend, UTF8 charge and empty-name order.
+It does not call the generic name checker to normalize that same completed
+String again. Generic name admission keeps its separate canonical-spelling
+obligation. The normalized selector is used only for the original name index;
+no currentness or permission fact is cached. A selector borrowed from another
+admitted tree backs its own issue path rather than borrowing the steps tree's
+shallower depth. Whole Program structure may already refuse an unknown initial
+input; a lower-level Pipeline refusal is not proof that the whole Program can
+reach that later boundary.
+
+The selected Target and three initial operation/evidence vectors are retained
+only after the original selector succeeds. Their actual buffers and original
+Some/Target wrappers are priced separately from the earlier input Map and
+borrowed declarations. The retained-quantity observer takes the actual previous
+constructor phase, so it cannot reinterpret an input delta as a Parameter
+result. Its work getter reads the same core Budget, including known rejected
+input/Parameter prefixes; it does not construct successful Usage for failure.
+
+The original synchronous Contract comparison driver is test-only after all
+product callers use the retained original. The second semantic checker and old
+single-step Parameter loop are absent. Operations,
+final evidence, Result/order/Context and Checked-to-Plan/Run adoption still need
+their corresponding original construction and ordinary consumer connections.
+
+
+### Original imported evidence continuation
+
+The same core read retains the original produced holders while projecting their
+literal references and constructing independent imported delta Maps. Literal
+admission has one original continuation over its original TransferBudget,
+field iterator and scalar order. Its synchronous API drives that same body.
+A pending or rejected child exposes actual consumed work; the parent combines
+that prefix with its own Budget until the child succeeds. Only then does the
+original transfer update the parent Budget and retire the child. This preserves
+failure order without inventing successful Usage or adding the child twice.
+
+Each imported delta owns a new Map around the original field/Graph-contract
+references. The producer Map is never extended. Its field charge and original
+Carrier/Contract preflight still precede insertion, using the same shared
+continuation and constructor recipe as ordinary inputs. The original linked
+Map iterator and its next-pair controls have one pinned storage descriptor.
+These are borrowed-reference quantities, not new validation, tariff, resource
+ownership or a user-supplied proof.
+
+Next Array growth and Map growth use the actual original length/capacity.
+After append, completed Maps are immutable for the rest of this import phase;
+one original storage sum retains their measured representation counts. The
+retained observer therefore need not traverse all completed Maps on every
+subsequent field. The explicit binding continuation updates that same sum only
+from the changed Map's observed before/after storage; no old immutable snapshot
+is reused after mutation. Temporary iterator, current field, child and pending-Map
+roots remain backed until the same constructor returns or actual clear drops
+them. Clearing this semantic reader does not acknowledge physical cleanup.
+
+The original Request driver admits this next construction peak and replaces
+only the imported domain's old storage with its actual returned storage.
+Literal/input/Parameter origins, schema and graph contracts stay with their
+original owners. Operations, final evidence, Result and
+Context constructors require their own subsequent input-derived overlap and
+retained recipes before that same parent can advance them.
+
+### Explicit Delta bindings and retained name storage
+
+The original Delta binding table is consumed by one continuation over the same
+Source, names index, Graph contracts, imported Maps and Budget. Each original
+tuple is captured before data-dependent quotation; intervening mutation cannot
+substitute a different tuple after its name has been quoted. Count and next-tuple
+capture share the actual constructor that already backs the fixed Some. Empty
+tables complete directly without a second empty selection/current boundary.
+Name, target, field/duplicate, Carrier/Contract and insertion obligations keep
+their original order and typed refusals. This is preparation DATA, not operation
+permission or a replacement cleanup owner.
+
+Field lookup uses the existing virtual reference-spelling comparison rather
+than constructing qualified target/candidate Strings at every binary-search
+comparison. Its fragment size is only a progress grain; long names are compared
+to completion. The final original FieldName equality still distinguishes a
+qualified field from text that merely spells the same prefix. Open/closed,
+known/untyped and presence facts retain their separate meanings.
+
+A qualified Map key retains its actual newly constructed spelling after the
+field call returns. The same constructor units first belong to the pending
+key and then to the Map; the unqualified branch borrows the admitted field's
+original String. Retained headers and UTF16 units therefore travel alongside
+Map storage. Every Core/Pipeline/Stage quote carries both replaced extent and
+replaced UTF16 units; no caller can silently price the latter as zero. The
+same Request subtracts the full old owned domain only after its original
+constructor returns and reconciles the actual new domain.
+
+Quote and retained-observation frames include their explicit adapter records,
+Some wrappers and work-observation return controls. A private domain's storage
+or observation bound does not by itself cover Pipeline/Stage adapters. Logical
+constructor tables, physical first-entry backing, and same-candidate ordinary
+backend behavior remain distinct obligations. Subsequent operations and final
+Result/Context/Plan/Run adoption require their own original lifetime recipes.
+
+### Original operation boundaries
+
+The Core operation driver selects the next original body by its existing
+completed-step count. The same operation checker consumes that body once,
+borrowing the original Source, input evidence, names, current target and Budget.
+Every successful branch appends its one original checked step and returns that
+target. The next call therefore resumes from the preceding original result;
+it does not replay earlier operations or create another step index. Empty and
+last-body paths finish in the same call without a separate selection boundary.
+Synchronous callers drive this same body to completion.
+
+An operation refusal retains the completed original prefix for the same clear
+path and never starts the remaining bodies. Nested operation owners that do
+not report their actual failed consumed prefix still leave work unknown;
+the outer Budget alone cannot fabricate a complete failure receipt. This
+operation boundary does not supply construction/retained backing for its
+nested checkers. The Request driver continues to stop before operations until
+those original constructors and held evidence have their own complete recipe.

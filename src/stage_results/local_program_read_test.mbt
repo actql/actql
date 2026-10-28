@@ -2,8 +2,10 @@
 fn finish_original_local_program_read(
   read : LocalProgramRead,
 ) -> Result[(LocalProgramPreparation, LocalProgramUsage), LocalProgramIssue] raise {
-  // Fixture bound only. It is not a new Program/Stage or language limit.
-  for _ in 0..<100 {
+  // Fixture transition bound only: Contract/Parameter continuations expose
+  // separate constructor steps without increasing the semantic work Budget.
+  // This is not a Program/Stage or language limit.
+  for _ in 0..<200 {
     match local_program_read_phase(read) {
       Complete | Failed => return take_local_program_read(read).unwrap()
       _ => advance_local_program_read(read) |> ignore
@@ -21,7 +23,8 @@ test "original staged topology retains Source Result producers and cumulative wo
     assert_true(take_local_program_read(read) is None)
     let mut spent = local_program_read_owned_work(read).unwrap()
     assert_eq(spent, count.to_int64())
-    for _ in 0..<100 {
+    // Same fixture bound as the staged completion driver above.
+    for _ in 0..<200 {
       if local_program_read_phase(read) == Complete {
         break
       }
@@ -79,7 +82,7 @@ test "original staged topology retains the exact later typed failure and never t
   let source = local_program_source(true, bad_later=true)
   let limits = local_program_limits()
   let read = begin_local_program_read(source, limits).unwrap()
-  for _ in 0..<100 {
+  for _ in 0..<200 {
     if local_program_read_phase(read) == Failed {
       break
     }
@@ -176,7 +179,7 @@ test "original staged topology borrows admitted Local inputs without rebilling t
   assert_eq(local_program_read_owned_work(read), Some(2L))
   let prefix = @local.program_environment_usage(environment).work
   assert_true(prefix > 0)
-  for _ in 0..<100 {
+  for _ in 0..<200 {
     if local_program_read_phase(read) == Complete {
       break
     }

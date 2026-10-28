@@ -3,6 +3,7 @@ fn context_entry_parent(
   count : Int,
   current? : () -> Bool = () => true,
   calendar_policy? : String = "{}",
+  params? : String? = None,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   ClientProgramCheckPreparation[Array[Int], Unit],
@@ -13,6 +14,7 @@ fn context_entry_parent(
     local_declarations=true,
     current~,
     calendar_policy~,
+    params~,
   )
   prepare_program_check_source_local_snapshots(owner).unwrap() |> ignore
   prepare_program_check_source_local_tail(owner).unwrap() |> ignore

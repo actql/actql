@@ -93,7 +93,9 @@ pub fn from_object_construction_extent(
 ///|
 /// The SAME reference_name spelling constructor, without constructing a String
 /// just to quote it. Unqualified names borrow text; qualification adds its
-/// original prefix and one transient String before the caller's charge returns.
+/// original prefix and one String. A direct charge caller drops that scratch;
+/// a retaining Map caller keeps the SAME units for its longer owned lifetime.
+/// This constructor DATA does not decide the caller's lifetime or ownership.
 pub fn reference_name_construction_extent(
   name : FieldName,
 ) -> SchemaConstructionInventory {

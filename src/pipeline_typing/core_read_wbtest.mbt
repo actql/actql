@@ -1,15 +1,4 @@
 ///|
-/// Original successful semantic prefix only. Failed core work has no complete
-/// Usage and is never converted to zero or a new allowance.
-fn pipeline_core_read_owned_work(original : PipelineCoreRead) -> Int? {
-  match original.state {
-    Reading(body) => Some(body.limits.max_work - body.b.work)
-    Completed(checked) => Some(checked.usage.work)
-    _ => None
-  }
-}
-
-///|
 fn original_core_fixture(
   source : @decode.Cursor,
   from? : @decode.Cursor? = None,
@@ -39,7 +28,7 @@ test "original core read retains one budget inputs and operation loop across sem
   )
   let read = original_core_fixture(source)
   assert_true(pipeline_core_read_phase(read) == Inputs)
-  assert_eq(pipeline_core_read_owned_work(read), Some(1))
+  assert_eq(pipeline_core_read_consumed_work(read), Some(1))
   guard read.state is Reading(original) else { abort("original core expected") }
   assert_true(physical_equal(original.source, source))
   let budget = original.b
@@ -53,33 +42,41 @@ test "original core read retains one budget inputs and operation loop across sem
   assert_true(held.scalar_words <= quote.scalar_words)
   assert_true(take_pipeline_core_read(read) is None)
   while pipeline_core_read_phase(read) == Inputs {
-    let before = pipeline_core_read_owned_work(read).unwrap()
+    let before = pipeline_core_read_consumed_work(read).unwrap()
     let _ = advance_pipeline_core_read(read)
-    assert_true(pipeline_core_read_owned_work(read).unwrap() >= before)
+    assert_true(pipeline_core_read_consumed_work(read).unwrap() >= before)
     assert_true(physical_equal(original.b, budget))
     assert_true(physical_equal(original.inputs, input_array))
   }
   assert_true(pipeline_core_read_phase(read) == Parameters)
-  for
-    expected in [
-      ImportedEvidence,
-      DeltaContracts,
-      Steps,
-      FinalEvidence,
-      Complete,
-    ] {
+  while pipeline_core_read_phase(read) == Parameters {
+    let _ = advance_pipeline_core_read(read)
+  }
+  assert_true(pipeline_core_read_phase(read) == ImportedEvidence)
+  while pipeline_core_read_phase(read) == ImportedEvidence {
+    let _ = advance_pipeline_core_read(read)
+  }
+  assert_true(pipeline_core_read_phase(read) == DeltaContracts)
+  while pipeline_core_read_phase(read) == DeltaContracts {
+    let _ = advance_pipeline_core_read(read)
+  }
+  assert_true(pipeline_core_read_phase(read) == Steps)
+  while pipeline_core_read_phase(read) == Steps {
+    let _ = advance_pipeline_core_read(read)
+  }
+  for expected in [PipelineCoreReadPhase::Complete] {
     let before_phase = pipeline_core_read_phase(read)
-    let before = pipeline_core_read_owned_work(read).unwrap()
+    let before = pipeline_core_read_consumed_work(read).unwrap()
     assert_true(pipeline_core_read_phase(read) == before_phase)
-    assert_eq(pipeline_core_read_owned_work(read), Some(before))
+    assert_eq(pipeline_core_read_consumed_work(read), Some(before))
     assert_true(advance_pipeline_core_read(read) == expected)
-    assert_true(pipeline_core_read_owned_work(read).unwrap() >= before)
+    assert_true(pipeline_core_read_consumed_work(read).unwrap() >= before)
     assert_true(physical_equal(original.b, budget))
     assert_true(physical_equal(original.inputs, input_array))
     assert_true(physical_equal(original.bodies, bodies))
   }
   assert_true(advance_pipeline_core_read(read) == Complete)
-  let actual_work = pipeline_core_read_owned_work(read).unwrap()
+  let actual_work = pipeline_core_read_consumed_work(read).unwrap()
   let checked = take_pipeline_core_read(read).unwrap().unwrap()
   assert_eq(checked.usage.work, actual_work)
   assert_eq(step_count(checked), 2)
@@ -100,8 +97,11 @@ test "original core typed selector failure remains original and clear stops ever
     let _ = advance_pipeline_core_read(read)
   }
   assert_true(pipeline_core_read_phase(read) == Parameters)
-  assert_true(advance_pipeline_core_read(read) == Failed)
-  assert_true(pipeline_core_read_owned_work(read) is None)
+  while pipeline_core_read_phase(read) == Parameters {
+    let _ = advance_pipeline_core_read(read)
+  }
+  assert_true(pipeline_core_read_phase(read) == Failed)
+  assert_eq(pipeline_core_read_consumed_work(read), Some(6))
   assert_true(advance_pipeline_core_read(read) == Failed)
   guard take_pipeline_core_read(read) is Some(Err(issue)) else {
     abort("typed original issue expected")
@@ -116,6 +116,6 @@ test "original core typed selector failure remains original and clear stops ever
     assert_true(take_pipeline_core_read(read) is None)
     clear_pipeline_core_read(read)
     assert_true(advance_pipeline_core_read(read) == Cleared)
-    assert_true(pipeline_core_read_owned_work(read) is None)
+    assert_true(pipeline_core_read_consumed_work(read) is None)
   }
 }

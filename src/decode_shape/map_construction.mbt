@@ -27,3 +27,46 @@ pub fn map_construction_extent(
   }
   Some({ record_headers: h, reference_slots: r, scalar_words: w, })
 }
+
+///|
+// Pinned Map::iter over reference keys/values: Iter1H2R, size Some1H1W,
+// closure1H2R and its original mutable entry/remaining cells2H1R1W.
+// Original Map entries and their Some links are borrowed, never copied here.
+let reference_map_iterator_retained : CollectionConstructionExtent = {
+  record_headers: 5L,
+  reference_slots: 5L,
+  scalar_words: 2L,
+}
+
+///|
+/// Original retained iterator controls only; not the Map or its entry bodies.
+pub fn reference_map_iterator_retained_extent() -> CollectionConstructionExtent {
+  reference_map_iterator_retained
+}
+
+///|
+// Iter::new additionally overlaps the incoming and normalized size-hint Some.
+let reference_map_iterator_construction : CollectionConstructionExtent = {
+  record_headers: 6L,
+  reference_slots: 5L,
+  scalar_words: 3L,
+}
+
+///|
+pub fn reference_map_iterator_construction_extent() -> CollectionConstructionExtent {
+  reference_map_iterator_construction
+}
+
+///|
+// Original next pair1H2R, result Some1H1R1W, new size Some1H1W and
+// the next method's explicit result/size match pair1H2R. No entry body grows.
+let reference_map_iterator_next : CollectionConstructionExtent = {
+  record_headers: 4L,
+  reference_slots: 5L,
+  scalar_words: 2L,
+}
+
+///|
+pub fn reference_map_iterator_next_construction_extent() -> CollectionConstructionExtent {
+  reference_map_iterator_next
+}

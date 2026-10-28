@@ -28,6 +28,7 @@ fn batch_snapshot_parent(
   bad_tail? : Bool = false,
   scores? : Bool = false,
   calendar_policy? : String = "{}",
+  params? : String? = None,
   current? : () -> Bool = () => true,
 ) -> (
   ClientRequestPreparation[Array[Int]],
@@ -98,7 +99,12 @@ fn batch_snapshot_parent(
       "},\"steps\":[],\"results\":{\"out\":{}}}",
     )
   }
-  let text = "{\"version\":\"actql/0.1\",\"id\":\"batch-body\",\"stages\":[" +
+  let text = "{\"version\":\"actql/0.1\",\"id\":\"batch-body\"," +
+    (match params {
+      Some(value) => "\"params\":" + value + ","
+      None => ""
+    }) +
+    "\"stages\":[" +
     stages.join(",") +
     "],\"results\":{\"out\":{\"from\":{\"stage\":\"t\",\"result\":\"out\"}}}}"
   let prefix = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],"
