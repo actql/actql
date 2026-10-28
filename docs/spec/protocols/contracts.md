@@ -1286,7 +1286,7 @@ Run materials, Preview, apply and restore, with current installation and grants
 independently checked. See the authored-vs-canonical
 [STORE distinction](artifacts.md#reference-admission).
 
-<!-- requirement-block: mapping-contracts.the-resolved-mapping-contract-must-derive-exactly-one-non-empty-permission mapping-contracts.preview-and-apply-must-reject-a-mapping-unless-exactly-one mapping-generation.product-c4d159e6b70f mapping-generation.product-9c63aad3384b classification-inheritance.product-340f5cf73a23 -->
+<!-- requirement-block: mapping-contracts.the-resolved-mapping-contract-must-derive-exactly-one-non-empty-permission mapping-contracts.preview-and-apply-must-reject-a-mapping-unless-exactly-one -->
 The resolved mapping contract MUST derive exactly one non-empty permission set
 for the effect kind, selector class, and exact write-field set. A resource-wide permission list is evidence
 only and is not an executable permission rule: it cannot distinguish effect
@@ -1294,6 +1294,15 @@ kind, selector class, or write scope. Preview and apply MUST reject a mapping
 unless exactly one `permission_rules` entry matches all three dimensions.
 Neither compiler nor author may broaden that exact rule.
 
+<!-- requirement-block: mapping-contracts.key-upsert-complete-permission-set -->
+For a logical key UPSERT that may create or update, the single matching rule
+MUST carry the complete technical requirements of both branches. Selecting a
+branch from the original lookup does not merge separate create/update rules or
+narrow the UPSERT's permission set. The same non-null selector may supply a
+required create key without duplicating it in inline `set`; other required
+create values remain mandatory.
+
+<!-- requirement-block: mapping-generation.product-c4d159e6b70f mapping-generation.product-9c63aad3384b classification-inheritance.product-340f5cf73a23 -->
 The resolved mapping contract owns a complete target row mapping for
 `create` and `store` from a named result. It specifies every target field
 as one explicit result field or literal, null behavior, writable/required
