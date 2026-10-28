@@ -143,11 +143,23 @@ export function checkBindings(root, requested, {read = path => readFileSync(join
   const compact = input.replace(/\s+/gu, '');
   for (const route of [
     '@execution.bind_completed_operation_input(cursor.owner,cursor.step,cursor.port,cursor.owner,output,)',
-    '@execution.start_prepare_producer_read(cursor.owner,bound,cursor.max_entries,cursor.max_value_bytes,)',
     '@execution.advance_prepare_producer_read(read)',
     'cursor.selected.push(RelationInput(read))',
     '@execution.cancel_prepare_producer_read(read)',
   ]) if (!compact.includes(route)) throw new Error(`Missing current checked input cursor route: ${route}`);
+  // Check the selected receiver's preparation, not an unrelated small-read
+  // probe elsewhere in this file. Both limits come from the SAME checked
+  // owner/binding demand before this read is handed to the cursor.
+  const selectedBinding = '@execution.bind_completed_operation_input(cursor.owner,cursor.step,cursor.port,cursor.owner,output,)';
+  const selectedStart = compact.indexOf(selectedBinding);
+  const selectedEnd = compact.indexOf('cursor.read=Some(read)', selectedStart);
+  const demand = 'guard@execution.bound_producer_read_demand(cursor.owner,bound)isSome(demand)else{returnErr(@connector.Execution(@execution.InputLimit))}';
+  const preparation = '@execution.start_prepare_producer_read(cursor.owner,bound,@execution.producer_read_demand_entries(demand),@execution.producer_read_demand_name_bytes(demand),)';
+  const selectedRead = compact.slice(selectedStart, selectedEnd);
+  if (selectedStart < 0 || selectedEnd <= selectedStart ||
+      !selectedRead.includes(demand) || selectedRead.indexOf(preparation) <= selectedRead.indexOf(demand)) {
+    throw new Error('Missing original checked producer-read demand route');
+  }
   if (!compact.includes('cursor.completed.get(position)isSome(Some(output))') ||
       !compact.includes('@execution.generated_sequence_step_index_at(cursor.sequence,position)==Some(producer)')) {
     throw new Error('Missing exact predecessor completion selection');
