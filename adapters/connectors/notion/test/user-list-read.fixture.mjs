@@ -8,21 +8,22 @@ import {mkdir,mkdtemp,readFile,writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
-import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import * as provider from '../../../../_build/js/release/build/connectors/notion/host_node/host_node.js';
+const common = await import(process.env.ACTQL_TEST_COMMON_URL ?? new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href);
+const provider = await import(process.env.ACTQL_TEST_NOTION_URL ?? new URL('../../../../_build/js/release/build/connectors/notion/host_node/host_node.js', import.meta.url).href);
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {canonicalJson,createLocalAuthorizationGate} from '../../../host-node/local-account-config.mjs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
-import {openHttpsCredentialBinding,closeHttpsCredentialBinding} from '../../../site-node/https-credential-resource.mjs';
+import {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
+import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
 import {openSqliteCredentialJournal} from '../../../site-node/sqlite-credential-journal.mjs';
 import {signRemoteCredentialGrant} from '../../../site-node/remote-credential-signature.mjs';
-import {createNotionUserListReader,NOTION_USER_LIST_OPERATION} from '../site/user-list-read.mjs';
+import {prepareNotionUserListPages,NOTION_USER_LIST_OPERATION} from '../site/user-list-read.mjs';
 
 const repo=new URL('../../../../',import.meta.url).pathname;
 const control=runtimeCore(common).remoteCredentialControl;
 const cid=c=>`sha256:${c.repeat(64)}`;
-const read=name=>readFile(join(repo,name),'utf8');
+const read = name => readFile(join(process.env.ACTQL_TEST_CONTRACT_ROOT ?? repo, name), 'utf8');
 export const userListReadLimits=Object.freeze({maxResponseBytes:8192,maxTotalResponseBytes:24576,
   maxNodes:512,maxDepth:16,maxRows:10,maxTotalRows:20,maxPages:4,pageSize:10,
   maxCursorBytes:128,maxIdentityBytes:128,maxTargetBytes:1024,
@@ -97,10 +98,10 @@ export async function userListFixture(t,{account='allow',format='sql',accounted=
     } catch(cause){response.destroy(cause);}
   });
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
-  let journal,binding,row;
+  let journal,row;const readers=[];
   t.after(async()=>{
     const errors=[];
-    try{if(binding)assert.equal(closeHttpsCredentialBinding(binding),'closed');}catch(cause){errors.push(cause);}
+    try{for(const reader of readers){reader.requestStop();reader.retry();assert.equal(reader.observe().cleanupConfirmed,true);}}catch(cause){errors.push(cause);}
     try{if(row){row.close();assert.deepEqual(ledgerUsageFieldsFor(row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),[0n,0n,0n,0n]);}}catch(cause){errors.push(cause);}
     try{journal?.close();}catch(cause){errors.push(cause);}
     try{await new Promise((resolve,reject)=>server.close(cause=>cause?reject(cause):resolve()));}catch(cause){errors.push(cause);}
@@ -129,16 +130,27 @@ export async function userListFixture(t,{account='allow',format='sql',accounted=
   const current=async()=>{const decision=await gate.authorize('acquisition',{connection:'notion:fixture',resource:'users',operation:'read'},
     {subjectCid:scope.runInvocationCid});if(decision.action!=='dispatch')throw Object.assign(new Error('NotionReadDenied'),{code:'NotionReadDenied'});};
   const credential={control,journal,ca:cert,resolveSecret:async()=>{state.resolutions++;await state.resolved?.();return state.secret;}};
-  binding=openHttpsCredentialBinding({...credential,scope,maxSecretBytes:128});
-  row=accounted?await rowOwner(()=>closeHttpsCredentialBinding(binding)==='closed',format):undefined;
+  row=accounted?await rowOwner(()=>readers.every(reader=>reader.observe().cleanupConfirmed),format):undefined;
   const authorizationFor=({operation,index})=>{assert.equal(operation,NOTION_USER_LIST_OPERATION);
     return{grant,scope,useId:`users-${index}`};};
   const options={moon:provider,names:provider.notionUserListColumnNames(),
-    initialAuthorization:{grant,scope,useId:'initial'},credential:{...credential,binding},
+    initialAuthorization:{grant,scope,useId:'initial'},credential,
     authorizationFor,limits:userListReadLimits,current,
     chargeResponse:body=>{state.charges++;return row.charge(body);},
     consumeObservation:charge=>{state.observationCharges++;row.observe(charge);},
     consumePage:(rows,{charge})=>{row.page(rows,charge);state.rows.push(...rows);}};
-  return {root,state,row,journal,binding,scope,grant,control,sign,options,current,writeAccount,
-    create:overrides=>createNotionUserListReader({...options,...overrides})};
+  const create=(overrides={})=>{
+    const selected={...options,...overrides};
+    const bound=Object.freeze({...selected.limits});
+    const site={credential:selected.credential,referenceCurrent:()=>true,callResource:callHttpsCredentialResource};
+    const factory=createInstalledCredentialSourceReader({capacity:{},site,operation:NOTION_USER_LIST_OPERATION,
+      maxResponses:bound.maxPages,maxResponseBytes:bound.maxResponseBytes,maxSecretBytes:128,
+      preparePageReader:({columns})=>prepareNotionUserListPages({moon:selected.moon,names:columns,limits:bound})});
+    const reader=factory.prepare({resource:'users',columns:selected.names,signal:selected.signal,
+      verifyRead:()=>selected.current(NOTION_USER_LIST_OPERATION),
+      authorizationFor:index=>selected.authorizationFor({operation:NOTION_USER_LIST_OPERATION,index}),
+      chargePage:body=>selected.chargeResponse(body),consumePage:(rows,ticket)=>selected.consumePage(rows,ticket)});
+    readers.push(reader);return reader;
+  };
+  return {root,state,row,journal,scope,grant,control,sign,options,current,writeAccount,create,readers};
 }

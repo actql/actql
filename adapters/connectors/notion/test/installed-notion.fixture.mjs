@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import {readFile,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
-import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import * as provider from '../../../../_build/js/release/build/connectors/notion/host_node/host_node.js';
+const commonUrl=process.env.ACTQL_TEST_COMMON_URL ?? new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href;
+const common=await import(commonUrl);
+const provider=await import(process.env.ACTQL_TEST_NOTION_URL ?? new URL('../../../../_build/js/release/build/connectors/notion/host_node/host_node.js',import.meta.url).href);
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {loadInstalledNotionSource} from '../host/installed-notion-source.mjs';
 import {userListFixture,userListReadLimits} from './user-list-read.fixture.mjs';
@@ -29,8 +30,7 @@ export async function installedNotionFixture(t,{account='allow'}={}){
   const capacity=common.clientProgramRowSourceProviderCapacity(262144n,262144n);assert.ok(capacity);
   const sources=[];
   const options={root:f.root,principalId:'operator',moon:common,providerMoon:provider,
-    runtimeBundleCid:`sha256:${createHash('sha256').update(await readFile(new URL(
-      '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',repo))).digest('hex')}`,
+    runtimeBundleCid:`sha256:${createHash('sha256').update(await readFile(new URL(commonUrl))).digest('hex')}`,
     baseEnvironmentWire:await readFile(new URL('spec/local-check-environment.json',repo),'utf8'),
     resolveSecret:async()=>{f.state.resolutions++;await f.state.resolved?.();return f.state.secret;},readerCapacity:capacity};
   const load=async(overrides={})=>{const source=await loadInstalledNotionSource(profile,{...options,...overrides});sources.push(source);return source;};

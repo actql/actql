@@ -7,21 +7,22 @@ import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
-import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import * as provider from '../../../../_build/js/release/build/connectors/calendar/host_node/host_node.js';
+const common = await import(process.env.ACTQL_TEST_COMMON_URL ?? new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href);
+const provider = await import(process.env.ACTQL_TEST_CALENDAR_URL ?? new URL('../../../../_build/js/release/build/connectors/calendar/host_node/host_node.js', import.meta.url).href);
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {canonicalJson, createLocalAuthorizationGate} from '../../../host-node/local-account-config.mjs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
-import {openHttpsCredentialBinding, closeHttpsCredentialBinding} from '../../../site-node/https-credential-resource.mjs';
+import {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
+import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
 import {openSqliteCredentialJournal} from '../../../site-node/sqlite-credential-journal.mjs';
 import {signRemoteCredentialGrant} from '../../../site-node/remote-credential-signature.mjs';
-import {readCalendarList, CALENDAR_LIST_OPERATION} from '../site/calendar-list-read.mjs';
+import {prepareCalendarListPages, CALENDAR_LIST_OPERATION} from '../site/calendar-list-read.mjs';
 
 const repo = new URL('../../../../', import.meta.url).pathname;
 const control = runtimeCore(common).remoteCredentialControl;
 const cid = c => `sha256:${c.repeat(64)}`;
-const read = name => readFile(join(repo, name), 'utf8');
+const read = name => readFile(join(process.env.ACTQL_TEST_CONTRACT_ROOT ?? repo, name), 'utf8');
 export const calendarRowSchema = Object.freeze(Object.fromEntries(
   ['access_role', 'id', 'summary', 'time_zone'].map(name => [name, {type: 'string', nullable: false}])));
 export const calendarReadLimits = Object.freeze({maxResponseBytes: 4096, maxNodes: 512,
@@ -93,10 +94,10 @@ export async function calendarFixture(t, {account = 'allow', accounted = true} =
     } catch (error) {response.destroy(error);}
   });
   await new Promise((resolve, reject) => {server.once('error', reject);server.listen(0, '127.0.0.1', resolve);});
-  let binding, journal, row;
+  let journal, row;const readers=[];
   t.after(async () => {
     const failures = [];
-    try {if (binding) assert.equal(closeHttpsCredentialBinding(binding), 'closed');} catch (cause) {failures.push(cause);}
+    try {for(const reader of readers){reader.requestStop();reader.retry();assert.equal(reader.observe().cleanupConfirmed,true);}} catch (cause) {failures.push(cause);}
     try {row?.close();if (row) assert.deepEqual(ledgerUsageFieldsFor(row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n,0n,0n,0n]);} catch (cause) {failures.push(cause);}
     try {journal?.close();} catch (cause) {failures.push(cause);}
     try {await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));} catch (cause) {failures.push(cause);}
@@ -124,14 +125,26 @@ export async function calendarFixture(t, {account = 'allow', accounted = true} =
   const current=async () => {const decision=await gate.authorize('acquisition',{connection:'calendar:fixture',resource:'calendars',operation:'read'},
     {subjectCid:scope.runInvocationCid});if(decision.action!=='dispatch')throw Object.assign(new Error('CalendarReadDenied'),{code:'CalendarReadDenied'});};
   const credential={control,journal,ca:cert,resolveSecret:async () => {state.resolutions++;await state.resolved?.();return state.secret;}};
-  binding=openHttpsCredentialBinding({...credential,scope,maxSecretBytes:128});
-  if(accounted)row=await rowOwner(() => closeHttpsCredentialBinding(binding)==='closed');
+  if(accounted)row=await rowOwner(() => readers.every(reader=>reader.observe().cleanupConfirmed));
   const initialAuthorization={grant,scope,useId:'initial'};
   const options={moon:provider,names:['summary','time_zone','access_role'],initialAuthorization,
-    credential:{...credential,binding},limits:calendarReadLimits,current,
+    credential,limits:calendarReadLimits,current,
     authorizationFor:({index}) => ({grant,scope,useId:`page-${index}`}),
     chargeResponse:body => {state.charges++;return row.charge(body);},
     consumePage:(rows,{charge}) => {row.page(rows,charge);state.rows.push(...rows);}};
-  return {root,state,row,journal,binding,scope,grant,control,sign,current,writeAccount,options,
-    read:overrides=>readCalendarList({...options,...overrides})};
+  const create=(overrides={})=>{
+    const selected={...options,...overrides};
+    const bound=Object.freeze({...selected.limits});
+    const site={credential:selected.credential,referenceCurrent:()=>true,callResource:callHttpsCredentialResource};
+    const factory=createInstalledCredentialSourceReader({capacity:{},site,operation:CALENDAR_LIST_OPERATION,
+      maxResponses:bound.maxPages,maxResponseBytes:bound.maxResponseBytes,maxSecretBytes:128,
+      preparePageReader:({columns})=>prepareCalendarListPages({moon:selected.moon,names:columns,limits:bound})});
+    const reader=factory.prepare({resource:'calendars',columns:selected.names,signal:selected.signal,
+      verifyRead:()=>selected.current(CALENDAR_LIST_OPERATION),
+      authorizationFor:index=>selected.authorizationFor({operation:CALENDAR_LIST_OPERATION,index}),
+      chargePage:body=>selected.chargeResponse(body),consumePage:(rows,ticket)=>selected.consumePage(rows,ticket)});
+    readers.push(reader);return reader;
+  };
+  return {root,state,row,journal,scope,grant,control,sign,current,writeAccount,options,create,readers,
+    read:async overrides=>create(overrides).read()};
 }
