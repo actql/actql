@@ -82,7 +82,7 @@ test "original staged topology retains the exact later typed failure and never t
   let source = local_program_source(true, bad_later=true)
   let limits = local_program_limits()
   let read = begin_local_program_read(source, limits).unwrap()
-  for _ in 0..<100 {
+  for _ in 0..<200 {
     if local_program_read_phase(read) == Failed {
       break
     }
@@ -179,7 +179,7 @@ test "original staged topology borrows admitted Local inputs without rebilling t
   assert_eq(local_program_read_owned_work(read), Some(2L))
   let prefix = @local.program_environment_usage(environment).work
   assert_true(prefix > 0)
-  for _ in 0..<100 {
+  for _ in 0..<200 {
     if local_program_read_phase(read) == Complete {
       break
     }

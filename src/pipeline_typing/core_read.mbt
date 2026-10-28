@@ -39,6 +39,21 @@ priv enum PipelineCoreParameterStep {
 }
 
 ///|
+priv enum PipelineCoreImportedStep {
+  LiteralInputs
+  LiteralDomain
+  LiteralRead
+  LiteralSteps
+  DeltaStart
+  DeltaInput
+  DeltaField
+  DeltaCarrier
+  DeltaRegister
+  DeltaAppend
+  DeltaSteps
+}
+
+///|
 priv struct PipelineCoreBody {
   source : @decode.Cursor
   inputs : Array[(String, @carrier.Carrier)]
@@ -81,6 +96,13 @@ priv struct PipelineCoreBody {
   mut parameter_step : PipelineCoreParameterStep
   mut parameter_index : Int
   mut parameter_read : ContractPreflightRead?
+  mut imported_step : PipelineCoreImportedStep
+  mut imported_index : Int
+  mut literal_read : @evidence.LiteralDomainsRead?
+  mut delta_iterator : Iter[(String, @graph_contract.CheckedContract)]?
+  mut delta_field : (String, @graph_contract.CheckedContract)?
+  mut delta_pending : DeltaEvidence?
+  mut delta_completed_storage : @shape.CollectionConstructionExtent
 }
 
 ///|
@@ -210,6 +232,13 @@ fn begin_pipeline_core_read_owned(
       parameter_step: Count,
       parameter_index: 0,
       parameter_read: None,
+      imported_step: LiteralInputs,
+      imported_index: 0,
+      literal_read: None,
+      delta_iterator: None,
+      delta_field: None,
+      delta_pending: None,
+      delta_completed_storage: pipeline_core_zero_extent,
     }),
   })
 }
@@ -275,6 +304,13 @@ fn clear_pipeline_core_read(original : PipelineCoreRead) -> Unit {
           clear_contract_preflight_read(read)
         }
         body.parameter_read = None
+        if body.literal_read is Some(read) {
+          @evidence.clear_literal_domains_read(read)
+        }
+        body.literal_read = None
+        body.delta_iterator = None
+        body.delta_field = None
+        body.delta_pending = None
         body.phase = Cleared
       }
       _ => ()
@@ -306,32 +342,7 @@ fn advance_pipeline_core_read_owned(
   match original.phase {
     Inputs => advance_pipeline_core_inputs(original)
     Parameters => advance_pipeline_core_parameters(original)
-    ImportedEvidence => {
-      spend(b, source, produced_inputs.length())
-      let literal_inputs = produced_inputs.map(input => {
-        input.bind(v => v.literals)
-      })
-      for domains in literal_inputs {
-        if domains is Some(domains) {
-          let _ = literal_result(
-            b,
-            source,
-            @evidence.admit_literal_domains(source, domains, {
-              max_work: b.work,
-              max_name_bytes: b.text,
-            }),
-          )
-        }
-      }
-      let literal_steps : Array[@evidence.LiteralDomains?] = []
-      let delta_inputs = imported_delta(b, source, produced_inputs)
-      let delta_steps : Array[DeltaEvidence] = []
-      original.literal_inputs = Some(literal_inputs)
-      original.literal_steps = Some(literal_steps)
-      original.delta_inputs = Some(delta_inputs)
-      original.delta_steps = Some(delta_steps)
-      original.phase = DeltaContracts
-    }
+    ImportedEvidence => advance_pipeline_core_imported(original)
     DeltaContracts => {
       let delta_inputs = original.delta_inputs.unwrap()
       spend(b, source, delta_contracts.length())
@@ -2724,14 +2735,33 @@ fn pipeline_core_read_consumed_work(
   prefix? : Int = 0,
 ) -> Int? {
   match read.state {
-    Reading(body) => Some(prefix + body.limits.max_work - body.b.work)
+    Reading(body) => pipeline_core_body_consumed_work(body, prefix)
     Rejected(body, _) =>
-      if body.phase == Inputs || body.phase == Parameters {
-        Some(prefix + body.limits.max_work - body.b.work)
+      if body.phase == Inputs ||
+        body.phase == Parameters ||
+        body.phase == ImportedEvidence {
+        pipeline_core_body_consumed_work(body, prefix)
       } else {
         None
       }
     Completed(checked) => Some(prefix + checked.usage.work)
     _ => None
   }
+}
+
+///|
+fn pipeline_core_body_consumed_work(
+  body : PipelineCoreBody,
+  prefix : Int,
+) -> Int? {
+  let consumed = prefix + body.limits.max_work - body.b.work
+  if body.phase == ImportedEvidence && body.literal_read is Some(read) {
+    guard @evidence.literal_domains_read_consumed_work(read) is Some(nested) else {
+      return None
+    }
+    // Original nested Budget is applied to b only when its transfer completes.
+    // Until then retain its actual prefix, including failure, exactly once.
+    return Some(consumed + nested)
+  }
+  Some(consumed)
 }

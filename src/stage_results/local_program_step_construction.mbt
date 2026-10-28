@@ -296,7 +296,8 @@ pub fn local_program_read_step_retained_extent(
     previous == PipelineRankings ||
     previous == PipelineCore ||
     previous == PipelineCoreInputs ||
-    previous == PipelineCoreParameters {
+    previous == PipelineCoreParameters ||
+    previous == PipelineCoreImportedEvidence {
     guard original.state is Reading(body) &&
       body.stage is PipelineRead(_, _, _, _, _, _, _, read) &&
       @pipeline.pipeline_evidence_read_step_holdings(
@@ -307,6 +308,7 @@ pub fn local_program_read_step_retained_extent(
           PipelineCore => @pipeline.Core
           PipelineCoreInputs => @pipeline.CoreInputs
           PipelineCoreParameters => @pipeline.CoreParameters
+          PipelineCoreImportedEvidence => @pipeline.CoreImportedEvidence
           _ => return None
         },
       )

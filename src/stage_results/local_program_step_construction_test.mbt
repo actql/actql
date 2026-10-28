@@ -18,7 +18,7 @@ test "original two-stage repeated imports retain producer identity within their 
     environment=Some(environment),
   ).unwrap()
   let peaks : Array[@shape.CollectionConstructionExtent] = []
-  for _ in 0..<100 {
+  for _ in 0..<200 {
     let before = local_program_read_phase(read)
     if before == Complete {
       break

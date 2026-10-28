@@ -83,6 +83,7 @@ pub fn pipeline_evidence_read_step_construction(
     let quote = match core.phase {
       Inputs => core_input_step_construction(core)
       Parameters => core_parameter_step_construction(core)
+      ImportedEvidence => core_imported_step_construction(core)
       _ => None
     }
     guard quote is Some(q) else { return None }
@@ -277,6 +278,13 @@ pub fn pipeline_evidence_read_step_holdings(
     if previous == CoreParameters {
       guard (core.phase == Parameters || core.phase == ImportedEvidence) &&
         core_parameter_retained(core) is Some(extent) else {
+        return None
+      }
+      return Some({ extent, owned_utf16_units: 0L, inspection_work: 0L, })
+    }
+    if previous == CoreImportedEvidence {
+      guard (core.phase == ImportedEvidence || core.phase == DeltaContracts) &&
+        core_imported_retained(core) is Some(extent) else {
         return None
       }
       return Some({ extent, owned_utf16_units: 0L, inspection_work: 0L, })

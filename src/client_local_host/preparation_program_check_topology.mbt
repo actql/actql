@@ -51,14 +51,14 @@ let program_topology_quotation_bytes : Int64 = program_source_extent_cost({
 }).unwrap()
 
 ///|
-// Actual retained Source observation122/75/221, original conversion7/0/17
-// and added same-meter observed-work carriers4/2/8. The new post-constructor
-// original-position tuple/Some adds2H1R3W. Fields/keys/maps remain
-// input-derived in their domain inventories, outside this fixed call frame.
+// Source observation122H75R221W and the actual imported-domain observer
+// 146H40R287W do not overlap. Their componentwise maximum is146H75R287W.
+// Original conversion7H17W, observed-work carriers4H2R8W and original-position
+// tuple/Some2H1R3W add13H3R28W. Domain bodies are priced separately.
 let program_topology_retained_observation_bytes : Int64 = program_source_extent_cost({
-    record_headers: 135L,
+    record_headers: 159L,
     reference_slots: 78L,
-    scalar_words: 249L,
+    scalar_words: 315L,
   },
 ).unwrap()
 
@@ -76,7 +76,8 @@ fn topology_phase_supported(
     | PipelineRankings
     | PipelineCore
     | PipelineCoreInputs
-    | PipelineCoreParameters => true
+    | PipelineCoreParameters
+    | PipelineCoreImportedEvidence => true
     _ => false
   }
 }
@@ -366,7 +367,9 @@ fn[I, P] advance_program_check_source_topology_owned(
     PipelineKeys => @stage_results.PipelineRankings
     PipelineRankings => @stage_results.PipelineCore
     PipelineCore => @stage_results.PipelineCoreInputs
-    PipelineCoreInputs | PipelineCoreParameters => phase
+    PipelineCoreInputs
+    | PipelineCoreParameters
+    | PipelineCoreImportedEvidence => phase
     _ => {
       owner.phase = Failed
       return Err(WrongPhase)
@@ -386,6 +389,11 @@ fn[I, P] advance_program_check_source_topology_owned(
       previous != @stage_results.PipelineCoreParameters ||
       phase == @stage_results.PipelineCoreParameters ||
       phase == @stage_results.PipelineCoreImportedEvidence
+    ) &&
+    (
+      previous != @stage_results.PipelineCoreImportedEvidence ||
+      phase == @stage_results.PipelineCoreImportedEvidence ||
+      phase == @stage_results.PipelineCoreDeltaContracts
     ) &&
     @stage_results.local_program_read_owned_work(read) is Some(spent) &&
     spent >= owner.topology_observed_work else {

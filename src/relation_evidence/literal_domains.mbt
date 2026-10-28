@@ -59,33 +59,14 @@ pub fn admit_literal_domains(
   domains : LiteralDomains,
   limits : TransferLimits,
 ) -> Result[LiteralTransfer, Issue] {
-  try {
-    if limits.max_work < 0 || limits.max_name_bytes < 0 {
-      fail(source, InvalidLimits)
-    }
-    let b : TransferBudget = {
-      work: limits.max_work,
-      text: limits.max_name_bytes,
-    }
-    for (name, domain) in domains.fields {
-      spend(b, source, 1)
-      let bytes = @scalar.admit_utf8_length(name, b.text).unwrap_or(-1)
-      if bytes < 0 {
-        fail(source, LimitExceeded)
-      }
-      b.text -= bytes
-      for value in domain.values {
-        literal_charge(b, source, value)
-      }
-    }
-    Ok({
-      domains,
-      work: limits.max_work - b.work,
-      text_bytes: limits.max_name_bytes - b.text,
-    })
-  } catch {
-    Stop(e) => Err(e)
+  let read = match begin_literal_domains_read(source, domains, limits) {
+    Err(issue) => return Err(issue)
+    Ok(read) => read
   }
+  while literal_domains_read_phase(read) == Pending {
+    advance_literal_domains_read(read) |> ignore
+  }
+  take_literal_domains_read(read).unwrap()
 }
 
 ///|
