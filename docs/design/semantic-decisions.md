@@ -48,6 +48,54 @@ assuming all reference implementations agree. Backend limitations belong in
 the implementation compatibility plan, not in an invented language prohibition.
 An unresolved backend gap also prevents claiming execution support.
 
+## GCS storage-class UPDATE and native rewrite
+
+The GCS guide already requires storage-class UPDATE and mixed metadata/class
+assignments without changing object content. A metadata-only PATCH implementation
+does not satisfy that requirement. The native API uses rewrite for a class
+change, with different technical permissions and possible continuation requests.
+This clarifies the existing operation; it does not replace UPDATE with a copy
+Command or narrow the supported field sets.
+
+The exact authored write-field set selects the native implementation before
+binding: metadata-only sets use PATCH; sets containing `storage_class` use one
+in-place rewrite. The existing Mapping permission rules and original checked
+definition, Plan and Preview must agree with that choice. Source get and
+destination create/delete are the baseline for replacing the same object;
+additional observation and preservation requirements belong to the actual
+admitted purposes. Neither a metadata-update grant nor provider credentials
+silently grant those capabilities. Account/delegated approval routing is unchanged.
+
+The rewrite preserves original content and all untouched editable properties.
+Complete retained originals can supply that evidence without a redundant read,
+but a digest or partial projection cannot prove omitted state empty. In
+particular, the native default `noAcl` projection does not establish ACL absence.
+Applicable security, retention, encryption and context semantics cannot be
+dropped because the current row DTO omits them. The provider codec retains and
+checks the required original values; it does not blindly replay read-only
+response fields or synthesize configuration and permissions.
+
+Each continuation is another possible mutation of the same original operation.
+The existing Host owner must retain the initial request, versions, marker,
+ordered authenticated progress and finite current/grant/resource obligations,
+including pending and failed-child cleanup. A read-purpose grant, new independent
+root or connector-local scheduler is not a substitute. The token is provider
+DATA; generic `accepted` still requires a genuinely issued OperationRef with its
+admitted status, cancellation, result, expiration and reconciliation contract.
+Complete correlated final evidence may settle through the existing trusted
+receipt owner without an unconditional extra read. Uncertainty cannot restart
+the first write or become a fabricated terminal receipt.
+
+This selects no new schema field, identity version, permission policy, resource
+Owner or numeric budget. Missing original selection, continuation, OperationRef
+or backing interfaces remain implementation gaps and prevent normal execution
+qualification. The required UPDATE, copy and recovery behavior remains in scope.
+The [GCS guide](../connectors/gcs.md#preview-and-reconciliation) records the public
+behavior; Google's [rewrite](https://docs.cloud.google.com/storage/docs/json_api/v1/objects/rewrite),
+[metadata get](https://docs.cloud.google.com/storage/docs/json_api/v1/objects/get)
+and [method permission](https://docs.cloud.google.com/storage/docs/access-control/iam-json)
+contracts provide the native evidence.
+
 ## Unspecified boundaries
 
 For an empty collection, repetition or other edge case, first apply the ordinary

@@ -76,6 +76,13 @@ The service account needs `storage.objects.list` and `storage.objects.get`
 to read, `storage.objects.create` to upload, `storage.objects.update` to
 change metadata, and `storage.objects.delete` to delete or replace;
 `roles/storage.objectViewer` and `roles/storage.objectAdmin` cover these.
+An in-place storage-class rewrite needs `storage.objects.get`,
+`storage.objects.create` and `storage.objects.delete` for the original object.
+A copy needs source get and destination create, plus destination delete when
+replacing an object. The selected operation must also have any permissions
+needed to observe and preserve its applicable access controls, retention and
+other unchanged metadata. These technical requirements do not replace Account
+authorization or approval. See Google's [method permissions](https://docs.cloud.google.com/storage/docs/access-control/iam-json).
 `prefix` limits the connection to part of the bucket: a Program cannot name an
 object outside it. Workload identity or an attached service account can be
 used instead of a key file by omitting `credentials`. On ActQL Cloud the key
@@ -97,7 +104,14 @@ is stored in the Cloud's secret store; the connection fields are the same.
 reads the object's metadata, records its generation and metageneration, and
 the Preview shows current and new values; the request is sent with
 `ifGenerationMatch` and `ifMetagenerationMatch`, so an object changed in
-between makes the item `failed` with `conflict`. Uploads are `targeted`: the
+between makes the item `failed` with `conflict`. An UPDATE containing
+`storage_class`, including one that also changes metadata, uses one in-place
+rewrite of that original generation. It preserves the content and every
+unchanged editable property, including applicable security and retention
+settings; missing observations are not empty values. Metadata-only UPDATE
+keeps its separate PATCH semantics. A rewrite binds both its source and
+destination version conditions and never follows a newer object to repair a
+conflict. Uploads are `targeted`: the
 Preview shows the object name, media type, byte count and content identity
 (`crc32c`) that would be written, and the generation it would replace or the
 requirement that none exists. Copies and composes preview the sources, the
@@ -113,8 +127,16 @@ reply to a delete stays `unknown`. A
 resumable upload keeps its session URI, so an interrupted upload is queried
 before anything else. Evidence that does not match the approved identity is
 not evidence; the item stays `unknown` and nothing is resent. Operations end
-`applied` when GCS confirms them; a cross-bucket copy of a large object runs as
-a rewrite and is `accepted` until its last chunk is confirmed.
+`applied` when GCS confirms the complete original operation. A rewrite may
+require several mutating requests under that same operation, including for a
+storage-class change or a large copy. Its pending `accepted` outcome requires
+the declared, scoped OperationRef and status/reconciliation contract; a native
+continuation token alone is not an OperationRef or proof of completion.
+Continuation keeps the original request, marker, versions and authorization,
+with its finite resources and recovery custody. It is not a read poll or a
+resend of the first write. A complete, correlated final response can confirm
+the write without a redundant read; missing or uncertain evidence still needs
+the original authorized reconciliation path. See Google's [rewrite contract](https://docs.cloud.google.com/storage/docs/json_api/v1/objects/rewrite).
 
 ## Limits and cost
 
