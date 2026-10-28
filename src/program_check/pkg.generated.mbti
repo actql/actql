@@ -259,6 +259,8 @@ pub fn finish_parsed_check_prelude(ParsedCheckPrelude) -> Result[CheckOutcome, P
 
 pub fn finish_parsed_check_registry(ParsedCheckRegistry) -> Result[CheckOutcome, ParsedCheckPreludeIssue]
 
+pub fn finish_parsed_effect_check_registry(ParsedCheckRegistry) -> Result[EffectComputationCandidate, EffectComputationIssue]
+
 pub fn finish_parsed_source_registration(ParsedSourceRegistration) -> Result[CheckOutcome, ParsedSourceRegistrationIssue]
 
 pub fn graph_proof_application(ReidentifiedGraphInput) -> @capacity_graph_input.InputBound
@@ -624,6 +626,8 @@ pub fn pivot_numeric_slots_for_requirement(CheckedProgram, Int) -> PivotNumericS
 pub fn pivot_numeric_slots_operation(PivotNumericSlots) -> UnitOperationSource
 
 pub fn prepare_effect_computation_candidate(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, Int, Int, source_catalog? : PreparedSourceCatalog?) -> Result[EffectComputationCandidate, EffectComputationIssue]
+
+pub fn prepare_effect_computation_input(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, Int, Int, source_catalog? : PreparedSourceCatalog?) -> Result[ParsedCheckInput, EffectComputationIssue]
 
 pub fn prepare_infer_input_source_policy(CheckedProgram, Int, Int, Int, Int, Int, Int) -> PublicationSourcePolicy? raise UnitBuildFailure
 
@@ -1305,6 +1309,7 @@ pub(all) enum EffectComputationIssue {
   Headers(@stage_syntax.EffectHeaderIssue)
   MissingEffects
   Computation(LocalConstructionFailure)
+  Phase(ParsedCheckPreludeIssue)
 }
 
 type EffectProgramStaticCandidate

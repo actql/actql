@@ -2142,3 +2142,25 @@ These factories are Host implementation details, not connector-author APIs.
 Connector definitions supply ordinary contracts and provider data; the Host
 selects the original Request, policy and backing. No per-wrapper census or
 connector-supplied H/R/W inventory is an adoption requirement.
+
+
+### Effect inventory on the same parsed input
+
+An Effect computation first retains its original validated header inventory
+and subtracts the original header work before binding computation inputs.
+The same parsed input carries that inventory through prelude, Catalog and
+remaining computation construction. The phased Effect finish consumes its
+original registry once and returns the actual typed computation candidate.
+It does not upgrade an independently checked Program by matching identity,
+recheck the computation or skip static Mapping/Effect closure.
+
+Pure parsed input has no Effect headers and keeps its existing unsupported
+Effect refusal. Both diagnostic projection and the typed Effect continuation
+invoke one original remaining computation constructor. Header/member work,
+provided Parameter values, prepared Catalog provenance and Source preparation
+keep their original bindings and finite limits. Current grants, captured
+values, Preview, durable claims, physical stop and cleanup remain separate.
+
+This internal candidate handoff enables the Host's subsequent compiler and
+Plan continuation. It is not an executable Effect, final Resource transfer or
+an additional connector-author lifecycle.

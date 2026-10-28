@@ -24,6 +24,7 @@ pub(all) enum EffectComputationIssue {
   Headers(@syntax.EffectHeaderIssue)
   MissingEffects
   Computation(LocalConstructionFailure)
+  Phase(ParsedCheckPreludeIssue)
 }
 
 ///|
@@ -40,6 +41,41 @@ pub fn prepare_effect_computation_candidate(
   max_header_work : Int,
   source_catalog? : PreparedSourceCatalog? = None,
 ) -> Result[EffectComputationCandidate, EffectComputationIssue] {
+  let original = match
+    prepare_effect_computation_input(
+      program,
+      environment,
+      supplied,
+      evidence,
+      limits,
+      max_members,
+      max_header_work,
+      source_catalog~,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let checked = finish_parsed_check_input_owned(original) catch {
+    issue => return Err(Computation(issue))
+  }
+  Ok({ checked, headers: original.effect_headers.unwrap(), })
+}
+
+///|
+/// Retain the original validated Effect inventory and its header-adjusted
+/// budget in the existing parsed input. This is DATA, not Effect authority.
+/// Later prelude/Catalog/check phases consume this SAME input, never recheck
+/// the computation to recover an Effect candidate.
+pub fn prepare_effect_computation_input(
+  program : @syntax.Program,
+  environment : CheckEnvironment,
+  supplied : @decode.Cursor?,
+  evidence : Array[@context.StageCapacityInput],
+  limits : CheckLimits,
+  max_members : Int,
+  max_header_work : Int,
+  source_catalog? : PreparedSourceCatalog? = None,
+) -> Result[ParsedCheckInput, EffectComputationIssue] {
   if !compile_limits_valid(limits.compilation) ||
     max_members < 0 ||
     max_header_work < 0 {
@@ -66,15 +102,36 @@ pub fn prepare_effect_computation_candidate(
     ..limits,
     compilation: { ..limits.compilation, work: remaining, },
   }
-  let checked = construct_parsed(
-    program,
-    environment,
-    supplied,
-    evidence,
-    computation_limits,
-    effect_headers=Some(headers),
-    source_catalog~,
+  Ok(
+    prepare_parsed_check_input_owned(
+      program,
+      environment,
+      supplied,
+      evidence,
+      computation_limits,
+      effect_headers=Some(headers),
+      source_catalog~,
+    ),
   ) catch {
+    issue => Err(Computation(issue))
+  }
+}
+
+///|
+/// Consume the original phased registry once into its actual Effect candidate.
+/// Missing inputs or a typed construction refusal remain the original cause;
+/// no ordinary CheckedProgram is upgraded into an Effect closure by identity.
+pub fn finish_parsed_effect_check_registry(
+  prepared : ParsedCheckRegistry,
+) -> Result[EffectComputationCandidate, EffectComputationIssue] {
+  if !prepared.available {
+    return Err(Phase(AlreadyConsumed))
+  }
+  guard prepared.prelude.original.effect_headers is Some(headers) else {
+    return Err(MissingEffects)
+  }
+  prepared.available = false
+  let checked = construct_after_parsed_check_registry(prepared) catch {
     issue => return Err(Computation(issue))
   }
   Ok({ checked, headers, })

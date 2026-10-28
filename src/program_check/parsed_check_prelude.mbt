@@ -44,7 +44,11 @@ pub fn observe_parsed_check_prelude(
     check_supported_source(original.program, budget)
     audit.declaration_remaining = budget.work
     audit_started = true
-    audit_declarations_owned(original.program, audit) catch {
+    audit_declarations_owned(
+      original.program,
+      audit,
+      effect_headers=original.effect_headers,
+    ) catch {
       issue => raise LocalConstructionFailure::Source(issue)
     }
     Ok({
@@ -94,6 +98,7 @@ pub fn finish_parsed_check_prelude(
     program,
     environment,
     supplied,
+    effect_headers,
     inputs,
     limits,
     source_catalog,
@@ -111,7 +116,7 @@ pub fn finish_parsed_check_prelude(
         compile_source_limits(limits),
         prepared.budget,
         prepared.declaration_work,
-        has_effects=false,
+        has_effects=effect_headers is Some(_),
         numeric_profile=environment.numeric,
         calendar=environment.calendar,
         text_rank=environment.text_rank,
