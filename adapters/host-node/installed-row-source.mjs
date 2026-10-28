@@ -2046,6 +2046,13 @@ export async function createInstalledRowSource({moon, declaration,
         consumeObservation: ledger === undefined ? undefined : function consumeObservation(charge) {
           return checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge));
         },
+        consumePageWire: (wire, {charge} = {}) => {
+          if (typeof wire !== 'string') fail('InvalidInstalledSourcePageWire');
+          const bytes = Buffer.from(wire, 'utf8');
+          return checked(charge === undefined
+            ? moon.clientProgramRowSourceAcceptPage(run, bytes)
+            : moon.clientProgramRowSourceAcceptChargedPage(run, charge, bytes));
+        },
         consumePage: (rows, {charge} = {}) => {
           const bytes = Buffer.from(JSON.stringify(rows), 'utf8');
           return checked(charge === undefined

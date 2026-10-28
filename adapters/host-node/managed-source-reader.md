@@ -20,7 +20,10 @@ I/O-free. It returns original receiver-bound methods:
   descriptor `{method:'GET', path, query?, headers?, responseHeaders?}`. It may
   retain API cursor state but performs no I/O. `receivedBodyBytes` is BigInt.
 - `decodePage(response, {pageIndex, rowCount, receivedBodyBytes})` returns
-  `{rows, done}` synchronously. It receives the SAME original response only
+  `{rows, done}` synchronously. A preserving generic decoder may instead
+  return `{rowsWire, rowCount, done}`; the SAME Host passes that original wire
+  directly to the existing Common page admission without JSON.stringify. The
+  reported row count is DATA, not a substitute for actual Common validation. It receives the SAME original response only
   after retention, byte charging and a current check. It owns API status,
   parser, identity, version, cursor and provider-specific aggregate bounds.
   It must validate any next cursor/page limit before returning rows.

@@ -42,6 +42,7 @@ export function createInstalledCredentialSourceReader({capacity, site, operation
     const authorize = method(options, 'authorizationFor');
     const chargePage = method(options, 'chargePage');
     const consumePage = method(options, 'consumePage');
+    const consumePageWire = options.consumePageWire === undefined ? undefined : method(options, 'consumePageWire');
     const columns = Object.freeze([...options.columns]);
     // Provider construction is synchronous and I/O-free, after the original
     // RowRun reservation and response-cleanup association have been installed.
@@ -129,10 +130,18 @@ export function createInstalledCredentialSourceReader({capacity, site, operation
             await verify();
             const page = sync(Reflect.apply(decodePage, provider, [response,
               Object.freeze({pageIndex: index, rowCount, receivedBodyBytes: responseBytes})]));
-            if (page === null || typeof page !== 'object' || !Array.isArray(page.rows) ||
-                typeof page.done !== 'boolean') fail('InvalidInstalledSourceDecodedPage');
-            await Reflect.apply(consumePage, options, [page.rows, Object.freeze({charge})]);
-            rowCount += page.rows.length;
+            if (page === null || typeof page !== 'object' || typeof page.done !== 'boolean' ||
+                (Object.hasOwn(page, 'rows') === Object.hasOwn(page, 'rowsWire'))) {
+              fail('InvalidInstalledSourceDecodedPage');
+            }
+            const rowsWire = Object.hasOwn(page, 'rowsWire');
+            if (rowsWire ? typeof page.rowsWire !== 'string' || consumePageWire === undefined ||
+                !Number.isSafeInteger(page.rowCount) || page.rowCount < 0 : !Array.isArray(page.rows)) {
+              fail('InvalidInstalledSourceDecodedPage');
+            }
+            await Reflect.apply(rowsWire ? consumePageWire : consumePage, options,
+              [rowsWire ? page.rowsWire : page.rows, Object.freeze({charge})]);
+            rowCount += rowsWire ? page.rowCount : page.rows.length;
             await verify();
             if (page.done) {phase = 'succeeded'; return Object.freeze({pages: responseCount, rowCount});}
           }
