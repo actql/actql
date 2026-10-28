@@ -293,3 +293,28 @@ for (const [label, from, to] of [
     read: p => p === path ? changed : readFileSync(root + p, 'utf8'),
   }), /conservative retirement scope/);
 });
+
+for (const [label, from, to] of [
+  ['foreign demand owner', 'bound_producer_read_demand(cursor.owner, bound)', 'bound_producer_read_demand(other_owner, bound)'],
+  ['foreign checked binding', 'bound_producer_read_demand(cursor.owner, bound)', 'bound_producer_read_demand(cursor.owner, other_bound)'],
+  ['different admitted demand', 'is Some(demand)', 'is Some(other_demand)'],
+  ['entries from another demand', 'producer_read_demand_entries(demand)', 'producer_read_demand_entries(other_demand)'],
+  ['name bytes from another demand', 'producer_read_demand_name_bytes(demand)', 'producer_read_demand_name_bytes(other_demand)'],
+  ['unrelated cursor entry ceiling', '@execution.producer_read_demand_entries(demand)', 'cursor.max_entries'],
+  ['unrelated cursor value ceiling', '@execution.producer_read_demand_name_bytes(demand)', 'cursor.max_value_bytes'],
+]) test(`checked producer-read demand refuses ${label}`, () => {
+  const path = 'src/connectors/local/relation_chain_input_preparation.mbt';
+  const source = readFileSync(root + path, 'utf8');
+  const start = source.indexOf('@execution.bind_completed_operation_input(');
+  const end = source.indexOf('cursor.read = Some(read)', start);
+  assert(start >= 0 && end > start, 'Missing selected receiver preparation');
+  const selected = source.slice(start, end);
+  assert.equal(selected.split(from).length, 2, 'Missing unique selected demand witness');
+  // A healthy baseline is required: an earlier route failure cannot stand in
+  // for detecting this substitution. The other small-read probe stays exact.
+  assert.doesNotThrow(() => checkBindings(root, bindings()));
+  const changed = source.slice(0, start) + selected.replace(from, to) + source.slice(end);
+  assert.throws(() => checkBindings(root, bindings(), {
+    read: p => p === path ? changed : readFileSync(root + p, 'utf8'),
+  }), /original checked producer-read demand route/);
+});
