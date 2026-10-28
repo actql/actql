@@ -276,7 +276,9 @@ pub fn local_program_read_step_retained_extent(
   original : LocalProgramRead,
   previous : LocalProgramReadPhase,
 ) -> LocalProgramReadStepHoldings? {
-  if previous == PipelineKeys || previous == PipelineRankings {
+  if previous == PipelineKeys ||
+    previous == PipelineRankings ||
+    previous == PipelineCore {
     guard original.state is Reading(body) &&
       body.stage is PipelineRead(_, _, _, _, _, _, _, read) &&
       @pipeline.pipeline_evidence_read_step_holdings(read) is Some(q) &&

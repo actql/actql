@@ -69,7 +69,8 @@ fn topology_phase_supported(
     | Pipeline
     | PipelineCarriers
     | PipelineKeys
-    | PipelineRankings => true
+    | PipelineRankings
+    | PipelineCore => true
     _ => false
   }
 }
@@ -324,6 +325,7 @@ fn[I, P] advance_program_check_source_topology_owned(
     PipelineCarriers => @stage_results.PipelineKeys
     PipelineKeys => @stage_results.PipelineRankings
     PipelineRankings => @stage_results.PipelineCore
+    PipelineCore => @stage_results.PipelineCoreInputs
     _ => {
       owner.phase = Failed
       return Err(WrongPhase)

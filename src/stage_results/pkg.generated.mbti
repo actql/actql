@@ -964,6 +964,12 @@ pub(all) enum LocalProgramReadPhase {
   PipelineKeys
   PipelineRankings
   PipelineCore
+  PipelineCoreInputs
+  PipelineCoreParameters
+  PipelineCoreImportedEvidence
+  PipelineCoreDeltaContracts
+  PipelineCoreSteps
+  PipelineCoreFinalEvidence
   ParameterCollection
   LocalAttachment
   ImportAttachment

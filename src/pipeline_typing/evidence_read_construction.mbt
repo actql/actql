@@ -1,17 +1,17 @@
 ///|
 /// Original retained compiler controls only, not schema/keys/ranking/core
 /// bodies, an allowance, tariff or physical first-prelude. Read1H1R;
-/// body1H10R4W; Reading1H1R1W; two overlapping phase alternatives2H6R2W;
+/// body1H10R5W; Reading1H1R1W; two overlapping phase alternatives2H6R2W;
 /// four entry/advance/take Result/Option alternatives4H4R7W.
 pub fn pipeline_evidence_read_control_construction_extent() -> @shape.CollectionConstructionExtent {
-  { record_headers: 9L, reference_slots: 22L, scalar_words: 14L, }
+  { record_headers: 9L, reference_slots: 22L, scalar_words: 15L, }
 }
 
 ///|
-/// Read/body/Reading/selected phase4H15R6W. Phase storage uses its maximum
+/// Read/body/Reading/selected phase4H15R7W. Phase storage uses its maximum
 /// original three-reference payload, including before those slots are filled.
 pub fn pipeline_evidence_read_control_retained_extent() -> @shape.CollectionConstructionExtent {
-  { record_headers: 4L, reference_slots: 15L, scalar_words: 6L, }
+  { record_headers: 4L, reference_slots: 15L, scalar_words: 7L, }
 }
 
 ///|
@@ -42,6 +42,35 @@ pub fn pipeline_evidence_read_step_construction(
       peak_utf16_units: 0L,
       inspection_work: 0L,
     })
+  }
+  if body.step is Core(_, _, _) {
+    guard pipeline_core_read_entry_construction(
+        body.source,
+        body.inputs.length(),
+      )
+      is Some(core) &&
+      @shape.collection_construction_extent({
+        records: body.inputs.length().to_int64(),
+        record_references: body.inputs.length().to_int64(),
+        record_words: body.inputs.length().to_int64() + 6L,
+        reference_arrays: 2L,
+        reference_items: 2L * body.inputs.length().to_int64(),
+        scalar_arrays: 0L,
+        scalar_items: 0L,
+        maps: 0L,
+        map_entries: 0L,
+      })
+      is Some(arguments) &&
+      @shape.compose_collection_construction_extents([
+        core,
+        arguments,
+        // Original selected core Limits1H6W and entry/phase alternatives.
+        { record_headers: 4L, reference_slots: 3L, scalar_words: 4L, },
+      ])
+      is Some(peak) else {
+      return None
+    }
+    return Some({ peak, peak_utf16_units: 0L, inspection_work: 0L, })
   }
   let keys = match body.step {
     Keys(_) => true
@@ -213,6 +242,32 @@ pub fn pipeline_evidence_read_step_holdings(
   original : PipelineEvidenceRead,
 ) -> PipelineEvidenceStepHoldings? {
   guard original.state is Reading(body) else { return None }
+  if body.step is CoreRunning(read) {
+    guard read.state is Reading(core) &&
+      core.phase == Inputs &&
+      pipeline_core_read_entry_holdings(read) is Some(held) &&
+      @shape.reference_array_retained_extent(
+        2L,
+        core.produced_inputs.capacity().to_int64() +
+        core.input_contracts.capacity().to_int64(),
+      )
+      is Some(arguments) &&
+      @shape.scale_collection_construction_extent(
+        { record_headers: 1L, reference_slots: 1L, scalar_words: 1L, },
+        body.core_produced_wrappers.to_int64(),
+      )
+      is Some(options) &&
+      @shape.compose_collection_construction_extents([
+        held,
+        arguments,
+        options,
+        { record_headers: 1L, reference_slots: 0L, scalar_words: 6L, },
+      ])
+      is Some(extent) else {
+      return None
+    }
+    return Some({ extent, owned_utf16_units: 0L, inspection_work: 0L, })
+  }
   let (keys, values, rankings) = match body.step {
     Rankings(_, values) => (true, Some(values), None)
     Core(_, _, values) => (false, None, Some(values))

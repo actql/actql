@@ -9,6 +9,12 @@ pub(all) enum LocalProgramReadPhase {
   PipelineKeys
   PipelineRankings
   PipelineCore
+  PipelineCoreInputs
+  PipelineCoreParameters
+  PipelineCoreImportedEvidence
+  PipelineCoreDeltaContracts
+  PipelineCoreSteps
+  PipelineCoreFinalEvidence
   ParameterCollection
   LocalAttachment
   ImportAttachment
@@ -323,6 +329,12 @@ pub fn local_program_read_phase(
             Keys => PipelineKeys
             Rankings => PipelineRankings
             Core => PipelineCore
+            CoreInputs => PipelineCoreInputs
+            CoreParameters => PipelineCoreParameters
+            CoreImportedEvidence => PipelineCoreImportedEvidence
+            CoreDeltaContracts => PipelineCoreDeltaContracts
+            CoreSteps => PipelineCoreSteps
+            CoreFinalEvidence => PipelineCoreFinalEvidence
             _ => Failed
           }
         ParameterCollection(_, _, _, _, _, _, _, _) => ParameterCollection

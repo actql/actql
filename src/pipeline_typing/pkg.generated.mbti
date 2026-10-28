@@ -874,6 +874,12 @@ pub(all) enum PipelineEvidenceReadPhase {
   Keys
   Rankings
   Core
+  CoreInputs
+  CoreParameters
+  CoreImportedEvidence
+  CoreDeltaContracts
+  CoreSteps
+  CoreFinalEvidence
   Complete
   Failed
   Taken

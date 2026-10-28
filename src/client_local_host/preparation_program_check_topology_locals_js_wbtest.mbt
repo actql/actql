@@ -90,8 +90,14 @@ test "original reconciled-input constructor retains one returned work receipt on
   )
   assert_eq(advance_program_check_source_topology(owner).unwrap(), PipelineCore)
   assert_true(owner.topology_observed_work > 4L)
+  let before_core = owner.topology_observed_work
+  assert_eq(
+    advance_program_check_source_topology(owner).unwrap(),
+    PipelineCoreInputs,
+  )
+  assert_eq(owner.topology_observed_work, before_core + 2L)
   assert_true(advance_program_check_source_topology(owner) is Err(WrongPhase))
-  assert_eq(@stage_results.local_program_read_phase(read), PipelineCore)
+  assert_eq(@stage_results.local_program_read_phase(read), PipelineCoreInputs)
   clear_program_check_preparation(owner).unwrap()
   assert_eq(
     @resources.finish_preparation_phase_work_continuation64(work),

@@ -1710,3 +1710,35 @@ or debit it again. Reentry cannot finish that receipt from a current callback.
 
 The completed core pipeline check, later Result/order/Context construction and
 Checked-to-Plan adoption remain distinct subsequent construction boundaries.
+
+
+### One original pipeline core
+
+Carrier and evidence projection hands its original inputs, source, limits and
+remaining semantic Budget to one retained core read. The synchronous core and
+evidence-aware entries drive that same read. Input/source/key/schema admission,
+Parameter declarations and initial selection, imported evidence, delta contracts,
+the original operation loop and final evidence are ordered boundaries of that
+one implementation. Intermediate names, selected targets, typed steps and
+literal/delta/ranking facts remain attached to their original Budget. Returning
+a boundary does not parse, check or reconstruct an earlier boundary again.
+
+The Request parent backs the core entrance's original argument projections,
+input copy, decoded step Cursor wrappers, empty name index, Budget and read
+controls. The quote uses actual input/step counts and the admitted syntax depth
+for the original issue path. After entry, retained quantities observe original
+Array/Map capacities and the actual ProducedInput wrappers made by that call;
+source, schema, producer and evidence bodies remain borrowed. The original
+initializer's input-count work is charged to the same returned phase receipt,
+including when there are no operations. A declined grow retains the same quote,
+read and consumed work. Clear retires that pending original and receipt; it is
+not a physical cleanup acknowledgement or a work refund.
+
+This entrance stops before input admission. The subsequent input/Parameter,
+imported evidence, delta, nested operation and final-evidence constructors still
+need their own input-derived overlap and retained inventories before the funded
+parent can advance them. Pure synchronous consumers still drive all semantic
+boundaries and must back their complete call. A retained core or successful
+initializer alone is not a complete checked Program, Context, Plan adoption or
+ordinary backend migration. Failure retains the original typed issue and has no
+complete successful Usage; it never supplies zero work as a success fact.
