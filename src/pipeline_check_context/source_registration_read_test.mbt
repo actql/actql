@@ -205,7 +205,7 @@ test "original Source registration clearing retires only its own untransferred a
   )
   assert_eq(source_registration_initial_construction_extent(), {
     record_headers: 5L,
-    reference_slots: 13L,
+    reference_slots: 14L,
     scalar_words: 9L,
   })
 }
@@ -450,7 +450,7 @@ test "original registration pipeline construction uses only same held resolution
   assert_true(source_registration_pipeline_construction(read) is None)
   assert_eq(source_registration_initial_construction_extent(), {
     record_headers: 5L,
-    reference_slots: 13L,
+    reference_slots: 14L,
     scalar_words: 9L,
   })
 }
@@ -659,4 +659,83 @@ test "original registration forwards only the same Local group construction and 
   assert_eq(source_registration_phase(read), RegistrationTransferred)
   assert_eq(source_registration_local_groups_work(read), Some(expected))
   assert_true(source_registration_local_groups_construction(read) is None)
+}
+
+///|
+fn snapshot_emission_registration_read() -> SourceRegistrationRead {
+  let source = @stages.prepare(
+    @syntax.parse(
+      (
+        #|{"version":"actql/0.1","id":"p","stages":[{"id":"s","inputs":{"rows":"relation"},"steps":[],"results":{"out":{}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
+      ),
+      {
+        source: { max_input_bytes: 10000, max_nodes: 1000, max_depth: 100, },
+        tree: {
+          max_nodes: 1000,
+          max_depth: 100,
+          max_string_bytes: 10000,
+          max_total_string_bytes: 10000,
+        },
+        max_stages: 10,
+      },
+      format=Json,
+    ).unwrap(),
+    {
+      max_parameters: 10,
+      max_nodes: 1000,
+      max_depth: 100,
+      max_text_bytes: 10000,
+    },
+  ).unwrap()
+  let prefix = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],"
+  let suffix =
+    #|"host_policy_profile":{},"mapping_contracts":[],"model_task_contracts":[],"schema_snapshots":[{"output_carrier":"relation","schema":{"additional_properties":false,"fields":{"id":{"nullable":false,"type":"number"}},"nullable":false,"type":"object"},"source_ref":"source:local/s/rows","version":"actql-local-input-schema/0.1"}],"source_views":[],"version":"actql-check-environment/0.1"}
+  let cid = "sha256:" + @sha.hex(@utf8.encode(prefix + suffix))
+  let environment = @environment.read(
+    @utf8.encode(prefix + "\"evidence_bundle_cid\":\"" + cid + "\"," + suffix),
+    cid,
+    { max_bytes: 10000, max_nodes: 1000, max_depth: 100, max_members: 100, },
+  ).unwrap()
+  begin_source_registration(
+    source,
+    sourceview_catalog(environment),
+    { max_work: 10000, max_nodes: 1000, max_depth: 100, max_text_bytes: 10000, },
+    max_inputs=10,
+    max_views=10,
+    max_order_keys=10,
+  ).unwrap()
+}
+
+///|
+test "original Source forwards the same Local member emission through clear" {
+  let read = snapshot_emission_registration_read()
+  assert_true(source_registration_local_snapshot_emission(read) is None)
+  let mut observed : (Int, (Int, Int, Int)?)? = None
+  let mut steps = 0
+  while source_registration_phase(read) != RegistrationComplete {
+    assert_true(steps < 20)
+    assert_false(source_registration_phase(read) == RegistrationFailed)
+    let _ = advance_source_registration(read)
+    if source_registration_local_snapshot_emission(read) is Some(current) {
+      if observed is Some(original) {
+        assert_true(physical_equal(current, original))
+      } else {
+        observed = Some(current)
+      }
+    }
+    steps += 1
+  }
+  let original = observed.unwrap()
+  assert_eq(original.0, 0)
+  let (bytes, nodes, depth) = original.1.unwrap()
+  assert_true(bytes > 0 && nodes > 0 && depth > 0)
+  let _ = take_source_registration_result(read).unwrap().unwrap()
+  clear_source_registration(read)
+  assert_eq(source_registration_phase(read), RegistrationTransferred)
+  assert_true(
+    physical_equal(
+      source_registration_local_snapshot_emission(read).unwrap(),
+      original,
+    ),
+  )
 }

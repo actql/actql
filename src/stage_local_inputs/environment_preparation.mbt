@@ -67,6 +67,7 @@ struct LocalEnvironmentPreparation {
   mut index_observation : @refs.Usage?
   mut index_construction : LocalIndexConstruction?
   mut groups_work : Int?
+  mut snapshot_emission : (Int, (Int, Int, Int)?)?
   mut groups : LocalStageGroups?
   mut stages : Array[EnvironmentInputs]?
   mut pending : LocalEnvironmentPending?
@@ -114,6 +115,7 @@ pub fn begin_local_environment_preparation(
     index_observation: None,
     index_construction: None,
     groups_work: None,
+    snapshot_emission: None,
     groups: None,
     stages: None,
     pending: None,
@@ -186,6 +188,29 @@ pub fn local_environment_preparation_groups_work(
   read : LocalEnvironmentPreparation,
 ) -> Int? {
   read.groups_work
+}
+
+///|
+/// Last actual Local member emission: original member index and SAME writer
+/// observation, including a partial typed refusal. Some(index,None) records
+/// an attempted read without a constructed writer; outer None is unstarted.
+/// Connector-only members do not replace this fact. No whole nested work or
+/// physical use/retirement follows from these charged-writer cells.
+pub fn local_environment_preparation_snapshot_emission(
+  read : LocalEnvironmentPreparation,
+) -> (Int, (Int, Int, Int)?)? {
+  read.snapshot_emission
+}
+
+///|
+/// Original observer plus stored index/observation pair1H1R1W and Some1H1R1W.
+/// The Source wrapper forwards this SAME Option without another observation
+/// record. Quotation, borrowed-call and VM frames stay separate.
+pub fn local_environment_snapshot_emission_observation_extent() -> @shape.CollectionConstructionExtent {
+  @shape.add_collection_construction_extents(
+    @snapshot.member_emission_observation_extent(),
+    { record_headers: 2L, reference_slots: 2L, scalar_words: 2L, },
+  ).unwrap()
 }
 
 ///|
@@ -387,16 +412,17 @@ pub fn advance_local_environment_preparation(
         read.nodes -= n
         read.work -= n
       } else {
-        let admitted = match
-          @snapshot.read_member(entry, {
-            max_bytes: read.text,
-            max_nodes: if read.nodes < read.work {
-              read.nodes
-            } else {
-              read.work
-            },
-            max_depth: original.limits.max_depth,
-          }) {
+        let (result, emitted) = @snapshot.observe_read_member(entry, {
+          max_bytes: read.text,
+          max_nodes: if read.nodes < read.work {
+            read.nodes
+          } else {
+            read.work
+          },
+          max_depth: original.limits.max_depth,
+        })
+        read.snapshot_emission = Some((i, emitted))
+        let admitted = match result {
           Ok(value) => value
           Err(issue) =>
             return fail_local_environment_preparation(read, Snapshot(i, issue))
@@ -561,7 +587,7 @@ pub fn clear_local_environment_preparation(
 
 ///|
 /// Installed initial constructor DATA only: arguments1H4R and its Some1H1R1W;
-/// read1H11R8W; initial phase1H1W; returned Ok1H1R1W. Borrowed original Source,
+/// read1H12R8W; initial phase1H1W; returned Ok1H1R1W. Borrowed original Source,
 /// Environment, limits/partition and every later phase frame are separate.
 pub fn local_environment_preparation_initial_construction_extent() -> @shape.CollectionConstructionExtent {
   local_environment_initial_units
@@ -570,6 +596,6 @@ pub fn local_environment_preparation_initial_construction_extent() -> @shape.Col
 ///|
 let local_environment_initial_units : @shape.CollectionConstructionExtent = {
   record_headers: 5L,
-  reference_slots: 17L,
+  reference_slots: 18L,
   scalar_words: 11L,
 }

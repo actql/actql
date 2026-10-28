@@ -1156,6 +1156,8 @@ pub fn source_registration_local_index_usage(SourceRegistrationRead) -> @stage_s
 
 pub fn source_registration_local_phase(SourceRegistrationRead) -> @stage_local_inputs.LocalEnvironmentPhase?
 
+pub fn source_registration_local_snapshot_emission(SourceRegistrationRead) -> (Int, (Int, Int, Int)?)?
+
 pub fn source_registration_phase(SourceRegistrationRead) -> SourceRegistrationPhase
 
 pub fn source_registration_pipeline_construction(SourceRegistrationRead) -> @sourceview_resolution.PipelinePreparationConstruction?

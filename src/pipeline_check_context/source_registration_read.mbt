@@ -61,6 +61,7 @@ struct SourceRegistrationRead {
   mut local_index_usage : @refs.Usage?
   mut local_index_inspection_work : Int64?
   mut local_groups_work : Int?
+  mut local_snapshot_emission : (Int, (Int, Int, Int)?)?
   mut state : SourceRegistrationState
 }
 
@@ -100,6 +101,7 @@ pub fn begin_source_registration(
     local_index_usage: None,
     local_index_inspection_work: None,
     local_groups_work: None,
+    local_snapshot_emission: None,
     state: ReadDeclarations,
   })
 }
@@ -304,6 +306,15 @@ pub fn source_registration_local_groups_work(
 }
 
 ///|
+/// SAME original Local member index/writer fact, retained after child aliases
+/// transfer or clear. Missing/full-reader/Connector work is never filled by0.
+pub fn source_registration_local_snapshot_emission(
+  read : SourceRegistrationRead,
+) -> (Int, (Int, Int, Int)?)? {
+  read.local_snapshot_emission
+}
+
+///|
 pub fn source_registration_local_groups_construction(
   read : SourceRegistrationRead,
 ) -> @shape.CollectionConstructionInventory? {
@@ -433,6 +444,9 @@ pub fn advance_source_registration(
           read.local_groups_work = @local_inputs.local_environment_preparation_groups_work(
             child,
           )
+          read.local_snapshot_emission = @local_inputs.local_environment_preparation_snapshot_emission(
+            child,
+          )
           match phase {
             LocalEnvironmentComplete | LocalEnvironmentFailed => {
               let result = @local_inputs.take_local_environment_preparation_result(
@@ -505,9 +519,9 @@ pub fn clear_source_registration(read : SourceRegistrationRead) -> Unit {
 
 ///|
 /// Installed constructor DATA, not capacity. Argument record1H3R3W, its Some
-///1H1R1W, read1H8R3W, initial phase1H1W and returned Ok1H1R1W. The supplied
+///1H1R1W, read1H9R3W, initial phase1H1W and returned Ok1H1R1W. The supplied
 /// Source/Catalog/limits and each phase's metadata/constructor overlap remain
 /// separately backed. The collection phase also adds its original observer.
 pub fn source_registration_initial_construction_extent() -> @shape.CollectionConstructionExtent {
-  { record_headers: 5L, reference_slots: 13L, scalar_words: 9L, }
+  { record_headers: 5L, reference_slots: 14L, scalar_words: 9L, }
 }

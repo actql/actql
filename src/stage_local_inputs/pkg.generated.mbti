@@ -82,7 +82,11 @@ pub fn local_environment_preparation_initial_construction_extent() -> @decode_sh
 
 pub fn local_environment_preparation_phase(LocalEnvironmentPreparation) -> LocalEnvironmentPhase
 
+pub fn local_environment_preparation_snapshot_emission(LocalEnvironmentPreparation) -> (Int, (Int, Int, Int)?)?
+
 pub fn local_environment_preparation_usage(LocalEnvironmentPreparation) -> Usage?
+
+pub fn local_environment_snapshot_emission_observation_extent() -> @decode_shape.CollectionConstructionExtent
 
 pub fn observe_local_environment_index_construction(LocalEnvironmentPreparation) -> Int64?
 

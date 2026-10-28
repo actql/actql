@@ -1005,3 +1005,33 @@ This inventory covers group containers and their stored work observation. Later
 snapshot pushes, successor Stage storage, phase/error controls, quotation frames
 and borrowed inputs remain separately backed overlaps. Keeping these original
 holders or clearing their aliases does not report physical cleanup.
+
+
+## Original Local snapshot emission observation
+
+The ordinary snapshot-member reader and its observed entrance execute one
+bounded member serializer and the same original byte/schema/canonical reader.
+The observation reads the original writer's charged UTF8 bytes, value nodes and
+peak open-container depth after success or refusal. It neither finishes another
+writer nor serializes, parses or checks the member again to recover usage.
+Ordinary result-only callers construct no observation cell.
+
+A missing writer observation means that the writer was never constructed. It
+does not stand for zero constructor or whole-reader work. A successfully emitted
+member can still fail later domain admission; its complete emission observation
+remains distinct from that failure. Parsing, decoded-tree admission, schema and
+canonical hashing retain their own unobserved work and required backing.
+
+The Local read retains the last actual member index and that same observation.
+An outer absent fact means no Local member reader was entered; a present index
+with an absent inner observation means an attempted read without a writer.
+Connector-only member handling does not replace this Local fact. The Source
+read forwards the same immutable scalar tuple before handling child completion
+or failure, and preserves it through the original transfer/clear. Re-reading a
+fact does not authorize another debit, refund, physical release or replay.
+
+This does not replace serialized member-local diagnostic coordinates with the
+full Environment cursor's coordinates. Original byte/hash/parse/admission and
+retained score-source semantics remain. The serializer String, UTF8 bytes,
+parsed/admitted tree and typed snapshot can coexist; actual parent funding must
+cover those holders and their borrowed frames before the original call.
