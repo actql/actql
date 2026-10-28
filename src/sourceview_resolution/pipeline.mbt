@@ -69,6 +69,17 @@ fn new_pipeline_preparation_work(
 }
 
 ///|
+// The original ordered prefix belongs to this constructor. Semantic execution
+// and its construction quotation borrow the same three costs, not a second
+// Catalogue/Source reader or a new work rule.
+fn pipeline_preparation_prefix_costs(
+  resolved : Resolved,
+  stages : Int,
+) -> Array[Int] {
+  [resolved.work, stages, resolved.entries.length()]
+}
+
+///|
 fn prepare_pipeline_inputs_owned(
   resolved : Resolved,
   max_work : Int,
@@ -79,7 +90,7 @@ fn prepare_pipeline_inputs_owned(
   let source = @inputs.source(resolved.owner.inputs)
   let n = @stages.stage_count(source)
   let mut remaining = max_work
-  for cost in [resolved.work, n, resolved.entries.length()] {
+  for cost in pipeline_preparation_prefix_costs(resolved, n) {
     if cost > remaining {
       return (
         Err(WorkLimit),

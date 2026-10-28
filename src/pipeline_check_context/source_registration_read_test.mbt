@@ -402,3 +402,55 @@ test "original registration binds and retains resolver construction metadata onc
   assert_eq(source_registration_phase(read), RegistrationTransferred)
   assert_true(source_registration_resolution_construction(read) is None)
 }
+
+///|
+test "original registration pipeline construction uses only same held resolution and limits" {
+  let (source, catalog, limits, _) = registration_read_fixture()
+  let read = begin_source_registration(
+    source,
+    catalog,
+    limits,
+    max_inputs=2,
+    max_views=100,
+    max_order_keys=100,
+  ).unwrap()
+  assert_true(source_registration_pipeline_construction(read) is None)
+  assert_eq(advance_source_registration(read), RegistrationSelect)
+  assert_true(source_registration_pipeline_construction(read) is None)
+  let original_inputs = source_registration_collected_inputs(read).unwrap()
+  assert_eq(advance_source_registration(read), RegistrationPipeline)
+  let quote = source_registration_pipeline_construction(read).unwrap()
+  // Original fixture2Stages/2entries: Array count3, reference items4.
+  assert_eq(quote.returned, {
+    record_headers: 15L,
+    reference_slots: 59L,
+    scalar_words: 10L,
+  })
+  assert_eq(source_registration_pipeline_construction(read), Some(quote))
+  assert_eq(source_registration_pipeline_work(read), 0)
+  assert_true(
+    physical_equal(
+      source_registration_collected_inputs(read).unwrap(),
+      original_inputs,
+    ),
+  )
+  assert_eq(advance_source_registration(read), RegistrationLocal)
+  assert_true(source_registration_pipeline_construction(read) is None)
+  assert_eq(source_registration_pipeline_work(read), 22)
+  assert_eq(advance_source_registration(read), RegistrationComplete)
+  let (pipeline, _) = take_source_registration_result(read).unwrap().unwrap()
+  let resolved = @sourceviews.pipeline_resolution(pipeline)
+  assert_true(physical_equal(@sourceviews.inputs(resolved), original_inputs))
+  assert_eq(
+    quote,
+    @sourceviews.pipeline_preparation_construction(resolved, limits.max_work).unwrap(),
+  )
+  clear_source_registration(read)
+  assert_eq(source_registration_phase(read), RegistrationTransferred)
+  assert_true(source_registration_pipeline_construction(read) is None)
+  assert_eq(source_registration_initial_construction_extent(), {
+    record_headers: 5L,
+    reference_slots: 9L,
+    scalar_words: 9L,
+  })
+}

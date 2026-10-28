@@ -245,6 +245,23 @@ pub fn source_registration_resolution_inspection_retained_extent() -> @shape.Col
 }
 
 ///|
+/// O(1) constructor quantities from the SAME held Resolved and original limit.
+/// No replacement Source/Catalog/counts, metadata walk or permission enters.
+/// The quotation frame and original work-result pair remain separately backed.
+pub fn source_registration_pipeline_construction(
+  read : SourceRegistrationRead,
+) -> @sourceviews.PipelinePreparationConstruction? {
+  guard read.state is BuildRegistrations(resolved) &&
+    read.arguments is Some(original) else {
+    return None
+  }
+  @sourceviews.pipeline_preparation_construction(
+    resolved,
+    original.limits.max_work,
+  )
+}
+
+///|
 /// One actual original phase per call. No callback/current observation, second
 /// semantic reader or capacity computation is added. Completed/failed/taken/
 /// retired calls do not re-enter any reader. The caller must quote and fund

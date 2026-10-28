@@ -908,3 +908,21 @@ caller-supplied replacement geometry/limits. Normal synchronous registration
 does not perform this optional metadata walk. The same real parent must fund
 inspection, quotation and phase backing, debit an observation receipt once and
 retain the cache until its own aliases retire; caching DATA issues no grant.
+
+
+## Retained resolver to Stage registrations
+
+Pipeline registration quotes the original retained Resolved, its Source Stage
+count and selected entry count. The ordered prefix costs are produced by the
+same constructor helper for execution and quotation; prior resolution remains
+semantic inherited work, never another physical debit. A prefix refusal quotes
+only its original error and fixed cost-array frame, before Stage arrays exist.
+
+After that prefix fits, all Stage groups coexist, including empty groups. Each
+selected entry borrows its original resolved input and admitted carrier; no
+name, schema, Catalog or request is copied or checked again to quote it. The
+shared Array owner expands the actual group/entry multiplicities. Partial name
+failure retains the same group construction peak, with no early retirement
+claim. The same registration read exposes this DATA only in its pipeline phase
+and accepts no alternative limits or owner. Quotation and observed-work frames,
+real parent funding and later Local snapshot/schema construction remain separate.

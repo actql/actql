@@ -1139,6 +1139,8 @@ pub fn source_registration_initial_construction_extent() -> @decode_shape.Collec
 
 pub fn source_registration_phase(SourceRegistrationRead) -> SourceRegistrationPhase
 
+pub fn source_registration_pipeline_construction(SourceRegistrationRead) -> @sourceview_resolution.PipelinePreparationConstruction?
+
 pub fn source_registration_pipeline_work(SourceRegistrationRead) -> Int
 
 pub fn source_registration_resolution_construction(SourceRegistrationRead) -> @sourceview_resolution.ResolutionConstructionInventory?
