@@ -23,6 +23,7 @@ pub(all) struct PipelineEvidenceStepConstruction {
   peak_utf16_units : Int64
   inspection_work : Int64
   replaced : @shape.CollectionConstructionExtent
+  replaced_utf16_units : Int64
 }
 
 ///|
@@ -43,6 +44,7 @@ pub fn pipeline_evidence_read_step_construction(
       peak_utf16_units: 0L,
       inspection_work: 0L,
       replaced: pipeline_core_zero_extent,
+      replaced_utf16_units: 0L,
     })
   }
   if body.step is Core(_, _, _) {
@@ -77,6 +79,7 @@ pub fn pipeline_evidence_read_step_construction(
       peak_utf16_units: 0L,
       inspection_work: 0L,
       replaced: pipeline_core_zero_extent,
+      replaced_utf16_units: 0L,
     })
   }
   if body.step is CoreRunning(read) && read.state is Reading(core) {
@@ -84,6 +87,7 @@ pub fn pipeline_evidence_read_step_construction(
       Inputs => core_input_step_construction(core)
       Parameters => core_parameter_step_construction(core)
       ImportedEvidence => core_imported_step_construction(core)
+      DeltaContracts => core_delta_binding_step_construction(core)
       _ => None
     }
     guard quote is Some(q) else { return None }
@@ -92,6 +96,7 @@ pub fn pipeline_evidence_read_step_construction(
       peak_utf16_units: q.peak_utf16_units,
       inspection_work: 0L,
       replaced: q.replaced,
+      replaced_utf16_units: q.replaced_utf16_units,
     })
   }
   let keys = match body.step {
@@ -159,6 +164,7 @@ pub fn pipeline_evidence_read_step_construction(
     peak_utf16_units: held_text + scratch_text,
     inspection_work: work,
     replaced: pipeline_core_zero_extent,
+    replaced_utf16_units: 0L,
   })
 }
 
@@ -288,6 +294,12 @@ pub fn pipeline_evidence_read_step_holdings(
         return None
       }
       return Some({ extent, owned_utf16_units: 0L, inspection_work: 0L, })
+    }
+    if previous == CoreDeltaContracts {
+      guard core.phase == DeltaContracts || core.phase == Steps else {
+        return None
+      }
+      return core_delta_binding_holdings(core)
     }
     guard previous == Core else { return None }
     guard core.phase == Inputs &&

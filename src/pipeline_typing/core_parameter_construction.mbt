@@ -129,5 +129,5 @@ fn core_parameter_step_construction(
     }
     _ => ()
   }
-  Some({ peak, peak_utf16_units: text, replaced, })
+  Some({ peak, peak_utf16_units: text, replaced, replaced_utf16_units: 0L, })
 }

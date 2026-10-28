@@ -8,6 +8,22 @@ fn reference_parts(name : FieldName) -> (String, String) {
 }
 
 ///|
+// Two original reference_parts pairs2H4R. The four closed return sites of
+// compare_reference_fragment own tuples4H4R8W and terminal Some2H2W.
+// Sequential fragments share this bound; no spelling String is allocated.
+let reference_comparison_controls : @shape.CollectionConstructionExtent = {
+  record_headers: 8L,
+  reference_slots: 8L,
+  scalar_words: 10L,
+}
+
+///|
+/// Same bounded comparator's immutable DATA, not name/type admission or price.
+pub fn reference_comparison_construction_extent() -> @shape.CollectionConstructionExtent {
+  reference_comparison_controls
+}
+
+///|
 /// Compare reference spellings without flattening qualification. This proves
 /// spelling equality only, not typed-role equality, schema admission or identity.
 /// The caller owns the offset and charges each fragment. Negative offsets or

@@ -101,6 +101,8 @@ pub fn kind(Carrier) -> Kind
 
 pub fn lookup(Knowledge, @relation_schema.FieldName) -> Lookup
 
+pub fn lookup_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
 pub fn relation(Knowledge) -> Carrier
 
 pub fn relation_rows(Carrier) -> Knowledge?

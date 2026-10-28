@@ -268,5 +268,5 @@ fn core_imported_step_construction(
       ]).unwrap()
     }
   }
-  Some({ peak, peak_utf16_units: text, replaced, })
+  Some({ peak, peak_utf16_units: text, replaced, replaced_utf16_units: 0L, })
 }

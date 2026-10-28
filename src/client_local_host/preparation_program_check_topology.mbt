@@ -47,18 +47,20 @@ let program_topology_body_driver_bytes : Int64 = {
 let program_topology_quotation_bytes : Int64 = program_source_extent_cost({
   record_headers: 341L,
   reference_slots: 146L,
-  scalar_words: 734L,
+  scalar_words: 738L,
 }).unwrap()
 
 ///|
-// Source observation122H75R221W and the actual imported-domain observer
-// 146H40R287W do not overlap. Their componentwise maximum is146H75R287W.
-// Original conversion7H17W, observed-work carriers4H2R8W and original-position
-// tuple/Some2H1R3W add13H3R28W. Domain bodies are priced separately.
+// Preserve the prior Source122/75/221 raw bound, with explicit Pipeline/
+// Stage/inspection controls5/4/7. Imported private146/40/287 adds the same.
+// Delta holdings156/43/309 already returns the public tuple; Stage/inspection
+// adds3/2/4. Their maximum is159/79/313, then the unchanged original
+// conversion/work/position bound13/3/28 gives172/82/341. These are logical
+// constructor controls, not field bodies, a policy allowance or physical proof.
 let program_topology_retained_observation_bytes : Int64 = program_source_extent_cost({
-    record_headers: 159L,
-    reference_slots: 78L,
-    scalar_words: 315L,
+    record_headers: 172L,
+    reference_slots: 82L,
+    scalar_words: 341L,
   },
 ).unwrap()
 
@@ -77,7 +79,8 @@ fn topology_phase_supported(
     | PipelineCore
     | PipelineCoreInputs
     | PipelineCoreParameters
-    | PipelineCoreImportedEvidence => true
+    | PipelineCoreImportedEvidence
+    | PipelineCoreDeltaContracts => true
     _ => false
   }
 }
@@ -192,7 +195,8 @@ fn[I, P] inspect_program_check_source_topology_owned(
   }
   guard @stage_results.local_program_read_step_construction(read) is Some(q) &&
     program_topology_extent_cost(q.peak, q.peak_utf16_units) is Some(body) &&
-    program_topology_extent_cost(q.replaced, 0L) is Some(replaced) &&
+    program_topology_extent_cost(q.replaced, q.replaced_utf16_units)
+    is Some(replaced) &&
     @execution.checked_preparation_add_product(
       body, program_topology_body_driver_bytes, 1L,
     )
@@ -369,7 +373,8 @@ fn[I, P] advance_program_check_source_topology_owned(
     PipelineCore => @stage_results.PipelineCoreInputs
     PipelineCoreInputs
     | PipelineCoreParameters
-    | PipelineCoreImportedEvidence => phase
+    | PipelineCoreImportedEvidence
+    | PipelineCoreDeltaContracts => phase
     _ => {
       owner.phase = Failed
       return Err(WrongPhase)
@@ -394,6 +399,11 @@ fn[I, P] advance_program_check_source_topology_owned(
       previous != @stage_results.PipelineCoreImportedEvidence ||
       phase == @stage_results.PipelineCoreImportedEvidence ||
       phase == @stage_results.PipelineCoreDeltaContracts
+    ) &&
+    (
+      previous != @stage_results.PipelineCoreDeltaContracts ||
+      phase == @stage_results.PipelineCoreDeltaContracts ||
+      phase == @stage_results.PipelineCoreSteps
     ) &&
     @stage_results.local_program_read_owned_work(read) is Some(spent) &&
     spent >= owner.topology_observed_work else {

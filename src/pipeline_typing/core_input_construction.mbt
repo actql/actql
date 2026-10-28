@@ -211,7 +211,7 @@ fn core_input_step_construction(
       _ => ()
     }
   }
-  Some({ peak, peak_utf16_units: text, replaced, })
+  Some({ peak, peak_utf16_units: text, replaced, replaced_utf16_units: 0L, })
 }
 
 ///|
@@ -262,5 +262,10 @@ fn carrier_preflight_step_construction(
     }
     peak = next
   }
-  Some({ peak, peak_utf16_units: text, replaced: pipeline_core_zero_extent, })
+  Some({
+    peak,
+    peak_utf16_units: text,
+    replaced: pipeline_core_zero_extent,
+    replaced_utf16_units: 0L,
+  })
 }

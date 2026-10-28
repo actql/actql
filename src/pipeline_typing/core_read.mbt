@@ -54,6 +54,16 @@ priv enum PipelineCoreImportedStep {
 }
 
 ///|
+priv enum PipelineCoreDeltaBindingStep {
+  Count
+  Name
+  Target
+  Field
+  Carrier
+  Register
+} derive(Eq)
+
+///|
 priv struct PipelineCoreBody {
   source : @decode.Cursor
   inputs : Array[(String, @carrier.Carrier)]
@@ -103,6 +113,19 @@ priv struct PipelineCoreBody {
   mut delta_field : (String, @graph_contract.CheckedContract)?
   mut delta_pending : DeltaEvidence?
   mut delta_completed_storage : @shape.CollectionConstructionExtent
+  mut delta_binding_step : PipelineCoreDeltaBindingStep
+  mut delta_binding_index : Int
+  mut delta_binding_count : Int
+  mut delta_binding_target : Int
+  mut delta_binding : (
+    String,
+    @schema.FieldName,
+    @graph_contract.CheckedContract,
+  )?
+  mut delta_binding_key : String?
+  mut delta_binding_old : @shape.CollectionConstructionExtent?
+  mut delta_bound_name_headers : Int64
+  mut delta_bound_name_units : Int64
 }
 
 ///|
@@ -239,6 +262,15 @@ fn begin_pipeline_core_read_owned(
       delta_field: None,
       delta_pending: None,
       delta_completed_storage: pipeline_core_zero_extent,
+      delta_binding_step: Count,
+      delta_binding_index: 0,
+      delta_binding_count: 0,
+      delta_binding_target: 0,
+      delta_binding: None,
+      delta_binding_key: None,
+      delta_binding_old: None,
+      delta_bound_name_headers: 0L,
+      delta_bound_name_units: 0L,
     }),
   })
 }
@@ -311,6 +343,9 @@ fn clear_pipeline_core_read(original : PipelineCoreRead) -> Unit {
         body.delta_iterator = None
         body.delta_field = None
         body.delta_pending = None
+        body.delta_binding = None
+        body.delta_binding_key = None
+        body.delta_binding_old = None
         body.phase = Cleared
       }
       _ => ()
@@ -330,7 +365,6 @@ fn advance_pipeline_core_read_owned(
   let limits = original.limits
   let calendar_profile = original.calendar_profile
   let text_rank_profile = original.text_rank_profile
-  let delta_contracts = original.delta_contracts
   let keyed_inputs = original.keyed_inputs
   let ranked_inputs = original.ranked_inputs
   let produced_inputs = original.produced_inputs
@@ -343,36 +377,7 @@ fn advance_pipeline_core_read_owned(
     Inputs => advance_pipeline_core_inputs(original)
     Parameters => advance_pipeline_core_parameters(original)
     ImportedEvidence => advance_pipeline_core_imported(original)
-    DeltaContracts => {
-      let delta_inputs = original.delta_inputs.unwrap()
-      spend(b, source, delta_contracts.length())
-      for (input_name, field, contract) in delta_contracts {
-        name(b, source, input_name)
-        let index = match names.get(input_name) {
-          Some(Input(i)) => i
-          _ => fail(source, InvalidDeltaContractBinding)
-        }
-        let rows = match inputs[index].1 {
-          @carrier.Relation(r) => r
-          _ => fail(source, InvalidDeltaContractBinding)
-        }
-        guard @carrier.lookup(rows, field) is Present({ contract: Some(_), .. }) else {
-          fail(source, InvalidDeltaContractBinding)
-        }
-        let key = @schema.reference_name(field)
-        charge(b, source, key)
-        if delta_inputs[index].fields.contains(key) {
-          fail(source, InvalidDeltaContractBinding)
-        }
-        carrier_preflight(
-          b,
-          source,
-          @carrier.graph_carrier(@graph_contract.graph(contract)),
-        )
-        delta_inputs[index].fields[key] = contract
-      }
-      original.phase = Steps
-    }
+    DeltaContracts => advance_pipeline_core_delta_bindings(original)
     Steps => {
       let steps = original.steps.unwrap()
       let ranked_steps = original.ranked_steps.unwrap()
@@ -2739,7 +2744,8 @@ fn pipeline_core_read_consumed_work(
     Rejected(body, _) =>
       if body.phase == Inputs ||
         body.phase == Parameters ||
-        body.phase == ImportedEvidence {
+        body.phase == ImportedEvidence ||
+        body.phase == DeltaContracts {
         pipeline_core_body_consumed_work(body, prefix)
       } else {
         None
