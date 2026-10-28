@@ -363,6 +363,14 @@ fn open_resident_source_compute_owned(
     Ok(value) => value
     Err(issue) => return reject(Capacity(issue), () => true)
   }
+  // The original current/entry observer precedes actual database opening.
+  // Refusal returns this unused reservation without physical acquisition.
+  if observe is Some(record) && !record(AcquisitionEntered) {
+    return reject(ObservationUnrecorded(AcquisitionEntered), () => {
+      !@resources.reservation_open(reservation) ||
+      @resources.settle_reservation(ledger, reservation) is Ok(_)
+    })
+  }
   // Charge this original attempt only when physical acquisition can begin,
   // not while preparing modules or merely reserving its capacity. A failed or
   // unknown acquisition never restores the consumed use.
@@ -392,9 +400,6 @@ fn open_resident_source_compute_owned(
     @duckdb_native.close_native_acquisition_runtime(acquisition)
     !@resources.reservation_open(reservation) ||
     @resources.settle_reservation(ledger, reservation) is Ok(_)
-  }
-  if observe is Some(record) && !record(AcquisitionEntered) {
-    return reject(ObservationUnrecorded(AcquisitionEntered), close_source)
   }
   match @duckdb_native.execute_native_acquisition_runtime(acquisition) {
     Ok(_) => ()
