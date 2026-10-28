@@ -179,7 +179,7 @@ test "repeated original Source projections sum held evidence but reuse sequentia
   assert_eq(b.inspection_work, 2L * a.inspection_work)
   assert_true(b.peak.reference_slots > a.peak.reference_slots)
   assert_eq(@pipeline.advance_pipeline_evidence_read(two), Rankings)
-  let held = @pipeline.pipeline_evidence_read_step_holdings(two).unwrap()
+  let held = @pipeline.pipeline_evidence_read_step_holdings(two, @pipeline.Keys).unwrap()
   assert_true(held.extent.record_headers <= b.peak.record_headers)
   assert_true(held.extent.reference_slots <= b.peak.reference_slots)
   assert_eq(held.owned_utf16_units, 0L)
@@ -195,7 +195,10 @@ test "repeated original Source projections sum held evidence but reuse sequentia
     original.retained_utf16_units,
   )
   assert_eq(@pipeline.advance_pipeline_evidence_read(two), Core)
-  let held = @pipeline.pipeline_evidence_read_step_holdings(two).unwrap()
+  let held = @pipeline.pipeline_evidence_read_step_holdings(
+    two,
+    @pipeline.Rankings,
+  ).unwrap()
   assert_eq(held.owned_utf16_units, 2L * original.retained_utf16_units)
   @pipeline.clear_pipeline_evidence_read(one)
   @pipeline.clear_pipeline_evidence_read(two)

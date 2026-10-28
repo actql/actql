@@ -2,18 +2,6 @@
 /// SAME input-domain quantities. Borrowed schemas/evidence/Strings are never
 /// recursively quoted, copied or admitted here. The old Map and nested stack
 /// stay with the original parent until post-constructor reconciliation.
-priv struct CoreInputConstruction {
-  peak : @shape.CollectionConstructionExtent
-  peak_utf16_units : Int64
-  replaced : @shape.CollectionConstructionExtent
-}
-
-///|
-let core_input_zero : @shape.CollectionConstructionExtent = {
-  record_headers: 0L,
-  reference_slots: 0L,
-  scalar_words: 0L,
-}
 
 ///|
 // Carrier read1H8R12W; five optional borrowed roots5H5R5W and its original
@@ -25,15 +13,6 @@ let carrier_preflight_controls : @shape.CollectionConstructionExtent = {
 }
 
 ///|
-// Contract read1H5R6W, two borrowed optional roots2H2R2W, parent Some1H1R1W.
-// The Array and each still referenced original (Contract,depth) tuple are below.
-let contract_preflight_controls : @shape.CollectionConstructionExtent = {
-  record_headers: 4L,
-  reference_slots: 8L,
-  scalar_words: 9L,
-}
-
-///|
 // Actual selected advance/state/Result5H5R5W; original typed child/getter
 // alternatives6H8R6W; UTF8-window/narrowed returns6H2R12W; Source/tree/key
 // selectors8H10R10W; Issue/Stop/Err3H4R3W. Issue path backing is separate.
@@ -42,27 +21,6 @@ let core_input_step_controls : @shape.CollectionConstructionExtent = {
   record_headers: 28L,
   reference_slots: 29L,
   scalar_words: 36L,
-}
-
-///|
-fn contract_preflight_retained(
-  read : ContractPreflightRead,
-) -> @shape.CollectionConstructionExtent? {
-  guard @shape.reference_array_retained_extent(
-      1L,
-      read.work.capacity().to_int64(),
-    )
-    is Some(array) &&
-    @shape.scale_collection_construction_extent(
-      { record_headers: 1L, reference_slots: 1L, scalar_words: 1L, },
-      read.retained_tuples.to_int64(),
-    )
-    is Some(tuples) else {
-    return None
-  }
-  @shape.compose_collection_construction_extents([
-    contract_preflight_controls, array, tuples,
-  ])
 }
 
 ///|
@@ -99,25 +57,6 @@ fn core_input_retained(
     return Some(held)
   }
   Some(held)
-}
-
-///|
-fn contract_preflight_entry_construction() -> @shape.CollectionConstructionExtent? {
-  guard @shape.collection_construction_extent({
-      records: 1L,
-      record_references: 1L,
-      record_words: 1L,
-      reference_arrays: 1L,
-      reference_items: 1L,
-      scalar_arrays: 0L,
-      scalar_items: 0L,
-      maps: 0L,
-      map_entries: 0L,
-    })
-    is Some(stack) else {
-    return None
-  }
-  @shape.add_collection_construction_extents(contract_preflight_controls, stack)
 }
 
 ///|
@@ -167,7 +106,7 @@ fn carrier_preflight_reference(
 ///|
 fn core_input_step_construction(
   body : PipelineCoreBody,
-) -> CoreInputConstruction? {
+) -> CoreStepConstruction? {
   guard body.phase == Inputs &&
     core_input_retained(body) is Some(replaced) &&
     @decode.issue_path_construction_extent(
@@ -251,17 +190,8 @@ fn core_input_step_construction(
         if read.step is Contract &&
           read.contract is Some(contract) &&
           (contract.step is PushArray || contract.step is PushField) {
-          guard @shape.reference_array_push_construction_extent(
-              contract.work.length(),
-              contract.work.capacity(),
-            )
-            is Some(backing) &&
-            @shape.compose_collection_construction_extents([
-              peak,
-              backing,
-              { record_headers: 1L, reference_slots: 1L, scalar_words: 1L, },
-            ])
-            is Some(next) else {
+          guard contract_preflight_push_construction(contract) is Some(push) &&
+            @shape.add_collection_construction_extents(peak, push) is Some(next) else {
             return None
           }
           peak = next

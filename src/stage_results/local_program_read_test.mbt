@@ -2,8 +2,10 @@
 fn finish_original_local_program_read(
   read : LocalProgramRead,
 ) -> Result[(LocalProgramPreparation, LocalProgramUsage), LocalProgramIssue] raise {
-  // Fixture bound only. It is not a new Program/Stage or language limit.
-  for _ in 0..<100 {
+  // Fixture transition bound only: Contract/Parameter continuations expose
+  // separate constructor steps without increasing the semantic work Budget.
+  // This is not a Program/Stage or language limit.
+  for _ in 0..<200 {
     match local_program_read_phase(read) {
       Complete | Failed => return take_local_program_read(read).unwrap()
       _ => advance_local_program_read(read) |> ignore
@@ -21,7 +23,8 @@ test "original staged topology retains Source Result producers and cumulative wo
     assert_true(take_local_program_read(read) is None)
     let mut spent = local_program_read_owned_work(read).unwrap()
     assert_eq(spent, count.to_int64())
-    for _ in 0..<100 {
+    // Same fixture bound as the staged completion driver above.
+    for _ in 0..<200 {
       if local_program_read_phase(read) == Complete {
         break
       }

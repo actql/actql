@@ -30,6 +30,15 @@ priv enum PipelineCoreInputStep {
 }
 
 ///|
+priv enum PipelineCoreParameterStep {
+  Count
+  Name
+  Contract
+  Select
+  Arrays
+}
+
+///|
 priv struct PipelineCoreBody {
   source : @decode.Cursor
   inputs : Array[(String, @carrier.Carrier)]
@@ -69,6 +78,9 @@ priv struct PipelineCoreBody {
   mut alias_count : Int
   mut alias_index : Int
   mut carrier_read : CarrierPreflightRead?
+  mut parameter_step : PipelineCoreParameterStep
+  mut parameter_index : Int
+  mut parameter_read : ContractPreflightRead?
 }
 
 ///|
@@ -195,6 +207,9 @@ fn begin_pipeline_core_read_owned(
       alias_count: 0,
       alias_index: 0,
       carrier_read: None,
+      parameter_step: Count,
+      parameter_index: 0,
+      parameter_read: None,
     }),
   })
 }
@@ -256,6 +271,10 @@ fn clear_pipeline_core_read(original : PipelineCoreRead) -> Unit {
           clear_carrier_preflight_read(read)
         }
         body.carrier_read = None
+        if body.parameter_read is Some(read) {
+          clear_contract_preflight_read(read)
+        }
+        body.parameter_read = None
         body.phase = Cleared
       }
       _ => ()
@@ -286,35 +305,7 @@ fn advance_pipeline_core_read_owned(
   let names = original.names
   match original.phase {
     Inputs => advance_pipeline_core_inputs(original)
-    Parameters => {
-      if parameters is Some(p) {
-        let count = @parameter.declaration_count(p)
-        spend(b, source, count)
-        for i in 0..<count {
-          let d = @parameter.declaration_at(p, i).unwrap()
-          charge(b, source, d.name)
-          preflight(b, source, d.parameter_type.contract)
-        }
-      }
-      let current : Target? = match from {
-        Some(cursor) => {
-          let key = read_name(b, cursor)
-          match names.get(key) {
-            Some(v) => Some(v)
-            None => fail(cursor, UnknownName(key))
-          }
-        }
-        None => if inputs.length() == 1 { Some(Input(0)) } else { None }
-      }
-      let steps : Array[CheckedStep] = []
-      let ranked_steps : Array[@vector.RankingInput] = []
-      let keyed_steps : Array[@evidence.KeySet?] = []
-      original.current = current
-      original.steps = Some(steps)
-      original.ranked_steps = Some(ranked_steps)
-      original.keyed_steps = Some(keyed_steps)
-      original.phase = ImportedEvidence
-    }
+    Parameters => advance_pipeline_core_parameters(original)
     ImportedEvidence => {
       spend(b, source, produced_inputs.length())
       let literal_inputs = produced_inputs.map(input => {
@@ -2725,4 +2716,22 @@ fn advance_pipeline_core_read_owned(
     _ => return Ok(None)
   }
   Ok(None)
+}
+
+///|
+fn pipeline_core_read_consumed_work(
+  read : PipelineCoreRead,
+  prefix? : Int = 0,
+) -> Int? {
+  match read.state {
+    Reading(body) => Some(prefix + body.limits.max_work - body.b.work)
+    Rejected(body, _) =>
+      if body.phase == Inputs || body.phase == Parameters {
+        Some(prefix + body.limits.max_work - body.b.work)
+      } else {
+        None
+      }
+    Completed(checked) => Some(prefix + checked.usage.work)
+    _ => None
+  }
 }

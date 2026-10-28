@@ -354,7 +354,7 @@ pub fn pipeline_evidence_read_phase(PipelineEvidenceRead) -> PipelineEvidenceRea
 
 pub fn pipeline_evidence_read_step_construction(PipelineEvidenceRead) -> PipelineEvidenceStepConstruction?
 
-pub fn pipeline_evidence_read_step_holdings(PipelineEvidenceRead) -> PipelineEvidenceStepHoldings?
+pub fn pipeline_evidence_read_step_holdings(PipelineEvidenceRead, PipelineEvidenceReadPhase) -> PipelineEvidenceStepHoldings?
 
 pub fn prepare_produced_publication(CheckedPipeline, Target, @relation_typing.CheckedOperation, @decode_core.Cursor?, Limits) -> Result[PublicationPreparation, Issue]
 
