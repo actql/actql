@@ -20,10 +20,10 @@ test "stopping original preparation permits cleanup but never new admission" {
     input,
     40L,
     60L,
-    max_borrowers=1,
+    max_borrowers=2,
   ).unwrap()
   complete_preparation_capacity(capacity, input, body, 30L, 0L).unwrap()
-  let (run, _, retirement) = adopt_node_preparation_admission(
+  let (run, _, retirement, run_holder) = adopt_node_preparation_admission(
     initial, input, capacity, body,
   ).unwrap()
   status.val = 1
@@ -46,6 +46,7 @@ test "stopping original preparation permits cleanup but never new admission" {
   assert_false(node_preparation_usage_isolated(run, foreign))
   cleanup_node_preparation_admission(foreign_initial).unwrap()
   assert_false(retire_transferred_preparation(retirement).unwrap())
+  assert_false(return_preparation_body_borrow(run_holder).unwrap())
   assert_true(release_node_preparation_holder(run).unwrap())
   assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
   cleanup_node_managed_run_admission(run).unwrap()
@@ -66,10 +67,10 @@ test "unavailable original preparation remains retained and cannot authorize cle
     input,
     40L,
     60L,
-    max_borrowers=1,
+    max_borrowers=2,
   ).unwrap()
   complete_preparation_capacity(capacity, input, body, 30L, 0L).unwrap()
-  let (run, _, _) = adopt_node_preparation_admission(
+  let (run, _, _, run_holder) = adopt_node_preparation_admission(
     initial, input, capacity, body,
   ).unwrap()
   child.origin.unavailable = true
@@ -80,4 +81,5 @@ test "unavailable original preparation remains retained and cannot authorize cle
   assert_false(node_preparation_usage_isolated(run, ledger))
   assert_eq(ledger_usage(ledger).reserved_retention_bytes, 30L)
   assert_true(run.prepared is Some(_))
+  assert_true(preparation_body_borrow_value(run_holder) is Some(_))
 }

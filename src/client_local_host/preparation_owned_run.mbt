@@ -53,22 +53,11 @@ pub fn[I] begin_preparation_owned_installed_managed_run(
     0 {
     return Err(Unsupported)
   }
-  let holder = match @resources.borrow_preparation_body(capacity) {
-    Err(@resources.PreparationCapacityIssue::Resource(issue)) =>
-      return Err(Ledger(issue))
-    Err(_) => return Err(CleanupPending)
-    Ok(value) => value
-  }
-  let (admission, ledger, retirement) = match
+  let (admission, ledger, retirement, holder) = match
     @resources.adopt_node_preparation_admission(
       initial, input, capacity, prepared,
     ) {
-    Err(issue) => {
-      // The same initial owner retains failed adoption cleanup. This one
-      // provisional Run holder must not strand another borrower on that owner.
-      @resources.return_preparation_body_borrow(holder) |> ignore
-      return Err(Resource(issue))
-    }
+    Err(issue) => return Err(Resource(issue))
     Ok(value) => value
   }
   let value = new_installed_managed_run(admission, prepared, request, ledger)
@@ -103,18 +92,9 @@ pub fn[I] begin_preparation_owned_installed_effect_managed_run(
   if !installed_effect_limits_fit(plan.limits, limits) {
     return Err(InsufficientCapacity)
   }
-  let holder = match @resources.borrow_preparation_body(capacity) {
-    Err(@resources.PreparationCapacityIssue::Resource(issue)) =>
-      return Err(Ledger(issue))
-    Err(_) => return Err(CleanupPending)
-    Ok(value) => value
-  }
-  let (admission, ledger, retirement) = match
+  let (admission, ledger, retirement, holder) = match
     @resources.adopt_node_preparation_admission(initial, input, capacity, plan) {
-    Err(issue) => {
-      @resources.return_preparation_body_borrow(holder) |> ignore
-      return Err(Resource(issue))
-    }
+    Err(issue) => return Err(Resource(issue))
     Ok(value) => value
   }
   let value = new_installed_managed_run_owned(

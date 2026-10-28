@@ -99,7 +99,12 @@ pub fn[I, P] adopt_node_preparation_admission(
   capacity : PreparationCapacity[I, P],
   prepared : P,
 ) -> Result[
-  (NodeManagedRunAdmission[P], Ledger, PreparationRetirement),
+  (
+    NodeManagedRunAdmission[P],
+    Ledger,
+    PreparationRetirement,
+    PreparationBodyBorrow[P],
+  ),
   ImportedChildLedgerIssue,
 ] {
   if owner.transitioning {
@@ -133,44 +138,61 @@ pub fn[I, P] adopt_node_preparation_admission(
       }
     }
   }
+  if !physical_equal(capacity.ledger, ledger) ||
+    !(capacity.input is Some(original) && physical_equal(original, input)) ||
+    !(capacity.body is Some(original) && physical_equal(original, prepared)) {
+    return Err(ForeignOriginal)
+  }
+  if capacity.phase != Ready ||
+    capacity.retirement_claimed ||
+    capacity.borrowers > capacity.max_borrowers - 2 {
+    return Err(Unavailable)
+  }
+  // Claim BOTH real holders before the one reentrant current callback: one
+  // for the admission and one for the Run's actual raw fields. No token can
+  // escape on refusal; the same reservation and old holders remain intact.
   owner.transitioning = true
-  match check_node_managed_run_admission(admission, ledger) {
+  capacity.phase = Transferring
+  capacity.borrowers += 2
+  let current = check_node_managed_run_admission(admission, ledger)
+  let transferred : Result[PreparationRetirement, ImportedChildLedgerIssue] = match
+    current {
+    Err(issue) => Err(issue)
+    Ok(_) =>
+      match
+        finish_preparation_capacity_run_current(
+          capacity, input, prepared, ledger,
+        ) {
+        Err(ForeignOriginal) => Err(ForeignOriginal)
+        Err(Resource(issue)) => Err(Resource(issue))
+        Err(_) => Err(Unavailable)
+        Ok(_) =>
+          match claim_preparation_run_retirement(capacity) {
+            Err(Resource(issue)) => Err(Resource(issue))
+            Err(_) => Err(Unavailable)
+            Ok(retirement) => Ok(retirement)
+          }
+      }
+  }
+  let retirement = match transferred {
     Err(issue) => {
+      capacity.borrowers -= 2
+      capacity.phase = Ready
       owner.transitioning = false
       return Err(issue)
     }
-    Ok(_) => ()
-  }
-  let holder = match borrow_preparation_body(capacity) {
-    Err(issue) => {
-      owner.transitioning = false
-      return Err(
-        match issue {
-          ForeignOriginal => ForeignOriginal
-          Resource(issue) => Resource(issue)
-          _ => Unavailable
-        },
-      )
-    }
     Ok(value) => value
   }
-  let transferred = transfer_preparation_retirement_to_run(
-    capacity, input, prepared, ledger,
-  )
-  let retirement = match transferred {
-    Err(issue) => {
-      return_preparation_body_borrow(holder) |> ignore
-      owner.transitioning = false
-      return Err(
-        match issue {
-          ForeignOriginal => ForeignOriginal
-          Resource(issue) => Resource(issue)
-          _ => Unavailable
-        },
-      )
-    }
-    Ok(value) => value
-  }
+  let holder = make_preparation_body_borrow({
+    owner: capacity,
+    body: Some(prepared),
+    returned: false,
+  })
+  let run_holder = make_preparation_body_borrow({
+    owner: capacity,
+    body: Some(prepared),
+    returned: false,
+  })
   let next = prepare_node_managed_run_original(
     admission.child,
     prepared,
@@ -186,7 +208,7 @@ pub fn[I, P] adopt_node_preparation_admission(
   admission.prepared = None
   owner.admission = None
   owner.transitioning = false
-  Ok((next, ledger, retirement))
+  Ok((next, ledger, retirement, run_holder))
 }
 
 ///|

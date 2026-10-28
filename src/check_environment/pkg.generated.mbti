@@ -630,7 +630,7 @@ pub fn observe_source_request_contracts(CarrierSchemas, SourceRequestLimits) -> 
 
 pub fn observe_source_view_shapes(ProtocolValueContracts, SourceViewShapeLimits) -> (Result[SourceViewShapes, SourceViewShapeIssue], Int)
 
-pub fn preparation_data_geometry(WireEnvironment) -> EnvironmentPreparationData
+pub fn preparation_data_geometry(WireEnvironment, SourceRequestContracts) -> EnvironmentPreparationData
 
 pub fn program_source_grammar_cid() -> String
 

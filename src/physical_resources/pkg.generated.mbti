@@ -18,7 +18,7 @@ pub fn admit_quiescent_ledger_state(@decode_core.Cursor) -> Result[LedgerContinu
 
 pub fn admit_unresolved_backed_execution_data(BackedExecutionOriginalData) -> Result[UnresolvedBackedExecutionOriginal, BackedExecutionDataIssue]
 
-pub fn[I, P] adopt_node_preparation_admission(NodePreparationAdmission[I], I, PreparationCapacity[I, P], P) -> Result[(NodeManagedRunAdmission[P], Ledger, PreparationRetirement), ImportedChildLedgerIssue]
+pub fn[I, P] adopt_node_preparation_admission(NodePreparationAdmission[I], I, PreparationCapacity[I, P], P) -> Result[(NodeManagedRunAdmission[P], Ledger, PreparationRetirement, PreparationBodyBorrow[P]), ImportedChildLedgerIssue]
 
 pub fn[T] advance_funded_read_state_write(FundedReadClaim[T], T, Int) -> OriginalStateWritePoll
 

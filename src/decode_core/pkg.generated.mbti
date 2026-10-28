@@ -11,6 +11,8 @@ import {
 // Values
 pub fn admission_construction_inventory(Int, Int, Int, Int, Int) -> AdmissionConstructionInventory?
 
+pub fn admission_preparation_data(Cursor) -> AdmissionPreparationData
+
 pub fn admission_usage(Cursor) -> AdmissionUsage
 
 pub fn admit(@source_value.Node, Limits) -> Result[Cursor, Issue]
@@ -133,6 +135,13 @@ pub enum AdmissionPoll {
   AdmissionComplete(Cursor, work~ : Int)
   AdmissionFailed(Issue, work~ : Int)
 }
+
+pub(all) struct AdmissionPreparationData {
+  fields : Int
+  texts : Int
+  max_key_utf16 : Int
+  total_utf16 : Int64
+} derive(Eq, @debug.Debug)
 
 pub(all) struct AdmissionUsage {
   nodes : Int

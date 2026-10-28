@@ -14,48 +14,34 @@ pub(all) struct ParsedCheckDataEstimate {
 pub fn parsed_check_registry_data_estimate(
   prepared : ParsedCheckRegistry,
 ) -> ParsedCheckDataEstimate? {
-  guard prepared.available &&
-    (
-      prepared.start is Requests(_, _) ||
-      prepared.start is ReusedRequests(_, _, _)
-    ) else {
-    return None
+  guard prepared.available else { return None }
+  let contracts = match prepared.start {
+    Requests(original, _) | ReusedRequests(original, _, _) => original
+    _ => return None
   }
   let original = prepared.prelude.original
-  let source = @decode.observe_subtree_construction_geometry(
+  let usage = @syntax.program_usage(original.program)
+  let source = @decode.admission_preparation_data(
     @syntax.program_body(original.program),
   )
+  let program = @syntax.program_preparation_data(original.program)
   let environment = @environment.preparation_data_geometry(
     original.environment.wire,
+    contracts,
   )
-  let mut operations = 0L
-  let mut results = 0L
-  let mut inputs = 0L
-  for stage in @syntax.stages(original.program) {
-    inputs += @syntax.stage_input_declaration_count(stage).to_int64()
-    operations += @decode.array_length(@syntax.stage_steps_source(stage))
-      .unwrap()
-      .to_int64()
-    let body = @decode.open_object(@syntax.stage_body(stage)).unwrap()
-    if @decode.lookup(body, "results") is Some(at) {
-      results += @decode.object_length(at).unwrap_or(0).to_int64()
-    }
-  }
-  let root = @decode.open_object(@syntax.program_body(original.program)).unwrap()
-  if @decode.lookup(root, "results") is Some(at) {
-    results += @decode.object_length(at).unwrap_or(0).to_int64()
-  }
-  let stages = @syntax.stage_count(original.program).to_int64()
+  let stages = usage.stages.to_int64()
+  let operations = program.operations.to_int64()
+  let results = program.results.to_int64()
+  let lifetimes = operations + results + stages + 1L
+  let width = Int::max(program.initial_fields, program.projected_fields).to_int64() +
+    program.possible_growth.to_int64() +
+    program.external_inputs.to_int64() * environment.max_fields
   let expression_nodes = Int64::min(
     source.total_utf16,
     original.limits.artifacts.nodes.to_int64(),
   )
-  let width = source.fields.to_int64() +
-    source.texts.to_int64() +
-    inputs * environment.max_fields
-  let lifetimes = operations + results + stages + 1L
   guard @counts.checked_nonnegative_add_product(
-      source.nodes.to_int64(),
+      usage.tree.nodes.to_int64(),
       environment.members,
       1L,
     )
@@ -64,14 +50,15 @@ pub fn parsed_check_registry_data_estimate(
     is Some(nodes) &&
     @counts.checked_nonnegative_add_product(0L, width, lifetimes)
     is Some(fields) &&
-    @counts.checked_nonnegative_add_product(source.total_utf16, 0L, 1L)
-    is Some(text) &&
     @counts.checked_nonnegative_add_product(
-      text,
+      source.total_utf16,
       fields,
-      source.max_text_utf16.to_int64() +
-      source.max_key_utf16.to_int64() +
-      environment.max_name_utf16 +
+      3L *
+      (
+        source.max_key_utf16.to_int64() +
+        program.max_label_utf16.to_int64() +
+        environment.max_name_utf16
+      ) +
       6L,
     )
     is Some(text) &&
@@ -101,7 +88,7 @@ pub fn parsed_check_registry_data_estimate(
       map_entries: fields,
     },
     utf16_units: text,
-    inspection_work: source.work + environment.inspection_work + stages + 1L,
+    inspection_work: 0L,
     semantic_work: environment_start_budget(prepared.start).work.to_int64(),
   })
 }

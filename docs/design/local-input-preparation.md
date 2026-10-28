@@ -2075,8 +2075,10 @@ path and never starts the remaining bodies. Nested operation owners that do
 not report their actual failed consumed prefix still leave work unknown;
 the outer Budget alone cannot fabricate a complete failure receipt. This
 operation boundary does not supply construction/retained backing for its
-nested checkers. The Request driver continues to stop before operations until
-those original constructors and held evidence have their own complete recipe.
+nested checkers. The remaining Request check uses one input-derived construction envelope
+for its original constructors and held evidence. It executes the existing
+remaining checker once and retains its typed result; it does not replay the
+previous input, Parameter or imported-evidence phases.
 
 The original Delta transfer is itself one retained semantic body, shared by
 operation/final evidence synchronization and the existing produced-projection
@@ -2096,3 +2098,47 @@ small read, iterator and pending-pair controls belong to trusted Host overhead;
 their individual wrapper counts are not an additional adoption gate. This
 semantic continuation supplies no spare capacity or physical retirement
 acknowledgement.
+
+
+### Retained dimensions and the final Request body
+
+The original decoder retains field and text dimensions as it admits each key
+and scalar. Unicode suspension records them only after the original text
+admission succeeds. Child cursors share that immutable admission summary.
+Program envelope construction retains Stage, operation, Result, original input
+and projection dimensions; Carrier admission retains its normalized field
+width. A later check or compiler envelope reads those original summaries
+without visiting Program rows or Catalog schemas again. Literal text remains
+linear data and does not become a generated field-name length multiplied by
+every pipeline lifetime. Shared collection construction estimates remain
+logical majorants, not VM-layout or physical-backend supply proofs.
+
+The Request retains its one completed checked outcome and compiler output.
+Continuing to the final prepared body transfers the existing reservation and
+consumed work to a typed successor of the same preparation capacity. The old
+working capacity is consumed; it cannot independently retire the successor.
+The selected sequences, Plan and module constructor receives its additional
+coexisting-data envelope before construction. A declined grow keeps the same
+quote and original prepared Program, rather than checking or compiling again.
+
+After the actual installed Plan returns, completion binds its exact prepared
+Program and configuration to that same capacity. A manager borrows the original
+body through the existing nominal borrower. Source-free Run adoption consumes
+the original initial admission, input, prepared body and installed Plan. It
+never opens a replacement Run Root. Captured Source and Effect retain their
+separate original Plan and request contracts; a source-free body cannot stand
+in for those unfinished ordinary connections.
+
+The synchronous adoption claims its two real body holders before one original
+external currentness callback. Its post-callback fence checks the same original
+references, reservation and sticky stopping/closing state without calling the
+external observer again. Reentry cannot take a provisional holder or replace
+the selected input. The admission custody and Run-field custody retain their
+independent original returns. A manager borrow or pending physical child still
+prevents retirement; clearing a preparation controller does not acknowledge
+physical cleanup or refund consumed work.
+
+These factories are Host implementation details, not connector-author APIs.
+Connector definitions supply ordinary contracts and provider data; the Host
+selects the original Request, policy and backing. No per-wrapper census or
+connector-supplied H/R/W inventory is an adoption requirement.

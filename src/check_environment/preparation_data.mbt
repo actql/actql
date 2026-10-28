@@ -7,40 +7,18 @@ pub(all) struct EnvironmentPreparationData {
 }
 
 ///|
-/// Original admitted schema-bearing member sizes, never a schema verdict.
-/// Unrelated Model prompts and the outer member list do not become a row width.
-/// No parsing, hashing, member identity or schema admission is repeated.
+/// O(1) retained admission and normalized-Carrier dimensions, never a schema
+/// verdict. No Program/member/subtree traversal, parse, hash or readmission.
+/// Scalar literal/prompt length and outer member count never become a width.
 pub fn preparation_data_geometry(
   original : WireEnvironment,
+  contracts : SourceRequestContracts,
 ) -> EnvironmentPreparationData {
-  let mut fields = 0L
-  let mut name = 0L
-  let mut work = 1L
-  for section in [SchemaSnapshots, SourceViews, MappingContracts] {
-    for i in 0..<member_count(original, section) {
-      let item = original.sections[position(section)][i]
-      let geometry = @decode.observe_subtree_construction_geometry(item.cursor)
-      work += geometry.work + 1L
-      fields = Int64::max(
-        fields,
-        Int64::max(
-          geometry.max_object_fields.to_int64(),
-          geometry.array_items.to_int64(),
-        ),
-      )
-      name = Int64::max(
-        name,
-        Int64::max(
-          geometry.max_key_utf16.to_int64(),
-          geometry.max_text_utf16.to_int64(),
-        ),
-      )
-    }
-  }
+  let retained = @decode.admission_preparation_data(original.root)
   {
     members: original.members.to_int64(),
-    max_fields: fields,
-    max_name_utf16: name,
-    inspection_work: work,
+    max_fields: contracts.carriers.preparation_max_fields.to_int64(),
+    max_name_utf16: retained.max_key_utf16.to_int64(),
+    inspection_work: 0L,
   }
 }
