@@ -1645,6 +1645,8 @@ pub fn observe_client_keyed_request_attempt(ClientKeyedRequest, Int64, Int64) ->
 
 pub fn observe_client_keyed_response(ClientKeyedRequest, Int64, Int64, Int64) -> Result[Unit, ClientKeyedRequestIssue]
 
+pub fn observe_prepare_checked_effect_free_client_program(@program_check.CheckedProgram, @lowering_relation.Limits, max_parameters~ : Int, max_parameter_name_bytes~ : Int, max_tasks~ : Int, max_graph_work~ : Int) -> (Result[PreparedClientProgram, ClientProgramPreparationIssue], Int64)
+
 pub fn open_client_keyed_lookup_dag(PreparedClientProgram, ClientKeyedLookupInput, @physical_resources.Ledger) -> Result[@physical_strategy_host.CapturedDAG, ClientKeyedRequestIssue]
 
 pub fn open_prepared_accounted_captured_client_effect_run(PreparedClientEffectRun, @execution_query.CapturedInputSource, @physical_resources.Ledger) -> Result[@physical_strategy_host.CapturedEffectRunDAG, ClientRunOpenIssue]

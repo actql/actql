@@ -392,3 +392,22 @@ test "nullable correlation keys do not become nonnull response identity evidence
     }
   }
 }
+
+///|
+test "preparation dimensions reuse the original normalized carrier width and admission without rereading schemas" {
+  let carriers = request_carriers(
+    record_body(),
+    record_body(),
+    Some(correlation_fixture()),
+  )
+  let contracts = check_source_request_contracts(carriers, request_limits()).unwrap()
+  let view = source_request_at(contracts, 0).unwrap()
+  let environment = member_environment(source_request_member(view))
+  let first = preparation_data_geometry(environment, contracts)
+  let second = preparation_data_geometry(environment, contracts)
+  assert_eq(first.max_fields, 4L)
+  assert_eq(first.inspection_work, 0L)
+  assert_eq(second.max_fields, first.max_fields)
+  assert_eq(second.max_name_utf16, first.max_name_utf16)
+  assert_eq(second.members, first.members)
+}

@@ -459,6 +459,8 @@ pub fn nest_resource_subject(NestResourceSource, NestResourceScope, Int) -> Stri
 
 pub fn numeric_slot_for_requirement(CheckedProgram, Int) -> GroupNumericSlot?
 
+pub fn observe_finish_parsed_check_registry(ParsedCheckRegistry) -> Result[(CheckOutcome, Int, Bool), ParsedCheckPreludeIssue]
+
 pub fn observe_parsed_check_carriers(ParsedCarriersInput) -> (Result[Unit, ParsedCatalogPreparationIssue], Int)
 
 pub fn observe_parsed_check_contents(ParsedContentsInput) -> (Result[Unit, ParsedCatalogPreparationIssue], Int)
@@ -520,6 +522,8 @@ pub fn parsed_check_prelude_registry_members(ParsedCheckPrelude) -> Int
 pub fn parsed_check_prelude_remaining_work(ParsedCheckPrelude) -> Result[Int, ParsedCheckPreludeIssue]
 
 pub fn parsed_check_references_inspection_bound(ParsedCheckRegistry) -> Int64
+
+pub fn parsed_check_registry_data_estimate(ParsedCheckRegistry) -> ParsedCheckDataEstimate?
 
 pub fn parsed_check_registry_remaining_work(ParsedCheckRegistry) -> Result[Int, ParsedCheckPreludeIssue]
 
@@ -1457,6 +1461,13 @@ pub struct ParsedCarriersInput {
 
 pub struct ParsedCatalogInput {
   // private fields
+}
+
+pub(all) struct ParsedCheckDataEstimate {
+  collections : @decode_shape.CollectionConstructionInventory
+  utf16_units : Int64
+  inspection_work : Int64
+  semantic_work : Int64
 }
 
 pub struct ParsedCheckInput {

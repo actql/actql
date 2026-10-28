@@ -303,12 +303,23 @@ fn reservation_check(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  // The original current callback may synchronously finish this same token.
-  if reservation.open {
-    Ok(())
-  } else {
-    Err(ClosedReservation)
+  reservation_check_current(ledger, reservation)
+}
+
+///|
+// SAME synchronous boundary after its original current callback. This private
+// DATA/lifetime check creates no reusable proof and invokes no external port.
+fn reservation_check_current(
+  ledger : Ledger,
+  reservation : Reservation,
+) -> Result[Unit, LedgerIssue] {
+  if !physical_equal(ledger, reservation.owner) {
+    return Err(ForeignOwner)
   }
+  if !reservation.open {
+    return Err(ClosedReservation)
+  }
+  check_original_resources_mutable_current(ledger)
 }
 
 ///|

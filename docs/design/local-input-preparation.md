@@ -27,7 +27,10 @@ contracts and resource children are separate identities.
 
 ## Identity and currentness
 
-Every transition checks its original preparation and original input/child.
+Admission, ownership transfer, external callbacks, execution and retirement
+check the original preparation and original input/child. Internal DATA access
+does not require another external current callback merely because it crosses a
+helper boundary. Checks around a callback that can reenter remain distinct.
 Equal-shaped objects, copied records and a different installed runtime cannot
 substitute for the original. The Common owner remains authoritative across
 the SDK's derived request associations and the Node manager/handler/dispatch
@@ -62,13 +65,110 @@ same preparation. A submission-journal failure before dispatch still requires
 retirement of that original owner. Uncertain outcomes retain their existing
 custody and retry identity rather than being converted into definitive refusal.
 
+## Accounting granularity and ordinary adoption
+
+Real files, FD/DB sessions, Store holdings, Buffer and transfer bytes, concurrent
+operations and physical attempts retain their actual reservation, consumption
+and retirement boundaries on the existing Ledger. Approval, currentness,
+cancellation, Unknown and physical cleanup retain their independent meanings.
+Neither an estimate nor a cleared language-level reference proves physical
+capacity or retirement. Native arenas and Wasm linear memory that actually
+reserve backing must continue to enforce that real capacity.
+
+Input-proportional data and work use conservative, explainable estimates from
+the original size, node, field, Stage, row and column counts and actual lifetime
+overlap. Existing shared inventories and arithmetic remain the owners of these
+calculations. Retain the original observed dimensions and quote once per
+semantic phase or actual expansion; do not reparse, recheck, recompile or
+reconstruct a Plan to recover them. Add simultaneous input/workspace/output
+holdings, use maxima for sequential retired scratch, and avoid double charging
+the same original backing.
+
+Small fixed Records, Some/Result wrappers, tuples, closures, getters and call
+frames are trusted Host/target overhead, not separate per-wrapper accounting
+or proof obligations. Do not add an inventory, work receipt, external current
+callback or phase solely for one such object. This overhead is internal policy;
+callers and connectors cannot provide numbers to manufacture capacity authority.
+Existing detailed control inventories are transitional implementation, not a
+requirement to extend their census for each helper change. Their logical charges
+do not certify V8 layout, operating-system allocation or RSS.
+
+The implementation priority is the ordinary same-original
+RequestPreparation -> CheckedProgram -> Plan -> Run -> Publication/cleanup
+connection, preserving supported inputs and removing migrated fallbacks.
+Missing fixed-wrapper census alone must not turn a valid feature into
+Unsupported. Complete that path with real variable-data/resource bounds before
+consolidating existing fixed accounting. This does not authorize bulk deletion,
+changed caps, a second allocator/tariff or a replacement permission owner.
+
+Acceptance uses one coherent source and matching artifacts: representative
+normal/error/cancel/restore behavior, original parse/check/compile/Plan and
+current/reserve/resize/FS/DB call counts, and separately qualified Node/Native/
+Python latency and memory observations. Narrow component checks and formula
+tables do not replace that ordinary acceptance.
+
+## Remaining ordinary semantic check
+
+After Catalog request admission, the same private registry can finish its
+remaining Context, contracts, units and checked Program in one synchronous
+semantic phase. It consumes the original registry once; it does not parse the
+Program again or readmit the completed Catalog. The selected local checker and
+its existing supported-domain refusals remain unchanged. This route does not
+establish the separate Effect-checking or physical Host prelude connection.
+
+Before entry, the owner caches an input-proportional collection estimate from
+its admitted Program and schema-bearing Environment members. It uses the shared
+container-growth estimate and representation policy, with fixed controls in
+trusted Host overhead. The old Catalog/body backing remains borrowed. A refused
+grow preserves the original and cached absolute quote; retrying does not repeat
+the observation or semantic check. The estimate is conservative DATA, not a
+schema verdict, permission, VM-layout proof or measured physical-memory bound.
+
+Only the existing reservation boundary invokes external currentness. After that
+callback returns, a cheap original-registry check prevents entry if reentry
+consumed the original. The synchronous checker does not add callbacks at each
+operation or helper. Its original success budget delta is recorded; a rejected
+or incomplete check keeps an explicitly partial known-work observation because
+some existing late-failure constructors do not commit their nested budget.
+That partial observation must never be reported as complete failure accounting.
+
+A synchronous take transfers the same outcome and work qualification, without a
+second current callback or reservation release. The parent refuses retirement
+of that successor. The later Plan/Run consumer must continue the same capacity;
+clearing local DATA is neither physical cleanup nor a new authority witness.
+
+## Retained checked compilation
+
+The same preparation can continue directly from its completed local check to
+the existing checked compiler. It retains the original checked Program,
+Parameter bindings, Environment and declared Result inventory; it never falls
+back to the parsed-document compiler to obtain another check. Original
+lowering, binding and graph limits and typed refusals remain in force.
+
+The lowered Stage owners, bindings and graph coexist with the retained check.
+Their semantic-phase quote reuses the original observed collection dimensions
+under the existing shared estimate and tariff. It does not revisit the Program
+or Catalog to recover them. A refused grow keeps that absolute quote and the
+same installed configuration; the compiler has not run yet. Completion retains
+the actual PreparedClientProgram until the same-capacity next-consumer handoff.
+No preparation result or cleared controller is an execution permission or a
+physical release acknowledgement.
+
+One existing reservation boundary observes currentness before compilation.
+The original synchronous compiler receives no new per-Stage callbacks. Its work
+observation accumulates Usage only when each original lowerer returns. That
+known prefix is explicitly not complete binding, graph or late-failure work;
+configured maxima remain limits and are never reported as consumed work. The
+separate finite limits of those existing constructors are preserved. Plan/Run
+adoption and the physical Host prelude remain distinct required connections.
+
 ## Work and storage units
 
-The representation policy prices named record headers, reference slots,
-scalar words, UTF-16 units and wire bytes using checked arithmetic. Constructor
-inventories and the runtime consume the same policy. A logical charge is not
-an operating-system allocation measurement or an RSS guarantee. Opaque engine
-and selected Host-service support must remain explicitly qualified.
+The existing representation policy supplies shared checked arithmetic for
+variable containers, UTF-16 units and wire bytes. Its historical record-header,
+reference-slot and scalar-word controls are subject to the granularity above;
+they are not a model of every VM allocation. Opaque engine and selected
+Host-service support must remain explicitly qualified.
 
 Wire length, parser node support, retained values, publication metadata and
 durable Store capacity are different quantities. For JSON value-node support,
@@ -1952,12 +2052,12 @@ replaced UTF16 units; no caller can silently price the latter as zero. The
 same Request subtracts the full old owned domain only after its original
 constructor returns and reconciles the actual new domain.
 
-Quote and retained-observation frames include their explicit adapter records,
-Some wrappers and work-observation return controls. A private domain's storage
-or observation bound does not by itself cover Pipeline/Stage adapters. Logical
-constructor tables, physical first-entry backing, and same-candidate ordinary
-backend behavior remain distinct obligations. Subsequent operations and final
-Result/Context/Plan/Run adoption require their own original lifetime recipes.
+Quote and retained-observation adapters are fixed trusted Host overhead, not
+another per-wrapper census gate. Variable domain storage and actually overlapping
+backing remain with their original owners. Logical estimates, physical
+first-entry backing and same-candidate ordinary backend behavior remain distinct.
+Subsequent operations and final Result/Context/Plan/Run adoption require the
+same original ownership and real input-proportional bounds.
 
 ### Original operation boundaries
 
@@ -1975,5 +2075,70 @@ path and never starts the remaining bodies. Nested operation owners that do
 not report their actual failed consumed prefix still leave work unknown;
 the outer Budget alone cannot fabricate a complete failure receipt. This
 operation boundary does not supply construction/retained backing for its
-nested checkers. The Request driver continues to stop before operations until
-those original constructors and held evidence have their own complete recipe.
+nested checkers. The remaining Request check uses one input-derived construction envelope
+for its original constructors and held evidence. It executes the existing
+remaining checker once and retains its typed result; it does not replay the
+previous input, Parameter or imported-evidence phases.
+
+The original Delta transfer is itself one retained semantic body, shared by
+operation/final evidence synchronization and the existing produced-projection
+consumer. Empty and value-preserving branches return the original evidence.
+Derive keeps the original overwrite-name Map, then iterates the same prior
+Map into its new result; projection keeps the selected original projection
+and charges each retained output spelling in its original order. Map entries
+continue to reference the original checked Graph contracts. The synchronous
+entry drives this same body rather than a second transfer algorithm.
+
+The pending body retains the same compiler Budget, Source and checked operation
+until completion or clear. A failed charge keeps its original completed prefix;
+clear prevents further Map writes without mutating the borrowed prior evidence.
+The input-proportional overwrite/result Maps and qualified Strings require
+shared size/count and real-overlap estimates before Request adoption. The
+small read, iterator and pending-pair controls belong to trusted Host overhead;
+their individual wrapper counts are not an additional adoption gate. This
+semantic continuation supplies no spare capacity or physical retirement
+acknowledgement.
+
+
+### Retained dimensions and the final Request body
+
+The original decoder retains field and text dimensions as it admits each key
+and scalar. Unicode suspension records them only after the original text
+admission succeeds. Child cursors share that immutable admission summary.
+Program envelope construction retains Stage, operation, Result, original input
+and projection dimensions; Carrier admission retains its normalized field
+width. A later check or compiler envelope reads those original summaries
+without visiting Program rows or Catalog schemas again. Literal text remains
+linear data and does not become a generated field-name length multiplied by
+every pipeline lifetime. Shared collection construction estimates remain
+logical majorants, not VM-layout or physical-backend supply proofs.
+
+The Request retains its one completed checked outcome and compiler output.
+Continuing to the final prepared body transfers the existing reservation and
+consumed work to a typed successor of the same preparation capacity. The old
+working capacity is consumed; it cannot independently retire the successor.
+The selected sequences, Plan and module constructor receives its additional
+coexisting-data envelope before construction. A declined grow keeps the same
+quote and original prepared Program, rather than checking or compiling again.
+
+After the actual installed Plan returns, completion binds its exact prepared
+Program and configuration to that same capacity. A manager borrows the original
+body through the existing nominal borrower. Source-free Run adoption consumes
+the original initial admission, input, prepared body and installed Plan. It
+never opens a replacement Run Root. Captured Source and Effect retain their
+separate original Plan and request contracts; a source-free body cannot stand
+in for those unfinished ordinary connections.
+
+The synchronous adoption claims its two real body holders before one original
+external currentness callback. Its post-callback fence checks the same original
+references, reservation and sticky stopping/closing state without calling the
+external observer again. Reentry cannot take a provisional holder or replace
+the selected input. The admission custody and Run-field custody retain their
+independent original returns. A manager borrow or pending physical child still
+prevents retirement; clearing a preparation controller does not acknowledge
+physical cleanup or refund consumed work.
+
+These factories are Host implementation details, not connector-author APIs.
+Connector definitions supply ordinary contracts and provider data; the Host
+selects the original Request, policy and backing. No per-wrapper census or
+connector-supplied H/R/W inventory is an adoption requirement.

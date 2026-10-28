@@ -45,7 +45,12 @@ pub fn[I, P] adopt_node_preparation_admission(
   _capacity : PreparationCapacity[I, P],
   _prepared : P,
 ) -> Result[
-  (NodeManagedRunAdmission[P], Ledger, PreparationRetirement),
+  (
+    NodeManagedRunAdmission[P],
+    Ledger,
+    PreparationRetirement,
+    PreparationBodyBorrow[P],
+  ),
   ImportedChildLedgerIssue,
 ] {
   match owner {

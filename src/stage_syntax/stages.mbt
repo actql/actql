@@ -37,6 +37,7 @@ pub struct Program {
   priv exports : Array[(String, String, String)]
   priv body : @wire.Cursor
   priv source_usage : @source.ParseUsage
+  priv preparation : ProgramPreparationData
 }
 
 ///|
@@ -57,6 +58,7 @@ priv struct Envelope {
   exports : Array[(String, String, String)]
   body : @wire.Cursor
   source_usage : @source.ParseUsage
+  preparation : ProgramPreparationData
 }
 
 ///|
@@ -192,6 +194,7 @@ fn decode(
     exports: value.exports,
     body: value.body,
     source_usage: value.source_usage,
+    preparation: value.preparation,
   }
 }
 
@@ -241,11 +244,24 @@ fn decode_envelope(
   if nodes.length() > max_stages {
     invalid(required(view, "stages"), StageLimit)
   }
+  let preparation : ProgramPreparationState = {
+    operations: 0,
+    results: 0,
+    external_inputs: 0,
+    initial_fields: 0,
+    possible_growth: 0,
+    projected_fields: 0,
+    max_label_utf16: id.length(),
+  }
   let stages : Array[Stage] = []
   let seen : Map[String, Stage] = Map([])
   for node in nodes {
     let stage = object(node, stage_closed_field_names)
     let stage_id = name(required(stage, "id"))
+    preparation.max_label_utf16 = Int::max(
+      preparation.max_label_utf16,
+      stage_id.length(),
+    )
     metadata(stage)
     if seen.contains(stage_id) {
       invalid(required(stage, "id"), DuplicateStage(stage_id))
@@ -278,6 +294,9 @@ fn decode_envelope(
         continue
       }
       let input_fields = names(input, false)
+      if !prefix {
+        preparation_schema(input, preparation)
+      }
       for kind in ["result", "receipt"] {
         if input_fields.contains(kind) {
           let input_view = object(input, [kind, "meta"])
@@ -313,14 +332,20 @@ fn decode_envelope(
       None => ()
     }
     let original_steps = required(stage, "steps")
-    ignore(
-      match @wire.elements(original_steps) {
-        Ok(value) => value
-        Err(issue) => raise Abort(Decode(issue))
-      },
-    )
+    let original_step_views = match @wire.elements(original_steps) {
+      Ok(value) => value
+      Err(issue) => raise Abort(Decode(issue))
+    }
+    preparation.operations += original_step_views.length()
+    preparation.external_inputs += input_names.length() - imports.length()
+    if !prefix {
+      for step in original_step_views {
+        preparation_step(step, preparation)
+      }
+    }
     let results_node = required(stage, "results")
     let results = names(results_node, false)
+    preparation.results += results.length()
     let table_inputs = match @wire.lookup(stage, "table_inputs") {
       Some(value) => names(value, true)
       None => []
@@ -382,7 +407,22 @@ fn decode_envelope(
     }
     (key, producer, result)
   })
-  { id, stages, exports, body: root, source_usage, }
+  {
+    id,
+    stages,
+    exports,
+    body: root,
+    source_usage,
+    preparation: {
+      operations: preparation.operations,
+      results: preparation.results + exports.length(),
+      external_inputs: preparation.external_inputs,
+      initial_fields: preparation.initial_fields,
+      possible_growth: preparation.possible_growth,
+      projected_fields: preparation.projected_fields,
+      max_label_utf16: preparation.max_label_utf16,
+    },
+  }
 }
 
 ///|

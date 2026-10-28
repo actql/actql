@@ -199,13 +199,42 @@ pub fn[I, P] transfer_preparation_capacity_to_run(
     }
     Ok(_) => ()
   }
-  if (ledger.imported_child is Some(origin) && origin.stopping) ||
-    (ledger.original_inventory is Some(inventory) && inventory.closing) {
-    owner.phase = Ready
-    return Err(Resource(ClosedReservation))
+  finish_preparation_capacity_run_current(owner, input, body, ledger)
+}
+
+///|
+// Only after the SAME original current boundary, while Transferring fences
+// reentry. No callback, await or foreign mutation belongs before this helper.
+fn[I, P] finish_preparation_capacity_run_current(
+  owner : PreparationCapacity[I, P],
+  input : I,
+  body : P,
+  ledger : Ledger,
+) -> Result[Unit, PreparationCapacityIssue] {
+  if owner.phase != Transferring {
+    return Err(WorkActive)
   }
-  owner.phase = Run
-  Ok(())
+  let result : Result[Unit, PreparationCapacityIssue] = if !physical_equal(
+      owner.ledger,
+      ledger,
+    ) ||
+    !(owner.input is Some(original) && physical_equal(original, input)) ||
+    !(owner.body is Some(original) && physical_equal(original, body)) {
+    Err(ForeignOriginal)
+  } else {
+    match reservation_check_current(ledger, owner.reservation.reservation) {
+      Err(issue) => Err(Resource(issue))
+      Ok(_) =>
+        if (ledger.imported_child is Some(origin) && origin.stopping) ||
+          (ledger.original_inventory is Some(inventory) && inventory.closing) {
+          Err(Resource(ClosedReservation))
+        } else {
+          Ok(())
+        }
+    }
+  }
+  owner.phase = if result is Ok(_) { Run } else { Ready }
+  result
 }
 
 ///|
@@ -361,6 +390,19 @@ pub fn[I, P] transfer_preparation_retirement_to_run(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  claim_preparation_run_retirement(owner)
+}
+
+///|
+fn[I, P] claim_preparation_run_retirement(
+  owner : PreparationCapacity[I, P],
+) -> Result[PreparationRetirement, PreparationCapacityIssue] {
+  if owner.retirement_claimed {
+    return Err(AlreadyTransferred)
+  }
+  if owner.phase != Run {
+    return Err(WorkActive)
+  }
   owner.retirement_claimed = true
   Ok({ retire_original: () => retire_preparation_capacity(owner), })
 }
@@ -391,29 +433,34 @@ struct PreparationBodyBorrow[P] {
 pub fn[I, P] borrow_preparation_body(
   owner : PreparationCapacity[I, P],
 ) -> Result[PreparationBodyBorrow[P], PreparationCapacityIssue] {
-  match borrow_preparation_capacity(owner) {
-    Err(issue) => Err(issue)
-    Ok(value) =>
-      Ok({
-        read_original: () => preparation_capacity_borrow_value(value),
-        return_original: () => return_preparation_capacity_borrow(value),
-        retirement_started_original: () => {
-          value.owner.phase == Retiring ||
-          value.owner.phase == Settling ||
-          value.owner.phase == Closed
-        },
-        borrow_original: () => {
-          if value.returned {
-            Err(BorrowReturned)
-          } else {
-            borrow_preparation_body(value.owner)
-          }
-        },
-        isolated_usage_original: (ledger, bootstrap) => {
-          !value.returned &&
-          preparation_capacity_usage_isolated(value.owner, ledger, bootstrap)
-        },
-      })
+  borrow_preparation_capacity(owner).map(make_preparation_body_borrow)
+}
+
+///|
+// The slot is claimed by the SAME synchronous Resource boundary. Wrapping it
+// neither checks current again nor issues another slot or reservation.
+fn[I, P] make_preparation_body_borrow(
+  value : PreparationCapacityBorrow[I, P],
+) -> PreparationBodyBorrow[P] {
+  {
+    read_original: () => preparation_capacity_borrow_value(value),
+    return_original: () => return_preparation_capacity_borrow(value),
+    retirement_started_original: () => {
+      value.owner.phase == Retiring ||
+      value.owner.phase == Settling ||
+      value.owner.phase == Closed
+    },
+    borrow_original: () => {
+      if value.returned {
+        Err(BorrowReturned)
+      } else {
+        borrow_preparation_body(value.owner)
+      }
+    },
+    isolated_usage_original: (ledger, bootstrap) => {
+      !value.returned &&
+      preparation_capacity_usage_isolated(value.owner, ledger, bootstrap)
+    },
   }
 }
 
