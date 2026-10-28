@@ -18,6 +18,8 @@ pub fn collection_construction_extent(CollectionConstructionInventory) -> Collec
 
 pub fn collection_construction_quotation_extent() -> CollectionConstructionExtent
 
+pub fn compose_collection_construction_extents(Array[CollectionConstructionExtent]) -> CollectionConstructionExtent?
+
 pub fn compose_collection_construction_inventories(Array[CollectionConstructionInventory]) -> CollectionConstructionInventory?
 
 pub fn int_work_observation_construction_extent() -> CollectionConstructionExtent
@@ -30,7 +32,13 @@ pub fn key_admission_construction_extent(Int, Int) -> KeyAdmissionConstructionEx
 
 pub fn map_construction_extent(Int64, Int64) -> MapConstructionExtent?
 
+pub fn map_retained_extent(Int64, Int64, Int64) -> CollectionConstructionExtent?
+
 pub fn object_key_construction_counts(Int, Int, Int) -> ObjectKeyConstructionCounts?
+
+pub fn reference_array_retained_extent(Int64, Int64) -> CollectionConstructionExtent?
+
+pub fn scale_collection_construction_extent(CollectionConstructionExtent, Int64) -> CollectionConstructionExtent?
 
 pub fn unknown_key_indices(Array[String], Array[String]) -> Array[Int]
 

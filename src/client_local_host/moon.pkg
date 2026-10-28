@@ -8,6 +8,7 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/stage_parameters" @stages,
+  "actql/actql/stage_results",
   "actql/actql/decode_core" @decode,
   "actql/actql/program_check" @checked,
   "actql/actql/pipeline_check_context" @context,

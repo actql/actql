@@ -75,6 +75,8 @@ pub fn object_field_names(Cursor) -> Result[Array[String], Issue]
 
 pub fn object_length(Cursor) -> Int?
 
+pub fn object_view_retained_extent(ObjectView) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn observe_cursor_path_depth(Cursor) -> (Int, Int64)
 
 pub fn observe_subtree_construction_geometry(Cursor) -> SubtreeConstructionGeometry

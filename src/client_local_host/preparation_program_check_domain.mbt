@@ -98,6 +98,15 @@ priv enum ProgramCheckPreparationPhase {
   SourceContextInputPrepared
   SourceContextInputComplete
   SourceContextInputFailed
+  SourceTopologyEntryInitial
+  SourceTopologyEntryPrepared
+  SourceTopologyEntryComplete
+  SourceTopologyEntryFailed
+  SourceTopologyBodyInspectionInitial
+  SourceTopologyBodyQuoted
+  SourceTopologyBodyReturned
+  SourceTopologyBodyRetained
+  SourceTopologyBodyFailed
   Transferred
   Failed
   Retired
@@ -143,6 +152,11 @@ struct ClientProgramCheckPreparation[I, P] {
   mut binding_inventory : @shape.CollectionConstructionInventory?
   mut binding_quote : (Int64, Int64)?
   mut work : @resources.PreparationPhaseWork64?
+  mut topology_work : @resources.PreparationPhaseWorkContinuation64?
+  // Last original read Usage observation, never another work allowance.
+  mut topology_observed_work : Int64
+  mut topology_quoted_phase : @stage_results.LocalProgramReadPhase
+  mut topology_quoted_stage : Int
   base_retained : Int64
   base_execution : Int64
   mut busy : Bool
@@ -155,6 +169,7 @@ pub suberror ClientProgramCheckPreparationIssue {
   Check(@checked.LocalConstructionFailure)
   Catalog(@checked.ParsedCatalogPreparationIssue)
   SourceRegistration(@checked.ParsedSourceRegistrationIssue)
+  TopologyEntry(@context.SourceViewContextIssue)
   Prelude(@checked.ParsedCheckPreludeIssue)
   Work(@resources.PreparationWorkIssue)
   ChangedInputs
@@ -232,6 +247,10 @@ pub fn[I, P] begin_program_check_preparation(
     binding_inventory: None,
     binding_quote: None,
     work: None,
+    topology_work: None,
+    topology_observed_work: 0L,
+    topology_quoted_phase: @stage_results.LocalInputs,
+    topology_quoted_stage: 0,
     base_retained,
     base_execution,
     busy: false,
@@ -276,6 +295,10 @@ fn[I, P] transfer_program_check_input(
   owner.binding_inventory = None
   owner.binding_quote = None
   owner.environment_scratch = None
+  owner.topology_work = None
+  owner.topology_observed_work = 0L
+  owner.topology_quoted_phase = @stage_results.LocalInputs
+  owner.topology_quoted_stage = 0
   owner.input = None
   owner.phase = Transferred
 }
@@ -294,6 +317,12 @@ pub fn[I, P] clear_program_check_preparation(
     match @resources.finish_preparation_phase_work64(work) {
       Err(issue) => return Err(Work(issue))
       Ok(_) => owner.work = None
+    }
+  }
+  if owner.topology_work is Some(work) {
+    match @resources.finish_preparation_phase_work_continuation64(work) {
+      Err(issue) => return Err(Work(issue))
+      Ok(_) => owner.topology_work = None
     }
   }
   // The alias-drop helper marks Transferred for its actual take callers.

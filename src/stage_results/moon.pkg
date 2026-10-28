@@ -2,6 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/calendar_profile",
+  "actql/actql/capacity_arithmetic" @counts,
   "actql/actql/check_environment" @environment,
   "actql/actql/parameter_binding" @binding,
   "actql/actql/parameter_references" @references,
