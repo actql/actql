@@ -141,6 +141,35 @@ pub fn local_program_read_step_construction(
         fields,
       )
     }
+    Pipeline(_, _, _, _, _, _, _, _) => {
+      // Original steps/from Cursor calls, selected Declarations Some and
+      // Limits/empty-delta arguments; no schema/type/keys body is constructed.
+      guard @shape.collection_construction_extent({
+          records: 0L,
+          record_references: 0L,
+          record_words: 0L,
+          reference_arrays: 1L,
+          reference_items: 0L,
+          scalar_arrays: 0L,
+          scalar_items: 0L,
+          maps: 0L,
+          map_entries: 0L,
+        })
+        is Some(delta) else {
+        return None
+      }
+      @shape.compose_collection_construction_extents([
+        @pipeline.pipeline_evidence_read_control_construction_extent(),
+        @decode.indexed_child_construction_extent(),
+        @decode.indexed_child_construction_extent(),
+        delta,
+        // Limits1H6W; selected declarations/from2H2R2W;
+        // required Ok and original entry getters3H3R4W.
+        { record_headers: 6L, reference_slots: 5L, scalar_words: 12L, },
+      ])
+    }
+    PipelineRead(_, _, _, _, _, _, _, read) =>
+      @pipeline.pipeline_evidence_read_step_construction(read)
     _ => None
   }
   peak.map(peak => { peak, })
@@ -208,6 +237,21 @@ pub fn local_program_read_step_retained_extent(
         array, object, imports, remote,
       ])
     }
+    (Pipeline, PipelineRead(_, _, _, _, _, _, _, read)) => {
+      guard @pipeline.pipeline_evidence_read_phase(read) == @pipeline.Carriers &&
+        @shape.reference_array_retained_extent(1L, 0L) is Some(delta) else {
+        return None
+      }
+      @shape.compose_collection_construction_extents([
+        @pipeline.pipeline_evidence_read_control_retained_extent(),
+        delta,
+        // Limits1H6W; declarations/from Some2H2R2W and the two
+        // original steps/from Cursor wrappers2H4R2W. Tree backing borrowed.
+        { record_headers: 5L, reference_slots: 6L, scalar_words: 10L, },
+      ])
+    }
+    (PipelineCarriers, PipelineRead(_, _, _, _, _, _, _, read)) =>
+      @pipeline.pipeline_evidence_read_carriers_retained_extent(read)
     _ => None
   }
 }

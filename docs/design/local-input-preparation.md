@@ -1651,3 +1651,31 @@ buffer capacities through their owning modules and the shared storage inventory,
 including spare capacity, rather than keeping construction-growth buffers or
 substituting semantic/policy maxima. These logical quantities do not describe
 opaque VM/GC backing or prove ordinary backend supply.
+
+
+### Original pipeline evidence continuation
+
+The original evidence-aware pipeline checker retains its selected input array,
+source, parameter declarations, optional stage selector, profiles and semantic
+limits in one private compiler read. Its existing carrier, candidate-key and
+ranking projections execute once, in their original order, before the unchanged
+core checker. The synchronous checker drives that same read; it does not retain
+another implementation of those projections. Internal callers transfer their
+input-array root into this compiler lifetime; names, schema bodies, producer
+identities and existing evidence stay borrowed rather than reconstructed.
+
+The staged Program reader keeps that same nested read. Successful key and
+ranking work is visible as the original cumulative prefix until the completed
+pipeline's original Usage is debited once. Failed nested work has no complete
+Usage. Clearing the Program read retires its pending evidence-read roots; taking
+a completed pipeline preserves its legitimate original aliases.
+
+The existing Request parent backs the evidence-read entrance and carrier
+projection before construction. Their quantities use actual original input
+counts, shared collection storage and the constructor's count of newly made
+Relation wrappers. Retention observes the actual carrier-buffer capacity; it
+does not copy or rescan schemas. The same returned topology work receipt and
+phase/Stage quote association continue across these steps. Key, ranking and
+core-check body construction still require their own domain inventories before
+this parent can advance them; policy work limits are not substituted for that
+missing backing.

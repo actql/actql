@@ -79,8 +79,15 @@ test "original reconciled-input constructor retains one returned work receipt on
     Err(WorkLimit),
   )
   @resources.return_preparation_phase_work_continuation64(work).unwrap()
+  assert_eq(
+    advance_program_check_source_topology(owner).unwrap(),
+    PipelineCarriers,
+  )
+  assert_eq(advance_program_check_source_topology(owner).unwrap(), PipelineKeys)
+  assert_true(physical_equal(owner.topology_work.unwrap(), work))
+  assert_eq(owner.topology_observed_work, 4L)
   assert_true(advance_program_check_source_topology(owner) is Err(WrongPhase))
-  assert_eq(@stage_results.local_program_read_phase(read), Pipeline)
+  assert_eq(@stage_results.local_program_read_phase(read), PipelineKeys)
   clear_program_check_preparation(owner).unwrap()
   assert_eq(
     @resources.finish_preparation_phase_work_continuation64(work),

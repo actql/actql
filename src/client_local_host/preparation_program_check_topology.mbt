@@ -62,7 +62,8 @@ fn topology_phase_supported(
   phase : @stage_results.LocalProgramReadPhase,
 ) -> Bool {
   match phase {
-    LocalInputs | Imports | InputRegistration => true
+    LocalInputs | Imports | InputRegistration | Pipeline | PipelineCarriers =>
+      true
     _ => false
   }
 }
@@ -192,7 +193,8 @@ fn[I, P] inspect_program_check_source_topology_owned(
 ///|
 /// Advance exactly the next backed original constructor. The SAME read and
 /// work receipt span Local selection, Result imports and input registration;
-/// later typing/Result/Context bodies require their own original recipe first.
+/// later key/ranking/core typing, Result and Context bodies need their own
+/// original recipes first.
 pub fn[I, P] advance_program_check_source_topology(
   owner : ClientProgramCheckPreparation[I, P],
 ) -> Result[
@@ -283,6 +285,8 @@ fn[I, P] advance_program_check_source_topology_owned(
     LocalInputs => @stage_results.Imports
     Imports => @stage_results.InputRegistration
     InputRegistration => @stage_results.Pipeline
+    Pipeline => @stage_results.PipelineCarriers
+    PipelineCarriers => @stage_results.PipelineKeys
     _ => {
       owner.phase = Failed
       return Err(WrongPhase)

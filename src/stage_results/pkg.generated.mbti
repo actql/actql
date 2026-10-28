@@ -958,6 +958,10 @@ pub(all) enum LocalProgramReadPhase {
   Imports
   InputRegistration
   Pipeline
+  PipelineCarriers
+  PipelineKeys
+  PipelineRankings
+  PipelineCore
   ParameterCollection
   LocalAttachment
   ImportAttachment

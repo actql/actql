@@ -5,6 +5,10 @@ pub(all) enum LocalProgramReadPhase {
   Imports
   InputRegistration
   Pipeline
+  PipelineCarriers
+  PipelineKeys
+  PipelineRankings
+  PipelineCore
   ParameterCollection
   LocalAttachment
   ImportAttachment
@@ -46,6 +50,16 @@ priv enum LocalProgramStageRead {
     Int,
     @decode.ObjectView,
     Array[(String, @pipeline.InputContract)]
+  )
+  PipelineRead(
+    @local.EnvironmentInputs?,
+    @local.Prepared,
+    @local.Usage,
+    ProgramImports,
+    Int,
+    Int,
+    @decode.ObjectView,
+    @pipeline.PipelineEvidenceRead
   )
   ParameterCollection(
     @local.EnvironmentInputs?,
@@ -302,6 +316,14 @@ pub fn local_program_read_phase(
         StageImports(_, _, _, _) => Imports
         InputRegistration(_, _, _, _, _, _, _) => InputRegistration
         Pipeline(_, _, _, _, _, _, _, _) => Pipeline
+        PipelineRead(_, _, _, _, _, _, _, read) =>
+          match @pipeline.pipeline_evidence_read_phase(read) {
+            Carriers => PipelineCarriers
+            Keys => PipelineKeys
+            Rankings => PipelineRankings
+            Core => PipelineCore
+            _ => Failed
+          }
         ParameterCollection(_, _, _, _, _, _, _, _) => ParameterCollection
         LocalAttachment(_, _, _, _, _, _, _, _, _, _) => LocalAttachment
         ImportAttachment(_, _, _, _, _, _) => ImportAttachment
@@ -333,8 +355,16 @@ pub fn local_program_read_stage_index(original : LocalProgramRead) -> Int? {
 /// prefix. A nested failure has no complete Usage and never becomes zero.
 pub fn local_program_read_owned_work(original : LocalProgramRead) -> Int? {
   match original.state {
-    Reading(body) =>
-      Some(body.limits.max_work - body.work - original.borrowed_work)
+    Reading(body) => {
+      let prefix = match body.stage {
+        PipelineRead(_, _, _, _, _, _, _, read) =>
+          @pipeline.pipeline_evidence_read_owned_work(read)
+        _ => Some(0)
+      }
+      prefix.map(prefix => {
+        body.limits.max_work - body.work - original.borrowed_work + prefix
+      })
+    }
     Completed(Ok((_, used))) => Some(used.work - original.borrowed_work)
     _ => None
   }
@@ -379,6 +409,15 @@ pub fn take_local_program_read(
 /// its legitimate Source/pipeline/Result aliases; this is no physical ACK.
 pub fn clear_local_program_read(original : LocalProgramRead) -> Unit {
   if !(original.state is Taken) {
+    match original.state {
+      Reading(body) | Failed(body, _) =>
+        match body.stage {
+          PipelineRead(_, _, _, _, _, _, _, read) =>
+            @pipeline.clear_pipeline_evidence_read(read)
+          _ => ()
+        }
+      _ => ()
+    }
     original.state = Cleared
   }
 }
@@ -544,8 +583,8 @@ fn advance_local_program_read_owned(
       body,
       inputs
     ) => {
-      let pipeline = match
-        @pipeline.check_with_evidence(
+      let pipeline_read = match
+        @pipeline.begin_pipeline_evidence_read(
           @decode.required(body, "steps").unwrap(),
           inputs,
           Some(@parameters.declarations(source)),
@@ -563,6 +602,30 @@ fn advance_local_program_read_owned(
         ) {
         Err(e) => return Err(Pipeline(i, e))
         Ok(v) => v
+      }
+      read.stage = PipelineRead(
+        reconciled, prepared, local_used, resolved, import_work, import_text, body,
+        pipeline_read,
+      )
+    }
+    PipelineRead(
+      reconciled,
+      prepared,
+      local_used,
+      resolved,
+      import_work,
+      import_text,
+      body,
+      pipeline_read
+    ) => {
+      let phase = @pipeline.advance_pipeline_evidence_read(pipeline_read)
+      if phase != @pipeline.Complete && phase != @pipeline.Failed {
+        return Ok(None)
+      }
+      let pipeline = match
+        @pipeline.take_pipeline_evidence_read(pipeline_read).unwrap() {
+        Err(issue) => return Err(Pipeline(i, issue))
+        Ok(pipeline) => pipeline
       }
       let used = @pipeline.usage(pipeline)
       work -= used.work
@@ -979,7 +1042,14 @@ fn finish_local_program_read_wiring(
 /// The same successful read has already debited Stage/environment prefixes.
 pub fn local_program_read_remaining_work(original : LocalProgramRead) -> Int? {
   match original.state {
-    Reading(body) => Some(body.work)
+    Reading(body) =>
+      match body.stage {
+        PipelineRead(_, _, _, _, _, _, _, read) =>
+          @pipeline.pipeline_evidence_read_owned_work(read).map(prefix => {
+            body.work - prefix
+          })
+        _ => Some(body.work)
+      }
     _ => None
   }
 }

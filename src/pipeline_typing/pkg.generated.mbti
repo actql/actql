@@ -10,6 +10,7 @@ import {
   "actql/actql/carrier_projection",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/event_typing",
   "actql/actql/expression_text",
   "actql/actql/expression_typing",
@@ -40,6 +41,8 @@ import {
 
 // Values
 pub fn adopted_operation_law_cid(AdoptedOperationLaw) -> String
+
+pub fn advance_pipeline_evidence_read(PipelineEvidenceRead) -> PipelineEvidenceReadPhase
 
 pub fn aggregate_order_completion(AggregateOrder) -> SortCompletion?
 
@@ -83,6 +86,8 @@ pub fn author_guards_pipeline(AuthorGuards) -> CheckedPipeline
 
 pub fn author_guards_usage(AuthorGuards) -> (Int, Int)
 
+pub fn begin_pipeline_evidence_read(@decode_core.Cursor, Array[(String, InputContract)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?, text_rank_profile? : @text_rank_profile.Profile?, delta_contracts? : Array[(String, @relation_schema.FieldName, @graph_contract.CheckedContract)], model_tasks? : @check_environment.ModelTasks?) -> Result[PipelineEvidenceRead, Issue]
+
 pub fn bind_author_guards(AuthorGuards, @parameter_binding.BoundValues?, max_work~ : Int, max_text_bytes~ : Int) -> Result[BoundAuthorGuards, Issue]
 
 pub fn bind_contextual_guards(ContextualClosure, Array[@parameter_binding.BoundValues?], max_work~ : Int, max_text_bytes~ : Int) -> Result[BoundGuardClosure, ProducerOrderIssue]
@@ -112,6 +117,8 @@ pub fn check(@decode_core.Cursor, Array[(String, @relation_schema.Schema)], @par
 pub fn check_carriers(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?, text_rank_profile? : @text_rank_profile.Profile?, delta_contracts? : Array[(String, @relation_schema.FieldName, @graph_contract.CheckedContract)], model_tasks? : @check_environment.ModelTasks?) -> Result[CheckedPipeline, Issue]
 
 pub fn check_with_evidence(@decode_core.Cursor, Array[(String, InputContract)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?, text_rank_profile? : @text_rank_profile.Profile?, delta_contracts? : Array[(String, @relation_schema.FieldName, @graph_contract.CheckedContract)], model_tasks? : @check_environment.ModelTasks?) -> Result[CheckedPipeline, Issue]
+
+pub fn clear_pipeline_evidence_read(PipelineEvidenceRead) -> Unit
 
 pub fn collect_author_guards(CheckedPipeline, max_work~ : Int, max_text_bytes~ : Int) -> Result[AuthorGuards, Issue]
 
@@ -333,6 +340,18 @@ pub fn parameter_slots_work(ParameterSlots) -> Int
 
 pub fn parameters(CheckedPipeline) -> @parameter_binding.Declarations?
 
+pub fn pipeline_evidence_read_carriers_retained_extent(PipelineEvidenceRead) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn pipeline_evidence_read_control_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn pipeline_evidence_read_control_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn pipeline_evidence_read_owned_work(PipelineEvidenceRead) -> Int?
+
+pub fn pipeline_evidence_read_phase(PipelineEvidenceRead) -> PipelineEvidenceReadPhase
+
+pub fn pipeline_evidence_read_step_construction(PipelineEvidenceRead) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn prepare_produced_publication(CheckedPipeline, Target, @relation_typing.CheckedOperation, @decode_core.Cursor?, Limits) -> Result[PublicationPreparation, Issue]
 
 pub fn prepared_publication_input(PublicationPreparation) -> ProducedInput
@@ -460,6 +479,8 @@ pub fn step_count(CheckedPipeline) -> Int
 pub fn step_schema(CheckedStep) -> @relation_schema.Schema?
 
 pub fn take_order(CheckedPipeline, Int) -> LogicalOrder?
+
+pub fn take_pipeline_evidence_read(PipelineEvidenceRead) -> Result[CheckedPipeline, Issue]?
 
 pub fn usage(CheckedPipeline) -> Usage
 
@@ -843,6 +864,19 @@ pub struct ParameterSlot {
 }
 
 type ParameterSlots
+
+type PipelineEvidenceRead
+
+pub(all) enum PipelineEvidenceReadPhase {
+  Carriers
+  Keys
+  Rankings
+  Core
+  Complete
+  Failed
+  Taken
+  Cleared
+} derive(Eq, @debug.Debug)
 
 type ProducedInput
 
