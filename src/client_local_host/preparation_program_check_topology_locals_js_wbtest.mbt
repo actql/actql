@@ -27,10 +27,10 @@ test "original reconciled-input constructor retains one returned work receipt on
   assert_eq(owner.topology_observed_work, 2L)
   // The returned quotation frame12416 covers this first constructor too.
   // After return only live state8H11R4W +original Usage1H3W remains288.
-  assert_eq(owner.source_body_quote, Some((12480L, 288L)))
+  assert_eq(owner.source_body_quote, Some((12496L, 288L)))
   assert_eq(
     @resources.preparation_capacity_working_extents(parent.capacity, input),
-    Ok((before.0 + 12480L, before.1 + 12480L)),
+    Ok((before.0 + 12496L, before.1 + 12496L)),
   )
   let work = owner.topology_work.unwrap()
   assert_eq(
@@ -99,8 +99,33 @@ test "original reconciled-input constructor retains one returned work receipt on
     PipelineCoreInputs,
   )
   assert_eq(owner.topology_observed_work, before_core + 2L)
+  reconcile_program_check_source_topology(owner).unwrap()
+  let mut replaces = 0
+  while @stage_results.local_program_read_phase(read) == PipelineCoreInputs {
+    let before = @resources.preparation_capacity_working_extents(
+      parent.capacity,
+      input,
+    ).unwrap()
+    advance_program_check_source_topology(owner).unwrap() |> ignore
+    let peak = owner.source_body_quote.unwrap().0
+    let held = owner.source_body_quote.unwrap().1
+    let replaced = owner.topology_replaced_bytes
+    let scratch = owner.environment_scratch.unwrap()
+    assert_eq(scratch, peak + replaced - held)
+    reconcile_program_check_source_topology(owner).unwrap()
+    assert_eq(
+      @resources.preparation_capacity_working_extents(parent.capacity, input),
+      Ok((before.0 + held - replaced, before.1 + held - replaced)),
+    )
+    assert_true(physical_equal(owner.topology_work.unwrap(), work))
+    replaces += 1
+  }
+  assert_true(replaces > 2)
+  assert_eq(
+    @stage_results.local_program_read_phase(read),
+    PipelineCoreParameters,
+  )
   assert_true(advance_program_check_source_topology(owner) is Err(WrongPhase))
-  assert_eq(@stage_results.local_program_read_phase(read), PipelineCoreInputs)
   clear_program_check_preparation(owner).unwrap()
   assert_eq(
     @resources.finish_preparation_phase_work_continuation64(work),
@@ -141,7 +166,7 @@ test "reconciled-input one-short admission does not claim work or advance the or
         limits.retained_bytes -
         usage.held_bytes -
         usage.reserved_retention_bytes -
-        12480L +
+        12496L +
         1L
       } else {
         0L
@@ -149,7 +174,7 @@ test "reconciled-input one-short admission does not claim work or advance the or
       if retention {
         0L
       } else {
-        limits.execution_bytes - usage.reserved_execution_bytes - 12480L + 1L
+        limits.execution_bytes - usage.reserved_execution_bytes - 12496L + 1L
       },
     ).unwrap()
     let refused = advance_program_check_source_topology(owner)
@@ -168,7 +193,7 @@ test "reconciled-input one-short admission does not claim work or advance the or
     assert_eq(@stage_results.local_program_read_phase(read), LocalInputs)
     @resources.settle_capacity(parent.ledger, blocker).unwrap()
     assert_eq(advance_program_check_source_topology(owner).unwrap(), Imports)
-    assert_eq(owner.source_body_quote.unwrap(), (12480L, 288L))
+    assert_eq(owner.source_body_quote.unwrap(), (12496L, 288L))
     clear_program_check_preparation(owner).unwrap()
     abort_request_preparation_after_cleanup(parent).unwrap()
   }
@@ -351,7 +376,7 @@ test "256-input registration grows only missing backing and retains its original
     let prior = @stage_results.local_program_read_owned_work(read).unwrap()
     inspect_program_check_source_topology(owner).unwrap()
     let quote = owner.source_body_quote.unwrap()
-    let additional = quote.0 - 12480L
+    let additional = quote.0 - 12496L
     assert_true(additional > 0L)
     let usage = @resources.ledger_usage(parent.ledger)
     let limits = @resources.ledger_limits(parent.ledger)

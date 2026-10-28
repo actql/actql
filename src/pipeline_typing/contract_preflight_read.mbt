@@ -28,6 +28,7 @@ priv struct ContractPreflightRead {
   mut depth : Int
   mut index : Int
   mut count : Int
+  mut retained_tuples : Int
 }
 
 ///|
@@ -48,6 +49,7 @@ fn begin_contract_preflight_read(
     depth: 0,
     index: 0,
     count: 0,
+    retained_tuples: 1,
   }
 }
 
@@ -72,7 +74,8 @@ fn advance_contract_preflight_read_owned(
   let source = read.source
   let work = read.work
   match read.step {
-    Node =>
+    Node => {
+      let old_capacity = work.capacity()
       if work.pop() is Some((c, depth)) {
         spend(b, source, 1)
         if depth > b.limits.max_depth {
@@ -102,6 +105,12 @@ fn advance_contract_preflight_read_owned(
           _ => ()
         }
       }
+      // Non-JS pop keeps stale tuple roots until overwrite/growth. JS drops
+      // the removed slot immediately and exposes that changed capacity.
+      if work.capacity() != old_capacity {
+        read.retained_tuples = work.length()
+      }
+    }
     Fields => {
       let field = @contract.field_at(read.fields.unwrap(), read.index).unwrap()
       charge(b, source, field.name)
@@ -109,12 +118,24 @@ fn advance_contract_preflight_read_owned(
       read.step = PushField
     }
     PushArray => {
+      let old_capacity = work.capacity()
       work.push((read.child.unwrap(), read.depth + 1))
+      read.retained_tuples = if work.capacity() != old_capacity {
+        work.length()
+      } else {
+        Int::max(read.retained_tuples, work.length())
+      }
       read.child = None
       read.step = Node
     }
     PushField => {
+      let old_capacity = work.capacity()
       work.push((read.child.unwrap(), read.depth + 1))
+      read.retained_tuples = if work.capacity() != old_capacity {
+        work.length()
+      } else {
+        Int::max(read.retained_tuples, work.length())
+      }
       read.child = None
       read.index += 1
       if read.index == read.count {

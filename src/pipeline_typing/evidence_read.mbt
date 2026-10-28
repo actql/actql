@@ -147,8 +147,10 @@ pub fn pipeline_evidence_read_phase(
 }
 
 ///|
-/// Successful original prefix only. A failed nested read has no complete
-/// Usage; it is never represented as zero work or a fresh allowance.
+/// Actual original consumed prefix. A rejected CoreInputs body retains its
+/// SAME mutable Budget, including failed nested Contract work. This is not
+/// complete successful Usage. Other failed domains without that original
+/// consumed-work fact remain None, never zero or a fresh allowance.
 pub fn pipeline_evidence_read_owned_work(
   original : PipelineEvidenceRead,
 ) -> Int? {
@@ -164,6 +166,17 @@ pub fn pipeline_evidence_read_owned_work(
                 core.limits.max_work -
                 core.b.work,
               )
+            Rejected(core, _) =>
+              if core.phase == Inputs {
+                Some(
+                  body.limits.max_work -
+                  body.key_work +
+                  core.limits.max_work -
+                  core.b.work,
+                )
+              } else {
+                None
+              }
             Completed(checked) =>
               Some(body.limits.max_work - body.key_work + checked.usage.work)
             _ => None
@@ -171,6 +184,35 @@ pub fn pipeline_evidence_read_owned_work(
         _ => Some(body.limits.max_work - body.key_work)
       }
     Completed(checked) => Some(checked.usage.work)
+    Rejected(body, _) =>
+      match body.step {
+        CoreRunning(read) =>
+          match read.state {
+            Rejected(core, _) =>
+              if core.phase == Inputs {
+                Some(
+                  body.limits.max_work -
+                  body.key_work +
+                  core.limits.max_work -
+                  core.b.work,
+                )
+              } else {
+                None
+              }
+            _ => None
+          }
+        _ => None
+      }
+    _ => None
+  }
+}
+
+///|
+/// Borrow the original typed refusal while its failed input/stack remains
+/// retained for accounting and clear. This does not construct checked output.
+pub fn pipeline_evidence_read_issue(original : PipelineEvidenceRead) -> Issue? {
+  match original.state {
+    Rejected(_, issue) => Some(issue)
     _ => None
   }
 }
@@ -385,6 +427,12 @@ fn advance_pipeline_evidence_read_owned(
       let phase = advance_pipeline_core_read(read)
       if phase != Complete && phase != Failed {
         return Ok(None)
+      }
+      if phase == Failed {
+        guard read.state is Rejected(_, issue) else {
+          abort("original failed Core expected")
+        }
+        return Err(issue)
       }
       let checked = match take_pipeline_core_read(read).unwrap() {
         Err(issue) => return Err(issue)
