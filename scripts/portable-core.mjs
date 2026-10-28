@@ -106,6 +106,31 @@ export function reviewedEsmModuleOptionEnd(list, start) {
   return list[end]?.kind === 'symbol' && list[end].value === ')' ? end + 1 : undefined;
 }
 
+// Read the existing literal target clause as compiler-owned DATA. Neither
+// consumer evaluates its string expressions or uses them to hide dependencies.
+export function readPackageTargetOptions({take, peek}) {
+  const symbol = value => take('symbol', value);
+  symbol('('); take('word', 'targets'); symbol(':'); symbol('{');
+  const targets = [];
+  const files = new Set();
+  while (!peek('}')) {
+    const file = take('string');
+    if (files.has(file)) throw new Error('UnknownManifestOptions: duplicate filename');
+    files.add(file);
+    symbol(':'); symbol('[');
+    const expression = [];
+    while (!peek(']')) {
+      expression.push(take('string'));
+      if (!peek(']')) symbol(',');
+    }
+    symbol(']');
+    targets.push([file, expression]);
+    if (!peek('}')) symbol(',');
+  }
+  symbol('}'); if (peek(',')) symbol(','); symbol(')');
+  return targets;
+}
+
 function packageMetadata(source) {
   const ts = tokens(source);
   let i = 0;
@@ -147,24 +172,7 @@ function packageMetadata(source) {
       // Do not evaluate target expressions or exempt any source/dependency from
       // inspection. The pinned compiler owns their meaning and validation.
       if (targets !== null) throw new Error('UnknownManifestOptions: duplicate targets');
-      symbol('('); take('word', 'targets'); symbol(':'); symbol('{');
-      targets = [];
-      const files = new Set();
-      while (!peek('}')) {
-        const file = take('string');
-        if (files.has(file)) throw new Error('UnknownManifestOptions: duplicate filename');
-        files.add(file);
-        symbol(':'); symbol('[');
-        const expression = [];
-        while (!peek(']')) {
-          expression.push(take('string'));
-          if (!peek(']')) symbol(',');
-        }
-        symbol(']');
-        targets.push([file, expression]);
-        if (!peek('}')) symbol(',');
-      }
-      symbol('}'); if (peek(',')) symbol(','); symbol(')');
+      targets = readPackageTargetOptions({take, peek});
     } else if (directive === 'formatter') {
       symbol('('); take('word', 'ignore'); symbol(':'); symbol('[');
       while (!peek(']')) { take('string'); if (!peek(']')) symbol(','); }

@@ -3,7 +3,7 @@
 // These snapshots are not a new manifest, identity or runtime authority.
 import {lstatSync, readFileSync, realpathSync} from 'node:fs';
 import {isAbsolute, join, relative, resolve, sep} from 'node:path';
-import {tokens, reviewedEsmModuleOptionEnd} from './portable-core.mjs';
+import {tokens, reviewedEsmModuleOptionEnd, readPackageTargetOptions} from './portable-core.mjs';
 import {checkHostBundle, checkHostProfiles} from './connector-host-bundles.mjs';
 
 const coreNamespace = 'actql/actql';
@@ -138,6 +138,7 @@ function packageMetadata(path) {
   const input = reader(readFileSync(path, 'utf8'), path);
   const imports = [];
   let target;
+  let targets = null;
   while (!input.done()) {
     const directive = input.take('word');
     if (directive === 'supported_targets') {
@@ -156,6 +157,9 @@ function packageMetadata(path) {
         input.take('word', 'for');
         if (!['test', 'wbtest'].includes(input.take('string'))) throw new Error('Unsupported package import scope');
       }
+    } else if (directive === 'options') {
+      if (targets !== null) throw new Error('UnknownManifestOptions: duplicate targets');
+      targets = readPackageTargetOptions(input);
     } else if (directive === 'pkgtype') {
       input.take('symbol', '('); input.take('word', 'kind'); input.take('symbol', ':');
       if (!['executable', 'foreign_library', 'library'].includes(input.take('string'))) {
@@ -176,7 +180,7 @@ function packageMetadata(path) {
     } else throw new Error(`Unsupported package metadata: ${directive}`);
   }
   supportsJS(target, path);
-  return imports;
+  return {imports, targets};
 }
 
 export function resolveConnectorBuildInputs(configuration) {
@@ -243,12 +247,15 @@ export function resolveConnectorBuildInputs(configuration) {
     const directory = ownedPath(owner.sourceRoot, suffix || '.', 'directory');
     if (stat(join(directory, 'moon.pkg.json'))) throw new Error('Unsupported or ambiguous package metadata');
     const path = ownedPath(directory, 'moon.pkg', 'file');
-    for (const imported of packageMetadata(path)) {
+    const metadata = packageMetadata(path);
+    for (const imported of metadata.imports) {
       if (!namespace(imported)) throw new Error('Invalid package dependency identifier');
       // The standard library is supplied by the pinned compiler toolchain.
       if (imported.startsWith('moonbitlang/core/')) continue;
       canImport(owner.namespace, ownerOf(imported).namespace);
     }
+    // Pass the original manifest, including metadata.targets, to the compiler.
+    // No target expression selects files here or rewrites its import closure.
     return path;
   };
   const resolveFile = (name, path) => {
