@@ -186,7 +186,7 @@ test "retained static Effect compilation keeps actual task and graph bounds" {
       { ..limits.program, max_tasks: 0, },
       limits.max_mapping_work,
     )
-    is Err(Graph(@strategy.TaskLimit)),
+    is Err(Graph(@strategy.GraphIssue::TaskLimit)),
   )
   assert_true(
     prepare_static_client_effect_computation(
@@ -194,7 +194,7 @@ test "retained static Effect compilation keeps actual task and graph bounds" {
       { ..limits.program, max_graph_work: 0, },
       limits.max_mapping_work,
     )
-    is Err(Graph(@strategy.WorkLimit)),
+    is Err(Graph(@strategy.GraphIssue::WorkLimit)),
   )
 }
 
