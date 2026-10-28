@@ -25,6 +25,27 @@ how it reads what people said.
   `media_type`, `content`. Join it on `resource` and `version` from
   `slack.files`; the Connector downloads only the files the join names.
 
+
+For `slack.files`, `channels` is the nullable conversation-membership metadata
+reported by the original file observation: combine native `channels`, `groups`
+and `ims` in that field order, retaining provider order within each array and
+only the first occurrence of each exact conversation id. Do not normalize,
+case-fold or sort ids. Repetition denotes one membership, not multiple shares.
+
+All three components must be present valid arrays for a known array result.
+Three explicit empty arrays produce `[]`. If any component is absent or null,
+`channels` is unknown (`NULL`), preserving original field presence separately;
+it never becomes an invented empty or partial-complete array. Malformed members
+are refused under ordinary provider admission. A nonnullable refinement must
+obtain sufficient original metadata or refuse the row.
+
+This describes the caller-visible observation only. Slack limits private-group
+and direct-message membership to conversations the caller belongs to. The array
+is not proof of hidden membership, permission or a stable snapshot. Request
+filters, token capabilities, counts and URLs cannot add memberships or grant
+Source, Content or Effect access. Private-channel/direct-message reads and
+full keyed Content remain required capabilities.
+
 ## Types
 
 | Slack value | ActQL | Notes |
