@@ -333,6 +333,16 @@ pub fn source_registration_local_snapshot_construction_geometry(
 }
 
 ///|
+/// SAME captured original Local Member; no Source-owned writer or extra walk.
+pub fn source_registration_local_snapshot_text_construction(
+  read : SourceRegistrationRead,
+) -> @environment.RegistryConstructionExtent? {
+  read.local_child.bind(
+    @local_inputs.local_environment_snapshot_text_construction,
+  )
+}
+
+///|
 pub fn source_registration_local_groups_construction(
   read : SourceRegistrationRead,
 ) -> @shape.CollectionConstructionInventory? {

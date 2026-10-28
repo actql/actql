@@ -94,6 +94,8 @@ pub fn start_string_value(Writer, String) -> StringEmitCursor raise EncodeFailur
 
 pub fn string_value(Writer, String) -> Unit raise EncodeFailure
 
+pub fn text_writer_construction_inventory(Int, Int, Int) -> TextWriterConstructionInventory?
+
 pub fn writer(Int, Int, Int) -> Writer raise EncodeFailure
 
 pub fn writer_progress(Writer) -> (Int, Int, Int) raise EncodeFailure
@@ -121,6 +123,13 @@ pub(all) struct HashWriterConstructionInventory {
 type OrderedKeyEmitCursor
 
 type StringEmitCursor
+
+pub(all) struct TextWriterConstructionInventory {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+} derive(Eq, @debug.Debug)
 
 type Writer
 

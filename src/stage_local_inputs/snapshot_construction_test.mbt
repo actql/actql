@@ -90,3 +90,50 @@ test "Local failed snapshot keeps its captured member until original clear" {
   clear_local_environment_preparation(read)
   assert_true(local_environment_snapshot_construction_geometry(read) is None)
 }
+
+///|
+test "Local captured original Member supplies text quantity before read and across failure" {
+  let source = two_stage_source()
+  let (environment, _) = environment_for([
+    snapshot_in_stage("s", "b", schema_fields()),
+  ])
+  for failed in [false, true] {
+    let limits = if failed { { ..caps(), max_nodes: 8, } } else { caps() }
+    let read = begin_local_environment_preparation(source, environment, limits).unwrap()
+    assert_true(local_environment_snapshot_text_construction(read) is None)
+    for _ in 0..<2 {
+      let _ = advance_local_environment_preparation(read)
+    }
+    assert_true(local_environment_snapshot_text_construction(read) is None)
+    let _ = observe_local_environment_snapshot_construction(read).unwrap()
+    let original = @environment.member_at(environment, SchemaSnapshots, 0).unwrap()
+    let quantity = local_environment_snapshot_text_construction(read).unwrap()
+    assert_eq(
+      quantity,
+      @environment.member_text_emission_construction_extent(original),
+    )
+    let _ = advance_local_environment_preparation(read)
+    if failed {
+      assert_eq(
+        local_environment_preparation_phase(read),
+        LocalEnvironmentFailed,
+      )
+      assert_eq(
+        local_environment_snapshot_text_construction(read),
+        Some(quantity),
+      )
+      let _ = take_local_environment_preparation_result(read).unwrap()
+      assert_eq(
+        local_environment_snapshot_text_construction(read),
+        Some(quantity),
+      )
+    } else {
+      assert_true(local_environment_snapshot_text_construction(read) is None)
+    }
+    clear_local_environment_preparation(read)
+    assert_true(local_environment_snapshot_text_construction(read) is None)
+    // A quantity retained by the caller is still its own DATA after clear.
+    assert_eq(quantity.owned_wire_bytes, 0L)
+    assert_true(quantity.owned_utf16_units > 0L)
+  }
+}

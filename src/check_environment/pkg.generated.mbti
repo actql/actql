@@ -478,6 +478,8 @@ pub fn member_instance_construction_extent() -> @decode_shape.CollectionConstruc
 
 pub fn member_section(Member) -> Section
 
+pub fn member_text_emission_construction_extent(Member) -> RegistryConstructionExtent
+
 pub fn member_usage(Member) -> (Int, Int)
 
 pub fn model_dependency_identity(ModelDependency) -> String
@@ -949,6 +951,8 @@ pub fn validate_decision_answers(DecisionContract, @decode_core.Cursor, Decision
 pub fn value_contract_policies(ProtocolValueContracts) -> SourceDataPolicies
 
 pub fn wire_hash_construction_extent(Int) -> RegistryConstructionExtent?
+
+pub fn wire_text_construction_extent(Int, Int, Int) -> RegistryConstructionExtent?
 
 // Errors
 

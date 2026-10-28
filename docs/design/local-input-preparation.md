@@ -1089,3 +1089,30 @@ This is logical constructor representation, not measured heap or permission to
 allocate. TextOutput, serializer traversal, UTF8 conversion and the original
 byte/schema reader still require their own complete overlap and original parent
 funding. A hashing-sink inventory must not be relabeled as that full text path.
+
+
+## Original Member text-emission construction
+
+The Local reader's unbuffered text writer has its own constructor inventory.
+Its frames and Map/Array containers use the same shared owner as the hashing
+writer, without importing SHA state, digest or hex scratch into TextOutput.
+The text sink accounts for the pinned concat/fixed-buffer builder alternatives,
+ASCII views, scalar spellings, completion and returned String. The valid emitted
+UTF8 byte extent bounds UTF16 storage; it is not replaced by a configured byte
+ceiling. Serializer pending depth is bounded by the original open-container
+peak plus its next Visit, and also by the original node count.
+
+The Environment binds this quantity to the admitted Member's stored emission
+metrics. Local exposes it only after capturing its original selected Member;
+Source forwards that same private child. None means unobserved, not free work.
+A failed/taken step keeps the original captured Member until the existing clear
+boundary. The caller retains the returned quantity once across growth and
+checks the original current association; this DATA does not perform either
+operation or acknowledge a physical retirement.
+
+Inventory calculation/return carriers and borrowed call frames need their
+pre-entry backing. The emission quantity itself covers neither UTF8 encoding,
+byte hashing/parsing/admission, schema/Snapshot construction nor retained input
+or score trees. Those overlaps must be composed on the same actual parent before
+the original byte reader runs. No direct Environment-Cursor substitution or
+coordinate rebasing replaces that reader.

@@ -96,6 +96,8 @@ pub fn local_environment_snapshot_construction_retained_extent() -> @decode_shap
 
 pub fn local_environment_snapshot_emission_observation_extent() -> @decode_shape.CollectionConstructionExtent
 
+pub fn local_environment_snapshot_text_construction(LocalEnvironmentPreparation) -> @check_environment.RegistryConstructionExtent?
+
 pub fn observe_local_environment_index_construction(LocalEnvironmentPreparation) -> Int64?
 
 pub fn observe_local_environment_snapshot_construction(LocalEnvironmentPreparation) -> (Int, Int, Int)?

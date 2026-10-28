@@ -785,3 +785,45 @@ test "original Source captures the same Local snapshot geometry before its reade
     Some((0, emitted)),
   )
 }
+
+///|
+test "Source text quantity follows its same captured Local Member without replacement limits" {
+  let read = snapshot_emission_registration_read()
+  assert_true(
+    source_registration_local_snapshot_text_construction(read) is None,
+  )
+  let mut steps = 0
+  while source_registration_local_phase(read) !=
+        Some(@local_inputs.LocalEnvironmentSnapshot) {
+    assert_true(steps < 10)
+    let _ = advance_source_registration(read)
+    steps += 1
+  }
+  assert_true(
+    source_registration_local_snapshot_text_construction(read) is None,
+  )
+  let geometry = observe_source_registration_local_snapshot_construction(read).unwrap()
+  let quantity = source_registration_local_snapshot_text_construction(read).unwrap()
+  assert_eq(
+    quantity,
+    @environment.wire_text_construction_extent(
+      geometry.0,
+      geometry.1,
+      geometry.2,
+    ).unwrap(),
+  )
+  let _ = advance_source_registration(read)
+  assert_eq(
+    source_registration_local_snapshot_emission(read).unwrap().1,
+    Some(geometry),
+  )
+  assert_true(
+    source_registration_local_snapshot_text_construction(read) is None,
+  )
+  assert_eq(complete_registration_local(read), RegistrationComplete)
+  let _ = take_source_registration_result(read).unwrap().unwrap()
+  clear_source_registration(read)
+  assert_true(
+    source_registration_local_snapshot_text_construction(read) is None,
+  )
+}

@@ -263,6 +263,21 @@ pub fn local_environment_snapshot_construction_geometry(
 }
 
 ///|
+/// Derive the selected original Member's text-emission quantity only after its
+/// existing capture. None is unobserved, not zero. The caller owns this returned
+/// DATA and its quotation frame; retain it once across the actual grow/current
+/// boundary. UTF8/reader/schema/parent backing and retirement stay separate.
+pub fn local_environment_snapshot_text_construction(
+  read : LocalEnvironmentPreparation,
+) -> @environment.RegistryConstructionExtent? {
+  read.snapshot_construction.map(captured => {
+    @environment.member_text_emission_construction_extent(
+      captured.original_member,
+    )
+  })
+}
+
+///|
 /// Member access controls plus Member1H2R2W, scalar tuple1H3W, its Some1H1R1W,
 /// captured record1H2R1W and its Some1H1R1W. No input-sized work container.
 pub fn local_environment_snapshot_construction_inspection_extent() -> @shape.CollectionConstructionExtent {

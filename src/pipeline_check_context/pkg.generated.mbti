@@ -1162,6 +1162,8 @@ pub fn source_registration_local_snapshot_construction_geometry(SourceRegistrati
 
 pub fn source_registration_local_snapshot_emission(SourceRegistrationRead) -> (Int, (Int, Int, Int)?)?
 
+pub fn source_registration_local_snapshot_text_construction(SourceRegistrationRead) -> @check_environment.RegistryConstructionExtent?
+
 pub fn source_registration_phase(SourceRegistrationRead) -> SourceRegistrationPhase
 
 pub fn source_registration_pipeline_construction(SourceRegistrationRead) -> @sourceview_resolution.PipelinePreparationConstruction?
