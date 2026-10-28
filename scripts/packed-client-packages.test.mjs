@@ -10,6 +10,7 @@ import test from 'node:test';
 import fsPromises from 'node:fs/promises';
 import {syncBuiltinESMExports} from 'node:module';
 import './npm-pack-json.test.mjs';
+import './normal-pack-source-inputs.test.mjs';
 import {packClientPackages, packedClientPackage, pinnedDuckDBPackage} from
   './packed-client-packages.mjs';
 
