@@ -2596,139 +2596,26 @@ pub fn check_with_evidence(
   ] = [],
   model_tasks? : @model_environment.ModelTasks? = None,
 ) -> Result[CheckedPipeline, Issue] {
-  if limits.max_steps < 0 ||
-    limits.max_work < 0 ||
-    limits.max_text_bytes < 0 ||
-    limits.max_nodes < 0 ||
-    limits.max_tokens < 0 ||
-    limits.max_depth < 0 {
-    return Err({
-      kind: InvalidLimits,
+  let original = match
+    begin_pipeline_evidence_read(
       source,
-      path: @decode.cursor_path(source),
-      span: @decode.cursor_span(source),
-      range: None,
-    })
+      inputs,
+      parameters,
+      from,
+      limits,
+      calendar_profile~,
+      text_rank_profile~,
+      delta_contracts~,
+      model_tasks~,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(original) => original
   }
-  let carriers = inputs.map(pair => {
-    (
-      pair.0,
-      match pair.1 {
-        ProducedInput(p) => p.carrier
-        SourceViewInput(_, _, _, owner) =>
-          @model_environment.carrier_schema_value(
-            @model_environment.source_view_carrier_schema(owner),
-          )
-        CarrierInput(c) => c
-        KeyedInput(k) => @carrier.relation(@evidence.keyed_records(k))
-        CandidateKeysInput(k) => @carrier.relation(@evidence.key_set_records(k))
-        RankingInput(r) => @vector.ranking_input_carrier(r)
-        RelationEvidenceInput(e) => @vector.ranking_input_carrier(e.ranking)
-      },
-    )
-  })
-  let mut key_work = limits.max_work
-  let mut key_text = limits.max_text_bytes
-  let keys = []
-  for (_, input) in inputs {
-    let key = match input {
-      SourceViewInput(_, _, _, owner) =>
-        match
-          @evidence.source_view_keys(owner, {
-            max_work: key_work,
-            max_name_bytes: key_text,
-          }) {
-          Ok(None) => None
-          Ok(Some(value)) => {
-            key_work -= value.work
-            key_text -= value.name_bytes
-            Some(value.keys)
-          }
-          Err(issue) =>
-            return Err({
-              kind: KeyEvidence(issue.kind),
-              source,
-              path: issue.path.copy(),
-              span: issue.span,
-              range: None,
-            })
-        }
-      ProducedInput(p) => p.keys
-      CarrierInput(_) | RankingInput(_) => None
-      KeyedInput(k) => Some(@evidence.singleton_key(k))
-      CandidateKeysInput(k) => Some(k)
-      RelationEvidenceInput(e) => Some(e.keys)
-    }
-    keys.push(key)
+  while (match pipeline_evidence_read_phase(original) {
+          Carriers | Keys | Rankings | Core => true
+          _ => false
+        }) {
+    let _ = advance_pipeline_evidence_read(original)
   }
-  let mut score_nodes = limits.max_nodes
-  let rankings = []
-  for (_, input) in inputs {
-    let ranking = match input {
-      SourceViewInput(_, _, _, owner) =>
-        match
-          @vector.source_view_scores(owner, {
-            max_work: key_work,
-            max_nodes: score_nodes,
-            max_depth: limits.max_depth,
-            max_text_bytes: key_text,
-          }) {
-          Ok(None) => None
-          Ok(Some(value)) => {
-            key_work -= value.usage.work
-            key_text -= value.usage.text_bytes
-            score_nodes -= value.usage.nodes
-            Some(value.input)
-          }
-          Err(issue) =>
-            return Err({
-              kind: Vector(issue.kind),
-              source,
-              path: issue.path.copy(),
-              span: issue.span,
-              range: None,
-            })
-        }
-      ProducedInput(p) => p.ranking
-      RankingInput(r) => Some(r)
-      RelationEvidenceInput(e) => Some(e.ranking)
-      _ => None
-    }
-    rankings.push(ranking)
-  }
-  let checked = check_impl(
-    source,
-    carriers,
-    parameters,
-    from,
-    {
-      ..limits,
-      max_work: key_work,
-      max_nodes: score_nodes,
-      max_text_bytes: key_text,
-    },
-    calendar_profile,
-    text_rank_profile,
-    delta_contracts,
-    keys,
-    rankings,
-    inputs.map(pair => {
-      match pair.1 {
-        ProducedInput(p) => Some(p)
-        _ => None
-      }
-    }),
-    inputs.map(pair => pair.1),
-    model_tasks,
-  ) catch {
-    Stop(issue) => return Err(issue)
-  }
-  Ok({
-    ..checked,
-    usage: {
-      ..checked.usage,
-      work: limits.max_work - key_work + checked.usage.work,
-      text_bytes: limits.max_text_bytes - key_text + checked.usage.text_bytes,
-    },
-  })
+  take_pipeline_evidence_read(original).unwrap()
 }

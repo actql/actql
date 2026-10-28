@@ -66,7 +66,7 @@ priv enum ProgramAttachedImports {
 }
 
 ///|
-priv enum PreparedProgram {
+pub enum LocalProgramPreparation {
   Publication(ResultWiring)
   Topology(CheckedTopology)
 }

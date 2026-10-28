@@ -136,6 +136,15 @@ pub fn topology_sourceview_attachment_at(
 /// Original SourceView registration gathering, not a checked topology, Plan,
 /// Resource Owner or permission. The SAME Source/locals/views/selected inputs
 /// stay private; no caller can supply a replacement registration array.
+priv enum SourceViewProgramReadState {
+  Ready
+  Reading(@stage_results.LocalProgramRead)
+  Rejected(@stage_results.LocalProgramIssue)
+  Consumed
+  Retired
+}
+
+///|
 priv struct SourceViewProgramInput {
   source : @stages.Source
   views : @sourceviews.PipelineInputs
@@ -147,7 +156,7 @@ priv struct SourceViewProgramInput {
   missing_calendar : @environment.CalendarSelection?
   extra : Int
   prior : Int
-  mut available : Bool
+  mut topology : SourceViewProgramReadState
 }
 
 ///|
@@ -258,7 +267,7 @@ fn prepare_sourceview_program_input(
     missing_calendar,
     extra,
     prior,
-    available: true,
+    topology: Ready,
   })
 }
 
@@ -296,10 +305,6 @@ fn finish_sourceview_program_input_owned(
   (SourceViewPreparation, @stage_results.LocalProgramUsage, Int),
   SourceViewProgramIssue,
 ] {
-  if !original.available {
-    return Err(Unavailable)
-  }
-  original.available = false
   let {
     source,
     views,
@@ -314,11 +319,12 @@ fn finish_sourceview_program_input_owned(
     ..
   } = original
   let count = @stages.stage_count(source)
-  let checked_limits = { ..limits, max_work: limits.max_work - extra, }
   let prepared = if check_only {
+    guard original.topology is Ready else { return Err(Unavailable) }
+    original.topology = Consumed
     @stage_results.check_local_program(
       source,
-      checked_limits,
+      { ..limits, max_work: limits.max_work - extra, },
       environment=Some(locals),
       sourceview_registrations=Some(registrations),
       calendar_profile=calendar.map(@environment.selected_calendar_profile),
@@ -328,15 +334,28 @@ fn finish_sourceview_program_input_owned(
       (Topology({ topology, views, attachments: [], }), usage)
     })
   } else {
-    @stage_results.prepare_local_program(
-      source,
-      checked_limits,
-      environment=Some(locals),
-      sourceview_registrations=Some(registrations),
-      calendar_profile=calendar.map(@environment.selected_calendar_profile),
-      model_tasks~,
-    ).map(fn(result) {
+    let read = match begin_sourceview_program_topology_read(original) {
+      Err(issue) => {
+        original.topology = Consumed
+        return Err(issue)
+      }
+      Ok(read) => read
+    }
+    original.topology = Consumed
+    let mut phase = @stage_results.local_program_read_phase(read)
+    while phase != @stage_results.Complete && phase != @stage_results.Failed {
+      if phase == @stage_results.Cleared || phase == @stage_results.Taken {
+        return Err(Unavailable)
+      }
+      phase = @stage_results.advance_local_program_read(read)
+    }
+    @stage_results.take_local_program_read(read)
+    .unwrap()
+    .map(fn(result) {
       let (wiring, usage) = result
+      guard wiring is @stage_results.Publication(wiring) else {
+        abort("mixed preparation modes")
+      }
       (Publication(wiring), usage)
     })
   }
@@ -379,4 +398,38 @@ fn finish_sourceview_program_input_owned(
   }
   let work = limits.max_work - remaining
   Ok((wiring, { ..used, work, }, work - used.work - prior))
+}
+
+///|
+/// Retain exactly the original topology constructor. A repeated borrow returns
+/// the SAME reader, never a freshly checked Source or reconstructed Program.
+fn begin_sourceview_program_topology_read(
+  original : SourceViewProgramInput,
+) -> Result[@stage_results.LocalProgramRead, SourceViewProgramIssue] {
+  match original.topology {
+    Reading(read) => return Ok(read)
+    Rejected(issue) => return Err(Program(issue))
+    Consumed | Retired => return Err(Unavailable)
+    Ready => ()
+  }
+  let result = @stage_results.begin_local_program_read(
+    original.source,
+    { ..original.limits, max_work: original.limits.max_work - original.extra, },
+    environment=Some(original.locals),
+    sourceview_registrations=Some(original.registrations),
+    calendar_profile=original.calendar.map(
+      @environment.selected_calendar_profile,
+    ),
+    model_tasks=original.model_tasks,
+  )
+  match result {
+    Ok(read) => {
+      original.topology = Reading(read)
+      Ok(read)
+    }
+    Err(issue) => {
+      original.topology = Rejected(issue)
+      Err(Program(issue))
+    }
+  }
 }

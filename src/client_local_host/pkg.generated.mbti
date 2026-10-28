@@ -25,6 +25,7 @@ import {
   "actql/actql/run_publication_host",
   "actql/actql/source_value",
   "actql/actql/stage_parameters",
+  "actql/actql/stage_results",
   "actql/actql/stage_syntax",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
@@ -53,6 +54,8 @@ pub fn advance_client_original_keyed_prefix_input(ClientOriginalKeyedPrefixInput
 pub fn advance_client_serialization_prefix(ClientSerializationPrefix, Int) -> Result[@local.ManagedProviderPoll, @connector_sdk.FixedComputeIssue]
 
 pub fn[I] advance_program_capture(ClientProgramCapture[I], Int) -> Result[(Bool, Int), ClientClosedValuesPreparationIssue]
+
+pub fn[I, P] advance_program_check_source_topology(ClientProgramCheckPreparation[I, P]) -> Result[@stage_results.LocalProgramReadPhase, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] advance_program_json_preparation(ClientProgramJsonPreparation[I, P], Int) -> Result[@source_value.JsonSourcePreflightPoll, ClientProgramJsonPreparationIssue]
 
@@ -570,6 +573,8 @@ pub fn[I, P] prepare_program_check_source_registration(ClientProgramCheckPrepara
 
 pub fn[I, P] prepare_program_check_source_resolution(ClientProgramCheckPreparation[I, P]) -> Result[@pipeline_check_context.SourceRegistrationPhase, ClientProgramCheckPreparationIssue]
 
+pub fn[I, P] prepare_program_check_source_topology_entry(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
 pub fn[I, P] prepare_program_check_values(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] prepare_program_check_views(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
@@ -665,6 +670,10 @@ pub fn[I, P] reconcile_program_check_source_registration(ClientProgramCheckPrepa
 pub fn[I, P] reconcile_program_check_source_resolution(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] reconcile_program_check_source_resolution_inspection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_topology(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_topology_entry(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] reconcile_program_check_values(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
@@ -776,6 +785,7 @@ pub suberror ClientProgramCheckPreparationIssue {
   Check(@program_check.LocalConstructionFailure)
   Catalog(@program_check.ParsedCatalogPreparationIssue)
   SourceRegistration(@program_check.ParsedSourceRegistrationIssue)
+  TopologyEntry(@pipeline_check_context.SourceViewContextIssue)
   Prelude(@program_check.ParsedCheckPreludeIssue)
   Work(@physical_resources.PreparationWorkIssue)
   ChangedInputs

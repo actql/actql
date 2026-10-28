@@ -91,13 +91,13 @@ pub fn sourceview_context_input_construction_inventory(
     return None
   }
   let t = g.stages.to_int64()
-  // Program input1H8R3W, Context input1H2R, adjusted Limits1H8W;
+  // Program input1H9R2W, Context input1H2R, adjusted Limits1H8W;
   // optional Selection/Some2H5R2W and outer Ok1H1R1W. Registration tuples
   // and every admitted declaration body are the SAME borrowed originals.
   let retained = @shape.collection_construction_extent({
     records: 6L,
-    record_references: 16L,
-    record_words: 14L,
+    record_references: 17L,
+    record_words: 13L,
     reference_arrays: t + 1L,
     reference_items: t + g.registrations,
     scalar_arrays: 0L,
@@ -117,4 +117,33 @@ pub fn sourceview_context_input_construction_inventory(
     retained,
     @shape.add_collection_construction_extents(calendar, caller).unwrap(),
   ).map(peak => { peak, retained, })
+}
+
+///|
+/// Fixed original entrance/control overlap only. Typed pipeline/import/Result
+/// bodies and growing staging arrays must be quoted before their own phase.
+pub fn sourceview_context_topology_entry_construction_extent() -> @shape.CollectionConstructionExtent {
+  let controls = @stage_results.local_program_read_control_construction_extent()
+  let arrays = @shape.collection_construction_extent({
+    records: 0L,
+    record_references: 0L,
+    record_words: 0L,
+    reference_arrays: 4L,
+    reference_items: 0L,
+    scalar_arrays: 0L,
+    scalar_items: 0L,
+    maps: 0L,
+    map_entries: 0L,
+  }).unwrap()
+  // Adjusted limits1H8W; environment/registration/profile Some3H3R3W;
+  // retained Reading1H1R1W, returned context/entry alternatives3H3R3W.
+  let caller : @shape.CollectionConstructionExtent = {
+    record_headers: 8L,
+    reference_slots: 7L,
+    scalar_words: 15L,
+  }
+  @shape.add_collection_construction_extents(
+    controls,
+    @shape.add_collection_construction_extents(arrays, caller).unwrap(),
+  ).unwrap()
 }

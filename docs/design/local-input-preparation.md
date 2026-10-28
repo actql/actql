@@ -1607,3 +1607,105 @@ unwound, and may reconcile only disposed scratch. All original typed inputs and
 live intermediate outputs remain funded. Finishing during cleanup reports the
 same previously consumed work. None of these operations acknowledges physical
 cleanup, refunds work, changes a limit or authorizes another phase issuance.
+
+## Original topology constructor continuation
+
+Local topology preparation retains the original Source, selected environment,
+registrations, Calendar and Model inputs together with its cumulative semantic
+budgets. Each constructor boundary retains its actual imported producers,
+pipeline, collected Parameter references, Results, orders and ports for the
+next boundary. The synchronous publication and conditional-topology entries
+drive this same continuation; they do not contain another semantic loop.
+
+A fixed parent can therefore back the next constructor after the previous one
+returns. Its phase and monotonic Stage position distinguish repeated boundary
+kinds across different Stages. Pending results cannot be taken, a completed
+result transfers once, and clearing before a constructor prevents later
+advancement. A failed nested constructor retains its typed issue and previous
+inputs until take or clear; absent complete Usage is not converted to zero.
+
+The work projection excludes only the same environment prefix already admitted
+by its original owner. It does not omit operation typing or substitute a field
+count for semantic work. Full topology/Result wiring, Parameter binding, Context
+capacity and final check remain separate constructor holdings on the same
+request parent. The fixed continuation-control extent excludes those bodies
+and the original staging Arrays. Ordinary synchronous callers must still back
+their entire call; this pure reader alone is not physical backing, a checked
+Program, a Plan, permission or a completed normal Host migration.
+
+### Original Context topology entrance
+
+The retained SourceView Context entrance owns its original topology read state.
+Starting it again borrows that same read; synchronous completion drives that
+read rather than replaying the Program constructor. Retirement clears a pending
+read before dropping its owner, and a taken or cleared read cannot be replaced.
+The existing check-only path keeps its separate conditional-order obligations.
+
+The Request preparation parent backs this entrance's fixed continuation controls,
+original empty staging arrays and call frame before starting it. Entry charges
+only the original Stage-count work; the already admitted Local environment is
+borrowed unchanged. Later imports, pipeline typing, collection, Result projection,
+Stage capacities and final wiring still need their own input-derived backing and
+work on the same parent before advancing. An admitted entrance is not a complete
+Context, checked Program, Plan or physical backing acknowledgement.
+
+The topology caller retains one original phase-work continuation across its
+constructor boundaries. Successful boundaries debit only the delta in the
+original read's cumulative owned work; the initial Stage/environment prefixes
+are not charged again. Returning a constructor permits the same capacity to
+grow or reconcile, but cannot spend again until that same receipt resumes, and
+does not permit check completion, transfer, publication or parent settlement.
+
+Reconciled Local-input selection borrows its original prepared environment
+rather than constructing snapshots or schemas again. The original import
+getter's temporary unwinds on each iteration; original names, ports and tuples
+are shared. A failed nested constructor has no complete successful Usage:
+its original read, pending work and peak remain until the original cleanup.
+The work owner's retained-state inventory and the domain's retained input
+selection are separate from their temporary constructor frames.
+
+A constructor quote is bound to the original read phase and Stage position.
+The caller backs its fixed quotation frame before observing dimensions, then
+keeps that same quote across declined admission. A current callback may move or
+retire the read; each callback boundary therefore checks only the original
+phase/position association before the selected constructor can run. There is no
+second external current callback or repeated semantic inspection hidden in that
+association check.
+
+Result-import resolution borrows original producer/port/schema bodies; repeated
+imports retain their own references and wrappers, not duplicate producer data.
+Input registration similarly borrows reconciled Local and selected SourceView
+contracts. Temporary producer/name indexes and mapping arrays retire after their
+constructor returns. Reconciliation observes the original remaining Array/Map
+buffer capacities through their owning modules and the shared storage inventory,
+including spare capacity, rather than keeping construction-growth buffers or
+substituting semantic/policy maxima. These logical quantities do not describe
+opaque VM/GC backing or prove ordinary backend supply.
+
+
+### Original pipeline evidence continuation
+
+The original evidence-aware pipeline checker retains its selected input array,
+source, parameter declarations, optional stage selector, profiles and semantic
+limits in one private compiler read. Its existing carrier, candidate-key and
+ranking projections execute once, in their original order, before the unchanged
+core checker. The synchronous checker drives that same read; it does not retain
+another implementation of those projections. Internal callers transfer their
+input-array root into this compiler lifetime; names, schema bodies, producer
+identities and existing evidence stay borrowed rather than reconstructed.
+
+The staged Program reader keeps that same nested read. Successful key and
+ranking work is visible as the original cumulative prefix until the completed
+pipeline's original Usage is debited once. Failed nested work has no complete
+Usage. Clearing the Program read retires its pending evidence-read roots; taking
+a completed pipeline preserves its legitimate original aliases.
+
+The existing Request parent backs the evidence-read entrance and carrier
+projection before construction. Their quantities use actual original input
+counts, shared collection storage and the constructor's count of newly made
+Relation wrappers. Retention observes the actual carrier-buffer capacity; it
+does not copy or rescan schemas. The same returned topology work receipt and
+phase/Stage quote association continue across these steps. Key, ranking and
+core-check body construction still require their own domain inventories before
+this parent can advance them; policy work limits are not substituted for that
+missing backing.
