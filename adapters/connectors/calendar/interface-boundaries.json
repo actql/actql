@@ -2935,6 +2935,115 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/connectors/calendar/catalog/respond.mbt",
+      "sha256": "e8b48b022b4232c4ecaa4f6128d5dcf1c4d8dc78b47c88f45c5e17b378e404d7",
+      "operations": [
+        {
+          "name": "calendar_respond_body",
+          "declaration": "calendar_respond_body ( request : CalendarRespondRequest ) - > String"
+        },
+        {
+          "name": "calendar_respond_info",
+          "declaration": "calendar_respond_info ( request : CalendarRespondRequest , ) - > CalendarRespondInfo"
+        },
+        {
+          "name": "calendar_respond_matches_target",
+          "declaration": "calendar_respond_matches_target ( request : CalendarRespondRequest , target : Bytes , ) - > Bool"
+        },
+        {
+          "name": "prepare_calendar_respond",
+          "declaration": "prepare_calendar_respond ( target : Bytes , calendar_id : String , event_id : String , participant : String , response : String , marker : String , limits : CalendarRespondLimits , ) - > Result [ CalendarRespondRequest , CalendarRespondIssue ]"
+        },
+        {
+          "name": "respond_required_text",
+          "declaration": "respond_required_text ( value : @ decode . ObjectView , name : String ) - > String ?"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Calendar provider DATA semantics; connected Account, scoped target, current approval, claim, physical evidence and backing retain their actual owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "calendar_respond_body",
+            "calendar_respond_info",
+            "calendar_respond_matches_target",
+            "prepare_calendar_respond",
+            "respond_required_text"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "## Invitation response request data"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/calendar/catalog/respond.mbt",
+                "anchor": "pub fn prepare_calendar_respond"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/calendar/catalog/respond.mbt",
+                "anchor": "pub fn calendar_respond_matches_target"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/calendar/catalog/respond.mbt",
+                "anchor": "priv target_wire : String"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The actual caller must retain the scoped read and approved version"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/calendar/catalog/respond_wbtest.mbt",
+                "anchor": "respond request requires one exact participant"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/calendar/catalog/respond.mbt",
+                "anchor": "@encode.cancel_writer(writer)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "Original response\nbytes, admitted cursor, retained target text"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "cold request restoration remain caller obligations."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/calendar/catalog/respond_wbtest.mbt",
+                "anchor": "respond request emits only original participant response"
+              },
+              {
+                "path": "src/connectors/calendar/catalog/respond_wbtest.mbt",
+                "anchor": "respond request preserves nullable prior response observations"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
