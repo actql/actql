@@ -7,7 +7,7 @@ import {cp, mkdir, readFile, symlink, writeFile} from 'node:fs/promises';
 import {dirname, join, relative, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
-import {packedNpmCache} from './packed-client-packages.mjs';
+import {packedNpmCache, normalNpmPackJsonArgs, parseNpmPackJson} from './packed-client-packages.mjs';
 import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
 import {checkNodeAssembly} from './connector-node-bundles.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
@@ -87,7 +87,7 @@ async function acceptance() {
   const fixture = join(coreRoot, 'scripts/fixtures/external-installed');
   const packs = [];
   const pack = async root => {
-    const metadata = JSON.parse(run('npm', ['pack', '--offline', '--json', '--pack-destination', artifacts],
+    const metadata = parseNpmPackJson(run('npm', normalNpmPackJsonArgs(['pack', '--offline', '--json', '--pack-destination', artifacts]),
       root, environment, 180000))[0];
     const path = join(artifacts, metadata.filename), bytes = await readFile(path);
     assert.equal(metadata.integrity, 'sha512-' + createHash('sha512').update(bytes).digest('base64'));

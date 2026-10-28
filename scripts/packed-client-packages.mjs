@@ -20,6 +20,24 @@ export const CLIENT_PACKAGES = Object.freeze(['client-wire', 'sdk',
 const MANIFEST = 'packed-client-packages.json';
 const tarball = name => `actql-${name}-0.0.0-development.tgz`;
 
+// Normal lifecycle-enabled readers need one uncontaminated npm JSON value.
+// Other npm options remain the caller's DATA; npm owns their interpretation.
+export function normalNpmPackJsonArgs(args) {
+  if (!Array.isArray(args) || args.some(value => typeof value !== 'string') ||
+      args[0] !== 'pack' || args.filter(value => /^--json(?:=|$)/u.test(value)).length !== 1 ||
+      !args.includes('--json') ||
+      args.some(value => /^--(?:ignore-scripts|foreground-scripts)(?:=|$)/u.test(value))) {
+    throw new TypeError('Normal npm pack JSON arguments required');
+  }
+  return [...args, '--foreground-scripts=false'];
+}
+
+// Never recover a JSON suffix from lifecycle diagnostics. The normal pack
+// argument policy isolates those diagnostics; malformed output still refuses.
+export function parseNpmPackJson(output) {
+  return JSON.parse(output);
+}
+
 function git(repository, args) {
   const result = spawnSync('git', args, {cwd: repository, encoding: 'utf8'});
   if (result.status !== 0) {

@@ -6,6 +6,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import test from 'node:test';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
+import {normalNpmPackJsonArgs, parseNpmPackJson} from './packed-client-packages.mjs';
 
 async function peerFixture(t, {optional = true, declared = true} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'packed-package-peer-'));
@@ -171,7 +172,7 @@ test('normal SDK tarball resolves every shipped relative module outside the chec
   try {
     const tarballs = [];
     for (const name of ['client-wire', 'sdk']) {
-      const packed = JSON.parse(run(['pack', '--json', '--pack-destination', root],
+      const packed = parseNpmPackJson(run(normalNpmPackJsonArgs(['pack', '--json', '--pack-destination', root]),
         join(repository, 'packages', name)));
       const entries = Array.isArray(packed) ? packed : Object.values(packed);
       assert.equal(entries.length, 1, JSON.stringify(packed));
