@@ -208,7 +208,7 @@ fn resolve_owned(
   limits : Limits,
   work_out? : Ref[Int]? = None,
 ) -> Result[Resolved, Issue] {
-  if limits.max_work < 0 || limits.max_inputs < 0 || limits.max_views < 0 {
+  if resolution_limits_invalid(limits) {
     return Err({ kind: InvalidLimits, source: None, unresolved_selector: None, })
   }
   let count = @inputs.count(inputs)
@@ -317,6 +317,11 @@ fn resolve_owned(
     }
   }
   result
+}
+
+///|
+fn resolution_limits_invalid(limits : Limits) -> Bool {
+  limits.max_work < 0 || limits.max_inputs < 0 || limits.max_views < 0
 }
 
 ///|

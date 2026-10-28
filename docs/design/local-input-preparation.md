@@ -875,3 +875,36 @@ count, entry count and each input-name charge retain their original order and
 failure boundaries. The original cumulative pipeline work is unchanged. The
 registration read retains this new pipeline work separately; Local preparation
 and its nested failure work remain distinct obligations.
+
+
+## Resolver construction prefix
+
+Source selection quantities observe original admitted Catalog identity fields
+and policy URI lengths, plus already collected declarations. They do not
+normalize/select a view, traverse acquired request/response/schema bodies, or
+infer permissions. Each root's actual field count plus one is charged by the
+original resolver before its ObjectView. The metadata observer uses that
+minimum charge to bound the potential construction prefix and its own visits;
+this only enlarges possible later construction, never changes semantic work.
+
+The resolver retains two complete selector indexes and group arrays through
+its call. Ambiguous selection owns its original names array and temporary sort
+buffer under the same UTF16 order. Map/Array/Decode/NFC owners supply their
+existing construction rules; the resolver supplies actual multiplicities and
+lifetime overlap. Identity normalization and URI comparison/resource copies
+are separate from borrowed input backing. Success/failure alternatives are
+conservatively co-counted and are not minimum storage or partial success.
+
+The original Source/Catalog/limits, metadata/quotation frames and backend
+intrinsic/VM backing must remain funded separately. These DATA inventories
+alone do not wire or acknowledge the actual Resource parent or a successor.
+
+
+The existing registration read can observe this metadata once from its own
+collected Inputs, Catalog and selected limits. It retains the resulting scalar
+geometry and original optional work observation across a failed grow; a repeat
+returns that same observation without another walk. Quotation accepts no
+caller-supplied replacement geometry/limits. Normal synchronous registration
+does not perform this optional metadata walk. The same real parent must fund
+inspection, quotation and phase backing, debit an observation receipt once and
+retain the cache until its own aliases retire; caching DATA issues no grant.

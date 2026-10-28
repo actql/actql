@@ -597,6 +597,8 @@ pub fn observe_capacity_input_binding(@stage_syntax.Program, Array[StageCapacity
 
 pub fn observe_capacity_input_construction_inventory(@stage_syntax.Program, Array[StageCapacityInput]) -> (@decode_shape.CollectionConstructionInventory?, Int64)
 
+pub fn observe_source_registration_resolution_construction(SourceRegistrationRead) -> Int64?
+
 pub fn operation_calendar_at(ProgramOperationCalendar, Int) -> OperationCalendarResolution?
 
 pub fn operation_calendar_count(ProgramOperationCalendar) -> Int
@@ -1138,6 +1140,16 @@ pub fn source_registration_initial_construction_extent() -> @decode_shape.Collec
 pub fn source_registration_phase(SourceRegistrationRead) -> SourceRegistrationPhase
 
 pub fn source_registration_pipeline_work(SourceRegistrationRead) -> Int
+
+pub fn source_registration_resolution_construction(SourceRegistrationRead) -> @sourceview_resolution.ResolutionConstructionInventory?
+
+pub fn source_registration_resolution_inspection_bound(SourceRegistrationRead) -> Int64?
+
+pub fn source_registration_resolution_inspection_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_resolution_inspection_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_resolution_inspection_work(SourceRegistrationRead) -> Int64?
 
 pub fn source_registration_selection_work(SourceRegistrationRead) -> Int
 

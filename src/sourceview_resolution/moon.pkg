@@ -6,6 +6,7 @@ import {
   "actql/actql/capacity_program_step" @capacity,
   "actql/actql/decode_core" @decode,
   "actql/actql/decode_shape" @shape,
+  "actql/actql/capacity_arithmetic" @counts,
   "actql/actql/encode_core" @encode,
   "actql/actql/canonical_value" @unicode,
   "actql/actql/source_request_slots" @slots,

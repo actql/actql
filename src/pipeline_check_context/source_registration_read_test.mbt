@@ -205,7 +205,7 @@ test "original Source registration clearing retires only its own untransferred a
   )
   assert_eq(source_registration_initial_construction_extent(), {
     record_headers: 5L,
-    reference_slots: 8L,
+    reference_slots: 9L,
     scalar_words: 9L,
   })
 }
@@ -343,4 +343,62 @@ test "original Source registration retains new pipeline work without recharging 
   clear_source_registration(short)
   assert_eq(source_registration_pipeline_work(short), 10)
   assert_eq(source_registration_phase(short), RegistrationTransferred)
+}
+
+///|
+test "original registration binds and retains resolver construction metadata once" {
+  let (source, catalog, limits, _) = registration_read_fixture()
+  let read = begin_source_registration(
+    source,
+    catalog,
+    limits,
+    max_inputs=2,
+    max_views=100,
+    max_order_keys=100,
+  ).unwrap()
+  assert_true(source_registration_resolution_inspection_bound(read) is None)
+  assert_true(observe_source_registration_resolution_construction(read) is None)
+  assert_true(source_registration_resolution_construction(read) is None)
+  assert_eq(advance_source_registration(read), RegistrationSelect)
+  let original = source_registration_collected_inputs(read).unwrap()
+  let maximum = source_registration_resolution_inspection_bound(read).unwrap()
+  let work = observe_source_registration_resolution_construction(read).unwrap()
+  assert_true(work > 0L && work <= maximum)
+  assert_eq(
+    observe_source_registration_resolution_construction(read),
+    Some(work),
+  )
+  assert_eq(source_registration_resolution_inspection_work(read), Some(work))
+  let quote = source_registration_resolution_construction(read).unwrap()
+  assert_eq(source_registration_resolution_construction(read), Some(quote))
+  assert_true(
+    physical_equal(
+      source_registration_collected_inputs(read).unwrap(),
+      original,
+    ),
+  )
+  let held = source_registration_resolution_inspection_retained_extent()
+  let peak = source_registration_resolution_inspection_extent()
+  assert_true(
+    held.record_headers <= peak.record_headers &&
+    held.reference_slots <= peak.reference_slots &&
+    held.scalar_words <= peak.scalar_words,
+  )
+  assert_eq(advance_source_registration(read), RegistrationPipeline)
+  assert_true(observe_source_registration_resolution_construction(read) is None)
+  assert_true(source_registration_resolution_construction(read) is None)
+  assert_eq(source_registration_resolution_inspection_work(read), Some(work))
+  assert_eq(advance_source_registration(read), RegistrationLocal)
+  assert_eq(advance_source_registration(read), RegistrationComplete)
+  let (views, _) = take_source_registration_result(read).unwrap().unwrap()
+  assert_true(
+    physical_equal(
+      @sourceviews.inputs(@sourceviews.pipeline_resolution(views)),
+      original,
+    ),
+  )
+  assert_true(source_registration_resolution_inspection_work(read) is None)
+  clear_source_registration(read)
+  assert_eq(source_registration_phase(read), RegistrationTransferred)
+  assert_true(source_registration_resolution_construction(read) is None)
 }

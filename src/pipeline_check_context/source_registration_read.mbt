@@ -40,6 +40,12 @@ priv enum SourceRegistrationState {
 }
 
 ///|
+priv struct SourceResolutionConstruction {
+  geometry : @sourceviews.ResolutionConstructionGeometry
+  work : Int64?
+}
+
+///|
 /// The original Source, Catalog and selected limits are bound once. Later
 /// phases accept no replacement inputs/limits, equal owner or caller verdict.
 /// This is constructor DATA on the outside parent's lifetime, not a Resource
@@ -50,6 +56,7 @@ struct SourceRegistrationRead {
   mut collection_work : Int
   mut selection_work : Int
   mut pipeline_work : Int
+  mut resolution_construction : SourceResolutionConstruction?
   mut state : SourceRegistrationState
 }
 
@@ -84,6 +91,7 @@ pub fn begin_source_registration(
     collection_work: 0,
     selection_work: 0,
     pipeline_work: 0,
+    resolution_construction: None,
     state: ReadDeclarations,
   })
 }
@@ -137,6 +145,103 @@ pub fn source_registration_selection_work(read : SourceRegistrationRead) -> Int 
 /// semantic inherited prefix, not another debit. Local costs remain separate.
 pub fn source_registration_pipeline_work(read : SourceRegistrationRead) -> Int {
   read.pipeline_work
+}
+
+///|
+/// Metadata work envelope for the SAME original inputs/selected limits, before
+/// inspection. Caller backs this bound/extent/borrowed argument frame first.
+pub fn source_registration_resolution_inspection_bound(
+  read : SourceRegistrationRead,
+) -> Int64? {
+  guard read.state is SelectDeclarations &&
+    read.arguments is Some(original) &&
+    read.collected is Some(inputs) else {
+    return None
+  }
+  Some(
+    @sourceviews.resolution_construction_inspection_bound(inputs, {
+      max_work: original.limits.max_work,
+      max_inputs: original.max_inputs,
+      max_views: original.max_views,
+    }),
+  )
+}
+
+///|
+/// Observe once on the same immutable input/Catalog/limits. Cached repeats
+/// return the same work Some; they are not another walk or debit opportunity.
+/// Actual Resource receipts/current/grow/retirement remain outside this DATA.
+pub fn observe_source_registration_resolution_construction(
+  read : SourceRegistrationRead,
+) -> Int64? {
+  guard read.state is SelectDeclarations &&
+    read.arguments is Some(original) &&
+    read.collected is Some(inputs) else {
+    return None
+  }
+  if read.resolution_construction is Some(completed) {
+    return completed.work
+  }
+  let geometry = @sourceviews.observe_resolution_construction_geometry(
+    inputs,
+    original.catalog,
+    {
+      max_work: original.limits.max_work,
+      max_inputs: original.max_inputs,
+      max_views: original.max_views,
+    },
+  )
+  let work = Some(geometry.inspection_work)
+  read.resolution_construction = Some({ geometry, work, })
+  work
+}
+
+///|
+pub fn source_registration_resolution_inspection_work(
+  read : SourceRegistrationRead,
+) -> Int64? {
+  match read.resolution_construction {
+    None => None
+    Some(completed) => completed.work
+  }
+}
+
+///|
+/// Only stored same-original geometry and selected limits can quote this
+/// phase. No caller geometry, alternate Catalog/limits or permission enters.
+/// Caller separately funds this quotation frame and the existing observer.
+pub fn source_registration_resolution_construction(
+  read : SourceRegistrationRead,
+) -> @sourceviews.ResolutionConstructionInventory? {
+  guard read.state is SelectDeclarations &&
+    read.arguments is Some(original) &&
+    read.resolution_construction is Some(completed) else {
+    return None
+  }
+  @sourceviews.resolution_construction_inventory(completed.geometry, {
+    max_work: original.limits.max_work,
+    max_inputs: original.max_inputs,
+    max_views: original.max_views,
+  })
+}
+
+///|
+/// Additional cache wrapper1H2R, work Some1H2W and stored Some1H1R1W.
+/// Inspection peak also includes selected Limits1H3W and bound Some1H2W.
+/// The geometry owner supplies its actual record extent; no field table here.
+pub fn source_registration_resolution_inspection_extent() -> @shape.CollectionConstructionExtent {
+  @shape.add_collection_construction_extents(
+    @sourceviews.resolution_construction_inspection_extent(),
+    { record_headers: 5L, reference_slots: 3L, scalar_words: 8L, },
+  ).unwrap()
+}
+
+///|
+pub fn source_registration_resolution_inspection_retained_extent() -> @shape.CollectionConstructionExtent {
+  @shape.add_collection_construction_extents(
+    @sourceviews.resolution_construction_geometry_extent(),
+    { record_headers: 3L, reference_slots: 3L, scalar_words: 3L, },
+  ).unwrap()
 }
 
 ///|
@@ -232,6 +337,7 @@ pub fn take_source_registration_result(
     RegistrationDone(result) => {
       read.arguments = None
       read.collected = None
+      read.resolution_construction = None
       read.state = RegistrationHandedOff
       Some(result)
     }
@@ -247,6 +353,7 @@ pub fn clear_source_registration(read : SourceRegistrationRead) -> Unit {
   let transferred = read.state is RegistrationHandedOff
   read.arguments = None
   read.collected = None
+  read.resolution_construction = None
   read.state = if transferred {
     RegistrationHandedOff
   } else {
@@ -256,9 +363,9 @@ pub fn clear_source_registration(read : SourceRegistrationRead) -> Unit {
 
 ///|
 /// Installed constructor DATA, not capacity. Argument record1H3R3W, its Some
-///1H1R1W, read1H3R3W, initial phase1H1W and returned Ok1H1R1W. The supplied
+///1H1R1W, read1H4R3W, initial phase1H1W and returned Ok1H1R1W. The supplied
 /// Source/Catalog/limits and each phase's metadata/constructor overlap remain
 /// separately backed. The collection phase also adds its original observer.
 pub fn source_registration_initial_construction_extent() -> @shape.CollectionConstructionExtent {
-  { record_headers: 5L, reference_slots: 8L, scalar_words: 9L, }
+  { record_headers: 5L, reference_slots: 9L, scalar_words: 9L, }
 }
