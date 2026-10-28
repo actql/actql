@@ -67,6 +67,127 @@ fn original_effect_materials_fixture(
 }
 
 ///|
+fn retained_static_effect_fixture(
+  document : String,
+  environment : @checked.CheckEnvironment,
+  supplied : @decode.Cursor?,
+  limits : ClientEffectComputationLimits,
+) -> @checked.EffectProgramStaticCandidate {
+  let parsed = @syntax.parse(
+    document,
+    limits.program.checking.input,
+    format=Json,
+  ).unwrap()
+  let computation = @checked.prepare_effect_computation_candidate(
+    parsed,
+    environment,
+    supplied,
+    [],
+    limits.program.checking,
+    limits.max_members,
+    limits.max_header_work,
+  ).unwrap()
+  let mappings = @environment.check_mapping_contract_shapes(
+    @checked.effect_computation_environment(computation),
+    limits.mapping,
+    limits.max_mapping_work,
+  ).unwrap()
+  @checked.close_effect_computation_static(
+    computation, mappings, limits.effects,
+  ).unwrap()
+}
+
+///|
+test "retained static Effect compilation preserves original supplied input without rechecking" {
+  let (base, environment, limits) = client_composed_effect_base_fixture()
+  let document = base
+    .replace(
+      old="\"stages\":[",
+      new="\"params\":{\"note\":{\"type\":\"string\"}},\"stages\":[",
+    )
+    .replace(
+      old="\"as\":\"selected\"}],",
+      new="\"as\":\"selected\"},{\"filter\":{\"eq\":[{\"$param\":\"note\"},{\"$param\":\"note\"}]}}],",
+    )
+  let source = @source.parse_json_bytes(
+    @utf8.encode("{\"note\":\"e\\u0301\\r\\n\\n\\r\"}"),
+    { max_input_bytes: 1024, max_nodes: 10, max_depth: 3, },
+  ).unwrap()
+  let supplied = @decode.admit(source, {
+    max_nodes: 10,
+    max_depth: 3,
+    max_string_bytes: 1024,
+    max_total_string_bytes: 1024,
+  }).unwrap()
+  let candidate = retained_static_effect_fixture(
+    document, environment, Some(supplied), limits,
+  )
+  let (parsed, original_supplied) = @checked.effect_program_static_original_input(
+    candidate,
+  )
+  assert_true(
+    original_supplied is Some(original) && physical_equal(original, supplied),
+  )
+  // These unused checking bounds cannot parse or check this Program again.
+  // The actual lowering and graph bounds are unchanged.
+  let compilation_limits = {
+    ..limits.program,
+    checking: {
+      ..limits.program.checking,
+      input: {
+        ..limits.program.checking.input,
+        source: {
+          ..limits.program.checking.input.source,
+          max_input_bytes: 0,
+        },
+      },
+      compilation: { ..limits.program.checking.compilation, work: 0, },
+    },
+  }
+  let prepared = prepare_static_client_effect_computation(
+    candidate, compilation_limits, limits.max_mapping_work,
+  ).unwrap()
+  assert_true(physical_equal(prepared.candidate, candidate))
+  assert_true(physical_equal(prepared.source, parsed))
+  assert_true(
+    prepared.supplied is Some(original) && physical_equal(original, supplied),
+  )
+  assert_eq(
+    prepared_client_effect_computation_environment_cid(prepared),
+    @checked.checking_environment_cid(environment),
+  )
+  let (_, parameters, _) = client_effect_original_input_wires(prepared).unwrap()
+  let actual = decode_client_run_materials_parameters(parameters).unwrap().unwrap()
+  let object = @decode.open_object(actual).unwrap()
+  assert_eq(
+    @decode.text(@decode.lookup(object, "note").unwrap()).unwrap(),
+    "e\u0301\r\n\n\r",
+  )
+}
+
+///|
+test "retained static Effect compilation keeps actual task and graph bounds" {
+  let (document, environment, limits) = client_composed_effect_base_fixture()
+  let candidate = retained_static_effect_fixture(document, environment, None, limits)
+  assert_true(
+    prepare_static_client_effect_computation(
+      candidate,
+      { ..limits.program, max_tasks: 0, },
+      limits.max_mapping_work,
+    )
+    is Err(Graph(@strategy.TaskLimit)),
+  )
+  assert_true(
+    prepare_static_client_effect_computation(
+      candidate,
+      { ..limits.program, max_graph_work: 0, },
+      limits.max_mapping_work,
+    )
+    is Err(Graph(@strategy.WorkLimit)),
+  )
+}
+
+///|
 test "original Effect materials project original Program environment request and lifetime" {
   let (prepared, allowed, definition) = original_effect_materials_fixture()
   let normalization = issue_prepared_client_effect_normalization(prepared).unwrap()

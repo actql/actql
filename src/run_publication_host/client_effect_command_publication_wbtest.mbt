@@ -90,6 +90,52 @@ test "parsed Effect preparation preserves source and rejects an equal-CID foreig
 }
 
 ///|
+test "retained static Effect compilation preserves original Command environment and refusal order" {
+  let (document, environment, limits) = local_update_normalization_fixture()
+  let (_, foreign_environment, _) = local_update_normalization_fixture()
+  let candidate = retained_static_effect_fixture(document, environment, None, limits)
+  let original = command_preparation_publication(environment, limits)
+  let prepared = prepare_static_client_effect_computation(
+    candidate,
+    limits.program,
+    limits.max_mapping_work,
+    command_targets=Some(original),
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      prepared_client_effect_command_target_publication(prepared).unwrap(),
+      original,
+    ),
+  )
+  let foreign = command_preparation_publication(foreign_environment, limits)
+  assert_eq(
+    @checked.checking_environment_cid(environment),
+    @checked.checking_environment_cid(foreign_environment),
+  )
+  assert_true(
+    prepare_static_client_effect_computation(
+      candidate,
+      { ..limits.program, max_tasks: 0, },
+      limits.max_mapping_work,
+      command_targets=Some(foreign),
+    )
+    is Err(TargetSelection(ForeignEnvironment)),
+  )
+  let (parsed, _) = @checked.effect_program_static_original_input(candidate)
+  assert_true(
+    prepare_parsed_client_effect_computation(
+      parsed,
+      environment,
+      None,
+      [],
+      { ..limits, max_members: 0, },
+      command_targets=Some(foreign),
+    )
+    is Err(TargetSelection(ForeignEnvironment)),
+  )
+}
+
+///|
 test "absent Command publication preserves original static identities" {
   let (document, environment, limits) = local_update_normalization_fixture()
   let original = prepare_client_effect_computation(

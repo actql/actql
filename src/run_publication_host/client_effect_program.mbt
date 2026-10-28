@@ -142,23 +142,79 @@ pub fn prepare_parsed_client_effect_computation(
     Ok(value) => value
     Err(issue) => return Err(Static(issue))
   }
+  compile_static_client_effect_computation(
+    candidate,
+    @checked.effect_program_static_environment(candidate),
+    limits.program,
+    limits.max_mapping_work,
+    update_targets,
+    store_targets,
+    command_targets,
+  )
+}
+
+///|
+/// Continue from the same completed static Effect check without repeating
+/// parsing, semantic checking, Mapping admission or static Effect closure.
+/// The caller funds lowering and graph coexistence before entering here.
+/// The original supplied values and Environment remain with the candidate;
+/// this preparation grants neither Run admission nor Preview/apply authority.
+pub fn prepare_static_client_effect_computation(
+  candidate : @checked.EffectProgramStaticCandidate,
+  limits : ClientProgramPreparationLimits,
+  max_mapping_work : Int,
+  update_targets? : @update_targets.UpdateTargetPublication? = None,
+  store_targets? : @update_targets.StoreTargetPublication? = None,
+  command_targets? : @update_targets.CommandTargetPublication? = None,
+) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
+  let environment = @checked.effect_program_static_environment(candidate)
+  if command_targets is Some(publication) &&
+    !physical_equal(
+      environment,
+      @update_targets.command_target_publication_environment(publication),
+    ) {
+    return Err(TargetSelection(ForeignEnvironment))
+  }
+  compile_static_client_effect_computation(
+    candidate,
+    environment,
+    limits,
+    max_mapping_work,
+    update_targets,
+    store_targets,
+    command_targets,
+  )
+}
+
+///|
+// Both entries consume the same static owner. Each entry checks its original
+// command-target Environment once, at its own pre-construction boundary.
+fn compile_static_client_effect_computation(
+  candidate : @checked.EffectProgramStaticCandidate,
+  environment : @environment.WireEnvironment,
+  limits : ClientProgramPreparationLimits,
+  max_mapping_work : Int,
+  update_targets : @update_targets.UpdateTargetPublication?,
+  store_targets : @update_targets.StoreTargetPublication?,
+  command_targets : @update_targets.CommandTargetPublication?,
+) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
   let target_selections = match
     prepare_client_effect_target_selections(
       candidate,
       update_targets,
-      limits.max_mapping_work,
+      max_mapping_work,
       store_targets~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(TargetSelection(issue))
   }
   let checked = @checked.effect_program_static_checked_computation(candidate)
-  let owners = match prepare_client_stage_owners(checked, limits.program) {
+  let owners = match prepare_client_stage_owners(checked, limits) {
     Ok(value) => value
     Err(issue) => return Err(Stage(issue))
   }
   let sequence_preparation_demand = match
-    client_sequence_preparation_demand(owners, limits.program.max_graph_work) {
+    client_sequence_preparation_demand(owners, limits.max_graph_work) {
     Ok(value) => value
     Err(issue) => return Err(Graph(issue))
   }
@@ -166,8 +222,8 @@ pub fn prepare_parsed_client_effect_computation(
     @strategy.prepare_checked_effect_computation_dag(
       candidate,
       owners,
-      limits.program.max_tasks,
-      limits.program.max_graph_work,
+      limits.max_tasks,
+      limits.max_graph_work,
       captured_prefix=client_program_acquisition_prefix(checked),
       source_free_root=owners.length() > 0 &&
         @pipeline.starts_with_values(
@@ -177,6 +233,7 @@ pub fn prepare_parsed_client_effect_computation(
     Ok(value) => value
     Err(issue) => return Err(Graph(issue))
   }
+  let (parsed, supplied) = @checked.effect_program_static_original_input(candidate)
   Ok({
     target_selections,
     command_targets,
@@ -188,7 +245,7 @@ pub fn prepare_parsed_client_effect_computation(
     candidate,
     sequence_preparation_demand,
     graph,
-    check_environment_cid: @checked.checking_environment_cid(environment),
+    check_environment_cid: @environment.cid(environment),
   })
 }
 
