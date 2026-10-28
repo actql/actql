@@ -5,6 +5,7 @@
 struct EffectComputationCandidate {
   checked : CheckedProgram
   headers : @syntax.EffectHeaders
+  supplied : @decode.Cursor?
 }
 
 ///|
@@ -77,7 +78,7 @@ pub fn prepare_effect_computation_candidate(
   ) catch {
     issue => return Err(Computation(issue))
   }
-  Ok({ checked, headers, })
+  Ok({ checked, headers, supplied, })
 }
 
 ///|
@@ -160,6 +161,15 @@ pub fn effect_program_static_checked_computation(
   candidate : EffectProgramStaticCandidate,
 ) -> CheckedProgram {
   candidate.computation.checked
+}
+
+///|
+/// The exact source and supplied input retained by this original computation.
+/// This does not re-admit parameters or issue execution or Effect authority.
+pub fn effect_program_static_original_input(
+  candidate : EffectProgramStaticCandidate,
+) -> (@syntax.Program, @decode.Cursor?) {
+  (candidate.computation.checked.source, candidate.computation.supplied)
 }
 
 ///|
