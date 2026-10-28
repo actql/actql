@@ -15,7 +15,7 @@ let program_check_quote_controls : @execution.PreparationRepresentationUnits = {
 }
 
 ///|
-// Actual holder1H25R7W and immutable argument snapshot1H7R; twenty-four live Some
+// Actual holder1H25R8W and immutable argument snapshot1H7R; twenty-four live Some
 // alternatives24H24R24W; five cached pair records5H10W; retained inventory1H9W;
 // original debit/Result2H1R3W and entry typed alternatives2H2R2W.
 // Borrowed Program/Source/Catalog/evidence backing is never copied into this
@@ -23,7 +23,7 @@ let program_check_quote_controls : @execution.PreparationRepresentationUnits = {
 let program_check_driver_controls : @execution.PreparationRepresentationUnits = {
   record_headers: 1L + 1L + 24L + 5L + 1L + 2L + 2L,
   reference_slots: 25L + 7L + 24L + 1L + 2L,
-  scalar_words: 7L + 24L + 10L + 9L + 3L + 2L,
+  scalar_words: 8L + 24L + 10L + 9L + 3L + 2L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }

@@ -40,12 +40,18 @@ test "original Contract preflight retains one pending stack and exact shared Bud
   assert_eq(stack[0].1, 0)
   advance_contract_preflight_read(read)
   assert_true(read.state is Pending)
-  assert_eq(read.work.length(), 2)
+  assert_eq(read.work.length(), 0)
   assert_eq(b.work, 97)
+  assert_eq(b.text, 100)
+  // Name admission and each pending write are separate backed boundaries.
+  for _ in 0..<4 {
+    advance_contract_preflight_read(read)
+  }
+  assert_eq(read.work.length(), 2)
   assert_eq(b.text, 98)
   // Original field order is pushed unchanged; the Array field remains on top.
   assert_true(read.work[1].0.shape is @contract.Array(_, ..))
-  for _ in 0..<3 {
+  for _ in 0..<4 {
     advance_contract_preflight_read(read)
     assert_true(physical_equal(read.b, b))
     assert_true(physical_equal(read.work, stack))
@@ -70,7 +76,7 @@ test "original Contract preflight keeps exact depth and partial-text failures wi
   let contract = contract_preflight_original()
   let b = contract_preflight_original_budget(1, 100)
   let read = begin_contract_preflight_read(b, source, contract, 0)
-  for _ in 0..<3 {
+  for _ in 0..<8 {
     advance_contract_preflight_read(read)
   }
   guard read.state is Rejected(issue) else {
@@ -92,7 +98,9 @@ test "original Contract preflight keeps exact depth and partial-text failures wi
   let text_read = begin_contract_preflight_read(
     text_budget, source, contract, 0,
   )
-  advance_contract_preflight_read(text_read)
+  for _ in 0..<4 {
+    advance_contract_preflight_read(text_read)
+  }
   guard text_read.state is Rejected(issue) else {
     abort("original partial text refusal expected")
   }

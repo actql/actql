@@ -1,10 +1,10 @@
 ///|
 /// Original read/body/state/Budget controls; no input/schema/typed operations,
-/// limits policy or authority. Read1H1R, body1H24R1W, three state alternatives
+/// limits policy or authority. Read1H1R, body1H25R11W, three state alternatives
 /// 3H4R3W, Budget1H1R4W, elementsOk1H1R1W, begin2H2R2W, original evidence work getter1H2W,
 /// take3H3R3W and original Issue/Stop alternatives2H4R2W.
 fn pipeline_core_read_control_construction_extent() -> @shape.CollectionConstructionExtent {
-  { record_headers: 15L, reference_slots: 40L, scalar_words: 18L, }
+  { record_headers: 15L, reference_slots: 41L, scalar_words: 28L, }
 }
 
 ///|
@@ -89,7 +89,7 @@ fn pipeline_core_read_entry_holdings(
     arrays,
     names,
     cursors,
-    // Original read/body/Reading/Budget4H27R6W.
-    { record_headers: 4L, reference_slots: 27L, scalar_words: 6L, },
+    // Original read/body/Reading/Budget4H28R16W.
+    { record_headers: 4L, reference_slots: 28L, scalar_words: 16L, },
   ])
 }

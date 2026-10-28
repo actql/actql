@@ -1744,10 +1744,9 @@ ordinary backend migration. Failure retains the original typed issue and has no
 complete successful Usage; it never supplies zero work as a success fact.
 
 The original nested Contract preflight has its own private continuation over
-that same compiler Budget and original LIFO stack. Each return follows exactly
-one original popped Contract; its immediate object-field count is available
-before pushing child contracts. The synchronous preflight drives this same
-body. It does not introduce a second type traversal, a Contract-layout cache or
+that same compiler Budget and original LIFO stack. It returns after a popped
+Contract and after each original field-name charge, before the next child tuple
+and pending-buffer write. The synchronous preflight drives this same body. It does not introduce a second type traversal, a Contract-layout cache or
 a new resource owner. Depth, field-order, work and partial text refusals remain
 with the original semantic body. Clearing removes pending element roots but
 does not make the stack's retained backing or its parent reservation disappear.
@@ -1781,3 +1780,35 @@ one-Stage envelope; dynamic source, cells, normalization and invocation backing
 remain separate. This descriptor contains no Program, bound parameter, Run,
 current observation or authorization. Full input/operation/Context/Plan funding
 and ordinary backend adoption remain required subsequent connections.
+
+
+### Original input and nested Carrier positions
+
+The core input loop retains its original input index, Source declaration and
+key positions, and one nested Carrier read. Name admission, complete original
+Source-name charges and declaration binding, duplicate-name refusal, Carrier
+admission, candidate-key charges and final name registration keep their original
+order on the same Budget. The input is registered only after that exact Carrier
+and all its key fields complete. The synchronous entry drives the same read;
+there is no second rows, Graph-element or Carrier-preflight implementation.
+
+Rows and Graph properties borrow their original Knowledge and Contract bodies.
+Vector identities use the original indexed getters instead of copying an
+identity Array. Event and Graph endpoints retain their existing charges and
+error ordering. Clearing an unfinished input clears its original nested Carrier
+and Contract reads and leaves consumed work unchanged. A typed refusal keeps
+its original issue and pending roots until the owning read is taken or cleared;
+no complete successful Usage is fabricated.
+
+Several constructors can return inside one Stage and one semantic phase. The
+original read therefore supplies a compound Stage and constructor ordinal in
+place of its old Stage-only accessor. The actual Request driver retains that
+pair through quantity observation and grow, checks it after reentry and requires
+the next ordinal after construction. These are internal original associations,
+not new current callbacks, semantic work credit or a permission cache. Terminal
+advances do not increment the ordinal.
+
+Input admission still needs its immediate-allocation and mutable before/after
+holdings recipe before the Request driver may advance it. The split original
+loop supplies those boundaries; its pure continuation alone does not prove
+complete parent backing, checked Context, Plan adoption or ordinary execution.

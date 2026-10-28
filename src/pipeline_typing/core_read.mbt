@@ -14,6 +14,22 @@ priv enum PipelineCoreReadPhase {
 } derive(Eq)
 
 ///|
+/// Actual original input loop positions. These retain only borrowed inputs and
+/// original counters; they grant no resource, key or semantic acceptance.
+priv enum PipelineCoreInputStep {
+  Name
+  SourceFields
+  SourceBinding
+  Duplicate
+  CarrierStart
+  Carrier
+  Keys
+  KeyField
+  KeyAlias
+  Register
+}
+
+///|
 priv struct PipelineCoreBody {
   source : @decode.Cursor
   inputs : Array[(String, @carrier.Carrier)]
@@ -42,6 +58,17 @@ priv struct PipelineCoreBody {
   mut delta_inputs : Array[DeltaEvidence]?
   mut delta_steps : Array[DeltaEvidence]?
   mut phase : PipelineCoreReadPhase
+  mut input_step : PipelineCoreInputStep
+  mut input_index : Int
+  mut source_count : Int
+  mut source_index : Int
+  mut key_count : Int
+  mut key_index : Int
+  mut field_count : Int
+  mut field_index : Int
+  mut alias_count : Int
+  mut alias_index : Int
+  mut carrier_read : CarrierPreflightRead?
 }
 
 ///|
@@ -157,6 +184,17 @@ fn begin_pipeline_core_read_owned(
       delta_inputs: None,
       delta_steps: None,
       phase: Inputs,
+      input_step: Name,
+      input_index: 0,
+      source_count: 0,
+      source_index: 0,
+      key_count: 0,
+      key_index: 0,
+      field_count: 0,
+      field_index: 0,
+      alias_count: 0,
+      alias_index: 0,
+      carrier_read: None,
     }),
   })
 }
@@ -213,7 +251,13 @@ fn take_pipeline_core_read(
 fn clear_pipeline_core_read(original : PipelineCoreRead) -> Unit {
   if !(original.state is Taken) {
     match original.state {
-      Reading(body) | Rejected(body, _) => body.phase = Cleared
+      Reading(body) | Rejected(body, _) => {
+        if body.carrier_read is Some(read) {
+          clear_carrier_preflight_read(read)
+        }
+        body.carrier_read = None
+        body.phase = Cleared
+      }
       _ => ()
     }
     original.state = Cleared
@@ -241,55 +285,7 @@ fn advance_pipeline_core_read_owned(
   let bodies = original.bodies
   let names = original.names
   match original.phase {
-    Inputs => {
-      for i in 0..<inputs.length() {
-        let (key, schema) = inputs[i]
-        name(b, source, key)
-        if input_contracts[i] is SourceViewInput(stage, declared, retained, _) {
-          let steps = @stage.stage_steps_source(stage)
-          // The original Stage table and names are retained, not reopened into
-          // new Maps. Their original semantic text/work charge remains here.
-          let count = @stage.stage_input_declaration_count(stage)
-          spend(b, source, count)
-          for index in 0..<count {
-            charge(
-              b,
-              source,
-              @stage.stage_input_declaration_name_at(stage, index).unwrap(),
-            )
-          }
-          let original = @stage.stage_input_declaration(stage, declared)
-          if declared != key ||
-            @decode.tree_index(steps, source) !=
-            @decode.tree_index(steps, steps) ||
-            !(original is Some(value) &&
-            @decode.tree_index(value, retained) ==
-            @decode.tree_index(value, value)) {
-            fail(source, KeyEvidence(InputContractMismatch))
-          }
-        }
-        if names.contains(key) {
-          fail(source, DuplicateName(key))
-        }
-        carrier_preflight(b, source, schema)
-        if keyed_inputs[i] is Some(collection) {
-          spend(b, source, @evidence.key_witness_count(collection))
-          for k in 0..<@evidence.key_witness_count(collection) {
-            let declaration = @evidence.key_witness_at(collection, k).unwrap()
-            spend(b, source, @evidence.key_field_count(declaration))
-            for j in 0..<@evidence.key_field_count(declaration) {
-              spend(b, source, @evidence.key_alias_count(declaration, j))
-              for n in 0..<@evidence.key_alias_count(declaration, j) {
-                let field = @evidence.key_alias_at(declaration, j, n).unwrap()
-                charge(b, source, @schema.reference_name(field.name))
-              }
-            }
-          }
-        }
-        names[key] = Input(i)
-      }
-      original.phase = Parameters
-    }
+    Inputs => advance_pipeline_core_inputs(original)
     Parameters => {
       if parameters is Some(p) {
         let count = @parameter.declaration_count(p)

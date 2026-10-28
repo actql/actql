@@ -52,9 +52,16 @@ test "original core read retains one budget inputs and operation loop across sem
   assert_true(held.reference_slots <= quote.reference_slots)
   assert_true(held.scalar_words <= quote.scalar_words)
   assert_true(take_pipeline_core_read(read) is None)
+  while pipeline_core_read_phase(read) == Inputs {
+    let before = pipeline_core_read_owned_work(read).unwrap()
+    let _ = advance_pipeline_core_read(read)
+    assert_true(pipeline_core_read_owned_work(read).unwrap() >= before)
+    assert_true(physical_equal(original.b, budget))
+    assert_true(physical_equal(original.inputs, input_array))
+  }
+  assert_true(pipeline_core_read_phase(read) == Parameters)
   for
     expected in [
-      Parameters,
       ImportedEvidence,
       DeltaContracts,
       Steps,
@@ -89,7 +96,10 @@ test "original core typed selector failure remains original and clear stops ever
   let source = evidence_read_cursor("[]")
   let missing = evidence_read_cursor("\"missing\"")
   let read = original_core_fixture(source, from=Some(missing))
-  assert_true(advance_pipeline_core_read(read) == Parameters)
+  while pipeline_core_read_phase(read) == Inputs {
+    let _ = advance_pipeline_core_read(read)
+  }
+  assert_true(pipeline_core_read_phase(read) == Parameters)
   assert_true(advance_pipeline_core_read(read) == Failed)
   assert_true(pipeline_core_read_owned_work(read) is None)
   assert_true(advance_pipeline_core_read(read) == Failed)

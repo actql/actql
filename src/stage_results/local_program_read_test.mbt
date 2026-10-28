@@ -26,12 +26,15 @@ test "original staged topology retains Source Result producers and cumulative wo
         break
       }
       let phase = local_program_read_phase(read)
-      let position = local_program_read_stage_index(read)
+      let position = local_program_read_constructor_position(read)
       assert_eq(local_program_read_phase(read), phase)
-      assert_eq(local_program_read_stage_index(read), position)
+      assert_eq(local_program_read_constructor_position(read), position)
       assert_eq(local_program_read_owned_work(read), Some(spent))
       assert_true(take_local_program_read(read) is None)
       advance_local_program_read(read) |> ignore
+      if local_program_read_constructor_position(read) is Some((_, ordinal)) {
+        assert_eq(ordinal, position.unwrap().1 + 1L)
+      }
       let next = local_program_read_owned_work(read).unwrap()
       assert_true(next >= spent)
       spent = next
@@ -84,7 +87,10 @@ test "original staged topology retains the exact later typed failure and never t
     advance_local_program_read(read) |> ignore
   }
   assert_eq(local_program_read_phase(read), Failed)
-  assert_eq(local_program_read_stage_index(read), Some(1))
+  assert_eq(
+    local_program_read_constructor_position(read).map(p => p.0),
+    Some(1),
+  )
   assert_true(local_program_read_owned_work(read) is None)
   assert_eq(advance_local_program_read(read), Failed)
   guard take_local_program_read(read) is Some(Err(Pipeline(1, issue))) else {
