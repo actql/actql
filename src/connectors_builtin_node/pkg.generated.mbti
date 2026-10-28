@@ -371,8 +371,6 @@ pub fn client_program_author_effect_preview(String, String, String, @logical_req
 
 pub fn client_program_begin_closed_values_header(@client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal]) -> Result[@physical_resources.PreparationPhaseWork, @client_local_host.ClientClosedValuesPreparationIssue]
 
-pub fn client_program_begin_closed_values_preparation(@physical_resources.NodePreparationAdmission[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientLocalResourcePolicy) -> Result[@client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal], @client_local_host.ClientClosedValuesPreparationIssue]
-
 pub fn client_program_begin_closed_values_scan(@client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal], Int, Int) -> Result[@physical_resources.PreparationPhaseWork, @client_local_host.ClientClosedValuesPreparationIssue]
 
 pub fn client_program_begin_closed_values_text_check(@client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal], Int) -> Result[@physical_resources.PreparationPhaseWork, @client_local_host.ClientClosedValuesPreparationIssue]

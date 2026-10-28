@@ -434,28 +434,6 @@ pub fn client_program_abort_request_preparation(
 }
 
 ///|
-#export_name("clientProgramBeginClosedValuesPreparation")
-pub fn client_program_begin_closed_values_preparation(
-  initial : @resources.NodePreparationAdmission[
-    ClientLocalPreparationInputOriginal,
-  ],
-  input : ClientLocalPreparationInputOriginal,
-  policy : @client_local_host.ClientLocalResourcePolicy,
-) -> Result[
-  @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-  @client_local_host.ClientClosedValuesPreparationIssue,
-] {
-  @client_local_host.begin_closed_values_preparation(
-    initial,
-    input,
-    policy,
-    module_containers=installed_client_module_container_units,
-  )
-}
-
-///|
 #export_name("clientProgramBeginClosedValuesHeader")
 pub fn client_program_begin_closed_values_header(
   owner : @client_local_host.ClientClosedValuesPreparation[

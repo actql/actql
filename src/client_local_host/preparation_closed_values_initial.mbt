@@ -244,50 +244,6 @@ pub fn client_closed_values_initial_control_capacity(
 }
 
 ///|
-pub fn[I] begin_closed_values_preparation(
-  initial : @resources.NodePreparationAdmission[I],
-  input : I,
-  policy : ClientLocalResourcePolicy,
-  module_containers~ : @execution.PreparationRepresentationUnits,
-) -> Result[
-  ClientClosedValuesPreparation[I],
-  ClientClosedValuesPreparationIssue,
-] {
-  guard client_local_preparation_initial_limits(policy) is Some(expected) &&
-    client_closed_values_initial_control_capacity(policy, module_containers~)
-    is Some((retained, execution)) else {
-    return Err(Policy)
-  }
-  match @resources.check_node_preparation_input(initial, input) {
-    Err(issue) => return Err(Initial(issue))
-    Ok(_) => ()
-  }
-  let ledger = match @resources.start_node_preparation_admission(initial) {
-    Ok(value) => value
-    Err(issue) => return Err(Initial(issue))
-  }
-  if @resources.ledger_limits(ledger) != expected {
-    return Err(Policy)
-  }
-  let capacity = match
-    @resources.reserve_preparation_capacity(
-      ledger,
-      input,
-      retained,
-      execution,
-      max_borrowers=6,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Capacity(issue))
-  }
-  Ok(
-    make_closed_values_preparation(
-      initial, input, policy, capacity, retained, execution, module_containers,
-    ),
-  )
-}
-
-///|
 pub fn[I] begin_closed_values_header(
   owner : ClientClosedValuesPreparation[I],
 ) -> Result[@resources.PreparationPhaseWork, ClientClosedValuesPreparationIssue] {

@@ -459,8 +459,8 @@ pub fn[I] abort_request_preparation_after_cleanup(
 }
 
 ///|
-/// Both entrances install the same body-specific driver. The request-parent
-/// entrance reserves its complete old/new control overlap before this call.
+/// The request parent selects this body-specific driver only after reserving
+/// its complete old/new control overlap on the same original reservation.
 fn[I] make_closed_values_preparation(
   initial : @resources.NodePreparationAdmission[I],
   input : I,
