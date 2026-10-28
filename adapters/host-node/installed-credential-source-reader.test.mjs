@@ -144,3 +144,20 @@ test('managed stop waits for the actual original Credential binding while secret
   assert.equal(f.events.filter(x => x === 'finish').length, 1);
   assert.equal(f.events.includes('charge'), false);
 });
+
+test('managed decoder forwards an original wide-number rows wire with the same charge and no JS row conversion', async () => {
+  const wire = '[{"id":9007199254740993,"text":"é"}]';
+  const f = fixture({pages:[Buffer.from('raw')], decode() {return {rowsWire:wire,rowCount:1,done:true};}});
+  // A distinct preparation captures the existing Host wire consumer before
+  // read; no provider receives a raw Core admission method.
+  let actualWire, ticket;
+  f.callbacks.consumePageWire = function(value, originalTicket) {
+    assert.strictEqual(this, f.callbacks);actualWire=value;ticket=originalTicket;
+  };
+  const reader = f.factory.prepare(f.callbacks);
+  assert.deepEqual(await reader.read(), {pages:1,rowCount:1});
+  assert.strictEqual(actualWire, wire);assert.strictEqual(ticket.charge.body, f.responses[0].body);
+  assert.deepEqual(f.delivered, []);
+  reader.requestStop();f.reader.requestStop();
+  assert.equal(reader.observe().cleanupConfirmed, true);
+});
