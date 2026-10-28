@@ -1,8 +1,18 @@
 ///|
 // Original authored source/Member inputs on the existing Request fixture. The
 // SHA ordering is a linkage fixture, not an independent identity-law oracle.
-fn batch_snapshot_body(stage : String, name : String) -> String {
-  "{\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":{\"id\":{\"nullable\":false,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local/" +
+fn batch_snapshot_body(
+  stage : String,
+  name : String,
+  scores? : Bool = false,
+) -> String {
+  "{\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":{\"id\":{\"nullable\":false,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"}" +
+  (if scores {
+    ",\"score_contracts\":{\"id\":{\"domain\":\"d\",\"normalization\":\"n\",\"range\":[0,10]}}"
+  } else {
+    ""
+  }) +
+  ",\"source_ref\":\"source:local/" +
   stage +
   "/" +
   name +
@@ -14,6 +24,9 @@ fn batch_snapshot_parent(
   count : Int,
   mixed? : Bool = false,
   bad_second? : Bool = false,
+  local_declarations? : Bool = false,
+  bad_tail? : Bool = false,
+  scores? : Bool = false,
   current? : () -> Bool = () => true,
 ) -> (
   ClientRequestPreparation[Array[Int]],
@@ -23,7 +36,16 @@ fn batch_snapshot_parent(
   let declarations : Array[String] = []
   let bodies : Array[String] = []
   for i in 0..<Int::max(count, 1) {
-    declarations.push("\"b" + i.to_string() + "\":\"relation\"")
+    declarations.push(
+      "\"b" +
+      i.to_string() +
+      "\":" +
+      (if local_declarations {
+        "{\"carrier\":\"relation\",\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"primary_key\":[\"id\"]}"
+      } else {
+        "\"relation\""
+      }),
+    )
   }
   for i in 0..<count {
     bodies.push(
@@ -34,6 +56,7 @@ fn batch_snapshot_parent(
           "t"
         },
         "b" + i.to_string(),
+        scores~,
       ),
     )
   }
@@ -43,6 +66,9 @@ fn batch_snapshot_parent(
         #|{"carrier_schema_contract_cid":"sha256:3333333333333333333333333333333333333333333333333333333333333333","data_classification":"internal","output_carrier":"relation","read_mode":"snapshot","source_contract_cid":"sha256:1111111111111111111111111111111111111111111111111111111111111111","source_data_policy_cid":"sha256:4444444444444444444444444444444444444444444444444444444444444444","source_ref":"connector://duckdb/local/orders#snapshot","source_view_contract_cid":"sha256:2222222222222222222222222222222222222222222222222222222222222222"}
       ),
     )
+  }
+  if bad_tail {
+    bodies.push(batch_snapshot_body("t", "missing"))
   }
   if bad_second {
     assert_eq(count, 1)

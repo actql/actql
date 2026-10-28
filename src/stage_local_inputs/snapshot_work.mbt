@@ -30,7 +30,7 @@ pub fn observe_advance_local_environment_snapshot(
 
 ///|
 /// The Source holder retains that SAME Some; no second observation is created.
-let local_snapshot_budget_observation_units : @shape.CollectionConstructionExtent = {
+let local_budget_observation_units : @shape.CollectionConstructionExtent = {
   record_headers: 2L,
   reference_slots: 1L,
   scalar_words: 3L,
@@ -38,5 +38,5 @@ let local_snapshot_budget_observation_units : @shape.CollectionConstructionExten
 
 ///|
 pub fn local_environment_snapshot_work_observation_extent() -> @shape.CollectionConstructionExtent {
-  local_snapshot_budget_observation_units
+  local_budget_observation_units
 }

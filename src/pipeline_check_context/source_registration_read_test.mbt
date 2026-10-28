@@ -205,7 +205,7 @@ test "original Source registration clearing retires only its own untransferred a
   )
   assert_eq(source_registration_initial_construction_extent(), {
     record_headers: 5L,
-    reference_slots: 17L,
+    reference_slots: 18L,
     scalar_words: 9L,
   })
 }
@@ -450,7 +450,7 @@ test "original registration pipeline construction uses only same held resolution
   assert_true(source_registration_pipeline_construction(read) is None)
   assert_eq(source_registration_initial_construction_extent(), {
     record_headers: 5L,
-    reference_slots: 17L,
+    reference_slots: 18L,
     scalar_words: 9L,
   })
 }
@@ -662,7 +662,9 @@ test "original registration forwards only the same Local group construction and 
 }
 
 ///|
-fn snapshot_emission_registration_read() -> SourceRegistrationRead {
+fn snapshot_emission_registration_read(
+  max_local_nodes? : Int = 1000,
+) -> SourceRegistrationRead {
   let source = @stages.prepare(
     @syntax.parse(
       (
@@ -699,7 +701,12 @@ fn snapshot_emission_registration_read() -> SourceRegistrationRead {
   begin_source_registration(
     source,
     sourceview_catalog(environment),
-    { max_work: 10000, max_nodes: 1000, max_depth: 100, max_text_bytes: 10000, },
+    {
+      max_work: 10000,
+      max_nodes: max_local_nodes,
+      max_depth: 100,
+      max_text_bytes: 10000,
+    },
     max_inputs=10,
     max_views=10,
     max_order_keys=10,

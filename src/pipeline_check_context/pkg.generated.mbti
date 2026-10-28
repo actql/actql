@@ -609,6 +609,8 @@ pub fn observe_source_registration_local_snapshot_construction(SourceRegistratio
 
 pub fn observe_source_registration_local_snapshot_reference_construction(SourceRegistrationRead) -> (@local_source_ref.ReferenceReadConstructionInventory?, Int64)?
 
+pub fn observe_source_registration_local_tail_construction(SourceRegistrationRead) -> @stage_local_inputs.LocalCompletionConstructionInventory?
+
 pub fn observe_source_registration_resolution_construction(SourceRegistrationRead) -> Int64?
 
 pub fn operation_calendar_at(ProgramOperationCalendar, Int) -> OperationCalendarResolution?
@@ -1244,6 +1246,20 @@ pub fn source_registration_local_snapshot_work(SourceRegistrationRead) -> Int?
 pub fn source_registration_local_snapshot_work_observation_extent() -> @decode_shape.CollectionConstructionExtent
 
 pub fn source_registration_local_snapshots_work_bound(SourceRegistrationRead) -> Int?
+
+pub fn source_registration_local_tail_construction(SourceRegistrationRead) -> @stage_local_inputs.LocalCompletionConstructionInventory?
+
+pub fn source_registration_local_tail_inspection_bound(SourceRegistrationRead) -> Int64?
+
+pub fn source_registration_local_tail_inspection_extent(SourceRegistrationRead) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn source_registration_local_tail_inspection_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_local_tail_work(SourceRegistrationRead) -> Int?
+
+pub fn source_registration_local_tail_work_bound(SourceRegistrationRead) -> Int?
+
+pub fn source_registration_local_tail_work_observation_extent() -> @decode_shape.CollectionConstructionExtent
 
 pub fn source_registration_phase(SourceRegistrationRead) -> SourceRegistrationPhase
 

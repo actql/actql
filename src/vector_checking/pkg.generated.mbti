@@ -4,6 +4,7 @@ package "actql/actql/vector_checking"
 import {
   "actql/actql/carrier_contract",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/relation_schema",
   "actql/actql/source_span",
   "actql/actql/source_value",
@@ -22,6 +23,8 @@ pub fn read_score_contract(@decode_core.Cursor) -> ScoreContract raise Stop
 pub fn role_name(@decode_core.Cursor) -> @relation_schema.FieldName raise Stop
 
 pub fn scan(Budget, @decode_core.Cursor) -> Unit raise Stop
+
+pub fn scan_construction_extent(@decode_core.SubtreeGeometry) -> @decode_shape.CollectionConstructionExtent?
 
 pub fn score_contract_domain(ScoreContract) -> String
 

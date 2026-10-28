@@ -70,6 +70,7 @@ struct SourceRegistrationRead {
   mut local_index_inspection_work : Int64?
   mut local_groups_work : Int?
   mut local_snapshot_work : Int?
+  mut local_tail_work : Int?
   mut local_snapshot_emission : (Int, (Int, Int, Int)?)?
   mut state : SourceRegistrationState
 }
@@ -113,6 +114,7 @@ pub fn begin_source_registration(
     local_index_inspection_work: None,
     local_groups_work: None,
     local_snapshot_work: None,
+    local_tail_work: None,
     local_snapshot_emission: None,
     state: ReadDeclarations,
   })
@@ -480,17 +482,25 @@ pub fn advance_source_registration(
           }
         }
         Some(child) => {
-          let phase = if @local_inputs.local_environment_preparation_phase(
-              child,
-            ) ==
-            LocalEnvironmentSnapshot {
-            let (phase, spent) = @local_inputs.observe_advance_local_environment_snapshot(
-              child,
-            )
-            read.local_snapshot_work = spent
-            phase
-          } else {
-            @local_inputs.advance_local_environment_preparation(child)
+          let phase = match
+            @local_inputs.local_environment_preparation_phase(child) {
+            LocalEnvironmentSnapshot => {
+              let (phase, spent) = @local_inputs.observe_advance_local_environment_snapshot(
+                child,
+              )
+              read.local_snapshot_work = spent
+              phase
+            }
+            LocalEnvironmentDeclaration
+            | LocalEnvironmentReconciliation
+            | LocalEnvironmentAssembly => {
+              let (phase, spent) = @local_inputs.observe_advance_local_environment_tail(
+                child,
+              )
+              read.local_tail_work = spent
+              phase
+            }
+            _ => @local_inputs.advance_local_environment_preparation(child)
           }
           read.local_index_usage = @local_inputs.local_environment_preparation_index_usage(
             child,
@@ -575,11 +585,11 @@ pub fn clear_source_registration(read : SourceRegistrationRead) -> Unit {
 
 ///|
 /// Installed constructor DATA, not capacity. Argument record1H3R3W, its Some
-///1H1R1W, read1H12R3W, initial phase1H1W and returned Ok1H1R1W. The supplied
+///1H1R1W, read1H13R3W, initial phase1H1W and returned Ok1H1R1W. The supplied
 /// Source/Catalog/limits and each phase's metadata/constructor overlap remain
 /// separately backed. The collection phase also adds its original observer.
 pub fn source_registration_initial_construction_extent() -> @shape.CollectionConstructionExtent {
-  { record_headers: 5L, reference_slots: 17L, scalar_words: 9L, }
+  { record_headers: 5L, reference_slots: 18L, scalar_words: 9L, }
 }
 
 ///|
@@ -587,5 +597,5 @@ pub fn source_registration_initial_construction_extent() -> @shape.CollectionCon
 /// The initial phase/Ok alternatives are not part of this retained packet.
 /// Collection/resolution geometry and phase bodies are added by their owners.
 pub fn source_registration_retained_construction_extent() -> @shape.CollectionConstructionExtent {
-  { record_headers: 3L, reference_slots: 16L, scalar_words: 7L, }
+  { record_headers: 3L, reference_slots: 17L, scalar_words: 7L, }
 }
