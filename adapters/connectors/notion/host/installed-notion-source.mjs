@@ -8,8 +8,8 @@ import {captureConfigurationReaders} from '../../../host-node/source-profile-jso
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
 import {createInstalledRowSource,installRowSourceAuthorization,openRowSourceCredentialSite,
   rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
-import {openHttpsCredentialBinding,closeHttpsCredentialBinding} from '../../../site-node/https-credential-resource.mjs';
-import {createNotionUserListReader,NOTION_USER_LIST_OPERATION} from '../site/user-list-read.mjs';
+import {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
+import {prepareNotionUserListPages,NOTION_USER_LIST_OPERATION} from '../site/user-list-read.mjs';
 
 export const INSTALLED_NOTION_SOURCE_VERSION='actql-installed-notion-source/0.1';
 export const INSTALLED_NOTION_SITE_VERSION='actql-installed-notion-site/0.1';
@@ -77,61 +77,6 @@ export async function installedNotionSourceIdentityParts(profile,providerProfile
   return[{...profile,accountConfigurationWire:JSON.parse(profile.accountConfigurationWire)},site,binding];
 }
 
-// A synchronous, I/O-free factory is required by the original RowRun caller.
-// Its read obtains the already selected grant before constructing one child;
-// every failure retains that same child/binding/Promise graph for recovery.
-function originalReaderFactory({provider,site,installed,capacity}){
-  return Object.freeze({capacity,prepare(options){
-    const stop=new AbortController();
-    const signal=options.signal===undefined?stop.signal:AbortSignal.any([options.signal,stop.signal]);
-    let phase='ready',child,binding,closed=false,originalFailure,transportFailure,lastResult;
-    const closeTransport=()=>{
-      if(binding!==undefined&&!closed){
-        try{closed=closeHttpsCredentialBinding(binding)==='closed';}
-        catch(cause){transportFailure??=cause;throw cause;}
-      }
-    };
-    const handle=Object.freeze({
-      async read(){
-        if(this!==handle)fail('ForeignInstalledNotionReader');
-        if(phase!=='ready')fail('InstalledNotionReaderAlreadyStarted');
-        phase='reading';
-        try{
-          signal.throwIfAborted();await options.verifyRead();signal.throwIfAborted();
-          const original=await options.authorizationFor(0);
-          signal.throwIfAborted();await options.verifyRead();signal.throwIfAborted();
-          binding=openHttpsCredentialBinding({...site.credential,scope:original.scope,
-            maxSecretBytes:installed.limits.maxSecretBytes});
-          child=createNotionUserListReader({moon:provider,names:options.columns,
-            initialAuthorization:original,credential:{...site.credential,binding},
-            authorizationFor:async({index})=>{if(index===0)return original;return options.authorizationFor(index);},
-            current:async operation=>{if(operation!==NOTION_USER_LIST_OPERATION)fail('ForeignInstalledNotionRead');
-              return options.verifyRead();},
-            chargeResponse:options.chargePage,consumePage:options.consumePage,
-            limits:installed.limits,signal});
-          lastResult=await child.read();phase='succeeded';return lastResult;
-        }catch(cause){phase='failed';originalFailure=cause;throw cause;}
-        finally{
-          try{closeTransport();}
-          catch(cause){phase='failed';if(originalFailure===undefined){originalFailure=cause;throw cause;}}
-        }
-      },
-      requestStop(reason){
-        if(this!==handle)fail('ForeignInstalledNotionReader');
-        stop.abort(reason);child?.requestStop(reason);closeTransport();
-      },
-      observe(){
-        if(this!==handle)fail('ForeignInstalledNotionReader');
-        // Closing transport does not retire raw, row, callback, error or
-        // Promise aliases. No transfer/retirement receipt is currently issued.
-        return Object.freeze({phase,transportClosed:closed,transportFailure:transportFailure!==undefined,
-          child:child?.observe(),cleanupConfirmed:false});
-      },
-    });
-    return handle;
-  }});
-}
-
 export async function loadInstalledNotionSource(profile,{root,principalId,moon,providerMoon:provider,
   baseEnvironmentWire,runtimeBundleCid,resolveSecret,readerCapacity,configurationReader}={}){
   const{installed,site:siteProfile,ca,binding}=await readInputs(profile,configurationReader);
@@ -168,7 +113,12 @@ export async function loadInstalledNotionSource(profile,{root,principalId,moon,p
         connectorRegistration:registration,connectorRevision:revision,contextCid:authorization.context.contextCid,
         runtimeBundleCid,...binding,site:siteProfile}),
       limits:{maxPages:limits.maxPages,maxPageBytes:limits.maxResponseBytes,maxPageRows:limits.maxRows,maxCaptureRows:limits.maxTotalRows},
-      providerReader:originalReaderFactory({provider,site,installed,capacity:readerCapacity}),
-      readPages(){fail('InstalledNotionLegacyReaderUnavailable');}});
+      providerReader:createInstalledCredentialSourceReader({capacity:readerCapacity,site,
+        operation:NOTION_USER_LIST_OPERATION,maxResponses:limits.maxPages,
+        maxResponseBytes:limits.maxResponseBytes,maxSecretBytes:limits.maxSecretBytes,
+        preparePageReader({resource:selected,columns}){
+          if(selected!==resource)fail('UndeclaredNotionResource');
+          return prepareNotionUserListPages({moon:provider,names:columns,limits});
+        }})});
   }catch(cause){throw await retainInstalledHostInitializationFailure(cause,{sourceProfile:site});}
 }
