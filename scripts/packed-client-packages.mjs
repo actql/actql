@@ -12,7 +12,8 @@
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {copyFile, mkdir, readFile, writeFile} from 'node:fs/promises';
-import {join, resolve} from 'node:path';
+import {existsSync, readFileSync, realpathSync} from 'node:fs';
+import {isAbsolute, join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 export const CLIENT_PACKAGES = Object.freeze(['client-wire', 'sdk',
@@ -48,9 +49,66 @@ function git(repository, args) {
 
 // Directories a pack reads: the packages themselves, and the MoonBit
 // sources, Host adapters, bundled contracts and generators their prepack
-// builds use. Generated output and scratch in them are git-ignored.
+// builds use. Normative generation reads also include the portability corpus
+// and specification text. Generated output and scratch are git-ignored.
 export const BUILD_INPUTS = Object.freeze(['packages', 'src', 'adapters',
-  'spec', 'scripts', 'release']);
+  'spec', 'scripts', 'release', 'portability', 'docs/spec']);
+
+// Fresh CI producers retain the same source-input policy plus the exact
+// references read by the required, original interface validator. This is
+// acquisition DATA, not another interface classifier or admission result.
+export async function normalPackSourceInputs(repository, listed) {
+  const root = realpathSync(repository), available = new Set(listed);
+  const selected = new Set(listed.filter(path => !path.includes('/') ||
+    BUILD_INPUTS.some(prefix => path.startsWith(prefix + '/'))));
+  const {interfaceOwnerDeclarations} = await import('./interface-owner-discovery.mjs');
+  const {assertInterfaceCoverage} = await import('./interface-inventory.mjs');
+  const readReference = path => {
+    if (!available.has(path)) throw new Error(`UnlistedNormalPackSourceReference:${path}`);
+    const actual = realpathSync(resolve(root, path)), child = relative(root, actual);
+    if (isAbsolute(child) || child === '..' || child.startsWith('../')) {
+      throw new Error(`EscapedNormalPackSourceReference:${path}`);
+    }
+    selected.add(path);
+    return readFileSync(actual, 'utf8');
+  };
+  const checked = new Set();
+  for (;;) {
+    const owners = interfaceOwnerDeclarations(root, [...selected]).filter(owner => !checked.has(owner.id));
+    if (!owners.length) break;
+    for (const owner of owners) {
+      // Use the same attribute/reference checks as normal prepack. The real
+      // module/primary/generation check still runs in that original entrance.
+      assertInterfaceCoverage({root, modules: [], declarations: owner.declarations, readReference});
+      checked.add(owner.id);
+    }
+  }
+  return [...selected];
+}
+
+// A private Git index describes only the files actually copied to this fresh
+// fixture. It has no commit/revision claim and borrows no source Git history.
+export function initializeNormalPackSourceIndex(directory, paths) {
+  if (existsSync(join(directory, '.git'))) throw new Error('Normal pack source index already exists');
+  const environment = Object.fromEntries(Object.entries(process.env)
+    .filter(([key]) => !key.startsWith('GIT_')));
+  for (const path of paths) {
+    if (typeof path !== 'string' || !path || isAbsolute(path) ||
+        path.split('/').some(part => !part || ['.', '..', '.git'].includes(part)) || path.includes('\0')) {
+      throw new TypeError('Concrete normal pack source path required');
+    }
+  }
+  if (new Set(paths).size !== paths.length) throw new TypeError('Duplicate normal pack source path');
+  const run = (args, input) => {
+    const result = spawnSync('git', args, {cwd: directory, env: environment,
+      encoding: 'utf8', input, maxBuffer: 16 * 1024 * 1024});
+    if (result.error || result.status !== 0) throw new Error(
+      `NormalPackSourceIndexFailed:${result.stderr}`, {cause: result.error});
+  };
+  run(['init', '--quiet']);
+  run(['--literal-pathspecs', 'add', '--force', '--pathspec-from-file=-', '--pathspec-file-nul'],
+    paths.map(path => path + '\0').join(''));
+}
 
 // The checkout state the tarballs stand for: the revision, and whether
 // anything a pack reads differs from it. Any tracked change in the
