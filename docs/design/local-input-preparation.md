@@ -1742,3 +1742,14 @@ boundaries and must back their complete call. A retained core or successful
 initializer alone is not a complete checked Program, Context, Plan adoption or
 ordinary backend migration. Failure retains the original typed issue and has no
 complete successful Usage; it never supplies zero work as a success fact.
+
+The original nested Contract preflight has its own private continuation over
+that same compiler Budget and original LIFO stack. Each return follows exactly
+one original popped Contract; its immediate object-field count is available
+before pushing child contracts. The synchronous preflight drives this same
+body. It does not introduce a second type traversal, a Contract-layout cache or
+a new resource owner. Depth, field-order, work and partial text refusals remain
+with the original semantic body. Clearing removes pending element roots but
+does not make the stack's retained backing or its parent reservation disappear.
+Connecting this pending stack and its next child construction to the funded
+core input boundary remains an explicit caller obligation.
