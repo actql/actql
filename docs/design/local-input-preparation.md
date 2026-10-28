@@ -1958,3 +1958,22 @@ or observation bound does not by itself cover Pipeline/Stage adapters. Logical
 constructor tables, physical first-entry backing, and same-candidate ordinary
 backend behavior remain distinct obligations. Subsequent operations and final
 Result/Context/Plan/Run adoption require their own original lifetime recipes.
+
+### Original operation boundaries
+
+The Core operation driver selects the next original body by its existing
+completed-step count. The same operation checker consumes that body once,
+borrowing the original Source, input evidence, names, current target and Budget.
+Every successful branch appends its one original checked step and returns that
+target. The next call therefore resumes from the preceding original result;
+it does not replay earlier operations or create another step index. Empty and
+last-body paths finish in the same call without a separate selection boundary.
+Synchronous callers drive this same body to completion.
+
+An operation refusal retains the completed original prefix for the same clear
+path and never starts the remaining bodies. Nested operation owners that do
+not report their actual failed consumed prefix still leave work unknown;
+the outer Budget alone cannot fabricate a complete failure receipt. This
+operation boundary does not supply construction/retained backing for its
+nested checkers. The Request driver continues to stop before operations until
+those original constructors and held evidence have their own complete recipe.
