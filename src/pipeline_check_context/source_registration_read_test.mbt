@@ -51,7 +51,7 @@ test "original Source registration advances once with the same collected partiti
     physical_equal(source_registration_collected_inputs(read).unwrap(), inputs),
   )
   assert_eq(advance_source_registration(read), RegistrationLocal)
-  assert_eq(advance_source_registration(read), RegistrationComplete)
+  assert_eq(complete_registration_local(read), RegistrationComplete)
   assert_eq(advance_source_registration(read), RegistrationComplete)
   assert_eq(source_registration_collection_work(read), spent)
   let (views, locals) = take_source_registration_result(read).unwrap().unwrap()
@@ -162,7 +162,7 @@ test "original Source registration preserves pipeline one-short and Local refusa
   assert_eq(advance_source_registration(read), RegistrationSelect)
   assert_eq(advance_source_registration(read), RegistrationPipeline)
   assert_eq(advance_source_registration(read), RegistrationLocal)
-  assert_eq(advance_source_registration(read), RegistrationFailed)
+  assert_eq(complete_registration_local(read), RegistrationFailed)
   assert_true(
     take_source_registration_result(read) is Some(Err(LocalInputs(_))),
   )
@@ -205,7 +205,7 @@ test "original Source registration clearing retires only its own untransferred a
   )
   assert_eq(source_registration_initial_construction_extent(), {
     record_headers: 5L,
-    reference_slots: 9L,
+    reference_slots: 10L,
     scalar_words: 9L,
   })
 }
@@ -231,7 +231,7 @@ test "original Source registration retains new selection work without recharging
   let selected = source_registration_selection_work(read)
   assert_true(selected > 0)
   assert_eq(advance_source_registration(read), RegistrationLocal)
-  assert_eq(advance_source_registration(read), RegistrationComplete)
+  assert_eq(complete_registration_local(read), RegistrationComplete)
   assert_eq(advance_source_registration(read), RegistrationComplete)
   let (views, _) = take_source_registration_result(read).unwrap().unwrap()
   let resolved = @sourceviews.pipeline_resolution(views)
@@ -280,7 +280,7 @@ test "original Source registration retains new pipeline work without recharging 
   // The authored fixture has two Stages, two remote declarations, and the
   // original names remote(6) and remote_again(12): new work2+2+6+12 =22.
   assert_eq(source_registration_pipeline_work(read), 22)
-  assert_eq(advance_source_registration(read), RegistrationComplete)
+  assert_eq(complete_registration_local(read), RegistrationComplete)
   let (views, _) = take_source_registration_result(read).unwrap().unwrap()
   let resolved = @sourceviews.pipeline_resolution(views)
   let inherited = @sourceviews.work(resolved)
@@ -389,7 +389,7 @@ test "original registration binds and retains resolver construction metadata onc
   assert_true(source_registration_resolution_construction(read) is None)
   assert_eq(source_registration_resolution_inspection_work(read), Some(work))
   assert_eq(advance_source_registration(read), RegistrationLocal)
-  assert_eq(advance_source_registration(read), RegistrationComplete)
+  assert_eq(complete_registration_local(read), RegistrationComplete)
   let (views, _) = take_source_registration_result(read).unwrap().unwrap()
   assert_true(
     physical_equal(
@@ -437,7 +437,7 @@ test "original registration pipeline construction uses only same held resolution
   assert_eq(advance_source_registration(read), RegistrationLocal)
   assert_true(source_registration_pipeline_construction(read) is None)
   assert_eq(source_registration_pipeline_work(read), 22)
-  assert_eq(advance_source_registration(read), RegistrationComplete)
+  assert_eq(complete_registration_local(read), RegistrationComplete)
   let (pipeline, _) = take_source_registration_result(read).unwrap().unwrap()
   let resolved = @sourceviews.pipeline_resolution(pipeline)
   assert_true(physical_equal(@sourceviews.inputs(resolved), original_inputs))
@@ -450,7 +450,131 @@ test "original registration pipeline construction uses only same held resolution
   assert_true(source_registration_pipeline_construction(read) is None)
   assert_eq(source_registration_initial_construction_extent(), {
     record_headers: 5L,
-    reference_slots: 9L,
+    reference_slots: 10L,
     scalar_words: 9L,
   })
+}
+
+///|
+// These finite original fixtures have two Stages and at most two snapshots.
+// This is a test observation bound, never a product budget or changed oracle.
+fn complete_registration_local(
+  read : SourceRegistrationRead,
+) -> SourceRegistrationPhase raise {
+  let mut steps = 0
+  while source_registration_phase(read) == RegistrationLocal {
+    assert_true(steps < 20)
+    let _ = advance_source_registration(read)
+    steps += 1
+  }
+  source_registration_phase(read)
+}
+
+///|
+test "original registration keeps one private Local continuation through its actual phases" {
+  let (source, catalog, limits, _) = registration_read_fixture()
+  let read = begin_source_registration(
+    source,
+    catalog,
+    limits,
+    max_inputs=2,
+    max_views=100,
+    max_order_keys=100,
+  ).unwrap()
+  assert_true(source_registration_local_phase(read) is None)
+  assert_eq(advance_source_registration(read), RegistrationSelect)
+  let original = source_registration_collected_inputs(read).unwrap()
+  assert_eq(advance_source_registration(read), RegistrationPipeline)
+  assert_eq(advance_source_registration(read), RegistrationLocal)
+  assert_true(source_registration_local_phase(read) is None)
+  assert_eq(advance_source_registration(read), RegistrationLocal)
+  assert_eq(
+    source_registration_local_phase(read),
+    Some(@local_inputs.LocalEnvironmentIndex),
+  )
+  assert_eq(advance_source_registration(read), RegistrationLocal)
+  assert_eq(
+    source_registration_local_phase(read),
+    Some(@local_inputs.LocalEnvironmentGroups),
+  )
+  assert_eq(complete_registration_local(read), RegistrationComplete)
+  assert_eq(
+    source_registration_local_phase(read),
+    Some(@local_inputs.LocalEnvironmentTransferred),
+  )
+  let (pipeline, locals) = take_source_registration_result(read)
+    .unwrap()
+    .unwrap()
+  assert_true(
+    physical_equal(
+      @sourceviews.inputs(@sourceviews.pipeline_resolution(pipeline)),
+      original,
+    ),
+  )
+  assert_true(physical_equal(@local_inputs.environment_program(locals), source))
+  assert_true(source_registration_local_phase(read) is None)
+  clear_source_registration(read)
+  assert_eq(source_registration_phase(read), RegistrationTransferred)
+  assert_true(take_source_registration_result(read) is None)
+}
+
+///|
+test "original registration retains failed Local handoff and clears only its own child aliases" {
+  let (source, catalog, limits, _) = registration_read_fixture()
+  let read = begin_source_registration(
+    source,
+    catalog,
+    { ..limits, max_nodes: 0, },
+    max_inputs=2,
+    max_views=100,
+    max_order_keys=100,
+  ).unwrap()
+  assert_eq(advance_source_registration(read), RegistrationSelect)
+  assert_eq(advance_source_registration(read), RegistrationPipeline)
+  assert_eq(advance_source_registration(read), RegistrationLocal)
+  assert_eq(advance_source_registration(read), RegistrationLocal)
+  assert_eq(
+    source_registration_local_phase(read),
+    Some(@local_inputs.LocalEnvironmentIndex),
+  )
+  assert_eq(complete_registration_local(read), RegistrationFailed)
+  // The child handed off its actual typed error once, retaining the failed
+  // frame aliases until this original registration is taken/cleared.
+  assert_eq(
+    source_registration_local_phase(read),
+    Some(@local_inputs.LocalEnvironmentTransferred),
+  )
+  let failed_at = source_registration_local_failure_phase(read)
+  assert_true(failed_at is Some(_))
+  assert_eq(advance_source_registration(read), RegistrationFailed)
+  assert_eq(source_registration_local_failure_phase(read), failed_at)
+  assert_true(
+    take_source_registration_result(read) is Some(Err(LocalInputs(_))),
+  )
+  assert_true(source_registration_local_phase(read) is None)
+  clear_source_registration(read)
+  assert_eq(source_registration_phase(read), RegistrationTransferred)
+  assert_true(take_source_registration_result(read) is None)
+  let pending = begin_source_registration(
+    source,
+    catalog,
+    limits,
+    max_inputs=2,
+    max_views=100,
+    max_order_keys=100,
+  ).unwrap()
+  assert_eq(advance_source_registration(pending), RegistrationSelect)
+  assert_eq(advance_source_registration(pending), RegistrationPipeline)
+  assert_eq(advance_source_registration(pending), RegistrationLocal)
+  assert_eq(advance_source_registration(pending), RegistrationLocal)
+  assert_eq(advance_source_registration(pending), RegistrationLocal)
+  assert_eq(
+    source_registration_local_phase(pending),
+    Some(@local_inputs.LocalEnvironmentGroups),
+  )
+  clear_source_registration(pending)
+  assert_eq(source_registration_phase(pending), RegistrationRetired)
+  assert_true(source_registration_local_phase(pending) is None)
+  assert_eq(advance_source_registration(pending), RegistrationRetired)
+  assert_true(take_source_registration_result(pending) is None)
 }

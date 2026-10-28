@@ -57,6 +57,7 @@ struct SourceRegistrationRead {
   mut selection_work : Int
   mut pipeline_work : Int
   mut resolution_construction : SourceResolutionConstruction?
+  mut local_child : @local_inputs.LocalEnvironmentPreparation?
   mut state : SourceRegistrationState
 }
 
@@ -92,6 +93,7 @@ pub fn begin_source_registration(
     selection_work: 0,
     pipeline_work: 0,
     resolution_construction: None,
+    local_child: None,
     state: ReadDeclarations,
   })
 }
@@ -262,6 +264,32 @@ pub fn source_registration_pipeline_construction(
 }
 
 ///|
+/// Original nested Local phase DATA, including a retained failed child. The
+/// child itself cannot escape this registration read or be taken externally.
+pub fn source_registration_local_phase(
+  read : SourceRegistrationRead,
+) -> @local_inputs.LocalEnvironmentPhase? {
+  read.local_child.map(@local_inputs.local_environment_preparation_phase)
+}
+
+///|
+pub fn source_registration_local_failure_phase(
+  read : SourceRegistrationRead,
+) -> @local_inputs.LocalEnvironmentPhase? {
+  read.local_child.bind(
+    @local_inputs.local_environment_preparation_failure_phase,
+  )
+}
+
+///|
+fn clear_source_registration_local(read : SourceRegistrationRead) -> Unit {
+  if read.local_child is Some(child) {
+    @local_inputs.clear_local_environment_preparation(child)
+  }
+  read.local_child = None
+}
+
+///|
 /// One actual original phase per call. No callback/current observation, second
 /// semantic reader or capacity computation is added. Completed/failed/taken/
 /// retired calls do not re-enter any reader. The caller must quote and fund
@@ -314,27 +342,51 @@ pub fn advance_source_registration(
         Ok(views) => BuildLocal(views)
       }
     }
-    BuildLocal(views) => {
+    BuildLocal(views) =>
       // The same original convention includes collection/selection in views.
       // Only that completed prefix is subtracted for the Local reader. Its
       // sourceview partition is the SAME collected Inputs, not another scan.
-      let result = @local_inputs.prepare_environment(
-        original.source,
-        @sourceviews.pipeline_environment(views),
-        {
-          ..original.limits,
-          max_work: original.limits.max_work -
-          @sourceviews.pipeline_inputs_work(views),
-        },
-        sourceviews=read.collected,
-      )
-      read.state = RegistrationDone(
-        match result {
-          Err(issue) => Err(LocalInputs(issue))
-          Ok(locals) => Ok((views, locals))
-        },
-      )
-    }
+      match read.local_child {
+        None =>
+          match
+            @local_inputs.begin_local_environment_preparation(
+              original.source,
+              @sourceviews.pipeline_environment(views),
+              {
+                ..original.limits,
+                max_work: original.limits.max_work -
+                @sourceviews.pipeline_inputs_work(views),
+              },
+              sourceviews=read.collected,
+            ) {
+            Err(issue) => read.state = RegistrationDone(Err(LocalInputs(issue)))
+            Ok(child) => read.local_child = Some(child)
+          }
+        Some(child) =>
+          match @local_inputs.advance_local_environment_preparation(child) {
+            LocalEnvironmentComplete | LocalEnvironmentFailed => {
+              let result = @local_inputs.take_local_environment_preparation_result(
+                child,
+              ).unwrap()
+              // A taken failure retains completed/pending child aliases until
+              // the outside caller clears/takes this original registration.
+              read.state = RegistrationDone(
+                match result {
+                  Err(issue) => Err(LocalInputs(issue))
+                  Ok(locals) => Ok((views, locals))
+                },
+              )
+            }
+            LocalEnvironmentIndex
+            | LocalEnvironmentGroups
+            | LocalEnvironmentSnapshot
+            | LocalEnvironmentDeclaration
+            | LocalEnvironmentReconciliation
+            | LocalEnvironmentAssembly => ()
+            LocalEnvironmentTransferred | LocalEnvironmentRetired =>
+              abort("unexposed original Local child cannot retire externally")
+          }
+      }
     RegistrationDone(_) | RegistrationHandedOff | RegistrationCleared => ()
   }
   source_registration_phase(read)
@@ -355,6 +407,7 @@ pub fn take_source_registration_result(
       read.arguments = None
       read.collected = None
       read.resolution_construction = None
+      clear_source_registration_local(read)
       read.state = RegistrationHandedOff
       Some(result)
     }
@@ -371,6 +424,7 @@ pub fn clear_source_registration(read : SourceRegistrationRead) -> Unit {
   read.arguments = None
   read.collected = None
   read.resolution_construction = None
+  clear_source_registration_local(read)
   read.state = if transferred {
     RegistrationHandedOff
   } else {
@@ -380,9 +434,9 @@ pub fn clear_source_registration(read : SourceRegistrationRead) -> Unit {
 
 ///|
 /// Installed constructor DATA, not capacity. Argument record1H3R3W, its Some
-///1H1R1W, read1H4R3W, initial phase1H1W and returned Ok1H1R1W. The supplied
+///1H1R1W, read1H5R3W, initial phase1H1W and returned Ok1H1R1W. The supplied
 /// Source/Catalog/limits and each phase's metadata/constructor overlap remain
 /// separately backed. The collection phase also adds its original observer.
 pub fn source_registration_initial_construction_extent() -> @shape.CollectionConstructionExtent {
-  { record_headers: 5L, reference_slots: 9L, scalar_words: 9L, }
+  { record_headers: 5L, reference_slots: 10L, scalar_words: 9L, }
 }

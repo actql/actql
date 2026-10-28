@@ -926,3 +926,27 @@ failure retains the same group construction peak, with no early retirement
 claim. The same registration read exposes this DATA only in its pipeline phase
 and accepts no alternative limits or owner. Quotation and observed-work frames,
 real parent funding and later Local snapshot/schema construction remain separate.
+
+
+## Local registration continuation
+
+The actual Local environment preparation has one original continuation for its
+Source, Environment, SourceView partition and selected limits. Its synchronous
+entry drives the same continuation; there is no second legacy reader. Indexing,
+Stage-name groups, each snapshot, each Stage declaration/reconciliation and final
+assembly are separate steps, so the outside parent can fund their real overlaps
+before entry. The original order, limit deductions and cumulative Usage remain.
+
+Completed index/member/Stage holders and the original pending declaration remain
+on a failed read until the caller takes or clears it. A failure after a successful
+member read retains that member too. This does not retain a nested callee's
+unreturned temporaries or prove physical retirement. Completed assembly alone
+supplies the original Usage; an unobserved nested failure is not reported as zero.
+The Source registration read keeps this same Local child private, exposes only
+its phase/failure-phase DATA, and retains a failed child until its own transfer or
+clear. Transfer remains sticky and clears only these aliases, never Resource use.
+
+Only the fixed initial continuation record is inventoried here. Each step's
+metadata, quotation, constructor and borrowed-input backing, nested work
+observations, real parent/current/debit/resize and backend retirement remain
+separate required connections. No phase or initial DATA extent is capacity.

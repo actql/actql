@@ -1137,6 +1137,10 @@ pub fn source_registration_collection_work(SourceRegistrationRead) -> Int
 
 pub fn source_registration_initial_construction_extent() -> @decode_shape.CollectionConstructionExtent
 
+pub fn source_registration_local_failure_phase(SourceRegistrationRead) -> @stage_local_inputs.LocalEnvironmentPhase?
+
+pub fn source_registration_local_phase(SourceRegistrationRead) -> @stage_local_inputs.LocalEnvironmentPhase?
+
 pub fn source_registration_phase(SourceRegistrationRead) -> SourceRegistrationPhase
 
 pub fn source_registration_pipeline_construction(SourceRegistrationRead) -> @sourceview_resolution.PipelinePreparationConstruction?

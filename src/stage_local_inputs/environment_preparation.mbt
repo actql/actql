@@ -1,0 +1,434 @@
+///|
+/// Actual Local constructor progress, not Resource ownership, permission or
+/// physical retirement. Fund each selected step and its borrowed frame before
+/// entry. A nested failure has no invented zero work or completed Usage.
+pub(all) enum LocalEnvironmentPhase {
+  LocalEnvironmentIndex
+  LocalEnvironmentGroups
+  LocalEnvironmentSnapshot
+  LocalEnvironmentDeclaration
+  LocalEnvironmentReconciliation
+  LocalEnvironmentAssembly
+  LocalEnvironmentComplete
+  LocalEnvironmentFailed
+  LocalEnvironmentTransferred
+  LocalEnvironmentRetired
+} derive(Eq, Debug)
+
+///|
+priv struct LocalEnvironmentArguments {
+  source : @stages.Source
+  environment : @environment.WireEnvironment
+  limits : Limits
+  sourceviews : @sourceviews.Inputs?
+}
+
+///|
+priv struct LocalStageGroups {
+  names : Map[String, Int]
+  by_stage : Array[Array[@snapshot.EnvironmentSnapshot]]
+}
+
+///|
+priv struct LocalEnvironmentPending {
+  prepared : Prepared
+  limits : Limits
+}
+
+///|
+priv enum LocalEnvironmentState {
+  ReadIndex
+  MakeGroups
+  ReadSnapshot(Int)
+  ReadDeclaration(Int)
+  ReconcileStage(Int)
+  AssembleStages
+  LocalDone(Result[ProgramEnvironmentInputs, PrepareEnvironmentIssue])
+  LocalHandedOff
+  LocalCleared
+}
+
+///|
+/// One original Source/Environment/partition and selected limits. Completed
+/// index/member/Stage aliases and pending declaration survive a failed step
+/// until this read's caller takes or clears them. No second Ledger or quota.
+struct LocalEnvironmentPreparation {
+  mut arguments : LocalEnvironmentArguments?
+  count : Int
+  members : Int
+  mut index : @refs.Index?
+  mut groups : LocalStageGroups?
+  mut stages : Array[EnvironmentInputs]?
+  mut pending : LocalEnvironmentPending?
+  mut pending_member : @snapshot.EnvironmentSnapshot?
+  mut work : Int
+  mut nodes : Int
+  mut text : Int
+  mut stage_work : Int
+  mut stage_nodes : Int
+  mut stage_text : Int
+  mut failed_at : LocalEnvironmentPhase?
+  mut state : LocalEnvironmentState
+}
+
+///|
+pub fn begin_local_environment_preparation(
+  source : @stages.Source,
+  environment : @environment.WireEnvironment,
+  limits : Limits,
+  sourceviews? : @sourceviews.Inputs? = None,
+) -> Result[LocalEnvironmentPreparation, PrepareEnvironmentIssue] {
+  if limits.max_work < 0 ||
+    limits.max_nodes < 0 ||
+    limits.max_text_bytes < 0 ||
+    limits.max_depth < 0 {
+    return Err(InvalidLimits)
+  }
+  if sourceviews is Some(views) &&
+    !physical_equal(@sourceviews.source(views), source) {
+    return Err(ForeignSourceViews)
+  }
+  let count = @stages.stage_count(source)
+  let members = @environment.member_count(
+    environment,
+    @environment.SchemaSnapshots,
+  )
+  if count >= limits.max_work || members > limits.max_work - count - 1 {
+    return Err(BudgetExceeded)
+  }
+  Ok({
+    arguments: Some({ source, environment, limits, sourceviews, }),
+    count,
+    members,
+    index: None,
+    groups: None,
+    stages: None,
+    pending: None,
+    pending_member: None,
+    work: limits.max_work - count - members - 1,
+    nodes: limits.max_nodes,
+    text: limits.max_text_bytes,
+    stage_work: 0,
+    stage_nodes: 0,
+    stage_text: 0,
+    failed_at: None,
+    state: ReadIndex,
+  })
+}
+
+///|
+pub fn local_environment_preparation_phase(
+  read : LocalEnvironmentPreparation,
+) -> LocalEnvironmentPhase {
+  match read.state {
+    ReadIndex => LocalEnvironmentIndex
+    MakeGroups => LocalEnvironmentGroups
+    ReadSnapshot(_) => LocalEnvironmentSnapshot
+    ReadDeclaration(_) => LocalEnvironmentDeclaration
+    ReconcileStage(_) => LocalEnvironmentReconciliation
+    AssembleStages => LocalEnvironmentAssembly
+    LocalDone(Ok(_)) => LocalEnvironmentComplete
+    LocalDone(Err(_)) => LocalEnvironmentFailed
+    LocalHandedOff => LocalEnvironmentTransferred
+    LocalCleared => LocalEnvironmentRetired
+  }
+}
+
+///|
+/// Retained origin of the first failed step, including after result transfer.
+/// It does not imply measured nested work or a Resource cleanup observation.
+pub fn local_environment_preparation_failure_phase(
+  read : LocalEnvironmentPreparation,
+) -> LocalEnvironmentPhase? {
+  read.failed_at
+}
+
+///|
+// Original cumulative semantic Usage is defined only by completed assembly.
+// A missing observation on a failed nested call is not a zero debit/refund.
+pub fn local_environment_preparation_usage(
+  read : LocalEnvironmentPreparation,
+) -> Usage? {
+  match read.state {
+    LocalDone(Ok(result)) => Some(program_environment_usage(result))
+    _ => None
+  }
+}
+
+///|
+fn fail_local_environment_preparation(
+  read : LocalEnvironmentPreparation,
+  issue : PrepareEnvironmentIssue,
+) -> LocalEnvironmentPhase {
+  read.failed_at = Some(local_environment_preparation_phase(read))
+  read.state = LocalDone(Err(issue))
+  LocalEnvironmentFailed
+}
+
+///|
+fn local_environment_after_snapshots(
+  read : LocalEnvironmentPreparation,
+) -> Unit {
+  // This Array exists at its original point, after every snapshot read, not
+  // before a failed member. All earlier groups/index aliases stay retained.
+  read.stages = Some([])
+  read.state = if read.count == 0 { AssembleStages } else { ReadDeclaration(0) }
+}
+
+///|
+/// One actual original constructor step. No callback/current, second semantic
+/// reader, resource calculation or retry is introduced. Terminal calls do not
+/// re-enter children. The same outer owner must back each step before entry.
+pub fn advance_local_environment_preparation(
+  read : LocalEnvironmentPreparation,
+) -> LocalEnvironmentPhase {
+  guard read.arguments is Some(original) else {
+    return local_environment_preparation_phase(read)
+  }
+  match read.state {
+    ReadIndex => {
+      read.index = match
+        @refs.prepare(original.source, {
+          max_work: read.work,
+          max_text_bytes: read.text,
+        }) {
+        Ok(index) => Some(index)
+        Err(issue) =>
+          return fail_local_environment_preparation(read, Index(issue))
+      }
+      // As before, Stage reconciliation accounts for the index prefix. Do not
+      // deduct it from the outer remaining-work convention a second time.
+      read.state = MakeGroups
+    }
+    MakeGroups => {
+      let names : Map[String, Int] = Map([])
+      let by_stage : Array[Array[@snapshot.EnvironmentSnapshot]] = Array::makei(
+        read.count,
+        _ => [],
+      )
+      read.groups = Some({ names, by_stage, })
+      for i in 0..<read.count {
+        let name = @stages.stage_at(original.source, i).unwrap().id
+        if name.length() > read.work {
+          return fail_local_environment_preparation(read, BudgetExceeded)
+        }
+        read.work -= name.length()
+        names[name] = i
+      }
+      if read.members == 0 {
+        local_environment_after_snapshots(read)
+      } else {
+        read.state = ReadSnapshot(0)
+      }
+    }
+    ReadSnapshot(i) => {
+      let entry = @environment.member_at(
+        original.environment,
+        @environment.SchemaSnapshots,
+        i,
+      ).unwrap()
+      let connector = match
+        @environment.connector_source_snapshot_selector(entry) {
+        Ok(Some(_)) => true
+        Ok(None) => false
+        Err(issue) =>
+          return fail_local_environment_preparation(
+            read,
+            ConnectorSnapshot(i, issue),
+          )
+      }
+      if connector {
+        let (bytes, n) = @environment.member_usage(entry)
+        if bytes > read.text || n > read.nodes || n > read.work {
+          return fail_local_environment_preparation(read, BudgetExceeded)
+        }
+        read.text -= bytes
+        read.nodes -= n
+        read.work -= n
+      } else {
+        let admitted = match
+          @snapshot.read_member(entry, {
+            max_bytes: read.text,
+            max_nodes: if read.nodes < read.work {
+              read.nodes
+            } else {
+              read.work
+            },
+            max_depth: original.limits.max_depth,
+          }) {
+          Ok(value) => value
+          Err(issue) =>
+            return fail_local_environment_preparation(read, Snapshot(i, issue))
+        }
+        read.pending_member = Some(admitted)
+        let snapshot = @snapshot.environment_snapshot(
+          read.pending_member.unwrap(),
+        )
+        let (bytes, n) = @snapshot.usage(snapshot)
+        read.text -= bytes
+        read.nodes -= n
+        read.work -= n
+        let name = @source_ref.stage_name(@snapshot.source_reference(snapshot))
+        if name.length() > read.work {
+          return fail_local_environment_preparation(read, BudgetExceeded)
+        }
+        read.work -= name.length()
+        let groups = read.groups.unwrap()
+        let at = match groups.names.get(name) {
+          Some(at) => at
+          None =>
+            return fail_local_environment_preparation(
+              read,
+              UnknownStage(i, name),
+            )
+        }
+        groups.by_stage[at].push(read.pending_member.unwrap())
+        read.pending_member = None
+      }
+      if i + 1 == read.members {
+        local_environment_after_snapshots(read)
+      } else {
+        read.state = ReadSnapshot(i + 1)
+      }
+    }
+    ReadDeclaration(i) => {
+      let remaining : Limits = {
+        max_work: read.work,
+        max_nodes: read.nodes,
+        max_text_bytes: read.text,
+        max_depth: original.limits.max_depth,
+      }
+      let prepared = match
+        prepare(original.source, i, remaining, sourceviews=original.sourceviews) {
+        Ok(value) => value
+        Err(issue) =>
+          return fail_local_environment_preparation(read, Stage(i, issue))
+      }
+      read.pending = Some({ prepared, limits: remaining, })
+      read.state = ReconcileStage(i)
+    }
+    ReconcileStage(i) => {
+      let pending = read.pending.unwrap()
+      let checked = match
+        reconcile_environment(
+          pending.prepared,
+          read.index.unwrap(),
+          original.environment,
+          read.groups.unwrap().by_stage[i],
+          pending.limits,
+        ) {
+        Ok(value) => value
+        Err(issue) =>
+          return fail_local_environment_preparation(read, Environment(i, issue))
+      }
+      let used = environment_usage(checked)
+      read.work -= used.work
+      read.nodes -= used.nodes
+      read.text -= used.text_bytes
+      read.stage_work += used.work
+      read.stage_nodes += used.nodes
+      read.stage_text += used.text_bytes
+      read.stages.unwrap().push(checked)
+      read.pending = None
+      read.state = if i + 1 == read.count {
+        AssembleStages
+      } else {
+        ReadDeclaration(i + 1)
+      }
+    }
+    AssembleStages => {
+      let result = match
+        assemble_environment(
+          original.source,
+          original.environment,
+          read.stages.unwrap(),
+          {
+            max_work: read.work + read.stage_work,
+            max_nodes: read.nodes + read.stage_nodes,
+            max_text_bytes: read.text + read.stage_text,
+            max_depth: original.limits.max_depth,
+          },
+        ) {
+        Ok(value) => value
+        Err(issue) =>
+          return fail_local_environment_preparation(read, Collection(issue))
+      }
+      let used = program_environment_usage(result)
+      read.state = LocalDone(
+        Ok({
+          ..result,
+          usage: {
+            work: original.limits.max_work -
+            read.work +
+            (used.work - read.stage_work),
+            nodes: original.limits.max_nodes -
+            read.nodes +
+            (used.nodes - read.stage_nodes),
+            text_bytes: original.limits.max_text_bytes -
+            read.text +
+            (used.text_bytes - read.stage_text),
+          },
+        }),
+      )
+    }
+    LocalDone(_) | LocalHandedOff | LocalCleared => ()
+  }
+  local_environment_preparation_phase(read)
+}
+
+///|
+fn drop_local_environment_preparation_aliases(
+  read : LocalEnvironmentPreparation,
+) -> Unit {
+  read.arguments = None
+  read.index = None
+  read.groups = None
+  read.stages = None
+  read.pending = None
+  read.pending_member = None
+}
+
+///|
+/// Transfer the SAME original Result once. A failed read keeps its completed
+/// and pending aliases until explicit clear. Neither handoff nor alias clear
+/// is physical stop, consumed-work refund or Resource cleanup acknowledgement.
+pub fn take_local_environment_preparation_result(
+  read : LocalEnvironmentPreparation,
+) -> Result[ProgramEnvironmentInputs, PrepareEnvironmentIssue]? {
+  match read.state {
+    LocalDone(result) => {
+      // On failure, completed/pending holders are not part of the returned
+      // error. Keep those aliases until the caller's explicit later clear.
+      if result is Ok(_) {
+        drop_local_environment_preparation_aliases(read)
+      }
+      read.state = LocalHandedOff
+      Some(result)
+    }
+    _ => None
+  }
+}
+
+///|
+pub fn clear_local_environment_preparation(
+  read : LocalEnvironmentPreparation,
+) -> Unit {
+  let transferred = read.state is LocalHandedOff
+  drop_local_environment_preparation_aliases(read)
+  read.state = if transferred { LocalHandedOff } else { LocalCleared }
+}
+
+///|
+/// Installed initial constructor DATA only: arguments1H4R and its Some1H1R1W;
+/// read1H8R8W; initial phase1H1W; returned Ok1H1R1W. Borrowed original Source,
+/// Environment, limits/partition and every later phase frame are separate.
+pub fn local_environment_preparation_initial_construction_extent() -> @shape.CollectionConstructionExtent {
+  local_environment_initial_units
+}
+
+///|
+let local_environment_initial_units : @shape.CollectionConstructionExtent = {
+  record_headers: 5L,
+  reference_slots: 14L,
+  scalar_words: 11L,
+}
