@@ -46,17 +46,19 @@ export function createInstalledCredentialSourceReader({capacity, site, operation
     const columns = Object.freeze([...options.columns]);
     // Provider construction is synchronous and I/O-free, after the original
     // RowRun reservation and response-cleanup association have been installed.
-    let provider = sync(preparePageReader(Object.freeze({resource: options.resource,
-      columns, requestWire: options.requestWire})));
-    let fetchPage = method(provider, 'fetchPage'), decodePage = method(provider, 'decodePage');
-    const errorField = Object.getOwnPropertyDescriptor(provider, 'onError');
-    let onError;
-    if (errorField !== undefined) {
-      if (!Object.hasOwn(errorField, 'value') || typeof errorField.value !== 'function') {
-        fail('InstalledSourceReaderMethodUnavailable');
+    let provider, fetchPage, decodePage, onError, setupFailure, setupFailed = false;
+    try {
+      provider = sync(preparePageReader(Object.freeze({resource: options.resource,
+        columns, requestWire: options.requestWire})));
+      fetchPage = method(provider, 'fetchPage'); decodePage = method(provider, 'decodePage');
+      const errorField = Object.getOwnPropertyDescriptor(provider, 'onError');
+      if (errorField !== undefined) {
+        if (!Object.hasOwn(errorField, 'value') || typeof errorField.value !== 'function') {
+          fail('InstalledSourceReaderMethodUnavailable');
+        }
+        onError = errorField.value;
       }
-      onError = errorField.value;
-    }
+    } catch (cause) {setupFailed = true; setupFailure = cause;}
     const stop = new AbortController();
     const signal = options.signal === undefined ? stop.signal
       : AbortSignal.any([options.signal, stop.signal]);
@@ -83,7 +85,7 @@ export function createInstalledCredentialSourceReader({capacity, site, operation
       // Native close and the joined read, rather than Promise settlement alone,
       // authorize retirement of this reader's original response aliases.
       responses.length = 0;
-      responses = provider = fetchPage = decodePage = onError = binding = primary = undefined;
+      responses = provider = fetchPage = decodePage = onError = binding = primary = setupFailure = undefined;
       retired = true;
     }
     let handle;
@@ -93,6 +95,9 @@ export function createInstalledCredentialSourceReader({capacity, site, operation
         if (phase !== 'ready' || stopped || retired) fail('InstalledSourceReaderAlreadyStarted');
         phase = 'reading'; readPending = true;
         try {
+          // Even a pure provider construction failure returns this same cleanup
+          // handle to the RowRun; no unreturned child can strand its borrow.
+          if (setupFailed) throw setupFailure;
           await verify();
           const initial = ownInvocationAuthorization(await Reflect.apply(authorize, options, [0]));
           if (initial.scope.operation !== operation) fail('ForeignInstalledSourceReaderAuthorization');

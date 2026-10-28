@@ -90,7 +90,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   const stopReader = () => {
     if (readerStop === undefined) return;
     if (readerStopRequested) {
-      if (readerRetry !== undefined) Reflect.apply(readerRetry, reader, []);
+      if (readerRetry !== undefined && !readerRetired()) Reflect.apply(readerRetry, reader, []);
       return;
     }
     readerStopRequested = true;
