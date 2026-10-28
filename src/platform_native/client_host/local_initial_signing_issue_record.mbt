@@ -3,8 +3,9 @@
 // A packet is not issuer authority or a signing permit. Its only writer is the
 // private first-issue storage phase of the same initial Host/key Owner.
 priv struct NativeLocalInitialSigningIssueRecord {
-  sampled_at : Int64
-  earlier_valid_until : Int64?
+  // Preserve authenticated parsed values for exact whitebox packet round trips.
+  _observed_sampled_at : Int64
+  _observed_earlier_valid_until : Int64?
   host_configuration_file : String
   host_configuration_cid : String
   connection : String
@@ -18,30 +19,6 @@ fn initial_signing_issue_int64(text : String) -> Int64? {
   } else {
     Some(value)
   }
-}
-
-///|
-fn local_initial_signing_issue_payload(
-  original : NativeLocalGrantOriginal,
-  initialization_intent : String,
-  policy_cid : String,
-  record : NativeLocalInitialSigningIssueRecord,
-) -> Result[Bytes, NativeClientRunJournalIssue] {
-  local_adoption_record([
-    ("connection", record.connection),
-    (
-      "earlier_valid_until",
-      record.earlier_valid_until.map(value => value.to_string()).unwrap_or(""),
-    ),
-    ("grant_cid", local_original_grant_cid(original.grant)),
-    ("host_configuration_cid", record.host_configuration_cid),
-    ("host_configuration_file", record.host_configuration_file),
-    ("initialization_intent_cid", initialization_intent),
-    ("operation_cid", original.operation_cid),
-    ("policy_cid", policy_cid),
-    ("sampled_at", record.sampled_at.to_string()),
-    ("version", "actql-native-local-installation-original/0.1"),
-  ]).map_err(_ => Encoding)
 }
 
 ///|
@@ -109,8 +86,8 @@ fn read_local_initial_signing_issue_record(
     return Err(CustodyLost)
   }
   Ok({
-    sampled_at,
-    earlier_valid_until,
+    _observed_sampled_at: sampled_at,
+    _observed_earlier_valid_until: earlier_valid_until,
     host_configuration_file: values[4],
     host_configuration_cid: values[3],
     connection: values[0],
@@ -187,89 +164,4 @@ fn NativeLocalHostConnection::check_initial_signing_grant_original_locked(
     return Err(CustodyLost)
   }
   self.check_binding().map_err(_ => CustodyLost)
-}
-
-///|
-// Storage preparation only. The enclosing trusted original operation must
-// separately check current RunRead/Reviewer, its paired subject/Checkpoint and
-// cancellation before/after this phase and confirm the same TX. Caller times
-// are private diagnostic inputs; a public caller must sample the actual clock.
-fn local_initial_signing_grant_original_locked(
-  key : NativeLocalInitialReviewerSigningKey,
-  request : @host.ClientRequestIdentity,
-  scope : @credential.LocalSigningCredentialScope,
-  operation_id : String,
-  sampled_at : Int64,
-  earlier_valid_until : Int64?,
-) -> Result[NativeLocalGrantOriginal, NativeClientRunJournalIssue] {
-  let host = key.original.host
-  if InitialReviewerKey(key).require_signing_key_scope(scope) is Err(_) {
-    return Err(AuthorizationDenied)
-  }
-  let issue = match
-    key.original.policy.prepare_first_issue(sampled_at, earlier_valid_until) {
-    Ok(value) => value
-    Err(_) => return Err(AuthorizationDenied)
-  }
-  let grant = match
-    @credential.prepare_local_signing_credential_grant(
-      key.original.issuer,
-      scope,
-      issue.expires_at(),
-      key.original.policy.max_uses(),
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(Encoding)
-  }
-  let original = match
-    local_owned_grant_original(
-      host.epoch.crypto,
-      operation_id,
-      request,
-      key.fields.key_configuration_cid,
-      SigningGrant(grant),
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let record : NativeLocalInitialSigningIssueRecord = {
-    sampled_at,
-    earlier_valid_until,
-    host_configuration_file: key.installed.file,
-    host_configuration_cid: match
-      local_adoption_digest(host.epoch.crypto, key.installed.original_bytes) {
-      Ok(value) => value
-      Err(_) => return Err(Encoding)
-    },
-    connection: key.installed.reviewer.connection,
-  }
-  let payload = match
-    local_initial_signing_issue_payload(
-      original,
-      host.session.intent_cid,
-      key.original.policy.cid(),
-      record,
-    ) {
-    Ok(value) if value.length() <= 2048 => value
-    Ok(_) => return Err(CapacityExceeded)
-    Err(issue) => return Err(issue)
-  }
-  let packet = match
-    local_installation_packet_in_transaction(
-      host.database,
-      host.epoch.crypto,
-      payload,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
-  let authenticated = { ..original, initial_issue: Some(packet), }
-  match
-    host.check_initial_signing_grant_original_locked(
-      authenticated,
-      scope.run_definition_cid,
-    ) {
-    Ok(_) => Ok(authenticated)
-    Err(issue) => Err(issue)
-  }
 }

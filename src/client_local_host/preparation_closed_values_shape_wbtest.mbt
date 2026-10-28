@@ -108,8 +108,10 @@ test "closed Values original 100 by 99 input crosses byte cap with derived parse
   assert_true(actual.array_backing_slots <= 54L)
   assert_true(actual.map_backing_slots <= 28L)
   assert_true(
-    preparation_representation_cost(program_inventory.containers_peak).unwrap() >=
-    preparation_representation_cost(program_inventory.retained).unwrap(),
+    @execution.preparation_representation_cost(
+      program_inventory.containers_peak,
+    ).unwrap() >=
+    @execution.preparation_representation_cost(program_inventory.retained).unwrap(),
   )
   let assets = @publication_host.client_local_product_assets()
   let environment = @publication_host.admit_client_check_environment(

@@ -4,7 +4,7 @@ supported_targets = "js"
 pkgtype(kind: "foreign_library")
 
 import {
-  "actql/actql/physical_host",
+  "actql/actql/physical_host_dispatch" @physical_host,
   "actql/actql/physical_cost",
   "actql/actql/connector_conformance" @connector_gate,
   "actql/actql/connectors_builtin" @builtin,
@@ -46,7 +46,7 @@ import {
   "actql/actql/execution_query" @query,
   "actql/actql/query_planning" @planning,
   "moonbitlang/core/encoding/utf8",
-  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/numeric_reduction" @numeric,
   "actql/actql/parameter_references" @parameters,
 }

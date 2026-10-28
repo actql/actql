@@ -14,6 +14,8 @@ test "managed source-free preparation retains the quoted original sequences and 
     assets.values,
     Some(assets.fragment),
     assets.ordered,
+    retained_output=true,
+    provider_factory=_ => [],
   ).unwrap()
   let quoted = prepared_installed_managed_source_free_requirements(original)
   let legacy = installed_managed_run_requirements(
@@ -28,13 +30,32 @@ test "managed source-free preparation retains the quoted original sequences and 
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
-  assert_eq(quoted, legacy)
+  for index in 0..<4 {
+    assert_eq(quoted[index], legacy[index])
+  }
+  let configuration = original.configuration.unwrap()
+  let mut required_retained = 0L
+  let mut required_execution = 0L
+  for task in 0..<@strategy.graph_task_count(configuration.graph) {
+    let actual = @local_driver.local_dispatch_preparation_task_capacity(
+      configuration.dispatch,
+      task,
+    ).unwrap()
+    required_retained += actual.retained_bytes
+    required_execution += actual.execution_bytes
+  }
+  assert_eq(quoted[4], required_retained)
+  assert_eq(quoted[5], required_execution)
   assert_eq(quoted[1], 8L)
   quoted[0] = 0L
-  assert_eq(
-    prepared_installed_managed_source_free_requirements(original),
-    legacy,
-  )
+  assert_eq(prepared_installed_managed_source_free_requirements(original), [
+    legacy[0],
+    legacy[1],
+    legacy[2],
+    legacy[3],
+    required_retained,
+    required_execution,
+  ])
   assert_true(
     installed_source_free_preparation_matches(
       original,
@@ -67,6 +88,8 @@ test "managed source-free preparation executes the same generated originals on o
     assets.values,
     Some(assets.fragment),
     assets.ordered,
+    retained_output=true,
+    provider_factory=_ => [],
   ).unwrap()
   // Explicit unaccounted test storage only, not an operational Resource
   // admission. The production entry still requires its original admission.
@@ -120,6 +143,8 @@ test "managed source-free preparation refuses a foreign owner or changed contrac
     assets.values,
     Some(assets.fragment),
     assets.ordered,
+    retained_output=true,
+    provider_factory=_ => [],
   ).unwrap()
   let foreign = source_free_tasks_original_union()
   assert_false(
@@ -200,6 +225,8 @@ test "managed source-free preparation refuses a foreign owner or changed contrac
       assets.values,
       Some(assets.fragment),
       assets.ordered,
+      retained_output=true,
+      provider_factory=_ => [],
     )
     is Err(Unsupported),
   )

@@ -60,48 +60,79 @@ pub fn generated_sequence_capacity(
   measurement : FixedInputGuardMeasureLimits,
 ) -> ExecutionCapacity? {
   let rows = limits.rows
-  let retention_nodes = [
-    rows.retained_entries,
-    rows.metadata_entries,
-    rows.output_values.max_nodes,
-  ]
-  let scratch_nodes = [
-    rows.operation_entries,
-    rows.metadata_entries,
-    limits.max_frames,
-    rows.input_values.max_nodes,
-    rows.output_values.max_nodes,
-    measurement.max_nodes,
-    measurement.max_depth,
-  ]
-  let scratch_text = [
-    rows.input_values.max_text_bytes,
-    rows.output_values.max_text_bytes,
-    measurement.max_bytes,
-  ]
-  let mut retained = 0L
-  let mut scratch = 0L
-  for count in retention_nodes {
-    if count < 0 {
-      return None
-    }
-    retained += count.to_int64() * execution_capacity_node_bytes()
-  }
-  if rows.output_values.max_text_bytes < 0 {
+  guard execution_capacity_inventory_bytes([
+      {
+        unit: CursorRootSlots,
+        count: rows.retained_entries.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: CursorRootSlots,
+        count: rows.metadata_entries.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: ValueNodeSlots,
+        count: rows.output_values.max_nodes.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: DecodedTextBytes,
+        count: rows.output_values.max_text_bytes.to_int64(),
+        copies: 1,
+      },
+    ])
+    is Some(retained) &&
+    execution_capacity_inventory_bytes([
+      {
+        unit: CursorRootSlots,
+        count: rows.operation_entries.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: CursorRootSlots,
+        count: rows.metadata_entries.to_int64(),
+        copies: 1,
+      },
+      { unit: CursorRootSlots, count: limits.max_frames.to_int64(), copies: 1, },
+      {
+        unit: ValueNodeSlots,
+        count: rows.input_values.max_nodes.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: ValueNodeSlots,
+        count: rows.output_values.max_nodes.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: ValueNodeSlots,
+        count: measurement.max_nodes.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: CursorRootSlots,
+        count: measurement.max_depth.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: DecodedTextBytes,
+        count: rows.input_values.max_text_bytes.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: DecodedTextBytes,
+        count: rows.output_values.max_text_bytes.to_int64(),
+        copies: 1,
+      },
+      {
+        unit: CanonicalWireBytes,
+        count: measurement.max_bytes.to_int64(),
+        copies: 1,
+      },
+    ])
+    is Some(scratch) else {
     return None
-  }
-  retained += rows.output_values.max_text_bytes.to_int64() * 8L
-  for count in scratch_nodes {
-    if count < 0 {
-      return None
-    }
-    scratch += count.to_int64() * execution_capacity_node_bytes()
-  }
-  for count in scratch_text {
-    if count < 0 {
-      return None
-    }
-    scratch += count.to_int64() * 8L
   }
   // Fragments execute serially; their selected live-value and physical traversal
   // ceilings bound the transient frame/root allowance. Never lower those ceilings
@@ -117,28 +148,47 @@ pub fn generated_sequence_capacity(
     let live = context.limits.max_live_value_bytes
     let physical = context.physical
     if live < 0L ||
-      live > 9223372036854775807L / 264L ||
       physical.max_body_nodes < 0 ||
       physical.max_body_bytes < 0 ||
       physical.max_body_depth < 0 {
       return None
     }
-    let traversal = (
-        physical.max_body_nodes.to_int64() + physical.max_body_depth.to_int64()
-      ) *
-      256L +
-      physical.max_body_bytes.to_int64() * 8L
-    let roots = live * 264L
-    if roots > 9223372036854775807L - traversal {
+    guard execution_capacity_inventory_bytes([
+        {
+          unit: ValueNodeSlots,
+          count: physical.max_body_nodes.to_int64(),
+          copies: 1,
+        },
+        {
+          unit: CursorRootSlots,
+          count: physical.max_body_depth.to_int64(),
+          copies: 1,
+        },
+        {
+          unit: CanonicalWireBytes,
+          count: physical.max_body_bytes.to_int64(),
+          copies: 1,
+        },
+        // The existing live-byte envelope allows at most one node/root and
+        // its wire allowance per logical byte; no observed-row reduction.
+        { unit: ValueNodeSlots, count: live, copies: 1, },
+        { unit: CanonicalWireBytes, count: live, copies: 1, },
+      ])
+      is Some(required) else {
       return None
     }
-    let required = roots + traversal
     if required > fragment_peak {
       fragment_peak = required
     }
   }
-  if fragment_peak > 9223372036854775807L - scratch {
+  guard execution_capacity_inventory_bytes([
+      { unit: QuotedBytes, count: scratch, copies: 1, },
+      { unit: QuotedBytes, count: fragment_peak, copies: 1, },
+    ])
+    is Some(execution) else {
     return None
   }
-  Some({ retained_bytes: retained, execution_bytes: scratch + fragment_peak, })
+  // Preserve the original separate dimensions of this sequence quote. The
+  // enclosing domain declares which retained components coexist at execution.
+  Some({ retained_bytes: retained, execution_bytes: execution, })
 }

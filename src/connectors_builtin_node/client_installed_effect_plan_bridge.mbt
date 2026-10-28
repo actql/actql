@@ -8,19 +8,17 @@ pub fn client_program_installed_effect_managed_host_open(
   owner : @client_local_host.ClientInstalledManagedRun,
   bound : @publication_host.PreparedClientEffectRun,
   sources : Array[@query.CapturedInputSource],
-  providers : Array[@local.ManagedProvider],
 ) -> Result[
   ClientLocalEffectHost?,
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
-  @client_local_host.open_installed_effect_managed_host(owner, bound, sources, provider_factory=_ => {
-    return providers
-  }).map(value => {
-    value.map(tuple => {
-      let (host, run, sequences) = tuple
-      { host, run, prepared: bound, sequences, }
-    })
-  })
+  @client_local_host.open_installed_effect_managed_host(owner, bound, sources).map(value => {
+      value.map(tuple => {
+        let (host, run, sequences) = tuple
+        { host, run, prepared: bound, sequences, }
+      })
+    },
+  )
 }
 
 ///|
@@ -85,9 +83,19 @@ pub fn client_program_installed_effect_managed_plan_prepare(
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
   @client_local_host.prepare_installed_effect_managed_plan(
-    prepared, request, declarations, query_contract_body, evidence_contract_body,
-    transport_bytes, transport_execution_bytes, installed_contracts, values_body,
-    fragment_body, ordered_body, selected_operations,
+    prepared,
+    request,
+    declarations,
+    query_contract_body,
+    evidence_contract_body,
+    transport_bytes,
+    transport_execution_bytes,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    selected_operations,
+    provider_factory=installed_client_family_providers,
   )
 }
 
@@ -127,6 +135,7 @@ pub fn client_program_installed_effect_managed_plan_prepare_at_query_time(
     ordered_body,
     selected_operations,
     query_time=Some(query_time),
+    provider_factory=installed_client_family_providers,
   )
 }
 
@@ -234,11 +243,15 @@ pub fn client_program_installed_effect_managed_plan_begin(
 #export_name("clientProgramInstalledEffectManagedOperationPlan")
 pub fn client_program_installed_effect_managed_operation_plan(
   value : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
 ) -> Result[
   @client_local_host.ClientInstalledEffectManagedPlan,
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
-  @client_local_host.installed_effect_managed_operation_plan(value)
+  @client_local_host.installed_effect_managed_operation_plan(
+    value, prepared, request,
+  )
 }
 
 ///|
@@ -277,6 +290,7 @@ pub fn client_program_installed_effect_managed_provider_plan_prepare(
     ordered_body,
     selected_operations,
     source_providers=Some(providers),
+    provider_factory=installed_client_family_providers,
   )
 }
 
@@ -318,6 +332,7 @@ pub fn client_program_installed_effect_managed_provider_plan_prepare_at_query_ti
     selected_operations,
     query_time=Some(query_time),
     source_providers=Some(providers),
+    provider_factory=installed_client_family_providers,
   )
 }
 

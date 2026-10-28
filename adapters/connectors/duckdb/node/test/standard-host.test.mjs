@@ -298,7 +298,7 @@ async function runDelayedManagedStop(
   }
 }
 
-async function subgraphHostCancellation() {
+async function fusedGraphHostCancellation(operation = 'subgraph') {
   // Prepare a real fused provider separately from the public planner, which
   // selects individual Graph steps. Dispatch plumbing is explicitly a fixture;
   // the bounded execution and Local Host cancellation driver are production.
@@ -323,32 +323,58 @@ async function subgraphHostCancellation() {
   const aoa = JSON.parse(await readFile(join(root, 'spec/contracts/actql-aoa.json'), 'utf8'));
   const fixture = await import(pathToFileURL(join(root,
     '_build/js/release/build/connectors/duckdb/conformance/conformance.js')));
+  const consumer = operation === 'subgraph'
+    ? {from:'g',subgraph:{nodes:{ids:values.rows.map(({node_key})=>({
+        definition:'N',domain,key:[node_key],key_types:[{kind:'number'}],
+      }))},edges:'true'},as:'slice'}
+    : operation === 'reach'
+      ? {from:'g',reach:{start:{where:'true'},direction:'out',max_depth:1},as:'answer'}
+      : {from:'g',shortest_path:{source:{where:'true'},target:{where:'true'},
+          selection:'each_pair',direction:'out',max_hops:1},as:'answer'};
+  assert.ok(['subgraph', 'reach', 'shortest_path'].includes(operation));
+  // The shared conformance preparer asserts selected_step=None and count=2,
+  // binds the original completed Relation input, and uses the unchanged
+  // installed Graph provider. This is not public Program planner evidence.
   const fused = checked(fixture.subgraphCancelCreate(JSON.stringify([{values,as:'rows'}]),
     JSON.stringify([{graph:{...constructor,nodes:[{...definition,from:'prior'}]},as:'g'},
-      {from:'g',subgraph:{nodes:{ids:values.rows.map(({node_key})=>({
-        definition:'N',domain,key:[node_key],key_types:[{kind:'number'}],
-      }))},edges:'true'},as:'slice'}]), registry,
+      consumer]), registry,
     JSON.stringify(aoa.execution_contracts['REL.values']),
     JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1'])));
-  let progress = 0n, advances = 0, delivered = false;
+  let progress = 0n, totalWork = 0n, advances = 0, delivered = false;
+  // One input binding: eight Begin + one-cell + Commit rows, one exhausted
+  // binding, final Begin, two verification polls and Finish = 29. The provider
+  // reports only these bridge deltas until it enters its consumer; the Host
+  // driver adds no preparation work to this observation. No Graph transform
+  // or normalization occurs between this constructor and its consumer.
+  const constructorWork = BigInt(values.rows.length * (1 + 1 + 1) + 2 * 1 + 3);
   const abort = new AbortController();
   const operations = {
     inputs:[],
     advance() {
       const [status, rows, work] = fixture.subgraphCancelAdvance(fused);
+      assert.ok(status === 0n || status === 1n,
+        `${operation} provider failed before cancellation at total work ${totalWork}, delta ${work}`);
       advances++;
       progress += rows;
-      if (!delivered && progress > 8n) {
+      totalWork += work;
+      if (!delivered && (operation === 'subgraph' ? progress > 8n : totalWork > constructorWork)) {
         setTimeout(() => { delivered = true; abort.abort(); }, 0);
       }
       return {$tag:1,_0:{complete:status === 1n,progress:rows,work}};
     },
-    request_cancel() { assert.equal(delivered,true); return fixture.subgraphCancelRequest(fused); },
+    request_cancel() {
+      assert.equal(delivered,true);
+      assert.equal(fixture.subgraphCancelStopped(fused),false);
+      const accepted = fixture.subgraphCancelRequest(fused);
+      assert.equal(fixture.subgraphCancelStopped(fused),false, 'request is not stop acknowledgement');
+      assert.equal(fixture.subgraphCancelInputAvailable(fused),true);
+      return accepted;
+    },
     execution_stopped() { return fixture.subgraphCancelStopped(fused); },
     close() { fixture.subgraphCancelCleanup(fused); },
     cleanup_refresh() { return fixture.subgraphCancelCleanup(fused); },
     settle() { assert.equal(fixture.subgraphCancelStopped(fused),true); return {$tag:1,_0:undefined}; },
-    complete() { assert.fail('cancelled fused Subgraph must not publish'); },
+    complete() { assert.fail('cancelled fused Graph consumer must not publish'); },
   };
   // Only dispatch/registration plumbing is a fixture. The provider, Host
   // polling loop, timer delivery and failure/cleanup progression are real.
@@ -364,7 +390,8 @@ async function subgraphHostCancellation() {
     await assert.rejects(localStrategyContribution(runtime,undefined,checked).run(
       undefined,abort.signal), {name:'AbortError'});
     assert.equal(delivered,true);
-    assert(progress > 8n, 'Subgraph progresses after all 8 constructor rows');
+    if (operation === 'subgraph') assert(progress > 8n, 'Subgraph progresses after all 8 constructor rows');
+    else assert(totalWork > constructorWork, `${operation} performs positive work after all constructor work`);
     assert.equal(fixture.subgraphCancelStopped(fused),true);
     assert.equal(fixture.subgraphCancelInputAvailable(fused),true);
     const settledAdvances = advances;
@@ -377,10 +404,17 @@ async function subgraphHostCancellation() {
     if (!fixture.subgraphCancelStopped(fused)) fixture.subgraphCancelAdvance(fused);
     fixture.subgraphCancelCleanup(fused);
   }
+  return {operation, constructorWork: constructorWork.toString(),
+    observedWork: totalWork.toString(), advances};
 }
 
 test('fused Subgraph stops after construction and positive selection work through the Local Host driver',
-  {timeout:30_000}, () => subgraphHostCancellation());
+  {timeout:30_000}, () => fusedGraphHostCancellation());
+
+test('unselected Reach stops after exact constructor work through the Local Host driver',
+  {timeout:30_000}, async t => t.diagnostic(JSON.stringify(await fusedGraphHostCancellation('reach'))));
+test('unselected Shortest stops after exact constructor work through the Local Host driver',
+  {timeout:30_000}, async t => t.diagnostic(JSON.stringify(await fusedGraphHostCancellation('shortest_path'))));
 
 async function deltaHostCancellation(phase, diff = false, union = false, subtraction = false) {
   // Use the installed common Program/Plan/provider, not a test-only Delta
@@ -423,17 +457,21 @@ async function deltaHostCancellation(phase, diff = false, union = false, subtrac
   assert.ok(checked(moon.clientProgramIssueTaskPlanGraph(prepared)));
   const registry = await readFile(join(root, 'spec/dependencies/aoa-pipeline-registry.json'), 'utf8');
   const aoa = JSON.parse(await readFile(join(root, 'spec/contracts/actql-aoa.json'), 'utf8'));
-  const setup = moon.clientProgramOpenSourceFreeLocalHost(prepared, registry,
-    JSON.stringify(aoa.execution_contracts['REL.values']), 1n, 0n, 0n, 0n,
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
+  const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+  const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+  const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const installedContracts = checked(moon.clientPrepareInstalledSequenceContracts(
+    registry, values, fragment, ordered));
+  const setup = moon.clientProgramOpenSourceFreeLocalHost(prepared, installedContracts,
+    values, 1n, 0n, 0n, 0n, fragment, ordered);
   assert.ok(setup);
   const abort = new AbortController();
   const starts = [], deltaPolls = [], lifecycle = [];
-  let scheduled = false, delivered = false, workAtDelivery;
+  let scheduled = false, delivered = false, workAtDelivery, usageAtDelivery;
   abort.signal.addEventListener('abort', () => {
     delivered = true;
     workAtDelivery = deltaPolls.reduce((sum, poll) => sum + poll.work, 0n);
+    usageAtDelivery = runtimeCore(moon).usage(setup);
   }, {once:true});
   const observed = new Proxy(moon, {get(target, property, receiver) {
     if (property !== 'strategyModule_local_ManagedStart') return Reflect.get(target, property, receiver);
@@ -483,6 +521,10 @@ async function deltaHostCancellation(phase, diff = false, union = false, subtrac
     });
     assert.equal(scheduled, true);
     assert.equal(delivered, true);
+    // Each completed predecessor retains one original output until Host close.
+    // Cancellation must not silently release those live output owners.
+    assert.equal(usageAtDelivery.holdings, BigInt(targetTask));
+    assert(usageAtDelivery.heldBytes > 0n);
     assert(workAtDelivery > 0n, 'cancel is delivered only after actual Delta work');
     if (union || subtraction) assert(workAtDelivery >= 64n, 'composition advanced before delivered cancellation');
     if (!union && !subtraction && phase !== 'conversion') assert(deltaPolls.some(poll=>poll.progress > 0n),
@@ -497,12 +539,16 @@ async function deltaHostCancellation(phase, diff = false, union = false, subtrac
     assert(lifecycle.some(event=>event.name === 'execution_stopped' && event.result === true && event.delivered));
   } finally {
     if (execution) {
+      const usageBeforeClose = execution.usage();
       await execution.close();
       assert.equal(await execution.cleanup(), true);
+      assert.equal(usageBeforeClose.holdings, BigInt(targetTask),
+        'completed predecessor outputs remain live before close');
+      assert(usageBeforeClose.heldBytes > 0n);
       assert.equal(execution.cleanupPending(), false);
-      // Holdings is the monotonic allocation count, not live capacity. Keep
-      // that accounting history while returning all held/reserved bytes.
-      assert.equal(execution.usage().holdings, BigInt(targetTask));
+      // Holdings counts live original allocations, not historical tasks.
+      // Exact starts/completed above retain the independent execution history.
+      assert.equal(execution.usage().holdings, 0n);
       assert.equal(execution.usage().heldBytes, 0n);
       assert.equal(execution.usage().reservedRetentionBytes, 0n);
       assert.equal(execution.usage().reservedTransferBytes, 0n);
@@ -2479,7 +2525,7 @@ async function exerciseStrategyGraph(
         new AbortController().signal,
       ), error => {
         failureExecution = error.execution;
-        return error.code === 'CapturedRunPublicationFailed';
+        return error.code === 'CapturedRunExecutionFailed';
       });
       assert.equal(failureExecution.status, 'host-tasks-failed');
       assert(failureRetained.leases.length > 0);
@@ -3406,7 +3452,7 @@ async function exerciseStrategyGraph(
       } catch (error) {
         scoredFailureExecution = error.execution;
         if (!failConsumer && !cancelRanking) throw error;
-        assert.equal(error.code, 'CapturedRunPublicationFailed');
+        assert.equal(error.code, 'CapturedRunExecutionFailed');
       }
       const publicationKey = {
         namespaceId: plan.request.namespaceId,
@@ -3754,7 +3800,7 @@ async function exerciseStrategyGraph(
       new AbortController().signal,
     ), error => {
       nearestFailureExecution = error.execution;
-      return error.code === 'CapturedRunPublicationFailed';
+      return error.code === 'CapturedRunExecutionFailed';
     });
     assert(computeEntrances > 0);
     computeEntrancesAtFailure = computeEntrances;
@@ -4304,7 +4350,7 @@ async function exerciseStrategyGraph(
       await assert.rejects(host.runPublishedCapturedStrategy(setup,
         {store, plan}, {local: retained.configuration}, cancellation.signal), error => {
         execution = error.execution;
-        return error.code === 'CapturedRunPublicationFailed';
+        return error.code === 'CapturedRunExecutionFailed';
       });
       assert.equal(execution.status, 'host-tasks-failed');
       assert.equal(advanced, true);
@@ -10786,7 +10832,7 @@ async function exerciseStrategyGraph(
           {store: failurePublicationStore, plan}, {local: configuration},
           cancellation.signal), error => {
           execution = error.execution;
-          return error.code === 'CapturedRunPublicationFailed';
+          return error.code === 'CapturedRunExecutionFailed';
         });
         await assert.rejects(failurePublicationStore.lookupCommittedIndex({
           namespaceId: plan.request.namespaceId,
@@ -11073,7 +11119,7 @@ async function exerciseStrategyGraph(
         {store: publication, plan}, {local: configuration},
         new AbortController().signal), error => {
         failure = error.execution;
-        return error.code === 'CapturedRunPublicationFailed';
+        return error.code === 'CapturedRunExecutionFailed';
       });
       assert.equal(failure.status, 'host-tasks-failed', name);
       assert.deepEqual(failure.completed.map(item => item.task), [1], name);
@@ -11165,7 +11211,7 @@ async function exerciseStrategyGraph(
       {local: expansionPolicyConfiguration}, new AbortController().signal),
     error => {
       expansionFailure = error.execution;
-      return error.code === 'CapturedRunPublicationFailed';
+      return error.code === 'CapturedRunExecutionFailed';
     });
     assert.equal(expansionFailure.status, 'host-tasks-failed');
     assert.deepEqual(expansionFailure.completed.map(item => item.task), [1, 2]);
@@ -11241,7 +11287,7 @@ async function exerciseStrategyGraph(
       {local: nestPolicyConfiguration}, new AbortController().signal),
     error => {
       nestPolicyFailure = error.execution;
-      return error.code === 'CapturedRunPublicationFailed';
+      return error.code === 'CapturedRunExecutionFailed';
     });
     assert.equal(nestPolicyFailure.status, 'host-tasks-failed');
     assert.deepEqual(nestPolicyFailure.completed.map(item => item.task), [1, 2]);

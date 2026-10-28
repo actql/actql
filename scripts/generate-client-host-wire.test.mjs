@@ -16,11 +16,25 @@ test('Native schema discovery preserves the full registered Program schema', asy
   // Decode both string layers, independently of the generation function: the
   // first is the Moon string literal, the second is the original JSON body.
   const literal = output.slice(output.indexOf('-> String {\n  ') + '-> String {\n  '.length, -3);
-  const actual = JSON.parse(JSON.parse(literal));
+  const segments = literal.split(' +\n  ');
+  assert.ok(segments.length > 1);
+  assert.ok(segments.every(segment => segment.length < 32768));
+  const actual = JSON.parse(segments.map(segment => JSON.parse(segment)).join(''));
   const original = protocol.artifact_schemas.executable_plan.properties.execution_material.properties.program;
   assert.deepEqual(actual, original);
   assert.equal(actual.$id, 'https://smooth.dev/schemas/actql/0.1.json');
   assert.ok(actual.$defs && actual.properties && actual.allOf);
+});
+
+test('Native schema segments preserve Unicode and escaped annotation bytes', () => {
+  const changed = structuredClone(protocol);
+  const original = changed.artifact_schemas.executable_plan.properties.execution_material.properties.program;
+  original.description = ('🧪漢字\\\"\n').repeat(3000);
+  const output = nativeProgramSchema(changed);
+  const literal = output.slice(output.indexOf('-> String {\n  ') + '-> String {\n  '.length, -3);
+  const segments = literal.split(' +\n  ');
+  assert.ok(segments.every(segment => segment.length < 32768));
+  assert.equal(segments.map(segment => JSON.parse(segment)).join(''), JSON.stringify(original));
 });
 
 test('Native schema discovery tracks annotations without changing wire guards', () => {

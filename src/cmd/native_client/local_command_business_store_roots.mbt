@@ -1,16 +1,4 @@
 ///|
-// Keep both actual Roots and every partial constructor before another IO or
-// application exception. A path String or private-ownership observation is
-// never a descriptor cleanup acknowledgement.
-fn LocalCommandBusinessPreparation::prepare_store_path(
-  self : LocalCommandBusinessPreparation,
-  managed : String,
-  name : String,
-) -> String raise ClientStop {
-  self.original.prepare_business_store_path(managed, name)
-}
-
-///|
 fn LocalCommandPreparationOriginal::prepare_business_store_path(
   self : LocalCommandPreparationOriginal,
   managed : String,

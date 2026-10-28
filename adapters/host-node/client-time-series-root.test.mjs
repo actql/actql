@@ -1,3 +1,4 @@
+import {publicationOriginalFixture} from './fixtures/local-publication-original.mjs';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
@@ -25,6 +26,8 @@ const environment = moon.clientProgramCheckEnvironment(environmentWire.trimEnd()
   environmentBody.evidence_bundle_cid, false, false, true, false, true, false, false);
 assert.ok(environment);
 const valuesContract = JSON.stringify(JSON.parse(aoaWire).execution_contracts['REL.values']);
+const installedContracts = checked(moon.clientPrepareInstalledSequenceContracts(
+  registry, valuesContract, undefined, undefined));
 const control = runtimeCore(moon).publicationControl;
 const cid = digit => `sha256:${digit.repeat(64)}`;
 
@@ -51,7 +54,7 @@ for (const name of ['json', 'empty-json', 'parameters-json']) {
     const view = await service(request);
     assert.equal(view.observation, 'static');
     assert.equal(view.provider_io, 0);
-    const plan = sourceFreeTaskPlan({moon, control, preparedProgram: prepared,
+    const plan = sourceFreeTaskPlan({moon, control, preparedProgram: prepared, publicationOriginal: publicationOriginalFixture(moon, prepared),
       authorityScopeCid: cid('a'), namespaceId: 'time-series-root',
       storeAuthorityCid: cid('b'), now: () => '2026-10-14T00:00:00.000Z'});
     assert.equal(plan.results.length, 1);
@@ -60,7 +63,7 @@ for (const name of ['json', 'empty-json', 'parameters-json']) {
     assert.throws(() => checked(moon.clientProgramTaskStaticPlanView(
       other, compiled, 65536, 4096, 64)));
     const setup = moon.clientProgramOpenSourceFreeLocalHost(prepared,
-      registry, valuesContract, 1n, 0n, 0n, 0n);
+      installedContracts, valuesContract, 1n, 0n, 0n, 0n);
     assert.ok(setup);
     const execution = await runCapturedStrategy(setup);
     try {

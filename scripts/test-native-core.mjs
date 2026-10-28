@@ -69,6 +69,7 @@ const result = spawnSync(full ? process.execPath : 'moon', full
   ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT: join(namespace, 'executor-slot'),
   ACTQL_TEST_NATIVE_RETAINED_TASK_FILE_ROOT: join(namespace, 'retained-task-file'),
   ACTQL_REQUIRE_NATIVE_RETAINED_TEST: '1',
+  ACTQL_TEST_NATIVE_CRYPTO_MISSING_LIBRARY: join(namespace, 'missing-crypto-library'),
   ACTQL_TEST_NATIVE_CRYPTO_LIBRARY:
     process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY ??
     (process.platform === 'darwin' ?

@@ -9,11 +9,12 @@ pub fn[I] complete_closed_values_body(
     physical_equal(original, owner) &&
     owner.input is Some(input) &&
     owner.prepared is Some(prepared) &&
-    owner.source_free is Some(_) &&
+    owner.source_free is Some(source_free) &&
+    source_free.configuration is Some(_) &&
     owner.compilation is Some(_) else {
     return Err(ForeignOriginal)
   }
-  if owner.retiring || owner.manager_issued {
+  if owner.retiring || owner.manager_issued || owner.module_constructing {
     return Err(WrongPhase)
   }
   if !owner.body_ready {
@@ -58,6 +59,7 @@ pub fn[I] begin_closed_values_owned_run(
     owner.body_ready &&
     owner.manager_issued &&
     !owner.retiring &&
+    !owner.module_constructing &&
     !owner.adopted else {
     return Err(ForeignOriginal)
   }

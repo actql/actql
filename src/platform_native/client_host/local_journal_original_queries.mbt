@@ -115,7 +115,7 @@ fn NativeLocalJournalReadQueries::access(
     schema: () => {
       self.query(() => submission_name_schema_ffi(self.database)).unwrap_or(-1)
     },
-    census: () => {
+    _observed_census: () => {
       self.query(() => submission_name_census_ffi(self.database)).unwrap_or(-1L)
     },
     transaction: operation => {

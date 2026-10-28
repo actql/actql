@@ -77,8 +77,9 @@ test "common expression admission never widens restricted selector operands" {
       msg=source,
     )
   }
-  assert_true(
-    admit(text("id = NULL"), limits(), max_work=1000000) is Err(Expression(_)),
+  assert_eq(
+    rendered(admit(text("id = NULL"), limits(), max_work=1000000).unwrap()),
+    "{\"eq\":[{\"field\":\"id\"},{\"literal\":null}]}",
   )
   assert_true(
     admit(text("id = 1"), limits(), max_work=-1) is Err(InvalidLimits),

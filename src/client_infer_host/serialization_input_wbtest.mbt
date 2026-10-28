@@ -880,7 +880,7 @@ fn serialized_infer_fixture_material(
     prepared,
     0,
     1,
-    infer_fixture_registry,
+    infer_fixture_installed_contracts(),
     infer_fixture_values,
     None,
     None,
@@ -1079,7 +1079,11 @@ test "actual serialized Content reaches checked Infer mapping without replaying 
     let limits = standard_limits()
     assert_true(
       @input.prepare_client_infer_prefix(
-        prepared, 0, 3, infer_fixture_registry, infer_fixture_values,
+        prepared,
+        0,
+        3,
+        infer_fixture_installed_contracts(),
+        infer_fixture_values,
       )
       is None,
     )

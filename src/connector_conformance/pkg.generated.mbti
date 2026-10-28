@@ -5,11 +5,11 @@ import {
   "actql/actql/connectors/local",
   "actql/actql/connectors_builtin",
   "actql/actql/execution_relation",
-  "actql/actql/physical_strategy",
+  "actql/actql/physical_strategy_host",
 }
 
 // Values
-pub fn configure_subset(@physical_strategy.CapturedDAG, Array[@execution_relation.GeneratedSequence], Int, managed_providers? : Array[@local.ManagedProvider], retained_output? : Bool, execution_work? : Int, operation_entries? : Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn configure_subset(@physical_strategy_host.CapturedDAG, Array[@execution_relation.GeneratedSequence], Int, managed_providers? : Array[@local.ManagedProvider], retained_output? : Bool, execution_work? : Int, operation_entries? : Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
 // Errors
 

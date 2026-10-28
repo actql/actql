@@ -25,7 +25,6 @@ priv struct StoredSubmittedMaterial {
 ///|
 /// Reserve the complete wire allowance before encoding. The original Run
 /// remains live until this output retires, including an interrupted export.
-#export_name("actql_material_reserve")
 pub fn reserve_material(
   nonce : Int64,
   run : Int,
@@ -96,7 +95,6 @@ fn reserve_material_record(
 ///|
 /// Original row candidates only. Authentication and complete journal custody
 /// must still be observed in the same physical admission transaction.
-#export_name("actql_material_reserve_submitted_rows")
 pub fn reserve_submitted_rows_material(
   nonce : Int64,
   run : Int,
@@ -275,7 +273,6 @@ fn submitted_rows_material_wire(
 ///|
 /// Re-observe in the original write transaction, never accept a cached candidate
 /// from a previous snapshot/current generation. This performs no write or ACK.
-#export_name("actql_material_validate_submitted_rows")
 pub fn validate_submitted_rows_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) &&
@@ -304,7 +301,6 @@ pub fn validate_submitted_rows_material(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Project existing Owner records. Encoding is not admission, durable storage,
 /// physical start or permission to retry. An interrupted handle is not reused.
-#export_name("actql_material_produce")
 pub fn produce_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) &&
@@ -417,7 +413,6 @@ pub fn produce_material(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_material_length")
 pub fn material_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) else {
@@ -448,7 +443,6 @@ pub fn material_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_material_close")
 pub fn close_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) else {
@@ -499,7 +493,6 @@ pub fn close_material(nonce : Int64, handle : Int) -> Int {
 ///|
 /// Retire only the consumed transport through the same Buffer Owner. Original
 /// rows/step proof, Run/input borrow and child custody survive until full close.
-#export_name("actql_material_retire_output")
 pub fn retire_material_output(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) &&

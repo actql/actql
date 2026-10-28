@@ -18,6 +18,7 @@ warehouse—as if they were one database.**
 Take meeting notes in Google Drive and the deals they belong to in Salesforce.
 Read each deal's latest notes, let an LLM decide whether the stage or the next
 step has changed, and write the update back to Salesforce—in one SQL pipeline.
+The uniqueness assertion rejects ambiguous multiple note matches for a deal before a model request or write.
 It's plain SQL, plus `INFER` to call an LLM and `EFFECT` to write to an
 external system. This example uses both; a query that only returns a table, or
 a workflow with no LLM in it, is the same kind of program without those steps.
@@ -28,6 +29,7 @@ SELECT o.id AS id, o.StageName, o.NextStep,
 FROM salesforce.opportunities AS o
 JOIN drive.files AS f ON f.name = o.name
 JOIN drive.contents AS c USING (resource, version)
+|> ASSERT UNIQUE BY (id)
 |> INFER `model-task:deal-review.v1`
      INPUT (StageName, NextStep, notes) AS review
 |> WHERE review.outcome = 'ok' AND review.value.changed

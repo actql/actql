@@ -1132,7 +1132,8 @@
       "current_gap": "Current typed selectors, bounded shortest execution, provider and AQL admission have independent kernel/caller tests. Fixed-SHA public packed Local/HTTPS, fresh-process retained Result reads and public failure evidence remain incomplete; historical tuple-profile suites do not discharge them. Limited current bounded Owner resource assurance is registered separately. New-main installed acceptance remains unverified.",
       "completed_layers": [
         "contract",
-        "resources"
+        "resources",
+        "cancellation"
       ],
       "layer_evidence": [
         {
@@ -1149,6 +1150,20 @@
             "docs/reviews/2026-09-23-local-resource-production-routes.json"
           ],
           "verification": "Actual current Graph boundary JS 14/14 at clean 5713e927817ba7c5f3213984e1bc6ae07604cd26, including separate direct and retained-view Reach/Shortest controls. Historical installed Local/HTTPS Host 10/10 at clean 463e8b27eab15f1f1ae2e739f9ce4fe4d867753a includes positive-work operation cancellation; current Owner and Host barrier source are unchanged. This is not new-main package/runtime acceptance or a global physical-heap guarantee. Direct/fused public Host cancellation is not evidenced; its route lifecycle and the cancellation layer remain incomplete."
+        },
+        {
+          "scope": "unselected_owned_input_host_driver_cancellation_only",
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "node"
+          ],
+          "evidence": [
+            "src/connectors/duckdb/conformance/subgraph_cancel_fixture.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ],
+          "verification": "Eight isolated nodes, one-column constructor control work 29, then observed cumulative work greater than 29 before timer cancellation. Exact unselected count-two preparation binds independent search/output ceilings to the traversal occurrence; original input custody survives confirmed stop and duplicate cleanup. Source fixture commit c9c1d01d7a3c1796ef077d420dad2bab946d7ec3; focused Linux Node suite 3/3 including existing Subgraph control. Public Program selection, same-request/restart and full CI are separate verification units. This supersedes only the earlier direct Host-driver cancellation gap; earlier public acceptance limitations are retained."
         }
       ],
       "historical_implementation_evidence": [
@@ -1463,7 +1478,8 @@
       "current_gap": "Reach uses current typed selectors, checked traversal, SGA.reachable lowering and the bounded traversal provider. Raw identities, nullable Relation starts and statically checked node predicates are connected; malformed options remain refused. Independent current tests are distinct from historical tuple evidence. Fixed-SHA matching backends, public retained Local/HTTPS, fresh-process reads and operation-wide failure/custody acceptance remain unverified. Limited current bounded Owner resource assurance is registered separately. New-main installed acceptance remains unverified.",
       "completed_layers": [
         "contract",
-        "resources"
+        "resources",
+        "cancellation"
       ],
       "layer_evidence": [
         {
@@ -1480,6 +1496,20 @@
             "docs/reviews/2026-09-23-local-resource-production-routes.json"
           ],
           "verification": "Actual current Graph boundary JS 14/14 at clean 5713e927817ba7c5f3213984e1bc6ae07604cd26, including separate direct and retained-view Reach/Shortest controls. Historical installed Local/HTTPS Host 10/10 at clean 463e8b27eab15f1f1ae2e739f9ce4fe4d867753a includes positive-work operation cancellation; current Owner and Host barrier source are unchanged. This is not new-main package/runtime acceptance or a global physical-heap guarantee. Direct/fused public Host cancellation is not evidenced; its route lifecycle and the cancellation layer remain incomplete."
+        },
+        {
+          "scope": "unselected_owned_input_host_driver_cancellation_only",
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "node"
+          ],
+          "evidence": [
+            "src/connectors/duckdb/conformance/subgraph_cancel_fixture.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ],
+          "verification": "Eight isolated nodes, one-column constructor control work 29, then observed cumulative work greater than 29 before timer cancellation. Exact unselected count-two preparation binds independent search/output ceilings to the traversal occurrence; original input custody survives confirmed stop and duplicate cleanup. Source fixture commit c9c1d01d7a3c1796ef077d420dad2bab946d7ec3; focused Linux Node suite 3/3 including existing Subgraph control. Public Program selection, same-request/restart and full CI are separate verification units. This supersedes only the earlier direct Host-driver cancellation gap; earlier public acceptance limitations are retained."
         }
       ],
       "historical_implementation_evidence": [

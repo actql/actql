@@ -231,7 +231,6 @@ fn retain_live_issue(issue : @resources.ImportedChildLedgerIssue) -> Int {
 /// Fixed Host imports provide the same original child allowance. No scalar
 /// limits or new parent reservation enter this constructor. Partial state is
 /// retained even if admission, pool setup or its response is lost.
-#export_name("actql_buffer_open_live")
 pub fn open_live(
   nonce : Int64,
   total_bytes : Int64,
@@ -288,7 +287,6 @@ pub fn open_live(
 ///|
 /// Explicit outer-operation flush, never an automatic RPC per byte getter.
 /// The Resource Owner retains the original snapshot after a failed/lost ACK.
-#export_name("actql_buffer_report_live")
 pub fn report_live(nonce : Int64) -> Int {
   guard live_initialization_attempt.val is Some(original) && original == nonce else {
     return -1
@@ -304,7 +302,6 @@ pub fn report_live(nonce : Int64) -> Int {
 }
 
 ///|
-#export_name("actql_buffer_stop_live")
 pub fn stop_live(nonce : Int64) -> Int {
   guard live_initialization_attempt.val is Some(original) && original == nonce else {
     return -1
@@ -319,7 +316,6 @@ pub fn stop_live(nonce : Int64) -> Int {
 ///|
 /// Installed physical configuration binds one fresh instance. Reopening does
 /// not replace its nonce, revive handles, or grow its admitted copy allowance.
-#export_name("actql_buffer_open")
 pub fn open(
   nonce : Int64,
   total_bytes : Int64,
@@ -387,14 +383,7 @@ pub fn open(
 }
 
 ///|
-#export_name("actql_buffer_reserve")
-pub fn reserve(
-  nonce : Int64,
-  physical_input : Int,
-  wire_bytes : Int,
-  physical_copy_bytes : Int64,
-) -> Int {
-  guard selected(nonce) is Some(value) else { return -1 }
+fn reserve_input_admission(value : Instance, physical_input : Int) -> Int {
   if value.closing {
     return -5
   }
@@ -409,6 +398,21 @@ pub fn reserve(
     .any(chunk => chunk.physical_ticket == physical_input) ||
     value.workspaces.values().any(pair => pair.0 == physical_input) {
     return -3
+  }
+  0
+}
+
+///|
+pub fn reserve(
+  nonce : Int64,
+  physical_input : Int,
+  wire_bytes : Int,
+  physical_copy_bytes : Int64,
+) -> Int {
+  guard selected(nonce) is Some(value) else { return -1 }
+  let admission = reserve_input_admission(value, physical_input)
+  if admission != 0 {
+    return admission
   }
   match
     @buffers.reserve_buffer(value.pool, wire_bytes, physical_copy_bytes, () => {
@@ -425,7 +429,6 @@ pub fn reserve(
 }
 
 ///|
-#export_name("actql_buffer_fill")
 pub fn fill(nonce : Int64, handle : Int, start : Int, count : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.copies.get(handle) is Some((slot, physical_input)) else {
@@ -444,7 +447,6 @@ pub fn fill(nonce : Int64, handle : Int, start : Int, count : Int) -> Int {
 }
 
 ///|
-#export_name("actql_buffer_seal")
 pub fn seal(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.copies.get(handle) is Some((slot, _)) else { return -2 }
@@ -452,7 +454,6 @@ pub fn seal(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_buffer_byte")
 pub fn byte(nonce : Int64, handle : Int, index : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.copies.get(handle) is Some((slot, _)) else { return -2 }
@@ -463,7 +464,6 @@ pub fn byte(nonce : Int64, handle : Int, index : Int) -> Int {
 }
 
 ///|
-#export_name("actql_buffer_borrow")
 pub fn borrow(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.copies.get(handle) is Some((slot, physical_input)) else {
@@ -487,7 +487,6 @@ pub fn borrow(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_buffer_return")
 pub fn return_reader(nonce : Int64, reader : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.readers.get(reader) is Some(borrow) else { return -2 }
@@ -499,7 +498,6 @@ pub fn return_reader(nonce : Int64, reader : Int) -> Int {
 }
 
 ///|
-#export_name("actql_buffer_close")
 pub fn close(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.copies.get(handle) is Some((slot, _)) else { return -2 }
@@ -521,7 +519,6 @@ pub fn close(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_buffer_allocated")
 pub fn allocated(nonce : Int64) -> Int64 {
   match selected(nonce) {
     Some(value) => @buffers.buffer_pool_usage(value.pool).allocated
@@ -530,7 +527,6 @@ pub fn allocated(nonce : Int64) -> Int64 {
 }
 
 ///|
-#export_name("actql_buffer_reserved")
 pub fn reserved(nonce : Int64) -> Int64 {
   match selected(nonce) {
     Some(value) => @buffers.buffer_pool_reserved(value.pool)
@@ -539,7 +535,6 @@ pub fn reserved(nonce : Int64) -> Int64 {
 }
 
 ///|
-#export_name("actql_buffer_close_pool")
 pub fn close_pool(nonce : Int64) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   value.closing = true

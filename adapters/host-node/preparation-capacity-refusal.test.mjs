@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {checkedPreparation,cleanupClosedValuesInput} from './closed-values-preparation-adapter.mjs';
+import {checkedPreparation,cleanupClosedValuesInput} from '../local-node/closed-values-preparation-adapter.mjs';
 
 test('preparation capacity refusal preserves exact original Common facts as immutable data',()=>{
  const issue=Object.freeze({}), calls=[];

@@ -8476,7 +8476,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9267,7 +9267,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -9365,7 +9365,7 @@
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               }
             ],
@@ -9377,23 +9377,23 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -9403,7 +9403,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
@@ -11804,7 +11804,7 @@
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               }
             ],
@@ -11816,23 +11816,23 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -11842,7 +11842,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
@@ -12440,7 +12440,7 @@
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               }
             ],
@@ -12452,23 +12452,23 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -12478,7 +12478,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
               }
             ],
@@ -12612,7 +12612,7 @@
                 "anchor": "prepareOriginalMockRun(prepared, plan) {"
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "openSourceFreeHost(registry, values, fragment, ordered, providers) {"
               },
               {
@@ -12642,7 +12642,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "model.hostAttempted = true;"
               }
             ],
@@ -12678,11 +12678,11 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "openSourceFreeHost(registry, values, fragment, ordered, providers) {"
               },
               {
-                "path": "adapters/host-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (run.effectful || run.retired || model.closed || !model.taken || model.hostAttempted ||"
               }
             ],
@@ -15414,7 +15414,7 @@
                 "anchor": "# Serial physical strategy execution"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15424,7 +15424,7 @@
                 "anchor": "export function localStrategyContribution(moon, setup, checked, configuration) {"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15434,7 +15434,7 @@
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15454,7 +15454,7 @@
                 "anchor": "const yieldToHost = () => new Promise(resolve =>\n  typeof setImmediate === 'function' ? setImmediate(resolve) : setTimeout(resolve, 0));"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15484,7 +15484,7 @@
                 "anchor": "const managedWorkQuantum = 256;"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15504,7 +15504,7 @@
                 "anchor": "test('Local contribution admits, reads, executes and completes before exposing its close operation', async () => {"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ]
@@ -15742,7 +15742,7 @@
                 "anchor": "# Serial physical strategy execution"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15752,7 +15752,7 @@
                 "anchor": "export function numericStrategyContribution(moon, setup, checked) {"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15762,7 +15762,7 @@
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15782,7 +15782,7 @@
                 "anchor": "export function numericStrategyContribution(moon, setup, checked) {"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15812,7 +15812,7 @@
                 "anchor": "const managedSiteCapacity = value => Array.isArray(value)"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ],
@@ -15832,7 +15832,7 @@
                 "anchor": "test('scoped Host observes asynchronous close failures even after recovery succeeds', async () => {"
               },
               {
-                "path": "src/physical_host/pkg.generated.mbti",
+                "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
               }
             ]
@@ -16072,7 +16072,7 @@
               },
               {
                 "path": "src/connectors_workers/pkg.generated.mbti",
-                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
+                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host_dispatch.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
               }
             ],
             "inputsOutputs": [
@@ -16082,7 +16082,7 @@
               },
               {
                 "path": "src/connectors_workers/pkg.generated.mbti",
-                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
+                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host_dispatch.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
               },
               {
                 "path": "packages/run-host-core/workers-finite.d.ts",
@@ -16096,7 +16096,7 @@
               },
               {
                 "path": "src/connectors_workers/pkg.generated.mbti",
-                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
+                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host_dispatch.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
               }
             ],
             "ownership": [
@@ -16116,7 +16116,7 @@
               },
               {
                 "path": "src/connectors_workers/pkg.generated.mbti",
-                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
+                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host_dispatch.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
               }
             ],
             "failure": [
@@ -16146,7 +16146,7 @@
               },
               {
                 "path": "src/connectors_workers/pkg.generated.mbti",
-                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
+                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host_dispatch.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
               },
               {
                 "path": "src/execution_relation/sequence_runtime_fragments.mbt",
@@ -16170,7 +16170,7 @@
               },
               {
                 "path": "src/connectors_workers/pkg.generated.mbti",
-                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
+                "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host_dispatch.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
               },
               {
                 "path": "packages/run-host-core/workers-finite-expression.test.mjs",
@@ -24008,12 +24008,16 @@
     {
       "module": "src/physical_resources/imported_child_ledger.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "4fd3cd661ec666fa70dd50916d79db42ce77cf66a145ed03abddd702eccf6a63",
+      "sha256": "ebc87378448af32247faef26be6b20ae03992ee017178e8cd811234e866f4ac7",
       "exports": [],
       "operations": [
         {
           "name": "check_imported_child_admission",
           "declaration": "check_imported_child_admission ( ledger : Ledger ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "check_imported_child_admission_current",
+          "declaration": "check_imported_child_admission_current ( ledger : Ledger , ) - > Result [ Unit , LedgerIssue ]"
         },
         {
           "name": "check_imported_child_ledger",
@@ -24100,7 +24104,8 @@
             "start_imported_child_ledger",
             "stop_imported_child_ledger",
             "take_imported_child_ledger",
-            "take_imported_original_child_ledger"
+            "take_imported_original_child_ledger",
+            "check_imported_child_admission_current"
           ],
           "exports": [],
           "attributes": {
@@ -24108,6 +24113,10 @@
               {
                 "path": "src/client_local_host/installed_source_read.mbt",
                 "anchor": "/// Consumer of an already issued original Resource child, never a capacity"
+              },
+              {
+                "path": "src/physical_resources/imported_child_ledger.mbt",
+                "anchor": "// Inspect the result of the existing current fence without calling it twice."
               }
             ],
             "inputsOutputs": [
@@ -24178,6 +24187,14 @@
               {
                 "path": "src/physical_resources/imported_original_correspondence_wbtest.mbt",
                 "anchor": "test \"original imported child check is read-only and refuses copied or fresh views\""
+              },
+              {
+                "path": "src/physical_resources/node_preparation_cleanup_wbtest.mbt",
+                "anchor": "test \"stopping original preparation permits cleanup but never new admission\""
+              },
+              {
+                "path": "src/physical_resources/node_preparation_cleanup_wbtest.mbt",
+                "anchor": "test \"unavailable original preparation remains retained and cannot authorize cleanup cut\""
               }
             ]
           }
@@ -24410,30 +24427,22 @@
     {
       "module": "src/physical_strategy/retained_task_projection.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "986988fac0261e056dad475da18e3bfc3075a9210e630782f7fb4044bdf3564a",
+      "sha256": "608dc75b761e18e3925b18e49cdce8e3c0551670679608f0408b3d076d861a38",
       "role": "common-semantics",
       "owner": "Existing original retained-task projection and checked graph Owner; no preparation, capture or admission issuer",
       "exports": [],
       "operations": [
         {
-          "name": "open_retained_effect_task_dag",
-          "declaration": "open_retained_effect_task_dag ( checked : CheckedEffectRunDAG , projection : RetainedTaskProjection , output : @ execution . CompletedOutput , ledger : @ resources . Ledger , canonical_wire_bytes ~ : Int , ) - > Result [ CapturedEffectRunDAG , RunIssue ]"
-        },
-        {
-          "name": "open_retained_task_dag",
-          "declaration": "open_retained_task_dag ( value : RetainedTaskProjection , output : @ execution . CompletedOutput , ledger : @ resources . Ledger , canonical_wire_bytes ~ : Int , ) - > Result [ CapturedDAG , RunIssue ]"
-        },
-        {
           "name": "prepare_retained_effect_task_projection",
-          "declaration": "prepare_retained_effect_task_projection ( checked : CheckedEffectRunDAG , ) - > Result [ RetainedTaskProjection , RunIssue ]"
+          "declaration": "prepare_retained_effect_task_projection ( checked : CheckedEffectRunDAG , ) - > Result [ RetainedTaskProjection , RetainedTaskProjectionIssue ]"
         },
         {
           "name": "prepare_retained_task_projection",
-          "declaration": "prepare_retained_task_projection ( original : CheckedDAG , consumer : Int , ) - > Result [ RetainedTaskProjection , RunIssue ]"
+          "declaration": "prepare_retained_task_projection ( original : CheckedDAG , consumer : Int , ) - > Result [ RetainedTaskProjection , RetainedTaskProjectionIssue ]"
         },
         {
           "name": "prepare_retained_task_projection_owned",
-          "declaration": "prepare_retained_task_projection_owned ( original : CheckedDAG , consumer : Int , ) - > Result [ RetainedTaskProjection , RunIssue ]"
+          "declaration": "prepare_retained_task_projection_owned ( original : CheckedDAG , consumer : Int , ) - > Result [ RetainedTaskProjection , RetainedTaskProjectionIssue ]"
         },
         {
           "name": "retained_task_projection_consumer",
@@ -24464,8 +24473,6 @@
         {
           "operations": [
             "<module>",
-            "open_retained_effect_task_dag",
-            "open_retained_task_dag",
             "prepare_retained_effect_task_projection",
             "prepare_retained_task_projection",
             "prepare_retained_task_projection_owned",
@@ -24655,6 +24662,273 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/physical_resources/preparation_capacity_continuation.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "0ea8b42c9697b036763eda26d1df16938b78570c9e93865b10d75f5440412e71",
+      "role": "common-semantics",
+      "owner": "Existing physical_resources preparation state machine",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P,Q]continue_preparation_capacity",
+          "declaration": "[ I , P , Q ] continue_preparation_capacity ( owner : PreparationCapacity [ I , P ] , input : I , ) - > Result [ PreparationCapacity [ I , Q ] , PreparationCapacityIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "[I,P,Q]continue_preparation_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-parent preparation control/continuation and first Values consumer only; not an Effect body recipe, installed runtime admission or physical acknowledgement."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_parent.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "d3a21b19c476cd11b7db9d81a90904a9d44bf978bc18d7e2c49cbf934ad2c67e",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]abort_request_preparation_after_cleanup",
+          "declaration": "[ I ] abort_request_preparation_after_cleanup ( owner : ClientRequestPreparation [ I ] , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]begin_request_preparation",
+          "declaration": "[ I ] begin_request_preparation ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , policy : ClientLocalResourcePolicy , ) - > Result [ ClientRequestPreparation [ I ] , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]make_closed_values_preparation",
+          "declaration": "[ I ] make_closed_values_preparation ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , policy : ClientLocalResourcePolicy , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , retained : Int64 , execution : Int64 , module_containers : @ execution . PreparationRepresentationUnits , ) - > ClientClosedValuesPreparation [ I ]"
+        },
+        {
+          "name": "[I]prepare_request_program_json_preparation",
+          "declaration": "[ I ] prepare_request_program_json_preparation ( owner : ClientRequestPreparation [ I ] , input : I , document : String , limits : @ syntax . Limits , ) - > Result [ ClientProgramJsonPreparation [ I , Unit ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]select_closed_values_preparation",
+          "declaration": "[ I ] select_closed_values_preparation ( owner : ClientRequestPreparation [ I ] , input : I , module_containers ~ : @ execution . PreparationRepresentationUnits , ) - > Result [ ClientClosedValuesPreparation [ I ] , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_request_preparation_control_capacity",
+          "declaration": "client_request_preparation_control_capacity ( policy : ClientLocalResourcePolicy , ) - > ( Int64 , Int64 ) ?"
+        },
+        {
+          "name": "request_preparation_control_units",
+          "declaration": "request_preparation_control_units ( ) - > @ execution . PreparationRepresentationUnits"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "[I]abort_request_preparation_after_cleanup",
+            "[I]begin_request_preparation",
+            "[I]make_closed_values_preparation",
+            "[I]select_closed_values_preparation",
+            "client_request_preparation_control_capacity",
+            "request_preparation_control_units"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Unselected request preparation bootstrap"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[I]prepare_request_program_json_preparation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned generic Program JSON caller"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-parent preparation control/continuation and first Values consumer only; not an Effect body recipe, installed runtime admission or physical acknowledgement."
     }
   ]
 }

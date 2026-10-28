@@ -259,3 +259,78 @@ test "checked original model read capacity handoff binds Run and preserves clean
   assert_true(@resources.finish_original_ledger_inventory(same, true).unwrap())
   assert_eq(@resources.ledger_usage(same).reserved_retention_bytes, 0L)
 }
+
+///|
+test "Model binding after original preparation retains its recorded reservation and refuses rebinding" {
+  let (compiled, definition, plan) = client_model_read_test_run("prepared")
+  let (foreign, foreign_definition, foreign_plan) = client_model_read_test_run(
+    "other",
+  )
+  let ledger = @resources.create_ledger({
+    planning_work: 3,
+    attempts: 2,
+    holdings: 3,
+    transfer_bytes: 11L,
+    retained_bytes: 100L,
+    execution_bytes: 100L,
+  }).unwrap()
+  let bootstrap = @resources.reserve_capacity(ledger, 10L, 10L).unwrap()
+  let identity = @resources.begin_original_ledger_inventory(
+    ledger, bootstrap, 2, 0, 0,
+  ).unwrap()
+  let input = [1]
+  let capacity : @resources.PreparationCapacity[Array[Int], Array[Int]] = @resources.reserve_preparation_capacity(
+    ledger,
+    input,
+    20L,
+    20L,
+    max_borrowers=1,
+  ).unwrap()
+  @resources.complete_preparation_capacity(capacity, input, [2], 15L, 0L).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    bind_client_model_read_scope(
+      compiled, definition, foreign_plan, ledger, identity,
+    )
+    is Err(ForeignRun),
+  )
+  let other_ledger = @resources.create_ledger(@resources.ledger_limits(ledger)).unwrap()
+  assert_true(
+    bind_client_model_read_scope(
+      compiled, definition, plan, other_ledger, identity,
+    )
+    is Err(Resource(@resources.ForeignOrigin)),
+  )
+  let scope = bind_client_model_read_scope(
+    compiled, definition, plan, ledger, identity,
+  ).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(
+    bind_client_model_read_scope(compiled, definition, plan, ledger, identity)
+    is Err(Resource(@resources.SpentClaim)),
+  )
+  assert_true(
+    bind_client_model_read_scope(
+      foreign, foreign_definition, foreign_plan, ledger, identity,
+    )
+    is Err(Resource(@resources.SpentClaim)),
+  )
+  let read = prepare_client_model_read(scope, 30L, 30L).unwrap()
+  assert_true(
+    physical_equal(
+      handoff_client_model_read(read, compiled, definition, plan).unwrap(),
+      ledger,
+    ),
+  )
+  settle_client_model_read(read, true).unwrap()
+  // Cleanup cannot return bootstrap while the actual preparation is retained.
+  assert_false(
+    finish_client_model_read_scope(scope, compiled, definition, plan, true).unwrap(),
+  )
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 25L)
+  assert_true(@resources.retire_preparation_capacity(capacity).unwrap())
+  assert_true(
+    finish_client_model_read_scope(scope, compiled, definition, plan, true).unwrap(),
+  )
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+}

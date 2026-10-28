@@ -23,7 +23,7 @@ fn emit_prepared_publication_row_body(
       }
       previous = cid
       match witness {
-        None => @host.emit(body.host, writer)
+        None => @host.emit(body._host, writer)
         Some(value) => @wire.emit(value, writer)
       }
     }

@@ -30,7 +30,7 @@ const imports = packageImports(queryManifest.slice(0, -nativeOptions.length))
   .filter(x => aliases.has(x.alias)).map(x => [x.path,x.alias]);
 imports.push(['actql/actql/connectors_builtin','builtin'],['actql/actql/connector_conformance','conformance']);
 imports.push(
-  ['actql/actql/physical_host', 'host_driver'],
+  ['actql/actql/physical_host_dispatch', 'host_driver'],
   ['actql/actql/local_tea_provider', 'tea_provider'],
   ['actql/actql/managed_record_storage', 'record_storage'],
 );

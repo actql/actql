@@ -9,7 +9,6 @@ priv struct StoredRestoration {
 }
 
 ///|
-#export_name("actql_material_reserve_restoration")
 pub fn reserve_restoration(nonce : Int64, input : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.copies.get(input) is Some((slot, physical)) else {
@@ -40,7 +39,6 @@ pub fn reserve_restoration(nonce : Int64, input : Int) -> Int {
 /// The trusted physical adapter supplies its retained original definition CID.
 /// Decoding a caller's strings supplies no authority, lifetime extension or
 /// permission to restart completed acquisition or Compute.
-#export_name("actql_material_restore")
 pub fn restore_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.restorations.get(handle) is Some(record) else {
@@ -66,7 +64,6 @@ pub fn restore_material(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_material_restored")
 pub fn material_restored(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.restorations.get(handle) is Some(record) else {
@@ -80,7 +77,6 @@ pub fn material_restored(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_material_close_restoration")
 pub fn close_restoration(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.restorations.get(handle) is Some(record) else {

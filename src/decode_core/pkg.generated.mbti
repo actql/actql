@@ -2,12 +2,15 @@
 package "actql/actql/decode_core"
 
 import {
+  "actql/actql/decode_shape",
   "actql/actql/source_span",
   "actql/actql/source_value",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn admission_construction_inventory(Int, Int, Int, Int, Int) -> AdmissionConstructionInventory?
+
 pub fn admission_usage(Cursor) -> AdmissionUsage
 
 pub fn admit(@source_value.Node, Limits) -> Result[Cursor, Issue]
@@ -44,9 +47,15 @@ pub fn field_at(Cursor, Int) -> (String, Cursor)?
 
 pub fn finite_number(Cursor) -> Result[Double, Issue]
 
+pub fn indexed_child_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn indexed_field_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
 pub fn int32(Cursor) -> Result[Int, Issue]
 
 pub fn is_null(Cursor) -> Bool
+
+pub fn is_text(Cursor) -> Bool
 
 pub fn lookup(ObjectView, String) -> Cursor?
 
@@ -72,6 +81,19 @@ pub fn view(Cursor) -> ValueView
 
 // Types and methods
 type Admission
+
+pub(all) struct AdmissionConstructionInventory {
+  indexed : AdmissionConstructionUnits
+  keys : AdmissionConstructionUnits
+  ancestry : AdmissionConstructionUnits
+  controls : AdmissionConstructionUnits
+} derive(Eq, @debug.Debug)
+
+pub(all) struct AdmissionConstructionUnits {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+} derive(Eq, @debug.Debug)
 
 pub(all) enum AdmissionControlIssue {
   InvalidQuantum

@@ -39,7 +39,7 @@ function fixture() {
     clientSubmittedIntent(wire, ...bounds) {calls.push(['intent', wire, bounds]); return wire;},
     clientSubmittedIntentCid(intent) {calls.push(['cid', intent]); return 'sha256:' + 'a'.repeat(64);},
   };
-  const originals = {host: {}, installation: {initialControl, projectRuntime: moon},
+  const originals = {host: {}, installation: {initialControl, projectRuntime: moon, retainedRelationOutput: false},
     generation: {}, supplier: {}, moduleLifetime: {}};
   const assets = new Map([
     ['spec/contracts/actql-aoa.json', JSON.stringify({execution_contracts: {
@@ -95,6 +95,8 @@ test('installed managed contract strings are projected once across distinct Host
   f.stop();
   assert.throws(() => read(f.originals, second), /CurrentRefused/);
   assert.equal(f.calls.length, 3, 'Static strings cannot supply current Run admission');
+  assert.deepEqual(f.installationCalls, ['manifests', 'contracts'],
+    'Fixed installation admission is retained, not repeated for each Run quote');
 });
 
 test('installed contract projection is immutable and cannot cross Host control originals', () => {
@@ -200,7 +202,7 @@ test('malformed or overflowing requirement observations are refused', () => {
 
 function preparedRunFixture() {
   const f = fixture(), original = {}, run = {runtime: f.moon, prepared: f.prepared, request: f.request, closed: false};
-  f.originals.installation.computeRuns = new Map([[f.prepared, run]]);
+  f.originals.installation.computeRuns = new WeakMap([[f.prepared, run]]);
   f.moon.clientProgramInstalledManagedRunIssueIsUnsupported = () => false;
   f.moon.clientProgramPrepareInstalledManagedSourceFreeWithContracts = (...args) => {
     f.calls.push(['prepare', args]); return original;
@@ -220,7 +222,7 @@ test('same Host Run retains one typed sequence preparation before repeated scala
   assert.equal(f.calls.filter(([name]) => name === 'prepare').length, 1);
   assert.equal(f.calls.filter(([name]) => name === 'project').length, 2);
   assert.deepEqual(f.calls[0][1], [f.prepared, f.contractAdmission,
-    '{"kind":"values"}', '{"kind":"expression"}', '{"kind":"derive"}']);
+    '{"kind":"values"}', '{"kind":"expression"}', '{"kind":"derive"}', false]);
 });
 
 test('same typed preparation survives failed projection or current observation without replacement', () => {
@@ -398,4 +400,13 @@ test('missing installed manifest or sequence port refuses before reading contrac
     assert.deepEqual(f.installationCalls, []);
     assert.equal(f.originals.installation.sequenceContractOriginal, undefined);
   }
+});
+
+test('fixed compilation manifest refusal cannot publish a sequence original or quote', () => {
+  const f = fixture(), failure = new Error('OriginalCompilationManifestsRefused');
+  f.moon.clientPrepareInstalledCompilationManifests = () => {throw failure;};
+  f.moon.clientPrepareInstalledSequenceContracts = () => assert.fail('No sequence admission after failed manifests');
+  assert.throws(() => f.requirements()(f.originals, f.prepared), error => error === failure);
+  assert.equal(f.originals.installation.sequenceContractOriginal, undefined);
+  assert.equal(f.calls.length, 0);
 });

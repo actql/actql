@@ -1,10 +1,12 @@
 ///|
 /// One semantic phase owner quote. Failure is an alternative peak, not a second
 /// concurrent arena. All components use the SAME representation tariff/Ledger.
+// `_observed_*` fields retain exact bound observations for white-box tests;
+// production consumes the admitted totals, not these diagnostic projections.
 priv struct ClosedValuesContextPhaseLayout {
-  retained : PreparationRepresentationUnits
-  temporary : PreparationRepresentationUnits
-  _observed_failure : PreparationRepresentationUnits
+  retained : @execution.PreparationRepresentationUnits
+  temporary : @execution.PreparationRepresentationUnits
+  _observed_failure : @execution.PreparationRepresentationUnits
 }
 
 ///|
@@ -18,7 +20,7 @@ fn closed_values_context_fixed_source(
   text : Int,
   longest : Int,
   depth : Int,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   let owner = closed_values_source_inventories({
     input_bytes: bytes,
     node_upper: nodes,
@@ -33,7 +35,7 @@ fn closed_values_context_fixed_source(
   })
   // Conservatively preserve the complete private parsed tree too; shared
   // String dependencies occur only in source_retained, not indexed_additional.
-  closed_values_sum_layouts([
+  @execution.compose_preparation_representation([
     owner.source_retained,
     owner.indexed_additional,
     owner.source_growth_peak,
@@ -69,14 +71,14 @@ fn closed_values_context_core_layout(
   }
   // Required catalog wrapper1H4R2W; eligibility projection1H3W. Interpreted
   // catalog and installed Environment remain exact borrowed Root originals.
-  let originals : PreparationRepresentationUnits = {
+  let originals : @execution.PreparationRepresentationUnits = {
     record_headers: 2L,
     reference_slots: 4L,
     scalar_words: 5L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       originals,
       normalization.retained,
       {
@@ -107,7 +109,7 @@ fn closed_values_context_core_layout(
   // Conservative first implementation keeps scaffold construction versions,
   // policy parse trees and scratch live in retained until phase retirement.
   // Actual reconciliation may narrow, never retroactively finance construction.
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       capacity_source,
       text_source,
       normalization.temporary,
@@ -184,7 +186,7 @@ fn closed_values_context_components_layout(
   // owners. Borrowed installed catalog/schema and compiler Values/ResultPort
   // are NOT counted here. Unit-publication payload is its replacement Unit,
   // distinct from the initial Unit record owned by the compiler component.
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       core.retained,
       identity.fixed,
       identity.cid_strings,
@@ -203,7 +205,7 @@ fn closed_values_context_components_layout(
     is Some(retained) else {
     return None
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       core.temporary,
       identity.preparation,
       identity.emission,

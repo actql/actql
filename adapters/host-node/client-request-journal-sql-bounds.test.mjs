@@ -157,10 +157,13 @@ test('selected primary SQL limits are immutable own DATA and refuse invalid conf
   let getterReads = 0;
   const getter = {...defaults};
   Object.defineProperty(getter, 'maxCalls', {get() { getterReads++; return 1000; }});
+  const activeGetter = {...defaults};
+  Object.defineProperty(activeGetter, 'maxPreparedStatements', {get() { getterReads++; return 1000; }});
   for (const [index, primarySqlLimits] of [
-    {...defaults, maxCalls: 0}, {...defaults, maxTotalSqlBytes: Infinity},
+    {...defaults, maxCalls: 0}, {...defaults, maxCalls: 1000},
+    {...defaults, maxPreparedStatements: 0}, {...defaults, maxTotalSqlBytes: Infinity},
     {...defaults, maxSqlBytes: 1.5}, {...defaults, maxPreparedStatements: -1},
-    {...defaults, extra: 1}, getter,
+    {...defaults, extra: 1}, getter, activeGetter,
   ].entries()) {
     let journal;
     const path = directory + index;

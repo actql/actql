@@ -1,7 +1,6 @@
 supported_targets = "+js+wasm+native"
 
 import {
-  "actql/actql/capacity_arithmetic" @preparation_counts,
   "actql/actql/client_source_publication" @source_publication,
   "actql/actql/expression_typing" @typing,
   "actql/actql/encode_core" @encode,
@@ -14,8 +13,8 @@ import {
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_contract" @contract,
   "actql/actql/connectors_builtin" @builtin,
-  "actql/actql/physical_host" @host_driver,
-  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_host_dispatch" @host_driver,
+  "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/physical_resources" @resources,
   "actql/actql/execution_query" @query,
   "actql/actql/execution_relation" @execution,
@@ -33,6 +32,7 @@ import {
   "actql/actql/bounded_execution" @bounded,
   "actql/actql/query_planning" @planning,
   "actql/actql/sourceview_resolution" @sourceviews,
+  "actql/actql/source_value" @source,
   "actql/actql/connectors/duckdb/acquisition" @duckdb_query,
   "actql/actql/connectors/duckdb/host" @duckdb_host,
   "actql/actql/client_row_source_host" @row_source_host,
@@ -42,13 +42,24 @@ import {
 import {
   "actql/actql/local_veca_provider" @nearest_provider,
   "actql/actql/source_frontend" @frontend,
-  "actql/actql/source_value" @source,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
 } for "wbtest"
 
 options(
   targets: {
+    "preparation_request_parent_js_wbtest.mbt": [ "js" ],
+    "preparation_request_program_json_js_wbtest.mbt": [ "js" ],
+    "preparation_closed_values_module_call_js.mbt": [ "js" ],
+    "preparation_closed_values_module_call_portable.mbt": [
+      "wasm",
+      "wasm-gc",
+      "native",
+    ],
+    "preparation_closed_values_module_wbtest.mbt": [ "js" ],
+    "preparation_closed_values_module_fault_wbtest.mbt": [ "js" ],
+    "preparation_closed_values_module_controls_wbtest.mbt": [ "js" ],
+    "preparation_closed_values_module_adoption_wbtest.mbt": [ "js" ],
     "preparation_publication_custody_wbtest.mbt": [ "js" ],
     "preparation_publication_snapshot_wbtest.mbt": [ "js" ],
     "preparation_publication_start_custody_wbtest.mbt": [ "js" ],
@@ -56,5 +67,7 @@ options(
     "installed_effect_operation_parent_js_wbtest.mbt": [ "js" ],
     "installed_effect_provider_plan_js_wbtest.mbt": [ "js" ],
     "installed_capture_parent_js_wbtest.mbt": [ "js" ],
+    "installed_effect_provider_plan_js_wbtest.mbt": [ "js" ],
+    "managed_source_free_preparation_js_wbtest.mbt": [ "js" ],
   },
 )

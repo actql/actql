@@ -3,8 +3,8 @@
 /// not a grant or a second tariff. The original guarded input, source trees,
 /// compiler/result graph and context components remain separate dependencies.
 priv struct ClosedValuesTopologyLayout {
-  retained : PreparationRepresentationUnits
-  temporary : PreparationRepresentationUnits
+  retained : @execution.PreparationRepresentationUnits
+  temporary : @execution.PreparationRepresentationUnits
 }
 
 ///|
@@ -28,7 +28,7 @@ priv struct ClosedValuesTopologyLayout {
 /// No parameter_references Inventory/Index/BoundIndex, local_inputs attachment
 /// internals, pipeline_parameters collection, ContextualClosure or check-only
 /// topology is duplicated here. Empty parameter owners are real, not None.
-fn closed_values_topology_retained_layout() -> PreparationRepresentationUnits {
+fn closed_values_topology_retained_layout() -> @execution.PreparationRepresentationUnits {
   {
     record_headers: 52L,
     reference_slots: 137L,
@@ -45,7 +45,7 @@ fn closed_values_topology_retained_layout() -> PreparationRepresentationUnits {
 /// Root and Stage bodies have at most four members on the exact shape guard.
 fn closed_values_topology_layout() -> ClosedValuesTopologyLayout? {
   let retained = closed_values_topology_retained_layout()
-  let view : PreparationRepresentationUnits = {
+  let view : @execution.PreparationRepresentationUnits = {
     record_headers: 13L,
     reference_slots: 18L,
     scalar_words: 12L,
@@ -71,7 +71,7 @@ fn closed_values_topology_layout() -> ClosedValuesTopologyLayout? {
   // Budget, callback closure, and limits records at the eleven call seams
   // (prepare,bind,local_program,collect,imports,inventory,orders,ports,
   // wire,operations,checked). Each limit has at most eight scalar fields.
-  let controls : PreparationRepresentationUnits = {
+  let controls : @execution.PreparationRepresentationUnits = {
     record_headers: 17L,
     reference_slots: 5L,
     scalar_words: 95L,
@@ -80,14 +80,14 @@ fn closed_values_topology_layout() -> ClosedValuesTopologyLayout? {
   }
   // Output/quote construction: two unit records, this result, Some, and the
   // 15-element sum array wrapper/backing, including scalar backing lengths.
-  let proof : PreparationRepresentationUnits = {
+  let proof : @execution.PreparationRepresentationUnits = {
     record_headers: 6L,
     reference_slots: 19L,
     scalar_words: 13L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       retained, view, view, view, view, view, map4, map4, map4, map4, map4, known,
       empty, controls, proof,
     ])

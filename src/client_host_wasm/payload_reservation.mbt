@@ -12,7 +12,6 @@ priv struct StoredPayloadReservation {
 }
 
 ///|
-#export_name("actql_payload_reservation_reserve")
 pub fn reserve_payload_reservation(
   nonce : Int64,
   parent : Int,
@@ -66,7 +65,6 @@ pub fn reserve_payload_reservation(
 }
 
 ///|
-#export_name("actql_payload_reservation_produce")
 pub fn produce_payload_reservation(
   nonce : Int64,
   handle : Int,
@@ -136,7 +134,6 @@ pub fn produce_payload_reservation(
 }
 
 ///|
-#export_name("actql_payload_reservation_validate")
 pub fn validate_payload_reservation(
   nonce : Int64,
   handle : Int,
@@ -161,7 +158,6 @@ pub fn validate_payload_reservation(
 }
 
 ///|
-#export_name("actql_payload_reservation_begin")
 pub fn begin_payload_reservation(
   nonce : Int64,
   handle : Int,
@@ -184,7 +180,6 @@ pub fn begin_payload_reservation(
 }
 
 ///|
-#export_name("actql_payload_reservation_confirm")
 pub fn confirm_payload_reservation(
   nonce : Int64,
   handle : Int,
@@ -265,7 +260,6 @@ pub fn confirm_payload_reservation(
 }
 
 ///|
-#export_name("actql_payload_reservation_length")
 pub fn payload_reservation_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.payload_reservations.get(handle) is Some(record) else {
@@ -278,7 +272,6 @@ pub fn payload_reservation_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_payload_reservation_close")
 pub fn close_payload_reservation(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.payload_reservations.get(handle) is Some(record) else {

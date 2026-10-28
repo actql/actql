@@ -33,7 +33,7 @@ fn effect_source_dispatch_fixture() -> EffectSourceDispatchFixture {
   }
   let environment = @host.admit_client_check_environment(
     resident_effect_source_environment,
-    "sha256:4ea01561b9ac9815baaf04a81cff8260c8a47c56f19828b5889cf45ec1436e78",
+    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
     admission.expressions,
     admission.operations,
   ).unwrap()
@@ -126,7 +126,7 @@ fn effect_source_dispatch_admit(
     fixture.wire,
     fixture.binding,
     now,
-    resident_effect_source_contracts(),
+    resident_effect_installed_contracts(),
     resident_effect_source_values,
     resident_effect_source_fragment,
   )

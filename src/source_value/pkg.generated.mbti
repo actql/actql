@@ -10,7 +10,21 @@ import {
 // Values
 pub fn advance_json_parse(JsonParse, Int) -> Result[JsonParsePoll, JsonParseControlIssue]
 
+pub fn advance_json_source_preflight(JsonSourcePreflight, Int) -> Result[JsonSourcePreflightPoll, JsonSourcePreflightIssue]
+
 pub fn cancel_json_parse(JsonParse) -> Unit
+
+pub fn cancel_json_source_preflight(JsonSourcePreflight) -> Unit
+
+pub fn indexed_source_dependency_extent(Int, Int, Int, Int64) -> IndexedSourceDependencyExtent?
+
+pub fn json_construction_extent(Int, Int, Int, normalize_keys~ : Bool) -> JsonLiteralConstructionExtent?
+
+pub fn json_literal_construction_extent(Int, Int, Int) -> JsonLiteralConstructionExtent?
+
+pub fn json_source_grammar_construction_extent(Int, Int, Int) -> JsonLiteralConstructionExtent?
+
+pub fn json_source_preflight_control_extent() -> JsonSourcePreflightControlExtent
 
 pub fn parse_json(String, ParseLimits, source_path? : String) -> Result[Node, ParseError]
 
@@ -48,6 +62,12 @@ pub fn start_json_document_parse(@encode_core.EncodedDocument, ParseLimits, sour
 
 pub fn start_json_parse(String, ParseLimits, source_path? : String, data_keys? : Bool) -> Result[JsonParse, ParseError]
 
+pub fn start_json_source_preflight(String, ParseLimits, source_path? : String, data_keys? : Bool) -> Result[JsonSourcePreflight, ParseError]
+
+pub fn start_program_json_source_preflight(String, ParseLimits, source_path? : String) -> Result[JsonSourcePreflight, ParseError]
+
+pub fn take_json_source_parser(JsonSourcePreflight) -> Result[JsonParse, JsonSourcePreflightIssue]
+
 // Errors
 
 // Types and methods
@@ -56,6 +76,21 @@ pub(all) struct Field {
   key_span : @source_span.Span
   value : Node
 } derive(@debug.Debug)
+
+pub(all) struct IndexedSourceDependencyExtent {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+} derive(Eq, @debug.Debug)
+
+#alias(JsonConstructionExtent)
+pub(all) struct JsonLiteralConstructionExtent {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+} derive(Eq, @debug.Debug)
 
 type JsonParse
 
@@ -68,6 +103,41 @@ pub enum JsonParsePoll {
   JsonParseContinue(work~ : Int)
   JsonParseComplete(ParsedSource, work~ : Int)
   JsonParseFailed(ParseError, work~ : Int)
+}
+
+pub(all) struct JsonSourceGeometry {
+  input_bytes : Int
+  input_utf16_units : Int
+  objects : Int
+  arrays : Int
+  fields : Int
+  quoted_tokens : Int
+  quoted_raw_utf16_units : Int
+  longest_quoted_raw_utf16 : Int
+  atoms : Int
+  longest_atom_utf16 : Int
+  depth_upper : Int
+  node_upper : Int
+} derive(Eq, @debug.Debug)
+
+type JsonSourcePreflight
+
+pub(all) struct JsonSourcePreflightControlExtent {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) enum JsonSourcePreflightIssue {
+  InvalidQuantum
+  Consumed
+  NotReady
+} derive(Eq, @debug.Debug)
+
+pub enum JsonSourcePreflightPoll {
+  JsonSourceContinue(work~ : Int)
+  JsonSourceReady(JsonSourceGeometry, work~ : Int)
+  JsonSourceFailed(ParseError, work~ : Int)
 }
 
 pub(all) struct Node {

@@ -71,6 +71,8 @@ test('declarations cannot inject code or move implementation ownership into core
     {module: 'LocalDispatchModule); abort()'},
     {contribution: 'prepare(); execute'},
     {configure: 'prepare(); execute'},
+    {validate_binding: 'validate(); execute'},
+    {validate_binding: null},
     {configuration: 'Any[Unsafe]'},
     {dispatch: 'execute(); abort'},
     {synchronous_dispatch: 'execute(); abort'},
@@ -104,4 +106,18 @@ test('managed start has an explicit error type independent of dispatch', () => {
     assert.throws(() => generateComputeAssembly([{...reference, manifest}]),
       /declaration/);
   }
+});
+
+
+test('prepared assembly validates original bindings and reuses the common wrapper without a second configure', () => {
+  const source = generateComputeAssembly([entry('local'), entry('reference_compute')]).source;
+  const start = source.indexOf('pub fn[E] assemble_configured_compute_modules(');
+  const end = source.indexOf('pub fn[E] configure_compute_modules(', start);
+  assert(start >= 0 && end > start);
+  const prepared = source.slice(start, end);
+  assert.match(prepared, /validate_local_dispatch_binding\(installed, driver, registry\)/);
+  assert.match(prepared, /validate_numeric_contribution_binding\(installed, driver, registry\)/);
+  assert.match(prepared, /assemble_compute_contributions\(/);
+  assert.doesNotMatch(prepared, /configure_local_compute|configure_numeric_compute|prepare_local/);
+  assert.match(source.slice(end), /assemble_configured_compute_modules\(driver, registry, max_entries, installation_issue,/);
 });

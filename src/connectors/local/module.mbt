@@ -6,10 +6,40 @@ struct LocalComputeModule {
   registration : @connector.CapabilityRegistration
   sequences : Array[@execution.GeneratedSequence]
   managed_providers : Array[ManagedProvider]
+  selected_providers : Array[ManagedProvider?]
+  selected_capacities : Array[@execution.ExecutionCapacity?]
   managed_capacity : @connector.FixedComputeCapacity
   execution : @execution.SequenceExecutionLimits
   measurement : @execution.FixedInputGuardMeasureLimits
   max_work : Int
+}
+
+///|
+/// Owned sequence/provider snapshot arrays and original-slot selection arrays.
+/// The provider objects and sequence bodies are borrowed, not copied. Each
+/// exact-length array owns one header/backing pair and its module link. This
+/// inventories all four containers, not provider/kernel construction backing.
+pub fn local_module_container_inventory(
+  slots : Int,
+  installed_providers : Int,
+) -> @execution.PreparationRepresentationUnits? {
+  guard @execution.checked_preparation_add_product(8L, slots.to_int64(), 3L)
+    is Some(references) &&
+    @execution.checked_preparation_add_product(
+      references,
+      installed_providers.to_int64(),
+      1L,
+    )
+    is Some(references) else {
+    return None
+  }
+  Some({
+    record_headers: 8L,
+    reference_slots: references,
+    scalar_words: 8L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
 }
 
 ///|
@@ -44,22 +74,53 @@ pub fn prepare_local_compute_module(
   if !@connector.capability_description(registration).fixed_compute {
     return Err(ComputeUnsupported)
   }
-  for sequence in sequences {
-    let mut matches = 0
-    for provider in managed_providers {
+  // Snapshot containers before any accepts/capacity callback can reenter.
+  // Provider objects and their declared immutable dependencies remain shared.
+  let original_sequences = sequences.copy()
+  let original_providers = managed_providers.copy()
+  let selected_providers : Array[ManagedProvider?] = Array::make(
+    original_sequences.length(),
+    None,
+  )
+  let selected_capacities : Array[@execution.ExecutionCapacity?] = Array::make(
+    original_sequences.length(),
+    None,
+  )
+  for slot, sequence in original_sequences {
+    let mut selected : ManagedProvider? = None
+    for provider in original_providers {
       if managed_provider_accepts(provider, sequence) {
-        matches += 1
-        if matches > 1 || managed_provider_capacity(provider, sequence) is None {
+        if selected is Some(_) {
           return Err(ForeignPreparation)
         }
+        selected = Some(provider)
       }
     }
+    let selected = match selected {
+      Some(_) => selected
+      None =>
+        local_default_managed_provider(
+          original_providers, execution, measurement, sequence,
+        )
+    }
+    let capacity = match selected {
+      Some(provider) => managed_provider_capacity(provider, sequence)
+      None =>
+        @execution.generated_sequence_capacity(sequence, execution, measurement)
+    }
+    if selected is Some(_) && capacity is None {
+      return Err(ForeignPreparation)
+    }
+    selected_providers[slot] = selected
+    selected_capacities[slot] = capacity
   }
   Ok({
     registry,
     registration,
-    sequences: sequences.copy(),
-    managed_providers: managed_providers.copy(),
+    sequences: original_sequences,
+    managed_providers: original_providers,
+    selected_providers,
+    selected_capacities,
     managed_capacity: managed_capacity.unwrap_or({
       contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
       max_rows: execution.rows.max_rows,
@@ -146,7 +207,7 @@ pub fn[T] prepare_local_module_managed_compute_with_estimates(
       Err(issue) => return Err(Candidate(Execution(issue)))
     }
   }
-  let provider = local_module_managed_provider(installed, sequence)
+  let provider = local_module_managed_provider(installed, slot, sequence)
   let candidate = match
     local_managed_fixed_compute_candidate(
       installed.registration,
@@ -178,14 +239,52 @@ pub fn[T] prepare_local_module_managed_compute_with_estimates(
 ///|
 pub fn local_module_managed_provider(
   installed : LocalComputeModule,
+  slot : Int,
   sequence : @execution.GeneratedSequence,
 ) -> ManagedProvider? {
-  local_managed_provider_for(
-    installed.managed_providers,
-    installed.execution,
-    installed.measurement,
-    sequence,
-  )
+  guard local_module_original_occurrence(installed, slot, sequence) &&
+    installed.selected_providers.get(slot) is Some(Some(provider)) &&
+    managed_provider_accepts(provider, sequence) else {
+    return None
+  }
+  Some(provider)
+}
+
+///|
+fn local_module_original_occurrence(
+  installed : LocalComputeModule,
+  slot : Int,
+  sequence : @execution.GeneratedSequence,
+) -> Bool {
+  guard installed.sequences.get(slot) is Some(original) else { return false }
+  @execution.retain_generated_sequence_refinement(original, sequence) is Some(_)
+}
+
+///|
+/// Exact original capacity is retained. A genuinely refined sequence follows
+/// the same provider's full capacity check and must stay within its original
+/// slot envelope; equal step coordinates alone do not create more capacity.
+pub fn local_module_capacity_for_sequence(
+  installed : LocalComputeModule,
+  slot : Int,
+  sequence : @execution.GeneratedSequence,
+) -> @execution.ExecutionCapacity? {
+  guard local_module_original_occurrence(installed, slot, sequence) &&
+    installed.sequences.get(slot) is Some(original) &&
+    installed.selected_capacities.get(slot) is Some(Some(admitted)) else {
+    return None
+  }
+  if physical_equal(sequence, original) {
+    return Some(admitted)
+  }
+  guard local_module_managed_provider(installed, slot, sequence)
+    is Some(provider) &&
+    managed_provider_capacity(provider, sequence) is Some(required) &&
+    required.retained_bytes <= admitted.retained_bytes &&
+    required.execution_bytes <= admitted.execution_bytes else {
+    return None
+  }
+  Some(required)
 }
 
 ///|
@@ -738,6 +837,16 @@ fn local_managed_provider_for(
       return Some(provider)
     }
   }
+  local_default_managed_provider(family, execution, measurement, sequence)
+}
+
+///|
+fn local_default_managed_provider(
+  family : Array[ManagedProvider],
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  sequence : @execution.GeneratedSequence,
+) -> ManagedProvider? {
   let relation = selected_relation_provider(execution, measurement, family~)
   if managed_provider_accepts(relation, sequence) {
     return Some(relation)
@@ -794,7 +903,7 @@ pub fn local_module_managed_sequence_supported(
   slot : Int,
 ) -> Bool {
   guard installed.sequences.get(slot) is Some(sequence) else { return false }
-  local_module_managed_provider(installed, sequence) is Some(_)
+  local_module_managed_provider(installed, slot, sequence) is Some(_)
 }
 
 ///|
@@ -984,16 +1093,8 @@ pub fn local_module_capacity(
   installed : LocalComputeModule,
   slot : Int,
 ) -> @execution.ExecutionCapacity? {
-  guard installed.sequences.get(slot) is Some(sequence) else { return None }
-  // Managed Local work reserves its bounded provider's capacity, so offers
-  // advertise that same envelope.
-  match local_module_managed_provider(installed, sequence) {
-    Some(provider) => managed_provider_capacity(provider, sequence)
-    None =>
-      @execution.generated_sequence_capacity(
-        sequence,
-        installed.execution,
-        installed.measurement,
-      )
+  match installed.selected_capacities.get(slot) {
+    Some(value) => value
+    None => None
   }
 }

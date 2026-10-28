@@ -51,6 +51,10 @@
         {
           "name": "start_numeric",
           "type": "(( @execution.GeneratedSequence, Array[ManagedProviderInput], Int, Int, @execution.SequenceExecutionLimits, @execution.NumericAggregateExecution?, ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue])?"
+        },
+        {
+          "name": "infer_relation_prefix",
+          "type": "( @execution.GeneratedSequence, Int, @execution.SequenceExecutionLimits, @execution.FixedInputGuardMeasureLimits, )?"
         }
       ]
     },
@@ -133,6 +137,10 @@
         {
           "name": "nest_attached_byte_ceilings",
           "type": "Array[(Int, Int64)]"
+        },
+        {
+          "name": "query_time",
+          "type": "@publication.QueryEvaluationTime?"
         },
         {
           "name": "numeric",
@@ -286,14 +294,6 @@
         },
         {
           "name": "step",
-          "type": "Int"
-        },
-        {
-          "name": "max_entries",
-          "type": "Int"
-        },
-        {
-          "name": "max_value_bytes",
           "type": "Int"
         },
         {

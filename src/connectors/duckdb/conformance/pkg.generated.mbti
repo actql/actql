@@ -13,6 +13,7 @@ import {
   "actql/actql/lowering_relation",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
+  "actql/actql/physical_strategy_host",
   "actql/actql/run_publication_host",
 }
 
@@ -265,13 +266,13 @@ pub fn strategy_fixture_accounted(StrategyFixture) -> StrategyFixture
 
 pub fn strategy_fixture_acquisition(StrategyFixture) -> @host.NativeHostConfiguration
 
-pub fn strategy_fixture_adaptive_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_adaptive_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
-pub fn strategy_fixture_attach(StrategyFixture, @physical_strategy.CapturedDAG) -> Bool
+pub fn strategy_fixture_attach(StrategyFixture, @physical_strategy_host.CapturedDAG) -> Bool
 
 pub fn strategy_fixture_can_bind(StrategyFixture, Int) -> Bool
 
-pub fn strategy_fixture_captured_retained_subset(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, String, String, String, Int, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_captured_retained_subset(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, String, String, String, Int, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
 pub fn strategy_fixture_cid(StrategyFixture, Int) -> String
 
@@ -279,19 +280,19 @@ pub fn strategy_fixture_close_output(StrategyFixture, Int) -> Unit
 
 pub fn strategy_fixture_compute(StrategyFixture, Int) -> @actql/actql/connectors/duckdb/driver.StrategyComputeHostConfiguration
 
-pub fn strategy_fixture_configured_task_step_count(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Int?
+pub fn strategy_fixture_configured_task_step_count(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int) -> Int?
 
 pub fn strategy_fixture_consume(StrategyFixture, Int, String) -> String
 
-pub fn strategy_fixture_costed_dispatch(StrategyFixture, Int64) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_costed_dispatch(StrategyFixture, Int64) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
 pub fn strategy_fixture_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
-pub fn strategy_fixture_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
-pub fn strategy_fixture_duckdb_managed_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_duckdb_managed_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
-pub fn strategy_fixture_duckdb_only(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_duckdb_only(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
 pub fn strategy_fixture_estimate(StrategyFixture) -> Int64
 
@@ -305,19 +306,19 @@ pub fn strategy_fixture_ledger(StrategyFixture) -> @physical_resources.Ledger
 
 pub fn strategy_fixture_local(StrategyFixture, Int) -> Bool
 
-pub fn strategy_fixture_managed_after_first_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_managed_after_first_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
 pub fn strategy_fixture_managed_candidate_accepts(StrategyFixture, @connector_sdk.ManagedFixedComputeRequest[Int], @connector_sdk.ManagedFixedComputeRequest[Int]) -> Bool
 
 pub fn strategy_fixture_managed_configuration(StrategyFixture, Int, @connector_sdk.ManagedFixedComputeRequest[Int], @execution_relation.ManagedExecutionProfile, Int64) -> @actql/actql/connectors/duckdb/driver.ManagedStrategyComputeHostConfiguration[Int]
 
-pub fn strategy_fixture_managed_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_managed_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
-pub fn strategy_fixture_managed_execution_close(StrategyFixture, @physical_strategy.TaskExecution) -> Unit
+pub fn strategy_fixture_managed_execution_close(StrategyFixture, @physical_strategy_host.TaskExecution) -> Unit
 
-pub fn strategy_fixture_managed_execution_settle(StrategyFixture, @physical_strategy.TaskExecution) -> Bool
+pub fn strategy_fixture_managed_execution_settle(StrategyFixture, @physical_strategy_host.TaskExecution) -> Bool
 
-pub fn strategy_fixture_managed_execution_start(StrategyFixture, Int, @connector_sdk.ManagedFixedComputeRequest[Int], @execution_relation.ManagedExecutionProfile) -> @physical_strategy.TaskExecution
+pub fn strategy_fixture_managed_execution_start(StrategyFixture, Int, @connector_sdk.ManagedFixedComputeRequest[Int], @execution_relation.ManagedExecutionProfile) -> @physical_strategy_host.TaskExecution
 
 pub fn strategy_fixture_managed_filter_arithmetic(@actql/actql/connectors/local/driver.LocalDispatchIssue, Int) -> Bool
 
@@ -343,9 +344,9 @@ pub fn strategy_fixture_managed_request_query_sql(@adapter.ManagedFixedQuery[Int
 
 pub fn strategy_fixture_managed_selection_matches(@adapter.ManagedFixedQuery[Int], Array[Int]) -> Bool
 
-pub fn strategy_fixture_managed_two_site_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_managed_two_site_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
-pub fn strategy_fixture_module_subset(StrategyFixture, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_module_subset(StrategyFixture, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
 pub fn strategy_fixture_next(StrategyFixture) -> Int
 
@@ -357,9 +358,9 @@ pub fn strategy_fixture_placement(StrategyFixture, Int) -> String
 
 pub fn strategy_fixture_replan(StrategyFixture, Int64) -> Bool
 
-pub fn strategy_fixture_resident_cleanup_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_resident_cleanup_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
-pub fn strategy_fixture_resident_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_resident_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
 pub fn strategy_fixture_retained_branch_filter_arithmetic(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool
 
@@ -371,17 +372,17 @@ pub fn strategy_fixture_retained_events_asof_arithmetic(@actql/actql/connectors/
 
 pub fn strategy_fixture_retained_input_limit(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool
 
-pub fn strategy_fixture_retained_local_limits(StrategyFixture, Int, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_retained_local_limits(StrategyFixture, Int, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
-pub fn strategy_fixture_retained_local_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_retained_local_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
 pub fn strategy_fixture_retained_nest_item_limit(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool
 
-pub fn strategy_fixture_retained_resident_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_retained_resident_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
 pub fn strategy_fixture_retained_row_limit(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool
 
-pub fn strategy_fixture_run(StrategyFixture) -> @physical_strategy.CapturedDAG
+pub fn strategy_fixture_run(StrategyFixture) -> @physical_strategy_host.CapturedDAG
 
 pub fn strategy_fixture_sga_components_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
@@ -399,35 +400,35 @@ pub fn strategy_fixture_sga_reach_create(String, String, String, String, String,
 
 pub fn strategy_fixture_sga_reach_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
 
-pub fn strategy_fixture_sga_retained_node_limit(StrategyFixture, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_sga_retained_node_limit(StrategyFixture, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
-pub fn strategy_fixture_sga_retained_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_sga_retained_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
 pub fn strategy_fixture_sga_shortest_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
 
 pub fn strategy_fixture_sga_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
 
-pub fn strategy_fixture_sga_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_sga_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
 pub fn strategy_fixture_sga_traverse_paths_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
 
 pub fn strategy_fixture_sga_traverse_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
 
-pub fn strategy_fixture_source_free_retained_subset(@run_publication_host.PreparedClientProgram, String, String, String, Int, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_source_free_retained_subset(@run_publication_host.PreparedClientProgram, String, String, String, Int, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
 pub fn strategy_fixture_task_step_count(StrategyFixture, Int) -> Int?
 
 pub fn strategy_fixture_tea_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
-pub fn strategy_fixture_tea_retained_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_tea_retained_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
 pub fn strategy_fixture_tea_sequence_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
-pub fn strategy_fixture_tea_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_tea_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
 pub fn strategy_fixture_two_resources_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
-pub fn strategy_fixture_two_resources_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_two_resources_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
 pub fn strategy_fixture_usage(StrategyFixture, Int) -> Int64
 
@@ -435,11 +436,11 @@ pub fn strategy_fixture_veca_consumer_filter_arithmetic(@actql/actql/connectors/
 
 pub fn strategy_fixture_veca_create(String, String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
-pub fn strategy_fixture_veca_retained_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_veca_retained_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
 pub fn strategy_fixture_veca_scored_create(String, String, String, String, String, String, String, String, String, String, Int) -> StrategyFixture
 
-pub fn strategy_fixture_veca_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn strategy_fixture_veca_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]
 
 pub fn subgraph_cancel_advance(SubgraphCancelFixture) -> Array[Int64]
 

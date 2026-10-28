@@ -81,3 +81,37 @@ test "initial Catalog hook matches every installed original scope field" {
     assert_false(holder_catalog_initial_scope_matches(original, foreign))
   }
 }
+
+///|
+fn holder_catalog_initial_scope_matches(
+  expected : @effect_resource.NativeCredentialScope,
+  proposed : @effect_resource.NativeCredentialScope,
+) -> Bool {
+  expected.principal == proposed.principal &&
+  expected.namespace_id == proposed.namespace_id &&
+  expected.environment == proposed.environment &&
+  expected.site_key == proposed.site_key &&
+  expected.site_generation == proposed.site_generation &&
+  expected.runtime_bundle_cid == proposed.runtime_bundle_cid &&
+  expected.connector_registration == proposed.connector_registration &&
+  expected.connector_revision == proposed.connector_revision &&
+  expected.resource_origin == proposed.resource_origin &&
+  expected.operation == proposed.operation &&
+  expected.run_invocation_cid == proposed.run_invocation_cid &&
+  expected.task_attempt == proposed.task_attempt &&
+  expected.dispatch_request_cid == proposed.dispatch_request_cid
+}
+
+///|
+/// This restoration error alone is never unsent evidence. Only a successful
+/// read of the original funded eligibility can select the separate first-use
+/// path; the actual Resource hook must still claim it transactionally.
+fn holder_catalog_initial_read_ready(
+  issue : HolderCatalogUseObservationIssue,
+  read_ready : () -> Result[Unit, @journal.NativeRemoteJournalIssue],
+) -> Bool {
+  match issue {
+    Original(@journal.Physical(@sqlite.NotFound)) => read_ready() is Ok(_)
+    _ => false
+  }
+}

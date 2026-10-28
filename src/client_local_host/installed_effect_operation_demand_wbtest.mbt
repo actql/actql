@@ -91,6 +91,9 @@ fn effect_operation_plan_fixture(
   request : @publication_host.ClientRequestIdentity,
   contracts : ClientInstalledSequenceContracts,
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
+  provider_factory? : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ] = _ => [],
 ) -> ClientInstalledEffectManagedPlan {
   let metadata = prepare_installed_effect_operation_extent(
     "operation",
@@ -131,6 +134,7 @@ fn effect_operation_plan_fixture(
     None,
     [demand],
     query_time~,
+    provider_factory~,
   ).unwrap()
 }
 
@@ -191,7 +195,7 @@ fn effect_operation_source_plan_fixture(
     capabilities,
   )
   guard base["connector_manifest"] is Object(manifest) &&
-    manifest["connectors"] is Array(_connectors) else {
+    manifest["connectors"] is Array(_) else {
     fail("fixture connector manifest")
   }
   manifest["connectors"] = effect_plan_fixture_members(manifest["connectors"], [
@@ -243,8 +247,7 @@ fn effect_operation_source_plan_fixture(
         "fixture Source Effect Computation: " +
         effect_plan_fixture_failure(cause),
       )
-    Err(Candidate(@checked.Headers(_issue))) =>
-      fail("fixture Source Effect Headers")
+    Err(Candidate(@checked.Headers(_))) => fail("fixture Source Effect Headers")
     Err(Candidate(_)) => fail("fixture Source Effect Candidate")
     Err(Mapping(_)) => fail("fixture Source Effect Mapping")
     Err(Static(_)) => fail("fixture Source Effect Static")
@@ -296,6 +299,7 @@ fn effect_operation_source_plan_fixture(
     [demand],
     query_time=query_time_for.map(make => make(prepared, request)),
     source_providers=provider.map(value => [value]),
+    provider_factory=_ => [],
   ).unwrap()
 }
 
@@ -475,6 +479,7 @@ test "Effect plan snapshots selected arrays and never treats returned quote DATA
     Some(source_query_original_fragment),
     None,
     demands,
+    provider_factory=_ => [],
   ).unwrap()
   demands.clear()
   let quote = prepared_installed_effect_managed_requirements(plan)
@@ -530,6 +535,7 @@ test "Effect operation demand preserves exact checked member and request binding
       Some(source_query_original_fragment),
       None,
       [foreign],
+      provider_factory=_ => [],
     )
     is Err(ForeignOriginal),
   )
@@ -584,11 +590,17 @@ test "Effect demand refuses invalid and overflowing extents without raising a bo
       Some(source_query_original_fragment),
       None,
       [demand],
+      provider_factory=_ => [],
     )
     is Err(Unsupported),
   )
   assert_eq(
-    installed_effect_add_extent(9223372036854775807L, 1L, 0L),
+    @execution.execution_capacity_inventory_add(
+      9223372036854775807L,
+      QuotedBytes,
+      0L,
+      1,
+    ),
     Some(9223372036854775807L),
   )
 }
@@ -766,6 +778,7 @@ test "operation demand follows checked zero or three rows and both ordered Effec
       Some(source_query_original_fragment),
       None,
       [first, second],
+      provider_factory=_ => [],
     ).unwrap()
     assert_eq(plan.rows, count)
     assert_eq(
@@ -794,6 +807,7 @@ test "operation demand follows checked zero or three rows and both ordered Effec
         Some(source_query_original_fragment),
         None,
         [second, first],
+        provider_factory=_ => [],
       )
       is Err(ForeignOriginal),
     )
@@ -801,27 +815,95 @@ test "operation demand follows checked zero or three rows and both ordered Effec
 }
 
 ///|
+test "actual retained module provider envelopes determine the same checked task quote" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let small = @execution.execution_capacity(37L, 53L).unwrap()
+  let large = @execution.execution_capacity(137L, 253L).unwrap()
+  let make : (@execution.ExecutionCapacity) -> Array[@local.ManagedProvider] = capacity => {
+    [
+      @local.managed_provider(_ => true, _ => Some(capacity), (_, _, _, _, _) => {
+        Err(@connector.ComputeUnsupported)
+      }),
+    ]
+  }
+  let first = effect_operation_plan_fixture(prepared, request, contracts, provider_factory=_ => {
+    make(small)
+  })
+  let second = effect_operation_plan_fixture(prepared, request, contracts, provider_factory=_ => {
+    make(large)
+  })
+  let tasks = first.compute_sequences.length().to_int64()
+  assert_true(tasks > 0L)
+  assert_eq(
+    second._observed_compute_limits.retained_bytes -
+    first._observed_compute_limits.retained_bytes,
+    100L * tasks,
+  )
+  // RetainedAlongsideExecution includes this task's retained backing too.
+  assert_eq(
+    second._observed_compute_limits.execution_bytes -
+    first._observed_compute_limits.execution_bytes,
+    300L * tasks,
+  )
+}
+
+///|
+// Actual Effect inventory multiplicity is Int. Full Int64 count products keep
+// their independent accepted boundary cases in capacity_arithmetic.
 test "Effect extent preserves zero-byte domains and shares exact positive composition" {
   let maximum = 9223372036854775807L
-  assert_eq(installed_effect_add_extent(maximum, maximum, 0L), Some(maximum))
-  assert_eq(installed_effect_add_extent(0L, maximum, 0L), Some(0L))
-  assert_true(installed_effect_add_extent(-1L, 0L, 0L) is None)
-  assert_true(installed_effect_add_extent(0L, -1L, 0L) is None)
-  assert_true(installed_effect_add_extent(0L, 0L, -1L) is None)
+  let maximum_copies = 2147483647
+  assert_eq(
+    @execution.execution_capacity_inventory_add(
+      maximum,
+      QuotedBytes,
+      0L,
+      maximum_copies,
+    ),
+    Some(maximum),
+  )
+  assert_eq(
+    @execution.execution_capacity_inventory_add(
+      0L,
+      QuotedBytes,
+      0L,
+      maximum_copies,
+    ),
+    Some(0L),
+  )
+  assert_true(
+    @execution.execution_capacity_inventory_add(-1L, QuotedBytes, 0L, 0) is None,
+  )
+  assert_true(
+    @execution.execution_capacity_inventory_add(0L, QuotedBytes, -1L, 0) is None,
+  )
+  assert_true(
+    @execution.execution_capacity_inventory_add(0L, QuotedBytes, 0L, -1) is None,
+  )
   for coefficient in [1L, 2L, 8L, 256L, maximum] {
     for total in [0L, 1L, maximum - 1L, maximum] {
-      let count = (maximum - total) / coefficient
+      let boundary = (maximum - total) / coefficient
+      let count = Int64::min(boundary, maximum_copies.to_int64()).to_int()
       assert_eq(
-        installed_effect_add_extent(total, count, coefficient),
-        Some(total + count * coefficient),
+        @execution.execution_capacity_inventory_add(
+          total,
+          QuotedBytes,
+          coefficient,
+          count,
+        ),
+        Some(total + count.to_int64() * coefficient),
       )
-      if count < maximum {
+      if boundary < maximum_copies.to_int64() {
         assert_true(
-          installed_effect_add_extent(total, count + 1L, coefficient) is None,
+          @execution.execution_capacity_inventory_add(
+            total,
+            QuotedBytes,
+            coefficient,
+            count + 1,
+          )
+          is None,
         )
       }
     }
   }
-  assert_true(installed_effect_add_extent(-1L, 0L, 1L) is None)
-  assert_true(installed_effect_add_extent(0L, -1L, 1L) is None)
 }

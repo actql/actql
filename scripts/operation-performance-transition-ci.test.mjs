@@ -158,23 +158,26 @@ test('ordinary priority assessment reuses both platform reports without replacin
     const assessments = workflow.jobs[name].steps.filter(step =>
       step.run?.includes('scripts/operation-performance.mjs --input'));
     assert.equal(assessments.length, 1, `${name} must retain its full-release assessment`);
-    assert.equal(assessments[0].if, name === 'ordinary-native'
-      ? "always() && matrix.operation != 'native-operations'" : 'always()');
-    assert.equal(assessments[0]['continue-on-error'], undefined);
     if (name === 'ordinary-native') {
-      const native = workflow.jobs[name].steps.filter(step =>
+      const dedicated = workflow.jobs[name].steps.filter(step =>
         step.run?.includes('scripts/operation-performance.mjs --native-operations'));
-      assert.equal(native.length, 1, 'Native operations retain their separate full population assessment');
-      assert.equal(native[0].if, "always() && matrix.operation == 'native-operations'");
-      assert.equal(native[0]['continue-on-error'], undefined);
-      const all = [...assessments, ...native];
-      for (const operation of ['first-init', 'cold-existing', 'native-operations']) {
-        const selected = all.filter(step => runInNewContext(step.if,
-          {always: () => true, matrix: {operation}}, {timeout: 100}));
-        assert.equal(selected.length, 1, `${operation} has exactly one mandatory assessor`);
-        assert.equal(selected[0], operation === 'native-operations' ? native[0] : assessments[0]);
+      assert.equal(dedicated.length, 1);
+      assert.equal(assessments[0].if, "always() && matrix.operation != 'native-operations'");
+      assert.equal(dedicated[0].if, "always() && matrix.operation == 'native-operations'");
+      assert.equal(dedicated[0]['continue-on-error'], undefined);
+      // Every Native matrix member retains exactly one required assessment,
+      // even after its collector fails; the public-operation lane is distinct.
+      for (const operation of workflow.jobs[name].strategy.matrix.operation) {
+        const context = {matrix: {operation}, always: () => true};
+        const selected = [assessments[0], dedicated[0]].filter(step =>
+          runInNewContext(step.if, context, {timeout: 100}));
+        assert.equal(selected.length, 1, operation);
+        assert.equal(selected[0] === dedicated[0], operation === 'native-operations');
       }
+    } else {
+      assert.equal(assessments[0].if, 'always()');
     }
+    assert.equal(assessments[0]['continue-on-error'], undefined);
   }
   const downloads = job.steps.filter(step => step.uses?.startsWith('actions/download-artifact@'));
   assert.equal(downloads.length, 2);

@@ -62,16 +62,16 @@ test "Effect Checkpoint retained metadata reads the admitted original" {
     max_nodes: 4096,
     max_depth: 64,
   }
-  let sealed = @checkpoint.seal_checkpoint(body, limits).unwrap()
+  let sealed_checkpoint = @checkpoint.seal_checkpoint(body, limits).unwrap()
   let original = admit_client_effect_review_checkpoint_binding(
     allowed,
     definition,
-    sealed.wire,
+    sealed_checkpoint.wire,
     limits,
   ).unwrap()
   let expected = [
-    sealed.checkpoint_cid,
-    sealed.wire,
+    sealed_checkpoint.checkpoint_cid,
+    sealed_checkpoint.wire,
     "original-run",
     client_effect_compilation_unit_id(allowed.compilation),
     @publication.publication_contract_identity(definition),
@@ -87,7 +87,7 @@ test "Effect Checkpoint retained metadata reads the admitted original" {
     client_effect_review_checkpoint_binding_fields(original).unwrap(),
     expected,
   )
-  assert_eq(original.wire, sealed.wire)
+  assert_eq(original.wire, sealed_checkpoint.wire)
 }
 
 ///|

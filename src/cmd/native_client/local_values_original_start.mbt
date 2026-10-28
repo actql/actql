@@ -27,10 +27,7 @@ fn local_execute_original_publish_values(
   let installed = run.source_free.unwrap_or_else(() => {
     stop("LocalValuesInstallationRequired")
   })
-  let (row_limits, limits) = @local_values.client_local_values_publication_limits(
-    selection.prepared,
-    run.result_payload_bytes.to_int(),
-  ).unwrap_or_else(() => stop("LocalValuesPublicationLimit"))
+  let payload_limit = local_values_publication_payload_limit(run)
   let publisher = selection.host
     .bind_original_run_publisher(
       operation,
@@ -105,6 +102,9 @@ fn local_execute_original_publish_values(
   .enter_business_from_original_read()
   .unwrap_or_else(() => stop("LocalBusinessScopeUnavailable"))
   let work = selection.open_values_work(run, compiled, definition, request)
+  let (row_limits, limits) = work
+    .publication_limits(payload_limit)
+    .unwrap_or_else(() => stop("LocalValuesPublicationLimit"))
   work
   .publication_invocation(65536, 8192, 64)
   .unwrap_or_else(() => stop("LocalValuesPublicationEvidenceUnavailable"))
@@ -127,7 +127,7 @@ fn local_execute_original_publish_values(
       stop("LocalPublicationAuthorityUnavailable")
     }
   }
-  business.publication_service = Some(service)
+  business._retained_publication_service = Some(service)
   let pending = match
     work.prepare_local_publication(
       service,
@@ -166,7 +166,7 @@ fn local_execute_original_publish_values(
         value
       }
       Err(issue) => {
-        business.publication_commit_failure = Some(issue)
+        business._retained_publication_commit_failure = Some(issue)
         stop("LocalPublicationNeedsReconciliation")
       }
     }

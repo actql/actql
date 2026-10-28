@@ -11,7 +11,6 @@ priv struct StoredPayloadBinding {
 }
 
 ///|
-#export_name("actql_payload_binding_reserve")
 pub fn reserve_payload_binding(
   nonce : Int64,
   parent : Int,
@@ -65,7 +64,6 @@ pub fn reserve_payload_binding(
 }
 
 ///|
-#export_name("actql_payload_binding_produce")
 pub fn produce_payload_binding(
   nonce : Int64,
   handle : Int,
@@ -152,7 +150,6 @@ pub fn produce_payload_binding(
 }
 
 ///|
-#export_name("actql_payload_binding_validate")
 pub fn validate_payload_binding(
   nonce : Int64,
   handle : Int,
@@ -182,7 +179,6 @@ pub fn validate_payload_binding(
 }
 
 ///|
-#export_name("actql_payload_binding_length")
 pub fn payload_binding_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.payload_bindings.get(handle) is Some(child) else {
@@ -195,7 +191,6 @@ pub fn payload_binding_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_payload_binding_close")
 pub fn close_payload_binding(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.payload_bindings.get(handle) is Some(child) else {

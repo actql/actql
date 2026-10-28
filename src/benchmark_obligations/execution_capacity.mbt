@@ -49,7 +49,7 @@ pub fn obligation_execution(
     Err(issue) => raise Capacity(issue)
   }
   let capacity = match
-    @resources.reserve_shared_capacity(ledger, database + scratch) {
+    @resources.reserve_shared_workspace_capacity(ledger, 0L, database + scratch) {
     Ok(value) => value
     Err(issue) => raise Capacity(issue)
   }
@@ -77,8 +77,8 @@ pub fn obligation_execution(
 }
 
 ///|
-/// The shared database reservation pre-admits the first Compute task. Each
-/// subsequent task consumes another attempt serial before its native work;
+/// Shared database capacity does not represent a dispatched Compute task. Each
+/// task consumes its own attempt serial immediately before its native work;
 /// zero additional bytes are reserved because the same bounded database and
 /// scratch allocation remain active throughout the independent Run.
 #export_name("obligationExecutionTaskBegin")
@@ -87,16 +87,20 @@ pub fn obligation_execution_task_begin(
 ) -> Unit raise ExecutionCapacityFailure {
   if owner.closed ||
     owner.active_task ||
+    owner.task_reservations.length() != owner.started_tasks ||
     owner.started_tasks >= owner.task_count {
     raise State
   }
-  if owner.started_tasks > 0 {
-    let reservation = match
-      @resources.reserve_attempt(owner.ledger, 0L, 0L, 0L) {
-      Ok(value) => value
-      Err(issue) => raise Capacity(issue)
-    }
-    owner.task_reservations.push(reservation)
+  let reservation = match @resources.reserve_attempt(owner.ledger, 0L, 0L, 0L) {
+    Ok(value) => value
+    Err(issue) => raise Capacity(issue)
+  }
+  // Keep the original reservation even if admission becomes uncertain. Only
+  // confirmed database stop may release an unfinished task's custody.
+  owner.task_reservations.push(reservation)
+  match @resources.consume_reserved_attempt(owner.ledger, reservation) {
+    Ok(_) => ()
+    Err(issue) => raise Capacity(issue)
   }
   owner.started_tasks += 1
   owner.active_task = true
@@ -110,12 +114,10 @@ pub fn obligation_execution_task_finish(
   if owner.closed || !owner.active_task {
     raise State
   }
-  if owner.started_tasks > 1 {
-    let reservation = owner.task_reservations[owner.started_tasks - 2]
-    match @resources.settle_reservation(owner.ledger, reservation) {
-      Ok(_) => ()
-      Err(issue) => raise Capacity(issue)
-    }
+  let reservation = owner.task_reservations[owner.started_tasks - 1]
+  match @resources.settle_reservation(owner.ledger, reservation) {
+    Ok(_) => ()
+    Err(issue) => raise Capacity(issue)
   }
   owner.active_task = false
 }

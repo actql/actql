@@ -5,8 +5,8 @@
 /// metadata_nodes bounds all non-row metadata occurrences in the capture.
 /// Inputs must come from original publication owners/plan, never caller grants.
 priv struct PublicationCaptureConstructorLayout {
-  retained : PreparationRepresentationUnits
-  temporary : PreparationRepresentationUnits
+  retained : @execution.PreparationRepresentationUnits
+  temporary : @execution.PreparationRepresentationUnits
 }
 
 ///|
@@ -59,7 +59,7 @@ fn publication_capture_constructor_layout(
   // conservative slack, not a source-token census or physical stack charge.
   // Each Result adds three map tuples and its fields canonical array; field
   // String variants borrow names. Snapshot.rows and metadata values are shared.
-  let retained : PreparationRepresentationUnits = {
+  let retained : @execution.PreparationRepresentationUnits = {
     record_headers: 129L + 7L * c + f + 2L * m,
     reference_slots: 256L + 17L * c + 3L * f + 4L * m + 3L * rc,
     scalar_words: 128L + 2L * c + 2L * m,
@@ -72,7 +72,7 @@ fn publication_capture_constructor_layout(
   // Price TWO full writer control/key envelopes for that transition. Immutable
   // child values survive in retained; this deliberately overquotes residual
   // finished controls rather than asserting an immediate release.
-  let writer_units : PreparationRepresentationUnits = {
+  let writer_units : @execution.PreparationRepresentationUnits = {
     record_headers: writer.record_headers,
     reference_slots: writer.reference_slots,
     scalar_words: writer.scalar_words,
@@ -81,7 +81,7 @@ fn publication_capture_constructor_layout(
   }
   // CanonicalEmit holds <=depth+2 frames, one mutable container cursor per
   // level, and its append backing. Text/key cursor storage is in writer_units.
-  let emission : PreparationRepresentationUnits = {
+  let emission : @execution.PreparationRepresentationUnits = {
     record_headers: 5L + 2L * (depth.to_int64() + 2L),
     reference_slots: 5L + 3L * (depth.to_int64() + 2L) + dc,
     scalar_words: 4L + 2L * (depth.to_int64() + 2L),
@@ -92,7 +92,7 @@ fn publication_capture_constructor_layout(
   // child frames plus pop/result overlap <=24. Result-values rule81 permits
   // arbitrary children without visiting row trees. Same-package regression
   // pins the generated graph; this is NOT a constant cap on input row count.
-  let validation : PreparationRepresentationUnits = {
+  let validation : @execution.PreparationRepresentationUnits = {
     record_headers: 29L,
     reference_slots: 58L + 32L,
     scalar_words: 84L,
@@ -102,7 +102,7 @@ fn publication_capture_constructor_layout(
   // Unique metadata arrays (not row arrays) copy values and retain canonical
   // item Strings during comparison. All item wires together fit the enclosing
   // wire bound. No per-comparison history/closures are retained.
-  let unique : PreparationRepresentationUnits = {
+  let unique : @execution.PreparationRepresentationUnits = {
     record_headers: 4L + metadata_nodes.to_int64(),
     reference_slots: 2L + 2L * mc,
     scalar_words: 4L,
@@ -111,7 +111,7 @@ fn publication_capture_constructor_layout(
   }
   // TextOutput/StringBuilder + old/new backing and returned String coexist.
   // Four full wire UTF16 bounds are conservative; no claim about VM ropes/RSS.
-  let text : PreparationRepresentationUnits = {
+  let text : @execution.PreparationRepresentationUnits = {
     record_headers: 6L,
     reference_slots: 5L,
     scalar_words: 6L,
@@ -122,18 +122,18 @@ fn publication_capture_constructor_layout(
   // Two preparation/Sort records, key arrays with singleton String tuples,
   // detached selected arrays, and both integer merge backings are explicit.
   // Input values and names remain borrowed; no row traversal is repeated.
-  let inventory : PreparationRepresentationUnits = {
+  let inventory : @execution.PreparationRepresentationUnits = {
     record_headers: 32L + 2L * (c + m),
     reference_slots: 64L + 2L * (c + m) + 4L * ic,
     scalar_words: 64L + 2L * (c + m) + 6L * ic,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       writer_units, writer_units, emission, validation, unique, text, inventory,
     ])
     is Some(temporary) &&
-    preparation_representation_cost(retained) is Some(_) else {
+    @execution.preparation_representation_cost(retained) is Some(_) else {
     return None
   }
   Some({ retained, temporary, })

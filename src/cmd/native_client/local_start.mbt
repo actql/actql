@@ -334,8 +334,8 @@ fn local_submission_start(
         local_effect_prepare_start(
           host, settings, crypto, preparation, reference, run, scope,
         ) {
-        None => return observe_original()
-        Some(_) => ()
+        AlreadyAccepted => return observe_original()
+        AuthoritySupplierUnavailable => ()
       }
       // No accepted Run or physical Source work is created until the selected
       // Local capture/reviewer supplier is connected. Compilation is not approval.

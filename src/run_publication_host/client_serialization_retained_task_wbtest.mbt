@@ -3,7 +3,7 @@ test "intermediate SERIALIZE Result owns an exact retained task without repeatin
   let (_, _, limits) = client_composed_effect_base_fixture()
   let base = admit_client_check_environment(
     local_normalization_environment_wire,
-    "sha256:9882e5f1412beaf650b0fdaf55035b198b7b87e8e9e3c3a0f07730953b0a72ed",
+    "sha256:e3da0e91ef758728bdf6e58957c09fe044d97d1fa2a21c9c19e3bdf5109bf45b",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()

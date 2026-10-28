@@ -51,7 +51,7 @@ const omitted = new Set(['connectors_builtin', 'connectors_builtin_node',
 cpSync(join(root, 'moon.mod'), join(isolated, 'moon.mod'));
 cpSync(join(root, 'scripts/templates'), join(isolated, 'scripts/templates'), {recursive:true});
 // The native link driver's archiver companion, resolved next to it.
-for (const tool of ['native-cxx-link-driver.sh', 'ar']) {
+for (const tool of ['native-cxx-link-driver.sh', 'native-sqlite-link-driver.sh', 'ar']) {
   cpSync(join(root, 'scripts', tool), join(isolated, 'scripts', tool));
 }
 // The standard Host's independent Graph oracle and its canonical JSON helper.
@@ -163,7 +163,8 @@ const snapshot = () => new Map([...inventory(join(isolated, 'src'), 'src/'),
   ...inventory(join(isolated, 'packages/client-wire'), 'packages/client-wire/'),
   ...inventory(join(isolated, 'packages/sdk'), 'packages/sdk/'),
   ...inventory(join(isolated, 'scripts/templates'), 'scripts/templates/'),
-  ...['scripts/native-cxx-link-driver.sh', 'scripts/ar', ...nodeFixturePaths].map(path =>
+  ...['scripts/native-cxx-link-driver.sh', 'scripts/native-sqlite-link-driver.sh',
+    'scripts/ar', ...nodeFixturePaths].map(path =>
     [path, hash(readFileSync(join(isolated, path)))]),
 ]);
 const before = snapshot();

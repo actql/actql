@@ -4259,7 +4259,7 @@
     },
     {
       "module": "src/model_execution/execution.mbt",
-      "sha256": "b49c65fc3ad36d8b292592555e04bfcb4958a1b47ce54a3cb9b9bee1ad2600d6",
+      "sha256": "91e099188b3cac05323e5e6461073999a958e090b381c8a5eb12c181a77644c4",
       "exports": [],
       "operations": [
         {
@@ -4297,6 +4297,10 @@
         {
           "name": "key_cid",
           "declaration": "key_cid ( key : Array [ @ admitted . CheckedValue ] ) - > String ?"
+        },
+        {
+          "name": "mark_model_attempt_entered",
+          "declaration": "mark_model_attempt_entered ( state : ModelState , reservation : @ resources . Reservation , ) - > Result [ Unit , @ resources . LedgerIssue ]"
         },
         {
           "name": "model_capture_bundle_json",
@@ -4389,7 +4393,8 @@
             "slot_cid",
             "start_model_execution",
             "start_model_owned",
-            "valid_cid"
+            "valid_cid",
+            "mark_model_attempt_entered"
           ],
           "exports": [],
           "attributes": {
@@ -4471,6 +4476,10 @@
               {
                 "path": "src/model_execution/execution.mbt",
                 "anchor": "original_startup is None ||"
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "// Entered responsibility consumes an attempt even for a local original Mock."
               }
             ],
             "extension": [
@@ -4487,6 +4496,10 @@
               {
                 "path": "src/model_execution/mock_selection_wbtest.mbt",
                 "anchor": "test \"mock exact single Text overrides never convert numeric or composite keys\" {"
+              },
+              {
+                "path": "src/model_execution/original_mock_purpose_wbtest.mbt",
+                "anchor": "test \"shared Mock cap counts authenticated saved and Unknown attempts as spent\""
               }
             ]
           }

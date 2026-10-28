@@ -132,14 +132,20 @@ test "nearest named object projection retains nested typed key fields" {
 }
 
 ///|
-test "independent composite identity bridge reports the common source gap" {
-  let program = @program.parse(
-    (
-      #|{"version":"actql/0.1","id":"fixture.nearest_composite_bridge","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"tenant":{"type":"string","nullable":false},"id":{"type":"string","nullable":false},"embedding":{"type":"vector","dimensions":2,"nullable":false}},"rows":[]},"as":"queries"},{"from":"queries","to_vectors":{"id":["tenant","id"],"vector":"embedding"},"as":"out"}],"results":{"rows":{"from":"out","fields":["tenant","id","embedding"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
-    ),
-    construction_limits().program,
-    format=Json,
-  ).unwrap()
+fn composite_identity_program(text : String) -> @program.Program {
+  @program.parse(text, construction_limits().program, format=Json).unwrap()
+}
+
+///|
+fn composite_identity_wire() -> String {
+  (
+    #|{"version":"actql/0.1","id":"fixture.nearest_composite_bridge","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"tenant":{"type":"string","nullable":false},"id":{"type":"string","nullable":false},"embedding":{"type":"vector","dimensions":2,"nullable":false}},"rows":[]},"as":"queries"},{"from":"queries","to_vectors":{"id":["tenant","id"],"vector":"embedding"},"as":"out"}],"results":{"rows":{"from":"out","fields":["tenant","id","embedding"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+  )
+}
+
+///|
+test "composite vector identity still cannot export a Vectors carrier as Relation fields" {
+  let program = composite_identity_program(composite_identity_wire())
   match
     @check.check_parsed(
       program,
@@ -149,10 +155,78 @@ test "independent composite identity bridge reports the common source gap" {
     ) {
     Rejected(error) =>
       match @check.diagnostic_cause(error) {
-        Source(SourceView(Program(Program(Pipeline(_, issue))))) =>
-          assert_true(issue.kind is Vector(Decode(WrongType)))
+        Source(SourceView(Program(Program(Results(stage, issue))))) => {
+          assert_eq(stage, 0)
+          assert_true(issue.kind is WrongCarrier(VectorsKind))
+        }
         other => raise other
       }
-    _ => fail("the source bridge does not accept a tuple ID yet")
+    _ =>
+      fail("Vectors require an explicit Relation bridge before a field result")
+  }
+}
+
+///|
+test "independent composite identity bridge retains ordered typed identities through vectors" {
+  // The only change to the retained negative is the explicit existing bridge.
+  let wire = composite_identity_wire().replace(
+    old="\"as\":\"out\"}],",
+    new="\"as\":\"vector_rows\"},{\"from\":\"vector_rows\",\"vectors\":true,\"as\":\"out\"}],",
+  )
+  let program = composite_identity_program(wire)
+  let owner = match
+    @check.check_parsed(
+      program,
+      check_environment(veca=true),
+      None,
+      check_limits(),
+    ) {
+    Checked(owner) => owner
+    Rejected(error) => raise @check.diagnostic_cause(error)
+    NeedsInputs(_) => fail("closed Values add no acquisition")
+  }
+  let pipeline = @check.unit_pipeline(owner, 0).unwrap()
+  let step = @pipeline.step_at(pipeline, 1).unwrap()
+  guard step.output is @carrier.VectorValue(vectors) else {
+    fail("Vectors expected")
+  }
+  assert_eq(@carrier.vector_identity_count(vectors), 2)
+  assert_eq(
+    @carrier.vector_identity_at(vectors, 0).unwrap().name,
+    Unqualified("tenant"),
+  )
+  assert_eq(
+    @carrier.vector_identity_at(vectors, 1).unwrap().name,
+    Unqualified("id"),
+  )
+}
+
+///|
+test "composite identity support does not admit a numeric identity-role body" {
+  let wire = composite_identity_wire()
+    .replace(
+      old="\"as\":\"out\"}],",
+      new="\"as\":\"vector_rows\"},{\"from\":\"vector_rows\",\"vectors\":true,\"as\":\"out\"}],",
+    )
+    .replace(old="\"id\":[\"tenant\",\"id\"]", new="\"id\":7")
+  match
+    @check.check_parsed(
+      composite_identity_program(wire),
+      check_environment(veca=true),
+      None,
+      check_limits(),
+    ) {
+    Rejected(error) =>
+      match @check.diagnostic_cause(error) {
+        Source(SourceView(Program(Program(Pipeline(stage, issue))))) => {
+          assert_eq(stage, 0)
+          assert_true(issue.kind is Vector(Decode(WrongType)))
+        }
+        other => raise other
+      }
+    _ =>
+      fail(
+        "an identity role must remain a field reference or ordered role vector",
+      )
   }
 }

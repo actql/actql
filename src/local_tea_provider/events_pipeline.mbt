@@ -117,17 +117,23 @@ fn provider_capacity(
   base : @execution.ExecutionCapacity,
   storage_bytes : Int64,
 ) -> @execution.ExecutionCapacity? {
-  if storage_bytes < 0L || storage_bytes > 4611686018427387903L {
+  if storage_bytes < 0L {
     return None
   }
-  let extra = storage_bytes * 2L
-  let execution = @execution.execution_capacity_execution_bytes(base)
-  if execution > 9223372036854775807L - extra {
+  // These two already-quoted storage generations coexist with the base
+  // execution. Their byte units and checked arithmetic remain Common-owned.
+  guard @execution.execution_capacity_inventory_add(
+      @execution.execution_capacity_execution_bytes(base),
+      QuotedBytes,
+      storage_bytes,
+      2,
+    )
+    is Some(execution) else {
     return None
   }
   @execution.execution_capacity(
     @execution.execution_capacity_retained_bytes(base),
-    execution + extra,
+    execution,
   )
 }
 

@@ -13,6 +13,7 @@ import {
   "actql/actql/lowering_relation",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
+  "actql/actql/physical_strategy_host",
   "actql/actql/run_publication",
 }
 
@@ -57,7 +58,7 @@ pub fn broad_host_physical_refresh(BroadNodeRun) -> Unit
 
 pub fn broad_host_physical_settle(BroadNodeRun, Bool) -> Unit raise NodeHostFailure
 
-pub fn broad_host_retain_captured_task(BroadNodeRun, @physical_strategy.CapturedDAG, Int, @acquisition.DuckDBBroadObservation) -> Unit raise NodeHostFailure
+pub fn broad_host_retain_captured_task(BroadNodeRun, @physical_strategy_host.CapturedDAG, Int, @acquisition.DuckDBBroadObservation) -> Unit raise NodeHostFailure
 
 pub fn broad_host_source_capture(BroadNodeRun, @acquisition.DuckDBBroadObservation) -> @host.BroadHostSourceCapture raise NodeHostFailure
 
@@ -393,7 +394,7 @@ pub fn native_host_metadata(NativeNodeRun, Int, String, String) -> Unit raise No
 
 pub fn native_host_open(@host.NativeHostConfiguration, String, (@acquisition.DuckDBNativeAttempt) -> Bool) -> NativeNodeRun raise NodeHostFailure
 
-pub fn native_host_open_dag(NativeNodeRun, @physical_strategy.CheckedDAG, @acquisition.DuckDBNativeObservation) -> @physical_strategy.CapturedDAG raise NodeHostFailure
+pub fn native_host_open_dag(NativeNodeRun, @physical_strategy.CheckedDAG, @acquisition.DuckDBNativeObservation) -> @physical_strategy_host.CapturedDAG raise NodeHostFailure
 
 pub fn native_host_output(NativeNodeRun, @acquisition.DuckDBNativeObservation) -> @execution_relation.CompletedOutput raise NodeHostFailure
 
@@ -409,7 +410,7 @@ pub fn native_host_receipt_document(@acquisition.DuckDBNativeObservation, Int) -
 
 pub fn native_host_record_document(@acquisition.DuckDBNativeObservation, Int) -> String raise NodeHostFailure
 
-pub fn native_host_retain_captured_task(NativeNodeRun, @physical_strategy.CapturedDAG, Int, @acquisition.DuckDBNativeObservation) -> Unit raise NodeHostFailure
+pub fn native_host_retain_captured_task(NativeNodeRun, @physical_strategy_host.CapturedDAG, Int, @acquisition.DuckDBNativeObservation) -> Unit raise NodeHostFailure
 
 pub fn native_host_source_capture(NativeNodeRun, @acquisition.DuckDBNativeObservation) -> @host.NativeHostSourceCapture raise NodeHostFailure
 
@@ -445,17 +446,17 @@ pub fn physical_manifest_admit(String, String, String, String, Int, Array[String
 
 pub fn physical_representation_contracts(String, Array[Int], Int) -> Array[String]
 
-pub fn resident_begin(@physical_strategy.CapturedDAG, Int, Int64) -> @driver.DuckDBResidentStore raise NodeHostFailure
+pub fn resident_begin(@physical_strategy_host.CapturedDAG, Int, Int64) -> @driver.DuckDBResidentStore raise NodeHostFailure
 
 pub fn resident_borrow_setup(@driver.StrategyComputeHostConfiguration, @driver.DuckDBResidentStore, Array[@driver.DuckDBResidentTable], Int, Int, Int) -> @driver.DuckDBResidentInputs raise NodeHostFailure
 
 pub fn resident_cancel_inputs(@driver.DuckDBResidentInputs) -> Unit raise NodeHostFailure
 
-pub fn resident_close(@physical_strategy.CapturedDAG, @driver.DuckDBResidentStore, Bool) -> Unit raise NodeHostFailure
+pub fn resident_close(@physical_strategy_host.CapturedDAG, @driver.DuckDBResidentStore, Bool) -> Unit raise NodeHostFailure
 
-pub fn resident_confirm(@physical_strategy.CapturedDAG, @driver.DuckDBResidentStore, Int64) -> Unit raise NodeHostFailure
+pub fn resident_confirm(@physical_strategy_host.CapturedDAG, @driver.DuckDBResidentStore, Int64) -> Unit raise NodeHostFailure
 
-pub fn resident_has_table(@physical_strategy.CapturedDAG, @driver.DuckDBResidentStore, Int) -> Bool
+pub fn resident_has_table(@physical_strategy_host.CapturedDAG, @driver.DuckDBResidentStore, Int) -> Bool
 
 pub fn resident_import_batch(@driver.DuckDBResidentTable, Int, Int, Int) -> (Int, String) raise NodeHostFailure
 
@@ -487,21 +488,21 @@ pub fn resident_input_scan_sql(@driver.DuckDBResidentInputs, Int, Int) -> String
 
 pub fn resident_inputs_sql(@driver.DuckDBResidentInputs) -> Array[String]
 
-pub fn resident_table_at(@physical_strategy.CapturedDAG, @driver.DuckDBResidentStore, Int) -> @driver.DuckDBResidentTable raise NodeHostFailure
+pub fn resident_table_at(@physical_strategy_host.CapturedDAG, @driver.DuckDBResidentStore, Int) -> @driver.DuckDBResidentTable raise NodeHostFailure
 
-pub fn resident_table_cancel(@physical_strategy.CapturedDAG, @driver.DuckDBResidentTable) -> Unit raise NodeHostFailure
+pub fn resident_table_cancel(@physical_strategy_host.CapturedDAG, @driver.DuckDBResidentTable) -> Unit raise NodeHostFailure
 
-pub fn resident_table_prepare(@physical_strategy.CapturedDAG, @driver.DuckDBResidentStore, Int, Int64, Int, Int, Int) -> @driver.DuckDBResidentTable raise NodeHostFailure
+pub fn resident_table_prepare(@physical_strategy_host.CapturedDAG, @driver.DuckDBResidentStore, Int, Int64, Int, Int, Int) -> @driver.DuckDBResidentTable raise NodeHostFailure
 
-pub fn resident_transfer_abort(@physical_strategy.CapturedDAG, @physical_strategy.ResidentTransfer) -> Unit raise NodeHostFailure
+pub fn resident_transfer_abort(@physical_strategy_host.CapturedDAG, @physical_strategy_host.ResidentTransfer) -> Unit raise NodeHostFailure
 
-pub fn resident_transfer_begin(@physical_strategy.CapturedDAG, @driver.DuckDBResidentTable, Int64, Int64) -> @physical_strategy.ResidentTransfer raise NodeHostFailure
+pub fn resident_transfer_begin(@physical_strategy_host.CapturedDAG, @driver.DuckDBResidentTable, Int64, Int64) -> @physical_strategy_host.ResidentTransfer raise NodeHostFailure
 
-pub fn resident_transfer_charge(@physical_strategy.CapturedDAG, @physical_strategy.ResidentTransfer, Int64) -> Unit raise NodeHostFailure
+pub fn resident_transfer_charge(@physical_strategy_host.CapturedDAG, @physical_strategy_host.ResidentTransfer, Int64) -> Unit raise NodeHostFailure
 
-pub fn resident_transfer_complete(@physical_strategy.CapturedDAG, @physical_strategy.ResidentTransfer) -> Unit raise NodeHostFailure
+pub fn resident_transfer_complete(@physical_strategy_host.CapturedDAG, @physical_strategy_host.ResidentTransfer) -> Unit raise NodeHostFailure
 
-pub fn resident_transfer_settle(@physical_strategy.CapturedDAG, @physical_strategy.ResidentTransfer, Bool) -> Unit raise NodeHostFailure
+pub fn resident_transfer_settle(@physical_strategy_host.CapturedDAG, @physical_strategy_host.ResidentTransfer, Bool) -> Unit raise NodeHostFailure
 
 pub fn retained_frames_cancel(@run_publication.DurableResultRowFrames) -> Unit
 
@@ -517,7 +518,7 @@ pub(all) suberror NodeHostFailure {
   Host(@host.NativeHostIssue)
   Broad(@host.BroadHostIssue)
   Compute(@compute.DuckDBComputeIssue)
-  Strategy(@physical_strategy.RunIssue)
+  Strategy(@physical_strategy_host.RunIssue)
   Physical(@physical_resources.LedgerIssue)
   CapturedSource(@execution_query.CapturedSourceIssue)
   ComputeParameter(@adapter.ValueIssue)

@@ -117,6 +117,212 @@ Source-only checks, diagnostic instrumentation, a different backend, and a
 hosted distribution/CI gate are distinct evidence. None may silently stand in
 for another.
 
+
+## Initial preparation and a recorded Model Run
+
+An initial preparation that will host Model reads installs the existing original
+Ledger census before its first preparation reservation. Its original imported
+admission retains that bootstrap even if later construction refuses. Preparation
+then grows and completes the same reservation; adoption transfers the same
+bootstrap, recorded child tokens, supplier purpose and Ledger to the Run. It
+neither imports a second business child nor reconstructs a census from usage.
+
+The checked Model scope binds the actual compiled Run and definition to that
+original census once, after compilation. The census owns one scalar binding
+latch, included in its initial funded control inventory. Binding is independent
+of descriptor issuance: the later descriptor sees the real still-live
+preparation reservation and all recorded children. Foreign originals, repeat
+bindings and attempts to initialize a census after a spent token refuse.
+
+Preparation retirement may coexist with its exact original bootstrap. That
+bootstrap remains charged until the Run's original cleanup retires every child;
+no other capacity is treated as spare or ignored by the isolation guard. This
+common handoff does not supply the installation's physical backing, family
+constructor inventory, Model authorization or a cleanup acknowledgement.
+
+
+Preparation isolation counts live identities as well as bytes. Only its own
+reservation, plus its exact recorded bootstrap when present, may remain live.
+Zero-byte reservations, holdings and delegations still prevent isolation. When
+an original census exists, its live token set must be precisely that preparation
+reservation, with no remaining holding or delegation. Retired records and
+consumed planning/attempt/transfer history do not count as current occupancy;
+retirement never resets or refunds that cumulative history. This is accounting
+correspondence, still separate from physical stop and reader cleanup witnesses.
+
+
+## Typed final Effect preparation
+
+An Effect preparation's completed body is its original
+`ClientInstalledEffectManagedPlan`, including the checked Effect, request,
+contracts, acquisitions and generated sequences. It is never cast to the
+pure `PreparedClientProgram` body. The existing initial admission is checked
+for its original purpose, input and immutable Ledger limits before cleanup
+custody transfers. A deficient final Plan envelope leaves the same initial
+owner available for retirement; no second imported business child is started.
+
+The Run retains a closed Pure/EffectPlan case and uses one generic retirement
+procedure. The selected dispatch borrows its original body before opening its
+Host; pending siblings keep the original preparation reservation charged after
+the Run severs its heavy aliases. New borrows are fenced before those aliases
+are cut. Source-read and physical-operation cleanup still precede Run cleanup.
+
+The initial inventory must include the typed custody case, generic retirement
+record, admission and Run holders and each simultaneous operation/dispatch
+borrow. This connection does not turn a numeric final Plan quote into complete
+initial constructor funding, enable an unfunded Model/Content family, or
+acknowledge physical stop from alias severance.
+
+
+## Retained physical module selection
+
+The checked Effect plan retains the actual prepared Local module, provider
+selection, task capacities and import/output policies. Its factory runs during
+preparation; opening the original Run binds that same module and cannot replace
+it with an equal numerical configuration. A policy sealed for quotation is not
+configured again after binding. Repeated input ports remain separate holdings.
+
+Each physical slot retains its original selected provider and capacity. The
+sequence owner validates genuine refinements against the same registered
+contracts, prepared sequence, contexts, query time, numeric callbacks, selected
+occurrences and retained Results. A changed capacity follows its provider's
+full check and cannot exceed that slot's original envelope. Input sequence and
+provider containers are snapshotted before callbacks can reenter; immutable
+provider dependencies remain shared rather than copied or upgraded.
+
+Preparation domains supply the owned representation extents and declared
+coexistence. `execution_relation.compose_preparation_representation` owns their
+checked five-unit composition under the same tariff. Composition preserves
+occurrences; it cannot infer aliases or release a previous owner. Phase drivers
+reserve the result through their original `PreparationCapacity`.
+Ledger limits are a different typed composition. `physical_resources` owns
+`add_ledger_limits`: all six original dimensions must be nonnegative and fit
+before their sums are formed. Retention and execution limits remain independent;
+this DATA operation neither chooses a policy nor creates or debits a Ledger.
+The installed Model requirement projection composes its selected Model, two
+simultaneous bootstrap/read contributions and Run limits through that owner. Only a successful complete
+composition updates the private Run projection. A refused contribution leaves
+that projection unchanged. Its original read reservations and operation/retention
+census remain separate; numerical composition is not their physical funding.
+
+The common `PreparationExecutionInventory` also composes retained/workspace
+representations, value-node extents and existing byte quotes. Its execution
+capacity includes retained state alongside workspace; that projection is not
+an independent initial-construction reservation or physical backing receipt.
+
+Per-task execution envelopes do not pay for compilation, factory construction,
+retained module/control objects or their next-phase overlap. Those inventories
+must be funded by the original preparation before construction, using the same
+shared representation units. The existing Working growth/retirement protocol
+owns that transition. Native and Remote consumers must retain their actual
+backend module and limits; a Node owner or Local policy is not a substitute.
+Completed-only metadata access supplies no execution or restoration authority.
+
+
+## Native standard module handoff
+
+The existing Native Source preparation can retain its full Pure or Effect
+sequence array; it does not need a Node managed owner to preserve that DATA.
+The standard Local/DuckDB module preparation takes the original checked graph,
+parent Ledger, registrations, sequences and typed backend limits before any
+captured Run exists. DuckDB static compiler work charges that same Ledger
+before each task; partial failure retains consumed work. This is planning,
+not an attempt, Source read or physical database allocation.
+
+Binding requires the exact graph and parent Ledger and uses the original
+prepared modules through the canonical configured-module assembly. Static
+rejections and compilation are retained rather than recomputed at binding.
+The selected Local input/output and Native retained-output policies are sealed
+before quotation; later estimates and strategy/current checks still use the
+actual Run. This does not supply Native Source/database physical backing or
+fund initial constructor controls from execution buffer limits.
+
+
+## Retained module container ownership
+
+Local snapshots the sequence and installed-provider containers before invoking
+callbacks, and owns the provider/capacity selection arrays. Their exact-length
+storage is one domain inventory: eight array/backing headers, `3N + M + 8`
+reference slots and eight scalar words for N sequences and M installed
+providers. References borrow original sequence/provider/capacity bodies;
+those bodies and factory temporaries have separate owners and demands.
+Preparation of an execution quote also owns its typed inventory item records,
+list backings and scalar fold outcomes. The executor's quoted byte allowances
+do not fund those constructor objects.
+
+The selected Node package retains one immutable container recipe. One compiled
+ordered family composition supplies both its provider count and actual factory
+traversal. Projecting that count constructs no policy, provider or kernel. The
+existing initial-control and begin bridges use that SAME recipe without
+accepting a JavaScript count or unit override. The provider-free RelA factory
+has an empty installed dimension; it does not expose these Node initial
+bridges. The generic domain inventory retains that zero-provider case.
+The original preparation owns
+one borrowed reference to it; every later phase reuses it for the original
+reservation. Provider/kernel construction, callback scratch and other module
+controls still require their complete inventories before their actual
+constructors may move into this fixed Body path. A container quote is neither
+physical backing nor permission to run those unfunded constructors.
+
+
+## Pure selected module preparation
+
+The nominal Pure source-free preparation receives its actual installed
+provider factory and selected retained-output mode before quoting. It retains
+the resulting module and immutable IO policies, and its prepared Run entry
+requires that actual configuration. The existing managed Run records its
+issued DAG before binding, so failed binding or reentrant current loss cannot
+issue another graph. A changed output mode refuses before graph construction;
+it cannot trigger a late factory or choose a fallback configuration.
+
+The raw sequence preparation still serves explicitly unmigrated Effect/Model
+projections and the fixed closed Values driver. Its absent module choice is
+an inline scalar word priced in that driver's existing semantic constructor
+inventory. Full module construction must not be moved into that fixed driver
+until the selected mode and complete simultaneous constructor inventory are
+funded by its original preparation. These old callers remain migration work,
+not another successful route for the nominal prepared module entry.
+
+## Original output mode before Pure module preparation
+
+The normal Host records its effective retained-output mode on the same private
+installation before requirements are read. An omitted operator option keeps
+the existing effective `false` behaviour; the requirements reader itself
+requires an actual Boolean and supplies it to the existing typed sequence
+preparation port. The later Host opens with that same installation field.
+Neither the profile name nor request counters select this mode, and a missing
+internal mode cannot fall back to another preparation path.
+
+Forwarding this scalar does not fund provider, kernel or module construction.
+The selected original initial owner must back their complete simultaneous
+construction inventory before using the pre-Run module path. The unconverted
+fixed Body/raw paths retain their existing obligations; a caller-only source
+connection cannot qualify them or a runtime built from older typed APIs.
+
+## Recorded Model demand in an Effect plan
+
+A selected Model purpose retains its original checked Effect, compiled Run,
+compilation, definition, occurrence and Infer graph in one nominal demand.
+The installation projects the selected Model and simultaneous read/bootstrap
+limits from those originals. The common Ledger owner composes that demand
+with the same Plan's Source/Compute and operation inventory; neither equal
+numbers nor operation DATA convert an ordinary parent into a Model parent.
+
+The dedicated prepared-Model begin entry consumes that exact Plan admission,
+checks its distinct Model purpose and complete envelope, and installs the
+existing recorded-read Scope on the original parent before a Source can start.
+It returns the original managed Run and Scope together. The admission retains
+an attempted bootstrap before Scope construction, including the partial-failure
+path. Live reads prevent retirement; settlement and the original complete
+cleanup close that same inventory. No Scope getter, replacement Ledger,
+re-prepared sequence or second cleanup owner is needed.
+
+A retained demand and a successful numerical quote do not supply the initial
+constructor, provider or response backing. The installation must reserve the
+complete domain overlap before constructing it and keep the original physical
+borrowers through pending/Unknown. Backend and ordinary-caller adoption remain
+separate from this Core Plan connection.
+
 ## Selected Model limit composition
 
 The common Ledger owner composes nonnegative `LedgerLimits` in their six
@@ -199,6 +405,23 @@ products delegate to the same checked arithmetic owner as the Local preparation
 tariff. That domain case does not change the shared operation's requirement
 that its coefficient be positive, nor grant capacity or refund consumed work.
 
+## Bound managed Plan lookup and currentness
+
+An installed Effect Plan lookup receives the original prepared computation and
+request alongside the original managed Run. It checks those immutable
+associations and borrows the Plan through one synchronous Resource-owner
+current boundary. A caller does not separately check the Run and then perform
+another checked getter for the same lookup. This does not retain an Allow,
+currentness proof or mutable-state snapshot across operations.
+
+The Resource owner checks original admission, currentness and mutable inventory
+in one call. After the external current callback returns, callback-free checks
+still fence the same child, preparation, Ledger and live Run tuple, including
+parked inventory and retirement. An await, external callback or actual mutation
+starts a distinct boundary; resource reservation, before-use checks and cleanup
+keep their existing obligations. Plan/sequence preparation and capacity quoting
+are not repeated by lookup.
+
 ### Ledger usage observations
 
 The Core `LedgerUsage` declaration owns usage field order and primitive width.
@@ -213,3 +436,196 @@ the generated predicate alone supplies the exclusions. Diagnostic decimal text
 preserves every original counter. No counter projection grants capacity or
 permission, resets spent facts, proves physical stop or replaces the existing
 Site/current/retirement duties and preparation-isolation checks.
+
+## Unselected request preparation bootstrap
+
+The ordinary request manager checks the installed Local policy's fixed control
+quote before creating its producer receipt or visiting the caller's input. The
+same original preparation-purpose Node admission then starts one Ledger and
+reserves the independently inventoried producer, imported-child, Ledger and
+bootstrap controls. `ClientRequestPreparation` retains that admission, input,
+Ledger and an uncompleted `PreparationCapacity[I, Unit]`. Unit is never completed,
+exported as a prepared body or converted into an Effect value. No snapshot,
+parser, relation, provider, Command-selection or Model inventory is included in
+this control quote. The policy's numerical ceilings are necessary limits, not
+credit for any of those representations.
+
+The first consumer is the existing closed Values preparation. Before constructing
+its typed driver, the bootstrap resizes the same reservation for the complete
+existing Values control recipe plus the simultaneous old bootstrap. Its one typed
+continuation preserves the original input, child, Ledger, reservation, borrower
+bound and work history. The Node adapter stores the returned driver before
+cutting its consumed bootstrap link. The driver's ordinary header/scan/snapshot
+phases and retirement then use that same capacity. The installed backend's exact
+module-container inventory is still supplied by the original Node bridge, not
+by JavaScript dimensions or a combined provider profile.
+
+### Preparation output selection
+
+Only a working capacity with no body, borrow, active phase work or retirement may
+select its eventual output type. The original handle is latched before a current
+callback and consumed only when continuation succeeds. It cannot select twice,
+settle the successor's shared token or claim cleanup. A failure retains the same
+working original and its actual charge. No completed value is cast between types,
+and this transition creates neither a Root nor an additional allowance.
+
+A declined constructor keeps the same parent responsible for cleanup. The caller
+must unwind its scratch before the fixed abort entrance; original current,
+report, stop and uncertainty remain separate. In particular, a failed original
+stop stays unknown even if a later callback reports no children. Neither a
+completed Promise nor that callback is a new physical acknowledgement.
+
+This connects the real request manager to its first typed consumer. It does not
+yet fund general Effect request serialization, parsing, lowering, prepared
+material, Command selections, overlapping restore readers or the installed Plan.
+Those phases must quote their own complete representations on this same original
+parent before construction. Native JSON getter/toJSON/boxing/omission semantics
+are unchanged; a replacer visit or the final wire length is not a preconstruction
+funding proof. The existing Source/Effect original and currentness checks remain
+in force. Focused Core tests exercise the actual original Node supplier and next
+Values header, while Node caller tests retain explicit Core phase ports. Neither
+scope certifies a normal installed runtime or physical operation.
+
+The typed continuation also retains the original resource census retirement
+fence. The trusted current callback may begin closing that same census while
+returning a current observation. After the callback returns, continuation refuses
+`ClosedReservation` without consuming the old working capacity, changing its
+input or issuing a successor. Its original reservation and actual usage remain
+charged until the same original cleanup completes. This callback-free fence is
+not another current observation, an unpark operation or a physical ACK.
+
+## Request-owned generic Program JSON caller
+
+The original request parent retains the existing generic Program JSON holder on
+its uncompleted `PreparationCapacity[I, Unit]`. The same input, Ledger,
+reservation and original Node admission enter the domain constructor. The caller
+receives the same already selected immutable Program source limits and forwards
+that original DATA to the domain driver. It substitutes no standard default and
+adds no capacity or public request option.
+The domain driver owns its Source/NFC/index/Program construction inventory and
+reserves it on that same capacity before constructing those roles. The caller
+does not pre-add another copy of that domain packet.
+
+The request bootstrap separately inventories only its new resident reference,
+Some and returned result/error carriers. The real backend first-prelude/input
+and outer holder backing remains required before entry; a policy ceiling, a
+literal fixture or these caller-only controls do not establish it. The precise
+pre-entry backing contract and minimal public domain dependency must be qualified
+before enabling a normal SDK consumer. Native JSON snapshot semantics and their
+separate preconstruction funding are unchanged by this Core caller.
+
+The same request bootstrap independently includes the allocated Core entrance
+carriers before that grow: the original debit tuple/result, two checked-add
+results and conservative failure alternatives total `10H7R13W` under the
+existing representation tariff. This is a caller inventory, not a prepaid
+copy of the domain packet or a subtraction from its conservative quote. It
+stays charged until the original parent retires. The unchanged original
+current/resize scratch remains with its existing owner. Fixed nonrecursive VM
+frames belong to the installed runtime baseline; native input/limits/path,
+external callback and outer backing still need their actual original supply.
+This logical carrier inventory alone does not prove that backend supply.
+
+The parent latches before entering the domain's original current/grow boundary.
+A failed entrance retains its exact input and charge for cleanup and cannot be
+silently retried as another body. A successful entrance retains the returned
+original holder before returning it. Source preflight, indexing, structural
+Program construction and reconciliation use the existing domain methods. No
+Unit body is completed, no Pure value is reclassified as Effect, and no new Root,
+Ledger, borrower cache, permission or cleanup engine is introduced.
+
+After the fixed consumer's scratch and untransferred aliases unwind, parent
+cleanup first clears that same domain holder. A busy domain refuses without
+settling the reservation. An explicitly transferred output belongs to its real
+next consumer; parent abort cannot infer that consumer's alias retirement.
+Underlying current, stop, pending report and Unknown remain original obligations.
+Binding/check/prelude/Catalog/Requests, effect compilation and material/restore
+overlap are later required phases, not completion claims of this first caller.
+
+## Public generic JSON constructor continuation
+
+The generic JSON prefix retains the existing `PreparationCapacity[I, P]`:
+Source preflight, normalized Source/index coexistence, the checked structural
+quantity observation and the original Program envelope decoder all use that
+same reservation and original input. The current public phase may be either
+working form. Reading its existing debit invokes no callback. Entering new
+constructor work uses the existing original-current fence once, with its
+reentry latch and a callback-free original-census retirement check afterward.
+No debit observation grants headroom or substitutes for currentness.
+
+The finite prefix holder includes only Source/index/Program fields. Binding,
+semantic prelude, Catalog and request-domain holders are later continuations;
+they are not fabricated by Program construction. A failed grow retains the
+same source or completed structural inventory and immutable quote. It does
+not repeat the previous observer or reset consumed work. Reconciliation may
+remove only the synchronous constructor scratch after its original frame has
+returned. Taking a Program transfers its DATA once; it neither completes a
+fake final prepared body nor acknowledges backend or physical cleanup.
+
+The public Int work and Program-extent interfaces remain available. Explicit
+wide interfaces use Int64 quantities over the same original work state and
+quantity implementation, preserving the entire Int-sized input domain without
+saturation. Narrow Program extent projection is a compatibility DATA record,
+not a second scan. Its construction is not an admission or a resource grant.
+Literal and normalized JSON use the same construction recipe and original
+parser modes; Program literal-key exceptions and general Unicode/NFC behavior
+remain unchanged. Shared collection and canonical-text owners supply their
+own representation quantities; only the existing representation tariff prices
+them.
+
+The original physical caller must supply the backend's first-prelude, input,
+limits, source-path and outer-frame backing before entering Core. The domain
+initial-inventory getter describes the Source/index/Program controls. The
+begin operation adds those controls once to the same capacity's already-live
+outside debit; a caller must not pre-add a second copy to that outside debit.
+This logical reservation sequence alone does not establish that a backend has
+provided the complete first-prelude or physical backing. Source/index/Program
+completion does not fund subsequent checking, Catalog, serialization, Content,
+compilation, restoration or another backend implicitly.
+
+The existing entrance is additive, not prepaid. For the exact original
+`PreparationCapacity[I, P]` and `input`, let `(R, E)` be the callback-free
+working-debit observation and `I` the shared tariff of the installed domain
+initial inventory. `begin_program_json_preparation(capacity, input, document,
+limits, source_path?)` requests `(R + I, E + I)` on that same capacity before
+starting the Source constructor. Passing a debit already containing that same
+`I` would add it twice. There is no separate prepaid-original entrance or token
+in this API. The inventory getter returns installed DATA and is not admission.
+
+Before that grow returns, the existing debit getter's returned tuple/carrier,
+checked-add outcomes, original reservation/current/resize call frame and typed
+failure paths already exist. Their actual first-prelude backing must therefore
+come from the original caller's independently inventoried supply. The generic
+Core packet is not evidence that this pre-entry backing is present, and a
+later successful resize cannot retroactively provide it. No numerical backend
+first-prelude claim follows from the finite Core prefix qualification.
+
+
+## Native Source snapshot currentness
+
+A selected private Source receiver may expose the own-DATA synchronous
+`assertSourceSnapshotCurrent(receipt)` operation. The SDK captures that method
+and its original receiver once. A present accessor, nonfunction or asynchronous
+result refuses; an absent legacy method retains its previous snapshot/bind
+path. No public request option, wire field, grant or capacity issuer is added.
+
+The ordinary preparation manager authenticates that same original producer
+receipt, retained preparation and Node Resource before and after its current
+callbacks. A copied, finished or already-bound producer cannot enter this
+snapshot phase. SDK connection closure also refuses new use. These checks do
+not replace the original current/claim paths of later operations.
+
+The SDK invokes the fence before its existing native stringify/parse and again
+after that one snapshot returns, before recursive clone freezing. A getter,
+`toJSON` or coercion may retire the original while native capture runs; that
+loss stops the next phase. Trusted fence failures remain outside the catch
+which classifies ordinary native serialization failures, retaining the exact
+original primary and cleanup carrier, including a thrown `undefined`. Failed
+producer cleanup stays on the same existing lifecycle retry owner. It neither
+repeats submission nor infers physical cleanup from Promise settlement.
+
+The snapshot still uses the same native serialization owner, numeric checks,
+property/coercion order and parse. The original body is frozen before it is
+bound or published; a mutable clone is never offered to a Host callback as an
+identity substitute. This current fence is not preconstruction funding for
+native string/parse/freeze storage. The actual input, VM baseline, callback and
+simultaneous snapshot/backing inventories remain separate original obligations.

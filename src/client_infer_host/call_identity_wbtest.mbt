@@ -12,7 +12,7 @@ fn call_identity_fixture(
     prepared,
     0,
     2,
-    infer_fixture_registry,
+    infer_fixture_installed_contracts(),
     infer_fixture_values,
     limits.input,
     limits.measurement,
@@ -205,7 +205,7 @@ test "normal Infer owner identifies its own completed prefix before scoped dispa
     let active = start(
       prepared,
       2,
-      infer_fixture_registry,
+      infer_fixture_installed_contracts(),
       infer_fixture_values,
       provider,
       @publication_host.client_infer_plan_graph_request_cid(plan),
@@ -266,7 +266,7 @@ test "scoped response observation is private until sealed and survives output st
     let active = start(
       prepared,
       2,
-      infer_fixture_registry,
+      infer_fixture_installed_contracts(),
       infer_fixture_values,
       provider,
       @publication_host.client_infer_plan_graph_request_cid(plan),
@@ -334,7 +334,7 @@ test "scoped Infer identity cancellation retains input and makes no model call" 
   let active = start(
     prepared,
     2,
-    infer_fixture_registry,
+    infer_fixture_installed_contracts(),
     infer_fixture_values,
     provider,
     @publication_host.client_infer_plan_graph_request_cid(plan),
@@ -365,7 +365,7 @@ test "scoped Infer identity cancellation retains input and makes no model call" 
     start(
       fixture_prepared(),
       2,
-      infer_fixture_registry,
+      infer_fixture_installed_contracts(),
       infer_fixture_values,
       provider,
       @publication_host.client_infer_plan_graph_request_cid(plan),

@@ -273,7 +273,7 @@ test('retained Nest uses the real Host, Store, and publication owners', async t 
         } else {
           await assert.rejects(run, error => {
             execution = error.execution;
-            return error.code === 'CapturedRunPublicationFailed';
+            return error.code === 'CapturedRunExecutionFailed';
           });
           assert.equal(execution.status, 'host-tasks-failed');
           assert.deepEqual(execution.completed.map(item => item.task), [1, 2]);

@@ -3,7 +3,7 @@
 /// and constructed witnesses allocate less; all six candidate/standalone
 /// scopes use this conservative dependency. Original indexed tree and text
 /// remain borrowed. This does not admit or issue a witness.
-fn compilation_small_witness_emitter_layout() -> PreparationRepresentationUnits? {
+fn compilation_small_witness_emitter_layout() -> @execution.PreparationRepresentationUnits? {
   // Per scope: view creates at most15 ValueView variants; three ObjectViews
   // (2 fields),3 open_object Ok and3 object_field_names Ok. Thirteen lookups
   // each allocate Map.get Some, map closure, Cursor(3 fields), returned Some.
@@ -18,7 +18,9 @@ fn compilation_small_witness_emitter_layout() -> PreparationRepresentationUnits?
   let arrays = closed_values_program_arrays(4L, 27L, true)
   guard closed_values_walk_storage_layout(15, 9) is Some(walk) &&
     closed_values_sort_scratch_layout(9) is Some(sort) &&
-    closed_values_sum_layouts([records, maps, arrays, walk, sort, sort, sort])
+    @execution.compose_preparation_representation([
+      records, maps, arrays, walk, sort, sort, sort,
+    ])
     is Some(one) else {
     return None
   }

@@ -5,6 +5,18 @@ import { fileURLToPath } from 'node:url';
 
 const divergence = /^#\n# Package ([^ ]+) (?:has diverging interfaces across backends:|has requested interfaces different from canonical backend)[\s\S]*?^# ------\n?/gm;
 
+// Opaque type binders have no public representation. Their spelling is alpha
+// equivalent (including a phantom wildcard), while arity and every other API
+// token remain significant. Constrained/structured declarations are untouched.
+export function normalizeOpaqueTypeBinders(text) {
+  return text.replace(/^type ([A-Za-z_][A-Za-z_0-9]*)\[([A-Za-z_][A-Za-z_0-9]*(?:, [A-Za-z_][A-Za-z_0-9]*)*)\]$/gm,
+    (_line, name, binders) => {
+      const parts = binders.split(', ');
+      if (!parts.every(part => part === '_' || /^[A-Z][A-Za-z_0-9]*$/.test(part))) return _line;
+      return `type ${name}[${parts.map((_, index) => `T${index}`).join(', ')}]`;
+    });
+}
+
 function withoutTargetOnlyPackages(root, report) {
   const moduleText = readFileSync(join(root, 'moon.mod'), 'utf8');
   const moduleName = /^name\s*=\s*"([^"]+)"/m.exec(moduleText)?.[1];
@@ -25,6 +37,17 @@ function withoutTargetOnlyPackages(root, report) {
     // JS interface to compare. Keep every multi-target divergence required.
     const targetOnly = /^[ \t]*supported_targets[ \t]*=[ \t]*"(?:native|wasm)"[ \t]*(?:\/\/[^\r\n]*)?$/m.test(manifest);
     if (targetOnly) return '';
+    // Compare actual compiler projections, not diff text. No package/target
+    // allowlist: only provable opaque binder alpha-renaming can erase a report.
+    const relativePackage = packageName.slice(prefix.length);
+    const leaf = relativePackage.split('/').at(-1);
+    const projections = ['js', 'wasm', 'native'].map(target => join(
+      root, '_build', target, 'debug', 'check', relativePackage, `${leaf}.mbti`,
+    ));
+    if (projections.every(path => existsSync(path))) {
+      const normalized = projections.map(path => normalizeOpaqueTypeBinders(readFileSync(path, 'utf8')));
+      if (normalized.every(value => value === normalized[0])) return '';
+    }
     return block;
   });
 }

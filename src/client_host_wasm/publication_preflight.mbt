@@ -44,7 +44,6 @@ fn stored_preflight_current(
 }
 
 ///|
-#export_name("actql_publication_preflight_reserve")
 pub fn reserve_publication_preflight(
   nonce : Int64,
   source : Int,
@@ -106,7 +105,6 @@ pub fn reserve_publication_preflight(
 }
 
 ///|
-#export_name("actql_publication_preflight_prepare")
 pub fn prepare_publication_preflight(
   nonce : Int64,
   handle : Int,
@@ -253,7 +251,6 @@ fn stored_preflight_original_current(
 }
 
 ///|
-#export_name("actql_publication_preflight_length")
 pub fn publication_preflight_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.publication_preflights.get(handle) is Some(record) else {
@@ -269,7 +266,6 @@ pub fn publication_preflight_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_publication_preflight_retire_output")
 pub fn retire_publication_preflight_output(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.publication_preflights.get(handle) is Some(record) else {
@@ -292,7 +288,6 @@ pub fn retire_publication_preflight_output(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_publication_preflight_close")
 pub fn close_publication_preflight(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.publication_preflights.get(handle) is Some(record) else {
@@ -327,7 +322,6 @@ pub fn close_publication_preflight(nonce : Int64, handle : Int) -> Int {
 
 ///|
 /// Original checked inventory size, not a caller subset or publication result.
-#export_name("actql_publication_preflight_result_count")
 pub fn publication_preflight_result_count(
   nonce : Int64,
   handle : Int,

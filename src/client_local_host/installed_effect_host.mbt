@@ -7,9 +7,6 @@ pub fn open_installed_effect_managed_host(
   owner : ClientInstalledManagedRun,
   bound : @publication_host.PreparedClientEffectRun,
   sources : Array[@query.CapturedInputSource],
-  provider_factory? : (@execution.ExecutionCapacity) -> Array[
-    @local.ManagedProvider,
-  ] = _ => [],
 ) -> Result[
   (
     @builtin.ConfiguredComputeHost[@strategy.RunIssue],
@@ -26,7 +23,6 @@ pub fn open_installed_effect_managed_host(
     owner,
     bound,
     sources.copy(),
-    provider_factory,
   )
   owner.source_free_opening = false
   opened
@@ -37,9 +33,6 @@ fn select_installed_effect_managed_host(
   owner : ClientInstalledManagedRun,
   bound : @publication_host.PreparedClientEffectRun,
   sources : Array[@query.CapturedInputSource],
-  provider_factory : (@execution.ExecutionCapacity) -> Array[
-    @local.ManagedProvider,
-  ],
 ) -> Result[
   (
     @builtin.ConfiguredComputeHost[@strategy.RunIssue],
@@ -48,7 +41,12 @@ fn select_installed_effect_managed_host(
   )?,
   ClientInstalledManagedRunIssue,
 ] {
-  let plan = match installed_effect_managed_operation_plan(owner) {
+  let plan = match
+    installed_effect_managed_operation_plan(
+      owner,
+      @publication_host.prepared_client_effect_run_computation(bound),
+      owner.request,
+    ) {
     Err(issue) => return Err(issue)
     Ok(plan) => plan
   }
@@ -87,7 +85,7 @@ fn select_installed_effect_managed_host(
   // Reentrant current/provider callbacks cannot replace this owner's one DAG
   // or retire the parent while its original configuration is in progress.
   open_installed_effect_managed_host_original(
-    owner, bound, sources, plan, ledger, provider_factory,
+    owner, bound, sources, plan, ledger,
   )
 }
 
@@ -98,9 +96,6 @@ fn open_installed_effect_managed_host_original(
   sources : Array[@query.CapturedInputSource],
   plan : ClientInstalledEffectManagedPlan,
   ledger : @resources.Ledger,
-  provider_factory : (@execution.ExecutionCapacity) -> Array[
-    @local.ManagedProvider,
-  ],
 ) -> Result[
   (
     @builtin.ConfiguredComputeHost[@strategy.RunIssue],
@@ -135,26 +130,13 @@ fn open_installed_effect_managed_host_original(
   // Retain immediately, before provider/configuration callbacks can fail.
   // None/error does not certify release; the original parent keeps cleanup.
   owner.source_free_captured = Some(run)
-  let configuration = plan.capacity_plan
-  let host = configure_client_local_run(
+  let host = bind_client_local_configuration(
     run,
-    graph,
-    plan.compute_sequences,
-    first,
-    @strategy.graph_task_count(graph),
-    configuration.execution.rows.max_rows,
-    configuration.values,
-    configuration.execution,
-    configuration.measurement,
-    plan.provider_retained_bytes,
-    plan.provider_execution_bytes,
-    true,
+    plan.configuration,
     1L,
     0L,
     0L,
     0L,
-    provider_factory,
-    capacity_plan=Some(configuration),
   )
   match require_installed_managed_run(owner) {
     Err(issue) => {

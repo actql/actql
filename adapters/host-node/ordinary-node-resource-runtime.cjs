@@ -35,6 +35,8 @@ function originalRun(original, prepared) {
   const state = runs.get(original);
   if (state === undefined || state.stopped || state.retiring || !state.preparedOriginals.has(prepared)) unavailable();
   try {state.assertCurrent();} catch (cause) {state.retiring = true; throw cause;}
+  if (runs.get(original) !== state || state.stopped || state.retiring ||
+      state.preparedOriginals === undefined || !state.preparedOriginals.has(prepared)) unavailable();
   return state;
 }
 function ports(original, prepared, purpose) {
@@ -42,6 +44,8 @@ function ports(original, prepared, purpose) {
   if (state === undefined || state.stopped || state.preparedOriginals === undefined ||
       !state.preparedOriginals.has(prepared) || state.purpose !== purpose || state.portsTaken) return null;
   try {originalRun(original, prepared);} catch {return null;}
+  // A reentrant selection may have acquired the sole ports during current.
+  if (state.portsTaken) return null;
   state.portsTaken = true;
   return retainedPorts(original, state);
 }
@@ -56,7 +60,10 @@ function retainedPorts(original, state) {
   const current = () => {
     if (state.stopped || state.retiring) return 1;
     if (runs.get(original) !== state) return 1;
-    try {state.assertCurrent(); return 0;} catch {state.retiring = true; return 1;}
+    try {
+      state.assertCurrent();
+      return state.stopped || state.retiring || runs.get(original) !== state ? 1 : 0;
+    } catch {state.retiring = true; return 1;}
   };
   return freeze({
     cancelUnpublished() {

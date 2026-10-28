@@ -8157,7 +8157,7 @@
             "native"
           ],
           "path": "src/query_integration/local_retained_values_chain_wbtest.mbt",
-          "fixture": "Values publication rejects wrong children nonlinear chains and shadowing providers"
+          "fixture": "Values publication rejects wrong children and shadowing providers"
         },
         {
           "role": "retained_source_free_product_configuration",
@@ -8171,7 +8171,7 @@
           "fixture": "product source-free retained factory installs exact bounded chain offers"
         },
         {
-          "role": "retained_source_free_product_rejection",
+          "role": "retained_source_free_product_branch_admission",
           "suite": "moon:query_integration",
           "targets": [
             "js",
@@ -8179,7 +8179,18 @@
             "native"
           ],
           "path": "src/query_integration/local_retained_values_chain_wbtest.mbt",
-          "fixture": "product retained factory refuses a nonlinear Values suffix before Compute"
+          "fixture": "product retained factory admits the exact earlier Values producer of a checked branch"
+        },
+        {
+          "role": "retained_source_free_branch_execution_and_cancellation",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/local_retained_values_chain_wbtest.mbt",
+          "fixture": "source-free Values chains preserve ordered results and cancellation custody"
         },
         {
           "role": "retained_source_free_chain_budgets",
@@ -10300,7 +10311,7 @@
           "fixture": "Shortest direct entrypoint retains exact work workspace and private cancellation"
         }
       ],
-      "notes": "Current keyed bounded Owner resource boundaries only; operation classification remains partial. Independent exact/one-short work and workspace controls and private stop/cleanup fixtures are registered for each named path. Historical installed Local/HTTPS positive-work cancellation runs at source 463e8b27eab15f1f1ae2e739f9ce4fe4d867753a support the unchanged operation barrier; they are not new-main package acceptance. Public cancellation is registered only for the selected retained-input task. A direct/fused Host cancellation case is not evidenced and its path lifecycle assurance remains absent. The direct resource controls remain executable boundary records, but full direct resource assurance also awaits that lifecycle case.",
+      "notes": "Current keyed bounded Owner resource boundaries only; operation classification remains partial. Direct and retained-view exact/one-short work and workspace controls remain separate. The owned-input entrypoint now has an authentic unselected constructor/consumer Host-driver conformance case: exact GeneratedSequence, original ProducerRead, unchanged installed provider, independently counted constructor work, later positive traversal work, delivered stop and repeated cleanup. This internal boundary does not claim public planning selects a fused route, request/restart acceptance, or a new public protocol. Selected public Host cancellation remains its own evidence.",
       "environment_tests": [
         {
           "role": "shortest_public_in_flight_cancel_cleanup",
@@ -10311,6 +10322,15 @@
           "path": "scripts/graph-public-host.test.mjs",
           "case": "assertOperationCancellation",
           "fixture": "Graph Shortest preserves selected paths through Store reload and public local"
+        },
+        {
+          "role": "shortest_path_unselected_host_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "unselected Shortest stops after exact constructor work through the Local Host driver"
         }
       ],
       "path_assurance": {
@@ -10319,6 +10339,12 @@
           "one_short_limit": "shortest_exact_work_workspace_selection_cancel",
           "in_flight_cancel": "shortest_public_in_flight_cancel_cleanup",
           "cleanup": "shortest_exact_work_workspace_selection_cancel"
+        },
+        "entrypoint": {
+          "exact_limit": "shortest_direct_exact_work_workspace_private_cancel",
+          "one_short_limit": "shortest_direct_exact_work_workspace_private_cancel",
+          "in_flight_cancel": "shortest_path_unselected_host_cancel_cleanup",
+          "cleanup": "shortest_direct_exact_work_workspace_private_cancel"
         }
       },
       "resource_assurance": {
@@ -10330,6 +10356,16 @@
           "workspace": {
             "exact_limit": "shortest_exact_work_workspace_selection_cancel",
             "one_short_limit": "shortest_exact_work_workspace_selection_cancel"
+          }
+        },
+        "entrypoint": {
+          "work": {
+            "exact_limit": "shortest_direct_exact_work_workspace_private_cancel",
+            "one_short_limit": "shortest_direct_exact_work_workspace_private_cancel"
+          },
+          "workspace": {
+            "exact_limit": "shortest_direct_exact_work_workspace_private_cancel",
+            "one_short_limit": "shortest_direct_exact_work_workspace_private_cancel"
           }
         }
       }
@@ -10564,7 +10600,7 @@
           "fixture": "Reach direct entrypoint retains exact work workspace and private cancellation"
         }
       ],
-      "notes": "Current keyed bounded Owner resource boundaries only; operation classification remains partial. Independent exact/one-short work and workspace controls and private stop/cleanup fixtures are registered for each named path. Historical installed Local/HTTPS positive-work cancellation runs at source 463e8b27eab15f1f1ae2e739f9ce4fe4d867753a support the unchanged operation barrier; they are not new-main package acceptance. Public cancellation is registered only for the selected retained-input task. A direct/fused Host cancellation case is not evidenced and its path lifecycle assurance remains absent. The direct resource controls remain executable boundary records, but full direct resource assurance also awaits that lifecycle case.",
+      "notes": "Current keyed bounded Owner resource boundaries only; operation classification remains partial. Direct and retained-view exact/one-short work and workspace controls remain separate. The owned-input entrypoint now has an authentic unselected constructor/consumer Host-driver conformance case: exact GeneratedSequence, original ProducerRead, unchanged installed provider, independently counted constructor work, later positive traversal work, delivered stop and repeated cleanup. This internal boundary does not claim public planning selects a fused route, request/restart acceptance, or a new public protocol. Selected public Host cancellation remains its own evidence.",
       "environment_tests": [
         {
           "role": "reach_public_in_flight_cancel_cleanup",
@@ -10575,6 +10611,15 @@
           "path": "scripts/graph-public-host.test.mjs",
           "case": "assertOperationCancellation",
           "fixture": "Graph Reach preserves typed selectors and depth through Store reload and public local"
+        },
+        {
+          "role": "reach_unselected_host_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "unselected Reach stops after exact constructor work through the Local Host driver"
         }
       ],
       "path_assurance": {
@@ -10583,6 +10628,12 @@
           "one_short_limit": "reach_exact_work_workspace_handoff_cancel",
           "in_flight_cancel": "reach_public_in_flight_cancel_cleanup",
           "cleanup": "reach_exact_work_workspace_handoff_cancel"
+        },
+        "entrypoint": {
+          "exact_limit": "reach_direct_exact_work_workspace_private_cancel",
+          "one_short_limit": "reach_direct_exact_work_workspace_private_cancel",
+          "in_flight_cancel": "reach_unselected_host_cancel_cleanup",
+          "cleanup": "reach_direct_exact_work_workspace_private_cancel"
         }
       },
       "resource_assurance": {
@@ -10594,6 +10645,16 @@
           "workspace": {
             "exact_limit": "reach_exact_work_workspace_handoff_cancel",
             "one_short_limit": "reach_exact_work_workspace_handoff_cancel"
+          }
+        },
+        "entrypoint": {
+          "work": {
+            "exact_limit": "reach_direct_exact_work_workspace_private_cancel",
+            "one_short_limit": "reach_direct_exact_work_workspace_private_cancel"
+          },
+          "workspace": {
+            "exact_limit": "reach_direct_exact_work_workspace_private_cancel",
+            "one_short_limit": "reach_direct_exact_work_workspace_private_cancel"
           }
         }
       }

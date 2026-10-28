@@ -21,13 +21,14 @@ test "ordinary Python source-free configuration uses the packaged assets and ori
     )
     is Some(_),
   )
-  let quote = @local.single_source_free_local_ledger_limits(
+  let original_requirements = @local.prepare_source_free_local_requirements(
     original.prepared,
     installed,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
+  let quote = original_requirements.maximum_limits()
   assert_eq(quote.retained_bytes, 200000000L)
   assert_eq(quote.execution_bytes, 536870912L)
   let root = @resources.create_ledger({

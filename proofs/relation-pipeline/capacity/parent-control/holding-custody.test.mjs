@@ -16,7 +16,7 @@ test('source guards and Native-only observation attach without changing existing
   const {overlay,boundary}=retirementOverlay(read,snapshot(root),{holdingCustody:true});
   assert.equal(boundary.holdingCustody,true);
   assert.match(overlay['src/physical_resources/moon.pkg'],/holding_custody_native.mbt.*native/);
-  assert.match(overlay['src/physical_strategy/moon.pkg'],/holding_custody_native.mbt.*native/);
+  assert.match(overlay['src/physical_strategy_host/moon.pkg'],/holding_custody_native.mbt.*native/);
   const anchor='fn run_current_host_graph_relation_path(';
   assert.equal((blockAfter(overlay[path],anchor).match(/assert_(?:true|eq|false)\(/g)??[]).length,
     (blockAfter(read(path).toString(),anchor).match(/assert_(?:true|eq|false)\(/g)??[]).length);
@@ -27,16 +27,37 @@ test('source guards and Native-only observation attach without changing existing
   assert(acquired>overlay[path].indexOf('close_retained_host_consumer(run, 5, first_ops, first_live, first)'));
 });
 for (const [name,path,from,to] of [
-  ['consumer parent condition removed','src/physical_strategy/retention.mbt','child.parents.contains(task)','false'],
-  ['running dependency removed','src/physical_strategy/retention.mbt','edge.consumer == active && edge.producer == task','false'],
-  ['physical release ignored','src/physical_strategy/retention.mbt','!needed && (resource.release_confirmed)()','!needed'],
+  ['consumer parent condition removed','src/physical_strategy_host/retention.mbt','child.parents.contains(task)','false'],
+  ['running dependency removed','src/physical_strategy_host/retention.mbt','edge.consumer == active && edge.producer == task','false'],
+  ['physical release ignored','src/physical_strategy_host/retention.mbt','!needed && (resource.release_confirmed)()','!needed'],
   ['release check removed','src/physical_resources/ledger.mbt','if !holding.live {','if false {'],
   ['holding liveness retained','src/physical_resources/ledger.mbt','holding.live = false','holding.live = true'],
-  ['wrong source allocation bytes','src/physical_strategy/task_completion.mbt','owned.bytes == storage_bytes','true'],
-  ['owner token left live','src/physical_strategy/task_completion.mbt','owned.live = false','owned.live = true'],
+  ['wrong source allocation bytes','src/physical_strategy_host/task_completion.mbt','owned.bytes == storage_bytes','true'],
+  ['owner token left live','src/physical_strategy_host/task_completion.mbt','owned.live = false','owned.live = true'],
 ]) test('reviewed source refuses '+name,()=>{
   const s=read(path).toString();assert(s.includes(from));
   assert.throws(()=>checkHoldingCustodySource(p=>p===path?s.replace(from,to):read(p)));
+});
+// These mutations target the actual nominal holding Owner, not an equal-looking
+// counter or fixture token. Positive admission above must pass independently.
+for (const [name, anchor, from, to] of [
+  ['original slot check bypassed', 'pub fn retain_allocation(', 'check_original_holding_slot(ledger)', 'Ok(())'],
+  ['serial exhaustion loses typed refusal', 'pub fn retain_allocation(', 'return Err(IdentityOverflow)', 'return Err(HoldingLimit)'],
+  ['serial stops advancing', 'pub fn retain_allocation(', 'Some(serial + 1)', 'Some(serial)'],
+  ['serial overflow wraps', 'pub fn retain_allocation(', 'serial == 2147483647', 'false'],
+  ['original holding not recorded', 'pub fn retain_allocation(', 'record_original_holding(ledger, holding)', 'ignore(holding)'],
+  ['original mutability check bypassed', 'pub fn release_allocation(', 'check_original_resources_mutable(ledger)', 'Ok(())'],
+  ['post-callback live recheck removed', 'pub fn release_allocation(', 'Ok(_) => ()\n  }\n  if !holding.live {\n    return Err(ClosedHolding)\n  }', 'Ok(_) => ()\n  }'],
+  ['live holding count not returned', 'pub fn release_allocation(', 'holdings: ledger.usage.holdings - 1', 'holdings: ledger.usage.holdings'],
+  ['original retirement precedes live revocation', 'pub fn release_allocation(', 'holding.live = false\n  retire_original_holding(ledger, holding)', 'retire_original_holding(ledger, holding)\n  holding.live = false'],
+  ['original holding not retired', 'pub fn release_allocation(', 'retire_original_holding(ledger, holding)', 'ignore(holding)'],
+]) test('holding identity correspondence rejects '+name, () => {
+  const path='src/physical_resources/ledger.mbt';
+  const source=read(path).toString(), body=blockAfter(source,anchor);
+  assert.equal(body.split(from).length,2,'Mutation must reach exactly one owner condition');
+  assert.equal(source.split(body).length,2,'Owner body must be unique');
+  const mutated=source.replace(body,body.replace(from,to));
+  assert.throws(()=>checkHoldingCustodySource(p=>p===path?mutated:read(p)));
 });
 function records() {
   return ['current_filter','current_edge_filter'].flatMap(variant=>[

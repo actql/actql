@@ -179,7 +179,9 @@ test('fixed INSTR optional forms retain exact complete-fragment identities and p
     ['instr_occurrence', 4, 'sha256:7e5e6e381992969e1e2fb69c14d5fb1dc0019fe228439f909a7f7879aecf5908'],
     ['strpos_control', 2, 'sha256:8bdcec19bae24a9dd04e08d6686357a6fa3af2b8e1f712b2e3c114be15710323'],
   ];
-  assert.equal(fixture.expression_contract_cid, cid(bodies()[0]));
+  // This retained introduction fixture is not the later current contract.
+  assert.equal(fixture.expression_contract_cid, 'sha256:a49aba23a30514b63c9f7bcd05663dcacf2e5646c56073e7d00a34d6abe402b7');
+  assert.notEqual(fixture.expression_contract_cid, cid(bodies()[0]));
   assert.equal(fixture.published_predecessor, '21505177a8a7b54a2c273186b7d30456f757fcc4');
   assert.equal(fixture.cases.length, 4);
   for (const [index, [id, arity, expectedCid]] of expected.entries()) {

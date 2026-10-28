@@ -90,7 +90,7 @@ fn estimate_local_configuration(
     is Some(schedule) else {
     return Err(InvalidConfiguration)
   }
-  if configuration.eligible.get(task - 1) is Some(false) {
+  if configuration.eligible.get(local_task_slot(installed, task)) is Some(false) {
     return Ok([])
   }
   if !local_dispatch_offer_supported(installed, task) {
@@ -162,7 +162,7 @@ fn local_managed_estimate_lines(
     is Some(schedule) else {
     return Err(InvalidConfiguration)
   }
-  if configuration.eligible.get(task - 1) is Some(false) {
+  if configuration.eligible.get(local_task_slot(installed, task)) is Some(false) {
     return Err(InvalidConfiguration)
   }
   let mut rows = 0L

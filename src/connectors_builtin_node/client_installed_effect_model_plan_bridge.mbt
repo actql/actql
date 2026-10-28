@@ -1,0 +1,133 @@
+///|
+/// Project the selected domain's original bounds beside the SAME checked
+/// compilation. JS supplies no Model Ledger vector or replacement Scope.
+#export_name("clientProgramInstalledEffectModelDemandPrepare")
+pub fn client_program_installed_effect_model_demand_prepare(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  compiled : @publication_host.ClientCompiledRun,
+  compilation : @publication_host.ClientEffectCompilation,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+) -> Result[
+  @client_local_host.ClientInstalledEffectModelDemand,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  let selected = match
+    @infer_host.original_composed_bounds(
+      compiled, definition, occurrence, graph,
+    ) {
+    Err(_) => return Err(ForeignOriginal)
+    Ok(value) => value
+  }
+  @client_local_host.prepare_installed_effect_model_demand(
+    prepared,
+    compiled,
+    compilation,
+    definition,
+    occurrence,
+    graph,
+    selected.model.ledger,
+    selected.mapping.logical.max_live_value_bytes,
+    selected.identity.wire.max_bytes.to_int64(),
+    selected.input.rows.operation_entries,
+    selected.input.rows.retained_entries,
+    selected.input.rows.metadata_entries,
+  )
+}
+
+///|
+/// Retain the original component providers when the original Plan is prepared.
+/// The canonical fixed family constructors and their order remain unchanged;
+/// the component references are the SAME handles, never late replacements.
+#export_name("clientProgramInstalledEffectModelManagedPlanPrepare")
+pub fn client_program_installed_effect_model_managed_plan_prepare(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  declarations : Array[@client_row_source_host.RowDeclaration],
+  source_providers : Array[@execution.ExecutionCapacity]?,
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  selected_operations : Array[
+    @client_local_host.ClientInstalledEffectOperationDemand,
+  ],
+  model : @client_local_host.ClientInstalledEffectModelDemand,
+  components : Array[@local.ManagedProvider],
+  query_time : @publication_host.ClientQueryTimePreparation?,
+) -> Result[
+  @client_local_host.ClientInstalledEffectManagedPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  // An absent component is not supplied by the fixed nine standard families.
+  // The actual graph still resolves the original required provider; neither
+  // nonempty DATA nor this copied vector establishes its backing or authority.
+  if components.is_empty() {
+    return Err(Unsupported)
+  }
+  let components = components.copy()
+  @client_local_host.prepare_installed_effect_managed_plan(
+    prepared,
+    request,
+    declarations,
+    query_contract_body,
+    evidence_contract_body,
+    transport_bytes,
+    transport_execution_bytes,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    selected_operations,
+    model=Some(model),
+    query_time~,
+    source_providers~,
+    provider_factory=capacity => {
+      let providers = installed_client_family_providers(capacity)
+      for component in components {
+        providers.push(component)
+      }
+      providers
+    },
+  )
+}
+
+///|
+#export_name("clientProgramNodeEffectModelManagedPlanPrepare")
+pub fn client_program_node_effect_model_managed_plan_prepare(
+  original : @resources.OriginalNodeManagedRunReference,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Result[
+  @resources.NodeManagedRunAdmission[
+    @client_local_host.ClientInstalledEffectManagedPlan,
+  ],
+  @resources.ImportedChildLedgerIssue,
+] {
+  @resources.prepare_node_local_mock_model_run_admission(original, plan)
+}
+
+///|
+#export_name("clientProgramInstalledEffectModelManagedPlanBegin")
+pub fn client_program_installed_effect_model_managed_plan_begin(
+  admission : @resources.NodeManagedRunAdmission[
+    @client_local_host.ClientInstalledEffectManagedPlan,
+  ],
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Result[
+  (
+    @client_local_host.ClientInstalledManagedRun,
+    @publication_host.ClientModelReadScope,
+  ),
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_prepared_installed_effect_mock_model_managed_run(
+    admission, prepared, request, plan,
+  )
+}

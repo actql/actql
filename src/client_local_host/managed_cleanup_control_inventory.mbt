@@ -4,7 +4,7 @@
 /// of async/finally closure environments and the cached-wrapper/close captures.
 /// Promise engine/backing implementation is opaque runtime support, not RSS.
 /// Module WeakMap owners and this immutable tariff recipe are installation-owned.
-let managed_cleanup_control_units : PreparationRepresentationUnits = {
+let managed_cleanup_control_units : @execution.PreparationRepresentationUnits = {
   record_headers: 10L,
   reference_slots: 25L,
   scalar_words: 1L,
@@ -13,7 +13,7 @@ let managed_cleanup_control_units : PreparationRepresentationUnits = {
 }
 
 ///|
-let managed_cleanup_control_bytes : Int64 = preparation_representation_cost(
+let managed_cleanup_control_bytes : Int64 = @execution.preparation_representation_cost(
   managed_cleanup_control_units,
 ).unwrap()
 

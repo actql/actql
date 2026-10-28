@@ -2,11 +2,13 @@
 /// Exact ordinary program-intent wrapper over the same proved ASCII object.
 /// No stopBefore/readOnly/parameters or string-input route is inferred here.
 /// Counts are constructor inputs to the original phase owner, never a grant.
+// `_observed_*` fields retain exact bound observations for white-box tests;
+// production consumes the admitted totals, not these diagnostic projections.
 priv struct ClosedValuesIntentInventories {
-  retained : PreparationRepresentationUnits
-  js_temporary : PreparationRepresentationUnits
-  core_temporary : PreparationRepresentationUnits
-  shared_temporary : PreparationRepresentationUnits
+  retained : @execution.PreparationRepresentationUnits
+  js_temporary : @execution.PreparationRepresentationUnits
+  core_temporary : @execution.PreparationRepresentationUnits
+  shared_temporary : @execution.PreparationRepresentationUnits
   _observed_wire_facts : ClosedValuesLexicalFacts
 }
 
@@ -54,17 +56,38 @@ fn closed_values_intent_source_facts(
 /// Scale only logical owner counts, with the same checked arithmetic as the
 /// tariff; this returns representation data, never another grant or byte pool.
 fn closed_values_intent_scale_units(
-  original : PreparationRepresentationUnits,
+  original : @execution.PreparationRepresentationUnits,
   count : Int64,
-) -> PreparationRepresentationUnits? {
+) -> @execution.PreparationRepresentationUnits? {
   if count < 1L {
     return None
   }
-  guard preparation_cost_add(0L, original.record_headers, count) is Some(h) &&
-    preparation_cost_add(0L, original.reference_slots, count) is Some(r) &&
-    preparation_cost_add(0L, original.scalar_words, count) is Some(w) &&
-    preparation_cost_add(0L, original.owned_utf16_units, count) is Some(t) &&
-    preparation_cost_add(0L, original.owned_wire_bytes, count) is Some(b) else {
+  guard @execution.checked_preparation_add_product(
+      0L,
+      original.record_headers,
+      count,
+    )
+    is Some(h) &&
+    @execution.checked_preparation_add_product(
+      0L,
+      original.reference_slots,
+      count,
+    )
+    is Some(r) &&
+    @execution.checked_preparation_add_product(0L, original.scalar_words, count)
+    is Some(w) &&
+    @execution.checked_preparation_add_product(
+      0L,
+      original.owned_utf16_units,
+      count,
+    )
+    is Some(t) &&
+    @execution.checked_preparation_add_product(
+      0L,
+      original.owned_wire_bytes,
+      count,
+    )
+    is Some(b) else {
     return None
   }
   Some({
@@ -95,7 +118,7 @@ fn closed_values_intent_inventories(
   let b = facts.input_bytes.to_int64()
   // Final ClientSubmittedIntent (wire,CID,two flags), wire String and CID.
   // The SDK input object and original document remain independently owned.
-  let retained : PreparationRepresentationUnits = {
+  let retained : @execution.PreparationRepresentationUnits = {
     record_headers: 3L,
     reference_slots: 2L,
     scalar_words: 2L,
@@ -105,7 +128,7 @@ fn closed_values_intent_inventories(
   let source = closed_values_source_inventories(facts)
   // from_source(data_keys=true) borrows validated ASCII strings: one canonical
   // variant/node; FrozenArray+array wrapper/backing/container; field tuples.
-  let canonical : PreparationRepresentationUnits = {
+  let canonical : @execution.PreparationRepresentationUnits = {
     record_headers: n + 3L * c + f,
     reference_slots: n + 2L * c + e + 2L * f,
     scalar_words: n + 2L * c,
@@ -132,7 +155,7 @@ fn closed_values_intent_inventories(
   // Per live array: its mapped String slots remain until join. The largest
   // array is rows or selected fields; at most d such ancestor arrays coexist.
   let width = Int::max(Int::max(input.rows, input.fields), 4).to_int64()
-  let js_array_frame : PreparationRepresentationUnits = {
+  let js_array_frame : @execution.PreparationRepresentationUnits = {
     record_headers: 12L + 4L * k.to_int64(),
     reference_slots: 54L + 16L * k.to_int64() + 2L * width,
     scalar_words: 12L + 4L * k.to_int64(),
@@ -144,7 +167,7 @@ fn closed_values_intent_inventories(
   }
   // Five object callbacks, one array callback, one {dataKeys} and recursive
   // control per live depth. Original input/envelope references are borrowed.
-  let js_controls : PreparationRepresentationUnits = {
+  let js_controls : @execution.PreparationRepresentationUnits = {
     record_headers: 8L * d + 1L,
     reference_slots: 12L * d + 3L,
     scalar_words: 5L * d,
@@ -157,10 +180,11 @@ fn closed_values_intent_inventories(
   // not four copies of the mutable input tree. Original keys are borrowed.
   // Exclude the final returned wire here: its one owner is shared_temporary.
   // Retain the old cumulative String-header upper; no early string GC assumed.
-  guard preparation_cost_add(0L, b, 4L * d - 1L) is Some(js_text) else {
+  guard @execution.checked_preparation_add_product(0L, b, 4L * d - 1L)
+    is Some(js_text) else {
     return None
   }
-  let rendered : PreparationRepresentationUnits = {
+  let rendered : @execution.PreparationRepresentationUnits = {
     record_headers: 4L * n - 1L,
     reference_slots: 0L,
     scalar_words: 0L,
@@ -170,7 +194,7 @@ fn closed_values_intent_inventories(
   let sort = closed_values_sort_scratch_layout(Int::max(input.fields, 4)).unwrap()
   // Canonical from_source recursive frames, map callback closures, InputBudget;
   // canonical emit_value owns only parent cursors, not one copied subtree/node.
-  let traversal : PreparationRepresentationUnits = {
+  let traversal : @execution.PreparationRepresentationUnits = {
     record_headers: 8L * d + 9L,
     reference_slots: 17L * d + 15L,
     scalar_words: 10L * d + 14L,
@@ -189,14 +213,14 @@ fn closed_values_intent_inventories(
     is Some(hash) else {
     return None
   }
-  let writer : PreparationRepresentationUnits = {
+  let writer : @execution.PreparationRepresentationUnits = {
     record_headers: hash.record_headers,
     reference_slots: hash.reference_slots,
     scalar_words: hash.scalar_words,
     owned_utf16_units: hash.owned_utf16_units,
     owned_wire_bytes: hash.owned_wire_bytes,
   }
-  let text_output : PreparationRepresentationUnits = {
+  let text_output : @execution.PreparationRepresentationUnits = {
     record_headers: 5L,
     reference_slots: 2L,
     scalar_words: 2L,
@@ -204,7 +228,7 @@ fn closed_values_intent_inventories(
     owned_wire_bytes: 0L,
   }
   // Only this final JS canonical wire crosses the synchronous phase boundary.
-  let shared_temporary : PreparationRepresentationUnits = {
+  let shared_temporary : @execution.PreparationRepresentationUnits = {
     record_headers: 1L,
     reference_slots: 0L,
     scalar_words: 0L,
@@ -213,7 +237,7 @@ fn closed_values_intent_inventories(
   }
   // Core owns UTF8 bytes, decoded ASCII document and CID concatenation scratch.
   // Its source AST remains live through the entire original Core call.
-  let wires : PreparationRepresentationUnits = {
+  let wires : @execution.PreparationRepresentationUnits = {
     record_headers: 4L,
     reference_slots: 0L,
     scalar_words: 2L,
@@ -225,7 +249,7 @@ fn closed_values_intent_inventories(
   // carriers, two API tuples,18-slot sum-array/backing and active arithmetic
   // returns. The48H/72R/152W packet dominates those named objects.
   // Source parsing error/path carriers are already in its original inventory.
-  let controls : PreparationRepresentationUnits = {
+  let controls : @execution.PreparationRepresentationUnits = {
     record_headers: 48L,
     reference_slots: 72L,
     scalar_words: 152L,
@@ -236,11 +260,11 @@ fn closed_values_intent_inventories(
   // Caller prices shared+JS and shared+Core using the SAME tariff, then reserves
   // their scalar maximum before either phase. Never componentwise-max units,
   // which would mix one phase's String peak with another's container peak.
-  guard closed_values_sum_layouts([
+  guard @execution.compose_preparation_representation([
       maps, js_arrays, js_controls, rendered, sort, controls,
     ])
     is Some(js_temporary) &&
-    closed_values_sum_layouts([
+    @execution.compose_preparation_representation([
       source.source_retained,
       source.source_growth_peak,
       source.key_admission_peak,

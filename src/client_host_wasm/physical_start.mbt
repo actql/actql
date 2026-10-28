@@ -25,7 +25,6 @@ fn required_boolean(object : @decode.ObjectView, name : String) -> Bool? {
 /// Inspect retained physical journal facts before the Host's atomic dispatch
 /// reservation. This pure projection neither stores a reservation nor permits
 /// Source or Compute. The separate physical-start Owner remains mandatory.
-#export_name("actql_run_dispatch_action")
 pub fn dispatch_action(
   nonce : Int64,
   run : Int,
@@ -94,7 +93,6 @@ pub fn dispatch_action(
 ///|
 /// The physical Host retains custody before Owner evaluation can be interrupted.
 /// It supplies journal facts; neither authored input nor a Client controls them.
-#export_name("actql_run_reserve_physical_start")
 pub fn reserve_physical_start(
   nonce : Int64,
   run : Int,
@@ -144,7 +142,6 @@ pub fn reserve_physical_start(
 ///|
 /// Read the exact retained request and physical facts once. Only the existing
 /// common Run start Owner decides whether they permit physical work.
-#export_name("actql_run_confirm_physical_start")
 pub fn confirm_physical_start(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.physical_starts.get(handle) is Some(record) &&
@@ -218,7 +215,6 @@ pub fn confirm_physical_start(nonce : Int64, handle : Int) -> Int {
 
 ///|
 /// Private readiness only: zero does not prove a durable acceptance or dispatch.
-#export_name("actql_run_physical_start_ready")
 pub fn physical_start_ready(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.physical_starts.get(handle) is Some(record) else {
@@ -241,7 +237,6 @@ pub fn physical_start_ready(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_run_close_physical_start")
 pub fn close_physical_start(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.physical_starts.get(handle) is Some(record) else {

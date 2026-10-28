@@ -1,6 +1,8 @@
 ///|
 /// A bounded optimization proof tied to the original parsed/indexed owner.
 /// This is not semantic admission. Ordinary checking remains authoritative.
+// `_observed_*` fields retain exact bound observations for white-box tests;
+// production consumes the admitted totals, not these diagnostic projections.
 priv struct ClosedValuesShape {
   original : @syntax.ParsedProgramInput
   fields : Int

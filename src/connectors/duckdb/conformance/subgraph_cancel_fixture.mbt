@@ -1,5 +1,5 @@
 ///|
-/// Test-only preparation of the existing unselected constructor/Subgraph
+/// Test-only preparation of the existing unselected constructor/Graph consumer
 /// provider. Public Program planning can split these into selected tasks; that
 /// route must not stand in for this provider's stored-input entrypoint.
 struct SubgraphCancelFixture {
@@ -52,6 +52,20 @@ pub fn subgraph_cancel_create(
     None,
   )
   assert_eq(@execution.generated_sequence_step_count(generated), 2)
+  let generated = if @lower.sequence_step(
+      @execution.generated_prepared_sequence(generated),
+      1,
+    )
+    is Some(@lower.GraphTraverseStep(_)) {
+    // This conformance fixture declares eight isolated nodes and no edges.
+    // Search and output are separate occurrence-bound ceilings: at most
+    // eight-by-eight start/target pairs and eight zero-hop output rows.
+    // Do not bypass the production Shortest search-envelope requirement.
+    assert_eq(@execution.completed_row_count(output), 8)
+    @execution.constrain_generated_traversal(generated, 1, 8L * 8L, 8L).unwrap()
+  } else {
+    generated
+  }
   let bound = @execution.bind_completed_input(consumer, 0, owner, output).unwrap()
   let input = @execution.prepare_producer_read(consumer, bound, 100, 10000).unwrap()
   let provider = @local_sga_provider.provider(
@@ -93,7 +107,8 @@ pub fn subgraph_cancel_advance(f : SubgraphCancelFixture) -> Array[Int64] {
   match @local_connector.advance_managed_provider(f.execution, 1).unwrap() {
     @local_connector.Continue(progress~, work~) => [0L, progress, work]
     @local_connector.Stopped(progress~, work~) => [1L, progress, work]
-    _ => abort("unexpected fused Subgraph completion or failure")
+    @local_connector.Failed(_, progress~, work~) => [2L, progress, work]
+    _ => abort("unexpected fused Graph consumer completion")
   }
 }
 

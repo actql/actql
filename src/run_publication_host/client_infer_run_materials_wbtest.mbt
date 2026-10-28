@@ -75,9 +75,9 @@ fn composed_infer_run_materials_fixture() -> (
   @publication.PublicationContract,
   String,
 ) raise {
-  // The historical Effect vector retains its old capability ordering. This
-  // new input preserves both exact members and orders them by their canonical
-  // body hashes; it does not change or claim to qualify that old vector.
+  // This current admission fixture preserves both original Source members and
+  // their reviewed dependency roles in canonical digest order. Historical
+  // unsorted preimages remain independently tested in local_environment_order_history.
   let source = parse_plan_identity_value(
     client_composed_acquired_effect_environment, 65536, 4096, 64,
   ).unwrap()
@@ -88,8 +88,8 @@ fn composed_infer_run_materials_fixture() -> (
   let caps = @canonical.array_values(capabilities)
   assert_eq(caps.length(), 2)
   assert_true(
-    @canonical.cid_value(caps[1], 65536, 4096, 64) <
-    @canonical.cid_value(caps[0], 65536, 4096, 64),
+    @canonical.cid_value(caps[0], 65536, 4096, 64) <
+    @canonical.cid_value(caps[1], 65536, 4096, 64),
   )
   let writer = @encode.writer(65536, 4096, 64)
   @encode.begin_object(writer)
@@ -100,8 +100,8 @@ fn composed_infer_run_materials_fixture() -> (
     @encode.key(writer, key)
     if key == "connector_capabilities" {
       @encode.begin_array(writer)
-      @canonical.emit_value(caps[1], writer)
       @canonical.emit_value(caps[0], writer)
+      @canonical.emit_value(caps[1], writer)
       @encode.end_array(writer)
     } else {
       @canonical.emit_value(value, writer)

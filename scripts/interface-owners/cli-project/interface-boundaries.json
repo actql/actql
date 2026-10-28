@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "packages/native-cli/lib/project-template.mjs",
-      "sha256": "fbfe2427019a3ea02ffc7ac204219d99093d58b4f15cec32f9e78ed3dedc88a7",
+      "sha256": "bc3a86afe31321b277202fafa9b715c2e84dbf1a0b2afecb4d17eb87ed5d2972",
       "exports": [
         "projectTemplateFiles"
       ],

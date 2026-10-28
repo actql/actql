@@ -262,3 +262,44 @@ test "shared original Mock publication keeps its own live bytes and planning cap
     sibling.val.unwrap(),
   )
 }
+
+///|
+test "original Mock never erases another entered attempt's uncertain wire history" {
+  let calls = Ref(0)
+  let sibling : Ref[@resources.CapacityReservation?] = Ref(None)
+  let (active, installation, profile, read, ledger, _, _) = original_mock_fixture(
+    calls,
+    shared_parent=Some(shared_mock_test_parent()),
+    shared_sibling=Some(sibling),
+  )
+  // A distinct original reservation models prior Host responsibility on this
+  // shared Run. Settling its capacity must not refund uncertain sent history.
+  let prior = @resources.reserve_attempt(ledger, 1L, 0L, 0L).unwrap()
+  @resources.mark_transfer_uncertain(ledger, prior, 1L).unwrap()
+  @resources.settle_reservation(ledger, prior).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_eq(@resources.ledger_usage(ledger).uncertain_transfer_bytes, 1L)
+  let work = match fixture_finish(active, initial_work=active.work) {
+    Settling(_, work~) => work
+    _ => abort("the original Mock must retain its settlement")
+  }
+  assert_eq(calls.val, 1)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 2)
+  assert_eq(@resources.ledger_usage(ledger).uncertain_transfer_bytes, 1L)
+  assert_true(
+    @model.acknowledge_model_call_settlement(call_settlement(active).unwrap()),
+  )
+  assert_true(fixture_finish(active, initial_work=work) is Complete(_, ..))
+  assert_eq(@resources.ledger_usage(ledger).attempts, 2)
+  assert_eq(calls.val, 1)
+  shared_mock_test_finish(
+    active,
+    installation,
+    profile,
+    read,
+    ledger,
+    sibling.val.unwrap(),
+  )
+  assert_eq(@resources.ledger_usage(ledger).attempts, 2)
+  assert_eq(@resources.ledger_usage(ledger).uncertain_transfer_bytes, 1L)
+}

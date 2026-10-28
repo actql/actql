@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import {runRestoredMutation, requireMutationDetection} from '../bounded-session/mutation-command.mjs';
 import { snapshot, artifacts } from './evidence.mjs';
-import {retirementCases, selectCases, retirementWitness, requireRetirementDetection} from './mutation-retirement.mjs';
+import {retirementCases, selectCases, retirementWitness, requireRetirementDetection, requireNormalLifetime} from './mutation-retirement.mjs';
 import {createHash} from 'node:crypto';
 import {performance} from 'node:perf_hooks';
 
@@ -77,10 +77,9 @@ function normal(phase) {
   const result = spawnSync(join(home, 'bin/moon'), args, {cwd: root, env, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024});
   const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
   writeFileSync(join(directory, `mutation-retirement-normal-${phase}.log`), output);
-  if (result.error || result.status !== 0 || !output.includes('Total tests: 8, passed: 8, failed: 0.'))
-    throw result.error ?? new Error('The unchanged eight-case lifetime fixture did not pass');
+  const count = requireNormalLifetime(result, output, readFileSync(join(root, retirementCases[0][4]), 'utf8'));
   if (snapshot(root).digest !== before.digest) throw new Error('Normal observation source changed');
-  normals.push({phase, command: ['moon', ...args], count: 8, milliseconds: performance.now() - start, sourceDigest: before.digest, artifacts: capture(`normal-${phase}`)});
+  normals.push({phase, command: ['moon', ...args], count, milliseconds: performance.now() - start, sourceDigest: before.digest, artifacts: capture(`normal-${phase}`)});
 }
 if (hasRetirement) normal('before');
 for (const recipe of selected) {

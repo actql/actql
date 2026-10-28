@@ -15,10 +15,10 @@ extern "js" fn publication_test_url() -> String =
 #warnings("-deprecated")
 extern "js" fn publication_test_original(
   loader : PublicationTestLoader,
-  input : Array[Int],
+  input : () -> Array[Int],
   current : () -> Unit,
 ) -> @resources.OriginalNodeManagedRunReference =
-  #|(loader,input,current) => loader('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs').retainOrdinaryManagedRun(input,{planningWork:0,attempts:0,holdings:0,transferBytes:0n,retainedBytes:536870912n,executionBytes:536870912n},current,()=>false,'local-preparation')
+  #|(loader,input,current) => loader('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs').retainOrdinaryManagedRun(input(),{planningWork:0,attempts:0,holdings:0,transferBytes:0n,retainedBytes:536870912n,executionBytes:536870912n},current,()=>false,'local-preparation')
 
 ///|
 fn publication_custody_fixture(
@@ -27,7 +27,7 @@ fn publication_custody_fixture(
   let input = [1]
   let original = publication_test_original(
     publication_test_loader(publication_test_url()),
-    input,
+    () => input,
     current,
   )
   let initial = @resources.prepare_node_local_preparation_admission(
@@ -60,11 +60,13 @@ fn publication_custody_fixture(
     input: Some(input),
     initial,
     policy: client_local_resource_policy(),
+    module_containers: empty_family_module_containers,
     capacity,
     work: None,
     header_fields: 0,
     header_rows: 0,
     retiring: false,
+    module_constructing: false,
     text_checked: false,
     scan_complete: false,
     document: None,
@@ -94,9 +96,6 @@ fn publication_custody_fixture(
   let value : ClientProgramPublication[Array[Int]] = {
     owner,
     holder,
-    _observed_base_retained: 1000000L,
-    _observed_snapshot_retained: 0L,
-    _observed_snapshot_execution: publication_projection_execution,
     capture_started: false,
     capture: None,
     run: None,
@@ -389,8 +388,8 @@ test "publication capture handle failed payload growth retains owned plan until 
   assert_true(
     reserve_publication_constructor(
       value,
-      preparation_representation_cost(layout.retained).unwrap(),
-      preparation_representation_cost(layout.temporary).unwrap(),
+      @execution.preparation_representation_cost(layout.retained).unwrap(),
+      @execution.preparation_representation_cost(layout.temporary).unwrap(),
     )
     is Err(
       Capacity(

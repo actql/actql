@@ -171,7 +171,7 @@ test "epoch failed observation cannot revive cached authentication after key mut
   let epoch = authority.issue_epoch(scope, true, 1000.0).unwrap()
   let calls : Array[String] = []
   let actual = journal_test_operation_access(database, calls)
-  let fail_read = Ref::new(false)
+  let fail_read = Ref(false)
   let reads = {
     ..actual.reads,
     read: (table, key) => {

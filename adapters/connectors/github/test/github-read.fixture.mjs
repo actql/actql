@@ -107,10 +107,13 @@ export async function accountedGitHubRows(verifyTransport, resource = 'issues') 
   const program = commonMoon.clientProgramPreparationReady(preparation);
   assert.ok(program, commonMoon.clientProgramPreparationIssueCode(preparation));
   const aoa = JSON.parse(await read('spec/contracts/actql-aoa.json'));
+  const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+  const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+  const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const installedContracts = checked(commonMoon.clientPrepareInstalledSequenceContracts(
+    await read('spec/dependencies/aoa-pipeline-registry.json'), values, fragment, ordered));
   const requirement = checked(commonMoon.clientProgramPrepareLocalQueryRequirement(program, 0, 0,
-    await read('spec/dependencies/aoa-pipeline-registry.json'), JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    installedContracts, values, fragment, ordered));
   const acquisition = checked(commonMoon.clientProgramRowSourcePrepareAcquisition(declaration, requirement,
     await read('spec/contracts/actql-query-acquisition.json'), await read('spec/contracts/actql-query-process-evidence.json')));
   const ledger = checked(commonMoon.clientProgramAcquisitionLedger(1, 1, 100000n, 100000000n, 100000000n, 0));

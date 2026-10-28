@@ -47,7 +47,9 @@ test "common execution preserves independent connector errors and releases unsta
   assert_true(@strategy.next_captured_task(run) is None)
   assert_false(@strategy.captured_task_completed(run, 1))
   let after = @resources.ledger_usage(ledger)
-  assert_eq(after.attempts, before.attempts + 1)
+  // The preparation callback refused before a physical operation began.
+  assert_eq(after.attempts, before.attempts)
+  assert_eq(after.reserved_attempts, before.reserved_attempts)
   assert_eq(after.transferred_bytes, before.transferred_bytes)
   assert_eq(after.reserved_transfer_bytes, before.reserved_transfer_bytes)
   assert_eq(after.reserved_retention_bytes, before.reserved_retention_bytes)

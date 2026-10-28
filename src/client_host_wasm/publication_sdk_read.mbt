@@ -14,7 +14,6 @@ priv enum SDKReadExport {
 }
 
 ///|
-#export_name("actql_publication_commit_export_produce_sdk_read_original")
 pub fn produce_publication_sdk_read_original(
   nonce : Int64,
   handle : Int,
@@ -37,7 +36,6 @@ pub fn produce_publication_sdk_read_original(
 ///|
 /// Original evidence packet/key for the same physical Store. This performs
 /// no insert, persistence acknowledgement, usage claim or Result read.
-#export_name("actql_publication_commit_export_produce_sdk_read_evidence")
 pub fn produce_publication_sdk_read_evidence(
   nonce : Int64,
   handle : Int,
@@ -59,7 +57,6 @@ pub fn produce_publication_sdk_read_evidence(
 ///|
 /// Use the existing grant issuer after the trusted Store rereads the exact
 /// original evidence. This is not persistence of this grant or a delivery.
-#export_name("actql_publication_commit_export_produce_sdk_read_grant")
 pub fn produce_publication_sdk_read_grant(
   nonce : Int64,
   handle : Int,
@@ -81,7 +78,6 @@ pub fn produce_publication_sdk_read_grant(
 ///|
 /// Core decides first append versus retained evidence from the same trusted
 /// Store. This proposal is not COMMIT acknowledgement or unknown-write retry.
-#export_name("actql_publication_commit_export_produce_sdk_read_evidence_decision")
 pub fn produce_publication_sdk_read_evidence_decision(
   nonce : Int64,
   handle : Int,
@@ -101,7 +97,6 @@ pub fn produce_publication_sdk_read_evidence_decision(
 
 ///|
 /// Original first-delivery CAS materials only, never usage ACK or payload.
-#export_name("actql_publication_commit_export_produce_sdk_read_delivery_storage")
 pub fn produce_publication_sdk_read_delivery_storage(
   nonce : Int64,
   handle : Int,
@@ -121,7 +116,6 @@ pub fn produce_publication_sdk_read_delivery_storage(
 
 ///|
 /// Existing read-only delivery-attempt response from original Store metadata.
-#export_name("actql_publication_commit_export_produce_sdk_delivery_lookup")
 pub fn produce_publication_sdk_delivery_lookup(
   nonce : Int64,
   handle : Int,

@@ -193,6 +193,9 @@ export function resolveConnectorBuildInputs(configuration) {
         !version(pin.version) || typeof pin.root !== 'string' || !isAbsolute(pin.root)) {
       throw new Error('Invalid explicit module pin');
     }
+    if (pin.namespace === 'moonbitlang/core' || pin.namespace.startsWith('moonbitlang/core/')) {
+      throw new Error('Compiler standard library cannot be supplied or shadowed');
+    }
     const root = resolve(pin.root);
     if (modules.has(pin.namespace) || [...modules.values()].some(module =>
       contains(module.root, root) || contains(root, module.root) ||

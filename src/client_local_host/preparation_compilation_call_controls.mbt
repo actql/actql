@@ -13,7 +13,7 @@
 /// witness scopes are three and row/byte facts two. Per-field loops retain no
 /// carrier wrappers between iterations; owned outputs are separately priced.
 /// No borrowed text backing or shared semantic owner is charged again here.
-let compilation_call_control_original : PreparationRepresentationUnits = {
+let compilation_call_control_original : @execution.PreparationRepresentationUnits = {
   record_headers: 549L * 3L,
   reference_slots: 549L * 6L,
   scalar_words: 549L * 4L,
@@ -22,6 +22,6 @@ let compilation_call_control_original : PreparationRepresentationUnits = {
 }
 
 ///|
-fn closed_values_compilation_call_controls() -> PreparationRepresentationUnits {
+fn closed_values_compilation_call_controls() -> @execution.PreparationRepresentationUnits {
   compilation_call_control_original
 }

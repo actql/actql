@@ -25,15 +25,20 @@ export function bindInstalledManagedSources(profile, runFor) {
         return Reflect.apply(captureCapacity, source, [requirement]);
       },
       async prepare(facts) {
-        const field = Object.getOwnPropertyDescriptor(facts, 'preparedProgram');
+        const pure = Object.getOwnPropertyDescriptor(facts, 'preparedProgram');
+        const effect = Object.getOwnPropertyDescriptor(facts, 'preparedEffect');
+        if (pure !== undefined && effect !== undefined) throw new TypeError('ForeignInstalledManagedSource');
+        const field = effect ?? pure;
+        const name = effect === undefined ? 'preparedProgram' : 'preparedEffect';
         if (field === undefined || !Object.hasOwn(field, 'value') || field.value === undefined) {
           throw new TypeError('ForeignInstalledManagedSource');
         }
         const checkedPrepared = field.value, parent = runFor(checkedPrepared);
-        const prepared = await Reflect.apply(prepare, source, [facts]);
+        const forwardedFacts = effect === undefined ? facts : Object.freeze({...facts, managedRun: parent});
+        const prepared = await Reflect.apply(prepare, source, [forwardedFacts]);
         // A cancellation or retirement during preparation cannot publish a
         // new association or upgrade an equal-shaped Source preparation.
-        const after = Object.getOwnPropertyDescriptor(facts, 'preparedProgram');
+        const after = Object.getOwnPropertyDescriptor(facts, name);
         if (after === undefined || !Object.hasOwn(after, 'value') ||
             after.value !== checkedPrepared || runFor(checkedPrepared) !== parent) {
           throw new TypeError('ForeignInstalledManagedSource');

@@ -18,7 +18,6 @@ priv struct StoredPayloadRequest {
 }
 
 ///|
-#export_name("actql_payload_request_reserve")
 pub fn reserve_payload_request(
   nonce : Int64,
   publication : Int,
@@ -81,7 +80,6 @@ pub fn reserve_payload_request(
 }
 
 ///|
-#export_name("actql_payload_request_produce")
 pub fn produce_payload_request(
   nonce : Int64,
   handle : Int,
@@ -153,7 +151,6 @@ pub fn produce_payload_request(
 }
 
 ///|
-#export_name("actql_payload_request_length")
 pub fn payload_request_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.payload_requests.get(handle) is Some(record) else {
@@ -169,7 +166,6 @@ pub fn payload_request_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
-#export_name("actql_payload_request_close")
 pub fn close_payload_request(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.payload_requests.get(handle) is Some(record) else {

@@ -137,6 +137,7 @@ export function prepareManagedComputeInstallation(originals) {
     return prepareOrdinarySourceManagedInstallation(originals, {
     validator: assertSourceManagedHostPreparation, request: originalSourceManagedHostRequest,
     intent: managedComputeSubmittedIntentCid, requirements: readManagedComputeRunRequirements,
+    effectRequirements: readSourceManagedEffectRunRequirements,
     preparationRequirements: readLocalPreparationResourceRequirements,
     preparationContext: readLocalPreparationContext,
     retireInitialPreparation: retireSourceManagedInitialPreparation,
