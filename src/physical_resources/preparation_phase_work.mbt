@@ -50,6 +50,8 @@ pub(all) enum PreparationWorkPhase {
   SourceLocalSnapshotBody
   SourceLocalTailInspection
   SourceLocalTailBody
+  SourceContextInputInspection
+  SourceContextInputBody
   SemanticCheck
   LowerAndGraph
   ExecutionPlan
@@ -106,9 +108,26 @@ struct PreparationPhaseWork64 {
 }
 
 ///|
+/// One original phase meter for staged constructors. This is an alternative
+/// receipt, not a wrapper issuing a second receipt or another work allowance.
+struct PreparationPhaseWorkContinuation64 {
+  spend_original : (Int64) -> Result[Unit, PreparationWorkIssue]
+  finish_original : () -> Result[Int64, PreparationWorkIssue]
+  return_original : () -> Result[Unit, PreparationWorkIssue]
+  resume_original : () -> Result[Unit, PreparationWorkIssue]
+}
+
+///|
+priv enum PreparationWorkState {
+  Executing
+  Returned
+  Closed
+} derive(Eq)
+
+///|
 priv struct PreparationPhaseWorkState[I, P] {
   owner : PreparationCapacity[I, P]
-  live : Ref[Bool]
+  live : Ref[PreparationWorkState]
   maximum : Int64
   mut remaining : Int64
 }
@@ -164,10 +183,12 @@ fn preparation_work_ordinal(phase : PreparationWorkPhase) -> Int {
     SourceLocalSnapshotBody => 45
     SourceLocalTailInspection => 46
     SourceLocalTailBody => 47
-    SemanticCheck => 48
-    LowerAndGraph => 49
-    ExecutionPlan => 50
-    PublicationProof => 51
+    SourceContextInputInspection => 48
+    SourceContextInputBody => 49
+    SemanticCheck => 50
+    LowerAndGraph => 51
+    ExecutionPlan => 52
+    PublicationProof => 53
   }
 }
 
@@ -197,7 +218,7 @@ fn[I, P] begin_preparation_work_state(
   if owner.ledger.imported_child is Some(origin) && origin.stopping {
     return Err(Stopping)
   }
-  let live = Ref(true)
+  let live = Ref(PreparationWorkState::Executing)
   owner.last_work_phase = ordinal
   owner.active_phase_work = Some(live)
   Ok({ owner, live, maximum, remaining: maximum, })
@@ -208,8 +229,11 @@ fn[I, P] spend_preparation_work_state(
   state : PreparationPhaseWorkState[I, P],
   amount : Int64,
 ) -> Result[Unit, PreparationWorkIssue] {
-  if !state.live.val {
+  if state.live.val == Closed {
     return Err(Closed)
+  }
+  if state.live.val != Executing {
+    return Err(WrongPhase)
   }
   if !preparation_capacity_phase_is_working(state.owner.phase) {
     return Err(WrongPhase)
@@ -231,16 +255,60 @@ fn[I, P] spend_preparation_work_state(
 fn[I, P] finish_preparation_work_state(
   state : PreparationPhaseWorkState[I, P],
 ) -> Result[Int64, PreparationWorkIssue] {
-  if !state.live.val {
+  if state.live.val == Closed {
     return Err(Closed)
   }
   if !(state.owner.active_phase_work is Some(active) &&
     physical_equal(active, state.live)) {
     return Err(ForeignOriginal)
   }
-  state.live.val = false
+  // A returned receipt can span a resize, whose original current callback may
+  // reenter. Finishing inside that callback must not sever the live phase.
+  if state.owner.phase == Completing ||
+    state.owner.phase == Transferring ||
+    state.owner.phase == Settling {
+    return Err(WrongPhase)
+  }
+  state.live.val = Closed
   state.owner.active_phase_work = None
   Ok(state.maximum - state.remaining)
+}
+
+///|
+fn[I, P] return_preparation_work_state(
+  state : PreparationPhaseWorkState[I, P],
+) -> Result[Unit, PreparationWorkIssue] {
+  if state.live.val == Closed {
+    return Err(Closed)
+  }
+  if state.live.val != Executing ||
+    !preparation_capacity_phase_is_working(state.owner.phase) ||
+    !(state.owner.active_phase_work is Some(active) &&
+    physical_equal(active, state.live)) {
+    return Err(WrongPhase)
+  }
+  state.live.val = Returned
+  Ok(())
+}
+
+///|
+fn[I, P] resume_preparation_work_state(
+  state : PreparationPhaseWorkState[I, P],
+) -> Result[Unit, PreparationWorkIssue] {
+  if state.live.val == Closed {
+    return Err(Closed)
+  }
+  if state.live.val != Returned ||
+    !preparation_capacity_phase_is_working(state.owner.phase) ||
+    !(state.owner.active_phase_work is Some(active) &&
+    physical_equal(active, state.live)) {
+    return Err(WrongPhase)
+  }
+  if state.owner.ledger.imported_child is Some(origin) && origin.stopping {
+    return Err(Stopping)
+  }
+  state.live.val = Executing
+  Ok(())
 }
 
 ///|
@@ -316,6 +384,76 @@ pub fn spend_preparation_phase_work64(
 ///|
 pub fn finish_preparation_phase_work64(
   receipt : PreparationPhaseWork64,
+) -> Result[Int64, PreparationWorkIssue] {
+  (receipt.finish_original)()
+}
+
+///|
+/// Only the fixed synchronous constructor driver calls this AFTER the current
+/// constructor has returned. It retains the same maximum, spent work and phase
+/// ordinal. It does not close/refill work or acknowledge physical cleanup.
+pub fn return_preparation_phase_work_continuation64(
+  receipt : PreparationPhaseWorkContinuation64,
+) -> Result[Unit, PreparationWorkIssue] {
+  (receipt.return_original)()
+}
+
+///|
+/// Resume the SAME original receipt after backing the next constructor. This
+/// performs no external current callback; actual resize/current boundaries
+/// retain their original checks. Returning a receipt never authorizes transfer.
+pub fn resume_preparation_phase_work_continuation64(
+  receipt : PreparationPhaseWorkContinuation64,
+) -> Result[Unit, PreparationWorkIssue] {
+  (receipt.resume_original)()
+}
+
+///|
+/// Staged receipt adds two original closures2H2R and two receipt fields2R.
+/// The same state/status cell remains one scalar word. Ordinary narrow/wide
+/// receipts retain their exact original fields and constructor inventory.
+pub fn preparation_phase_work_continuation64_construction_inventory() -> PreparationWorkConstructionInventory {
+  {
+    record_headers: preparation_work_construction.record_headers + 2L,
+    reference_slots: preparation_work_construction.reference_slots + 4L,
+    scalar_words: preparation_work_construction.scalar_words,
+  }
+}
+
+///|
+/// Claim the existing original work state once. The caller backs this exact
+/// receipt before entry and uses it across returned constructor boundaries.
+pub fn[I, P] begin_preparation_phase_work_continuation64(
+  owner : PreparationCapacity[I, P],
+  input : I,
+  phase : PreparationWorkPhase,
+  maximum_work : Int64,
+) -> Result[PreparationPhaseWorkContinuation64, PreparationWorkIssue] {
+  let state = match
+    begin_preparation_work_state(owner, input, phase, maximum_work) {
+    Err(issue) => return Err(issue)
+    Ok(state) => state
+  }
+  Ok({
+    spend_original: amount => spend_preparation_work_state(state, amount),
+    finish_original: () => finish_preparation_work_state(state),
+    return_original: () => return_preparation_work_state(state),
+    resume_original: () => resume_preparation_work_state(state),
+  })
+}
+
+///|
+pub fn spend_preparation_phase_work_continuation64(
+  receipt : PreparationPhaseWorkContinuation64,
+  amount : Int64,
+) -> Result[Unit, PreparationWorkIssue] {
+  (receipt.spend_original)(amount)
+}
+
+///|
+/// Finish the SAME total once, including cleanup of a returned constructor.
+pub fn finish_preparation_phase_work_continuation64(
+  receipt : PreparationPhaseWorkContinuation64,
 ) -> Result[Int64, PreparationWorkIssue] {
   (receipt.finish_original)()
 }

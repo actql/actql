@@ -27,6 +27,7 @@ fn batch_snapshot_parent(
   local_declarations? : Bool = false,
   bad_tail? : Bool = false,
   scores? : Bool = false,
+  calendar_policy? : String = "{}",
   current? : () -> Bool = () => true,
 ) -> (
   ClientRequestPreparation[Array[Int]],
@@ -101,7 +102,9 @@ fn batch_snapshot_parent(
     stages.join(",") +
     "],\"results\":{\"out\":{\"from\":{\"stage\":\"t\",\"result\":\"out\"}}}}"
   let prefix = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],"
-  let suffix = "\"host_policy_profile\":{},\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[" +
+  let suffix = "\"host_policy_profile\":" +
+    calendar_policy +
+    ",\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[" +
     bodies.join(",") +
     "],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
   let cid = "sha256:" + @sha.hex(@utf8.encode(prefix + suffix))

@@ -1,6 +1,7 @@
 ///|
 pub enum SourceViewProgramIssue {
   InvalidLimits
+  Unavailable
   ForeignEnvironment
   ForeignCalendarEnvironment
   CalendarSelection(@environment.CalendarSelectionIssue)
@@ -132,17 +133,33 @@ pub fn topology_sourceview_attachment_at(
 }
 
 ///|
-fn prepare_sourceview_topology_internal(
+/// Original SourceView registration gathering, not a checked topology, Plan,
+/// Resource Owner or permission. The SAME Source/locals/views/selected inputs
+/// stay private; no caller can supply a replacement registration array.
+priv struct SourceViewProgramInput {
+  source : @stages.Source
+  views : @sourceviews.PipelineInputs
+  locals : @local_inputs.ProgramEnvironmentInputs
+  limits : @stage_results.LocalProgramLimits
+  calendar : @environment.SelectedCalendarProfile?
+  model_tasks : @environment.ModelTasks?
+  registrations : Array[Array[(String, @pipeline.InputContract)]]
+  missing_calendar : @environment.CalendarSelection?
+  extra : Int
+  prior : Int
+  mut available : Bool
+}
+
+///|
+/// Prepare only the original calendar/partition/registration entrance. All
+/// later topology constructors still require their own complete backing.
+fn prepare_sourceview_program_input(
   views : @sourceviews.PipelineInputs,
   locals : @local_inputs.ProgramEnvironmentInputs,
   limits : @stage_results.LocalProgramLimits,
   calendar? : @environment.SelectedCalendarProfile? = None,
   model_tasks? : @environment.ModelTasks? = None,
-  check_only~ : Bool,
-) -> Result[
-  (SourceViewPreparation, @stage_results.LocalProgramUsage, Int),
-  SourceViewProgramIssue,
-] {
+) -> Result[SourceViewProgramInput, SourceViewProgramIssue] {
   if limits.max_work < 0 ||
     limits.max_text_bytes < 0 ||
     limits.max_nodes < 0 ||
@@ -230,6 +247,73 @@ fn prepare_sourceview_topology_internal(
       }),
     )
   }
+  Ok({
+    source,
+    views,
+    locals,
+    limits,
+    calendar,
+    model_tasks,
+    registrations,
+    missing_calendar,
+    extra,
+    prior,
+    available: true,
+  })
+}
+
+///|
+fn prepare_sourceview_topology_internal(
+  views : @sourceviews.PipelineInputs,
+  locals : @local_inputs.ProgramEnvironmentInputs,
+  limits : @stage_results.LocalProgramLimits,
+  calendar? : @environment.SelectedCalendarProfile? = None,
+  model_tasks? : @environment.ModelTasks? = None,
+  check_only~ : Bool,
+) -> Result[
+  (SourceViewPreparation, @stage_results.LocalProgramUsage, Int),
+  SourceViewProgramIssue,
+] {
+  let original = match
+    prepare_sourceview_program_input(
+      views,
+      locals,
+      limits,
+      calendar~,
+      model_tasks~,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(original) => original
+  }
+  finish_sourceview_program_input_owned(original, check_only~)
+}
+
+///|
+fn finish_sourceview_program_input_owned(
+  original : SourceViewProgramInput,
+  check_only~ : Bool,
+) -> Result[
+  (SourceViewPreparation, @stage_results.LocalProgramUsage, Int),
+  SourceViewProgramIssue,
+] {
+  if !original.available {
+    return Err(Unavailable)
+  }
+  original.available = false
+  let {
+    source,
+    views,
+    locals,
+    limits,
+    calendar,
+    model_tasks,
+    registrations,
+    missing_calendar,
+    extra,
+    prior,
+    ..
+  } = original
+  let count = @stages.stage_count(source)
   let checked_limits = { ..limits, max_work: limits.max_work - extra, }
   let prepared = if check_only {
     @stage_results.check_local_program(

@@ -25,6 +25,71 @@ pub fn prepare_sourceview_context(
   model_tasks? : @environment.ModelTasks? = None,
   derived_capacity_limits? : @wire.Limits? = None,
 ) -> Result[SelectedPolicyContext, SourceViewContextIssue] {
+  let original = match
+    prepare_sourceview_context_input(
+      views,
+      locals,
+      source_limits,
+      limits,
+      calendar~,
+      model_tasks~,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(original) => original
+  }
+  prepare_sourceview_context_from_input(
+    original,
+    supplied,
+    materials,
+    proof_owners~,
+    input_owners~,
+    capacity_inputs~,
+    derived_capacity_limits~,
+  )
+}
+
+///|
+/// One original Context entrance, not a Resource Owner or successful Context.
+/// Its selected typed limits and original registration gathering are retained
+/// privately; later topology/binding/Stage constructors still need backing.
+struct SourceViewContextInput {
+  program : SourceViewProgramInput
+  limits : LocalContextLimits
+}
+
+///|
+/// Borrow the SAME source, not a replacement identity or successful Context.
+pub fn sourceview_context_input_source(
+  original : SourceViewContextInput,
+) -> @stages.Source {
+  original.program.source
+}
+
+///|
+/// Original completed entrance work, excluding its already retained view
+/// registration prefix. Missing failed entrance Usage is handled separately.
+pub fn sourceview_context_input_work(original : SourceViewContextInput) -> Int {
+  original.program.extra - original.program.prior
+}
+
+///|
+/// Invalidate only this original pure continuation after its constructor has
+/// unwound. Borrowed Source/Context data and physical backing remain distinct.
+pub fn retire_sourceview_context_input(
+  original : SourceViewContextInput,
+) -> Unit {
+  original.program.available = false
+}
+
+///|
+pub fn prepare_sourceview_context_input(
+  views : @sourceviews.PipelineInputs,
+  locals : @local_inputs.ProgramEnvironmentInputs,
+  source_limits : @stage_results.LocalProgramLimits,
+  limits : LocalContextLimits,
+  calendar? : @environment.SelectedCalendarProfile? = None,
+  model_tasks? : @environment.ModelTasks? = None,
+) -> Result[SourceViewContextInput, SourceViewContextIssue] {
   if !local_context_limits_valid(limits) {
     return Err(InvalidLimits)
   }
@@ -36,18 +101,41 @@ pub fn prepare_sourceview_context(
       limits.stages.max_text_bytes,
     ),
   }
-  let (wiring, _, extra) = match
-    prepare_sourceview_program_internal(
+  match
+    prepare_sourceview_program_input(
       views,
       locals,
       source_limits,
       calendar~,
       model_tasks~,
     ) {
-    Ok(v) => v
-    Err(e) => return Err(Program(e))
+    Err(issue) => Err(Program(issue))
+    Ok(program) => Ok({ program, limits, })
   }
-  let prior = @sourceviews.pipeline_inputs_work(views)
+}
+
+///|
+/// SAME completed entrance. Calendar and registration gathering are not
+/// repeated. Binding reuse still applies only to the original declarations,
+/// supplied Cursor and original compatible limits at its existing owner.
+pub fn prepare_sourceview_context_from_input(
+  original : SourceViewContextInput,
+  supplied : @decode.Cursor?,
+  materials : Array[Array[CapacityMaterial]],
+  proof_owners? : Array[Array[(Int, Int, Int)]]? = None,
+  input_owners? : Array[Array[(Int, Int, Int, Int)]]? = None,
+  capacity_inputs? : ProgramCapacityInputs? = None,
+  derived_capacity_limits? : @wire.Limits? = None,
+) -> Result[SelectedPolicyContext, SourceViewContextIssue] {
+  let program = original.program
+  let { views, limits: source_limits, prior, .. } = program
+  let limits = original.limits
+  let (wiring, _, extra) = match
+    finish_sourceview_program_input_owned(program, check_only=false) {
+    Err(issue) => return Err(Program(issue))
+    Ok((Publication(wiring), usage, extra)) => (wiring, usage, extra)
+    Ok(_) => abort("mixed preparation modes")
+  }
   // Both prefixes were bounded by topology preparation. The binder already
   // retains its own topology costs, but neither of these external costs.
   let prepared = match

@@ -92,6 +92,12 @@ priv enum ProgramCheckPreparationPhase {
   SourceLocalTailPrepared
   SourceLocalTailFailed
   SourceLocalTailComplete
+  SourceContextInputInitial
+  SourceContextInputInspected
+  SourceContextInputRetained
+  SourceContextInputPrepared
+  SourceContextInputComplete
+  SourceContextInputFailed
   Transferred
   Failed
   Retired
@@ -294,9 +300,7 @@ pub fn[I, P] clear_program_check_preparation(
   // Clearing must preserve only a real handoff that preceded this helper.
   let transferred = owner.phase == Transferred
   if !transferred && owner.source_registration is Some(original) {
-    @context.clear_source_registration(
-      @checked.parsed_source_registration_read(original),
-    )
+    @checked.clear_parsed_source_registration(original)
   }
   transfer_program_check_input(owner)
   if !transferred {

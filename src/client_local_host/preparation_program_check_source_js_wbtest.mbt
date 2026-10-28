@@ -70,8 +70,8 @@ fn registration_parent_fixture(
 
 ///|
 test "original Request parent funds Source entry across both one-byte-short boundaries and preserves transferred custody" {
-  assert_eq(program_check_source_entry_bytes, 2184L)
-  assert_eq(program_check_source_retained_bytes, 1176L)
+  assert_eq(program_check_source_entry_bytes, 2208L)
+  assert_eq(program_check_source_retained_bytes, 1200L)
   for retention in [true, false] {
     let (parent, owner, source, input) = registration_parent_fixture()
     assert_true(physical_equal(owner.capacity, parent.capacity))
@@ -84,14 +84,14 @@ test "original Request parent funds Source entry across both one-byte-short boun
     let blocker = @resources.reserve_capacity(
       parent.ledger,
       if retention {
-        limits.retained_bytes - before.0 - 2184L + 1L
+        limits.retained_bytes - before.0 - 2208L + 1L
       } else {
         0L
       },
       if retention {
         0L
       } else {
-        limits.execution_bytes - before.1 - 2184L + 1L
+        limits.execution_bytes - before.1 - 2208L + 1L
       },
     ).unwrap()
     let result = prepare_program_check_source_registration(owner, source)
@@ -116,7 +116,7 @@ test "original Request parent funds Source entry across both one-byte-short boun
     prepare_program_check_source_registration(owner, source).unwrap()
     assert_eq(
       @resources.preparation_capacity_working_extents(parent.capacity, input),
-      Ok((before.0 + 2184L, before.1 + 2184L)),
+      Ok((before.0 + 2208L, before.1 + 2208L)),
     )
     assert_true(
       @checked.parsed_check_registry_remaining_work(original)
@@ -136,7 +136,7 @@ test "original Request parent funds Source entry across both one-byte-short boun
       parent.capacity,
       input,
     ).unwrap()
-    assert_eq(held, (before.0 + 1176L, before.1 + 1176L))
+    assert_eq(held, (before.0 + 1200L, before.1 + 1200L))
     assert_true(
       physical_equal(
         take_program_check_source_registration(owner).unwrap(),

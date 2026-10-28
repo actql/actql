@@ -268,6 +268,7 @@ pub fn finish_parsed_check_registry(
 ///|
 fn finish_parsed_check_registry_owned(
   prepared : ParsedCheckRegistry,
+  source_context? : @context.SourceViewContextInput? = None,
 ) -> CheckOutcome {
   let prelude = prepared.prelude
   let {
@@ -305,6 +306,7 @@ fn finish_parsed_check_registry_owned(
       source_catalog~,
       source_preparation~,
       environment_start=Some(prepared.start),
+      source_context~,
     )
   })
 }

@@ -17,7 +17,7 @@ pub fn[I, P] preparation_capacity_working_extents(
   }
   if !preparation_capacity_phase_is_working(owner.phase) ||
     owner.body is Some(_) ||
-    owner.active_phase_work is Some(_) {
+    preparation_capacity_has_executing_work(owner) {
     return Err(WorkActive)
   }
   let token = owner.reservation.reservation

@@ -1505,3 +1505,75 @@ backing are separate obligations. The completed registration remains the input
 to Context/identity/check construction, whose full overlap must be backed on
 the same parent before consuming the registry. Local completion alone is not a
 Checked Program, compiled Plan, Run adoption or physical-release assertion.
+
+## Original Context entrance
+
+The original registration result can move once into its existing parsed-check
+continuation before Context topology construction. The entrance retains the
+same Source, Local registrations, Catalog-backed input arrays and selected typed
+limits. Calendar selection and registration gathering are shared with the
+synchronous Context function; the staged entrance does not introduce another
+collector, checker, parameter interpreter or caller-supplied successful Context.
+Completed geometry and its body quote survive a declined grow unchanged.
+
+The same request parent funds that entrance before consuming the original
+Source result. Header work excludes the already retained registration prefix;
+missing failed Usage remains missing until cleanup. This entrance is distinct
+from later pipeline typing, Parameter binding, Stage capacity construction,
+identity/closure checking and Plan adoption. Those constructors require their
+own complete overlap on the same parent before the original checker terminal
+can execute.
+
+Cancellation retires the parsed-check continuation and its same retained
+Context input together. Clearing the old registration reader alone is
+insufficient after its result was transferred internally. Retiring the input
+prevents another topology constructor; dropping this owner's aliases is not a
+physical-release acknowledgement, work refund or revocation of already checked
+immutable data held by a legitimate successor.
+
+## Topology-selected Parameter binding
+
+The original topology usage selects the remaining Parameter binding limits.
+A binding performed earlier under looser limits cannot generally replace that
+selection: completed success is reusable only under the existing compatible
+limits, and completed failure requires identical limits. Tightening that rule
+or silently rebinding would lose the intended single original continuation.
+
+The Local binding entrance therefore retains the original wiring, supplied
+input and selected limits after the same original preflight. Its staged
+completion accepts only a completed reader that satisfies the existing
+declaration/input/limits correspondence rule. A foreign, pending or incompatible
+reader does not trigger a fallback binding pass. The synchronous path uses the
+same preflight and final assembly; it continues to drive the original binder.
+
+The resulting Local source keeps the topology's original Source and wiring,
+and retains the reader's same completed BoundValues. It does not replace Source
+with a new snapshot after its pipelines have captured that Source. Cancellation
+retires this pure entrance; its getters and retirement do not provide capacity,
+permission or physical cleanup acknowledgements. Funding the topology, actual
+binding constructors and final Local assembly remains the request parent's
+responsibility at their respective boundaries.
+
+## One work phase across returned constructors
+
+An incremental typed constructor can reveal the next required representation
+only after its current step returns. A staged phase receipt retains the same
+original phase state, maximum, remaining work and ordinal across that boundary.
+The fixed driver marks the constructor returned, backs the next overlap on the
+same reservation, then resumes that same receipt. Returning does not close the
+phase or issue new work credit. Ordinary narrow and wide receipts retain their
+original fields and construction envelope; only the selected staged receipt
+holds the return/resume operations.
+
+Executing work still blocks resize. Returned work cannot spend until resumed,
+and its pending receipt still blocks completion, typed ownership continuation,
+publication and abort. The resize's original current callback remains a reentry
+boundary: it cannot resume or finish that receipt while the owner is completing
+the resize. The callback-free resume checks the same owner and stopping state;
+it does not add another current observation.
+
+The driver may return a receipt only after its synchronous constructor has
+unwound, and may reconcile only disposed scratch. All original typed inputs and
+live intermediate outputs remain funded. Finishing during cleanup reports the
+same previously consumed work. None of these operations acknowledges physical
+cleanup, refunds work, changes a limit or authorizes another phase issuance.

@@ -34,6 +34,8 @@ pub fn body_dependency_value(ContractBodyDependencies) -> ProtocolValueContract
 
 pub fn calendar_selection_cid(CalendarSelection) -> String
 
+pub fn calendar_selection_construction_extent(Int, Int) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn calendar_selection_environment(CalendarSelection) -> WireEnvironment
 
 pub fn calendar_selection_release(CalendarSelection) -> String

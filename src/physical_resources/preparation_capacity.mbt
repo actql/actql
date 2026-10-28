@@ -32,7 +32,7 @@ struct PreparationCapacity[I, P] {
   mut borrowers : Int
   max_borrowers : Int
   mut retirement_claimed : Bool
-  mut active_phase_work : Ref[Bool]?
+  mut active_phase_work : Ref[PreparationWorkState]?
   mut last_work_phase : Int
 }
 
@@ -542,7 +542,7 @@ pub fn[I, P] reserve_working_preparation_phase(
   }
   if !preparation_capacity_phase_is_working(owner.phase) ||
     owner.body is Some(_) ||
-    owner.active_phase_work is Some(_) {
+    preparation_capacity_has_executing_work(owner) {
     return Err(WorkActive)
   }
   let token = owner.reservation.reservation
@@ -576,7 +576,7 @@ pub fn[I, P] reconcile_working_preparation_phase(
   }
   if !preparation_capacity_phase_is_working(owner.phase) ||
     owner.body is Some(_) ||
-    owner.active_phase_work is Some(_) {
+    preparation_capacity_has_executing_work(owner) {
     return Err(WorkActive)
   }
   let token = owner.reservation.reservation
@@ -596,4 +596,17 @@ pub fn[I, P] reconcile_working_preparation_phase(
   )
   owner.phase = working_phase
   outcome.map_err(issue => PreparationCapacityIssue::Resource(issue))
+}
+
+///|
+// A returned constructor keeps its SAME receipt pending, but has no executing
+// body at a resize boundary. Completion, transfer, continuation and abort still
+// reject any pending receipt through their unchanged presence checks.
+fn[I, P] preparation_capacity_has_executing_work(
+  owner : PreparationCapacity[I, P],
+) -> Bool {
+  match owner.active_phase_work {
+    Some(state) => state.val != Returned
+    None => false
+  }
 }

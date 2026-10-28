@@ -11,6 +11,12 @@ pub struct ParsedSourceRegistration {
   priv limits : SourceLimits
   priv read : @context.SourceRegistrationRead
   priv mut available : Bool
+  priv mut registered : Bool
+  priv mut context_geometry : @context.SourceViewContextInputGeometry?
+  priv mut context_input : Result[
+    @context.SourceViewContextInput,
+    @context.SourceViewContextIssue,
+  ]?
 }
 
 ///|
@@ -20,6 +26,7 @@ pub suberror ParsedSourceRegistrationIssue {
   RegistrationConstruction(LocalConstructionFailure)
   Pending
   Unavailable
+  ContextInput(@context.SourceViewContextIssue)
 }
 
 ///|
@@ -76,7 +83,18 @@ pub fn begin_parsed_source_registration(
       return Err(RegistrationConstruction(Source(Registration(issue))))
     Ok(value) => value
   }
-  Ok({ registry, catalog, references, budget, limits, read, available: true, })
+  Ok({
+    registry,
+    catalog,
+    references,
+    budget,
+    limits,
+    read,
+    available: true,
+    registered: false,
+    context_geometry: None,
+    context_input: None,
+  })
 }
 
 ///|
@@ -98,6 +116,27 @@ pub fn finish_parsed_source_registration(
 ) -> Result[CheckOutcome, ParsedSourceRegistrationIssue] {
   if !prepared.available {
     return Err(Unavailable)
+  }
+  if prepared.registered {
+    prepared.available = false
+    return match prepared.context_input {
+      Some(Err(issue)) => {
+        let original = prepared.registry.prelude.original
+        Ok(
+          checking_outcome(original.program, original.environment, () => {
+            raise LocalConstructionFailure::Source(SourceView(issue))
+          }),
+        )
+      }
+      Some(Ok(input)) =>
+        Ok(
+          finish_parsed_check_registry_owned(
+            prepared.registry,
+            source_context=Some(input),
+          ),
+        )
+      None => Err(Unavailable)
+    }
   }
   match @context.source_registration_phase(prepared.read) {
     RegistrationCollect
@@ -133,4 +172,116 @@ pub fn finish_parsed_source_registration(
       Ok(finish_parsed_check_registry_owned(prepared.registry))
     }
   }
+}
+
+///|
+/// Observe the SAME completed Source result once without consuming it. Caller
+/// backs this metadata frame and retains the returned quantity across grow.
+pub fn observe_parsed_source_context_input_geometry(
+  prepared : ParsedSourceRegistration,
+) -> @context.SourceViewContextInputGeometry? {
+  if !prepared.available || prepared.registered {
+    return None
+  }
+  if prepared.context_geometry is Some(_) {
+    return prepared.context_geometry
+  }
+  let observed = @context.observe_source_registration_context_input_geometry(
+    prepared.read,
+  )
+  prepared.context_geometry = observed
+  observed
+}
+
+///|
+pub fn parsed_source_context_input_geometry(
+  prepared : ParsedSourceRegistration,
+) -> @context.SourceViewContextInputGeometry? {
+  prepared.context_geometry
+}
+
+///|
+/// Consume the original registration once, then retain the original Context
+/// entrance result. A failed result stays failed; no replacement tuple, limits,
+/// Program or caller-supplied prepared Context can enter this continuation.
+pub fn prepare_parsed_source_context_input(
+  prepared : ParsedSourceRegistration,
+) -> Result[@context.SourceViewContextInput, ParsedSourceRegistrationIssue] {
+  if !prepared.available {
+    return Err(Unavailable)
+  }
+  if prepared.context_input is Some(completed) {
+    return completed.map_err(issue => ContextInput(issue))
+  }
+  if @context.source_registration_phase(prepared.read) != RegistrationComplete {
+    return Err(Pending)
+  }
+  let (views, locals) = match
+    @context.take_source_registration_result(prepared.read) {
+    Some(Ok(pair)) => pair
+    _ => return Err(Unavailable)
+  }
+  prepared.registered = true
+  prepared.registry.start = Registered(
+    prepared.catalog,
+    prepared.references,
+    prepared.budget,
+    prepared.limits,
+    views,
+    locals,
+  )
+  let original = prepared.registry.prelude.original
+  let result = @context.prepare_sourceview_context_input(
+    views,
+    locals,
+    prepared.limits.topology,
+    prepared.limits.context,
+    calendar=original.environment.calendar,
+    model_tasks=original.environment.model_tasks,
+  )
+  prepared.context_input = Some(result)
+  result.map_err(issue => ContextInput(issue))
+}
+
+///|
+/// Original result only; a presence is not proof of success, funding or check.
+pub fn parsed_source_context_input(
+  prepared : ParsedSourceRegistration,
+) -> Result[@context.SourceViewContextInput, @context.SourceViewContextIssue]? {
+  prepared.context_input
+}
+
+///|
+/// Original selected semantic-work bound only, never a memory quantity.
+pub fn parsed_source_context_input_work_bound(
+  prepared : ParsedSourceRegistration,
+) -> Int? {
+  if !prepared.available || prepared.registered {
+    return None
+  }
+  if @context.source_registration_phase(prepared.read) != RegistrationComplete {
+    return None
+  }
+  Some(
+    Int::min(
+      prepared.limits.topology.max_work,
+      prepared.limits.context.stages.max_work,
+    ),
+  )
+}
+
+///|
+/// Original owner cancellation, not physical cleanup. Any retained Context
+/// entrance must retire with this same continuation; the old read may already
+/// be Transferred after its successful registration was captured here.
+pub fn clear_parsed_source_registration(
+  prepared : ParsedSourceRegistration,
+) -> Unit {
+  prepared.available = false
+  if prepared.context_input is Some(Ok(input)) {
+    @context.retire_sourceview_context_input(input)
+  }
+  prepared.context_input = None
+  prepared.context_geometry = None
+  @context.clear_source_registration(prepared.read)
 }
