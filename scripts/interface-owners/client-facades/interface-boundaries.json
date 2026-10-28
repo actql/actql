@@ -3984,6 +3984,10 @@
               {
                 "path": "docs/spec/protocols/contracts.md",
                 "anchor": "Requirement for an original Take Parameter demand."
+              },
+              {
+                "path": "docs/reference/check-reasons.md",
+                "anchor": "# Public check Reason catalog"
               }
             ],
             "identity": [
@@ -4207,6 +4211,10 @@
               {
                 "path": "docs/spec/protocols/contracts.md",
                 "anchor": "Requirement for an original Take Parameter demand."
+              },
+              {
+                "path": "docs/reference/check-reasons.md",
+                "anchor": "# Public check Reason catalog"
               }
             ],
             "identity": [

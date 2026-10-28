@@ -16797,6 +16797,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Physical DuckDB boundary"
+              },
+              {
+                "path": "vendor/duckdb/1.4.3/duckdb.h",
+                "anchor": "typedef uint64_t idx_t;"
               }
             ],
             "identity": [

@@ -40,7 +40,7 @@ const views = await readFile(join(root, 'src/connectors/github/source-views.json
 await readFile(join(root, 'src/connectors/github/writes.json'), 'utf8');
 // The normal common owner issues the Catalog identity of these authored
 // declarations. This fixture grants no real provider access or Run authority.
-const declaration = checked(moon.clientProgramRowSourceRestoreDeclaration(
+const declaration = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
   'gh-fixture', 'github', 'github/0.1', views, undefined));
 const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
 const directory = join(process.cwd(), 'installed-fixture');
