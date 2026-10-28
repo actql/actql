@@ -1,7 +1,7 @@
 ///|
 test "same parent backs original Local child before entry across both one-byte-short dimensions" {
-  assert_eq(program_source_local_entry_bytes, 592L)
-  assert_eq(program_source_local_entry_retained_bytes, 400L)
+  assert_eq(program_source_local_entry_bytes, 600L)
+  assert_eq(program_source_local_entry_retained_bytes, 408L)
   for retention in [true, false] {
     let (parent, owner, input) = registration_pipeline_fixture()
     prepare_program_check_source_pipeline(owner).unwrap() |> ignore
@@ -17,14 +17,14 @@ test "same parent backs original Local child before entry across both one-byte-s
     let blocker = @resources.reserve_capacity(
       parent.ledger,
       if retention {
-        limits.retained_bytes - before.0 - 592L + 1L
+        limits.retained_bytes - before.0 - 600L + 1L
       } else {
         0L
       },
       if retention {
         0L
       } else {
-        limits.execution_bytes - before.1 - 592L + 1L
+        limits.execution_bytes - before.1 - 600L + 1L
       },
     ).unwrap()
     let refused = prepare_program_check_source_local_entry(owner)
@@ -67,7 +67,7 @@ test "same parent backs original Local child before entry across both one-byte-s
     reconcile_program_check_source_local_entry(owner).unwrap()
     assert_eq(
       @resources.preparation_capacity_working_extents(parent.capacity, input),
-      Ok((before.0 + 400L, before.1 + 400L)),
+      Ok((before.0 + 408L, before.1 + 408L)),
     )
     assert_true(
       physical_equal(

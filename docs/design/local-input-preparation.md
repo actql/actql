@@ -1472,3 +1472,38 @@ Complete Snapshot construction still requires its own all-member body overlap,
 reader/schema/hash work and downstream Local/Context handoff on the same parent
 before entry. The quantity observation is neither that backing nor a semantic
 admission, physical stop or completed Plan.
+
+
+## Whole Snapshot body lifetime
+
+The Local preparation keeps the original ordered Member wrappers and one
+completed batch construction quantity. Metadata inspection walks those immutable
+bodies once and retains its result across current/grow. The batch overlap is the
+maximum of each next constructor plus all prior returned Snapshots; it is not a
+per-member reservation or a repeated Reference work phase. Empty membership
+selects the original declaration successor without constructing a body reader.
+
+The original canonical Member writer returns only its text before byte parsing
+starts. The parser scope returns only the immutable decoder index before the
+original typed Snapshot reader continues. This preserves the Member-relative
+byte document, identity preflight, limits, typed failures and diagnostic spans.
+String/Span/index lifetimes that survive through a score source remain included
+in the returned body quantity. Canonical enum and other data text remain data;
+normalization of field names does not reinterpret their contents.
+
+Before the single body work interval, the same request parent reserves the
+complete batch overlap. No grow or new allowance occurs between Members. Actual
+Local node/name debits are spent on that interval, including a genuine zero
+Local debit on an early writer refusal; no missing parser or schema observation
+is replaced by zero. A failure retains its original peak and completed/pending
+aliases until the original caller takes or clears them. Success retires only
+returned synchronous scratch, retaining the immutable outputs and metadata.
+Alias clear is never physical cleanup, work refund or a replacement grant.
+
+These logical constructor quantities compose through the existing shared
+representation arithmetic and byte tariff. Fixed quotation controls describe
+one active call, not all VM heap, GC storage or a new allocation framework.
+Remaining declaration, reconciliation, assembly and Context/identity/check
+construction require their own complete overlap on the same parent before
+entry; a completed Snapshot batch alone cannot certify a Checked Program or
+Plan.

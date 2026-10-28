@@ -153,7 +153,12 @@ pub fn[I, P] take_program_check_source_registration(
       owner.phase == SourceLocalSnapshotInspected ||
       owner.phase == SourceLocalSnapshotMetadataRetained ||
       owner.phase == SourceLocalSnapshotReferenceInspected ||
-      owner.phase == SourceLocalSnapshotReferenceRetained
+      owner.phase == SourceLocalSnapshotReferenceRetained ||
+      owner.phase == SourceLocalSnapshotBatchInspected ||
+      owner.phase == SourceLocalSnapshotBatchRetained ||
+      owner.phase == SourceLocalSnapshotBatchPrepared ||
+      owner.phase == SourceLocalSnapshotBatchFailed ||
+      owner.phase == SourceLocalSnapshotBatchComplete
     ) &&
     owner.source_registration is Some(original) else {
     return Err(WrongPhase)

@@ -29,7 +29,13 @@ pub fn environment_snapshot(EnvironmentSnapshot) -> Snapshot
 
 pub fn materialization(Snapshot) -> Materialization?
 
+pub fn member_batch_read_construction_inventory(Array[@check_environment.Member]) -> MemberReadConstructionInventory?
+
 pub fn member_emission_observation_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn member_read_construction_inspection_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn member_read_construction_inventory(@check_environment.Member) -> MemberReadConstructionInventory?
 
 pub fn member_reference_construction_inspection_bound(@check_environment.Member) -> Int64
 
@@ -87,6 +93,12 @@ pub struct Materialization {
   completeness : Completeness
   integration_binding_cid : String?
 }
+
+pub(all) struct MemberReadConstructionInventory {
+  peak : @check_environment.RegistryConstructionExtent
+  retained : @check_environment.RegistryConstructionExtent
+  inspection_work : Int64
+} derive(Eq, @debug.Debug)
 
 pub enum MembershipIssue {
   WrongSection
