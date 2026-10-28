@@ -1376,3 +1376,22 @@ alone is insufficient to fund the whole reference reader or Snapshot body.
 Input-document reuse must preserve existing typed diagnostic paths and spans;
 equal values in a surrounding Environment do not by themselves establish the
 member-relative provenance of an independently admitted Snapshot document.
+
+## Source reference reader constructor envelope
+
+The reference owner supplies its whole reader storage recipe from the same
+original source-reference String's UTF16 length. UTF8 admission, NFC and split
+collection construction come from their existing owners. Sequential name scans
+reuse one workspace; controls are not multiplied by the number of characters.
+The decoded stage/input names together fit the supplied text length, and on
+success the reconstructed canonical text equals that original text. The return
+envelope therefore covers their combined owned backing separately from the
+reader's builder/normalization/refusal scratch. Input text is borrowed.
+
+The recipe is quantity DATA, not admission or a reservation. Before asking for
+it, the caller backs its own quotation frame and obtains the length from its
+original selected field. Before reading, it retains this same recipe through
+actual current/grow and composes returned/scratch with the complete Snapshot
+overlap. Failure keeps the appropriate original peak until the real caller's
+retirement cut; missing observations cannot become a zero-work or refund fact.
+The recipe does not supply physical backend, VM or work backing by itself.
