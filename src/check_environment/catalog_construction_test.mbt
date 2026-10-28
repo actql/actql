@@ -12,15 +12,16 @@ test "Catalog contents inventory follows original indexed members and actual emb
     max_nodes: 15,
     max_fields: 7,
   })
-  // Caller392H1023R915W and shared emitter/hash223H624R1044W.
+  // Caller392H1023R919W and shared emitter/hash298H699R1119W.
+  // Two original member-access closures retain the corrected four scalar words.
   // Current indexed child and field carriers include both Option tags.
   // Actual used identity/outer hash String71 add142UTF16 beyond shared501.
   assert_eq(
     catalog_contents_construction_extent(geometry),
     Some({
-      record_headers: 615L,
-      reference_slots: 1647L,
-      scalar_words: 1959L,
+      record_headers: 690L,
+      reference_slots: 1722L,
+      scalar_words: 2038L,
       owned_utf16_units: 643L,
       owned_wire_bytes: 148L,
     }),
@@ -116,9 +117,9 @@ test "shared wire emitter inventory and returned registry storage have independe
   assert_eq(
     wire_hash_construction_extent(7),
     Some({
-      record_headers: 135L,
-      reference_slots: 328L,
-      scalar_words: 764L,
+      record_headers: 170L,
+      reference_slots: 363L,
+      scalar_words: 799L,
       owned_utf16_units: 501L,
       owned_wire_bytes: 148L,
     }),

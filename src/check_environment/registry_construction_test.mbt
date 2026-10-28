@@ -3,14 +3,15 @@ test "registry construction geometry reuses original member metadata and indepen
   let wire = registry_wire([envelope("null", null_contract_cid())])
   let geometry = observe_registry_construction_geometry(wire)
   assert_eq(geometry, { members: 1, max_nodes: 7, max_fields: 6, })
-  // Caller117H301R193W; shared emitter+hash135H328R764W;
+  // Caller117H301R195W; shared emitter+hash170H363R799W;
+  // The original member-access closure retains its corrected four scalar words.
   // hash-owned359UTF16 plus two actual self-CID71;148owned wire bytes.
   assert_eq(
     registry_construction_extent(geometry),
     Some({
-      record_headers: 252L,
-      reference_slots: 629L,
-      scalar_words: 957L,
+      record_headers: 287L,
+      reference_slots: 664L,
+      scalar_words: 994L,
       owned_utf16_units: 501L,
       owned_wire_bytes: 148L,
     }),

@@ -1073,3 +1073,19 @@ The outside parent still owns exclusive step sequencing across grow and any
 asynchronous boundaries. Structural geometry does not certify that the same
 member step remains the currently admitted operation; the actual consumer
 must preserve that original association through its own current/receipt path.
+
+
+## One Map representation owner across canonical writers
+
+The canonical hashing writer supplies only its simultaneous object count and
+live key count to the shared linked-Map construction inventory. It does not
+repeat a Map growth, Entry or linked/bucket carrier formula. Encoder frames,
+ordered-key carriers and SHA state remain distinct owners; input key Strings
+are borrowed. The same rule reaches Environment/Catalog and compiled-input
+construction through their existing writer calls, without re-emitting input or
+changing semantic limits, identities or failure precedence.
+
+This is logical constructor representation, not measured heap or permission to
+allocate. TextOutput, serializer traversal, UTF8 conversion and the original
+byte/schema reader still require their own complete overlap and original parent
+funding. A hashing-sink inventory must not be relabeled as that full text path.

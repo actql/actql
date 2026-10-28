@@ -15,8 +15,9 @@ pub(all) struct HashWriterConstructionInventory {
 /// Conservative constructor peak for both ordered and unordered object modes.
 /// Each key insertion consumes a value node; hence at most max_nodes retained
 /// Map entries, with at most max_depth simultaneously live frame Maps. Dynamic
-/// append backing overlap is bounded by 12+3n; Map doubling overlap by 12d+6n.
-/// Frames, entries and option carriers are counted separately from backing.
+/// append backing overlap is bounded by 12+3n. Map growth, entries and their
+/// linked/bucket option carriers come from the shared collection owner.
+/// Frame/ordered-key carriers remain separate from that Map inventory.
 /// Fixed VM frames and opaque allocator bookkeeping are not represented here.
 pub fn hash_writer_construction_inventory(
   max_nodes : Int,
@@ -37,17 +38,15 @@ pub fn hash_writer_live_key_inventory(
   guard max_live_keys >= 0 && max_depth >= 0 else { return None }
   let n = max_live_keys.to_int64()
   let d = max_depth.to_int64()
+  // Domain-owned multiplicity only: one Map per simultaneously open object,
+  // with at most n live keys across them. Share the same linked Map growth
+  // and entry-carrier inventory used by other construction domains.
+  let maps = @shape.map_construction_extent(d, n).unwrap()
   // Writer + HashOutput + Hasher; four dynamic arrays (frames/state/words/
-  // block), allowing one old backing each. Frame records and ordered-key Some
-  // carriers; Map control/backings; Entry and two linked/bucket Some carriers.
-  let owner_headers = 3L + 4L * 3L + 2L * d + 3L * d + 3L * n
-  let owner_refs = 6L +
-    4L +
-    (12L + 3L * d) +
-    2L * d +
-    2L * d +
-    (12L * d + 6L * n) +
-    4L * n
+  // block), allowing one old backing each. Frame and ordered-key Some
+  // carriers are separate; no Map representation formula is repeated here.
+  let owner_headers = 3L + 4L * 3L + 2L * d + maps.record_headers
+  let owner_refs = 6L + 4L + (12L + 3L * d) + 2L * d + maps.reference_slots
   // State/words numeric backing and byte block: charge byte slots as scalar
   // words conservatively, never as references. Array wrapper length/capacity.
   let owner_words = 13L +
@@ -55,9 +54,7 @@ pub fn hash_writer_live_key_inventory(
     (12L + 3L * 8L) +
     (12L + 3L * 64L) * 2L +
     2L * d +
-    5L * d +
-    6L * n +
-    (12L * d + 6L * n) // Empty bucket None tags are scalar storage too.
+    maps.scalar_words
   // SHA finish: length Bytes8; growing output Array32 + old backing; digest
   // Bytes32; hex builder and its backing, old/new String64 and digits16.
   // String/ordered-key resumable cursors, two one-character escape strings,
