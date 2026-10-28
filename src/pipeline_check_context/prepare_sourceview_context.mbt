@@ -78,7 +78,10 @@ pub fn sourceview_context_input_work(original : SourceViewContextInput) -> Int {
 pub fn retire_sourceview_context_input(
   original : SourceViewContextInput,
 ) -> Unit {
-  original.program.available = false
+  if original.program.topology is Reading(read) {
+    @stage_results.clear_local_program_read(read)
+  }
+  original.program.topology = Retired
 }
 
 ///|
@@ -169,4 +172,36 @@ pub fn prepare_sourceview_context_from_input(
     ..checked,
     usage: { ..checked.usage, work: checked.usage.work + extra, },
   })
+}
+
+///|
+/// Only the original preflight/empty staging collections. No Pipeline, binding
+/// or Result constructor runs here. Back this entrance before calling it.
+pub fn begin_sourceview_context_topology_read(
+  original : SourceViewContextInput,
+) -> Result[@stage_results.LocalProgramRead, SourceViewContextIssue] {
+  begin_sourceview_program_topology_read(original.program).map_err(issue => {
+    Program(issue)
+  })
+}
+
+///|
+/// Borrow the SAME selected reader. A cleared/taken read is never restarted.
+pub fn sourceview_context_topology_read(
+  original : SourceViewContextInput,
+) -> @stage_results.LocalProgramRead? {
+  match original.program.topology {
+    Reading(read) => Some(read)
+    _ => None
+  }
+}
+
+///|
+/// Entry owns only the original Stage-count work. Local environment work was
+/// admitted at its original constructor; the read retains that exact prefix.
+pub fn sourceview_context_topology_entry_work_bound(
+  original : SourceViewContextInput,
+) -> Int? {
+  guard original.program.topology is Ready else { return None }
+  Some(@stages.stage_count(original.program.source))
 }

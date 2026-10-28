@@ -98,6 +98,10 @@ priv enum ProgramCheckPreparationPhase {
   SourceContextInputPrepared
   SourceContextInputComplete
   SourceContextInputFailed
+  SourceTopologyEntryInitial
+  SourceTopologyEntryPrepared
+  SourceTopologyEntryComplete
+  SourceTopologyEntryFailed
   Transferred
   Failed
   Retired
@@ -155,6 +159,7 @@ pub suberror ClientProgramCheckPreparationIssue {
   Check(@checked.LocalConstructionFailure)
   Catalog(@checked.ParsedCatalogPreparationIssue)
   SourceRegistration(@checked.ParsedSourceRegistrationIssue)
+  TopologyEntry(@context.SourceViewContextIssue)
   Prelude(@checked.ParsedCheckPreludeIssue)
   Work(@resources.PreparationWorkIssue)
   ChangedInputs

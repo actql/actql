@@ -973,6 +973,7 @@ pub(all) enum PreparationWorkPhase {
   SourceLocalTailBody
   SourceContextInputInspection
   SourceContextInputBody
+  SourceTopologyEntry
   SemanticCheck
   LowerAndGraph
   ExecutionPlan

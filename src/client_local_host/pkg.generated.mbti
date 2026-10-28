@@ -570,6 +570,8 @@ pub fn[I, P] prepare_program_check_source_registration(ClientProgramCheckPrepara
 
 pub fn[I, P] prepare_program_check_source_resolution(ClientProgramCheckPreparation[I, P]) -> Result[@pipeline_check_context.SourceRegistrationPhase, ClientProgramCheckPreparationIssue]
 
+pub fn[I, P] prepare_program_check_source_topology_entry(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
 pub fn[I, P] prepare_program_check_values(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] prepare_program_check_views(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
@@ -665,6 +667,8 @@ pub fn[I, P] reconcile_program_check_source_registration(ClientProgramCheckPrepa
 pub fn[I, P] reconcile_program_check_source_resolution(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] reconcile_program_check_source_resolution_inspection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_topology_entry(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] reconcile_program_check_values(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
@@ -776,6 +780,7 @@ pub suberror ClientProgramCheckPreparationIssue {
   Check(@program_check.LocalConstructionFailure)
   Catalog(@program_check.ParsedCatalogPreparationIssue)
   SourceRegistration(@program_check.ParsedSourceRegistrationIssue)
+  TopologyEntry(@pipeline_check_context.SourceViewContextIssue)
   Prelude(@program_check.ParsedCheckPreludeIssue)
   Work(@physical_resources.PreparationWorkIssue)
   ChangedInputs

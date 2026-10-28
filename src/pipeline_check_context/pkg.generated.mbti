@@ -169,6 +169,8 @@ pub fn authoring_values_work(AuthoringValuesPublicationCheck) -> Int
 
 pub fn begin_source_registration(@stage_parameters.Source, @check_environment.SourceRequestContracts, @stage_local_inputs.Limits, max_inputs~ : Int, max_views~ : Int, max_order_keys~ : Int) -> Result[SourceRegistrationRead, SourceRegistrationIssue]
 
+pub fn begin_sourceview_context_topology_read(SourceViewContextInput) -> Result[@stage_results.LocalProgramRead, SourceViewContextIssue]
+
 pub fn bind_capacity_inputs(@stage_syntax.Program, Array[StageCapacityInput], Int) -> Result[ProgramCapacityInputs, CapacityInputsIssue]
 
 pub fn bind_capacity_policy(ReconciledContexts, @check_environment.Capacity, max_work~ : Int, max_text_bytes~ : Int, max_policy_nodes~ : Int) -> Result[SelectedPolicyContext, SelectedPolicyIssue]
@@ -1350,6 +1352,12 @@ pub fn sourceview_context_input_geometry_retained_extent() -> @decode_shape.Coll
 pub fn sourceview_context_input_source(SourceViewContextInput) -> @stage_parameters.Source
 
 pub fn sourceview_context_input_work(SourceViewContextInput) -> Int
+
+pub fn sourceview_context_topology_entry_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn sourceview_context_topology_entry_work_bound(SourceViewContextInput) -> Int?
+
+pub fn sourceview_context_topology_read(SourceViewContextInput) -> @stage_results.LocalProgramRead?
 
 pub fn sourceview_declaration_catalog(SourceViewDeclarationPreparation) -> @check_environment.SourceRequestContracts
 

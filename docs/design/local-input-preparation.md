@@ -1602,3 +1602,19 @@ request parent. The fixed continuation-control extent excludes those bodies
 and the original staging Arrays. Ordinary synchronous callers must still back
 their entire call; this pure reader alone is not physical backing, a checked
 Program, a Plan, permission or a completed normal Host migration.
+
+### Original Context topology entrance
+
+The retained SourceView Context entrance owns its original topology read state.
+Starting it again borrows that same read; synchronous completion drives that
+read rather than replaying the Program constructor. Retirement clears a pending
+read before dropping its owner, and a taken or cleared read cannot be replaced.
+The existing check-only path keeps its separate conditional-order obligations.
+
+The Request preparation parent backs this entrance's fixed continuation controls,
+original empty staging arrays and call frame before starting it. Entry charges
+only the original Stage-count work; the already admitted Local environment is
+borrowed unchanged. Later imports, pipeline typing, collection, Result projection,
+Stage capacities and final wiring still need their own input-derived backing and
+work on the same parent before advancing. An admitted entrance is not a complete
+Context, checked Program, Plan or physical backing acknowledgement.
