@@ -12,6 +12,7 @@ pub(all) struct LocalProgramReadStepConstruction {
   peak : @shape.CollectionConstructionExtent
   peak_utf16_units : Int64
   replaced : @shape.CollectionConstructionExtent
+  replaced_utf16_units : Int64
 } derive(Eq, Debug)
 
 ///|
@@ -137,6 +138,7 @@ pub fn local_program_read_step_construction(
       peak: q.peak,
       peak_utf16_units: q.peak_utf16_units,
       replaced: q.replaced,
+      replaced_utf16_units: q.replaced_utf16_units,
     })
   }
   let peak = match body.stage {
@@ -195,6 +197,7 @@ pub fn local_program_read_step_construction(
     peak,
     peak_utf16_units: 0L,
     replaced: topology_zero_extent,
+    replaced_utf16_units: 0L,
   })
 }
 
@@ -296,7 +299,9 @@ pub fn local_program_read_step_retained_extent(
     previous == PipelineRankings ||
     previous == PipelineCore ||
     previous == PipelineCoreInputs ||
-    previous == PipelineCoreParameters {
+    previous == PipelineCoreParameters ||
+    previous == PipelineCoreImportedEvidence ||
+    previous == PipelineCoreDeltaContracts {
     guard original.state is Reading(body) &&
       body.stage is PipelineRead(_, _, _, _, _, _, _, read) &&
       @pipeline.pipeline_evidence_read_step_holdings(
@@ -307,6 +312,8 @@ pub fn local_program_read_step_retained_extent(
           PipelineCore => @pipeline.Core
           PipelineCoreInputs => @pipeline.CoreInputs
           PipelineCoreParameters => @pipeline.CoreParameters
+          PipelineCoreImportedEvidence => @pipeline.CoreImportedEvidence
+          PipelineCoreDeltaContracts => @pipeline.CoreDeltaContracts
           _ => return None
         },
       )

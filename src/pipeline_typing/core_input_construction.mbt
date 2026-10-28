@@ -147,55 +147,14 @@ fn core_input_step_construction(
         peak = next
       }
       Carrier => {
-        let read = body.carrier_read.unwrap()
-        if carrier_preflight_new_contract(read) {
-          guard contract_preflight_entry_construction() is Some(entry) &&
-            @shape.add_collection_construction_extents(peak, entry)
-            is Some(next) else {
-            return None
-          }
-          peak = next
+        guard carrier_preflight_step_construction(body.carrier_read.unwrap())
+          is Some(child) &&
+          @shape.add_collection_construction_extents(peak, child.peak)
+          is Some(next) else {
+          return None
         }
-        if carrier_preflight_reference(read) is Some(reference) {
-          let spelling = @schema.reference_name_construction_extent(reference)
-          guard @shape.add_collection_construction_extents(
-              peak,
-              spelling.scratch,
-            )
-            is Some(next) else {
-            return None
-          }
-          peak = next
-          text = spelling.scratch_utf16_units
-        }
-        // Event identity and time charges are sequential, but quote both exact
-        // original spellings; neither is schema/type validation or retained.
-        if read.step is EventColumns &&
-          read.original is @carrier.EventValue(events) {
-          let a = @schema.reference_name_construction_extent(
-            events.identity.name,
-          )
-          let b = @schema.reference_name_construction_extent(events.time.name)
-          guard @shape.compose_collection_construction_extents([
-              peak,
-              a.scratch,
-              b.scratch,
-            ])
-            is Some(next) else {
-            return None
-          }
-          peak = next
-          text = a.scratch_utf16_units + b.scratch_utf16_units
-        }
-        if read.step is Contract &&
-          read.contract is Some(contract) &&
-          (contract.step is PushArray || contract.step is PushField) {
-          guard contract_preflight_push_construction(contract) is Some(push) &&
-            @shape.add_collection_construction_extents(peak, push) is Some(next) else {
-            return None
-          }
-          peak = next
-        }
+        peak = next
+        text = child.peak_utf16_units
       }
       KeyAlias =>
         if body.alias_index < body.alias_count {
@@ -252,5 +211,61 @@ fn core_input_step_construction(
       _ => ()
     }
   }
-  Some({ peak, peak_utf16_units: text, replaced, })
+  Some({ peak, peak_utf16_units: text, replaced, replaced_utf16_units: 0L, })
+}
+
+///|
+/// SAME next Carrier/Contract constructor, shared by input and imported delta.
+fn carrier_preflight_step_construction(
+  read : CarrierPreflightRead,
+) -> CoreStepConstruction? {
+  let mut peak = pipeline_core_zero_extent
+  let mut text = 0L
+  if carrier_preflight_new_contract(read) {
+    guard contract_preflight_entry_construction() is Some(entry) &&
+      @shape.add_collection_construction_extents(peak, entry) is Some(next) else {
+      return None
+    }
+    peak = next
+  }
+  if carrier_preflight_reference(read) is Some(reference) {
+    let spelling = @schema.reference_name_construction_extent(reference)
+    guard @shape.add_collection_construction_extents(peak, spelling.scratch)
+      is Some(next) else {
+      return None
+    }
+    peak = next
+    text = spelling.scratch_utf16_units
+  }
+  // Event identity and time charges are sequential, but quote both exact
+  // original spellings; neither is schema/type validation or retained.
+  if read.step is EventColumns && read.original is @carrier.EventValue(events) {
+    let a = @schema.reference_name_construction_extent(events.identity.name)
+    let b = @schema.reference_name_construction_extent(events.time.name)
+    guard @shape.compose_collection_construction_extents([
+        peak,
+        a.scratch,
+        b.scratch,
+      ])
+      is Some(next) else {
+      return None
+    }
+    peak = next
+    text = a.scratch_utf16_units + b.scratch_utf16_units
+  }
+  if read.step is Contract &&
+    read.contract is Some(contract) &&
+    (contract.step is PushArray || contract.step is PushField) {
+    guard contract_preflight_push_construction(contract) is Some(push) &&
+      @shape.add_collection_construction_extents(peak, push) is Some(next) else {
+      return None
+    }
+    peak = next
+  }
+  Some({
+    peak,
+    peak_utf16_units: text,
+    replaced: pipeline_core_zero_extent,
+    replaced_utf16_units: 0L,
+  })
 }

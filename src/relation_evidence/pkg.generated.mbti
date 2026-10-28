@@ -39,6 +39,8 @@ pub fn advance_event_keys(KeySet?, @event_typing.CheckedEvent, TransferLimits) -
 
 pub fn advance_keys(KeySet?, @relation_typing.CheckedOperation, TransferLimits) -> Result[KeySetTransfer, Issue]
 
+pub fn advance_literal_domains_read(LiteralDomainsRead) -> LiteralDomainsReadPhase
+
 pub fn advance_set_keys(KeySet?, @relation_set.CheckedSet, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn append_keys(KeySet?, KeySet?, LiteralDomains?, LiteralDomains?, @relation_append.CheckedAppend, TransferLimits) -> Result[KeySetTransfer, Issue]
@@ -85,6 +87,8 @@ pub fn asof_usage(CheckedAsOf) -> @relation_join_shape.Usage
 
 pub fn asof_uses_timestamp(CheckedAsOf, @relation_schema.Side) -> Bool
 
+pub fn begin_literal_domains_read(@decode_core.Cursor, LiteralDomains, TransferLimits) -> Result[LiteralDomainsRead, Issue]
+
 pub fn check_asof(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @parameter_binding.Declarations?, @relation_join_shape.Limits) -> Result[CheckedAsOf, @relation_join_shape.Issue]
 
 pub fn check_asof_sources(@decode_core.Cursor, AsOfSource, AsOfSource, @parameter_binding.Declarations?, @relation_join_shape.Limits) -> Result[CheckedAsOf, @relation_join_shape.Issue]
@@ -112,6 +116,8 @@ pub fn check_ranking_shape(RankingOptions, RankingInput, @vector_checking.Limits
 pub fn check_text_rank(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @vector_checking.Limits, profile? : @text_rank_profile.Profile?) -> Result[CheckedTextRank, @vector_checking.Issue]
 
 pub fn check_text_rank_inputs(TextRankOptions, @carrier_contract.Carrier, @carrier_contract.Carrier, @vector_checking.Limits, profile? : @text_rank_profile.Profile?) -> Result[CheckedTextRank, @vector_checking.Issue]
+
+pub fn clear_literal_domains_read(LiteralDomainsRead) -> Unit
 
 pub fn collect_keys(@decode_core.Cursor, @carrier_contract.Carrier, Array[KeyedRelation], KeySetLimits) -> Result[KeySet, Issue]
 
@@ -272,6 +278,18 @@ pub fn key_witness_count(KeySet) -> Int
 pub fn keyed_records(KeyedRelation) -> @carrier_contract.Knowledge
 
 pub fn literal_domain(LiteralDomains, @relation_schema.FieldName) -> LiteralDomain?
+
+pub fn literal_domains_read_consumed_work(LiteralDomainsRead) -> Int?
+
+pub fn literal_domains_read_entry_construction(Int64) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn literal_domains_read_issue(LiteralDomainsRead) -> Issue?
+
+pub fn literal_domains_read_phase(LiteralDomainsRead) -> LiteralDomainsReadPhase
+
+pub fn literal_domains_read_retained_extent(LiteralDomainsRead) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn literal_domains_read_step_construction(LiteralDomainsRead) -> @decode_shape.CollectionConstructionExtent?
 
 pub fn literal_origin(LiteralDomain) -> LiteralOrigin
 
@@ -480,6 +498,8 @@ pub fn source_view_keys(@check_environment.SourceViewCarrier, TransferLimits) ->
 pub fn source_view_ranking_construction_inventory(@check_environment.SourceViewCarrier) -> SourceInputConstructionInventory?
 
 pub fn source_view_scores(@check_environment.SourceViewCarrier, @vector_checking.Limits) -> Result[RankingTransfer?, @vector_checking.Issue]
+
+pub fn take_literal_domains_read(LiteralDomainsRead) -> Result[LiteralTransfer, Issue]?
 
 pub fn text_rank_bm25(TextRankOptions) -> (Double, Double)
 
@@ -776,6 +796,16 @@ pub(all) struct Limits {
 type LiteralDomain
 
 type LiteralDomains
+
+type LiteralDomainsRead
+
+pub(all) enum LiteralDomainsReadPhase {
+  Pending
+  Complete
+  Failed
+  Taken
+  Cleared
+} derive(Eq, @debug.Debug)
 
 pub enum LiteralOrigin {
   Binding(@relation_typing.CheckedOperation, Int)

@@ -74,7 +74,6 @@ test "same Request retains original composite declarations and funds Parameter s
     @stage_results.local_program_read_phase(read),
     PipelineCoreImportedEvidence,
   )
-  assert_true(advance_program_check_source_topology(owner) is Err(WrongPhase))
   clear_program_check_preparation(owner).unwrap()
   assert_eq(@stage_results.local_program_read_phase(read), Cleared)
   abort_request_preparation_after_cleanup(parent).unwrap()

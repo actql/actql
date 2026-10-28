@@ -40,6 +40,12 @@ pub fn reference_array_push_construction_extent(Int, Int) -> CollectionConstruct
 
 pub fn reference_array_retained_extent(Int64, Int64) -> CollectionConstructionExtent?
 
+pub fn reference_map_iterator_construction_extent() -> CollectionConstructionExtent
+
+pub fn reference_map_iterator_next_construction_extent() -> CollectionConstructionExtent
+
+pub fn reference_map_iterator_retained_extent() -> CollectionConstructionExtent
+
 pub fn scale_collection_construction_extent(CollectionConstructionExtent, Int64) -> CollectionConstructionExtent?
 
 pub fn unknown_key_indices(Array[String], Array[String]) -> Array[Int]

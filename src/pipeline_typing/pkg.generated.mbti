@@ -893,6 +893,7 @@ pub(all) struct PipelineEvidenceStepConstruction {
   peak_utf16_units : Int64
   inspection_work : Int64
   replaced : @decode_shape.CollectionConstructionExtent
+  replaced_utf16_units : Int64
 }
 
 pub(all) struct PipelineEvidenceStepHoldings {

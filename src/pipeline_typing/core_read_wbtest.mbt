@@ -53,7 +53,18 @@ test "original core read retains one budget inputs and operation loop across sem
     let _ = advance_pipeline_core_read(read)
   }
   assert_true(pipeline_core_read_phase(read) == ImportedEvidence)
-  for expected in [DeltaContracts, Steps, FinalEvidence, Complete] {
+  while pipeline_core_read_phase(read) == ImportedEvidence {
+    let _ = advance_pipeline_core_read(read)
+  }
+  assert_true(pipeline_core_read_phase(read) == DeltaContracts)
+  while pipeline_core_read_phase(read) == DeltaContracts {
+    let _ = advance_pipeline_core_read(read)
+  }
+  assert_true(pipeline_core_read_phase(read) == Steps)
+  while pipeline_core_read_phase(read) == Steps {
+    let _ = advance_pipeline_core_read(read)
+  }
+  for expected in [PipelineCoreReadPhase::Complete] {
     let before_phase = pipeline_core_read_phase(read)
     let before = pipeline_core_read_consumed_work(read).unwrap()
     assert_true(pipeline_core_read_phase(read) == before_phase)

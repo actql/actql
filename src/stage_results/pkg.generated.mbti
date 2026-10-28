@@ -1013,6 +1013,7 @@ pub(all) struct LocalProgramReadStepConstruction {
   peak : @decode_shape.CollectionConstructionExtent
   peak_utf16_units : Int64
   replaced : @decode_shape.CollectionConstructionExtent
+  replaced_utf16_units : Int64
 } derive(Eq, @debug.Debug)
 
 pub(all) struct LocalProgramReadStepHoldings {

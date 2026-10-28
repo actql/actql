@@ -3,6 +3,7 @@ priv struct CoreStepConstruction {
   peak : @shape.CollectionConstructionExtent
   peak_utf16_units : Int64
   replaced : @shape.CollectionConstructionExtent
+  replaced_utf16_units : Int64
 }
 
 ///|
@@ -14,11 +15,11 @@ let pipeline_core_zero_extent : @shape.CollectionConstructionExtent = {
 
 ///|
 /// Original read/body/state/Budget controls; no input/schema/typed operations,
-/// limits policy or authority. Read1H1R, body1H26R13W, three state alternatives
+/// limits policy or authority. Read1H1R, body1H34R21W, three state alternatives
 /// 3H4R3W, Budget1H1R4W, elementsOk1H1R1W, begin2H2R2W, original evidence work getter1H2W,
 /// take3H3R3W and original Issue/Stop alternatives2H4R2W.
 fn pipeline_core_read_control_construction_extent() -> @shape.CollectionConstructionExtent {
-  { record_headers: 15L, reference_slots: 42L, scalar_words: 30L, }
+  { record_headers: 15L, reference_slots: 50L, scalar_words: 38L, }
 }
 
 ///|
@@ -103,7 +104,7 @@ fn pipeline_core_read_entry_holdings(
     arrays,
     names,
     cursors,
-    // Original read/body/Reading/Budget4H29R18W.
-    { record_headers: 4L, reference_slots: 29L, scalar_words: 18L, },
+    // Original read/body/Reading/Budget4H37R26W.
+    { record_headers: 4L, reference_slots: 37L, scalar_words: 26L, },
   ])
 }

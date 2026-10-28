@@ -145,13 +145,11 @@ pub fn complete_schema(rows : Knowledge) -> @row.Schema? {
 
 ///|
 pub fn lookup(rows : Knowledge, name : @row.FieldName) -> Lookup {
-  let spelling = @row.reference_name(name)
   let mut lo = 0
   let mut hi = rows.entries.length()
   while lo < hi {
     let mid = lo + (hi - lo) / 2
-    let candidate = @row.reference_name(rows.entries[mid].name)
-    if @canonical.compare_utf16(candidate, spelling) < 0 {
+    if compare_knowledge_reference(rows.entries[mid].name, name) < 0 {
       lo = mid + 1
     } else {
       hi = mid
@@ -164,4 +162,38 @@ pub fn lookup(rows : Knowledge, name : @row.FieldName) -> Lookup {
   } else {
     Unknown
   }
+}
+
+///|
+/// Drive the existing virtual spelling comparator to completion. The 64-unit
+/// fragment is its existing progress grain, never a name or schema limit.
+fn compare_knowledge_reference(
+  left : @row.FieldName,
+  right : @row.FieldName,
+) -> Int {
+  let mut offset = 0
+  while true {
+    let (order, next, _) = @row.compare_reference_fragment(
+      left, right, offset, 64,
+    )
+    if order is Some(value) {
+      return value
+    }
+    offset = next
+  } nobreak {
+    abort("original spelling comparator loop cannot fall through")
+  }
+}
+
+///|
+let lookup_controls : @shape.CollectionConstructionExtent = @shape.add_collection_construction_extents(
+  @row.reference_comparison_construction_extent(),
+  // Only Present owns a new wrapper; Unknown/Absent are original inline tags.
+  { record_headers: 1L, reference_slots: 1L, scalar_words: 1L, },
+).unwrap()
+
+///|
+/// Existing lookup's selected constant controls; no names, fields or bodies copy.
+pub fn lookup_construction_extent() -> @shape.CollectionConstructionExtent {
+  lookup_controls
 }

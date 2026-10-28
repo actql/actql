@@ -1736,7 +1736,7 @@ not a physical cleanup acknowledgement or a work refund.
 
 The initializer precedes input admission. The same Request driver now backs
 its original input and Parameter continuations as described below. Subsequent
-imported evidence, delta, nested operation and final-evidence constructors still
+nested operation and final-evidence constructors still
 need their own input-derived overlap and retained inventories before the parent
 can advance them. Pure synchronous consumers still drive all semantic
 boundaries and must back their complete call. A retained core or successful
@@ -1847,8 +1847,8 @@ read and charged before returning its original work receipt. That observation
 is not successful Usage or a checked Program. Other failed domains whose child
 owners have not supplied an actual consumed prefix remain unknown; neither
 None nor a generic exception supplies zero work. The whole admitted failed
-construction peak remains backed until actual clear. Subsequent imported/delta,
-operation, Result/Context, checker/compiler and Plan/Run adoption, and matching
+construction peak remains backed until actual clear. Subsequent operations,
+Result/Context, checker/compiler and Plan/Run adoption, and matching
 ordinary/backend acceptance, retain their independent completion obligations.
 
 
@@ -1883,6 +1883,97 @@ input/Parameter prefixes; it does not construct successful Usage for failure.
 
 The original synchronous Contract comparison driver is test-only after all
 product callers use the retained original. The second semantic checker and old
-single-step Parameter loop are absent. Imported evidence, delta, operations,
+single-step Parameter loop are absent. Operations,
 final evidence, Result/order/Context and Checked-to-Plan/Run adoption still need
 their corresponding original construction and ordinary consumer connections.
+
+
+### Original imported evidence continuation
+
+The same core read retains the original produced holders while projecting their
+literal references and constructing independent imported delta Maps. Literal
+admission has one original continuation over its original TransferBudget,
+field iterator and scalar order. Its synchronous API drives that same body.
+A pending or rejected child exposes actual consumed work; the parent combines
+that prefix with its own Budget until the child succeeds. Only then does the
+original transfer update the parent Budget and retire the child. This preserves
+failure order without inventing successful Usage or adding the child twice.
+
+Each imported delta owns a new Map around the original field/Graph-contract
+references. The producer Map is never extended. Its field charge and original
+Carrier/Contract preflight still precede insertion, using the same shared
+continuation and constructor recipe as ordinary inputs. The original linked
+Map iterator and its next-pair controls have one pinned storage descriptor.
+These are borrowed-reference quantities, not new validation, tariff, resource
+ownership or a user-supplied proof.
+
+Next Array growth and Map growth use the actual original length/capacity.
+After append, completed Maps are immutable for the rest of this import phase;
+one original storage sum retains their measured representation counts. The
+retained observer therefore need not traverse all completed Maps on every
+subsequent field. The explicit binding continuation updates that same sum only
+from the changed Map's observed before/after storage; no old immutable snapshot
+is reused after mutation. Temporary iterator, current field, child and pending-Map
+roots remain backed until the same constructor returns or actual clear drops
+them. Clearing this semantic reader does not acknowledge physical cleanup.
+
+The original Request driver admits this next construction peak and replaces
+only the imported domain's old storage with its actual returned storage.
+Literal/input/Parameter origins, schema and graph contracts stay with their
+original owners. Operations, final evidence, Result and
+Context constructors require their own subsequent input-derived overlap and
+retained recipes before that same parent can advance them.
+
+### Explicit Delta bindings and retained name storage
+
+The original Delta binding table is consumed by one continuation over the same
+Source, names index, Graph contracts, imported Maps and Budget. Each original
+tuple is captured before data-dependent quotation; intervening mutation cannot
+substitute a different tuple after its name has been quoted. Count and next-tuple
+capture share the actual constructor that already backs the fixed Some. Empty
+tables complete directly without a second empty selection/current boundary.
+Name, target, field/duplicate, Carrier/Contract and insertion obligations keep
+their original order and typed refusals. This is preparation DATA, not operation
+permission or a replacement cleanup owner.
+
+Field lookup uses the existing virtual reference-spelling comparison rather
+than constructing qualified target/candidate Strings at every binary-search
+comparison. Its fragment size is only a progress grain; long names are compared
+to completion. The final original FieldName equality still distinguishes a
+qualified field from text that merely spells the same prefix. Open/closed,
+known/untyped and presence facts retain their separate meanings.
+
+A qualified Map key retains its actual newly constructed spelling after the
+field call returns. The same constructor units first belong to the pending
+key and then to the Map; the unqualified branch borrows the admitted field's
+original String. Retained headers and UTF16 units therefore travel alongside
+Map storage. Every Core/Pipeline/Stage quote carries both replaced extent and
+replaced UTF16 units; no caller can silently price the latter as zero. The
+same Request subtracts the full old owned domain only after its original
+constructor returns and reconciles the actual new domain.
+
+Quote and retained-observation frames include their explicit adapter records,
+Some wrappers and work-observation return controls. A private domain's storage
+or observation bound does not by itself cover Pipeline/Stage adapters. Logical
+constructor tables, physical first-entry backing, and same-candidate ordinary
+backend behavior remain distinct obligations. Subsequent operations and final
+Result/Context/Plan/Run adoption require their own original lifetime recipes.
+
+### Original operation boundaries
+
+The Core operation driver selects the next original body by its existing
+completed-step count. The same operation checker consumes that body once,
+borrowing the original Source, input evidence, names, current target and Budget.
+Every successful branch appends its one original checked step and returns that
+target. The next call therefore resumes from the preceding original result;
+it does not replay earlier operations or create another step index. Empty and
+last-body paths finish in the same call without a separate selection boundary.
+Synchronous callers drive this same body to completion.
+
+An operation refusal retains the completed original prefix for the same clear
+path and never starts the remaining bodies. Nested operation owners that do
+not report their actual failed consumed prefix still leave work unknown;
+the outer Budget alone cannot fabricate a complete failure receipt. This
+operation boundary does not supply construction/retained backing for its
+nested checkers. The Request driver continues to stop before operations until
+those original constructors and held evidence have their own complete recipe.
