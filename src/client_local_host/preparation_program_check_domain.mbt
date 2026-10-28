@@ -74,6 +74,10 @@ priv enum ProgramCheckPreparationPhase {
   SourceLocalSnapshotObservationFunded
   SourceLocalSnapshotInspected
   SourceLocalSnapshotMetadataRetained
+  SourceLocalSnapshotReferenceInitial
+  SourceLocalSnapshotReferenceObservationFunded
+  SourceLocalSnapshotReferenceInspected
+  SourceLocalSnapshotReferenceRetained
   Transferred
   Failed
   Retired

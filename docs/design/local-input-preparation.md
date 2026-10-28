@@ -1416,3 +1416,29 @@ slot only. Before the explicit Reference metadata observer, its caller still
 backs quotation, returned observation and borrowed frames and admits the
 metadata work bound on the same parent. That observation does not by itself
 fund Snapshot emission, UTF8/parser/schema/hash, body work or physical supply.
+
+
+### Backed first-Member Reference observation
+
+The existing Program-check controller grows the same request capacity before
+observing the first captured Snapshot Member's Reference quantity. The grow
+covers the original Reference recipe's own fixed quotation controls, one live
+indexed field, the original work receipt and caller controls. It does not
+allocate or admit a Reference body. The existing Member keeps the completed
+inventory and actual metadata-visit count; no replacement Member, String or
+caller verdict enters that association.
+
+A failed grow observes nothing and preserves the original Member for a retry.
+Once the named inspection work phase has begun, its ordinal and consumed work
+cannot be reset or reissued, including through continuation or cleanup. Success
+retires only the returned synchronous inspection scratch, retaining the exact
+completed Option until the original Local step advances or clears. Current is
+checked at the original grow boundary while the controller's reentry fence is
+held. Taking the original Source continuation transfers its existing lifetime;
+dropping the controller does not acknowledge the continuation's retirement.
+
+This is one first-Member preparation phase, not a per-Member work-session API.
+Complete Snapshot construction still requires its own all-member body overlap,
+reader/schema/hash work and downstream Local/Context handoff on the same parent
+before entry. The quantity observation is neither that backing nor a semantic
+admission, physical stop or completed Plan.

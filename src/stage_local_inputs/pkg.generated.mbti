@@ -121,6 +121,10 @@ pub fn local_environment_snapshot_reference_construction(LocalEnvironmentPrepara
 
 pub fn local_environment_snapshot_reference_inspection_bound(LocalEnvironmentPreparation) -> Int64?
 
+pub fn local_environment_snapshot_reference_inspection_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_snapshot_reference_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
 pub fn local_environment_snapshot_selector_construction(LocalEnvironmentPreparation) -> @decode_shape.CollectionConstructionExtent?
 
 pub fn local_environment_snapshot_text_construction(LocalEnvironmentPreparation) -> @check_environment.RegistryConstructionExtent?

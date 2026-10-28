@@ -151,7 +151,9 @@ pub fn[I, P] take_program_check_source_registration(
       owner.phase == SourceLocalGroupsRetained ||
       owner.phase == SourceLocalGroupsFailed ||
       owner.phase == SourceLocalSnapshotInspected ||
-      owner.phase == SourceLocalSnapshotMetadataRetained
+      owner.phase == SourceLocalSnapshotMetadataRetained ||
+      owner.phase == SourceLocalSnapshotReferenceInspected ||
+      owner.phase == SourceLocalSnapshotReferenceRetained
     ) &&
     owner.source_registration is Some(original) else {
     return Err(WrongPhase)

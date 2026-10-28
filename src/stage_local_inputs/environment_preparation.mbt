@@ -860,3 +860,15 @@ pub fn local_environment_snapshot_reference_construction(
 ) -> (@source_ref.ReferenceReadConstructionInventory?, Int64)? {
   read.snapshot_construction.bind(captured => captured.reference_construction)
 }
+
+///|
+/// Same Snapshot/Reference observation and returned holder inventory. These
+/// quantities grant no body permission, work, capacity or cleanup receipt.
+pub fn local_environment_snapshot_reference_inspection_extent() -> @shape.CollectionConstructionExtent {
+  @snapshot.member_reference_observation_construction_extent()
+}
+
+///|
+pub fn local_environment_snapshot_reference_retained_extent() -> @shape.CollectionConstructionExtent {
+  @snapshot.member_reference_observation_retained_extent()
+}

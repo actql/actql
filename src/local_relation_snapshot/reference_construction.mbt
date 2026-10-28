@@ -50,3 +50,40 @@ pub fn observe_member_reference_read_construction(
   }
   (None, work)
 }
+
+///|
+/// Original field access has one live indexed child, never an array/map of
+/// fields. The Environment owner already admits source_ref as nonempty Text;
+/// semantic Reference syntax remains the original byte reader's obligation.
+/// Add object-length Some1H1W, borrowed Text Ok1H1R1W, observation pair1H1R1W,
+/// Local's retained Some1H1R1W, bound Some1H2W and loop controls1H2W to the
+/// SAME decoder field family and original Reference quotation owner.
+pub fn member_reference_observation_construction_extent() -> @shape.CollectionConstructionExtent {
+  reference_observation_controls
+}
+
+///|
+let reference_observation_controls : @shape.CollectionConstructionExtent = {
+  let recipe = @reference.reference_read_inventory_quotation_extent()
+  let field = @decode.indexed_field_construction_extent()
+  {
+    record_headers: recipe.record_headers + field.record_headers + 6L,
+    reference_slots: recipe.reference_slots + field.reference_slots + 3L,
+    scalar_words: recipe.scalar_words + field.scalar_words + 8L,
+  }
+}
+
+///|
+/// Newly retained recipe scratch-record1H3W, inventory1H2R2W and its Some1H1R1W,
+/// observation pair1H1R1W and Local Some1H1R1W. The recipe's retained-unit
+/// record is installed immutable DATA, not a new per-Member allocation.
+pub fn member_reference_observation_retained_extent() -> @shape.CollectionConstructionExtent {
+  reference_observation_retained_controls
+}
+
+///|
+let reference_observation_retained_controls : @shape.CollectionConstructionExtent = {
+  record_headers: 5L,
+  reference_slots: 5L,
+  scalar_words: 8L,
+}

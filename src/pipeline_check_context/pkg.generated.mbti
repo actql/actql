@@ -1221,6 +1221,10 @@ pub fn source_registration_local_snapshot_reference_construction(SourceRegistrat
 
 pub fn source_registration_local_snapshot_reference_inspection_bound(SourceRegistrationRead) -> Int64?
 
+pub fn source_registration_local_snapshot_reference_inspection_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn source_registration_local_snapshot_reference_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
 pub fn source_registration_local_snapshot_selector_construction(SourceRegistrationRead) -> @decode_shape.CollectionConstructionExtent?
 
 pub fn source_registration_local_snapshot_text_construction(SourceRegistrationRead) -> @check_environment.RegistryConstructionExtent?

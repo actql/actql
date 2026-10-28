@@ -17,6 +17,8 @@ pub fn reference_parts_construction_extent() -> @decode_shape.CollectionConstruc
 
 pub fn reference_read_construction_inventory(Int) -> ReferenceReadConstructionInventory?
 
+pub fn reference_read_inventory_quotation_extent() -> @decode_shape.CollectionConstructionExtent
+
 pub fn stage_name(Reference) -> String
 
 pub fn stringify(Reference) -> String
