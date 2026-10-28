@@ -50,6 +50,8 @@ pub(all) enum PreparationWorkPhase {
   SourceLocalSnapshotBody
   SourceLocalTailInspection
   SourceLocalTailBody
+  SourceContextInputInspection
+  SourceContextInputBody
   SemanticCheck
   LowerAndGraph
   ExecutionPlan
@@ -164,10 +166,12 @@ fn preparation_work_ordinal(phase : PreparationWorkPhase) -> Int {
     SourceLocalSnapshotBody => 45
     SourceLocalTailInspection => 46
     SourceLocalTailBody => 47
-    SemanticCheck => 48
-    LowerAndGraph => 49
-    ExecutionPlan => 50
-    PublicationProof => 51
+    SourceContextInputInspection => 48
+    SourceContextInputBody => 49
+    SemanticCheck => 50
+    LowerAndGraph => 51
+    ExecutionPlan => 52
+    PublicationProof => 53
   }
 }
 

@@ -1505,3 +1505,28 @@ backing are separate obligations. The completed registration remains the input
 to Context/identity/check construction, whose full overlap must be backed on
 the same parent before consuming the registry. Local completion alone is not a
 Checked Program, compiled Plan, Run adoption or physical-release assertion.
+
+## Original Context entrance
+
+The original registration result can move once into its existing parsed-check
+continuation before Context topology construction. The entrance retains the
+same Source, Local registrations, Catalog-backed input arrays and selected typed
+limits. Calendar selection and registration gathering are shared with the
+synchronous Context function; the staged entrance does not introduce another
+collector, checker, parameter interpreter or caller-supplied successful Context.
+Completed geometry and its body quote survive a declined grow unchanged.
+
+The same request parent funds that entrance before consuming the original
+Source result. Header work excludes the already retained registration prefix;
+missing failed Usage remains missing until cleanup. This entrance is distinct
+from later pipeline typing, Parameter binding, Stage capacity construction,
+identity/closure checking and Plan adoption. Those constructors require their
+own complete overlap on the same parent before the original checker terminal
+can execute.
+
+Cancellation retires the parsed-check continuation and its same retained
+Context input together. Clearing the old registration reader alone is
+insufficient after its result was transferred internally. Retiring the input
+prevents another topology constructor; dropping this owner's aliases is not a
+physical-release acknowledgement, work refund or revocation of already checked
+immutable data held by a legitimate successor.

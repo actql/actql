@@ -143,6 +143,8 @@ pub fn checking_environment_with_calendar_artifact(CheckEnvironment, Bytes, @cal
 
 pub fn checking_environment_with_request_value_policies(CheckEnvironment, Array[HostRequestValuePolicyEvidence]) -> CheckEnvironment
 
+pub fn clear_parsed_source_registration(ParsedSourceRegistration) -> Unit
+
 pub fn close_effect_computation_static(EffectComputationCandidate, @check_environment.MappingContractShapes, @stage_results.EffectStaticCandidateLimits) -> Result[EffectProgramStaticCandidate, @stage_results.EffectStaticCandidateIssue]
 
 pub fn closed_values_local_owner_layout(Int) -> ClosedValuesLocalOwnerLayout?
@@ -475,6 +477,8 @@ pub fn observe_parsed_check_values(ParsedValuesInput) -> (Result[Unit, ParsedCat
 
 pub fn observe_parsed_check_views(ParsedViewsInput) -> (Result[Unit, ParsedCatalogPreparationIssue], Int)
 
+pub fn observe_parsed_source_context_input_geometry(ParsedSourceRegistration) -> @pipeline_check_context.SourceViewContextInputGeometry?
+
 pub fn parsed_carriers_construction_extent(ParsedCarriersInput) -> @check_environment.RegistryConstructionExtent
 
 pub fn parsed_carriers_inspection_extent(ParsedCheckRegistry) -> @check_environment.RegistryConstructionExtent
@@ -559,6 +563,12 @@ pub fn parsed_requests_retained_extent(ParsedRequestsInput) -> @check_environmen
 
 pub fn parsed_requests_semantic_work(ParsedRequestsInput) -> Int
 
+pub fn parsed_source_context_input(ParsedSourceRegistration) -> Result[@pipeline_check_context.SourceViewContextInput, @pipeline_check_context.SourceViewContextIssue]?
+
+pub fn parsed_source_context_input_geometry(ParsedSourceRegistration) -> @pipeline_check_context.SourceViewContextInputGeometry?
+
+pub fn parsed_source_context_input_work_bound(ParsedSourceRegistration) -> Int?
+
 pub fn parsed_source_registration_entry_extent() -> @decode_shape.CollectionConstructionExtent
 
 pub fn parsed_source_registration_read(ParsedSourceRegistration) -> @pipeline_check_context.SourceRegistrationRead
@@ -628,6 +638,8 @@ pub fn prepare_parsed_policies_input(ParsedCheckRegistry) -> Result[ParsedPolici
 pub fn prepare_parsed_references_input(ParsedCheckRegistry) -> Result[ParsedReferencesInput, ParsedCheckPreludeIssue]
 
 pub fn prepare_parsed_requests_input(ParsedCheckRegistry) -> Result[ParsedRequestsInput, ParsedCheckPreludeIssue]
+
+pub fn prepare_parsed_source_context_input(ParsedSourceRegistration) -> Result[@pipeline_check_context.SourceViewContextInput, ParsedSourceRegistrationIssue]
 
 pub fn prepare_parsed_values_input(ParsedCheckRegistry) -> Result[ParsedValuesInput, ParsedCheckPreludeIssue]
 
@@ -1072,6 +1084,7 @@ pub suberror ParsedSourceRegistrationIssue {
   RegistrationConstruction(LocalConstructionFailure)
   Pending
   Unavailable
+  ContextInput(@pipeline_check_context.SourceViewContextIssue)
 }
 
 pub suberror SourceFailure {

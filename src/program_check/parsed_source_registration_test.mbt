@@ -106,6 +106,69 @@ fn complete_original_registration(
 }
 
 ///|
+test "retained Context entrance feeds the original registered-source checker without repeating the entrance" {
+  let (registry, program, source) = registration_registry_fixture(
+    1,
+    generated=true,
+  )
+  let original = @program_check.begin_parsed_source_registration(
+    registry, source,
+  ).unwrap()
+  let read = @program_check.parsed_source_registration_read(original)
+  complete_original_registration(read)
+  let geometry = @program_check.observe_parsed_source_context_input_geometry(
+    original,
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      @program_check.observe_parsed_source_context_input_geometry(original).unwrap(),
+      geometry,
+    ),
+  )
+  let context = @program_check.prepare_parsed_source_context_input(original).unwrap()
+  assert_true(
+    physical_equal(
+      @program_check.prepare_parsed_source_context_input(original).unwrap(),
+      context,
+    ),
+  )
+  assert_true(
+    physical_equal(@context.sourceview_context_input_source(context), source),
+  )
+  let entry_work = @context.sourceview_context_input_work(context)
+  assert_true(entry_work > 0)
+  assert_eq(@context.source_registration_phase(read), RegistrationTransferred)
+  let checked = public_checked(
+    @program_check.finish_parsed_source_registration(original).unwrap(),
+  )
+  assert_true(
+    physical_equal(@program_check.checked_source_program(checked), program),
+  )
+  assert_eq(@program_check.unit_count(checked), 2)
+  assert_eq(
+    @program_check.unit_result_import_at(checked, 1, 0).unwrap().producer_node_id,
+    "producer",
+  )
+  let identity = @program_check.source_identity(checked)
+  let values = @context.stage_identity_parameter_values(
+    @context.program_identity_stage_at(identity, 0).unwrap(),
+  )
+  assert_eq(@parameter_refs.used_value_at(values, 0).unwrap().name, "n")
+  assert_true(
+    @parameter_refs.used_value_at(values, 0).unwrap().value.value is Number(1.0),
+  )
+  assert_eq(@context.sourceview_context_input_work(context), entry_work)
+  assert_true(
+    @program_check.finish_parsed_source_registration(original)
+    is Err(Unavailable),
+  )
+  assert_true(
+    @program_check.prepare_parsed_source_context_input(original)
+    is Err(Unavailable),
+  )
+}
+
+///|
 test "retained Source registration reaches the original checker with Local and generated Result inputs" {
   for generated in [false, true] {
     for route in [0, 1, 2] {
