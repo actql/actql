@@ -75,7 +75,8 @@ fn topology_phase_supported(
     | PipelineKeys
     | PipelineRankings
     | PipelineCore
-    | PipelineCoreInputs => true
+    | PipelineCoreInputs
+    | PipelineCoreParameters => true
     _ => false
   }
 }
@@ -365,7 +366,7 @@ fn[I, P] advance_program_check_source_topology_owned(
     PipelineKeys => @stage_results.PipelineRankings
     PipelineRankings => @stage_results.PipelineCore
     PipelineCore => @stage_results.PipelineCoreInputs
-    PipelineCoreInputs => phase
+    PipelineCoreInputs | PipelineCoreParameters => phase
     _ => {
       owner.phase = Failed
       return Err(WrongPhase)
@@ -380,6 +381,11 @@ fn[I, P] advance_program_check_source_topology_owned(
       previous != @stage_results.PipelineCoreInputs ||
       phase == @stage_results.PipelineCoreInputs ||
       phase == @stage_results.PipelineCoreParameters
+    ) &&
+    (
+      previous != @stage_results.PipelineCoreParameters ||
+      phase == @stage_results.PipelineCoreParameters ||
+      phase == @stage_results.PipelineCoreImportedEvidence
     ) &&
     @stage_results.local_program_read_owned_work(read) is Some(spent) &&
     spent >= owner.topology_observed_work else {

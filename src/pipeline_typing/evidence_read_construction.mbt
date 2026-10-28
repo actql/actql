@@ -42,7 +42,7 @@ pub fn pipeline_evidence_read_step_construction(
       peak,
       peak_utf16_units: 0L,
       inspection_work: 0L,
-      replaced: core_input_zero,
+      replaced: pipeline_core_zero_extent,
     })
   }
   if body.step is Core(_, _, _) {
@@ -76,11 +76,16 @@ pub fn pipeline_evidence_read_step_construction(
       peak,
       peak_utf16_units: 0L,
       inspection_work: 0L,
-      replaced: core_input_zero,
+      replaced: pipeline_core_zero_extent,
     })
   }
   if body.step is CoreRunning(read) && read.state is Reading(core) {
-    guard core_input_step_construction(core) is Some(q) else { return None }
+    let quote = match core.phase {
+      Inputs => core_input_step_construction(core)
+      Parameters => core_parameter_step_construction(core)
+      _ => None
+    }
+    guard quote is Some(q) else { return None }
     return Some({
       peak: q.peak,
       peak_utf16_units: q.peak_utf16_units,
@@ -152,7 +157,7 @@ pub fn pipeline_evidence_read_step_construction(
     peak,
     peak_utf16_units: held_text + scratch_text,
     inspection_work: work,
-    replaced: core_input_zero,
+    replaced: pipeline_core_zero_extent,
   })
 }
 
@@ -257,19 +262,26 @@ pub fn pipeline_evidence_read_carriers_retained_extent(
 /// witnesses; singleton_key owns a new container around its borrowed witness.
 pub fn pipeline_evidence_read_step_holdings(
   original : PipelineEvidenceRead,
+  previous : PipelineEvidenceReadPhase,
 ) -> PipelineEvidenceStepHoldings? {
   guard original.state is Reading(body) else { return None }
   if body.step is CoreRunning(read) {
     guard read.state is Reading(core) else { return None }
-    if !(core.phase == Inputs &&
-      core.input_index == 0 &&
-      core.input_step is Name) {
+    if previous == CoreInputs {
       guard (core.phase == Inputs || core.phase == Parameters) &&
         core_input_retained(core) is Some(extent) else {
         return None
       }
       return Some({ extent, owned_utf16_units: 0L, inspection_work: 0L, })
     }
+    if previous == CoreParameters {
+      guard (core.phase == Parameters || core.phase == ImportedEvidence) &&
+        core_parameter_retained(core) is Some(extent) else {
+        return None
+      }
+      return Some({ extent, owned_utf16_units: 0L, inspection_work: 0L, })
+    }
+    guard previous == Core else { return None }
     guard core.phase == Inputs &&
       pipeline_core_read_entry_holdings(read) is Some(held) &&
       @shape.reference_array_retained_extent(
@@ -295,8 +307,18 @@ pub fn pipeline_evidence_read_step_holdings(
     return Some({ extent, owned_utf16_units: 0L, inspection_work: 0L, })
   }
   let (keys, values, rankings) = match body.step {
-    Rankings(_, values) => (true, Some(values), None)
-    Core(_, _, values) => (false, None, Some(values))
+    Rankings(_, values) =>
+      if previous == Keys {
+        (true, Some(values), None)
+      } else {
+        return None
+      }
+    Core(_, _, values) =>
+      if previous == Rankings {
+        (false, None, Some(values))
+      } else {
+        return None
+      }
     _ => return None
   }
   let capacity = if keys {

@@ -6,10 +6,10 @@ test "original Core input yields before each Carrier construction and retains it
   let original_budget = body.b
   let original_inputs = body.inputs
   let original_names = body.names
-  assert_eq(pipeline_core_read_owned_work(read), Some(1))
+  assert_eq(pipeline_core_read_consumed_work(read), Some(1))
   let _ = advance_pipeline_core_read(read)
   assert_true(body.input_step is Duplicate)
-  assert_eq(pipeline_core_read_owned_work(read), Some(2))
+  assert_eq(pipeline_core_read_consumed_work(read), Some(2))
   assert_eq(body.b.text, body.limits.max_text_bytes - 4)
   let _ = advance_pipeline_core_read(read)
   assert_true(body.input_step is CarrierStart)
@@ -28,7 +28,7 @@ test "original Core input yields before each Carrier construction and retains it
   assert_true(body.carrier_read is None)
   assert_true(carrier.state is Cleared)
   assert_true(!body.names.contains("rows"))
-  assert_eq(pipeline_core_read_owned_work(read), Some(5))
+  assert_eq(pipeline_core_read_consumed_work(read), Some(5))
   assert_eq(body.b.text, body.limits.max_text_bytes - 6)
   let _ = advance_pipeline_core_read(read)
   assert_eq(body.names.get("rows"), Some(Input(0)))

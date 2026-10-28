@@ -147,7 +147,7 @@ pub fn pipeline_evidence_read_phase(
 }
 
 ///|
-/// Actual original consumed prefix. A rejected CoreInputs body retains its
+/// Actual original consumed prefix. Rejected CoreInputs/Parameters retain their
 /// SAME mutable Budget, including failed nested Contract work. This is not
 /// complete successful Usage. Other failed domains without that original
 /// consumed-work fact remain None, never zero or a fresh allowance.
@@ -157,54 +157,22 @@ pub fn pipeline_evidence_read_owned_work(
   match original.state {
     Reading(body) =>
       match body.step {
-        CoreRunning(read) =>
-          match read.state {
-            Reading(core) =>
-              Some(
-                body.limits.max_work -
-                body.key_work +
-                core.limits.max_work -
-                core.b.work,
-              )
-            Rejected(core, _) =>
-              if core.phase == Inputs {
-                Some(
-                  body.limits.max_work -
-                  body.key_work +
-                  core.limits.max_work -
-                  core.b.work,
-                )
-              } else {
-                None
-              }
-            Completed(checked) =>
-              Some(body.limits.max_work - body.key_work + checked.usage.work)
-            _ => None
-          }
+        CoreRunning(_) => pipeline_evidence_core_consumed_work(body)
         _ => Some(body.limits.max_work - body.key_work)
       }
+    Rejected(body, _) => pipeline_evidence_core_consumed_work(body)
     Completed(checked) => Some(checked.usage.work)
-    Rejected(body, _) =>
-      match body.step {
-        CoreRunning(read) =>
-          match read.state {
-            Rejected(core, _) =>
-              if core.phase == Inputs {
-                Some(
-                  body.limits.max_work -
-                  body.key_work +
-                  core.limits.max_work -
-                  core.b.work,
-                )
-              } else {
-                None
-              }
-            _ => None
-          }
-        _ => None
-      }
     _ => None
   }
+}
+
+///|
+fn pipeline_evidence_core_consumed_work(body : PipelineEvidenceBody) -> Int? {
+  guard body.step is CoreRunning(read) else { return None }
+  pipeline_core_read_consumed_work(
+    read,
+    prefix=body.limits.max_work - body.key_work,
+  )
 }
 
 ///|

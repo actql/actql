@@ -104,14 +104,11 @@ test "original pipeline evidence read preserves borrowed inputs and actual carri
     let _ = advance_pipeline_evidence_read(read)
   }
   assert_eq(pipeline_evidence_read_phase(read), CoreParameters)
-  for
-    expected in [
-      CoreImportedEvidence,
-      CoreDeltaContracts,
-      CoreSteps,
-      CoreFinalEvidence,
-      Complete,
-    ] {
+  while pipeline_evidence_read_phase(read) == CoreParameters {
+    let _ = advance_pipeline_evidence_read(read)
+  }
+  assert_eq(pipeline_evidence_read_phase(read), CoreImportedEvidence)
+  for expected in [CoreDeltaContracts, CoreSteps, CoreFinalEvidence, Complete] {
     assert_eq(advance_pipeline_evidence_read(read), expected)
   }
   let checked = take_pipeline_evidence_read(read).unwrap().unwrap()

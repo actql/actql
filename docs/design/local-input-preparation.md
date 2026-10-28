@@ -1735,7 +1735,7 @@ read and consumed work. Clear retires that pending original and receipt; it is
 not a physical cleanup acknowledgement or a work refund.
 
 The initializer precedes input admission. The same Request driver now backs
-its original input continuation as described below. Subsequent Parameter,
+its original input and Parameter continuations as described below. Subsequent
 imported evidence, delta, nested operation and final-evidence constructors still
 need their own input-derived overlap and retained inventories before the parent
 can advance them. Pure synchronous consumers still drive all semantic
@@ -1747,7 +1747,8 @@ complete successful Usage; it never supplies zero work as a success fact.
 The original nested Contract preflight has its own private continuation over
 that same compiler Budget and original LIFO stack. It returns after a popped
 Contract and after each original field-name charge, before the next child tuple
-and pending-buffer write. The synchronous preflight drives this same body. It does not introduce a second type traversal, a Contract-layout cache or
+and pending-buffer write. Synchronous Carrier and Parameter consumers drive
+this same body. It does not introduce a second type traversal, a Contract-layout cache or
 a new resource owner. Depth, field-order, work and partial text refusals remain
 with the original semantic body. Clearing removes pending element roots but
 does not make the stack's retained backing or its parent reservation disappear.
@@ -1840,12 +1841,48 @@ changes expose its immediate removals. No pending tuple is priced solely from
 the reduced logical length. This is representation accounting, not a physical
 cleanup acknowledgement, VM allocation measurement or RSS estimate.
 
-A rejected CoreInputs body still owns the same mutable Budget and original
-Carrier/Contract. Its actual consumed work can be observed through the failed
+A rejected CoreInputs or CoreParameters body still owns the same mutable Budget
+and original Carrier/Contract. Its actual consumed work can be observed through the failed
 read and charged before returning its original work receipt. That observation
 is not successful Usage or a checked Program. Other failed domains whose child
 owners have not supplied an actual consumed prefix remain unknown; neither
 None nor a generic exception supplies zero work. The whole admitted failed
-construction peak remains backed until actual clear. Subsequent Parameter,
+construction peak remains backed until actual clear. Subsequent imported/delta,
 operation, Result/Context, checker/compiler and Plan/Run adoption, and matching
 ordinary/backend acceptance, retain their independent completion obligations.
+
+
+### Original Parameter and initial-selector continuation
+
+After the input domain, the same core read retains the original Parameter
+index and Contract continuation. It charges the original declaration count,
+names, Contract visits, depth and text budget in their existing order. The
+same parent backs each next tuple/buffer write and replaces only this pending
+Parameter domain after return. Declarations, default values and metadata remain
+borrowed from their completed original owner. This phase does not bind defaults,
+change nullable types, re-read declaration syntax or create a new capacity owner.
+
+Initial selection still follows all declarations. A raw selector completes
+NFC/LF once, then keeps the existing spend, UTF8 charge and empty-name order.
+It does not call the generic name checker to normalize that same completed
+String again. Generic name admission keeps its separate canonical-spelling
+obligation. The normalized selector is used only for the original name index;
+no currentness or permission fact is cached. A selector borrowed from another
+admitted tree backs its own issue path rather than borrowing the steps tree's
+shallower depth. Whole Program structure may already refuse an unknown initial
+input; a lower-level Pipeline refusal is not proof that the whole Program can
+reach that later boundary.
+
+The selected Target and three initial operation/evidence vectors are retained
+only after the original selector succeeds. Their actual buffers and original
+Some/Target wrappers are priced separately from the earlier input Map and
+borrowed declarations. The retained-quantity observer takes the actual previous
+constructor phase, so it cannot reinterpret an input delta as a Parameter
+result. Its work getter reads the same core Budget, including known rejected
+input/Parameter prefixes; it does not construct successful Usage for failure.
+
+The original synchronous Contract comparison driver is test-only after all
+product callers use the retained original. The second semantic checker and old
+single-step Parameter loop are absent. Imported evidence, delta, operations,
+final evidence, Result/order/Context and Checked-to-Plan/Run adoption still need
+their corresponding original construction and ordinary consumer connections.
