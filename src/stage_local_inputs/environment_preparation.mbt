@@ -36,6 +36,13 @@ priv struct LocalEnvironmentPending {
 }
 
 ///|
+priv struct LocalIndexConstruction {
+  geometry : @refs.IndexConstructionGeometry
+  limits : @refs.Limits
+  work : Int64?
+}
+
+///|
 priv enum LocalEnvironmentState {
   ReadIndex
   MakeGroups
@@ -57,6 +64,8 @@ struct LocalEnvironmentPreparation {
   count : Int
   members : Int
   mut index : @refs.Index?
+  mut index_observation : @refs.Usage?
+  mut index_construction : LocalIndexConstruction?
   mut groups : LocalStageGroups?
   mut stages : Array[EnvironmentInputs]?
   mut pending : LocalEnvironmentPending?
@@ -101,6 +110,8 @@ pub fn begin_local_environment_preparation(
     count,
     members,
     index: None,
+    index_observation: None,
+    index_construction: None,
     groups: None,
     stages: None,
     pending: None,
@@ -156,6 +167,92 @@ pub fn local_environment_preparation_usage(
 }
 
 ///|
+/// The SAME original index's charged-policy and admitted-name-byte observation.
+/// None means unstarted, never a missing failed observation converted to0.
+/// This scalar fact survives alias clear/take; it does not debit/refund a Ledger.
+pub fn local_environment_preparation_index_usage(
+  read : LocalEnvironmentPreparation,
+) -> @refs.Usage? {
+  read.index_observation
+}
+
+///|
+pub fn local_environment_index_inspection_bound(
+  read : LocalEnvironmentPreparation,
+) -> Int64? {
+  guard read.state is ReadIndex && read.arguments is Some(original) else {
+    return None
+  }
+  Some(
+    @refs.index_construction_inspection_bound(original.source, {
+      max_work: read.work,
+      max_text_bytes: read.text,
+    }),
+  )
+}
+
+///|
+/// Observe once and retain the exact selected Limits for the actual index
+/// call after grow. Repeated inspection returns the SAME work Some, not a
+/// second traversal or debit opportunity. No foreign geometry/limits enter.
+pub fn observe_local_environment_index_construction(
+  read : LocalEnvironmentPreparation,
+) -> Int64? {
+  guard read.state is ReadIndex && read.arguments is Some(original) else {
+    return None
+  }
+  if read.index_construction is Some(completed) {
+    return completed.work
+  }
+  let limits : @refs.Limits = {
+    max_work: read.work,
+    max_text_bytes: read.text,
+  }
+  let geometry = @refs.observe_index_construction_geometry(
+    original.source,
+    limits,
+  )
+  let work = Some(geometry.inspection_work)
+  read.index_construction = Some({ geometry, limits, work, })
+  work
+}
+
+///|
+pub fn local_environment_index_inspection_work(
+  read : LocalEnvironmentPreparation,
+) -> Int64? {
+  read.index_construction.bind(completed => completed.work)
+}
+
+///|
+pub fn local_environment_index_construction(
+  read : LocalEnvironmentPreparation,
+) -> @refs.IndexConstructionInventory? {
+  guard read.state is ReadIndex && read.index_construction is Some(completed) else {
+    return None
+  }
+  @refs.index_construction_inventory(completed.geometry, completed.limits)
+}
+
+///|
+/// Same geometry owner plus Limits1H2W, work Some1H2W, captured wrapper1H3R,
+/// stored Some1H1R1W and bound Some1H2W. Quote frames/UTF/VM stay separate.
+pub fn local_environment_index_inspection_extent() -> @shape.CollectionConstructionExtent {
+  @shape.add_collection_construction_extents(
+    @refs.index_construction_inspection_extent(),
+    { record_headers: 5L, reference_slots: 4L, scalar_words: 7L, },
+  ).unwrap()
+}
+
+///|
+pub fn local_environment_index_inspection_retained_extent() -> @shape.CollectionConstructionExtent {
+  @shape.add_collection_construction_extents(
+    @refs.index_construction_geometry_extent(),
+    { record_headers: 4L, reference_slots: 4L, scalar_words: 5L, },
+  ).unwrap()
+}
+
+///|
 fn fail_local_environment_preparation(
   read : LocalEnvironmentPreparation,
   issue : PrepareEnvironmentIssue,
@@ -187,11 +284,13 @@ pub fn advance_local_environment_preparation(
   }
   match read.state {
     ReadIndex => {
-      read.index = match
-        @refs.prepare(original.source, {
-          max_work: read.work,
-          max_text_bytes: read.text,
-        }) {
+      let limits = match read.index_construction {
+        Some(metadata) => metadata.limits
+        None => { max_work: read.work, max_text_bytes: read.text, }
+      }
+      let (result, usage) = @refs.observe_prepare(original.source, limits)
+      read.index_observation = Some(usage)
+      read.index = match result {
         Ok(index) => Some(index)
         Err(issue) =>
           return fail_local_environment_preparation(read, Index(issue))
@@ -420,7 +519,7 @@ pub fn clear_local_environment_preparation(
 
 ///|
 /// Installed initial constructor DATA only: arguments1H4R and its Some1H1R1W;
-/// read1H8R8W; initial phase1H1W; returned Ok1H1R1W. Borrowed original Source,
+/// read1H10R8W; initial phase1H1W; returned Ok1H1R1W. Borrowed original Source,
 /// Environment, limits/partition and every later phase frame are separate.
 pub fn local_environment_preparation_initial_construction_extent() -> @shape.CollectionConstructionExtent {
   local_environment_initial_units
@@ -429,6 +528,6 @@ pub fn local_environment_preparation_initial_construction_extent() -> @shape.Col
 ///|
 let local_environment_initial_units : @shape.CollectionConstructionExtent = {
   record_headers: 5L,
-  reference_slots: 14L,
+  reference_slots: 16L,
   scalar_words: 11L,
 }

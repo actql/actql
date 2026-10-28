@@ -58,6 +58,8 @@ struct SourceRegistrationRead {
   mut pipeline_work : Int
   mut resolution_construction : SourceResolutionConstruction?
   mut local_child : @local_inputs.LocalEnvironmentPreparation?
+  mut local_index_usage : @refs.Usage?
+  mut local_index_inspection_work : Int64?
   mut state : SourceRegistrationState
 }
 
@@ -94,6 +96,8 @@ pub fn begin_source_registration(
     pipeline_work: 0,
     resolution_construction: None,
     local_child: None,
+    local_index_usage: None,
+    local_index_inspection_work: None,
     state: ReadDeclarations,
   })
 }
@@ -282,6 +286,47 @@ pub fn source_registration_local_failure_phase(
 }
 
 ///|
+pub fn source_registration_local_index_usage(
+  read : SourceRegistrationRead,
+) -> @refs.Usage? {
+  read.local_index_usage
+}
+
+///|
+pub fn source_registration_local_index_inspection_bound(
+  read : SourceRegistrationRead,
+) -> Int64? {
+  read.local_child.bind(@local_inputs.local_environment_index_inspection_bound)
+}
+
+///|
+pub fn observe_source_registration_local_index_construction(
+  read : SourceRegistrationRead,
+) -> Int64? {
+  let work = read.local_child.bind(
+    @local_inputs.observe_local_environment_index_construction,
+  )
+  if work is Some(_) {
+    read.local_index_inspection_work = work
+  }
+  work
+}
+
+///|
+pub fn source_registration_local_index_inspection_work(
+  read : SourceRegistrationRead,
+) -> Int64? {
+  read.local_index_inspection_work
+}
+
+///|
+pub fn source_registration_local_index_construction(
+  read : SourceRegistrationRead,
+) -> @refs.IndexConstructionInventory? {
+  read.local_child.bind(@local_inputs.local_environment_index_construction)
+}
+
+///|
 fn clear_source_registration_local(read : SourceRegistrationRead) -> Unit {
   if read.local_child is Some(child) {
     @local_inputs.clear_local_environment_preparation(child)
@@ -362,8 +407,12 @@ pub fn advance_source_registration(
             Err(issue) => read.state = RegistrationDone(Err(LocalInputs(issue)))
             Ok(child) => read.local_child = Some(child)
           }
-        Some(child) =>
-          match @local_inputs.advance_local_environment_preparation(child) {
+        Some(child) => {
+          let phase = @local_inputs.advance_local_environment_preparation(child)
+          read.local_index_usage = @local_inputs.local_environment_preparation_index_usage(
+            child,
+          )
+          match phase {
             LocalEnvironmentComplete | LocalEnvironmentFailed => {
               let result = @local_inputs.take_local_environment_preparation_result(
                 child,
@@ -386,6 +435,7 @@ pub fn advance_source_registration(
             LocalEnvironmentTransferred | LocalEnvironmentRetired =>
               abort("unexposed original Local child cannot retire externally")
           }
+        }
       }
     RegistrationDone(_) | RegistrationHandedOff | RegistrationCleared => ()
   }
@@ -434,9 +484,9 @@ pub fn clear_source_registration(read : SourceRegistrationRead) -> Unit {
 
 ///|
 /// Installed constructor DATA, not capacity. Argument record1H3R3W, its Some
-///1H1R1W, read1H5R3W, initial phase1H1W and returned Ok1H1R1W. The supplied
+///1H1R1W, read1H7R3W, initial phase1H1W and returned Ok1H1R1W. The supplied
 /// Source/Catalog/limits and each phase's metadata/constructor overlap remain
 /// separately backed. The collection phase also adds its original observer.
 pub fn source_registration_initial_construction_extent() -> @shape.CollectionConstructionExtent {
-  { record_headers: 5L, reference_slots: 10L, scalar_words: 9L, }
+  { record_headers: 5L, reference_slots: 12L, scalar_words: 9L, }
 }

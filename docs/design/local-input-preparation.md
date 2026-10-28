@@ -950,3 +950,35 @@ Only the fixed initial continuation record is inventoried here. Each step's
 metadata, quotation, constructor and borrowed-input backing, nested work
 observations, real parent/current/debit/resize and backend retirement remain
 separate required connections. No phase or initial DATA extent is capacity.
+
+
+## Original Local index observation and containers
+
+The existing source-location indexer owns both its result-only entrance and a
+partial charged-policy-work/admitted-name-byte observation. Both use the same
+original Budget/reader. Success reuses its retained Usage; typed failure reports
+only the deductions actually made, never a successful partial Index. These
+separate semantic units are not UTF scan instructions, CPU or physical byte use.
+
+Shallow constructor inspection observes only actual Stage/input/import counts
+and Stage root widths under the original minimum work prefix. It does not scan
+input bodies or their row/schema/metadata text. The Stage decoder and inspection
+bound use one private list of allowed Stage fields. The shared Map/ObjectView
+owners supply representation; all imported Maps and temporary Stage views are
+co-counted rather than assumed retired per iteration. UTF admission, VM and
+quotation frames remain independent required backing.
+
+The same Local read retains the original observed geometry, Limits and receipt
+once, then uses those exact Limits for actual indexing. Its charged observation
+survives clear/take. The Source read forwards that same fact and metadata work
+receipt without a second read, preserving them after its child aliases retire.
+No observation performs another debit, refunds consumed work, admits a request,
+or acknowledges physical cleanup. Full Local child work/funding remains required.
+
+
+Each index Slot retains the child Cursor produced by its original field read.
+The shared Cursor owner supplies that wrapper once per possible Slot; fixed
+transient field-reader frames cannot cover an arbitrary number of escaping
+Cursors. Their tree, admission usage and identifier Strings remain borrowed,
+not copied. The same Cursor definition also composes the existing indexed
+child/field controls, keeping their established totals unchanged.

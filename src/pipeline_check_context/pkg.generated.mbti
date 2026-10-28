@@ -45,6 +45,7 @@ import {
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
   "actql/actql/stage_source",
+  "actql/actql/stage_source_refs",
   "actql/actql/stage_syntax",
   "actql/actql/temporal_window",
   "actql/actql/text_time_bounds",
@@ -597,6 +598,8 @@ pub fn observe_capacity_input_binding(@stage_syntax.Program, Array[StageCapacity
 
 pub fn observe_capacity_input_construction_inventory(@stage_syntax.Program, Array[StageCapacityInput]) -> (@decode_shape.CollectionConstructionInventory?, Int64)
 
+pub fn observe_source_registration_local_index_construction(SourceRegistrationRead) -> Int64?
+
 pub fn observe_source_registration_resolution_construction(SourceRegistrationRead) -> Int64?
 
 pub fn operation_calendar_at(ProgramOperationCalendar, Int) -> OperationCalendarResolution?
@@ -1138,6 +1141,14 @@ pub fn source_registration_collection_work(SourceRegistrationRead) -> Int
 pub fn source_registration_initial_construction_extent() -> @decode_shape.CollectionConstructionExtent
 
 pub fn source_registration_local_failure_phase(SourceRegistrationRead) -> @stage_local_inputs.LocalEnvironmentPhase?
+
+pub fn source_registration_local_index_construction(SourceRegistrationRead) -> @stage_source_refs.IndexConstructionInventory?
+
+pub fn source_registration_local_index_inspection_bound(SourceRegistrationRead) -> Int64?
+
+pub fn source_registration_local_index_inspection_work(SourceRegistrationRead) -> Int64?
+
+pub fn source_registration_local_index_usage(SourceRegistrationRead) -> @stage_source_refs.Usage?
 
 pub fn source_registration_local_phase(SourceRegistrationRead) -> @stage_local_inputs.LocalEnvironmentPhase?
 

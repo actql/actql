@@ -205,7 +205,7 @@ test "original Source registration clearing retires only its own untransferred a
   )
   assert_eq(source_registration_initial_construction_extent(), {
     record_headers: 5L,
-    reference_slots: 10L,
+    reference_slots: 12L,
     scalar_words: 9L,
   })
 }
@@ -450,7 +450,7 @@ test "original registration pipeline construction uses only same held resolution
   assert_true(source_registration_pipeline_construction(read) is None)
   assert_eq(source_registration_initial_construction_extent(), {
     record_headers: 5L,
-    reference_slots: 10L,
+    reference_slots: 12L,
     scalar_words: 9L,
   })
 }
@@ -577,4 +577,46 @@ test "original registration retains failed Local handoff and clears only its own
   assert_true(source_registration_local_phase(pending) is None)
   assert_eq(advance_source_registration(pending), RegistrationRetired)
   assert_true(take_source_registration_result(pending) is None)
+}
+
+///|
+test "original registration retains the same Local index observation and metadata after clear" {
+  let (source, catalog, limits, _) = registration_read_fixture()
+  let read = begin_source_registration(
+    source,
+    catalog,
+    limits,
+    max_inputs=2,
+    max_views=100,
+    max_order_keys=100,
+  ).unwrap()
+  assert_true(source_registration_local_index_usage(read) is None)
+  assert_true(
+    observe_source_registration_local_index_construction(read) is None,
+  )
+  assert_eq(advance_source_registration(read), RegistrationSelect)
+  assert_eq(advance_source_registration(read), RegistrationPipeline)
+  assert_eq(advance_source_registration(read), RegistrationLocal)
+  assert_eq(advance_source_registration(read), RegistrationLocal)
+  let bound = source_registration_local_index_inspection_bound(read).unwrap()
+  let work = observe_source_registration_local_index_construction(read).unwrap()
+  assert_true(work > 0L && work <= bound)
+  assert_eq(
+    observe_source_registration_local_index_construction(read),
+    Some(work),
+  )
+  assert_true(source_registration_local_index_construction(read) is Some(_))
+  assert_eq(advance_source_registration(read), RegistrationLocal)
+  let used = source_registration_local_index_usage(read).unwrap()
+  assert_true(used.work > 0 && used.text_bytes > 0)
+  assert_true(source_registration_local_index_construction(read) is None)
+  assert_eq(complete_registration_local(read), RegistrationComplete)
+  let _ = take_source_registration_result(read).unwrap().unwrap()
+  clear_source_registration(read)
+  assert_eq(source_registration_phase(read), RegistrationTransferred)
+  assert_eq(source_registration_local_index_usage(read), Some(used))
+  assert_eq(source_registration_local_index_inspection_work(read), Some(work))
+  assert_true(
+    observe_source_registration_local_index_construction(read) is None,
+  )
 }

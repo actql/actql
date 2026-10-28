@@ -33,6 +33,8 @@ pub fn closed_object_construction_extent(Cursor, Int, Int) -> @decode_shape.Coll
 
 pub fn closed_object_field_construction_extent(Int?, Int, Int64) -> @decode_shape.CollectionConstructionExtent?
 
+pub fn cursor_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
 pub fn cursor_key_span(Cursor) -> @source_span.Span?
 
 pub fn cursor_path(Cursor) -> Array[@source_value.PathSegment]

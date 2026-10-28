@@ -60,13 +60,27 @@ pub fn input_at(Prepared, Int) -> (String, @pipeline_typing.InputContract)?
 
 pub fn input_environment(EnvironmentInputs) -> @check_environment.WireEnvironment
 
+pub fn local_environment_index_construction(LocalEnvironmentPreparation) -> @stage_source_refs.IndexConstructionInventory?
+
+pub fn local_environment_index_inspection_bound(LocalEnvironmentPreparation) -> Int64?
+
+pub fn local_environment_index_inspection_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_index_inspection_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_index_inspection_work(LocalEnvironmentPreparation) -> Int64?
+
 pub fn local_environment_preparation_failure_phase(LocalEnvironmentPreparation) -> LocalEnvironmentPhase?
+
+pub fn local_environment_preparation_index_usage(LocalEnvironmentPreparation) -> @stage_source_refs.Usage?
 
 pub fn local_environment_preparation_initial_construction_extent() -> @decode_shape.CollectionConstructionExtent
 
 pub fn local_environment_preparation_phase(LocalEnvironmentPreparation) -> LocalEnvironmentPhase
 
 pub fn local_environment_preparation_usage(LocalEnvironmentPreparation) -> Usage?
+
+pub fn observe_local_environment_index_construction(LocalEnvironmentPreparation) -> Int64?
 
 pub fn prepare(@stage_parameters.Source, Int, Limits, sourceviews? : @sourceview_input.Inputs?) -> Result[Prepared, Issue]
 
