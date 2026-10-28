@@ -7,6 +7,7 @@ import {
   "actql/actql/carrier_projection",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/event_typing",
   "actql/actql/expression_syntax",
   "actql/actql/expression_typing",
@@ -344,6 +345,8 @@ pub fn nearest_source(NearestOptions) -> @decode_core.Cursor
 
 pub fn nearest_usage(CheckedNearest) -> @vector_checking.Usage
 
+pub fn primary_key_read_construction_inventory(Int, Int, Int64) -> KeyReadConstructionInventory?
+
 pub fn ranking_by(RankingOptions) -> Array[@relation_schema.FieldName]
 
 pub fn ranking_by_at(RankingOptions, Int) -> @relation_schema.FieldName?
@@ -397,6 +400,8 @@ pub fn ranking_score_count(RankingInput) -> Int
 pub fn ranking_score_declaration(RankingInput) -> DeclaredScore?
 
 pub fn ranking_score_declarations(RankingInput) -> Iter[DeclaredScore]
+
+pub fn ranking_scores_construction_inventory(@decode_core.SubtreeGeometry, Int, Int64, Int) -> RankingReadConstructionInventory?
 
 pub fn ranking_shape_input(RankingShape) -> RankingInput
 
@@ -714,6 +719,12 @@ pub(all) enum KeyOrigin {
   InferResult
 } derive(Eq, @debug.Debug)
 
+pub(all) struct KeyReadConstructionInventory {
+  retained : @decode_shape.CollectionConstructionExtent
+  scratch : @decode_shape.CollectionConstructionExtent
+  scratch_utf16_units : Int64
+} derive(Eq, @debug.Debug)
+
 pub struct KeySelection {
   key : KeyedRelation?
   work : Int
@@ -845,6 +856,13 @@ pub(all) enum RankingPolicy {
   Maximum
   WeightedSum
   ReciprocalRank
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RankingReadConstructionInventory {
+  retained : @decode_shape.CollectionConstructionExtent
+  scratch : @decode_shape.CollectionConstructionExtent
+  retained_utf16_units : Int64
+  scratch_utf16_units : Int64
 } derive(Eq, @debug.Debug)
 
 type RankingShape
