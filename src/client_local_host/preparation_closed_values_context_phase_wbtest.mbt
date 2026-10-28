@@ -84,9 +84,10 @@ test "ClosedValues context aggregate prices all finite families" {
   let temporary = @execution.preparation_representation_cost(quote.temporary).unwrap()
   assert_true(retained > 0L && temporary > 0L)
   // Fixed original fixture: families855187 + retained Source delta64
-  // (1H2R4W,4a9d68f89c) + Context inputs200 (4H12R5W) + witness43516.
+  // (1H2R4W,4a9d68f89c) + Context inputs200 (4H12R5W), binding input112
+  // (2H6R4W) + witness43516.
   // The previous receipts remain their original source qualifications.
-  assert_eq(retained, 898967L)
+  assert_eq(retained, 899079L)
   println("context representative retained=\{retained} temporary=\{temporary}")
   assert_true(closed_values_context_components_layout(facts, 0, 99) is None)
 }

@@ -1530,3 +1530,26 @@ insufficient after its result was transferred internally. Retiring the input
 prevents another topology constructor; dropping this owner's aliases is not a
 physical-release acknowledgement, work refund or revocation of already checked
 immutable data held by a legitimate successor.
+
+## Topology-selected Parameter binding
+
+The original topology usage selects the remaining Parameter binding limits.
+A binding performed earlier under looser limits cannot generally replace that
+selection: completed success is reusable only under the existing compatible
+limits, and completed failure requires identical limits. Tightening that rule
+or silently rebinding would lose the intended single original continuation.
+
+The Local binding entrance therefore retains the original wiring, supplied
+input and selected limits after the same original preflight. Its staged
+completion accepts only a completed reader that satisfies the existing
+declaration/input/limits correspondence rule. A foreign, pending or incompatible
+reader does not trigger a fallback binding pass. The synchronous path uses the
+same preflight and final assembly; it continues to drive the original binder.
+
+The resulting Local source keeps the topology's original Source and wiring,
+and retains the reader's same completed BoundValues. It does not replace Source
+with a new snapshot after its pipelines have captured that Source. Cancellation
+retires this pure entrance; its getters and retirement do not provide capacity,
+permission or physical cleanup acknowledgements. Funding the topology, actual
+binding constructors and final Local assembly remains the request parent's
+responsibility at their respective boundaries.

@@ -6,6 +6,7 @@ import {
   "actql/actql/canonical_json",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "actql/actql/parameter_binding",
   "actql/actql/parameter_references",
@@ -47,6 +48,8 @@ pub fn bind_effect_results(@stage_syntax.EffectHeaders, Checked, Int) -> Result[
 pub fn bind_ports(@stage_parameters.CollectedStage, @relation_results.ResultPorts, table_inputs? : @relation_results.CheckedTableInputs?) -> Result[StagePorts, ImportIssue]
 
 pub fn bind_prepared_program(ResultWiring, @decode_core.Cursor?, LocalProgramLimits) -> Result[PreparedLocalSource, LocalSourceIssue]
+
+pub fn bind_prepared_program_from_binding(LocalProgramBindingInput, @parameter_binding.BindingReadInput) -> Result[PreparedLocalSource, LocalSourceIssue]
 
 pub fn check(@stage_parameters.CollectedOperations, @relation_results.Limits) -> Result[Checked, Issue]
 
@@ -292,6 +295,10 @@ pub fn input_producer(ResultImport) -> @pipeline_typing.ProducedInput
 
 pub fn input_stage(ResultImport) -> StagePorts
 
+pub fn local_program_binding_input_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_program_binding_input_facts(LocalProgramBindingInput) -> (@stage_parameters.Source, @decode_core.Cursor?, @value_admission.Limits)?
+
 pub fn local_source_context_prefix(PreparedLocalSource) -> (Int, Int)
 
 pub fn local_source_operations(PreparedLocalSource) -> @stage_parameters.BoundOperations
@@ -314,6 +321,8 @@ pub fn prepare_effect_static_candidate(@stage_syntax.EffectHeaders, Checked, @ch
 
 pub fn prepare_local_program(@stage_parameters.Source, LocalProgramLimits, environment? : @stage_local_inputs.ProgramEnvironmentInputs?, sourceview_registrations? : Array[Array[(String, @pipeline_typing.InputContract)]]?, calendar_profile? : @calendar_profile.Profile?, model_tasks? : @check_environment.ModelTasks?) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue]
 
+pub fn prepare_local_program_binding_input(ResultWiring, @decode_core.Cursor?, LocalProgramLimits) -> Result[LocalProgramBindingInput, LocalSourceIssue]
+
 pub fn prepare_local_source(@stage_syntax.Program, @decode_core.Cursor?, max_parameters~ : Int, LocalProgramLimits, environment? : @check_environment.WireEnvironment?, calendar_profile? : @calendar_profile.Profile?, model_tasks? : @check_environment.ModelTasks?) -> Result[PreparedLocalSource, LocalSourceIssue]
 
 pub fn project_effect_command_row(EffectCommandInputBinding, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, published_target? : EffectPublishedStoreTarget?) -> Result[(String, String), EffectCommandRowIssue]
@@ -323,6 +332,8 @@ pub fn project_effect_plan_checked_row(EffectPlanTerminal, EffectMappingLiterals
 pub fn project_effect_plan_row(EffectPlanTerminal, @canonical_json.CanonicalValue, Int, Int, Int) -> Result[EffectPlanRow, EffectPlanRowIssue]
 
 pub fn resolve_imports(@stage_parameters.Source, Int, Array[StagePorts], ImportLimits) -> Result[ResultImports, ImportIssue]
+
+pub fn retire_local_program_binding_input(LocalProgramBindingInput) -> Unit
 
 pub fn stage_at(Checked, Int) -> @relation_results.CheckedResults?
 
@@ -874,6 +885,8 @@ pub enum Issue {
   Stage(Int, @relation_results.Issue)
   TableInputs(Int, @relation_results.Issue)
 }
+
+type LocalProgramBindingInput
 
 pub enum LocalProgramIssue {
   InvalidLimits
