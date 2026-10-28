@@ -9,7 +9,7 @@ import {join, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
-import {BUILD_INPUTS, packedNpmCache} from './packed-client-packages.mjs';
+import {BUILD_INPUTS, packedNpmCache, normalNpmPackJsonArgs, parseNpmPackJson} from './packed-client-packages.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 import {symlink} from 'node:fs/promises';
 
@@ -57,7 +57,7 @@ await symlink(join(repository, 'node_modules'), join(producer, 'node_modules'), 
 const inputs = localNodePackageInputs(producer);
 const packs = [];
 for (const name of names) {
-  const output = JSON.parse(run('npm', ['pack', '--json', '--pack-destination', artifacts],
+  const output = parseNpmPackJson(run('npm', normalNpmPackJsonArgs(['pack', '--json', '--pack-destination', artifacts]),
     join(producer, 'packages', name), 180000));
   const pack = output[0] ?? output[`@actql/${name}`];
   const path = join(artifacts, pack.filename);

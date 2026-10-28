@@ -646,6 +646,7 @@ test('the existing cold pack runner executes this regression and still packs all
   assert.match(source, /'dist\/workers_finite_payload\.js'/);
   assert.match(source, /execFileSync\(process\.execPath, \['--test', 'scripts\/build-runtime-packages\.test\.mjs'\]/);
   assert.match(source, /for \(const \[name, paths\] of Object\.entries\(expected\)\)/);
-  assert.match(source, /execFileSync\('npm', \['pack', '--json', '--pack-destination', destination,\s*'--foreground-scripts=false'\]/);
+  assert.match(source, /execFileSync\('npm', normalNpmPackJsonArgs\(\['pack', '--json', '--pack-destination', destination\]\)/);
+  assert.match(source, /const metadata = parseNpmPackJson\(output\)/);
   assert.doesNotMatch(source, /--ignore-scripts/);
 });
