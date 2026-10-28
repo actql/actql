@@ -24,7 +24,8 @@ const tarball = name => `actql-${name}-0.0.0-development.tgz`;
 // Other npm options remain the caller's DATA; npm owns their interpretation.
 export function normalNpmPackJsonArgs(args) {
   if (!Array.isArray(args) || args.some(value => typeof value !== 'string') ||
-      args[0] !== 'pack' || args.filter(value => value === '--json').length !== 1 ||
+      args[0] !== 'pack' || args.filter(value => /^--json(?:=|$)/u.test(value)).length !== 1 ||
+      !args.includes('--json') ||
       args.some(value => /^--(?:ignore-scripts|foreground-scripts)(?:=|$)/u.test(value))) {
     throw new TypeError('Normal npm pack JSON arguments required');
   }

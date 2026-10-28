@@ -22,6 +22,7 @@ test('normal pack JSON arguments preserve caller flags and one lifecycle stdout 
 
 test('normal pack JSON policy refuses disabled hooks duplicate JSON and competing foreground flags', () => {
   for (const args of [null, [], ['install', '--json'], ['pack'], ['pack', '--json', '--json'],
+    ['pack', '--json', '--json=false'], ['pack', '--json=true'],
     ['pack', '--json', 1], ['pack', '--json', '--ignore-scripts'],
     ['pack', '--json', '--ignore-scripts=true'], ['pack', '--json', '--ignore-scripts=false'],
     ['pack', '--json', '--foreground-scripts'], ['pack', '--json', '--foreground-scripts=true'],
