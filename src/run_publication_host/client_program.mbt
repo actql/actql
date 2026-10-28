@@ -1590,7 +1590,9 @@ fn prepare_client_task_sequence_graph(
 /// substitute a pipeline, parameter binding, profile, or owner at this step.
 fn prepare_client_stage_owners(
   checked : @checked.CheckedProgram,
-  limits : ClientProgramPreparationLimits,
+  limits : @lower.Limits,
+  max_parameters~ : Int,
+  max_parameter_name_bytes~ : Int,
 ) -> Result[Array[@lower.BoundPrepared], ClientStageOwnerIssue] {
   let identity = @checked.source_identity(checked)
   let selected = @checked.selected_expression_profiles(checked)
@@ -1600,7 +1602,7 @@ fn prepare_client_stage_owners(
     guard @checked.unit_pipeline(checked, stage) is Some(pipeline) else {
       return Err(MissingCheckedStage(stage))
     }
-    let preparation = match @lower.prepare(pipeline, limits.lowering) {
+    let preparation = match @lower.prepare(pipeline, limits) {
       Ok(value) => value
       Err(issue) => return Err(Lowering(issue))
     }
@@ -1614,8 +1616,8 @@ fn prepare_client_stage_owners(
       @lower.bind_parameters(
         preparation,
         Some(parameters),
-        max_parameters=limits.max_parameters,
-        max_name_bytes=limits.max_parameter_name_bytes,
+        max_parameters~,
+        max_name_bytes=max_parameter_name_bytes,
         expression_profiles={
           text_time: selected.text_time,
           veca: selected.veca,
@@ -1633,7 +1635,7 @@ fn prepare_client_stage_owners(
             owner,
             closure,
             stage,
-            limits.lowering.max_work,
+            limits.max_work,
           ) {
           Ok(value) => value
           Err(issue) => return Err(Binding(issue))
@@ -1697,7 +1699,69 @@ pub fn prepare_parsed_effect_free_client_program(
     NeedsInputs(requests) => return Err(NeedsInputs(requests))
     Rejected(diagnostic) => return Err(Check(diagnostic))
   }
-  let owners = match prepare_client_stage_owners(checked, limits) {
+  // The Effect restriction ran before checking, preserving its original
+  // refusal precedence. Continue this exact result, without another scan/check.
+  compile_effect_free_checked_client_program(
+    checked,
+    limits.lowering,
+    max_parameters=limits.max_parameters,
+    max_parameter_name_bytes=limits.max_parameter_name_bytes,
+    max_tasks=limits.max_tasks,
+    max_graph_work=limits.max_graph_work,
+  )
+}
+
+///|
+/// Compile the original completed check without parsing, input/evidence
+/// admission or semantic checking again. Lowering binds the original checked
+/// Parameter values to its own expressions. Source, Environment and Result
+/// inventory come only from that original. The caller funds graph coexistence
+/// before entry; this function does not create a Resource owner or admit a Run.
+/// Effect preparations still require their separate original candidate path.
+pub fn prepare_checked_effect_free_client_program(
+  checked : @checked.CheckedProgram,
+  lowering : @lower.Limits,
+  max_parameters~ : Int,
+  max_parameter_name_bytes~ : Int,
+  max_tasks~ : Int,
+  max_graph_work~ : Int,
+) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
+  // The checker already refused nonempty Effects on its Pure path. Read its
+  // retained classification instead of copying/scanning every Stage again.
+  // Only an Effect candidate needs its original Stage for the typed refusal.
+  if @checked.checked_program_has_effects(checked) {
+    for stage in @syntax.stages(@checked.checked_source_program(checked)) {
+      if !@syntax.effect_names(stage).is_empty() {
+        return Err(EffectNotSupported(stage.id))
+      }
+    }
+  }
+  compile_effect_free_checked_client_program(
+    checked,
+    lowering,
+    max_parameters~,
+    max_parameter_name_bytes~,
+    max_tasks~,
+    max_graph_work~,
+  )
+}
+
+///|
+fn compile_effect_free_checked_client_program(
+  checked : @checked.CheckedProgram,
+  lowering : @lower.Limits,
+  max_parameters~ : Int,
+  max_parameter_name_bytes~ : Int,
+  max_tasks~ : Int,
+  max_graph_work~ : Int,
+) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
+  let owners = match
+    prepare_client_stage_owners(
+      checked,
+      lowering,
+      max_parameters~,
+      max_parameter_name_bytes~,
+    ) {
     Ok(value) => value
     Err(issue) =>
       return Err(
@@ -1710,7 +1774,7 @@ pub fn prepare_parsed_effect_free_client_program(
       )
   }
   let sequence_preparation_demand = match
-    client_sequence_preparation_demand(owners, limits.max_graph_work) {
+    client_sequence_preparation_demand(owners, max_graph_work) {
     Ok(value) => value
     Err(issue) => return Err(Graph(issue))
   }
@@ -1718,8 +1782,8 @@ pub fn prepare_parsed_effect_free_client_program(
     @strategy.prepare_checked_dag(
       checked,
       owners,
-      limits.max_tasks,
-      limits.max_graph_work,
+      max_tasks,
+      max_graph_work,
       captured_prefix=client_program_acquisition_prefix(checked),
       source_free_root=owners.length() > 0 &&
         @pipeline.starts_with_selected_local_generator(
@@ -1730,8 +1794,10 @@ pub fn prepare_parsed_effect_free_client_program(
       Ok({
         graph,
         sequence_preparation_demand,
-        check_environment_cid: @checked.checking_environment_cid(environment),
-        source: parsed,
+        check_environment_cid: @environment.cid(
+          @checked.checked_environment(checked),
+        ),
+        source: @checked.checked_source_program(checked),
         local_normalization: None,
         full_sequences: [],
         // The default covers authored inlet demand and checked closed outputs.
@@ -1741,7 +1807,7 @@ pub fn prepare_parsed_effect_free_client_program(
           client_standard_values_sequence_limits().max_rows,
           Int::max(
             sequence_preparation_demand.authored_literal_rows,
-            client_closed_owner_rows(owners, limits.max_graph_work).unwrap_or(0),
+            client_closed_owner_rows(owners, max_graph_work).unwrap_or(0),
           ),
         ),
       })

@@ -1,4 +1,11 @@
 ///|
+/// The exact admitted syntax retained by this completed check. This reader
+/// neither reparses the source nor supplies an execution or Effect permission.
+pub fn checked_source_program(program : CheckedProgram) -> @syntax.Program {
+  program.source
+}
+
+///|
 /// Semantic source identity, separate from process-local ownership handles.
 pub fn source_identity(
   program : CheckedProgram,

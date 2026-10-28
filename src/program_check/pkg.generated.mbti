@@ -121,6 +121,8 @@ pub fn checked_model_tasks(CheckedProgram) -> @check_environment.ModelTasks?
 
 pub fn checked_program_has_effects(CheckedProgram) -> Bool
 
+pub fn checked_source_program(CheckedProgram) -> @stage_syntax.Program
+
 pub fn checked_stage_results(CheckedProgram) -> @stage_results.Checked
 
 pub fn checking_environment(@check_environment.WireEnvironment, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?, graph? : Bool, model_tasks? : @check_environment.ModelTasks?, request_value_policies? : Array[HostRequestValuePolicyEvidence]) -> CheckEnvironment

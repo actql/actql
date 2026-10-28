@@ -1116,3 +1116,29 @@ byte hashing/parsing/admission, schema/Snapshot construction nor retained input
 or score trees. Those overlaps must be composed on the same actual parent before
 the original byte reader runs. No direct Environment-Cursor substitution or
 coordinate rebasing replaces that reader.
+
+## Completed check to compilation
+
+The compiler continuation consumes the original completed `CheckedProgram`.
+Its admitted Program, Environment, supplied Parameter bindings, checked Stage
+and Result inventory remain attached to that value. Compilation takes only
+lowering, binding and graph limits; it cannot accept another input, Environment
+or checking configuration alongside the completed result. The returned graph
+retains that exact checked original. No parsing, evidence binding or semantic
+checking occurs in this continuation.
+
+The ordinary parsed entrance keeps its existing Effect restriction before the
+checker, then enters the same lowering and graph implementation. The retained
+entrance reads the checker's completed Pure/Effect classification rather than
+copying and scanning a Pure Program's Stage declarations again. It rejects a
+checked Effect's original declarations and does not turn its
+computation into a Pure preparation. Effect static closure, target capture and
+execution remain on their separate original candidate path. Compilation still
+applies its actual lowering, Parameter and graph limits; the prior checker
+result is not permission to omit those later bounds.
+
+This handoff does not create a preparation owner, quote an allocation or adopt
+a Run. The original request parent must fund the full simultaneous checker,
+lowering, graph and output backing before entry, retain the returned originals,
+and transfer its typed completed Plan through the existing capacity continuation.
+Currentness, pending cleanup and consumed work stay with that same parent.

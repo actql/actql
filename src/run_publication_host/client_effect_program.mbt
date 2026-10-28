@@ -153,7 +153,13 @@ pub fn prepare_parsed_client_effect_computation(
     Err(issue) => return Err(TargetSelection(issue))
   }
   let checked = @checked.effect_program_static_checked_computation(candidate)
-  let owners = match prepare_client_stage_owners(checked, limits.program) {
+  let owners = match
+    prepare_client_stage_owners(
+      checked,
+      limits.program.lowering,
+      max_parameters=limits.program.max_parameters,
+      max_parameter_name_bytes=limits.program.max_parameter_name_bytes,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Stage(issue))
   }
