@@ -515,7 +515,7 @@
     },
     {
       "module": "src/connectors/calendar/catalog/pkg.generated.mbti",
-      "sha256": "49fb91c80e2c37a0d07bfeec3eb2e99e5d12dd2d046e26a836904af3dc27fdbe",
+      "sha256": "4021a176faa8ec951828ba04bb9b711c83993a43abea5a83ca5a4ecba1888c85",
       "exports": [
         "pub fn calendar_free_busy_column_names() -> Array[String]",
         "pub fn calendar_free_busy_facts_wire() -> String",
@@ -530,12 +530,17 @@
         "pub fn calendar_list_row_count(CalendarListPage) -> Int",
         "pub fn calendar_list_rows_wire(CalendarListPage, Array[String], Int, Int, Int) -> Result[String, CalendarListIssue]",
         "pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, CalendarListIssue]",
+        "pub fn calendar_respond_body(CalendarRespondRequest) -> String",
+        "pub fn calendar_respond_info(CalendarRespondRequest) -> CalendarRespondInfo",
+        "pub fn calendar_respond_matches_target(CalendarRespondRequest, Bytes) -> Bool",
         "pub fn prepare_calendar_free_busy_query(Array[String], String, String, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyQuery, CalendarFreeBusyIssue]",
+        "pub fn prepare_calendar_respond(Bytes, String, String, String, String, String, CalendarRespondLimits) -> Result[CalendarRespondRequest, CalendarRespondIssue]",
         "pub fn project_calendar_free_busy(Bytes, CalendarFreeBusyQuery, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyPage, CalendarFreeBusyIssue]",
         "pub fn project_calendar_list(Bytes, CalendarListLimits) -> Result[CalendarListPage, CalendarListIssue]",
         "pub struct CalendarFreeBusyPage {",
         "pub struct CalendarFreeBusyQuery {",
-        "pub struct CalendarListPage {"
+        "pub struct CalendarListPage {",
+        "pub struct CalendarRespondRequest {"
       ],
       "operations": [
         {
@@ -591,8 +596,24 @@
           "declaration": "pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, CalendarListIssue]"
         },
         {
+          "name": "calendar_respond_body",
+          "declaration": "pub fn calendar_respond_body(CalendarRespondRequest) -> String"
+        },
+        {
+          "name": "calendar_respond_info",
+          "declaration": "pub fn calendar_respond_info(CalendarRespondRequest) -> CalendarRespondInfo"
+        },
+        {
+          "name": "calendar_respond_matches_target",
+          "declaration": "pub fn calendar_respond_matches_target(CalendarRespondRequest, Bytes) -> Bool"
+        },
+        {
           "name": "prepare_calendar_free_busy_query",
           "declaration": "pub fn prepare_calendar_free_busy_query(Array[String], String, String, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyQuery, CalendarFreeBusyIssue]"
+        },
+        {
+          "name": "prepare_calendar_respond",
+          "declaration": "pub fn prepare_calendar_respond(Bytes, String, String, String, String, String, CalendarRespondLimits) -> Result[CalendarRespondRequest, CalendarRespondIssue]"
         },
         {
           "name": "project_calendar_free_busy",
@@ -790,6 +811,87 @@
               {
                 "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mjs",
                 "anchor": "test('actual Calendar projection binds original query"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "calendar_respond_body",
+            "calendar_respond_info",
+            "calendar_respond_matches_target",
+            "prepare_calendar_respond"
+          ],
+          "exports": [
+            "pub fn calendar_respond_body(CalendarRespondRequest) -> String",
+            "pub fn calendar_respond_info(CalendarRespondRequest) -> CalendarRespondInfo",
+            "pub fn calendar_respond_matches_target(CalendarRespondRequest, Bytes) -> Bool",
+            "pub fn prepare_calendar_respond(Bytes, String, String, String, String, String, CalendarRespondLimits) -> Result[CalendarRespondRequest, CalendarRespondIssue]",
+            "pub struct CalendarRespondRequest {"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "## Invitation response request data"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/calendar/catalog/respond.mbt",
+                "anchor": "pub fn prepare_calendar_respond"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/calendar/catalog/respond.mbt",
+                "anchor": "pub fn calendar_respond_matches_target"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/calendar/catalog/respond.mbt",
+                "anchor": "priv target_wire : String"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The actual caller must retain the scoped read and approved version"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/calendar/catalog/respond_wbtest.mbt",
+                "anchor": "respond request requires one exact participant"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/calendar/catalog/respond.mbt",
+                "anchor": "@encode.cancel_writer(writer)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "Original response\nbytes, admitted cursor, retained target text"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "cold request restoration remain caller obligations."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/calendar/catalog/respond_wbtest.mbt",
+                "anchor": "respond request emits only original participant response"
+              },
+              {
+                "path": "src/connectors/calendar/catalog/respond_wbtest.mbt",
+                "anchor": "respond request preserves nullable prior response observations"
               }
             ]
           }
