@@ -1,6 +1,6 @@
 ///|
 test "managed JSON page keeps exact original selected row wire and cursor DATA" {
-  let rows = "[ {\"wide\":9007199254740993,\"negative\":-0,\"é\":\"é\"} ]"
+  let rows = "[ {\"wide\":9007199254740993,\"negative\":-1.2500,\"é\":\"é\"} ]"
   let body = @utf8.encode(
     "{\"data\":{\"items\":" + rows + "},\"next\":\"é\"}",
   )
@@ -101,4 +101,12 @@ test "managed JSON page supports empty root arrays and exact empty cursors" {
     0,
   ).unwrap()
   assert_eq(managed_json_page_next_cursor(page), Some(""))
+}
+
+///|
+test "managed JSON page retains original negative-zero refusal" {
+  assert_true(
+    project_managed_json_page(b"[-0]", [], None, 16, 8, 1, 1, 0)
+    is Err(Parse({ issue: @source.NegativeZero, .. })),
+  )
 }
