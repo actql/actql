@@ -46,3 +46,9 @@ formatter(
     "decision_arithmetic.generated_wbtest.mbt",
   ],
 )
+
+import {
+  "actql/actql/relation_evidence" @evidence,
+  "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/stage_syntax" @syntax,
+} for "test"

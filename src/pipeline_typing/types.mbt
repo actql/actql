@@ -480,27 +480,17 @@ fn preflight(
   root : @contract.Contract,
   depth? : Int = 0,
 ) -> Unit raise Stop {
-  let work = [(root, depth)]
-  while work.pop() is Some((c, depth)) {
-    spend(b, source, 1)
-    if depth > b.limits.max_depth {
-      fail(source, BudgetExceeded)
+  let original = begin_contract_preflight_read(b, source, root, depth)
+  while original.state is Pending {
+    advance_contract_preflight_read(original)
+  }
+  match original.state {
+    Complete => clear_contract_preflight_read(original)
+    Rejected(issue) => {
+      clear_contract_preflight_read(original)
+      raise Stop(issue)
     }
-    match c.shape {
-      @contract.Array(item, ..) => work.push((item, depth + 1))
-      @contract.Object(fields) => {
-        let count = @contract.field_count(fields)
-        spend(b, source, count)
-        for i in 0..<count {
-          let f = @contract.field_at(fields, i).unwrap()
-          charge(b, source, f.name)
-          work.push((f.contract, depth + 1))
-        }
-      }
-      @contract.ResourceRef(resource_kind~) => charge(b, source, resource_kind)
-      @contract.ContentRef(media_type=Some(media)) => charge(b, source, media)
-      _ => ()
-    }
+    _ => abort("original preflight was retired during its synchronous call")
   }
 }
 

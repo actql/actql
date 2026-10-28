@@ -239,6 +239,8 @@ pub fn key_ranking_producer(KeyedRelation) -> CheckedRanking?
 
 pub fn key_sequence_producer(KeyedRelation) -> @relation_typing.CheckedSequence?
 
+pub fn key_set_container_retained_extent(KeySet) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn key_set_producer(KeyedRelation) -> @relation_set.CheckedSet?
 
 pub fn key_set_records(KeySet) -> @carrier_contract.Knowledge
@@ -467,7 +469,15 @@ pub fn sequence_keys(@relation_typing.CheckedSequence, TransferLimits) -> Result
 
 pub fn singleton_key(KeyedRelation) -> KeySet
 
+pub fn source_key_set_retained_construction(KeySet) -> InputEvidenceRetainedConstruction?
+
+pub fn source_ranking_retained_construction(RankingInput) -> InputEvidenceRetainedConstruction?
+
+pub fn source_view_key_construction_inventory(@check_environment.SourceViewCarrier) -> SourceInputConstructionInventory?
+
 pub fn source_view_keys(@check_environment.SourceViewCarrier, TransferLimits) -> Result[KeySetTransfer?, Issue]
+
+pub fn source_view_ranking_construction_inventory(@check_environment.SourceViewCarrier) -> SourceInputConstructionInventory?
 
 pub fn source_view_scores(@check_environment.SourceViewCarrier, @vector_checking.Limits) -> Result[RankingTransfer?, @vector_checking.Issue]
 
@@ -663,6 +673,12 @@ pub(all) struct InferUsage {
   nodes : Int
   text_bytes : Int
   tokens : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct InputEvidenceRetainedConstruction {
+  extent : @decode_shape.CollectionConstructionExtent
+  owned_utf16_units : Int64
+  observation_work : Int64
 } derive(Eq, @debug.Debug)
 
 pub struct Issue {
@@ -873,6 +889,14 @@ pub struct RankingTransfer {
 }
 
 type RefinedFilter
+
+pub(all) struct SourceInputConstructionInventory {
+  retained : @decode_shape.CollectionConstructionExtent
+  scratch : @decode_shape.CollectionConstructionExtent
+  retained_utf16_units : Int64
+  scratch_utf16_units : Int64
+  inspection_work : Int64
+} derive(Eq, @debug.Debug)
 
 pub(all) enum TextRankObligation {
   ValidateCompleteTextInputs

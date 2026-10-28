@@ -9,7 +9,7 @@ let relation_keys_list_key : String = "candidate_keys"
 // existing admission and support rules; their data is not key evidence.
 priv struct RelationKeyFacts {
   envelope : ContractEnvelope
-  tuples : Array[(@decode.Cursor, Array[String])]
+  tuples : Array[(@decode.Cursor, Array[String], Int)]
 }
 
 ///|
@@ -85,13 +85,16 @@ fn read_relation_key_facts(
     }
     relation_key_charge(budget, tuple, arity)
     let fields = []
+    let mut max_name_units = 0
     let names : Map[String, Bool] = Map([])
     for field in 0..<arity {
       let at = @decode.element_at(tuple, field).unwrap()
       let name = @decode.text(at).unwrap_or_else(() => {
         carrier_fail(InvalidBody, at)
       })
-      relation_key_charge(budget, at, name.length())
+      let name_units = name.length()
+      relation_key_charge(budget, at, name_units)
+      max_name_units = Int::max(max_name_units, name_units)
       if name == "" || names.contains(name) {
         carrier_fail(InvalidBody, at)
       }
@@ -102,7 +105,7 @@ fn read_relation_key_facts(
       carrier_fail(InvalidBody, tuple)
     }
     seen[fields] = true
-    tuples.push((tuple, fields))
+    tuples.push((tuple, fields, max_name_units))
   }
   (Some({ envelope, tuples, }), max_work - budget.key_work)
 }
@@ -123,7 +126,7 @@ fn bind_source_relation_keys(
   })
   let budget : RelationKeyBudget = { key_work: max_work, meter, }
   relation_key_charge(budget, reference.source, facts.tuples.length())
-  for (source, fields) in facts.tuples {
+  for (source, fields, _) in facts.tuples {
     relation_key_charge(budget, source, fields.length())
     for name in fields {
       relation_key_charge(budget, source, name.length())
@@ -170,4 +173,15 @@ pub fn source_relation_key_reference(
   keys : SourceRelationKeys,
 ) -> CatalogReference {
   keys.reference
+}
+
+///|
+/// SAME admitted tuple width and maximum UTF16 name length, captured while
+/// the original facts reader already charged those names. No name walk,
+/// normalization, type/key admission, alternate declaration or grant occurs.
+pub fn source_relation_key_construction_geometry(
+  keys : SourceRelationKeys,
+  index : Int,
+) -> (Int, Int)? {
+  keys.facts.tuples.get(index).map(tuple => (tuple.1.length(), tuple.2))
 }
