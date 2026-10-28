@@ -56,10 +56,11 @@ pub fn unqualified_presence_retained_extent(
   }
   let f = fields.to_int64()
   let i = instances.to_int64()
+  // Schema flags/name_bytes use3W; its Scoped/Flat payload tag uses1W.
   let scoped = @shape.collection_construction_extent({
     records: 2L * i + 2L * f,
     record_references: 2L * i + 4L * f,
-    record_words: 3L * i + f,
+    record_words: 4L * i + f,
     reference_arrays: i,
     reference_items: f,
     scalar_arrays: 0L,
@@ -85,6 +86,6 @@ pub fn from_object_construction_extent(
   Some({
     record_headers: 2L * i,
     reference_slots: 3L * i,
-    scalar_words: 3L * i,
+    scalar_words: 4L * i,
   })
 }

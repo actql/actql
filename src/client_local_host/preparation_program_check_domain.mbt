@@ -85,6 +85,13 @@ priv enum ProgramCheckPreparationPhase {
   SourceLocalSnapshotBatchPrepared
   SourceLocalSnapshotBatchFailed
   SourceLocalSnapshotBatchComplete
+  SourceLocalTailInitial
+  SourceLocalTailQuoted
+  SourceLocalTailInspected
+  SourceLocalTailRetained
+  SourceLocalTailPrepared
+  SourceLocalTailFailed
+  SourceLocalTailComplete
   Transferred
   Failed
   Retired

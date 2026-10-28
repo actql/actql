@@ -1507,3 +1507,31 @@ Remaining declaration, reconciliation, assembly and Context/identity/check
 construction require their own complete overlap on the same parent before
 entry; a completed Snapshot batch alone cannot certify a Checked Program or
 Plan.
+
+## Original Local declaration and assembly lifetime
+
+After the Snapshot batch, the same Program-check controller retains one
+completed quantity for the remaining declarations, schema and score
+reconciliation, and final Stage assembly. Metadata uses the original completed
+Source index's slot/import counts and the exact declaration and Member
+subtrees. It does not infer memory demand from semantic policy ceilings or
+admit a declaration, key, score or schema. Raw enum values remain borrowed data;
+only the existing name owner accounts for normalization workspace.
+
+The metadata frame is reserved before inspection. Its completed numeric result
+survives a declined body grow unchanged. The body then uses one named work
+receipt for every original declaration/reconciliation/assembly step. Successful
+steps forward the original Usage increment once. A failed nested call without
+returned Usage leaves that observation missing; earlier charges and the active
+receipt remain owned until explicit cleanup after the constructor unwinds.
+Neither zero nor the remaining allowance is substituted for a missing result.
+No grow or external current callback occurs between the pure Local body steps.
+
+Returned declarations and agreements coexist with the same original Source,
+Snapshot/schema bodies and retained earlier Stages. Constructor quantities
+include wrapper payload tags independently of their scalar fields. Assembly
+retires only returned synchronous scratch; aliases, consumed work and physical
+backing are separate obligations. The completed registration remains the input
+to Context/identity/check construction, whose full overlap must be backed on
+the same parent before consuming the registry. Local completion alone is not a
+Checked Program, compiled Plan, Run adoption or physical-release assertion.

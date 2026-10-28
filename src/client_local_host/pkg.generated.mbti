@@ -560,6 +560,8 @@ pub fn[I, P] prepare_program_check_source_local_index(ClientProgramCheckPreparat
 
 pub fn[I, P] prepare_program_check_source_local_snapshots(ClientProgramCheckPreparation[I, P]) -> Result[@pipeline_check_context.SourceRegistrationPhase, ClientProgramCheckPreparationIssue]
 
+pub fn[I, P] prepare_program_check_source_local_tail(ClientProgramCheckPreparation[I, P]) -> Result[@pipeline_check_context.SourceRegistrationPhase, ClientProgramCheckPreparationIssue]
+
 pub fn[I, P] prepare_program_check_source_pipeline(ClientProgramCheckPreparation[I, P]) -> Result[@pipeline_check_context.SourceRegistrationPhase, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] prepare_program_check_source_registration(ClientProgramCheckPreparation[I, P], @stage_parameters.Source) -> Result[Unit, ClientProgramCheckPreparationIssue]
@@ -649,6 +651,8 @@ pub fn[I, P] reconcile_program_check_source_local_snapshot_inspection(ClientProg
 pub fn[I, P] reconcile_program_check_source_local_snapshot_reference(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] reconcile_program_check_source_local_snapshots(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_local_tail(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] reconcile_program_check_source_pipeline(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 

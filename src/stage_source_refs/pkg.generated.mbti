@@ -42,6 +42,8 @@ pub fn prepare(@stage_parameters.Source, Limits) -> Result[Index, Issue]
 
 pub fn resolve(Index, Array[@local_source_ref.Reference], Limits) -> Result[Resolved, Issue]
 
+pub fn resolve_construction_inventory(Int) -> ResolveConstructionInventory?
+
 pub fn resolved_index(Resolved) -> Index
 
 pub fn resolved_usage(Resolved) -> Usage
@@ -84,6 +86,11 @@ pub(all) struct Limits {
   max_work : Int
   max_text_bytes : Int
 }
+
+pub(all) struct ResolveConstructionInventory {
+  retained : @decode_shape.CollectionConstructionExtent
+  scratch : @decode_shape.CollectionConstructionExtent
+} derive(Eq, @debug.Debug)
 
 type Resolved
 

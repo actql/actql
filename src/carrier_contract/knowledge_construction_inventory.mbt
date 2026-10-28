@@ -80,10 +80,12 @@ pub fn typed_rows_retained_extent(
   }
   let f = fields.to_int64()
   let i = instances.to_int64()
+  // Knowledge flags/field-set3W plus complete Some tag1W. Each flat
+  // projection retains Presence, contract Some and Unqualified-name tags3W.
   @shape.collection_construction_extent({
     records: 2L * i + 3L * f,
     record_references: 3L * i + 4L * f,
-    record_words: 3L * i + f,
+    record_words: 4L * i + 3L * f,
     reference_arrays: i,
     reference_items: f,
     scalar_arrays: 0L,

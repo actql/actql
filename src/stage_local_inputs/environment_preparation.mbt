@@ -82,6 +82,7 @@ struct LocalEnvironmentPreparation {
   mut snapshot_emission : (Int, (Int, Int, Int)?)?
   mut snapshot_construction : LocalSnapshotConstruction?
   mut snapshot_batch : LocalSnapshotBatchConstruction?
+  mut tail_construction : LocalTailConstruction?
   mut groups : LocalStageGroups?
   mut stages : Array[EnvironmentInputs]?
   mut pending : LocalEnvironmentPending?
@@ -132,6 +133,7 @@ pub fn begin_local_environment_preparation(
     snapshot_emission: None,
     snapshot_construction: None,
     snapshot_batch: None,
+    tail_construction: None,
     groups: None,
     stages: None,
     pending: None,
@@ -702,6 +704,7 @@ fn drop_local_environment_preparation_aliases(
   read.pending_member = None
   read.snapshot_construction = None
   read.snapshot_batch = None
+  read.tail_construction = None
 }
 
 ///|
@@ -736,7 +739,7 @@ pub fn clear_local_environment_preparation(
 
 ///|
 /// Installed initial constructor DATA only: arguments1H4R and its Some1H1R1W;
-/// read1H14R8W; initial phase1H1W; returned Ok1H1R1W. Borrowed original Source,
+/// read1H15R8W; initial phase1H1W; returned Ok1H1R1W. Borrowed original Source,
 /// Environment, limits/partition and every later phase frame are separate.
 pub fn local_environment_preparation_initial_construction_extent() -> @shape.CollectionConstructionExtent {
   local_environment_initial_units
@@ -745,7 +748,7 @@ pub fn local_environment_preparation_initial_construction_extent() -> @shape.Col
 ///|
 let local_environment_initial_units : @shape.CollectionConstructionExtent = {
   record_headers: 5L,
-  reference_slots: 20L,
+  reference_slots: 21L,
   scalar_words: 11L,
 }
 

@@ -54,6 +54,17 @@ unique field does because kintone enforces the constraint. Subtable rows are
 written as part of their record: an update that sets a SUBTABLE field replaces
 the subtable with the array given.
 
+An UPSERT Mapping binds the original observed unique field as its target key,
+with a non-null key value. This does not replace the record's native `$id`.
+The selector supplies the key on the create branch; it need not also appear in
+`SET`. Other required create fields must still be supplied.
+
+The complete UPSERT requires both add-record and edit-record permissions, plus
+the applicable record and field rights. Its Mapping has one exact permission
+rule for that operation and write-field set. Observing a present or absent record
+does not narrow those requirements. Lookup read permission, currentness, approval
+and the selected conditional write remain separate obligations.
+
 Content:
 
 - **store** — ``EFFECT STORE kintone.attachments SET (record = `$id`, field = 'attachments', content = content)``
