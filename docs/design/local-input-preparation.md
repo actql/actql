@@ -137,6 +137,31 @@ second current callback or reservation release. The parent refuses retirement
 of that successor. The later Plan/Run consumer must continue the same capacity;
 clearing local DATA is neither physical cleanup nor a new authority witness.
 
+## Retained checked compilation
+
+The same preparation can continue directly from its completed local check to
+the existing checked compiler. It retains the original checked Program,
+Parameter bindings, Environment and declared Result inventory; it never falls
+back to the parsed-document compiler to obtain another check. Original
+lowering, binding and graph limits and typed refusals remain in force.
+
+The lowered Stage owners, bindings and graph coexist with the retained check.
+Their semantic-phase quote reuses the original observed collection dimensions
+under the existing shared estimate and tariff. It does not revisit the Program
+or Catalog to recover them. A refused grow keeps that absolute quote and the
+same installed configuration; the compiler has not run yet. Completion retains
+the actual PreparedClientProgram until the same-capacity next-consumer handoff.
+No preparation result or cleared controller is an execution permission or a
+physical release acknowledgement.
+
+One existing reservation boundary observes currentness before compilation.
+The original synchronous compiler receives no new per-Stage callbacks. Its work
+observation accumulates Usage only when each original lowerer returns. That
+known prefix is explicitly not complete binding, graph or late-failure work;
+configured maxima remain limits and are never reported as consumed work. The
+separate finite limits of those existing constructors are preserved. Plan/Run
+adoption and the physical Host prelude remain distinct required connections.
+
 ## Work and storage units
 
 The existing representation policy supplies shared checked arithmetic for

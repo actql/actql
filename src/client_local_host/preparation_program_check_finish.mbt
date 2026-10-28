@@ -31,20 +31,7 @@ fn[I, P] finish_program_check_preparation_owned(
 ) -> Result[@checked.CheckOutcome, ClientProgramCheckPreparationIssue] {
   if owner.phase == RequestsRetained {
     guard @checked.parsed_check_registry_data_estimate(original) is Some(data) &&
-      @shape.collection_construction_extent(data.collections)
-      is Some(collections) &&
-      @execution.preparation_representation_cost({
-        record_headers: collections.record_headers,
-        reference_slots: collections.reference_slots,
-        scalar_words: collections.scalar_words,
-        owned_utf16_units: data.utf16_units,
-        owned_wire_bytes: 0L,
-      })
-      is Some(bytes) &&
-      @execution.checked_preparation_add_product(
-        bytes, program_topology_quotation_bytes, 1L,
-      )
-      is Some(bytes) else {
+      program_check_data_extent_cost(data) is Some(bytes) else {
       return Err(Overflow)
     }
     let (r, e) = match
@@ -157,4 +144,25 @@ pub fn[I, P] take_program_check_preparation_outcome(
   let complete = owner.check_work_complete
   transfer_program_check_input(owner)
   Ok((outcome, complete))
+}
+
+///|
+fn program_check_data_extent_cost(
+  data : @checked.ParsedCheckDataEstimate,
+) -> Int64? {
+  guard @shape.collection_construction_extent(data.collections)
+    is Some(collections) &&
+    @execution.preparation_representation_cost({
+      record_headers: collections.record_headers,
+      reference_slots: collections.reference_slots,
+      scalar_words: collections.scalar_words,
+      owned_utf16_units: data.utf16_units,
+      owned_wire_bytes: 0L,
+    })
+    is Some(bytes) else {
+    return None
+  }
+  @execution.checked_preparation_add_product(
+    bytes, program_topology_quotation_bytes, 1L,
+  )
 }

@@ -271,6 +271,8 @@ pub fn closed_values_preparation_capacity_refusal(ClientClosedValuesPreparationI
 
 pub fn[I] closed_values_submitted_intent_original(ClientClosedValuesPreparation[I]) -> @run_publication_host.ClientSubmittedIntent?
 
+pub fn[I, P] compile_program_check_preparation(ClientProgramCheckPreparation[I, P], @run_publication_host.ClientProgramPreparationLimits) -> Result[@run_publication_host.PreparedClientProgram, ClientProgramCheckPreparationIssue]
+
 pub fn complete_client_broad_query_residual(ClientQueryResidual, @acquisition.DuckDBQueryIssuer, @acquisition.DuckDBBroadAttempt, @acquisition.DuckDBBroadCompletionLimits) -> Result[@acquisition.DuckDBBroadObservation, @acquisition.DuckDBEvidenceIssue]
 
 pub fn complete_client_broad_residual(ClientBroadResidual) -> Result[@acquisition.DuckDBBroadObservation, @host.BroadHostIssue]
@@ -779,6 +781,8 @@ pub fn[I, P] take_program_check_registry(ClientProgramCheckPreparation[I, P]) ->
 
 pub fn[I, P] take_program_check_source_registration(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedSourceRegistration, ClientProgramCheckPreparationIssue]
 
+pub fn[I, P] take_program_compilation_preparation(ClientProgramCheckPreparation[I, P]) -> Result[(@run_publication_host.PreparedClientProgram, Int64), ClientProgramCheckPreparationIssue]
+
 pub fn[I, P] take_program_json_preparation_input(ClientProgramJsonPreparation[I, P]) -> Result[@stage_syntax.ParsedProgramInput, ClientProgramJsonPreparationIssue]
 
 pub fn[I, P] take_program_json_preparation_program(ClientProgramJsonPreparation[I, P]) -> Result[@stage_syntax.Program, ClientProgramJsonPreparationIssue]
@@ -791,6 +795,7 @@ pub suberror ClientProgramCheckPreparationIssue {
   SourceRegistration(@program_check.ParsedSourceRegistrationIssue)
   TopologyEntry(@pipeline_check_context.SourceViewContextIssue)
   Prelude(@program_check.ParsedCheckPreludeIssue)
+  Compilation(@run_publication_host.ClientProgramPreparationIssue)
   Work(@physical_resources.PreparationWorkIssue)
   ChangedInputs
   WrongPhase
