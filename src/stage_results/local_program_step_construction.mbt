@@ -1,9 +1,17 @@
 ///|
+let topology_zero_extent : @shape.CollectionConstructionExtent = {
+  record_headers: 0L,
+  reference_slots: 0L,
+  scalar_words: 0L,
+}
+
+///|
 /// Original constructor overlap, not a checked Program, Resource grant or
 /// byte tariff. All counts come from the SAME current typed read state.
 pub(all) struct LocalProgramReadStepConstruction {
   peak : @shape.CollectionConstructionExtent
   peak_utf16_units : Int64
+  replaced : @shape.CollectionConstructionExtent
 } derive(Eq, Debug)
 
 ///|
@@ -125,7 +133,11 @@ pub fn local_program_read_step_construction(
       record_local_program_read_inspection(original, q.inspection_work) else {
       return None
     }
-    return Some({ peak: q.peak, peak_utf16_units: q.peak_utf16_units, })
+    return Some({
+      peak: q.peak,
+      peak_utf16_units: q.peak_utf16_units,
+      replaced: q.replaced,
+    })
   }
   let peak = match body.stage {
     LocalInputs =>
@@ -179,7 +191,11 @@ pub fn local_program_read_step_construction(
     }
     _ => None
   }
-  peak.map(peak => { peak, peak_utf16_units: 0L, })
+  peak.map(peak => {
+    peak,
+    peak_utf16_units: 0L,
+    replaced: topology_zero_extent,
+  })
 }
 
 ///|
@@ -278,7 +294,8 @@ pub fn local_program_read_step_retained_extent(
 ) -> LocalProgramReadStepHoldings? {
   if previous == PipelineKeys ||
     previous == PipelineRankings ||
-    previous == PipelineCore {
+    previous == PipelineCore ||
+    previous == PipelineCoreInputs {
     guard original.state is Reading(body) &&
       body.stage is PipelineRead(_, _, _, _, _, _, _, read) &&
       @pipeline.pipeline_evidence_read_step_holdings(read) is Some(q) &&

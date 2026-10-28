@@ -36,6 +36,8 @@ pub fn map_retained_extent(Int64, Int64, Int64) -> CollectionConstructionExtent?
 
 pub fn object_key_construction_counts(Int, Int, Int) -> ObjectKeyConstructionCounts?
 
+pub fn reference_array_push_construction_extent(Int, Int) -> CollectionConstructionExtent?
+
 pub fn reference_array_retained_extent(Int64, Int64) -> CollectionConstructionExtent?
 
 pub fn scale_collection_construction_extent(CollectionConstructionExtent, Int64) -> CollectionConstructionExtent?

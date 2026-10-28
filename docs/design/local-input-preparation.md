@@ -1734,10 +1734,11 @@ including when there are no operations. A declined grow retains the same quote,
 read and consumed work. Clear retires that pending original and receipt; it is
 not a physical cleanup acknowledgement or a work refund.
 
-This entrance stops before input admission. The subsequent input/Parameter,
+The initializer precedes input admission. The same Request driver now backs
+its original input continuation as described below. Subsequent Parameter,
 imported evidence, delta, nested operation and final-evidence constructors still
-need their own input-derived overlap and retained inventories before the funded
-parent can advance them. Pure synchronous consumers still drive all semantic
+need their own input-derived overlap and retained inventories before the parent
+can advance them. Pure synchronous consumers still drive all semantic
 boundaries and must back their complete call. A retained core or successful
 initializer alone is not a complete checked Program, Context, Plan adoption or
 ordinary backend migration. Failure retains the original typed issue and has no
@@ -1750,8 +1751,8 @@ and pending-buffer write. The synchronous preflight drives this same body. It do
 a new resource owner. Depth, field-order, work and partial text refusals remain
 with the original semantic body. Clearing removes pending element roots but
 does not make the stack's retained backing or its parent reservation disappear.
-Connecting this pending stack and its next child construction to the funded
-core input boundary remains an explicit caller obligation.
+The original core input driver quotes the next child construction and replaces
+that same pending domain's old holdings only after the constructor returns.
 
 
 ### Original Stage declaration views
@@ -1808,7 +1809,43 @@ the next ordinal after construction. These are internal original associations,
 not new current callbacks, semantic work credit or a permission cache. Terminal
 advances do not increment the ordinal.
 
-Input admission still needs its immediate-allocation and mutable before/after
-holdings recipe before the Request driver may advance it. The split original
-loop supplies those boundaries; its pure continuation alone does not prove
-complete parent backing, checked Context, Plan adoption or ordinary execution.
+Input admission uses its immediate-allocation and mutable before/after holdings
+on the same Request parent. Its continuation is not by itself complete checked
+Context, Plan adoption or ordinary execution.
+
+
+### Mutable input-domain backing on the original Request
+
+The original input read supplies the next allocation from its selected position.
+Name normalization uses the existing canonical constructor's input-derived NFC
+extent. Qualified field spellings use their schema owner's original prefix and
+text lengths, without flattening a String to quote it. Map insertion uses the
+same collection owner's construction and retained units. A pending Contract
+push quotes one new tuple and only additional Array backing; existing buffers,
+read controls and borrowed schema bodies are not charged as a new domain.
+
+The quote retains the exact old mutable-domain quantity with the same Stage and
+constructor position. A declined grow keeps that quote and consumed work. After
+the original constructor returns, the parent observes its actual Map/Array
+capacities and replaces old holdings with new holdings. Returned scratch is the
+admitted additional peak plus old holdings minus new holdings. This permits
+nested-stack retirement without accumulating obsolete snapshots, creating a
+second reservation owner or refunding cumulative work. A stale original
+position refuses even if its Stage and semantic phase still match.
+
+Pinned non-JS Array removal leaves roots in unused slots until overwrite,
+growth or drop. The Contract read therefore retains its original tuple-slot
+high-water count; growth resets it to the copied live prefix. JS capacity
+changes expose its immediate removals. No pending tuple is priced solely from
+the reduced logical length. This is representation accounting, not a physical
+cleanup acknowledgement, VM allocation measurement or RSS estimate.
+
+A rejected CoreInputs body still owns the same mutable Budget and original
+Carrier/Contract. Its actual consumed work can be observed through the failed
+read and charged before returning its original work receipt. That observation
+is not successful Usage or a checked Program. Other failed domains whose child
+owners have not supplied an actual consumed prefix remain unknown; neither
+None nor a generic exception supplies zero work. The whole admitted failed
+construction peak remains backed until actual clear. Subsequent Parameter,
+operation, Result/Context, checker/compiler and Plan/Run adoption, and matching
+ordinary/backend acceptance, retain their independent completion obligations.

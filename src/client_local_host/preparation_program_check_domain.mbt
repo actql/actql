@@ -158,6 +158,7 @@ struct ClientProgramCheckPreparation[I, P] {
   mut topology_quoted_phase : @stage_results.LocalProgramReadPhase
   mut topology_quoted_stage : Int
   mut topology_quoted_constructor : Int64
+  mut topology_replaced_bytes : Int64
   base_retained : Int64
   base_execution : Int64
   mut busy : Bool
@@ -253,6 +254,7 @@ pub fn[I, P] begin_program_check_preparation(
     topology_quoted_phase: @stage_results.LocalInputs,
     topology_quoted_stage: 0,
     topology_quoted_constructor: 0L,
+    topology_replaced_bytes: 0L,
     base_retained,
     base_execution,
     busy: false,
@@ -302,6 +304,7 @@ fn[I, P] transfer_program_check_input(
   owner.topology_quoted_phase = @stage_results.LocalInputs
   owner.topology_quoted_stage = 0
   owner.topology_quoted_constructor = 0L
+  owner.topology_replaced_bytes = 0L
   owner.input = None
   owner.phase = Transferred
 }

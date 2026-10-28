@@ -22,6 +22,7 @@ pub(all) struct PipelineEvidenceStepConstruction {
   peak : @shape.CollectionConstructionExtent
   peak_utf16_units : Int64
   inspection_work : Int64
+  replaced : @shape.CollectionConstructionExtent
 }
 
 ///|
@@ -41,6 +42,7 @@ pub fn pipeline_evidence_read_step_construction(
       peak,
       peak_utf16_units: 0L,
       inspection_work: 0L,
+      replaced: core_input_zero,
     })
   }
   if body.step is Core(_, _, _) {
@@ -70,7 +72,21 @@ pub fn pipeline_evidence_read_step_construction(
       is Some(peak) else {
       return None
     }
-    return Some({ peak, peak_utf16_units: 0L, inspection_work: 0L, })
+    return Some({
+      peak,
+      peak_utf16_units: 0L,
+      inspection_work: 0L,
+      replaced: core_input_zero,
+    })
+  }
+  if body.step is CoreRunning(read) && read.state is Reading(core) {
+    guard core_input_step_construction(core) is Some(q) else { return None }
+    return Some({
+      peak: q.peak,
+      peak_utf16_units: q.peak_utf16_units,
+      inspection_work: 0L,
+      replaced: q.replaced,
+    })
   }
   let keys = match body.step {
     Keys(_) => true
@@ -136,6 +152,7 @@ pub fn pipeline_evidence_read_step_construction(
     peak,
     peak_utf16_units: held_text + scratch_text,
     inspection_work: work,
+    replaced: core_input_zero,
   })
 }
 
@@ -243,8 +260,17 @@ pub fn pipeline_evidence_read_step_holdings(
 ) -> PipelineEvidenceStepHoldings? {
   guard original.state is Reading(body) else { return None }
   if body.step is CoreRunning(read) {
-    guard read.state is Reading(core) &&
-      core.phase == Inputs &&
+    guard read.state is Reading(core) else { return None }
+    if !(core.phase == Inputs &&
+      core.input_index == 0 &&
+      core.input_step is Name) {
+      guard (core.phase == Inputs || core.phase == Parameters) &&
+        core_input_retained(core) is Some(extent) else {
+        return None
+      }
+      return Some({ extent, owned_utf16_units: 0L, inspection_work: 0L, })
+    }
+    guard core.phase == Inputs &&
       pipeline_core_read_entry_holdings(read) is Some(held) &&
       @shape.reference_array_retained_extent(
         2L,

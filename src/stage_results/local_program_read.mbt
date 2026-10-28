@@ -376,8 +376,9 @@ pub fn local_program_read_constructor_position(
 
 ///|
 /// Original successful semantic work and actual constructor-quantity visits,
-/// excluding the SAME already-admitted environment prefix. A nested failure
-/// has no complete Usage and never becomes zero.
+/// excluding the SAME already-admitted environment prefix. Known rejected
+/// CoreInputs keep their original consumed prefix; all other failed domains
+/// without that fact remain None. This never constructs successful Usage.
 pub fn local_program_read_owned_work(original : LocalProgramRead) -> Int64? {
   let semantic = match original.state {
     Reading(body) => {
@@ -390,6 +391,14 @@ pub fn local_program_read_owned_work(original : LocalProgramRead) -> Int64? {
         body.limits.max_work - body.work - original.borrowed_work + prefix
       })
     }
+    Failed(body, _) =>
+      match body.stage {
+        PipelineRead(_, _, _, _, _, _, _, read) =>
+          @pipeline.pipeline_evidence_read_owned_work(read).map(prefix => {
+            body.limits.max_work - body.work - original.borrowed_work + prefix
+          })
+        _ => None
+      }
     Completed(Ok((_, used))) => Some(used.work - original.borrowed_work)
     _ => None
   }
@@ -698,6 +707,14 @@ fn advance_local_program_read_owned(
       let phase = @pipeline.advance_pipeline_evidence_read(pipeline_read)
       if phase != @pipeline.Complete && phase != @pipeline.Failed {
         return Ok(None)
+      }
+      if phase == @pipeline.Failed {
+        return Err(
+          Pipeline(
+            i,
+            @pipeline.pipeline_evidence_read_issue(pipeline_read).unwrap(),
+          ),
+        )
       }
       let pipeline = match
         @pipeline.take_pipeline_evidence_read(pipeline_read).unwrap() {
