@@ -3,7 +3,7 @@
 // These snapshots are not a new manifest, identity or runtime authority.
 import {lstatSync, readFileSync, realpathSync} from 'node:fs';
 import {isAbsolute, join, relative, resolve, sep} from 'node:path';
-import {tokens} from './portable-core.mjs';
+import {tokens, reviewedEsmModuleOptionEnd} from './portable-core.mjs';
 import {checkHostBundle, checkHostProfiles} from './connector-host-bundles.mjs';
 
 const coreNamespace = 'actql/actql';
@@ -79,6 +79,12 @@ function reader(source, label) {
   return {
     done: () => index === list.length,
     peek: value => list[index]?.value === value,
+    takeReviewedModuleOption() {
+      const end = reviewedEsmModuleOptionEnd(list, index);
+      if (end === undefined) return false;
+      index = end;
+      return true;
+    },
     take(kind, value) {
       const token = list[index++];
       if (!token || token.kind !== kind || (value !== undefined && token.value !== value)) {
@@ -96,7 +102,15 @@ function moduleMetadata(root) {
   const result = {dependencies: {}};
   const fields = new Set(['name', 'version', 'source', 'supported_targets',
     'preferred_target', 'license', 'readme', 'repository', 'description']);
+  let reviewedEsm = false;
   while (!input.done()) {
+    if (input.peek('options')) {
+      if (reviewedEsm || !input.takeReviewedModuleOption()) {
+        throw new Error('Unsupported or duplicate module metadata: options');
+      }
+      reviewedEsm = true;
+      continue;
+    }
     const key = input.take('word');
     if (key === 'import') {
       input.take('symbol', '{');

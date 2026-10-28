@@ -87,6 +87,25 @@ export function tokens(source, sourceCode = false) {
   return result;
 }
 
+// One reviewed module-level linker spelling. This is metadata inspection,
+// not a general options parser or authority to change compiler/target policy.
+export function reviewedEsmModuleOptionEnd(list, start) {
+  const literal = [
+    ['word', 'options'], ['symbol', '('], ['string', 'link-flags'],
+    ['symbol', ':'], ['symbol', '['], ['string', '-js-format'],
+    ['symbol', ','], ['string', 'esm'], ['symbol', ']'],
+  ];
+  if (!literal.every(([kind, value], offset) =>
+    list[start + offset]?.kind === kind && list[start + offset].value === value)) {
+    return undefined;
+  }
+  let end = start + literal.length;
+  // The pinned formatter may add one final argument comma, not an array
+  // element, another option, hook or flag.
+  if (list[end]?.kind === 'symbol' && list[end].value === ',') end++;
+  return list[end]?.kind === 'symbol' && list[end].value === ')' ? end + 1 : undefined;
+}
+
 function packageMetadata(source) {
   const ts = tokens(source);
   let i = 0;
@@ -189,26 +208,12 @@ export function inspectCore(root, roots = coreRoots) {
   let reviewedEsm = false;
   for (let i = 0; i < module.length;) {
     if (module[i]?.kind === 'word' && module[i].value === 'options') {
-      // Review only the existing pinned linker's ESM format selection, not a
-      // general options object, extra flags, hooks or another module format.
-      const literal = [
-        ['word', 'options'], ['symbol', '('], ['string', 'link-flags'],
-        ['symbol', ':'], ['symbol', '['], ['string', '-js-format'],
-        ['symbol', ','], ['string', 'esm'], ['symbol', ']'],
-      ];
-      if (reviewedEsm || !literal.every(([kind, value], offset) =>
-        module[i + offset]?.kind === kind && module[i + offset].value === value)) {
-        throw new Error('UnauditedCoreModuleDirective');
-      }
-      i += literal.length;
-      // The pinned formatter emits an optional final argument comma. This
-      // admits no additional option, flag, value or array-element spelling.
-      if (module[i]?.kind === 'symbol' && module[i].value === ',') i++;
-      if (module[i]?.kind !== 'symbol' || module[i].value !== ')') {
+      const end = reviewedEsmModuleOptionEnd(module, i);
+      if (reviewedEsm || end === undefined) {
         throw new Error('UnauditedCoreModuleDirective');
       }
       reviewedEsm = true;
-      i++;
+      i = end;
       continue;
     }
     const [key,equals,value] = module.slice(i,i+3);
