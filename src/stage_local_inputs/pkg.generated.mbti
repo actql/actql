@@ -86,9 +86,19 @@ pub fn local_environment_preparation_snapshot_emission(LocalEnvironmentPreparati
 
 pub fn local_environment_preparation_usage(LocalEnvironmentPreparation) -> Usage?
 
+pub fn local_environment_snapshot_construction_geometry(LocalEnvironmentPreparation) -> (Int, Int, Int)?
+
+pub fn local_environment_snapshot_construction_inspection_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_snapshot_construction_metadata_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_environment_snapshot_construction_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
 pub fn local_environment_snapshot_emission_observation_extent() -> @decode_shape.CollectionConstructionExtent
 
 pub fn observe_local_environment_index_construction(LocalEnvironmentPreparation) -> Int64?
+
+pub fn observe_local_environment_snapshot_construction(LocalEnvironmentPreparation) -> (Int, Int, Int)?
 
 pub fn prepare(@stage_parameters.Source, Int, Limits, sourceviews? : @sourceview_input.Inputs?) -> Result[Prepared, Issue]
 

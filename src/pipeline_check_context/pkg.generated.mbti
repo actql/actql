@@ -600,6 +600,8 @@ pub fn observe_capacity_input_construction_inventory(@stage_syntax.Program, Arra
 
 pub fn observe_source_registration_local_index_construction(SourceRegistrationRead) -> Int64?
 
+pub fn observe_source_registration_local_snapshot_construction(SourceRegistrationRead) -> (Int, Int, Int)?
+
 pub fn observe_source_registration_resolution_construction(SourceRegistrationRead) -> Int64?
 
 pub fn operation_calendar_at(ProgramOperationCalendar, Int) -> OperationCalendarResolution?
@@ -1155,6 +1157,8 @@ pub fn source_registration_local_index_inspection_work(SourceRegistrationRead) -
 pub fn source_registration_local_index_usage(SourceRegistrationRead) -> @stage_source_refs.Usage?
 
 pub fn source_registration_local_phase(SourceRegistrationRead) -> @stage_local_inputs.LocalEnvironmentPhase?
+
+pub fn source_registration_local_snapshot_construction_geometry(SourceRegistrationRead) -> (Int, Int, Int)?
 
 pub fn source_registration_local_snapshot_emission(SourceRegistrationRead) -> (Int, (Int, Int, Int)?)?
 

@@ -464,9 +464,17 @@ pub fn member_cid(Member) -> String
 
 pub fn member_count(WireEnvironment, Section) -> Int
 
+pub fn member_depth_capture_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn member_depth_retention_extent(Int) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn member_emission_geometry(Member) -> (Int, Int, Int)
+
 pub fn member_environment(Member) -> WireEnvironment
 
 pub fn member_index(Member) -> Int
+
+pub fn member_instance_construction_extent() -> @decode_shape.CollectionConstructionExtent
 
 pub fn member_section(Member) -> Section
 

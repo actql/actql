@@ -43,6 +43,13 @@ priv struct LocalIndexConstruction {
 }
 
 ///|
+priv struct LocalSnapshotConstruction {
+  member_index : Int
+  original_member : @environment.Member
+  geometry : (Int, Int, Int)?
+}
+
+///|
 priv enum LocalEnvironmentState {
   ReadIndex
   MakeGroups
@@ -68,6 +75,7 @@ struct LocalEnvironmentPreparation {
   mut index_construction : LocalIndexConstruction?
   mut groups_work : Int?
   mut snapshot_emission : (Int, (Int, Int, Int)?)?
+  mut snapshot_construction : LocalSnapshotConstruction?
   mut groups : LocalStageGroups?
   mut stages : Array[EnvironmentInputs]?
   mut pending : LocalEnvironmentPending?
@@ -116,6 +124,7 @@ pub fn begin_local_environment_preparation(
     index_construction: None,
     groups_work: None,
     snapshot_emission: None,
+    snapshot_construction: None,
     groups: None,
     stages: None,
     pending: None,
@@ -212,6 +221,83 @@ pub fn local_environment_snapshot_emission_observation_extent() -> @shape.Collec
     { record_headers: 2L, reference_slots: 2L, scalar_words: 2L, },
   ).unwrap()
 }
+
+///|
+/// Capture the exact selected Member once before its original constructor.
+/// Geometry comes from that same Entry's retained hash metrics, with no body
+/// traversal or new admission. Repeats return the SAME geometry Some; no
+/// caller Member, replacement limits or asserted quantity is accepted.
+pub fn observe_local_environment_snapshot_construction(
+  read : LocalEnvironmentPreparation,
+) -> (Int, Int, Int)? {
+  guard read.state is ReadSnapshot(i) && read.arguments is Some(original) else {
+    return None
+  }
+  if read.snapshot_construction is Some(captured) {
+    if captured.member_index != i {
+      abort("original snapshot construction index changed")
+    }
+    return captured.geometry
+  }
+  let original_member = @environment.member_at(
+    original.environment,
+    @environment.SchemaSnapshots,
+    i,
+  ).unwrap()
+  let geometry = Some(@environment.member_emission_geometry(original_member))
+  read.snapshot_construction = Some({
+    member_index: i,
+    original_member,
+    geometry,
+  })
+  geometry
+}
+
+///|
+/// A failed original step retains its same member/metadata aliases until
+/// explicit take/clear. This DATA is not an admission or cleanup receipt.
+pub fn local_environment_snapshot_construction_geometry(
+  read : LocalEnvironmentPreparation,
+) -> (Int, Int, Int)? {
+  read.snapshot_construction.bind(captured => captured.geometry)
+}
+
+///|
+/// Member access controls plus Member1H2R2W, scalar tuple1H3W, its Some1H1R1W,
+/// captured record1H2R1W and its Some1H1R1W. No input-sized work container.
+pub fn local_environment_snapshot_construction_inspection_extent() -> @shape.CollectionConstructionExtent {
+  @shape.add_collection_construction_extents(
+    @environment.member_access_construction_extent(),
+    local_snapshot_inspection_retained_units,
+  ).unwrap()
+}
+
+///|
+pub fn local_environment_snapshot_construction_retained_extent() -> @shape.CollectionConstructionExtent {
+  local_snapshot_inspection_retained_units
+}
+
+///|
+/// Scalar geometry/Some and captured metadata only. The SAME Member wrapper
+/// has its own common-owner extent and may transfer into the Snapshot result.
+/// Caller-held geometry Some and input borrowers can outlive a cache clear;
+/// neither this split nor an absent cache acknowledges physical retirement.
+pub fn local_environment_snapshot_construction_metadata_extent() -> @shape.CollectionConstructionExtent {
+  local_snapshot_metadata_units
+}
+
+///|
+let local_snapshot_metadata_units : @shape.CollectionConstructionExtent = {
+  record_headers: 4L,
+  reference_slots: 4L,
+  scalar_words: 6L,
+}
+
+///|
+let local_snapshot_inspection_retained_units : @shape.CollectionConstructionExtent = @shape.add_collection_construction_extents(
+  @environment.member_instance_construction_extent(),
+  local_snapshot_metadata_units,
+).unwrap()
 
 ///|
 /// Constructor inventory for the SAME original grouping step. Every empty
@@ -388,11 +474,20 @@ pub fn advance_local_environment_preparation(
       }
     }
     ReadSnapshot(i) => {
-      let entry = @environment.member_at(
-        original.environment,
-        @environment.SchemaSnapshots,
-        i,
-      ).unwrap()
+      let entry = match read.snapshot_construction {
+        Some(captured) => {
+          if captured.member_index != i {
+            abort("original snapshot construction index changed")
+          }
+          captured.original_member
+        }
+        None =>
+          @environment.member_at(
+            original.environment,
+            @environment.SchemaSnapshots,
+            i,
+          ).unwrap()
+      }
       let connector = match
         @environment.connector_source_snapshot_selector(entry) {
         Ok(Some(_)) => true
@@ -452,6 +547,7 @@ pub fn advance_local_environment_preparation(
         groups.by_stage[at].push(read.pending_member.unwrap())
         read.pending_member = None
       }
+      read.snapshot_construction = None
       if i + 1 == read.members {
         local_environment_after_snapshots(read)
       } else {
@@ -553,6 +649,7 @@ fn drop_local_environment_preparation_aliases(
   read.stages = None
   read.pending = None
   read.pending_member = None
+  read.snapshot_construction = None
 }
 
 ///|
@@ -587,7 +684,7 @@ pub fn clear_local_environment_preparation(
 
 ///|
 /// Installed initial constructor DATA only: arguments1H4R and its Some1H1R1W;
-/// read1H12R8W; initial phase1H1W; returned Ok1H1R1W. Borrowed original Source,
+/// read1H13R8W; initial phase1H1W; returned Ok1H1R1W. Borrowed original Source,
 /// Environment, limits/partition and every later phase frame are separate.
 pub fn local_environment_preparation_initial_construction_extent() -> @shape.CollectionConstructionExtent {
   local_environment_initial_units
@@ -596,6 +693,6 @@ pub fn local_environment_preparation_initial_construction_extent() -> @shape.Col
 ///|
 let local_environment_initial_units : @shape.CollectionConstructionExtent = {
   record_headers: 5L,
-  reference_slots: 18L,
+  reference_slots: 19L,
   scalar_words: 11L,
 }

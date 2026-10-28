@@ -739,3 +739,49 @@ test "original Source forwards the same Local member emission through clear" {
     ),
   )
 }
+
+///|
+test "original Source captures the same Local snapshot geometry before its reader" {
+  let read = snapshot_emission_registration_read()
+  assert_true(
+    observe_source_registration_local_snapshot_construction(read) is None,
+  )
+  let mut steps = 0
+  while source_registration_local_phase(read) !=
+        Some(@local_inputs.LocalEnvironmentSnapshot) {
+    assert_true(steps < 10)
+    let _ = advance_source_registration(read)
+    steps += 1
+  }
+  let geometry = observe_source_registration_local_snapshot_construction(read)
+  assert_true(geometry is Some(_))
+  assert_true(
+    physical_equal(
+      observe_source_registration_local_snapshot_construction(read),
+      geometry,
+    ),
+  )
+  assert_true(
+    physical_equal(
+      source_registration_local_snapshot_construction_geometry(read),
+      geometry,
+    ),
+  )
+  let _ = advance_source_registration(read)
+  let (at, emitted) = source_registration_local_snapshot_emission(read).unwrap()
+  assert_eq(at, 0)
+  assert_eq(emitted, geometry)
+  assert_true(
+    source_registration_local_snapshot_construction_geometry(read) is None,
+  )
+  assert_eq(complete_registration_local(read), RegistrationComplete)
+  let _ = take_source_registration_result(read).unwrap().unwrap()
+  clear_source_registration(read)
+  assert_true(
+    source_registration_local_snapshot_construction_geometry(read) is None,
+  )
+  assert_eq(
+    source_registration_local_snapshot_emission(read),
+    Some((0, emitted)),
+  )
+}

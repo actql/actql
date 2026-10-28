@@ -315,6 +315,24 @@ pub fn source_registration_local_snapshot_emission(
 }
 
 ///|
+pub fn observe_source_registration_local_snapshot_construction(
+  read : SourceRegistrationRead,
+) -> (Int, Int, Int)? {
+  read.local_child.bind(
+    @local_inputs.observe_local_environment_snapshot_construction,
+  )
+}
+
+///|
+pub fn source_registration_local_snapshot_construction_geometry(
+  read : SourceRegistrationRead,
+) -> (Int, Int, Int)? {
+  read.local_child.bind(
+    @local_inputs.local_environment_snapshot_construction_geometry,
+  )
+}
+
+///|
 pub fn source_registration_local_groups_construction(
   read : SourceRegistrationRead,
 ) -> @shape.CollectionConstructionInventory? {

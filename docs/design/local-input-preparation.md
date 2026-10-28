@@ -1035,3 +1035,41 @@ full Environment cursor's coordinates. Original byte/hash/parse/admission and
 retained score-source semantics remain. The serializer String, UTF8 bytes,
 parsed/admitted tree and typed snapshot can coexist; actual parent funding must
 cover those holders and their borrowed frames before the original call.
+
+## Retained member emission geometry
+
+Environment admission already hashes each canonical member once and receives
+its byte count, value-node count and peak open-container depth from the same
+writer. The private Entry retains that depth alongside its existing counts.
+One lazy scalar capture is reused across the admission; no sizing Array or
+additional hash/measurement is constructed. Unsuccessful hashes publish no
+Entry, so an initial scratch value never becomes a substitute observation.
+
+The Local continuation can capture its exact next Member before construction.
+It keeps that original Member and geometry once, and the actual reader consumes
+the same Member after the outside caller has backed the next phase. Repeated
+inspection returns the original geometry Option without another lookup or
+walk. No caller quantities, alternative Environment or replacement limits enter
+this association. The Source continuation exposes the same observation while
+retaining its Local child privately.
+
+Successful member processing drops these metadata aliases before the next
+member; a failed step retains them until the original clear/take rules. That is
+not physical cleanup or a refund. Work observations remain separate and survive
+their original transfers. Retained per-member depth permits constructor bounds
+to use the actual member root, independently of its node count and the wider
+Environment or configured depth allowance. Full writer/buffer/reader backing
+and the physical parent connection remain required.
+
+The original Member wrapper is counted at the Environment constructor owner;
+the Local metadata combines that extent with its scalar geometry/capture
+records. Successful Snapshot admission retains that same Member in its result,
+so clearing metadata does not retire the Member or its original Entry/tree.
+Returned geometry Options are also separate borrowers that can outlive cache
+aliases. The split is an ownership inventory for later parent composition,
+never a release notification or permission to refund either component.
+
+The outside parent still owns exclusive step sequencing across grow and any
+asynchronous boundaries. Structural geometry does not certify that the same
+member step remains the currently admitted operation; the actual consumer
+must preserve that original association through its own current/receipt path.
