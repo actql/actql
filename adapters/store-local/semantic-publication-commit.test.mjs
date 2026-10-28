@@ -75,7 +75,8 @@ test('semantic metadata shares one acknowledged dirty and sealed quota lifetime 
   for(const value of originals)assert.equal((await store.readPublicationContract(value.identity,value.name)).wire,value.wire);
   assert.equal(store.status().objectCount,3);
   await store.close();
-  assert.equal(commits,2,'read-only opening, selected reads and close do not dirty or seal physical quota');
+  assert.deepEqual(acknowledgedHeaders,['PRAGMA user_version=1','PRAGMA user_version=0'],
+    'read-only opening, selected reads and close do not dirty or seal physical quota');
 });
 
 test('only an actually unsealed physical quota lifetime audits its bounded objects on reopen', async t => {
