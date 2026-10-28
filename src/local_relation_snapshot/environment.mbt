@@ -60,6 +60,25 @@ fn read_member_owned(
   if limits.max_bytes < 0 || limits.max_nodes < 0 || limits.max_depth < 0 {
     return Err(InvalidSnapshot(InvalidLimits))
   }
+  let text = match emit_member_text_owned(entry, limits, usage_out) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let bytes = @utf8.encode(text)
+  match read(bytes, @environment.member_cid(entry), limits) {
+    Ok(snapshot) => Ok({ entry, snapshot, })
+    Err(e) => Err(InvalidSnapshot(e))
+  }
+}
+
+///|
+// This scope returns only text. No Writer/builder/frame alias can cross into
+// UTF8 parsing or typed admission; the original partial observation is kept.
+fn emit_member_text_owned(
+  entry : @environment.Member,
+  limits : Limits,
+  usage_out : Ref[(Int, Int, Int)?]?,
+) -> Result[String, MembershipIssue] {
   // Creation failure has no invented writer usage. The same initial policy
   // guards still precede all emission and the original byte reader.
   let writer = @encode.writer(
@@ -83,11 +102,7 @@ fn read_member_owned(
   // first writer through either later phase. Only scalar cells enter the
   // observation; emission success and refusal are exclusive paths.
   capture_member_emission(writer, usage_out)
-  let bytes = @utf8.encode(text)
-  match read(bytes, @environment.member_cid(entry), limits) {
-    Ok(snapshot) => Ok({ entry, snapshot, })
-    Err(e) => Err(InvalidSnapshot(e))
-  }
+  Ok(text)
 }
 
 ///|

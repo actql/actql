@@ -81,6 +81,7 @@ struct LocalEnvironmentPreparation {
   mut groups_work : Int?
   mut snapshot_emission : (Int, (Int, Int, Int)?)?
   mut snapshot_construction : LocalSnapshotConstruction?
+  mut snapshot_batch : LocalSnapshotBatchConstruction?
   mut groups : LocalStageGroups?
   mut stages : Array[EnvironmentInputs]?
   mut pending : LocalEnvironmentPending?
@@ -130,6 +131,7 @@ pub fn begin_local_environment_preparation(
     groups_work: None,
     snapshot_emission: None,
     snapshot_construction: None,
+    snapshot_batch: None,
     groups: None,
     stages: None,
     pending: None,
@@ -269,11 +271,7 @@ pub fn observe_local_environment_snapshot_construction(
     }
     return captured.geometry
   }
-  let original_member = @environment.member_at(
-    original.environment,
-    @environment.SchemaSnapshots,
-    i,
-  ).unwrap()
+  let original_member = local_snapshot_original_member(read, original, i)
   let geometry = Some(@environment.member_emission_geometry(original_member))
   read.snapshot_construction = Some({
     member_index: i,
@@ -543,12 +541,7 @@ pub fn advance_local_environment_preparation(
           }
           captured.original_member
         }
-        None =>
-          @environment.member_at(
-            original.environment,
-            @environment.SchemaSnapshots,
-            i,
-          ).unwrap()
+        None => local_snapshot_original_member(read, original, i)
       }
       let connector = match
         @environment.connector_source_snapshot_selector(entry) {
@@ -708,6 +701,7 @@ fn drop_local_environment_preparation_aliases(
   read.pending = None
   read.pending_member = None
   read.snapshot_construction = None
+  read.snapshot_batch = None
 }
 
 ///|
@@ -742,7 +736,7 @@ pub fn clear_local_environment_preparation(
 
 ///|
 /// Installed initial constructor DATA only: arguments1H4R and its Some1H1R1W;
-/// read1H13R8W; initial phase1H1W; returned Ok1H1R1W. Borrowed original Source,
+/// read1H14R8W; initial phase1H1W; returned Ok1H1R1W. Borrowed original Source,
 /// Environment, limits/partition and every later phase frame are separate.
 pub fn local_environment_preparation_initial_construction_extent() -> @shape.CollectionConstructionExtent {
   local_environment_initial_units
@@ -751,7 +745,7 @@ pub fn local_environment_preparation_initial_construction_extent() -> @shape.Col
 ///|
 let local_environment_initial_units : @shape.CollectionConstructionExtent = {
   record_headers: 5L,
-  reference_slots: 19L,
+  reference_slots: 20L,
   scalar_words: 11L,
 }
 
