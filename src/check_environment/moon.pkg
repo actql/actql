@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/decode_shape" @shape,
   "actql/actql/vector_checking" @score_checks,
   "actql/actql/capacity_witness" @bound_wire,
   "actql/actql/capacity_host_witness" @bound_host,

@@ -36,11 +36,16 @@
 // The new four optional phase fields and their same-live tags/quote tuple add
 //8H12R11W to the original driver below. No old quote slack is spent.
 let program_json_quote_controls : @execution.PreparationRepresentationUnits = {
-  record_headers: 154L + 360L,
-  reference_slots: 37L + 93L,
-  scalar_words: 335L + 772L,
-  owned_utf16_units: 0L,
-  owned_wire_bytes: 0L,
+  let work = @resources.preparation_phase_work_construction_inventory()
+  // Preserve the exact existing packet while the actual receipt owner now
+  // supplies its part. The remaining roles still belong to this domain.
+  {
+    record_headers: 154L + 360L - 12L + work.record_headers,
+    reference_slots: 37L + 93L - 16L + work.reference_slots,
+    scalar_words: 335L + 772L - 18L + work.scalar_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
 }
 
 ///|

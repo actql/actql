@@ -3,6 +3,7 @@ package "actql/actql/order_key"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
@@ -11,6 +12,10 @@ import {
 pub fn author_orderable(@value_contract.Contract) -> Bool
 
 pub fn read(@decode_core.Cursor) -> Result[Key, Issue]
+
+pub fn read_construction_extent(Int, Int64) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn read_retained_construction_extent() -> @decode_shape.CollectionConstructionExtent
 
 // Errors
 

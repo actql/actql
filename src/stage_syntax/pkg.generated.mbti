@@ -143,6 +143,8 @@ pub fn same_program_representation_owner(Program, Program) -> Bool
 
 pub fn stage_body(Stage) -> @decode_core.Cursor
 
+pub fn stage_closed_field_count() -> Int
+
 pub fn stage_count(Program) -> Int
 
 pub fn stage_table_input_at(Stage, Int) -> String?

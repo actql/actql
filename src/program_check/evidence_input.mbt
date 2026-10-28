@@ -10,6 +10,7 @@ pub fn check_parsed_with_evidence(
   evidence : Array[@context.StageCapacityInput],
   limits : CheckLimits,
   source_catalog? : PreparedSourceCatalog? = None,
+  source_preparation? : @stages.Source? = None,
 ) -> CheckOutcome {
   checking_outcome(program, environment, () => {
     construct_parsed(
@@ -19,6 +20,7 @@ pub fn check_parsed_with_evidence(
       evidence,
       limits,
       source_catalog~,
+      source_preparation~,
     )
   })
 }
@@ -32,7 +34,31 @@ fn construct_parsed(
   limits : CheckLimits,
   effect_headers? : @syntax.EffectHeaders? = None,
   source_catalog? : PreparedSourceCatalog? = None,
+  source_preparation? : @stages.Source? = None,
 ) -> CheckedProgram raise LocalConstructionFailure {
+  let original = prepare_parsed_check_input_owned(
+    program,
+    environment,
+    supplied,
+    evidence,
+    limits,
+    source_catalog~,
+    source_preparation~,
+  )
+  finish_parsed_check_input_owned(original, effect_headers~)
+}
+
+///|
+fn prepare_parsed_check_input_owned(
+  program : @syntax.Program,
+  environment : CheckEnvironment,
+  supplied : @decode.Cursor?,
+  evidence : Array[@context.StageCapacityInput],
+  limits : CheckLimits,
+  source_catalog? : PreparedSourceCatalog? = None,
+  binding_work_out? : Ref[Int]? = None,
+  source_preparation? : @stages.Source? = None,
+) -> ParsedCheckInput raise LocalConstructionFailure {
   if !compile_limits_valid(limits.compilation) {
     raise InvalidLimits
   }
@@ -45,11 +71,43 @@ fn construct_parsed(
     raise Environment(ForeignPreparedCatalog)
   }
   let limits = limits.compilation
-  let inputs = match
-    @context.bind_capacity_inputs(program, evidence, limits.work) {
+  let (bound, binding_work) = @context.observe_capacity_input_binding(
+    program,
+    evidence,
+    limits.work,
+  )
+  if binding_work_out is Some(output) {
+    output.val = binding_work
+  }
+  let inputs = match bound {
     Ok(value) => value
     Err(issue) => raise CapacityInputs(issue)
   }
+  {
+    program,
+    environment,
+    supplied,
+    inputs,
+    limits,
+    source_catalog,
+    source_preparation,
+  }
+}
+
+///|
+fn finish_parsed_check_input_owned(
+  original : ParsedCheckInput,
+  effect_headers? : @syntax.EffectHeaders? = None,
+) -> CheckedProgram raise LocalConstructionFailure {
+  let {
+    program,
+    environment,
+    supplied,
+    inputs,
+    limits,
+    source_catalog,
+    source_preparation,
+  } = original
   check(
     program,
     environment.wire,
@@ -71,5 +129,6 @@ fn construct_parsed(
     model_tasks=environment.model_tasks,
     request_value_policies=environment.request_value_policies,
     source_catalog~,
+    source_preparation~,
   )
 }

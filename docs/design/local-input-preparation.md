@@ -541,6 +541,42 @@ Underlying current, stop, pending report and Unknown remain original obligations
 Binding/check/prelude/Catalog/Requests, effect compilation and material/restore
 overlap are later required phases, not completion claims of this first caller.
 
+## Request-owned Program to Check handoff
+
+The existing request parent takes the Program only from its own retained JSON
+controller and keeps that exact Program before entering the later Check
+constructor. The same original input and working capacity enter both domains.
+The later Check holder is retained in the parent before it is returned. No raw
+capacity getter or independent Resource owner is exposed. Borrowed environment,
+evidence, limits, optional original Source and catalog retain their existing
+caller backing requirements.
+
+The original bootstrap includes the two parent links and their two Some carriers
+(`2H4R2W`), Check return/error alternatives (`3H3R3W`) and conservative returned
+Source-take/child-clear carriers (`4H4R4W`). The total `9H11R9W` is 304 logical
+bytes under the existing shared representation tariff, reserved before any take
+or later-grow callback. Neither domain inventory is pre-added or subtracted:
+the JSON constructor and later Check constructor each add their own original
+packet once on the same reservation. Native input, VM/callback entry and full
+backend physical backing remain separate prerequisites.
+
+The parent fences reentry through both original current boundaries. A failed
+Source take retains its original JSON phase. A failed later grow retains the
+exact taken Program and original input for cleanup; it neither loses the
+transfer nor issues a replacement Program. The parent clears its Check child,
+then its Source child, then its retained Program only after the fixed caller's
+untransferred arguments and synchronous returned aliases have unwound. Busy or
+failed original work cleanup keeps the remaining links and charge. Original
+capacity retirement and Node stop/Unknown handling are unchanged.
+
+A Source output taken outside this registered transition still blocks parent
+abort. Any later Check input or registry output transfer likewise blocks abort,
+including after that controller's own DATA clear. Clearing aliases is not a
+next-consumer retirement acknowledgement. A further Context/compiler/material
+consumer requires its own genuine registered lifetime transition before that
+fence can be discharged; this handoff supplies no Boolean ACK, new grant,
+completed Unit body, normal Effect backing or ordinary execution acceptance.
+
 ## Public generic JSON constructor continuation
 
 The generic JSON prefix retains the existing `PreparationCapacity[I, P]`:
@@ -599,6 +635,83 @@ Core packet is not evidence that this pre-entry backing is present, and a
 later successful resize cannot retroactively provide it. No numerical backend
 first-prelude claim follows from the finite Core prefix qualification.
 
+## Catalog and Source-request constructor observation
+
+The existing Catalog readers expose the quantities charged by their original
+work and admission cells, including a typed refusal after partial progress.
+Their success-only entry points call those same readers and project the
+original successful holder. Observing the consumed prefix does not run a
+second validator, refund failed work, or create a partial admitted Catalog.
+The checker composes the registry, contents, references, policies, values,
+views, carriers and request readers in their original order with the same
+identity budget.
+
+Each constructor owner describes newly owned records, collection backing and
+text separately from borrowed input trees, checked child contracts and shared
+module literals. Repeated retained occurrences count independently; sequential
+reader, canonical emitter and hashing scratch uses its actual largest
+workspace. Reference-route and SourceView rule construction quantities are
+emitted by the same canonical schema walks as the rules themselves. Shared
+indexed access, collection, normalization and hashing constructors remain the
+owners of their respective representations; Catalog does not introduce another
+byte tariff or a semantic type table.
+
+Geometry observations select original structural metadata and relevant
+identifier widths. They are neither semantic admission nor evidence of
+physical backing. A funded continuation must retain the original input,
+selected limits, parent and completed domain holders, quote before constructing
+each domain, reconcile its actual consumed prefix, and retire storage only
+through its real borrowers. Constructing an inventory alone does not perform
+those transitions or fund the later Context, compiler, module or Content work.
+
+The staged semantic entrance retains the original Program, selected check
+environment, supplied values, already bound capacity evidence and optional
+original Source/Catalog in one parsed input. Completion uses those exact
+holders. It does not bind a caller's registration array again, reparse a
+Program, or discard completed Parameter declaration/value facts between the
+prelude, Catalog and ordinary checker. The direct entrance shares the same
+post-declaration and post-Catalog implementation.
+
+Catalog progress retains its original budget and typed domain state. Each
+explicit transition consumes the expected prior state once, including the
+retained-Catalog accounting branch; fresh-reader fallback under tighter
+unproved bounds retains the existing rules. Actual reader failure keeps its
+charged prefix and does not issue a partial admitted domain. The input,
+prelude and domain control/geometry records remain DATA continuations: their
+caller must supply all constructor overlap before entry and retain actual
+borrowed backing. These APIs do not supply a physical prelude, final Context
+funding, a CheckedProgram verdict or an execution grant by themselves.
+
+## Later Host Catalog continuation
+
+After the original Program/Source handoff, the later check/Catalog controller
+continues on the same preparation capacity and original input. Its separate
+installed control inventory is added once to the existing outside debit before
+its own argument/phase records are constructed. It does not add future Catalog
+fields or quotation controls to the Source-only JSON entrance. The caller still
+backs the original Program/Source, immutable evidence and the pre-entry
+getter/current/resize frames.
+
+The controller funds the original capacity-input observer before reading
+dimensions. It closes that actual work receipt and retains its inventory and
+absolute constructor quote before a grow. An atomic failed grow retains those
+same values; retry does not repeat observation, add its debit again or refill
+work. After a successful grow, a distinct recheck phase compares dimensions
+across the original external-current boundary before allocating the binder.
+The actual binder runs once and retains the current original Source together
+with its owned capacity evidence. Neither comparison is a semantic verdict,
+input-immutability proof or permission.
+
+Registry, contents, references, policies, values, views, carriers and request
+phases use the existing staged readers and quantity owners. Each constructor is
+grown before entry; its original charged prefix is retained on typed failure.
+Reconciliation removes only that returned synchronous scratch, retaining its
+actual typed output, original metadata and outside debit. Transfer and clear
+remove only this DATA controller's references; the existing Resource owner
+retains all backing and cleanup obligations. No active work receipt is carried
+through a grow, and no new allocator, tariff, Ledger or physical cleanup owner
+is introduced. Native/Node caller integration, physical first-entry backing and
+subsequent full Context/compiler/material funding remain distinct obligations.
 
 ## Native Source snapshot currentness
 
@@ -629,3 +742,677 @@ bound or published; a mutable clone is never offered to a Host callback as an
 identity substitute. This current fence is not preconstruction funding for
 native string/parse/freeze storage. The actual input, VM baseline, callback and
 simultaneous snapshot/backing inventories remain separate original obligations.
+
+## Source handoff survives controller clearing
+
+Taking the indexed input or Program transfers that exact DATA to the next
+consumer while the original reservation remains charged. Clearing the old
+Source controller removes only its own aliases and returned synchronous work;
+it preserves the fact that DATA was transferred. It cannot make the request
+parent eligible for abort while a successor can still retain the original
+output. Repeated clear is idempotent and neither refunds work nor observes a
+physical acknowledgement. Pre-transfer clear retains its ordinary retirement
+path. The real parent/successor owns the later alias and backing retirement;
+this Source-local transition supplies no replacement cleanup authority.
+
+The later Check/Catalog controller follows the same rule for its original
+parsed input or Catalog output. Its internal alias-drop helper is also used by
+actual take operations, so clear records the real prior handoff before calling
+that helper. Clearing an untransferred failed or incomplete controller remains
+ordinary retirement; the helper's transient assignment cannot manufacture a
+transfer. Neither path releases parent backing or acknowledges successor
+cleanup.
+
+## Source input collection work observation
+
+The ordinary Source-input collector and its observed entrance call one owned
+reader. The observed entrance returns the same typed result together with the
+work actually charged by that reader's original Budget, including a partial
+refusal. It neither repeats collection nor admits a successful partial input.
+An attempted charge beyond the remaining allowance is not reported as work
+which the reader performed. These quantities are semantic work DATA, not CPU,
+validation invocation counts, resource capacity or permission.
+
+The ordinary result-only entrance allocates no observation Ref. The observed
+entrance separately declares its added Ref, optional reference and returned
+result/work pair using the existing constructor extent. That fixed declaration
+does not fund the collector's traversal, original Cursor/input, array/Map,
+normalization or order construction. A later preparation phase must supply all
+of that backing before calling it and retain the same Source and output through
+the actual registration/Context continuation and its retirement.
+
+## Node request-parent preparation ports
+
+The Node ports forward the existing original request parent, opaque input,
+selected syntax/check limits, environment, evidence and optional original
+Catalog/Source directly to the Core constructors. Source progression and each
+Check preparation/reconciliation use those same retained child holders. The
+ports perform no second current observation, semantic preparation or capacity
+calculation, and introduce no replacement wrapper, grant or Resource owner.
+
+The bridge exposes no raw capacity constructor/getter, independent child clear
+or output take. The original parent remains the only cleanup entrance for this
+fixed caller. Returned phase DATA is borrowed under that caller's actual
+synchronous lifetime; exporting a function does not fund backend input, VM,
+callback or argument backing, register a later output consumer, or enable a
+normal Source/Effect profile by itself. Original current/abort, pending/Unknown,
+and physical retirement obligations remain with their existing owners.
+
+
+## Source input constructor quantities
+
+Collection observes dimensions on the same immutable Source before the owned
+reader runs. Direct indexed metadata probes retain neither detached recursive
+values nor a second input-name Map. Connector, resource and optional view text
+supply normalization quantities; opaque request/meta text contributes traversal
+work and borrowed input backing, never a normalization size. Actual supplied
+widths govern open/closed Object construction, including malformed wide policy
+and order records. The shared Decode, collection, NFC and order owners supply
+their original construction units; this layer introduces no byte tariff.
+
+The reader's existing preflight/field/order charges bound its constructed
+prefix. A failed charge cannot allocate later maps or order arrays. Temporary
+backing includes every created pending Cursor and the growable array storage
+through return. In particular Native pop/clear can leave references in vacated
+slots; logical emptiness is not physical retirement. Returned declarations,
+normalization outputs, order keys and the name index retain their original
+associations. Partial failure remains only the original typed failure.
+
+These quantities do not perform collection or authorize Source/Catalog
+selection. The metadata/quotation frame, original input/limits and actual
+registration/Context continuation need their own same-parent backing and
+retirement. A constructor envelope alone supplies neither that funding nor a
+physical cleanup acknowledgement.
+
+
+## Original Source registration continuation
+
+Source registration retains the original Source, Catalog and selected limits in
+one semantic read. The existing synchronous entrance advances that same read;
+it has no alternative collector/resolver implementation. Its four boundaries
+are declaration collection, original Catalog selection, pipeline registration
+and Local environment preparation. Collection's charged work includes partial
+refusal; that observation does not stand for later pass work or CPU.
+
+The exact collected Inputs survives through selection and registration and is
+supplied as the Local partition. Next phases cannot substitute equal Source,
+Catalog, limits or a freshly collected partition. Existing selection/Local
+budget conventions and typed failures remain owned by those original readers.
+A terminal phase is not run again. Taking either success or failure transfers
+its same backing once; clear drops only this read's aliases and preserves an
+actual handoff. It never clears returned arrays, refunds work or acknowledges
+physical/current/borrower retirement.
+
+Staging exposes constructor boundaries; it does not fund them. The initial
+read, each metadata/quotation frame, selection/registration/Local overlap,
+original input and borrowed successor need same-parent backing before their
+constructors execute. The pure phase API adds no Resource owner, current
+callback, permission, ordinary runtime enablement or replacement capacity law.
+
+
+## Selection work is not the inherited collection prefix
+
+The resolver's original Budget includes completed collection work when it
+checks its own total allowance. Its observed entrance reports only newly
+charged selection work, including a partial typed failure. If the inherited
+prefix does not fit, no new selection work is reported. Successful Resolved
+work retains its existing cumulative meaning. Resource phases must not debit
+that inherited prefix a second time or substitute their maximum for a failed
+charge which was not performed.
+
+The same original registration read retains collection and new selection work
+separately. Later pipeline/Local costs keep their own pass conventions; neither
+observed field stands for missing later failure costs. Observation uses the
+same reader, typed result, input and Catalog association. The shared structural
+Result/Int-work controls own their additional construction units once; they
+define no semantic work rule, byte tariff, permission or physical backing.
+
+
+Pipeline registration applies the same distinction to completed resolver work.
+Its common original reader returns one result/new-work pair, which the ordinary
+result-only entrance projects rather than running another implementation. Stage
+count, entry count and each input-name charge retain their original order and
+failure boundaries. The original cumulative pipeline work is unchanged. The
+registration read retains this new pipeline work separately; Local preparation
+and its nested failure work remain distinct obligations.
+
+
+## Resolver construction prefix
+
+Source selection quantities observe original admitted Catalog identity fields
+and policy URI lengths, plus already collected declarations. They do not
+normalize/select a view, traverse acquired request/response/schema bodies, or
+infer permissions. Each root's actual field count plus one is charged by the
+original resolver before its ObjectView. The metadata observer uses that
+minimum charge to bound the potential construction prefix and its own visits;
+this only enlarges possible later construction, never changes semantic work.
+
+The resolver retains two complete selector indexes and group arrays through
+its call. Ambiguous selection owns its original names array and temporary sort
+buffer under the same UTF16 order. Map/Array/Decode/NFC owners supply their
+existing construction rules; the resolver supplies actual multiplicities and
+lifetime overlap. Identity normalization and URI comparison/resource copies
+are separate from borrowed input backing. Success/failure alternatives are
+conservatively co-counted and are not minimum storage or partial success.
+
+The original Source/Catalog/limits, metadata/quotation frames and backend
+intrinsic/VM backing must remain funded separately. These DATA inventories
+alone do not wire or acknowledge the actual Resource parent or a successor.
+
+
+The existing registration read can observe this metadata once from its own
+collected Inputs, Catalog and selected limits. It retains the resulting scalar
+geometry and original optional work observation across a failed grow; a repeat
+returns that same observation without another walk. Quotation accepts no
+caller-supplied replacement geometry/limits. Normal synchronous registration
+does not perform this optional metadata walk. The same real parent must fund
+inspection, quotation and phase backing, debit an observation receipt once and
+retain the cache until its own aliases retire; caching DATA issues no grant.
+
+
+## Retained resolver to Stage registrations
+
+Pipeline registration quotes the original retained Resolved, its Source Stage
+count and selected entry count. The ordered prefix costs are produced by the
+same constructor helper for execution and quotation; prior resolution remains
+semantic inherited work, never another physical debit. A prefix refusal quotes
+only its original error and fixed cost-array frame, before Stage arrays exist.
+
+After that prefix fits, all Stage groups coexist, including empty groups. Each
+selected entry borrows its original resolved input and admitted carrier; no
+name, schema, Catalog or request is copied or checked again to quote it. The
+shared Array owner expands the actual group/entry multiplicities. Partial name
+failure retains the same group construction peak, with no early retirement
+claim. The same registration read exposes this DATA only in its pipeline phase
+and accepts no alternative limits or owner. Quotation and observed-work frames,
+real parent funding and later Local snapshot/schema construction remain separate.
+
+
+## Local registration continuation
+
+The actual Local environment preparation has one original continuation for its
+Source, Environment, SourceView partition and selected limits. Its synchronous
+entry drives the same continuation; there is no second legacy reader. Indexing,
+Stage-name groups, each snapshot, each Stage declaration/reconciliation and final
+assembly are separate steps, so the outside parent can fund their real overlaps
+before entry. The original order, limit deductions and cumulative Usage remain.
+
+Completed index/member/Stage holders and the original pending declaration remain
+on a failed read until the caller takes or clears it. A failure after a successful
+member read retains that member too. This does not retain a nested callee's
+unreturned temporaries or prove physical retirement. Completed assembly alone
+supplies the original Usage; an unobserved nested failure is not reported as zero.
+The Source registration read keeps this same Local child private, exposes only
+its phase/failure-phase DATA, and retains a failed child until its own transfer or
+clear. Transfer remains sticky and clears only these aliases, never Resource use.
+
+The initial continuation and selected step constructors expose representation
+inventories. Each step's quotation and borrowed-input backing, remaining nested
+work observations, real parent/current/debit/resize and backend retirement remain
+separate required connections. No phase or DATA inventory is capacity.
+
+
+## Original Local index observation and containers
+
+The existing source-location indexer owns both its result-only entrance and a
+partial charged-policy-work/admitted-name-byte observation. Both use the same
+original Budget/reader. Success reuses its retained Usage; typed failure reports
+only the deductions actually made, never a successful partial Index. These
+separate semantic units are not UTF scan instructions, CPU or physical byte use.
+
+Shallow constructor inspection observes only actual Stage/input/import counts
+and Stage root widths under the original minimum work prefix. It does not scan
+input bodies or their row/schema/metadata text. The Stage decoder and inspection
+bound use one private list of allowed Stage fields. The shared Map/ObjectView
+owners supply representation; all imported Maps and temporary Stage views are
+co-counted rather than assumed retired per iteration. UTF admission, VM and
+quotation frames remain independent required backing.
+
+The same Local read retains the original observed geometry, Limits and receipt
+once, then uses those exact Limits for actual indexing. Its charged observation
+survives clear/take. The Source read forwards that same fact and metadata work
+receipt without a second read, preserving them after its child aliases retire.
+No observation performs another debit, refunds consumed work, admits a request,
+or acknowledges physical cleanup. Full Local child work/funding remains required.
+
+
+Each index Slot retains the child Cursor produced by its original field read.
+The shared Cursor owner supplies that wrapper once per possible Slot; fixed
+transient field-reader frames cannot cover an arbitrary number of escaping
+Cursors. Their tree, admission usage and identifier Strings remain borrowed,
+not copied. The same Cursor definition also composes the existing indexed
+child/field controls, keeping their established totals unchanged.
+
+
+## Original Local Stage groups
+
+The grouping phase uses its original captured Stage count directly. It creates
+one names Map, one outer Array and every per-Stage empty Array before checking
+the first Stage name charge. The shared collection owner expands those actual
+container multiplicities and the maximum names Map prefix. No declaration,
+snapshot body or name text is scanned again for this inventory. Names borrow
+their Source Strings; empty groups do not share a mutable Array.
+
+The existing name-length deductions supply the new group-work observation,
+including the successful prefix before a typed refusal. It starts as absent and
+is recorded once, including a known zero when the first name refuses. This is
+the original code-unit policy work, separate from the index's policy work and
+UTF8 byte count, never a UTF scan or CPU measurement. Local and Source reads
+retain that same observation after taking or clearing their aliases; they do
+not debit it again or refund it on retirement.
+
+This inventory covers group containers and their stored work observation. Later
+snapshot pushes, successor Stage storage, phase/error controls, quotation frames
+and borrowed inputs remain separately backed overlaps. Keeping these original
+holders or clearing their aliases does not report physical cleanup.
+
+
+## Original Local snapshot emission observation
+
+The ordinary snapshot-member reader and its observed entrance execute one
+bounded member serializer and the same original byte/schema/canonical reader.
+The observation reads the original writer's charged UTF8 bytes, value nodes and
+peak open-container depth after success or refusal. It neither finishes another
+writer nor serializes, parses or checks the member again to recover usage.
+Ordinary result-only callers construct no observation cell.
+
+A missing writer observation means that the writer was never constructed. It
+does not stand for zero constructor or whole-reader work. A successfully emitted
+member can still fail later domain admission; its complete emission observation
+remains distinct from that failure. Parsing, decoded-tree admission, schema and
+canonical hashing retain their own unobserved work and required backing.
+
+The Local read retains the last actual member index and that same observation.
+An outer absent fact means no Local member reader was entered; a present index
+with an absent inner observation means an attempted read without a writer.
+Connector-only member handling does not replace this Local fact. The Source
+read forwards the same immutable scalar tuple before handling child completion
+or failure, and preserves it through the original transfer/clear. Re-reading a
+fact does not authorize another debit, refund, physical release or replay.
+
+This does not replace serialized member-local diagnostic coordinates with the
+full Environment cursor's coordinates. Original byte/hash/parse/admission and
+retained score-source semantics remain. The serializer String, UTF8 bytes,
+parsed/admitted tree and typed snapshot can coexist; actual parent funding must
+cover those holders and their borrowed frames before the original call.
+
+## Retained member emission geometry
+
+Environment admission already hashes each canonical member once and receives
+its byte count, value-node count and peak open-container depth from the same
+writer. The private Entry retains that depth alongside its existing counts.
+One lazy scalar capture is reused across the admission; no sizing Array or
+additional hash/measurement is constructed. Unsuccessful hashes publish no
+Entry, so an initial scratch value never becomes a substitute observation.
+
+The Local continuation can capture its exact next Member before construction.
+It keeps that original Member and geometry once, and the actual reader consumes
+the same Member after the outside caller has backed the next phase. Repeated
+inspection returns the original geometry Option without another lookup or
+walk. No caller quantities, alternative Environment or replacement limits enter
+this association. The Source continuation exposes the same observation while
+retaining its Local child privately.
+
+Successful member processing drops these metadata aliases before the next
+member; a failed step retains them until the original clear/take rules. That is
+not physical cleanup or a refund. Work observations remain separate and survive
+their original transfers. Retained per-member depth permits constructor bounds
+to use the actual member root, independently of its node count and the wider
+Environment or configured depth allowance. Full writer/buffer/reader backing
+and the physical parent connection remain required.
+
+The original Member wrapper is counted at the Environment constructor owner;
+the Local metadata combines that extent with its scalar geometry/capture
+records. Successful Snapshot admission retains that same Member in its result,
+so clearing metadata does not retire the Member or its original Entry/tree.
+Returned geometry Options are also separate borrowers that can outlive cache
+aliases. The split is an ownership inventory for later parent composition,
+never a release notification or permission to refund either component.
+
+The outside parent still owns exclusive step sequencing across grow and any
+asynchronous boundaries. Structural geometry does not certify that the same
+member step remains the currently admitted operation; the actual consumer
+must preserve that original association through its own current/receipt path.
+
+
+## One Map representation owner across canonical writers
+
+The canonical hashing writer supplies only its simultaneous object count and
+live key count to the shared linked-Map construction inventory. It does not
+repeat a Map growth, Entry or linked/bucket carrier formula. Encoder frames,
+ordered-key carriers and SHA state remain distinct owners; input key Strings
+are borrowed. The same rule reaches Environment/Catalog and compiled-input
+construction through their existing writer calls, without re-emitting input or
+changing semantic limits, identities or failure precedence.
+
+This is logical constructor representation, not measured heap or permission to
+allocate. TextOutput, serializer traversal, UTF8 conversion and the original
+byte/schema reader still require their own complete overlap and original parent
+funding. A hashing-sink inventory must not be relabeled as that full text path.
+
+
+## Original Member text-emission construction
+
+The Local reader's unbuffered text writer has its own constructor inventory.
+Its frames and Map/Array containers use the same shared owner as the hashing
+writer, without importing SHA state, digest or hex scratch into TextOutput.
+The text sink accounts for the pinned concat/fixed-buffer builder alternatives,
+ASCII views, scalar spellings, completion and returned String. The valid emitted
+UTF8 byte extent bounds UTF16 storage; it is not replaced by a configured byte
+ceiling. Serializer pending depth is bounded by the original open-container
+peak plus its next Visit, and also by the original node count.
+
+The Environment binds this quantity to the admitted Member's stored emission
+metrics. Local exposes it only after capturing its original selected Member;
+Source forwards that same private child. None means unobserved, not free work.
+A failed/taken step keeps the original captured Member until the existing clear
+boundary. The caller retains the returned quantity once across growth and
+checks the original current association; this DATA does not perform either
+operation or acknowledge a physical retirement.
+
+Inventory calculation/return carriers and borrowed call frames need their
+pre-entry backing. The emission quantity itself covers neither UTF8 encoding,
+byte hashing/parsing/admission, schema/Snapshot construction nor retained input
+or score trees. Those overlaps must be composed on the same actual parent before
+the original byte reader runs. No direct Environment-Cursor substitution or
+coordinate rebasing replaces that reader.
+
+## Completed check to compilation
+
+The compiler continuation consumes the original completed `CheckedProgram`.
+Its admitted Program, Environment, supplied Parameter bindings, checked Stage
+and Result inventory remain attached to that value. Compilation takes only
+lowering, binding and graph limits; it cannot accept another input, Environment
+or checking configuration alongside the completed result. The returned graph
+retains that exact checked original. No parsing, evidence binding or semantic
+checking occurs in this continuation.
+
+The ordinary parsed entrance keeps its existing Effect restriction before the
+checker, then enters the same lowering and graph implementation. The retained
+entrance reads the checker's completed Pure/Effect classification rather than
+copying and scanning a Pure Program's Stage declarations again. It rejects a
+checked Effect's original declarations and does not turn its
+computation into a Pure preparation. Effect static closure, target capture and
+execution remain on their separate original candidate path. Compilation still
+applies its actual lowering, Parameter and graph limits; the prior checker
+result is not permission to omit those later bounds.
+
+This handoff does not create a preparation owner, quote an allocation or adopt
+a Run. The original request parent must fund the full simultaneous checker,
+lowering, graph and output backing before entry, retain the returned originals,
+and transfer its typed completed Plan through the existing capacity continuation.
+Currentness, pending cleanup and consumed work stay with that same parent.
+
+
+### Original Source registration continuation
+
+After the original Catalog reaches SourceRequestContracts, its parsed-check
+continuation and the actual retained Parameter Source can enter
+`ParsedSourceRegistration`. The continuation
+keeps the same Program, Catalog, references, remaining semantic budget and
+selected Source limits. Its reader is the existing `SourceRegistrationRead`:
+collection, resolution, pipeline registration and nested Local preparation use
+their existing constructor inventories and original work observations. No
+replacement Program, registration tuple, capacity, or caller verdict is accepted.
+
+The completed original registration tuple enters the existing Context, identity,
+closure and unit checker directly. That path neither recollects Source inputs nor
+rereads the Catalog. Both uninterrupted and retained-registration checking use
+the same remaining-budget projection and Context implementation. A pending read
+stays pending; a cleared or externally taken reader cannot start a fallback
+checker. An original registration failure is projected through the existing
+checker diagnostic boundary. The previous registry continuation stays consumed.
+
+This is a data continuation on the original outside parent's lifetime. The
+caller must already back the retained Source/declarations and must back
+continuation controls, borrowed frames and registration entrance before entry,
+each selected registration phase before advancement, and the full remaining Context/identity/closure overlap before
+finishing. Semantic limits and completed Catalog accounting do not supply that
+backing. Dropping reader aliases does not acknowledge physical retirement, and
+this continuation does not introduce a Resource owner or a separate Plan.
+The staged registration entrance requires the actual completed Source. Its
+original Program and selected declaration limits are checked by the same
+`stage_parameters` reuse rule as ordinary preparation. An already attached
+Source must be the identical original. Missing or foreign correspondence is a
+construction-state refusal; it is not a language rejection and does not fall
+back to reading declarations or copying Stages. A caller without that Source
+must first complete its existing funded Parameter/Source path.
+
+`ClientProgramCheckPreparation` retains the selected Source across a failed
+same-parent grow, funds only the installed registration entrance, and stores the
+resulting original continuation. After return it can reconcile only that
+entrance's synchronous scratch. Its one-use take observes currentness through
+the existing Resource gate and transfers the original continuation; the request
+parent cannot abort a transferred child. Clearing an untransferred child clears
+only its original registration reader. Prior input/Source/Catalog dependencies,
+consumed work and physical cleanup remain separate obligations. The installed
+initial domain inventory includes the original Source/continuation fields and their
+actual retained Option carriers; no policy ceiling or fixed Values layout is
+used to fund the entrance. Later registration phases and the remaining Context
+still require their own complete backing before execution.
+
+The registration reader binds collection geometry to the same original Source
+and limits before collection. Observation runs once; later borrows reuse that
+completed geometry and its original work carrier. Quotation takes neither
+replacement geometry nor replacement limits. The geometry owner supplies both
+inspection and retained construction units, and the registration owner supplies
+its own cache wrappers. Its reader field is included in the entry's constructor
+and retained packets through the same owner APIs. Semantic collection remains
+the existing collector, with its own original charged-work result and refusal
+precedence; metadata observation does not collect, normalize or resolve inputs.
+Taking or clearing the reader drops its metadata aliases without granting a
+refund, acknowledging external release or reconstructing a continuation.
+
+Collection continues on that same capacity. Before observing its metadata, the
+controller adds both the original observer packet and the constructor quotation
+packet. The latter describes actual quotation objects and is not row capacity,
+policy headroom or an allowance inherited from a different layout. Only after
+that grow does the controller claim the distinct Source-collection-inspection
+work phase and retain its actual work. Reconciliation drops returned observation
+scratch while retaining geometry and the quotation packet.
+
+The body grow uses a quote derived from that original geometry and selected
+limits, retaining it across a failed grow. It then claims the separate original
+semantic-collection work phase and advances the unchanged reader exactly once.
+On success, returned Inputs and normalized text stay backed while returned body
+and quotation scratch retire. An original semantic refusal keeps its entire
+peak until its original result is transferred or cleared; it is not projected
+as a resource-limit failure. Clearing and typed output continuation preserve
+both completed work phases. Selection, Local, Context and completed Plan
+construction retain their own subsequent funding obligations.
+
+
+Resolution follows on the same read and capacity. The original resolver owns
+both the inherited-prefix work convention and the bounds from its retained
+Inputs and Catalog. The controller funds the original metadata and quotation
+packet before observation, preserves that geometry and quote across a failed
+body grow, and records only newly performed selection work. A semantic
+selection refusal retains its full peak and original typed issue; it does not
+repeat collection or substitute a generic resource refusal.
+
+Pipeline registration next borrows that same retained Resolved. Its original
+constructor quotes actual Stage groups and input occurrences in constant time;
+it does not reread names, resolve Sources or reconstruct the Catalog. The
+controller first funds the quotation frame, then the quoted bodies and original
+result/work frame. These are two allocation boundaries: an external current
+callback at the first grow can change the state before the second grow. Each
+boundary uses its existing single current check, with the controller held busy
+through both; no separate check-before-get is added. A failed second grow
+retains the same quote and cannot advance the read or consume pipeline work.
+
+After registration returns, only its new work is charged; completed collection
+and resolution remain inherited semantic facts rather than new debits. The
+successful original PipelineInputs stays backed while returned scratch is
+reconciled. Nested Local preparation remains pending and needs its own backing
+before advancement. Taking or clearing does not turn this intermediate
+registration into a checked Program, completed Plan or physical release.
+
+
+The nested Local entrance uses its existing constructor on the same retained
+Source, Environment, partition and remaining semantic limits. Its observer
+returns that constructor's actual result and initial charged work; early
+invalid-limit, foreign-partition and budget refusals occur before that charge.
+The ordinary result-only entrance still allocates no observation pair. The
+registration keeps this original work carrier even after take or clear.
+
+The parent funds the original Local entry, selected limits, observation and
+returned carriers before invoking it. Successful reconciliation retains the
+original child and only drops returned entrance scratch. Index, grouping,
+snapshot, declaration, reconciliation and assembly each remain pending until
+their own complete overlap is funded. Neither the existence of the Local child
+nor its entry-work observation proves completed Local preparation or physical
+retirement. A failed entry keeps its full peak and original typed refusal.
+
+
+Source Index construction includes the synchronous UTF8 name-admission
+controls supplied by their scalar owner. Those immutable quantities describe
+one call's scalar/result alternatives, not a byte buffer or an allocation count
+multiplied by name length. Source retains original names; neither the descriptor
+nor the Index quote scans, copies, normalizes or re-admits them. The semantic
+indexer still uses its original UTF8 budget and original failure precedence.
+Only a path that can enter a Stage adds these controls; early prefix refusal
+before any Stage preserves its prior quote. VM/call-stack supply, quotation and
+observer frames remain distinct obligations before the funded Index entrance.
+
+
+Local groups continue from the same completed Index. Their work envelope is
+the original Local reader's remaining work: Index work already has its own
+observation and must not be deducted a second time. The grouping step retains
+its actual partial name charge on failure, including an observed zero distinct
+from an unstarted step. It never substitutes a completed Index count.
+
+The grouping owner includes its original no-member successor array and phase
+in the same constructor inventory. With members, that array is still allocated
+only after snapshots; quoting it does not move its construction earlier. The
+controller funds quotation and body as separate current-checked grows on the
+original capacity, retains the same quote after a refusal, and consumes the
+existing grouping work observation once. Successful groups and all preceding
+Source/Index bodies remain backed; only returned quotation and driver scratch
+retire. A typed grouping failure retains its full peak and original issue.
+Snapshot, declaration, reconciliation, assembly and later checking still need
+their own funded continuations before this can produce a completed Plan.
+
+The shared collection expansion owns the fixed construction data of its own
+quotation. Domain quotations compose that original descriptor and their actual
+local controls; they do not reproduce the shared call-tree arithmetic. These
+logical constructor quantities are neither measured allocations nor physical
+backing or permission.
+
+
+Before a Local member is read, the same parent backs capture of its exact
+Environment Member, retained emission geometry and currently selected reader
+limits. The selected max-nodes remains the original minimum of remaining nodes
+and work; the text and depth limits retain their original owners. Repeated
+metadata access returns that original selection, and the existing reader
+borrows it instead of constructing another limits record. The ordinary path
+uses the same selector only at its original point after Connector classification.
+
+This capture does not invoke the Connector selector, emit, encode UTF8, parse,
+admit a schema or read a Snapshot. Successful metadata reconciliation retains
+the Member and limits; an attempted body failure preserves them until original
+take/clear. Only actual body completion can move to another member and select
+its newly remaining limits. A transferred registration keeps its backing and
+cannot be silently aborted by the old Request parent.
+
+The first member's metadata entrance alone is not full Snapshot funding.
+The existing text-emission extent ends at returned text. UTF8 storage, parsed
+nodes, typed/schema construction, identity verification, selector controls and
+held snapshots still require their original owners' complete overlap before
+body entry. Writer observations are not substituted for all of that work.
+Repeated-member work must retain one original allowance across those distinct
+funded boundaries; it cannot reissue a named phase or discard its consumed work.
+
+
+The Local Snapshot step separately exposes its original max-work debit. An
+observer invokes that same constructor once and reports the actual before/after
+remaining-work difference. Its unstarted state is None. A failed writer can
+perform bounded emission while the Local reader has not yet charged its
+node/name budget; Some(0) in that case is only a zero Local debit, never zero
+parser/schema/CPU work. Source forwards the same observation through take and
+clear without replacing earlier Index or group work.
+
+The intended complete Snapshot pass must quote the original members' held and
+temporary bodies before starting its one original named work phase. During
+that funded pass, successive actual Local debits can spend the same allowance.
+The existing prohibition on growing or shrinking backing while a work receipt
+is active remains intact; no new phase issuance, budget reset, nested Ledger
+or weaker resource gate is needed. Complete body quotation and the selected
+pass driver remain separate from this original observation boundary.
+
+## Original Snapshot partition construction
+
+The Snapshot partition selector receives the same admitted Environment Member.
+Its constructor envelope uses that Member's actual object width and detached
+error-path depth. The closed-shape declaration remains the semantic owner's
+single original list; its allowed width cannot bound malformed supplied input.
+The initial source-reference lookup and the subsequent closed-shape admission
+are separate sequential views. After closed-shape admission, the classification,
+carrier and read-mode readers borrow that same ObjectView and retain the
+original presence, scalar-kind and value rules. They do not rebuild field Maps.
+
+Local preparation exposes the partition quantity only through its captured
+original Member, and Source registration forwards that same association. This
+quantity carries no selector verdict, permission or resource authority. The
+caller must fund quotation and retained-result controls before requesting it,
+and compose it with the remaining emission, UTF8, parser, type/schema, identity,
+caller and work overlap before advancing the original Snapshot body. Dropping
+a quotation or completing a selector does not retire those later bodies.
+
+## Source reference split lifetime
+
+The Local source-reference owner retains the original three-component format.
+Its reader checks the complete supplied String's Unicode and byte budget before
+constructing split views. A fourth component already proves the existing format
+invalid, so the split constructor holds at most that complete format plus one
+refusal component. The same original component-count declaration supplies both
+the reader's structural test and its parts-construction quantity. This bounds
+malformed-input holdings without introducing another user limit or bypassing
+errors in a later unconsumed portion of the String.
+
+Split views borrow their original String. The shared collection owner supplies
+Array growth/backing overlap, while iterator, untoken, NFC, token, Reference and
+caller frames retain their separate constructor lifetimes. The parts quantity
+alone is insufficient to fund the whole reference reader or Snapshot body.
+Input-document reuse must preserve existing typed diagnostic paths and spans;
+equal values in a surrounding Environment do not by themselves establish the
+member-relative provenance of an independently admitted Snapshot document.
+
+## Source reference reader constructor envelope
+
+The reference owner supplies its whole reader storage recipe from the same
+original source-reference String's UTF16 length. UTF8 admission, NFC and split
+collection construction come from their existing owners. Sequential name scans
+reuse one workspace; controls are not multiplied by the number of characters.
+The decoded stage/input names together fit the supplied text length, and on
+success the reconstructed canonical text equals that original text. The return
+envelope therefore covers their combined owned backing separately from the
+reader's builder/normalization/refusal scratch. Input text is borrowed.
+
+The recipe is quantity DATA, not admission or a reservation. Before asking for
+it, the caller backs its own quotation frame and obtains the length from its
+original selected field. Before reading, it retains this same recipe through
+actual current/grow and composes returned/scratch with the complete Snapshot
+overlap. Failure keeps the appropriate original peak until the real caller's
+retirement cut; missing observations cannot become a zero-work or refund fact.
+The recipe does not supply physical backend, VM or work backing by itself.
+
+## Member-bound Reference construction observation
+
+Reference quantities bind to the same captured Environment Member. A metadata
+observer follows the original indexed source-reference field and its actual
+UTF16 length without constructing an ObjectView, copying text, normalizing it
+or admitting a Reference. Its work records field/scalar metadata visits, not
+character comparisons, full-reader calls or CPU instructions. Unavailable
+metadata remains distinct from zero demand or a semantic refusal.
+
+The existing per-member Local construction holder retains one completed
+quantity/work observation. Repeated getters and observers return that same
+observation; another Member gets another association. On a failed body read,
+the observation stays with the existing holder until explicit clear. A caller
+that retains an alias keeps its backing independently of the cache cut.
+
+The initial Member/limits/geometry entrance funds the added empty reference
+slot only. Before the explicit Reference metadata observer, its caller still
+backs quotation, returned observation and borrowed frames and admits the
+metadata work bound on the same parent. That observation does not by itself
+fund Snapshot emission, UTF8/parser/schema/hash, body work or physical supply.

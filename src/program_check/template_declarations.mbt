@@ -21,6 +21,7 @@ pub fn prepare_template_declarations(
   program : @syntax.Program,
   environment : CheckEnvironment,
   limits : CheckLimits,
+  source_preparation? : @stages.Source? = None,
 ) -> Result[TemplateDeclarationPreparation, LocalConstructionFailure] {
   if !compile_limits_valid(limits.compilation) {
     return Err(InvalidLimits)
@@ -49,12 +50,16 @@ pub fn prepare_template_declarations(
     issue => return Err(Environment(issue))
   }
   let source = match
-    @stages.prepare(program, {
-      max_parameters: limits.max_parameters,
-      max_nodes: limits.requests.values.max_nodes,
-      max_depth: limits.requests.values.max_depth,
-      max_text_bytes: limits.requests.values.max_text_bytes,
-    }) {
+    @stages.prepare(
+      program,
+      {
+        max_parameters: limits.max_parameters,
+        max_nodes: limits.requests.values.max_nodes,
+        max_depth: limits.requests.values.max_depth,
+        max_text_bytes: limits.requests.values.max_text_bytes,
+      },
+      original=source_preparation,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Source(Declarations(issue)))
   }

@@ -132,3 +132,57 @@ test "request and metadata traversal is bounded and nonrecursive" {
     collect(source, { ..caps(), max_work: work(inputs) - 1, }) is Err(WorkLimit),
   )
 }
+
+///|
+test "collection observer retains original Source and independently counted work" {
+  let original = owner("{\"connector\":\"c\",\"resource\":\"r\"}")
+  // Stage1 + input slots2 + names6+5 + remote fields2 + body preflight24 =40.
+  let (result, spent) = observe_collect(original, {
+    max_work: 40,
+    max_order_keys: 0,
+  })
+  let inputs = result.unwrap()
+  assert_eq(spent, 40)
+  assert_eq(work(inputs), 40)
+  assert_true(physical_equal(source(inputs), original))
+  assert_eq(count(inputs), 1)
+  let declaration = at(inputs, 0).unwrap()
+  assert_eq(declaration.connector, "c")
+  assert_eq(declaration.resource, "r")
+  assert_true(
+    physical_equal(input_for(inputs, 0, "remote").unwrap(), declaration),
+  )
+}
+
+///|
+test "collection observer retains failed work prefix without charging unperformed work" {
+  let original = owner("{\"connector\":\"c\",\"resource\":\"r\"}")
+  for (limit, expected) in [(39, 35), (10, 9), (0, 0)] {
+    let (result, spent) = observe_collect(original, {
+      max_work: limit,
+      max_order_keys: 0,
+    })
+    assert_true(result is Err(WorkLimit))
+    assert_eq(spent, expected)
+  }
+  let malformed = owner("{\"connector\":\"\",\"resource\":\"r\"}")
+  let (result, spent) = observe_collect(malformed, caps())
+  assert_true(result is Err(InvalidValue(at)) && @decode.text(at) == Ok(""))
+  // Before the local name: stage1+slots2+remote name6+fields2+preflight23.
+  assert_eq(spent, 34)
+}
+
+///|
+test "collection observer invalid limits retain exact refusal with no reader work" {
+  let original = owner("{\"connector\":\"c\",\"resource\":\"r\"}")
+  let cases : Array[Limits] = [
+    { max_work: -1, max_order_keys: 0, },
+    { max_work: 40, max_order_keys: -1, },
+  ]
+  for limits in cases {
+    let (result, spent) = observe_collect(original, limits)
+    assert_true(result is Err(InvalidLimits))
+    assert_eq(spent, 0)
+    assert_true(collect(original, limits) is Err(InvalidLimits))
+  }
+}

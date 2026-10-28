@@ -32,21 +32,38 @@ pub suberror SourceFailure {
 // Source identity emission can represent these declarations without checking
 // their semantics. Do not mistake serialization support for static admission.
 // Scan indexed source fields before allocation; diagnostics retain the cursor.
+priv struct DeclarationAuditWork {
+  mut declaration_remaining : Int
+}
+
+///|
 fn audit_declarations(
   program : @syntax.Program,
   max_work : Int,
   effect_headers? : @syntax.EffectHeaders? = None,
 ) -> Int raise SourceFailure {
+  let state = DeclarationAuditWork::{ declaration_remaining: max_work, }
+  audit_declarations_owned(program, state, effect_headers~)
+  max_work - state.declaration_remaining
+}
+
+///|
+// SAME audit and declaration_remaining-work cell on success and failure. The observer does
+// not walk a second copy or substitute the allowed maximum for performed work.
+fn audit_declarations_owned(
+  program : @syntax.Program,
+  state : DeclarationAuditWork,
+  effect_headers? : @syntax.EffectHeaders? = None,
+) -> Unit raise SourceFailure {
   if effect_headers is Some(headers) &&
     !physical_equal(@syntax.effect_headers_owner(headers), program) {
     raise UnsupportedEffects(@syntax.program_body(program))
   }
-  let mut remaining = max_work
   let charge = () => {
-    if remaining <= 0 {
+    if state.declaration_remaining <= 0 {
       raise DeclarationWorkLimit
     }
-    remaining -= 1
+    state.declaration_remaining -= 1
   }
   charge()
   let root = @syntax.program_body(program)
@@ -72,7 +89,7 @@ fn audit_declarations(
       }
     }
   }
-  max_work - remaining
+  ()
 }
 
 ///|
@@ -93,30 +110,14 @@ fn prepare_catalog_source(
   model_tasks? : @environment.ModelTasks? = None,
   derived_capacity_limits? : @wire.Limits? = None,
   graph? : Bool = false,
+  source_preparation? : @stages.Source? = None,
 ) -> @context.ProgramSourceIdentity raise SourceFailure {
-  let source = match
-    @stages.prepare(program, {
-      max_parameters: limits.max_parameters,
-      max_nodes: limits.topology.max_nodes,
-      max_depth: limits.topology.max_depth,
-      max_text_bytes: limits.topology.max_text_bytes,
-    }) {
-    Ok(v) => v
-    Err(e) => raise Declarations(e)
-  }
+  let source = prepare_catalog_stage_source(program, limits, source_preparation)
   let (views, locals) = match
     @context.prepare_source_registrations(
       source,
       catalog,
-      {
-        max_work: Int::min(
-          limits.topology.max_work,
-          limits.context.stages.max_work,
-        ),
-        max_nodes: limits.topology.max_nodes,
-        max_depth: limits.topology.max_depth,
-        max_text_bytes: limits.topology.max_text_bytes,
-      },
+      catalog_registration_limits(limits),
       max_inputs=limits.max_slots,
       max_views=limits.max_slots,
       max_order_keys=limits.max_slots,
@@ -124,6 +125,41 @@ fn prepare_catalog_source(
     Ok(v) => v
     Err(e) => raise Registration(e)
   }
+  prepare_registered_catalog_source(
+    views,
+    locals,
+    supplied,
+    material,
+    locations,
+    expression_profiles,
+    operation_profiles,
+    limits,
+    calendar~,
+    capacity_inputs~,
+    model_tasks~,
+    derived_capacity_limits~,
+    graph~,
+  )
+}
+
+///|
+// Internal original registration continuation. Its only alternate caller is
+// the consumed ParsedCheckRegistry; no public tuple/Program substitution enters.
+fn prepare_registered_catalog_source(
+  views : @sourceviews.PipelineInputs,
+  locals : @local_inputs.ProgramEnvironmentInputs,
+  supplied : @decode.Cursor?,
+  material : Array[Array[@context.CapacityMaterial]],
+  locations : Array[Array[(Int, Int)]]?,
+  expression_profiles : @context.ExpressionProfiles,
+  operation_profiles : @context.PureOperationProfiles,
+  limits : SourceLimits,
+  calendar? : @environment.SelectedCalendarProfile? = None,
+  capacity_inputs? : @context.ProgramCapacityInputs? = None,
+  model_tasks? : @environment.ModelTasks? = None,
+  derived_capacity_limits? : @wire.Limits? = None,
+  graph? : Bool = false,
+) -> @context.ProgramSourceIdentity raise SourceFailure {
   let selected = match
     @context.prepare_sourceview_context(
       views,
@@ -216,5 +252,37 @@ fn prepare_selected_source(
   match @context.prepare_program_source_identity(operations, limits.identity) {
     Ok(v) => v
     Err(e) => raise Identity(e)
+  }
+}
+
+///|
+fn prepare_catalog_stage_source(
+  program : @syntax.Program,
+  limits : SourceLimits,
+  original : @stages.Source?,
+) -> @stages.Source raise SourceFailure {
+  match
+    @stages.prepare(
+      program,
+      {
+        max_parameters: limits.max_parameters,
+        max_nodes: limits.topology.max_nodes,
+        max_depth: limits.topology.max_depth,
+        max_text_bytes: limits.topology.max_text_bytes,
+      },
+      original~,
+    ) {
+    Ok(v) => v
+    Err(e) => raise Declarations(e)
+  }
+}
+
+///|
+fn catalog_registration_limits(limits : SourceLimits) -> @local_inputs.Limits {
+  {
+    max_work: Int::min(limits.topology.max_work, limits.context.stages.max_work),
+    max_nodes: limits.topology.max_nodes,
+    max_depth: limits.topology.max_depth,
+    max_text_bytes: limits.topology.max_text_bytes,
   }
 }

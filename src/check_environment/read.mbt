@@ -38,6 +38,7 @@ priv struct Entry {
   cid : String
   bytes : Int
   nodes : Int
+  depth : Int
 }
 
 ///|
@@ -119,14 +120,28 @@ fn hash(
   cursor : @decode.Cursor,
   limits : Limits,
   omit : Bool,
+  usage? : ((Int, Int) -> Unit)? = None,
+  depth_out? : Ref[Int]? = None,
 ) -> (String, Int, Int) raise @encode.EncodeFailure {
   let writer = @encode.hashing_writer(
     limits.max_bytes,
     limits.max_nodes,
     limits.max_depth,
   )
+  errdefer (if usage is Some(observe) {
+    let (bytes, nodes, _) = @encode.observed_writer_usage(writer)
+    observe(bytes, nodes)
+  })
   emit_cursor(cursor, writer, omit)
-  let (digest, bytes, nodes) = @encode.finish_hash_usage(writer)
+  // Preserve the depth already returned by this SAME successful emission.
+  // No second hash/measurement or a substituted configured depth is needed.
+  let (digest, bytes, nodes, depth) = @encode.finish_hash_metrics(writer)
+  if depth_out is Some(captured) {
+    captured.val = depth
+  }
+  if usage is Some(observe) {
+    observe(bytes, nodes)
+  }
   ("sha256:" + digest, bytes, nodes)
 }
 
@@ -205,6 +220,9 @@ pub fn read(
     }
     let sections = []
     let mut members = 0
+    // One private scalar scratch, allocated only for the first actual member.
+    // A failed hash never publishes an Entry or its unobserved initial value.
+    let mut member_depth_out : Ref[Int]? = None
     let snapshots : Map[String, Bool] = Map([])
     for
       section in [
@@ -233,7 +251,15 @@ pub fn read(
         if @decode.object_length(cursor) is None {
           raise Stop(InvalidEnvelope)
         }
-        let (cid, member_bytes, member_nodes) = hash(cursor, limits, false)
+        if member_depth_out is None {
+          member_depth_out = Some(Ref(0))
+        }
+        let (cid, member_bytes, member_nodes) = hash(
+          cursor,
+          limits,
+          false,
+          depth_out=member_depth_out,
+        )
         if previous is Some(p) {
           if cid < p {
             raise Stop(UnsortedEvidence(section))
@@ -256,7 +282,13 @@ pub fn read(
           }
           snapshots[source_ref] = true
         }
-        entries.push({ cursor, cid, bytes: member_bytes, nodes: member_nodes, })
+        entries.push({
+          cursor,
+          cid,
+          bytes: member_bytes,
+          nodes: member_nodes,
+          depth: member_depth_out.unwrap().val,
+        })
       }
       sections.push(entries)
     }
@@ -364,4 +396,12 @@ pub fn emit_member(
 /// Reuse the exact canonical member measurement from envelope admission.
 pub fn member_usage(value : Member) -> (Int, Int) {
   (value.entry.bytes, value.entry.nodes)
+}
+
+///|
+/// Original canonical member bytes/value-nodes/peak open-container depth from
+/// its SAME envelope-admission hash. This is metadata, never a new measure,
+/// schema admission, Resource budget or configured policy ceiling.
+pub fn member_emission_geometry(value : Member) -> (Int, Int, Int) {
+  (value.entry.bytes, value.entry.nodes, value.entry.depth)
 }

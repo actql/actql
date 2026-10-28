@@ -2,6 +2,7 @@
 package "actql/actql/carrier_contract"
 
 import {
+  "actql/actql/decode_shape",
   "actql/actql/relation_schema",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
@@ -108,9 +109,17 @@ pub fn rows(Array[(@relation_schema.FieldName, @value_contract.Contract?)], fiel
 
 pub fn typed_rows(@relation_schema.Schema) -> Knowledge
 
+pub fn typed_rows_construction_inventory(Int) -> KnowledgeConstructionInventory?
+
+pub fn typed_rows_retained_extent(Int, Int) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn unknown_carrier(Kind) -> Carrier
 
 pub fn unknown_rows() -> Knowledge
+
+pub fn unqualified_rows_construction_inventory(Int, Int) -> KnowledgeConstructionInventory?
+
+pub fn unqualified_rows_retained_extent(Int, Int) -> @decode_shape.CollectionConstructionExtent?
 
 pub fn vector_components(Vectors) -> Field
 
@@ -215,6 +224,12 @@ pub(all) enum Kind {
 } derive(Eq, @debug.Debug)
 
 type Knowledge
+
+pub(all) struct KnowledgeConstructionInventory {
+  retained : @decode_shape.CollectionConstructionExtent
+  scratch : @decode_shape.CollectionConstructionExtent
+  scratch_utf16_units : Int64
+} derive(Eq, @debug.Debug)
 
 pub enum Lookup {
   Unknown

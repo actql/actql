@@ -3,9 +3,11 @@ supported_targets = "+js+wasm+native"
 import {
   "actql/actql/stage_syntax" @stage,
   "actql/actql/parameter_binding" @parameter,
+  "actql/actql/value_admission" @value,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/pipeline_parameters" @collection,
   "actql/actql/decode_core" @decode,
+  "actql/actql/decode_shape" @shape,
   "actql/actql/parameter_references" @references,
   "actql/actql/expression_syntax" @expression,
 }

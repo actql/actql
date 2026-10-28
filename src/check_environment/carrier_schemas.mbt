@@ -117,6 +117,7 @@ fn carrier_relation_records(
   fields : @decode.Cursor,
   limits : @graph.Limits,
   max_work : Int,
+  meter? : CarrierSchemaMeter? = None,
 ) -> (@carrier.Knowledge, Int) raise CarrierStop {
   let names = @decode.object_field_names(fields).unwrap_or_else(() => {
     carrier_fail(InvalidBody, fields)
@@ -129,18 +130,24 @@ fn carrier_relation_records(
   let mut nodes = limits.max_nodes
   let mut bytes = limits.max_bytes
   let mut work = max_work - names.length()
+  if meter is Some(meter) {
+    meter.work += names.length()
+  }
   for name in names {
     let entry = carrier_required(object, name, fields)
     let members = @decode.open_object(entry).unwrap_or_else(() => {
       carrier_fail(InvalidBody, entry)
     })
-    let conditional = @decode.lookup(members, "presence") is Some(_)
+    let conditional = @decode.lookup(members, carrier_presence_key) is Some(_)
     let contract_cursor = if conditional {
-      if @decode.closed_object(entry, ["contract", "presence"]) is Err(_) ||
-        carrier_name(members, "presence", entry) != "conditional" {
+      if @decode.closed_object(entry, [
+          carrier_contract_key, carrier_presence_key,
+        ])
+        is Err(_) ||
+        carrier_name(members, carrier_presence_key, entry) != "conditional" {
         carrier_fail(InvalidBody, entry)
       }
-      carrier_required(members, "contract", entry)
+      carrier_required(members, carrier_contract_key, entry)
     } else {
       entry
     }
@@ -159,6 +166,9 @@ fn carrier_relation_records(
     nodes -= used_nodes
     bytes -= used_bytes
     work -= used_nodes
+    if meter is Some(meter) {
+      meter.work += used_nodes
+    }
     entries.push(
       (
         @row.Unqualified(name),
@@ -212,43 +222,58 @@ fn read_carrier_body(
   root : @decode.Cursor,
   limits : @graph.Limits,
   max_contract_work : Int,
-) -> (@carrier.Carrier, Int) raise CarrierStop {
+  meter : CarrierSchemaMeter,
+) -> @carrier.Carrier raise CarrierStop {
   let count = @decode.object_length(root).unwrap_or(0)
   if count != 2 && count != 4 && count != 6 {
     carrier_fail(InvalidBody, root)
   }
   let obj = @decode.open_object(root).unwrap()
-  if @decode.lookup(obj, "version") is None {
-    return (@carrier.relation(carrier_records(root, limits)), 0)
+  if @decode.lookup(obj, carrier_version_key) is None {
+    return @carrier.relation(carrier_records(root, limits))
   }
-  let version = carrier_name(obj, "version", root)
-  if version == "actql-relation-schema/0.1" {
-    if @decode.closed_object(root, ["version", "fields"]) is Err(_) {
+  let version = carrier_name(obj, carrier_version_key, root)
+  if version == carrier_relation_version {
+    if @decode.closed_object(root, [carrier_version_key, carrier_fields_key])
+      is Err(_) {
       carrier_fail(InvalidBody, root)
     }
     let (rows, work) = carrier_relation_records(
-      carrier_required(obj, "fields", root),
+      carrier_required(obj, carrier_fields_key, root),
       limits,
       max_contract_work,
+      meter=Some(meter),
     )
-    return (@carrier.relation(rows), work)
+    ignore(work)
+    return @carrier.relation(rows)
   }
-  if version == "actql-graph-contract/0.1" {
-    return match @graph.read_cursor_usage(root, limits, max_contract_work~) {
-      Ok((v, used)) => (@carrier.graph_carrier(@graph.graph(v)), used)
+  if version == carrier_graph_version {
+    let (result, used) = @graph.observe_read_cursor_usage(
+      root,
+      limits,
+      max_contract_work~,
+    )
+    meter.work += used
+    return match result {
+      Ok(v) => @carrier.graph_carrier(@graph.graph(v))
       Err(e) => carrier_fail(InvalidGraph(e), root)
     }
   }
-  let names = match version {
-    "actql-events-contract/0.1" => ["version", "records", "id", "time"]
-    "actql-vectors-contract/0.1" => ["version", "records", "ids", "components"]
-    _ => carrier_fail(InvalidBody, root)
+  let names = if version == carrier_events_version {
+    [carrier_version_key, carrier_records_key, "id", "time"]
+  } else if version == carrier_vectors_version {
+    [carrier_version_key, carrier_records_key, "ids", "components"]
+  } else {
+    carrier_fail(InvalidBody, root)
   }
   if @decode.closed_object(root, names) is Err(_) {
     carrier_fail(InvalidBody, root)
   }
-  let records = carrier_records(carrier_required(obj, "records", root), limits)
-  let result = if version == "actql-events-contract/0.1" {
+  let records = carrier_records(
+    carrier_required(obj, carrier_records_key, root),
+    limits,
+  )
+  let result = if version == carrier_events_version {
     @carrier.events(
       records,
       id=@row.Unqualified(carrier_name(obj, "id", root)),
@@ -277,7 +302,7 @@ fn read_carrier_body(
     )
   }
   match result {
-    Ok(c) => (c, 0)
+    Ok(c) => c
     Err(e) => carrier_fail(InvalidRole(e), root)
   }
 }
@@ -299,43 +324,71 @@ pub fn check_carrier_schemas(
   modes : SourceReadModes,
   limits : CarrierSchemaLimits,
 ) -> Result[CarrierSchemas, CarrierSchemaIssue] {
+  observe_carrier_schemas(modes, limits).0
+}
+
+///|
+priv struct CarrierSchemaMeter {
+  mut bytes : Int
+  mut nodes : Int
+  mut work : Int
+  mut schemas : Int
+}
+
+///|
+/// Original charged counters, including a typed refusal. No partial Carrier
+/// or Source binding is exposed; success still returns the original holder.
+pub fn observe_carrier_schemas(
+  modes : SourceReadModes,
+  limits : CarrierSchemaLimits,
+) -> (Result[CarrierSchemas, CarrierSchemaIssue], Int, Int, Int, Int) {
   if limits.max_work < 0 ||
     limits.max_schemas < 0 ||
     limits.bodies.max_bytes < 0 ||
     limits.bodies.max_nodes < 0 ||
     limits.bodies.max_depth < 0 {
-    return Err({ kind: InvalidLimits, source: None, })
+    return (Err({ kind: InvalidLimits, source: None, }), 0, 0, 0, 0)
   }
+  let meter = CarrierSchemaMeter::{ bytes: 0, nodes: 0, work: 0, schemas: 0, }
+  let result = read_carrier_schemas(modes, limits, meter)
+  (result, meter.bytes, meter.nodes, meter.work, meter.schemas)
+}
+
+///|
+fn read_carrier_schemas(
+  modes : SourceReadModes,
+  limits : CarrierSchemaLimits,
+  meter : CarrierSchemaMeter,
+) -> Result[CarrierSchemas, CarrierSchemaIssue] {
   let references = modes.shapes.values.policies.references
   let entries = []
   let by_cid : Map[String, CarrierSchema] = Map([])
   let views : Map[Int, SourceViewCarrier] = Map([])
   let key_facts : Map[String, RelationKeyFacts] = Map([])
   let score_facts : Map[String, RelationScoreFacts] = Map([])
-  let mut bytes = 0
-  let mut nodes = 0
-  let mut work = 0
   try {
     for envelope in references.contents.registry.entries {
-      if work >= limits.max_work {
+      if meter.work >= limits.max_work {
         carrier_fail(WorkLimit, envelope.body)
       }
-      work += 1
+      meter.work += 1
       if envelope.kind == "carrier_facts" {
         let (keys, used) = read_relation_key_facts(
           envelope,
-          limits.max_work - work,
+          limits.max_work - meter.work,
+          meter=Some(meter),
         )
-        work += used
+        ignore(used)
         if keys is Some(keys) {
           key_facts[envelope.cid] = keys
         }
         let (scores, score_work) = read_relation_score_facts(
           envelope,
-          limits.max_work - work,
+          limits.max_work - meter.work,
           limits.bodies.max_depth,
+          meter=Some(meter),
         )
-        work += score_work
+        ignore(score_work)
         if scores is Some(scores) {
           score_facts[envelope.cid] = scores
         }
@@ -349,42 +402,45 @@ pub fn check_carrier_schemas(
       let (body_cid, b, n) = hash(
         envelope.body,
         {
-          max_bytes: limits.bodies.max_bytes - bytes,
-          max_nodes: limits.bodies.max_nodes - nodes,
+          max_bytes: limits.bodies.max_bytes - meter.bytes,
+          max_nodes: limits.bodies.max_nodes - meter.nodes,
           max_depth: limits.bodies.max_depth,
           max_members: 0,
         },
         false,
+        usage=Some((bytes, nodes) => {
+          meter.bytes += bytes
+          meter.nodes += nodes
+        }),
       ) catch {
         _ => carrier_fail(BudgetExceeded, envelope.body)
       }
-      bytes += b
-      nodes += n
-      let (carrier, validation_work) = read_carrier_body(
+      let carrier = read_carrier_body(
         envelope.body,
         { max_bytes: b, max_nodes: n, max_depth: limits.bodies.max_depth, },
-        limits.max_work - work,
+        limits.max_work - meter.work,
+        meter,
       )
-      work += validation_work
       let schema = { envelope, carrier, body_cid, }
       entries.push(schema)
+      meter.schemas += 1
       by_cid[envelope.cid] = schema
     }
     for reference in references.references {
-      if work >= limits.max_work {
+      if meter.work >= limits.max_work {
         carrier_fail(WorkLimit, reference.source)
       }
-      work += 1
+      meter.work += 1
       if reference.contract.kind != "carrier_schema" {
         continue
       }
       // The generated reference routes admit this role only at SourceView.output.
       let root = member_body(reference.item)
       let cost = @decode.object_length(root).unwrap()
-      if cost > limits.max_work - work {
+      if cost > limits.max_work - meter.work {
         carrier_fail(WorkLimit, root)
       }
-      work += cost
+      meter.work += cost
       let obj = @decode.open_object(root).unwrap()
       let output = @decode.open_object(@decode.required(obj, "output").unwrap()).unwrap()
       let name = @decode.required(output, "carrier").unwrap()
@@ -403,9 +459,10 @@ pub fn check_carrier_schemas(
             facts_reference,
             schema,
             facts,
-            limits.max_work - work,
+            limits.max_work - meter.work,
+            meter=Some(meter),
           )
-          work += used
+          ignore(used)
           Some(keys)
         }
       }
@@ -417,9 +474,10 @@ pub fn check_carrier_schemas(
             facts_reference,
             schema,
             facts,
-            limits.max_work - work,
+            limits.max_work - meter.work,
+            meter=Some(meter),
           )
-          work += used
+          ignore(used)
           Some(scores)
         }
       }
@@ -430,7 +488,15 @@ pub fn check_carrier_schemas(
         relation_scores,
       }
     }
-    Ok({ modes, entries, by_cid, views, bytes, nodes, work, })
+    Ok({
+      modes,
+      entries,
+      by_cid,
+      views,
+      bytes: meter.bytes,
+      nodes: meter.nodes,
+      work: meter.work,
+    })
   } catch {
     CarrierStop(e) => Err(e)
   }

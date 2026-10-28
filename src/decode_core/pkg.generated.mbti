@@ -29,9 +29,17 @@ pub fn cancel_admission(Admission) -> Unit
 
 pub fn closed_object(Cursor, Array[String]) -> Result[ObjectView, Issue]
 
+pub fn closed_object_construction_extent(Cursor, Int, Int) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn closed_object_field_construction_extent(Int?, Int, Int64) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn cursor_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
 pub fn cursor_key_span(Cursor) -> @source_span.Span?
 
 pub fn cursor_path(Cursor) -> Array[@source_value.PathSegment]
+
+pub fn cursor_path_construction_extent(Int64) -> @decode_shape.CollectionConstructionExtent?
 
 pub fn cursor_span(Cursor) -> @source_span.Span
 
@@ -57,13 +65,29 @@ pub fn is_null(Cursor) -> Bool
 
 pub fn is_text(Cursor) -> Bool
 
+pub fn issue_construction_extent(Int) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn issue_path_construction_extent(Int64) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn lookup(ObjectView, String) -> Cursor?
 
 pub fn object_field_names(Cursor) -> Result[Array[String], Issue]
 
 pub fn object_length(Cursor) -> Int?
 
+pub fn observe_cursor_path_depth(Cursor) -> (Int, Int64)
+
+pub fn observe_subtree_construction_geometry(Cursor) -> SubtreeConstructionGeometry
+
+pub fn observe_subtree_geometry(Cursor, Array[String]) -> SubtreeGeometry
+
+pub fn observe_subtree_size(Cursor) -> (Int, Int64)
+
 pub fn open_object(Cursor) -> Result[ObjectView, Issue]
+
+pub fn open_object_construction_extent(Int) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn require_non_null_cursor(Cursor) -> Result[Cursor, Issue]
 
 pub fn required(ObjectView, String) -> Result[Cursor, Issue]
 
@@ -148,6 +172,32 @@ pub(all) enum Presence[T] {
   ExplicitNull
   Present(T)
 }
+
+pub(all) struct SubtreeConstructionGeometry {
+  nodes : Int
+  arrays : Int
+  array_items : Int
+  objects : Int
+  fields : Int
+  texts : Int
+  max_object_fields : Int
+  max_key_utf16 : Int
+  max_text_utf16 : Int
+  total_utf16 : Int64
+  work : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SubtreeGeometry {
+  nodes : Int
+  objects : Int
+  arrays : Int
+  fields : Int
+  max_fields : Int
+  max_array_items : Int
+  max_selected_text_units : Int
+  outer_depth : Int
+  work : Int64
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ValueView {
   NullValue

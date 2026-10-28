@@ -170,6 +170,7 @@ fn check(
   model_tasks? : @environment.ModelTasks? = None,
   request_value_policies? : Array[HostRequestValuePolicyEvidence] = [],
   source_catalog? : PreparedSourceCatalog? = None,
+  source_preparation? : @stages.Source? = None,
 ) -> CheckedProgram raise LocalConstructionFailure {
   if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
     raise InvalidLimits
@@ -181,9 +182,62 @@ fn check(
     depth: max_depth,
   }
   check_supported_source(program, budget)
+  let declaration_work = audit_declarations(
+    program,
+    budget.work,
+    effect_headers~,
+  ) catch {
+    issue => raise Source(issue)
+  }
+  check_after_prelude(
+    program,
+    environment,
+    supplied,
+    material,
+    expression_profiles,
+    operation_profiles,
+    limits,
+    budget,
+    declaration_work,
+    has_effects=effect_headers is Some(_),
+    numeric_profile~,
+    calendar~,
+    text_rank~,
+    capacity_inputs~,
+    graph~,
+    model_tasks~,
+    request_value_policies~,
+    source_catalog~,
+    source_preparation~,
+  )
+}
+
+///|
+fn check_after_prelude(
+  program : @syntax.Program,
+  environment : @environment.WireEnvironment,
+  supplied : @decode.Cursor?,
+  material : Array[Array[@context.CapacityMaterial]],
+  expression_profiles : @context.ExpressionProfiles,
+  operation_profiles : @context.PureOperationProfiles,
+  limits : SourceLimits,
+  budget : IdentityBudget,
+  declaration_work : Int,
+  has_effects~ : Bool,
+  numeric_profile? : @numeric.Profile? = None,
+  calendar? : @environment.SelectedCalendarProfile? = None,
+  text_rank? : @environment.SelectedTextRankProfile? = None,
+  capacity_inputs? : @context.ProgramCapacityInputs? = None,
+  graph? : Bool = false,
+  model_tasks? : @environment.ModelTasks? = None,
+  request_value_policies? : Array[HostRequestValuePolicyEvidence] = [],
+  source_catalog? : PreparedSourceCatalog? = None,
+  environment_start? : EnvironmentAdmissionStart? = None,
+  source_preparation? : @stages.Source? = None,
+) -> CheckedProgram raise LocalConstructionFailure {
   let conversions : Array[ProofConversion] = []
   let references : Array[@environment.CatalogReferences] = []
-  let (identity, requirements, gates, contracts, units) = construct_local(
+  let (identity, requirements, gates, contracts, units) = construct_local_after_declarations(
     program,
     supplied,
     { wire: environment, locations: None, },
@@ -192,17 +246,19 @@ fn check(
     operation_profiles,
     limits,
     budget,
+    declaration_work,
     numeric_profile~,
     calendar~,
     text_rank~,
     conversion_out=Some(conversions),
     references_out=Some(references),
     capacity_inputs~,
-    effect_headers~,
     graph~,
     model_tasks~,
     request_value_policies~,
     source_catalog~,
+    source_preparation~,
+    environment_start~,
   )
   let conversion = Some(conversions[0])
   audit_source_execution(contracts, units[0].source_execution, budget) catch {
@@ -322,7 +378,7 @@ fn check(
     completion_free_audit: audit_completion_free_units(units),
     local_completion_free_audit: ProfileNotInstalled,
     local_legacy_audit_prepared: false,
-    has_effects: effect_headers is Some(_),
+    has_effects,
     keyed_input_proofs,
     nest_limits,
     traversal_limits,

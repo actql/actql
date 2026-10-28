@@ -33,18 +33,49 @@ pub fn read_command_input_contract(
   if limits.max_nodes < 0 || limits.max_depth < 0 || limits.max_text_bytes < 0 {
     return Err(InvalidCommandInputLimits)
   }
+  read_command_input_contract_owned(source, limits, { nodes: 0, text: 0, })
+}
+
+///|
+priv struct CommandInputMeter {
+  mut nodes : Int
+  mut text : Int
+}
+
+///|
+/// Original presence/child-reader budget cells, including partial refusal.
+/// Original input grammar and first child error remain authoritative.
+pub fn observe_command_input_contract(
+  source : @decode.Cursor,
+  limits : @value_contract.Limits,
+) -> (Result[CommandInputContract, CommandInputContractIssue], Int, Int) {
+  if limits.max_nodes < 0 || limits.max_depth < 0 || limits.max_text_bytes < 0 {
+    return (Err(InvalidCommandInputLimits), 0, 0)
+  }
+  let meter = CommandInputMeter::{ nodes: 0, text: 0, }
+  let result = read_command_input_contract_owned(source, limits, meter)
+  (result, meter.nodes, meter.text)
+}
+
+///|
+fn read_command_input_contract_owned(
+  source : @decode.Cursor,
+  limits : @value_contract.Limits,
+  meter : CommandInputMeter,
+) -> Result[CommandInputContract, CommandInputContractIssue] {
   let object = match
     @decode.closed_object(source, [
-      "additional_properties", "fields", "required_fields",
+      "additional_properties", command_input_fields_key, command_input_required_fields_key,
     ]) {
     Ok(value) => value
     Err(_) => return Err(InvalidCommandInputRecord)
   }
   guard @decode.lookup(object, "additional_properties") is Some(closed) &&
     @decode.boolean(closed) == Ok(false) &&
-    @decode.lookup(object, "fields") is Some(fields) &&
+    @decode.lookup(object, command_input_fields_key) is Some(fields) &&
     @decode.object_length(fields) is Some(field_count) &&
-    @decode.lookup(object, "required_fields") is Some(required_fields) &&
+    @decode.lookup(object, command_input_required_fields_key)
+    is Some(required_fields) &&
     @decode.array_length(required_fields) is Some(required_count) else {
     return Err(InvalidCommandInputRecord)
   }
@@ -56,31 +87,33 @@ pub fn read_command_input_contract(
     field_count > limits.max_nodes - 2 - required_count {
     return Err(CommandInputBudget)
   }
-  let mut nodes = 2 + required_count
-  let mut text = 0
+  meter.nodes = 2 + required_count
   let declarations : Array[(String, @value_contract.Contract)] = []
   let declared : Map[String, @value_contract.Contract] = Map([])
   for index in 0..<field_count {
     let (name, body) = @decode.field_at(fields, index).unwrap()
     let name_bytes = match
-      @scalar.admit_utf8_length(name, limits.max_text_bytes - text) {
+      @scalar.admit_utf8_length(name, limits.max_text_bytes - meter.text) {
       Ok(value) => value
       Err(_) => return Err(CommandInputBudget)
     }
-    text += name_bytes
-    let (contract, child_nodes, child_text) = match
-      @value_contract.read_checked_usage(body, {
-        max_nodes: limits.max_nodes - nodes,
+    meter.text += name_bytes
+    let (result, child_nodes, child_text) = @value_contract.observe_checked_usage(
+      body,
+      {
+        max_nodes: limits.max_nodes - meter.nodes,
         max_depth: limits.max_depth - 1,
-        max_text_bytes: limits.max_text_bytes - text,
-      }) {
-      Ok(value) => value
+        max_text_bytes: limits.max_text_bytes - meter.text,
+      },
+    )
+    meter.nodes += child_nodes
+    meter.text += child_text
+    let contract = match result {
+      Ok((value, _, _)) => value
       Err(@value_contract.ContractIssue(@value_contract.BudgetExceeded, ..)) =>
         return Err(CommandInputBudget)
       Err(issue) => return Err(InvalidCommandInputType(name, issue))
     }
-    nodes += child_nodes
-    text += child_text
     declarations.push((name, contract))
     declared[name] = contract
   }
@@ -114,14 +147,21 @@ pub fn read_command_input_contract(
       return Err(InvalidCommandInputField(name))
     }
     let size = match
-      @scalar.admit_utf8_length(name, limits.max_text_bytes - text) {
+      @scalar.admit_utf8_length(name, limits.max_text_bytes - meter.text) {
       Ok(value) => value
       Err(_) => return Err(CommandInputBudget)
     }
-    text += size
+    meter.text += size
     required[name] = true
   }
-  Ok({ fields: field_values, by_name: declared, required, source, nodes, text, })
+  Ok({
+    fields: field_values,
+    by_name: declared,
+    required,
+    source,
+    nodes: meter.nodes,
+    text: meter.text,
+  })
 }
 
 ///|

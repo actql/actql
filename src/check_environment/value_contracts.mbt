@@ -47,14 +47,51 @@ pub fn check_protocol_value_contracts(
     limits.contracts.max_text_bytes < 0 {
     return Err(InvalidLimits)
   }
+  read_protocol_value_contracts(policies, limits, {
+    nodes: 0,
+    text: 0,
+    entries: 0,
+  })
+}
+
+///|
+priv struct ProtocolValueMeter {
+  mut nodes : Int
+  mut text : Int
+  mut entries : Int
+}
+
+///|
+/// Actual original node/text/complete-entry charges on typed refusal too.
+/// This neither re-admits a Contract nor infers issuer or Host authority.
+pub fn observe_protocol_value_contracts(
+  policies : SourceDataPolicies,
+  limits : ValueContractLimits,
+) -> (Result[ProtocolValueContracts, ValueContractIssue], Int, Int, Int) {
+  if limits.max_envelopes < 0 ||
+    limits.contracts.max_nodes < 0 ||
+    limits.contracts.max_depth < 0 ||
+    limits.contracts.max_text_bytes < 0 {
+    return (Err(InvalidLimits), 0, 0, 0)
+  }
+  let meter = ProtocolValueMeter::{ nodes: 0, text: 0, entries: 0, }
+  let result = read_protocol_value_contracts(policies, limits, meter)
+  (result, meter.nodes, meter.text, meter.entries)
+}
+
+///|
+fn read_protocol_value_contracts(
+  policies : SourceDataPolicies,
+  limits : ValueContractLimits,
+  meter : ProtocolValueMeter,
+) -> Result[ProtocolValueContracts, ValueContractIssue] {
   let registry = policies.references.contents.registry
   if registry.entries.length() > limits.max_envelopes {
     return Err(EnvelopeLimit)
   }
   let entries = []
   let by_cid : Map[String, ProtocolValueContract] = Map([])
-  let mut nodes = 0
-  let mut text = 0
+
   for i in 0..<registry.entries.length() {
     let envelope = registry.entries[i]
     if !protocol_value_kind(envelope.kind) {
@@ -62,34 +99,42 @@ pub fn check_protocol_value_contracts(
     }
     let remaining = {
       ..limits.contracts,
-      max_nodes: limits.contracts.max_nodes - nodes,
-      max_text_bytes: limits.contracts.max_text_bytes - text,
+      max_nodes: limits.contracts.max_nodes - meter.nodes,
+      max_text_bytes: limits.contracts.max_text_bytes - meter.text,
     }
-    let (body, n, t) = if envelope.kind == "command_input" &&
+    let body = if envelope.kind == "command_input" &&
       @decode.open_object(envelope.body) is Ok(object) &&
-      @decode.lookup(object, "required_fields") is Some(_) {
-      let admitted = match
-        read_command_input_contract(envelope.body, remaining) {
+      @decode.lookup(object, command_input_required_fields_key) is Some(_) {
+      let (result, n, t) = observe_command_input_contract(
+        envelope.body,
+        remaining,
+      )
+      meter.nodes += n
+      meter.text += t
+      let admitted = match result {
         Ok(value) => value
         Err(issue) => return Err(InvalidCommandInput(i, issue))
       }
-      let (n, t) = command_input_contract_usage(admitted)
-      (CommandInput(admitted), n, t)
+      CommandInput(admitted)
     } else {
-      let (contract, n, t) = match
-        @value_contract.read_checked_usage(envelope.body, remaining) {
-        Ok(v) => v
-        Err(e) => return Err(InvalidContract(i, e))
+      let (result, n, t) = @value_contract.observe_checked_usage(
+        envelope.body,
+        remaining,
+      )
+      meter.nodes += n
+      meter.text += t
+      let contract = match result {
+        Ok((value, _, _)) => value
+        Err(issue) => return Err(InvalidContract(i, issue))
       }
-      (Value(contract), n, t)
+      Value(contract)
     }
-    nodes += n
-    text += t
     let entry = { envelope, body, }
     entries.push(entry)
+    meter.entries += 1
     by_cid[envelope.cid] = entry
   }
-  Ok({ policies, entries, by_cid, nodes, text, })
+  Ok({ policies, entries, by_cid, nodes: meter.nodes, text: meter.text, })
 }
 
 ///|

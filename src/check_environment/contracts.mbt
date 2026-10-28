@@ -185,6 +185,16 @@ pub fn contract_registry_usage(v : ContractRegistry) -> (Int, Int, Int) {
 }
 
 ///|
+/// Reuse the original complete-envelope hash count. Its admitted closed
+/// envelope has one body and only scalar Text siblings, so removing its actual
+/// root-field count leaves exactly the body's nodes. No body walk/hash or
+/// repeated envelope validation is needed; this is immutable DATA only.
+pub fn contract_body_node_count(value : ContractEnvelope) -> Int {
+  value.item.entry.nodes -
+  @decode.object_length(value.item.entry.cursor).unwrap()
+}
+
+///|
 pub fn contract_at(v : ContractRegistry, i : Int) -> ContractEnvelope? {
   v.entries.get(i)
 }

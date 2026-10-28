@@ -2,6 +2,7 @@
 package "actql/actql/relation_schema"
 
 import {
+  "actql/actql/decode_shape",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
@@ -33,6 +34,8 @@ pub fn from_fields(Array[(FieldName, @value_contract.Contract)], max_fields~ : I
 
 pub fn from_object(@value_contract.Contract) -> Result[Schema, Issue]
 
+pub fn from_object_construction_extent(Int) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn from_presence_fields(Array[(FieldName, @value_contract.Contract, Presence)], max_fields~ : Int, max_name_bytes~ : Int) -> Result[Schema, Issue]
 
 pub fn has_qualified_fields(Schema) -> Bool
@@ -42,6 +45,10 @@ pub fn lookup(Schema, FieldName) -> @value_contract.Contract?
 pub fn lookup_reference(Schema, String) -> Field?
 
 pub fn reference_name(FieldName) -> String
+
+pub fn unqualified_presence_construction_inventory(Int, Int) -> SchemaConstructionInventory?
+
+pub fn unqualified_presence_retained_extent(Int, Int) -> @decode_shape.CollectionConstructionExtent?
 
 // Errors
 
@@ -71,6 +78,12 @@ pub(all) enum Presence {
 } derive(Eq, @debug.Debug)
 
 type Schema
+
+pub(all) struct SchemaConstructionInventory {
+  retained : @decode_shape.CollectionConstructionExtent
+  scratch : @decode_shape.CollectionConstructionExtent
+  scratch_utf16_units : Int64
+} derive(Eq, @debug.Debug)
 
 pub(all) enum Side {
   Left

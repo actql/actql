@@ -1,4 +1,7 @@
 ///|
+let relation_scores_component_key : String = "relation_scores"
+
+///|
 priv struct RelationScoreFacts {
   envelope : ContractEnvelope
   source : @decode.Cursor
@@ -19,12 +22,13 @@ fn read_relation_score_facts(
   envelope : ContractEnvelope,
   max_work : Int,
   max_depth : Int,
+  meter? : CarrierSchemaMeter? = None,
 ) -> (RelationScoreFacts?, Int) raise CarrierStop {
   let root = envelope.body
   let object = @decode.open_object(root).unwrap_or_else(() => {
     carrier_fail(InvalidBody, root)
   })
-  guard @decode.lookup(object, "relation_scores") is Some(source) else {
+  guard @decode.lookup(object, relation_scores_component_key) is Some(source) else {
     return (None, 0)
   }
   // Reuse the ScoreContract reader; keep its bounded scan and original cursors.
@@ -51,9 +55,15 @@ fn read_relation_score_facts(
       }
       let _ = @score_checks.read_score_contract(at)
     }
+    if meter is Some(meter) {
+      meter.work += max_work - budget.work
+    }
     (Some({ envelope, source, }), max_work - budget.work)
   } catch {
-    @score_checks.Stop(issue) =>
+    @score_checks.Stop(issue) => {
+      if meter is Some(meter) {
+        meter.work += max_work - budget.work
+      }
       carrier_fail(
         if issue.kind is BudgetExceeded {
           WorkLimit
@@ -62,6 +72,7 @@ fn read_relation_score_facts(
         },
         source,
       )
+    }
   }
 }
 
@@ -71,6 +82,7 @@ fn bind_source_relation_scores(
   schema : CarrierSchema,
   facts : RelationScoreFacts,
   max_work : Int,
+  meter? : CarrierSchemaMeter? = None,
 ) -> (SourceRelationScores, Int) raise CarrierStop {
   if !physical_equal(reference.contract, facts.envelope) {
     carrier_fail(InvalidBody, reference.source)
@@ -79,7 +91,7 @@ fn bind_source_relation_scores(
     carrier_fail(CarrierMismatch, reference.source)
   })
   let count = @decode.object_length(facts.source).unwrap()
-  let budget : RelationKeyBudget = { key_work: max_work, }
+  let budget : RelationKeyBudget = { key_work: max_work, meter, }
   relation_key_charge(budget, facts.source, count)
   for index in 0..<count {
     let (name, at) = @decode.field_at(facts.source, index).unwrap()

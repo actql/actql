@@ -302,7 +302,11 @@ pub fn[I, P] clear_program_json_preparation(
   owner.structure_quote = None
   owner.program = None
   owner.input = None
-  owner.phase = Retired
+  // Clearing this controller cannot retire the next consumer's taken DATA.
+  // Keep that handoff fact for the original parent's cleanup boundary.
+  if owner.phase != Transferred {
+    owner.phase = Retired
+  }
   Ok(())
 }
 

@@ -124,12 +124,19 @@ pub fn required(object : ObjectView, name : String) -> Result[Cursor, Issue] {
         ),
       )
     }
-    Some(cursor) =>
-      if is_null(cursor) {
-        Err(issue(cursor, UnexpectedNull))
-      } else {
-        Ok(cursor)
-      }
+    Some(cursor) => require_non_null_cursor(cursor)
+  }
+}
+
+///|
+/// Require the original selected value without another object lookup. This
+/// is the SAME non-null rule used by required, not a new type or permission.
+/// On success the SAME Cursor is forwarded unchanged.
+pub fn require_non_null_cursor(cursor : Cursor) -> Result[Cursor, Issue] {
+  if is_null(cursor) {
+    Err(issue(cursor, UnexpectedNull))
+  } else {
+    Ok(cursor)
   }
 }
 
