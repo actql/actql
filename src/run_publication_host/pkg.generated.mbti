@@ -1839,6 +1839,8 @@ pub fn prepare_source_free_client_request_identity(PreparedClientProgram, String
 
 pub fn prepare_source_free_client_values_dispatch(ClientValuesRunBinding, ClientRequestIdentity, Int, String, ClientValuesSiteSelection) -> Result[@remote_site_protocol.DispatchRequest, ClientValuesDispatchIssue]
 
+pub fn prepare_static_client_effect_computation(@program_check.EffectProgramStaticCandidate, ClientProgramPreparationLimits, Int, update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue]
+
 pub fn prepare_submission_epoch(String, String, Double, Double) -> Result[@logical_request_scope.SubmissionEpoch, @logical_request_scope.SubmissionIdentityIssue]
 
 pub fn prepared_client_acquired_infer_step(PreparedClientProgram) -> Int?
