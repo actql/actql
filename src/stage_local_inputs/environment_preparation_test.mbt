@@ -58,7 +58,7 @@ test "Local continuation retains the same Source and members through ordered ori
   )
   assert_eq(local_environment_preparation_initial_construction_extent(), {
     record_headers: 5L,
-    reference_slots: 16L,
+    reference_slots: 17L,
     scalar_words: 11L,
   })
 }

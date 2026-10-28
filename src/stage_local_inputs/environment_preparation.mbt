@@ -66,6 +66,7 @@ struct LocalEnvironmentPreparation {
   mut index : @refs.Index?
   mut index_observation : @refs.Usage?
   mut index_construction : LocalIndexConstruction?
+  mut groups_work : Int?
   mut groups : LocalStageGroups?
   mut stages : Array[EnvironmentInputs]?
   mut pending : LocalEnvironmentPending?
@@ -112,6 +113,7 @@ pub fn begin_local_environment_preparation(
     index: None,
     index_observation: None,
     index_construction: None,
+    groups_work: None,
     groups: None,
     stages: None,
     pending: None,
@@ -174,6 +176,43 @@ pub fn local_environment_preparation_index_usage(
   read : LocalEnvironmentPreparation,
 ) -> @refs.Usage? {
   read.index_observation
+}
+
+///|
+/// Newly charged Stage-name work of the original grouping loop only. None
+/// means unstarted; a completed zero or partial refusal is an actual Some.
+/// The same observation survives take/clear, without refunding consumed work.
+pub fn local_environment_preparation_groups_work(
+  read : LocalEnvironmentPreparation,
+) -> Int? {
+  read.groups_work
+}
+
+///|
+/// Constructor inventory for the SAME original grouping step. Every empty
+/// inner Array is allocated up front, even if a later name charge refuses.
+/// At most count names enter the Map; no name/body rescan is needed to quote
+/// that bound. Source IDs stay borrowed, never copied or re-admitted here.
+/// Shared Map/Array growth rules expand these DATA quantities. Snapshot pushes,
+/// successor Stage storage, phase/error controls and quotation frames remain
+/// separate overlaps; this inventory does not grant or reserve capacity.
+pub fn local_environment_groups_construction(
+  read : LocalEnvironmentPreparation,
+) -> @shape.CollectionConstructionInventory? {
+  guard read.state is MakeGroups else { return None }
+  let count = read.count.to_int64()
+  Some({
+    // LocalStageGroups1H2R, stored Some1H1R1W, observed work Some1H2W.
+    records: 3L,
+    record_references: 3L,
+    record_words: 3L,
+    reference_arrays: 1L + count,
+    reference_items: count,
+    scalar_arrays: 0L,
+    scalar_items: 0L,
+    maps: 1L,
+    map_entries: count,
+  })
 }
 
 ///|
@@ -300,6 +339,7 @@ pub fn advance_local_environment_preparation(
       read.state = MakeGroups
     }
     MakeGroups => {
+      let before = read.work
       let names : Map[String, Int] = Map([])
       let by_stage : Array[Array[@snapshot.EnvironmentSnapshot]] = Array::makei(
         read.count,
@@ -309,11 +349,13 @@ pub fn advance_local_environment_preparation(
       for i in 0..<read.count {
         let name = @stages.stage_at(original.source, i).unwrap().id
         if name.length() > read.work {
+          read.groups_work = Some(before - read.work)
           return fail_local_environment_preparation(read, BudgetExceeded)
         }
         read.work -= name.length()
         names[name] = i
       }
+      read.groups_work = Some(before - read.work)
       if read.members == 0 {
         local_environment_after_snapshots(read)
       } else {
@@ -519,7 +561,7 @@ pub fn clear_local_environment_preparation(
 
 ///|
 /// Installed initial constructor DATA only: arguments1H4R and its Some1H1R1W;
-/// read1H10R8W; initial phase1H1W; returned Ok1H1R1W. Borrowed original Source,
+/// read1H11R8W; initial phase1H1W; returned Ok1H1R1W. Borrowed original Source,
 /// Environment, limits/partition and every later phase frame are separate.
 pub fn local_environment_preparation_initial_construction_extent() -> @shape.CollectionConstructionExtent {
   local_environment_initial_units
@@ -528,6 +570,6 @@ pub fn local_environment_preparation_initial_construction_extent() -> @shape.Col
 ///|
 let local_environment_initial_units : @shape.CollectionConstructionExtent = {
   record_headers: 5L,
-  reference_slots: 16L,
+  reference_slots: 17L,
   scalar_words: 11L,
 }

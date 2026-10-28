@@ -1142,6 +1142,10 @@ pub fn source_registration_initial_construction_extent() -> @decode_shape.Collec
 
 pub fn source_registration_local_failure_phase(SourceRegistrationRead) -> @stage_local_inputs.LocalEnvironmentPhase?
 
+pub fn source_registration_local_groups_construction(SourceRegistrationRead) -> @decode_shape.CollectionConstructionInventory?
+
+pub fn source_registration_local_groups_work(SourceRegistrationRead) -> Int?
+
 pub fn source_registration_local_index_construction(SourceRegistrationRead) -> @stage_source_refs.IndexConstructionInventory?
 
 pub fn source_registration_local_index_inspection_bound(SourceRegistrationRead) -> Int64?

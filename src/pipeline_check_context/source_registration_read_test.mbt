@@ -205,7 +205,7 @@ test "original Source registration clearing retires only its own untransferred a
   )
   assert_eq(source_registration_initial_construction_extent(), {
     record_headers: 5L,
-    reference_slots: 12L,
+    reference_slots: 13L,
     scalar_words: 9L,
   })
 }
@@ -450,7 +450,7 @@ test "original registration pipeline construction uses only same held resolution
   assert_true(source_registration_pipeline_construction(read) is None)
   assert_eq(source_registration_initial_construction_extent(), {
     record_headers: 5L,
-    reference_slots: 12L,
+    reference_slots: 13L,
     scalar_words: 9L,
   })
 }
@@ -619,4 +619,44 @@ test "original registration retains the same Local index observation and metadat
   assert_true(
     observe_source_registration_local_index_construction(read) is None,
   )
+}
+
+///|
+test "original registration forwards only the same Local group construction and work" {
+  let (source, catalog, limits, _) = registration_read_fixture()
+  let read = begin_source_registration(
+    source,
+    catalog,
+    limits,
+    max_inputs=2,
+    max_views=100,
+    max_order_keys=100,
+  ).unwrap()
+  assert_true(source_registration_local_groups_construction(read) is None)
+  assert_true(source_registration_local_groups_work(read) is None)
+  for _ in 0..<5 {
+    let _ = advance_source_registration(read)
+  }
+  assert_eq(
+    source_registration_local_phase(read),
+    Some(@local_inputs.LocalEnvironmentGroups),
+  )
+  let inventory = source_registration_local_groups_construction(read).unwrap()
+  let count = @stages.stage_count(source)
+  assert_eq(inventory.reference_arrays, count.to_int64() + 1L)
+  assert_eq(inventory.reference_items, count.to_int64())
+  assert_eq(inventory.map_entries, count.to_int64())
+  let mut expected = 0
+  for i in 0..<count {
+    expected += @stages.stage_at(source, i).unwrap().id.length()
+  }
+  let _ = advance_source_registration(read)
+  assert_eq(source_registration_local_groups_work(read), Some(expected))
+  assert_true(source_registration_local_groups_construction(read) is None)
+  assert_eq(complete_registration_local(read), RegistrationComplete)
+  let _ = take_source_registration_result(read).unwrap().unwrap()
+  clear_source_registration(read)
+  assert_eq(source_registration_phase(read), RegistrationTransferred)
+  assert_eq(source_registration_local_groups_work(read), Some(expected))
+  assert_true(source_registration_local_groups_construction(read) is None)
 }

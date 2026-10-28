@@ -946,10 +946,10 @@ The Source registration read keeps this same Local child private, exposes only
 its phase/failure-phase DATA, and retains a failed child until its own transfer or
 clear. Transfer remains sticky and clears only these aliases, never Resource use.
 
-Only the fixed initial continuation record is inventoried here. Each step's
-metadata, quotation, constructor and borrowed-input backing, nested work
-observations, real parent/current/debit/resize and backend retirement remain
-separate required connections. No phase or initial DATA extent is capacity.
+The initial continuation and selected step constructors expose representation
+inventories. Each step's quotation and borrowed-input backing, remaining nested
+work observations, real parent/current/debit/resize and backend retirement remain
+separate required connections. No phase or DATA inventory is capacity.
 
 
 ## Original Local index observation and containers
@@ -982,3 +982,26 @@ transient field-reader frames cannot cover an arbitrary number of escaping
 Cursors. Their tree, admission usage and identifier Strings remain borrowed,
 not copied. The same Cursor definition also composes the existing indexed
 child/field controls, keeping their established totals unchanged.
+
+
+## Original Local Stage groups
+
+The grouping phase uses its original captured Stage count directly. It creates
+one names Map, one outer Array and every per-Stage empty Array before checking
+the first Stage name charge. The shared collection owner expands those actual
+container multiplicities and the maximum names Map prefix. No declaration,
+snapshot body or name text is scanned again for this inventory. Names borrow
+their Source Strings; empty groups do not share a mutable Array.
+
+The existing name-length deductions supply the new group-work observation,
+including the successful prefix before a typed refusal. It starts as absent and
+is recorded once, including a known zero when the first name refuses. This is
+the original code-unit policy work, separate from the index's policy work and
+UTF8 byte count, never a UTF scan or CPU measurement. Local and Source reads
+retain that same observation after taking or clearing their aliases; they do
+not debit it again or refund it on retirement.
+
+This inventory covers group containers and their stored work observation. Later
+snapshot pushes, successor Stage storage, phase/error controls, quotation frames
+and borrowed inputs remain separately backed overlaps. Keeping these original
+holders or clearing their aliases does not report physical cleanup.

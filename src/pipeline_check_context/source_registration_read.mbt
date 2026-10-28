@@ -60,6 +60,7 @@ struct SourceRegistrationRead {
   mut local_child : @local_inputs.LocalEnvironmentPreparation?
   mut local_index_usage : @refs.Usage?
   mut local_index_inspection_work : Int64?
+  mut local_groups_work : Int?
   mut state : SourceRegistrationState
 }
 
@@ -98,6 +99,7 @@ pub fn begin_source_registration(
     local_child: None,
     local_index_usage: None,
     local_index_inspection_work: None,
+    local_groups_work: None,
     state: ReadDeclarations,
   })
 }
@@ -293,6 +295,22 @@ pub fn source_registration_local_index_usage(
 }
 
 ///|
+/// SAME original Local grouping observation, including partial typed refusal.
+/// No inherited Index work, second loop or replacement zero enters this fact.
+pub fn source_registration_local_groups_work(
+  read : SourceRegistrationRead,
+) -> Int? {
+  read.local_groups_work
+}
+
+///|
+pub fn source_registration_local_groups_construction(
+  read : SourceRegistrationRead,
+) -> @shape.CollectionConstructionInventory? {
+  read.local_child.bind(@local_inputs.local_environment_groups_construction)
+}
+
+///|
 pub fn source_registration_local_index_inspection_bound(
   read : SourceRegistrationRead,
 ) -> Int64? {
@@ -412,6 +430,9 @@ pub fn advance_source_registration(
           read.local_index_usage = @local_inputs.local_environment_preparation_index_usage(
             child,
           )
+          read.local_groups_work = @local_inputs.local_environment_preparation_groups_work(
+            child,
+          )
           match phase {
             LocalEnvironmentComplete | LocalEnvironmentFailed => {
               let result = @local_inputs.take_local_environment_preparation_result(
@@ -484,9 +505,9 @@ pub fn clear_source_registration(read : SourceRegistrationRead) -> Unit {
 
 ///|
 /// Installed constructor DATA, not capacity. Argument record1H3R3W, its Some
-///1H1R1W, read1H7R3W, initial phase1H1W and returned Ok1H1R1W. The supplied
+///1H1R1W, read1H8R3W, initial phase1H1W and returned Ok1H1R1W. The supplied
 /// Source/Catalog/limits and each phase's metadata/constructor overlap remain
 /// separately backed. The collection phase also adds its original observer.
 pub fn source_registration_initial_construction_extent() -> @shape.CollectionConstructionExtent {
-  { record_headers: 5L, reference_slots: 12L, scalar_words: 9L, }
+  { record_headers: 5L, reference_slots: 13L, scalar_words: 9L, }
 }
