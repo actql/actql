@@ -83307,6 +83307,211 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/host-node/installed-credential-source-reader.mjs",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing installed Source RowRun and Credential lifecycle owner",
+      "exports": [
+        "createInstalledCredentialSourceReader"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledCredentialSourceReader",
+          "parameters": [
+            "capacity",
+            "site",
+            "operation",
+            "maxResponses",
+            "maxResponseBytes",
+            "maxSecretBytes",
+            "preparePageReader"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/closeTransport",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/init:read/init:read/response/response",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/verify/verify",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "method",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "sync",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "sync/sync",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/http-exchange.mjs",
+        "../host-common/owned-invocation-context.mjs",
+        "../site-node/https-credential-resource.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "3d577f765b7fe1fa29abc02685bda770cef8602f3091563223bf6719b8e0b58b",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstalledCredentialSourceReader",
+            "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare",
+            "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/cleanup",
+            "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/closeTransport",
+            "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/init:observe/init:observe",
+            "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/init:read/init:read",
+            "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/init:read/init:read/response/response",
+            "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/init:requestStop/init:requestStop",
+            "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/init:retry/init:retry",
+            "createInstalledCredentialSourceReader/factory/init:prepare/init:prepare/verify/verify",
+            "fail/fail",
+            "method",
+            "positive/positive",
+            "sync",
+            "sync/sync"
+          ],
+          "exports": [
+            "createInstalledCredentialSourceReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "managed HTTP reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "preparePageReader"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "original Site"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "response aliases"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "synchronous"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "original failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "requestStop"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Core reserves"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "advanced physical"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "not certify"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "generated": [],
