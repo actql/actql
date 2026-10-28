@@ -1070,3 +1070,34 @@ backend refuses before sending; it must not silently weaken that guard or claim
 move support from these prose changes. No schema, CID, identity domain, grant or
 new outcome variant changes. Actual provider correlation, construction/backing,
 normal execution and cold recovery remain implementation obligations.
+
+## Slack file conversation membership
+
+The file Source's `channels` column denotes visible conversation membership,
+including the original provider's `channels`, `groups` and `ims` inventories.
+The previous array-only description did not specify this mapping. Selecting
+native `channels` alone would discard the private/direct-message relationship
+while the connector retains its required private/direct-message scope.
+
+The selected mapping uses a fixed field order and first occurrence under exact
+String identity. It preserves provider order and original provenance without
+inventing an order by opaque identifiers or treating repeated memberships as
+separate share events. Unknown components produce nullable unknown metadata;
+absence cannot certify an empty inventory. Explicitly empty arrays still have
+their ordinary empty meaning. This does not change the distinction between
+missing and NULL in general Source row contracts.
+
+[Slack's file object](https://docs.slack.dev/reference/objects/file-object/)
+documents separate private-group/direct-message fields and limits their
+observations by caller membership. Those observations cannot grant access or
+prove hidden coverage. File URLs also do not grant credential forwarding: the
+provider may return an external host as `url_private`. Existing destination,
+current and egress checks continue to govern downloads.
+
+This resolves an unspecified mapping before the normal file Source is
+published. It selects no new identity domain, permission, profile option or
+compatibility mode. The implementation must publish its actual Catalog/type
+contract, retain the original fields, bound raw input plus output construction
+and connect Source/Resource/Content/cleanup before normal support is claimed.
+Its existing logical resource model is retained; this requires neither a new
+allocator nor preallocation of every object in the VM heap.
