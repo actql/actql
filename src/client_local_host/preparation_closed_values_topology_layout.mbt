@@ -79,18 +79,27 @@ fn closed_values_topology_layout() -> ClosedValuesTopologyLayout? {
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  // Output/quote construction: two unit records, this result, Some, and the
-  // 15-element sum array wrapper/backing, including scalar backing lengths.
+  let read = @stage_results.local_program_read_control_construction_extent()
+  let read_controls : @execution.PreparationRepresentationUnits = {
+    record_headers: read.record_headers,
+    reference_slots: read.reference_slots,
+    scalar_words: read.scalar_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  // Output/quote construction: two original unit records, this result, Some,
+  // the new original read extent/units2H8W, and16-item sum wrapper/backing.
+  // The read controls are temporary: they unwind before Local/Context returns.
   let proof : @execution.PreparationRepresentationUnits = {
-    record_headers: 6L,
-    reference_slots: 19L,
-    scalar_words: 13L,
+    record_headers: 8L,
+    reference_slots: 20L,
+    scalar_words: 21L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
   guard @execution.compose_preparation_representation([
       retained, view, view, view, view, view, map4, map4, map4, map4, map4, known,
-      empty, controls, proof,
+      empty, controls, read_controls, proof,
     ])
     is Some(temporary) else {
     return None

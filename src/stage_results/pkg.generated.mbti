@@ -25,6 +25,8 @@ import {
 // Values
 pub fn admit_effect_mapping_literals(EffectMappingRules, EffectMappingLiteralLimits, parameter_values? : Array[@parameter_references.BoundIndex]) -> Result[EffectMappingLiterals, EffectMappingLiteralIssue]
 
+pub fn advance_local_program_read(LocalProgramRead) -> LocalProgramReadPhase
+
 pub fn attach_imports(ResultImports, @stage_parameters.CollectedStage, max_work~ : Int) -> Result[AttachedImports, ImportIssue]
 
 pub fn attached_imports(AttachedImports) -> ResultImports
@@ -32,6 +34,8 @@ pub fn attached_imports(AttachedImports) -> ResultImports
 pub fn attached_stage(AttachedImports) -> @stage_parameters.CollectedStage
 
 pub fn attached_work(AttachedImports) -> Int
+
+pub fn begin_local_program_read(@stage_parameters.Source, LocalProgramLimits, environment? : @stage_local_inputs.ProgramEnvironmentInputs?, sourceview_registrations? : Array[Array[(String, @pipeline_typing.InputContract)]]?, calendar_profile? : @calendar_profile.Profile?, model_tasks? : @check_environment.ModelTasks?) -> Result[LocalProgramRead, LocalProgramIssue]
 
 pub fn bind_effect_command_inputs(EffectCommandTargets, EffectCommandInputLimits) -> Result[EffectCommandInputs, EffectCommandInputIssue]
 
@@ -60,6 +64,8 @@ pub fn check_effect_preview_plan_inventory(EffectMappingRules, Int, @run_publica
 pub fn check_effect_preview_static_inventory(EffectStaticCandidate, Int, @run_publication.EffectPreviewIdentity, Int) -> Result[Unit, EffectPreviewStaticInventoryIssue]
 
 pub fn check_local_program(@stage_parameters.Source, LocalProgramLimits, environment? : @stage_local_inputs.ProgramEnvironmentInputs?, sourceview_registrations? : Array[Array[(String, @pipeline_typing.InputContract)]]?, calendar_profile? : @calendar_profile.Profile?, model_tasks? : @check_environment.ModelTasks?) -> Result[(CheckedTopology, LocalProgramUsage), LocalProgramIssue]
+
+pub fn clear_local_program_read(LocalProgramRead) -> Unit
 
 pub fn collect_checked(@stage_parameters.CollectedOperations, Array[@relation_results.CheckedResults], CollectionLimits, table_inputs? : Array[@relation_results.CheckedTableInputs?]?) -> Result[Checked, CollectionIssue]
 
@@ -299,6 +305,14 @@ pub fn local_program_binding_input_construction_extent() -> @decode_shape.Collec
 
 pub fn local_program_binding_input_facts(LocalProgramBindingInput) -> (@stage_parameters.Source, @decode_core.Cursor?, @value_admission.Limits)?
 
+pub fn local_program_read_control_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn local_program_read_owned_work(LocalProgramRead) -> Int?
+
+pub fn local_program_read_phase(LocalProgramRead) -> LocalProgramReadPhase
+
+pub fn local_program_read_stage_index(LocalProgramRead) -> Int?
+
 pub fn local_source_context_prefix(PreparedLocalSource) -> (Int, Int)
 
 pub fn local_source_operations(PreparedLocalSource) -> @stage_parameters.BoundOperations
@@ -344,6 +358,8 @@ pub fn stage_port_source(StagePorts) -> @stage_parameters.CollectedStage
 pub fn stage_port_table_inputs(StagePorts) -> @relation_results.CheckedTableInputs?
 
 pub fn stage_table_inputs_at(Checked, Int) -> @relation_results.CheckedTableInputs?
+
+pub fn take_local_program_read(LocalProgramRead) -> Result[(LocalProgramPreparation, LocalProgramUsage), LocalProgramIssue]?
 
 pub fn topology_calendar_profile(CheckedTopology) -> @calendar_profile.Profile?
 
@@ -918,6 +934,32 @@ pub(all) struct LocalProgramLimits {
   max_tokens : Int
   max_text_bytes : Int
   max_depth : Int
+} derive(Eq, @debug.Debug)
+
+pub enum LocalProgramPreparation {
+  Publication(ResultWiring)
+  Topology(CheckedTopology)
+}
+
+type LocalProgramRead
+
+pub(all) enum LocalProgramReadPhase {
+  LocalInputs
+  Imports
+  InputRegistration
+  Pipeline
+  ParameterCollection
+  LocalAttachment
+  ImportAttachment
+  Results
+  Projection
+  TableInputs
+  StagePorts
+  Wiring
+  Complete
+  Failed
+  Taken
+  Cleared
 } derive(Eq, @debug.Debug)
 
 pub(all) struct LocalProgramUsage {

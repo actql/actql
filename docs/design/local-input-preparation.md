@@ -1577,3 +1577,28 @@ unwound, and may reconcile only disposed scratch. All original typed inputs and
 live intermediate outputs remain funded. Finishing during cleanup reports the
 same previously consumed work. None of these operations acknowledges physical
 cleanup, refunds work, changes a limit or authorizes another phase issuance.
+
+## Original topology constructor continuation
+
+Local topology preparation retains the original Source, selected environment,
+registrations, Calendar and Model inputs together with its cumulative semantic
+budgets. Each constructor boundary retains its actual imported producers,
+pipeline, collected Parameter references, Results, orders and ports for the
+next boundary. The synchronous publication and conditional-topology entries
+drive this same continuation; they do not contain another semantic loop.
+
+A fixed parent can therefore back the next constructor after the previous one
+returns. Its phase and monotonic Stage position distinguish repeated boundary
+kinds across different Stages. Pending results cannot be taken, a completed
+result transfers once, and clearing before a constructor prevents later
+advancement. A failed nested constructor retains its typed issue and previous
+inputs until take or clear; absent complete Usage is not converted to zero.
+
+The work projection excludes only the same environment prefix already admitted
+by its original owner. It does not omit operation typing or substitute a field
+count for semantic work. Full topology/Result wiring, Parameter binding, Context
+capacity and final check remain separate constructor holdings on the same
+request parent. The fixed continuation-control extent excludes those bodies
+and the original staging Arrays. Ordinary synchronous callers must still back
+their entire call; this pure reader alone is not physical backing, a checked
+Program, a Plan, permission or a completed normal Host migration.
