@@ -41,6 +41,44 @@ const semantics = {version: 'actql-program-semantics/0.1', actql_version: 'actql
 };
 const program = {version: 'actql-program-definition/0.1', id: 'p',
   program_semantics_cid: machineCid(semantics)};
+
+// Retain both original fixture pins with complete independent preimages. Only
+// the governing expression contract changes when projecting this fixed Program
+// into the current envelope; offers and placement expectations stay authored.
+const history = JSON.parse(read('portability/corpus/policy-candidates-history.json'));
+assert.deepEqual(history.snapshots.map(snapshot => [snapshot.source,
+  snapshot.program_definition_cid, snapshot.candidate_body_cid]), [
+  ['b8d02a73532e54f30b3fb50c4544d2cc22064910',
+    'sha256:63af34b702f8d1b719cc9492d220c9c6929b2b047cd0e4837d70d1ef9d3a0dfd',
+    'sha256:5b3f6dac6e99538cb6963afd12a73d6e59a0ff67cfd85a17f850bff0cb3fe261'],
+  ['43de8ca411b01d09ca86f9e5ef300fa22f1c9bc2',
+    'sha256:45157dc423eb7eed95271b2f1ed9780a86cc2718b3f49386cb7cc58db9b293f2',
+    'sha256:0a3c4757bbdc6c2907b2a0cdb05d80b2b1074bb173d0cf62f331434078542726'],
+]);
+for (const snapshot of history.snapshots) {
+  assert.equal(snapshot.stage_semantics.length, stages.length);
+  for (const [index, stage] of snapshot.stage_semantics.entries()) {
+    assert.equal(stage.expression_contract_cid, snapshot.expression_contract_cid);
+    assert.equal(machineCid(stage),
+      snapshot.program_semantics.program_template.stages[index].stage_semantics_cid);
+    assert.deepEqual({...stage, expression_contract_cid}, stages[index]);
+  }
+  assert.equal(snapshot.program_semantics.expression_contract_cid,
+    snapshot.expression_contract_cid);
+  verifyIdentity(snapshot.program_semantics,
+    snapshot.program_definition.program_semantics_cid);
+  verifyIdentity(snapshot.program_definition, snapshot.program_definition_cid);
+  assert.deepEqual(snapshot.program_definition,
+    {...program, program_semantics_cid: machineCid(snapshot.program_semantics)});
+  assert.deepEqual({...snapshot.program_semantics, expression_contract_cid,
+    program_template: {...snapshot.program_semantics.program_template,
+      stages: snapshot.program_semantics.program_template.stages.map((stage, index) =>
+        ({...stage, stage_semantics_cid: machineCid(stages[index])}))}}, semantics);
+  assert.equal(snapshot.candidate_body[1], snapshot.program_definition_cid);
+  verifyIdentity(snapshot.candidate_body, snapshot.candidate_body_cid);
+  assert.deepEqual([snapshot.candidate_body[0], fixture.body[1],
+    ...snapshot.candidate_body.slice(2)], fixture.body);
+}
 const offer = (task, duckdb) => duckdb
   ? [task, 'duckdb', '21', 8, '100000', '100', '134217728', '0',
     [[[0, 2, 3, 5, 6, 7], '1'], [[1, 4], '20']], null]
