@@ -1142,3 +1142,30 @@ a Run. The original request parent must fund the full simultaneous checker,
 lowering, graph and output backing before entry, retain the returned originals,
 and transfer its typed completed Plan through the existing capacity continuation.
 Currentness, pending cleanup and consumed work stay with that same parent.
+
+
+### Original Source registration continuation
+
+After the original Catalog reaches SourceRequestContracts, its parsed-check
+continuation can be consumed into `ParsedSourceRegistration`. The continuation
+keeps the same Program, Catalog, references, remaining semantic budget and
+selected Source limits. Its reader is the existing `SourceRegistrationRead`:
+collection, resolution, pipeline registration and nested Local preparation use
+their existing constructor inventories and original work observations. No
+replacement Program, registration tuple, capacity, or caller verdict is accepted.
+
+The completed original registration tuple enters the existing Context, identity,
+closure and unit checker directly. That path neither recollects Source inputs nor
+rereads the Catalog. Both uninterrupted and retained-registration checking use
+the same remaining-budget projection and Context implementation. A pending read
+stays pending; a cleared or externally taken reader cannot start a fallback
+checker. An original registration failure is projected through the existing
+checker diagnostic boundary. The previous registry continuation stays consumed.
+
+This is a data continuation on the original outside parent's lifetime. The
+caller must back Stage preparation, continuation controls, borrowed frames and
+registration entrance before entry, each selected registration phase before
+advancement, and the full remaining Context/identity/closure overlap before
+finishing. Semantic limits and completed Catalog accounting do not supply that
+backing. Dropping reader aliases does not acknowledge physical retirement, and
+this continuation does not introduce a Resource owner or a separate Plan.

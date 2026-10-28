@@ -8,6 +8,14 @@ priv enum EnvironmentAdmissionStart {
   Modes(@environment.SourceReadModes, IdentityBudget)
   Carriers(@environment.CarrierSchemas, IdentityBudget)
   Requests(@environment.SourceRequestContracts, IdentityBudget)
+  Registered(
+    @environment.SourceRequestContracts,
+    @environment.CatalogReferences,
+    IdentityBudget,
+    SourceLimits,
+    @sourceviews.PipelineInputs,
+    @local_inputs.ProgramEnvironmentInputs
+  )
   ReusedModes(
     @environment.SourceRequestContracts,
     @environment.CatalogReferences,
@@ -217,7 +225,8 @@ fn finish_environment_admission(
     Modes(modes, b) => finish_environment_modes(modes, b, budget)
     Carriers(carriers, b) => finish_environment_carriers(carriers, b, budget)
     Requests(requests, b) => finish_environment_requests(requests, b, budget)
-    Reused(catalog, references, b)
+    Registered(catalog, references, b, _, _, _)
+    | Reused(catalog, references, b)
     | ReusedContents(catalog, references, b)
     | ReusedReferences(catalog, references, b)
     | ReusedPolicies(catalog, references, b)
@@ -253,6 +262,13 @@ pub fn finish_parsed_check_registry(
     return Err(AlreadyConsumed)
   }
   prepared.available = false
+  Ok(finish_parsed_check_registry_owned(prepared))
+}
+
+///|
+fn finish_parsed_check_registry_owned(
+  prepared : ParsedCheckRegistry,
+) -> CheckOutcome {
   let prelude = prepared.prelude
   let {
     program,
@@ -263,32 +279,34 @@ pub fn finish_parsed_check_registry(
     source_catalog,
     source_preparation,
   } = prelude.original
-  Ok(
-    checking_outcome(program, environment, () => {
-      check_after_prelude(
-        program,
-        environment.wire,
-        supplied,
-        [],
-        environment.expressions,
-        environment.operations,
-        compile_source_limits(limits),
-        prelude.budget,
-        prelude.declaration_work,
-        has_effects=false,
-        numeric_profile=environment.numeric,
-        calendar=environment.calendar,
-        text_rank=environment.text_rank,
-        capacity_inputs=Some(inputs),
-        graph=environment.graph,
-        model_tasks=environment.model_tasks,
-        request_value_policies=environment.request_value_policies,
-        source_catalog~,
-        source_preparation~,
-        environment_start=Some(prepared.start),
-      )
-    }),
-  )
+  let source_limits = match prepared.start {
+    Registered(_, _, _, selected, _, _) => selected
+    _ => compile_source_limits(limits)
+  }
+  checking_outcome(program, environment, () => {
+    check_after_prelude(
+      program,
+      environment.wire,
+      supplied,
+      [],
+      environment.expressions,
+      environment.operations,
+      source_limits,
+      prelude.budget,
+      prelude.declaration_work,
+      has_effects=false,
+      numeric_profile=environment.numeric,
+      calendar=environment.calendar,
+      text_rank=environment.text_rank,
+      capacity_inputs=Some(inputs),
+      graph=environment.graph,
+      model_tasks=environment.model_tasks,
+      request_value_policies=environment.request_value_policies,
+      source_catalog~,
+      source_preparation~,
+      environment_start=Some(prepared.start),
+    )
+  })
 }
 
 ///|
@@ -336,6 +354,7 @@ fn environment_start_budget(
     | ReusedValues(_, _, b)
     | ReusedModes(_, _, b)
     | ReusedCarriers(_, _, b)
-    | ReusedRequests(_, _, b) => b
+    | ReusedRequests(_, _, b)
+    | Registered(_, _, b, _, _, _) => b
   }
 }

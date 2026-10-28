@@ -85,6 +85,8 @@ pub fn asof_search_limit_selection(AsOfSearchLimit) -> @pipeline_check_context.A
 
 pub fn asof_search_limit_source(AsOfSearchLimit) -> UnitOperationSource
 
+pub fn begin_parsed_source_registration(ParsedCheckRegistry) -> Result[ParsedSourceRegistration, ParsedSourceRegistrationIssue]
+
 pub fn bind_host_verified_request_value_policy(SourceExecution, @check_environment.SourceDataPolicy, Int, Int, Int, Int) -> HostRequestValuePolicyEvidence raise UnitBuildFailure
 
 pub fn bind_host_verified_request_value_policy_cid(SourceExecution, String, Int, Int, Int, Int) -> HostRequestValuePolicyEvidence raise UnitBuildFailure
@@ -254,6 +256,8 @@ pub fn finish_parsed_check_input(ParsedCheckInput) -> CheckOutcome
 pub fn finish_parsed_check_prelude(ParsedCheckPrelude) -> Result[CheckOutcome, ParsedCheckPreludeIssue]
 
 pub fn finish_parsed_check_registry(ParsedCheckRegistry) -> Result[CheckOutcome, ParsedCheckPreludeIssue]
+
+pub fn finish_parsed_source_registration(ParsedSourceRegistration) -> Result[CheckOutcome, ParsedSourceRegistrationIssue]
 
 pub fn graph_proof_application(ReidentifiedGraphInput) -> @capacity_graph_input.InputBound
 
@@ -554,6 +558,8 @@ pub fn parsed_requests_inspection_work(ParsedRequestsInput) -> Int64
 pub fn parsed_requests_retained_extent(ParsedRequestsInput) -> @check_environment.RegistryConstructionExtent
 
 pub fn parsed_requests_semantic_work(ParsedRequestsInput) -> Int
+
+pub fn parsed_source_registration_read(ParsedSourceRegistration) -> @pipeline_check_context.SourceRegistrationRead
 
 pub fn parsed_values_construction_extent(ParsedValuesInput) -> @check_environment.RegistryConstructionExtent
 
@@ -1056,6 +1062,13 @@ pub suberror ParsedCatalogPreparationIssue {
   Check(LocalConstructionFailure)
 }
 
+pub suberror ParsedSourceRegistrationIssue {
+  RegistryUnavailable
+  RegistrationConstruction(LocalConstructionFailure)
+  Pending
+  Unavailable
+}
+
 pub suberror SourceFailure {
   DeclarationWorkLimit
   CapacityMetadataBudget
@@ -1463,6 +1476,10 @@ pub struct ParsedReferencesInput {
 }
 
 pub struct ParsedRequestsInput {
+  // private fields
+}
+
+pub struct ParsedSourceRegistration {
   // private fields
 }
 
