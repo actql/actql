@@ -301,6 +301,8 @@ pub fn[I] finish_closed_values_text_check(ClientClosedValuesPreparation[I]) -> R
 
 pub fn[I] finish_program_capture(ClientProgramCapture[I]) -> Result[@run_publication.PublicationContract, ClientClosedValuesPreparationIssue]
 
+pub fn[I, P] finish_program_check_preparation(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.CheckOutcome, ClientProgramCheckPreparationIssue]
+
 pub fn[I, P] finish_program_json_preparation(ClientProgramJsonPreparation[I, P]) -> Result[Unit, ClientProgramJsonPreparationIssue]
 
 pub fn[I] finish_program_snapshot(ClientProgramSnapshot[I]) -> Result[@run_publication.CapturedResultSnapshot, ClientClosedValuesPreparationIssue]
@@ -770,6 +772,8 @@ pub fn[I] start_program_capture(ClientProgramCapture[I]) -> Result[ClientProgram
 pub fn[I] start_program_validation(ClientProgramValidation[I]) -> Result[ClientProgramValidation[I], ClientProgramValidationIssue]
 
 pub fn[I, P] take_program_check_input(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckInput, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] take_program_check_preparation_outcome(ClientProgramCheckPreparation[I, P]) -> Result[(@program_check.CheckOutcome, Bool), ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] take_program_check_registry(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
 

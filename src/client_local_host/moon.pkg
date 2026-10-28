@@ -55,6 +55,7 @@ import {
 options(
   targets: {
     "preparation_program_check_current_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_finish_js_wbtest.mbt": [ "js" ],
     "preparation_request_parent_js_wbtest.mbt": [ "js" ],
     "preparation_request_program_json_js_wbtest.mbt": [ "js" ],
     "preparation_request_handoff_js_wbtest.mbt": [ "js" ],

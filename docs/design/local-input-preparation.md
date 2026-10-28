@@ -107,6 +107,36 @@ current/reserve/resize/FS/DB call counts, and separately qualified Node/Native/
 Python latency and memory observations. Narrow component checks and formula
 tables do not replace that ordinary acceptance.
 
+## Remaining ordinary semantic check
+
+After Catalog request admission, the same private registry can finish its
+remaining Context, contracts, units and checked Program in one synchronous
+semantic phase. It consumes the original registry once; it does not parse the
+Program again or readmit the completed Catalog. The selected local checker and
+its existing supported-domain refusals remain unchanged. This route does not
+establish the separate Effect-checking or physical Host prelude connection.
+
+Before entry, the owner caches an input-proportional collection estimate from
+its admitted Program and schema-bearing Environment members. It uses the shared
+container-growth estimate and representation policy, with fixed controls in
+trusted Host overhead. The old Catalog/body backing remains borrowed. A refused
+grow preserves the original and cached absolute quote; retrying does not repeat
+the observation or semantic check. The estimate is conservative DATA, not a
+schema verdict, permission, VM-layout proof or measured physical-memory bound.
+
+Only the existing reservation boundary invokes external currentness. After that
+callback returns, a cheap original-registry check prevents entry if reentry
+consumed the original. The synchronous checker does not add callbacks at each
+operation or helper. Its original success budget delta is recorded; a rejected
+or incomplete check keeps an explicitly partial known-work observation because
+some existing late-failure constructors do not commit their nested budget.
+That partial observation must never be reported as complete failure accounting.
+
+A synchronous take transfers the same outcome and work qualification, without a
+second current callback or reservation release. The parent refuses retirement
+of that successor. The later Plan/Run consumer must continue the same capacity;
+clearing local DATA is neither physical cleanup nor a new authority witness.
+
 ## Work and storage units
 
 The existing representation policy supplies shared checked arithmetic for

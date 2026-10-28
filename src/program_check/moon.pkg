@@ -70,6 +70,7 @@ import {
   "actql/actql/stage_parameters" @stages,
   "actql/actql/capacity_program_step" @step_bounds,
   "actql/actql/capacity_graph_preflight" @capacity,
+  "actql/actql/capacity_arithmetic" @counts,
   "actql/actql/capacity_graph_input" @graph_input,
   "actql/actql/capacity_witness" @wire,
   "actql/actql/capacity_host_witness" @host,
