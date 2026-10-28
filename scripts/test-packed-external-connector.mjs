@@ -10,7 +10,7 @@ import {basename, dirname, isAbsolute, join, relative, resolve, sep} from 'node:
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {build, buildSync} from 'esbuild';
 import {createOwnedScratch} from './owned-scratch.mjs';
-import {packedNpmCache} from './packed-client-packages.mjs';
+import {packedNpmCache, normalNpmPackJsonArgs, parseNpmPackJson} from './packed-client-packages.mjs';
 import {tokens} from './portable-core.mjs';
 import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
 import {checkNodeAssembly} from './connector-node-bundles.mjs';
@@ -185,7 +185,7 @@ async function acceptance() {
   await cp(join(fixture, 'external-numeric'), sourceRoot, {recursive: true});
   await cp(join(fixture, 'compute-host'), hostRoot, {recursive: true});
   const pack = async root => {
-    const metadata = JSON.parse(run('npm', ['pack', '--offline', '--json', '--pack-destination', artifacts],
+    const metadata = parseNpmPackJson(run('npm', normalNpmPackJsonArgs(['pack', '--offline', '--json', '--pack-destination', artifacts]),
       root, environment, 180000))[0];
     const path = join(artifacts, metadata.filename), bytes = await readFile(path);
     assert.equal(metadata.integrity, 'sha512-' + createHash('sha512').update(bytes).digest('base64'));
