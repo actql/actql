@@ -184,7 +184,7 @@ function packageMetadata(path) {
 }
 
 export function resolveConnectorBuildInputs(configuration) {
-  if (!shape(configuration, ['target', 'modules', 'host', 'connectors']) ||
+  if (!shape(configuration, ['target', 'modules', 'host', 'connectors'], ['packages']) ||
       configuration.target !== 'js' || !Array.isArray(configuration.modules) ||
       !Array.isArray(configuration.connectors)) throw new Error('Invalid Connector build inputs');
   const modules = new Map();
@@ -209,8 +209,44 @@ export function resolveConnectorBuildInputs(configuration) {
     modules.set(pin.namespace, freeze({...pin, root, source, sourceRoot,
       dependencies: metadata.dependencies}));
   }
+  // A Source-only JS package contributes the same checked Host manifest and
+  // adapter graph. It has no MoonBit namespace, package or compiler imports.
+  // Keep explicit pinned package ownership in this original resolver.
+  const npmOwners = new Set();
+  if (configuration.packages !== undefined && !Array.isArray(configuration.packages)) {
+    throw new Error('Invalid explicit npm Connector packages');
+  }
+  for (const pin of configuration.packages ?? []) {
+    if (!shape(pin, ['name', 'version', 'root']) ||
+        typeof pin.name !== 'string' || !/^@[a-z0-9_-]+\/[a-z0-9_-]+$/u.test(pin.name) ||
+        !version(pin.version) || typeof pin.root !== 'string' || !isAbsolute(pin.root)) {
+      throw new Error('Invalid explicit npm Connector pin');
+    }
+    const root = resolve(pin.root);
+    if (modules.has(pin.name) || [...modules.values()].some(owner =>
+      contains(owner.root, root) || contains(root, owner.root))) {
+      throw new Error('Duplicate or overlapping npm Connector ownership');
+    }
+    const metadata = JSON.parse(readFileSync(ownedPath(root, 'package.json', 'file'), 'utf8'));
+    const core = modules.get(coreNamespace);
+    if (!core) throw new Error('An explicit Core is required');
+    const hostPackage = JSON.parse(readFileSync(ownedPath(core.root,
+      'packages/local-node/package.json', 'file'), 'utf8'));
+    if (metadata.name !== pin.name || metadata.version !== pin.version || metadata.type !== 'module' ||
+        !shape(metadata.peerDependencies, [hostPackage.name]) ||
+        metadata.peerDependencies[hostPackage.name] !== hostPackage.version ||
+        metadata.dependencies !== undefined || metadata.scripts !== undefined) {
+      throw new Error('npm Connector identity or Host dependency mismatch');
+    }
+    if (stat(join(root, 'moon.mod')) || stat(join(root, 'moon.mod.json'))) {
+      throw new Error('Ambiguous npm and MoonBit Connector ownership');
+    }
+    npmOwners.add(pin.name);
+    modules.set(pin.name, freeze({namespace: pin.name, version: pin.version, root,
+      source: '.', sourceRoot: root, dependencies: {}, kind: 'npm'}));
+  }
   const host = modules.get(configuration.host), core = modules.get(coreNamespace);
-  if (!host || !core || host === core) throw new Error('A separate explicit Host module and Core are required');
+  if (!host || !core || host === core || npmOwners.has(host.namespace)) throw new Error('A separate explicit Host module and Core are required');
   for (const module of modules.values()) {
     for (const [name, pinnedVersion] of Object.entries(module.dependencies)) {
       if (!modules.has(name) || modules.get(name).version !== pinnedVersion) {
@@ -281,13 +317,16 @@ export function resolveConnectorBuildInputs(configuration) {
   };
   const entries = [], computeEntries = [], nodeEntries = [], hostEntries = [], names = new Set();
   for (const selected of configuration.connectors) {
-    if (!shape(selected, ['name', 'module', 'directory'], ['revision']) ||
-        !identifier(selected.name) || names.has(selected.name) || !modules.has(selected.module)) {
+    const npm = Object.hasOwn(selected ?? {}, 'package');
+    const ownerName = npm ? selected.package : selected.module;
+    if (!shape(selected, ['name', npm ? 'package' : 'module', 'directory'], ['revision']) ||
+        !identifier(selected.name) || names.has(selected.name) || !modules.has(ownerName) ||
+        npm !== npmOwners.has(ownerName)) {
       throw new Error('Invalid or duplicate Connector selection');
     }
     names.add(selected.name);
-    const module = modules.get(selected.module);
-    canImport(host.namespace, module.namespace);
+    const module = modules.get(ownerName);
+    if (!npm) canImport(host.namespace, module.namespace);
     if (module === host) throw new Error('Connector implementation must be separate from Host composition');
     const pending = Object.keys(core.dependencies), visited = new Set();
     while (pending.length) {
@@ -308,6 +347,10 @@ export function resolveConnectorBuildInputs(configuration) {
       if (!record(entry.manifests[role])) throw new Error(`Invalid ${role} bundle manifest`);
     }
     if (!Object.keys(entry.manifests).length) throw new Error('Missing selected Connector manifest');
+    if (npm && (entry.compute !== undefined || entry.node !== undefined ||
+        entry.manifests.host?.installation?.providerBundle !== undefined)) {
+      throw new Error('npm-only Connector cannot select a MoonBit contribution');
+    }
     if (entry.manifests.host !== undefined) {
       let providerPackagePath;
       const checkedHost = checkHostBundle(module.root, selected.name, entry.host, {
