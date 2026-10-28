@@ -159,22 +159,34 @@ fn prepare_registered_catalog_source(
   model_tasks? : @environment.ModelTasks? = None,
   derived_capacity_limits? : @wire.Limits? = None,
   graph? : Bool = false,
+  source_context? : @context.SourceViewContextInput? = None,
 ) -> @context.ProgramSourceIdentity raise SourceFailure {
-  let selected = match
-    @context.prepare_sourceview_context(
-      views,
-      locals,
-      supplied,
-      material,
-      limits.topology,
-      limits.context,
-      calendar~,
-      capacity_inputs~,
-      model_tasks~,
-      derived_capacity_limits~,
-    ) {
-    Ok(v) => v
-    Err(e) => raise SourceView(e)
+  let prepared = match source_context {
+    None =>
+      @context.prepare_sourceview_context(
+        views,
+        locals,
+        supplied,
+        material,
+        limits.topology,
+        limits.context,
+        calendar~,
+        capacity_inputs~,
+        model_tasks~,
+        derived_capacity_limits~,
+      )
+    Some(original) =>
+      @context.prepare_sourceview_context_from_input(
+        original,
+        supplied,
+        material,
+        capacity_inputs~,
+        derived_capacity_limits~,
+      )
+  }
+  let selected = match prepared {
+    Ok(value) => value
+    Err(issue) => raise SourceView(issue)
   }
   prepare_selected_source(
     selected,

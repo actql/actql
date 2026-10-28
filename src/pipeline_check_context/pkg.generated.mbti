@@ -601,6 +601,8 @@ pub fn observe_capacity_input_construction_inventory(@stage_syntax.Program, Arra
 
 pub fn observe_source_registration_collection_construction(SourceRegistrationRead) -> Int64?
 
+pub fn observe_source_registration_context_input_geometry(SourceRegistrationRead) -> SourceViewContextInputGeometry?
+
 pub fn observe_source_registration_local_index_construction(SourceRegistrationRead) -> Int64?
 
 pub fn observe_source_registration_local_snapshot_batch_construction(SourceRegistrationRead) -> @local_relation_snapshot.MemberReadConstructionInventory?
@@ -891,6 +893,10 @@ pub fn prepare_source_state_requirement(ProgramSourceIdentity, Int, Int, @local_
 
 pub fn prepare_sourceview_context(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @decode_core.Cursor?, Array[Array[CapacityMaterial]], @stage_results.LocalProgramLimits, LocalContextLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?, calendar? : @check_environment.SelectedCalendarProfile?, capacity_inputs? : ProgramCapacityInputs?, model_tasks? : @check_environment.ModelTasks?, derived_capacity_limits? : @capacity_witness.Limits?) -> Result[SelectedPolicyContext, SourceViewContextIssue]
 
+pub fn prepare_sourceview_context_from_input(SourceViewContextInput, @decode_core.Cursor?, Array[Array[CapacityMaterial]], proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?, capacity_inputs? : ProgramCapacityInputs?, derived_capacity_limits? : @capacity_witness.Limits?) -> Result[SelectedPolicyContext, SourceViewContextIssue]
+
+pub fn prepare_sourceview_context_input(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @stage_results.LocalProgramLimits, LocalContextLimits, calendar? : @check_environment.SelectedCalendarProfile?, model_tasks? : @check_environment.ModelTasks?) -> Result[SourceViewContextInput, SourceViewContextIssue]
+
 pub fn prepare_sourceview_declarations(@stage_parameters.Source, @check_environment.SourceRequestContracts, SourceViewDeclarationLimits, calendar? : @check_environment.SelectedCalendarProfile?, model_tasks? : @check_environment.ModelTasks?) -> Result[SourceViewDeclarationPreparation, SourceViewDeclarationIssue]
 
 pub fn prepare_sourceview_program(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @stage_results.LocalProgramLimits, calendar? : @check_environment.SelectedCalendarProfile?, model_tasks? : @check_environment.ModelTasks?) -> Result[(@stage_results.ResultWiring, @stage_results.LocalProgramUsage), SourceViewProgramIssue]
@@ -1071,6 +1077,8 @@ pub fn result_import_type_usage(ResultImportType) -> (Int, Int)
 
 pub fn result_wiring(WiredStages) -> @stage_results.ResultWiring
 
+pub fn retire_sourceview_context_input(SourceViewContextInput) -> Unit
+
 pub fn select_analytic_array_limit(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[GroupArrayLimit, GroupArrayLimitIssue]
 
 pub fn select_analytic_string_limit(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[GroupStringLimit, GroupStringLimitIssue]
@@ -1166,6 +1174,8 @@ pub fn source_registration_collection_quotation_extent() -> @decode_shape.Collec
 pub fn source_registration_collection_work(SourceRegistrationRead) -> Int
 
 pub fn source_registration_collection_work_bound(SourceRegistrationRead) -> Int?
+
+pub fn source_registration_context_input_inspection_bound(SourceRegistrationRead) -> Int64?
 
 pub fn source_registration_initial_construction_extent() -> @decode_shape.CollectionConstructionExtent
 
@@ -1330,6 +1340,16 @@ pub fn source_rows_work(SourceRowContexts) -> Int
 pub fn source_selection_diagnostic_issue(@sourceview_resolution.Issue) -> SourceRegistrationIssue
 
 pub fn sourceview_checked_topology(SourceViewCheckedTopology) -> @stage_results.CheckedTopology
+
+pub fn sourceview_context_input_construction_inventory(SourceViewContextInputGeometry) -> SourceViewContextInputConstructionInventory?
+
+pub fn sourceview_context_input_geometry_inspection_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn sourceview_context_input_geometry_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn sourceview_context_input_source(SourceViewContextInput) -> @stage_parameters.Source
+
+pub fn sourceview_context_input_work(SourceViewContextInput) -> Int
 
 pub fn sourceview_declaration_catalog(SourceViewDeclarationPreparation) -> @check_environment.SourceRequestContracts
 
@@ -3650,6 +3670,21 @@ pub struct SourceStateRequirement {
 
 type SourceViewCheckedTopology
 
+type SourceViewContextInput
+
+pub(all) struct SourceViewContextInputConstructionInventory {
+  peak : @decode_shape.CollectionConstructionExtent
+  retained : @decode_shape.CollectionConstructionExtent
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SourceViewContextInputGeometry {
+  stages : Int
+  registrations : Int64
+  policy_fields : Int
+  policy_path_depth : Int
+  inspection_work : Int64
+} derive(Eq, @debug.Debug)
+
 pub enum SourceViewContextIssue {
   InvalidLimits
   Program(SourceViewProgramIssue)
@@ -3682,6 +3717,7 @@ type SourceViewDeclarationPreparation
 
 pub enum SourceViewProgramIssue {
   InvalidLimits
+  Unavailable
   ForeignEnvironment
   ForeignCalendarEnvironment
   CalendarSelection(@check_environment.CalendarSelectionIssue)
