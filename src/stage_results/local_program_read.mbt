@@ -181,18 +181,19 @@ struct LocalProgramRead {
   mut state : LocalProgramReadState
   borrowed_work : Int
   mut inspection_work : Int64
+  mut construction_position : Int64
 }
 
 ///|
 /// Fixed continuation controls only. Original typed pipelines, imports,
 /// collections, Result/ports bodies and the four staging Arrays are separate.
-/// Read1H1R2W; body1H11R11W; Reading/Completed/Failed alternatives3H4R3W;
+/// Read1H1R3W; body1H11R11W; Reading/Completed/Failed alternatives3H4R3W;
 /// two live Stage variants2H16R8W (component-wise payload maxima7R3W/8R1W,
 /// including their tags); advance Result/Some carriers4H4R4W; two owned-work
-/// getters10H6R12W and two position getters2H4W; take Some/error2H2R2W; entry Ok/error2H2R2W.
+/// getters10H6R12W and three original-position tuple/Some getters6H3R9W; take Some/error2H2R2W; entry Ok/error2H2R2W.
 /// These co-count constructor alternatives, not VM stack frames or a minimum.
 pub fn local_program_read_control_construction_extent() -> @shape.CollectionConstructionExtent {
-  { record_headers: 27L, reference_slots: 46L, scalar_words: 48L, }
+  { record_headers: 31L, reference_slots: 49L, scalar_words: 54L, }
 }
 
 ///|
@@ -309,7 +310,12 @@ fn begin_local_program_read_owned(
       LocalInputs
     },
   }
-  Ok({ state: Reading(body), borrowed_work, inspection_work: 0L, })
+  Ok({
+    state: Reading(body),
+    borrowed_work,
+    inspection_work: 0L,
+    construction_position: 0L,
+  })
 }
 
 ///|
@@ -354,11 +360,16 @@ pub fn local_program_read_phase(
 }
 
 ///|
-/// Monotonic original Stage position. Phase plus this position distinguishes
-/// repeated constructor kinds; the caller cannot reset either private state.
-pub fn local_program_read_stage_index(original : LocalProgramRead) -> Int? {
+/// Same original Stage and monotonic constructor position. Repeated
+/// same-phase steps remain distinct even when they consume no semantic work.
+/// The original Int-sized semantic and input domains bound this count below
+/// Int64; it is association DATA, never a work credit or a current callback.
+pub fn local_program_read_constructor_position(
+  original : LocalProgramRead,
+) -> (Int, Int64)? {
   match original.state {
-    Reading(body) | Failed(body, _) => Some(body.index)
+    Reading(body) | Failed(body, _) =>
+      Some((body.index, original.construction_position))
     _ => None
   }
 }
@@ -444,6 +455,7 @@ pub fn advance_local_program_read(
   guard original.state is Reading(body) else {
     return local_program_read_phase(original)
   }
+  original.construction_position += 1L
   match advance_local_program_read_owned(body) {
     Err(issue) => original.state = Failed(body, issue)
     Ok(Some(completed)) => original.state = Completed(Ok(completed))

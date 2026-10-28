@@ -99,10 +99,13 @@ test "original pipeline evidence read preserves borrowed inputs and actual carri
   assert_true(physical_equal(same, carriers))
   assert_true(physical_equal(retained_keys[2].unwrap(), keys))
   assert_eq(advance_pipeline_evidence_read(read), Core)
+  assert_eq(advance_pipeline_evidence_read(read), CoreInputs)
+  while pipeline_evidence_read_phase(read) == CoreInputs {
+    let _ = advance_pipeline_evidence_read(read)
+  }
+  assert_eq(pipeline_evidence_read_phase(read), CoreParameters)
   for
     expected in [
-      CoreInputs,
-      CoreParameters,
       CoreImportedEvidence,
       CoreDeltaContracts,
       CoreSteps,

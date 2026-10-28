@@ -9,11 +9,25 @@ priv enum ContractPreflightState {
 }
 
 ///|
+priv enum ContractPreflightStep {
+  Node
+  Fields
+  PushArray
+  PushField
+} derive(Eq)
+
+///|
 priv struct ContractPreflightRead {
   b : Budget
   source : @decode.Cursor
   work : Array[(@contract.Contract, Int)]
   mut state : ContractPreflightState
+  mut step : ContractPreflightStep
+  mut fields : @contract.Fields?
+  mut child : @contract.Contract?
+  mut depth : Int
+  mut index : Int
+  mut count : Int
 }
 
 ///|
@@ -23,12 +37,24 @@ fn begin_contract_preflight_read(
   root : @contract.Contract,
   depth : Int,
 ) -> ContractPreflightRead {
-  { b, source, work: [(root, depth)], state: Pending, }
+  {
+    b,
+    source,
+    work: [(root, depth)],
+    state: Pending,
+    step: Node,
+    fields: None,
+    child: None,
+    depth: 0,
+    index: 0,
+    count: 0,
+  }
 }
 
 ///|
-/// Advance exactly the next original popped Contract. Its own field count is
-/// available before pushing children; no recursive quote or second type walk.
+/// Return before each child tuple/pending-buffer write. The original semantic
+/// spend and name charge precede that write exactly as in the original loop.
+/// No recursive quote, duplicate type traversal or copied Budget is needed.
 fn advance_contract_preflight_read(read : ContractPreflightRead) -> Unit {
   if !(read.state is Pending) {
     return
@@ -45,28 +71,61 @@ fn advance_contract_preflight_read_owned(
   let b = read.b
   let source = read.source
   let work = read.work
-  if work.pop() is Some((c, depth)) {
-    spend(b, source, 1)
-    if depth > b.limits.max_depth {
-      fail(source, BudgetExceeded)
-    }
-    match c.shape {
-      @contract.Array(item, ..) => work.push((item, depth + 1))
-      @contract.Object(fields) => {
-        let count = @contract.field_count(fields)
-        spend(b, source, count)
-        for i in 0..<count {
-          let f = @contract.field_at(fields, i).unwrap()
-          charge(b, source, f.name)
-          work.push((f.contract, depth + 1))
+  match read.step {
+    Node =>
+      if work.pop() is Some((c, depth)) {
+        spend(b, source, 1)
+        if depth > b.limits.max_depth {
+          fail(source, BudgetExceeded)
+        }
+        match c.shape {
+          @contract.Array(item, ..) => {
+            read.child = Some(item)
+            read.depth = depth
+            read.step = PushArray
+          }
+          @contract.Object(fields) => {
+            let count = @contract.field_count(fields)
+            spend(b, source, count)
+            if count > 0 {
+              read.fields = Some(fields)
+              read.depth = depth
+              read.index = 0
+              read.count = count
+              read.step = Fields
+            }
+          }
+          @contract.ResourceRef(resource_kind~) =>
+            charge(b, source, resource_kind)
+          @contract.ContentRef(media_type=Some(media)) =>
+            charge(b, source, media)
+          _ => ()
         }
       }
-      @contract.ResourceRef(resource_kind~) => charge(b, source, resource_kind)
-      @contract.ContentRef(media_type=Some(media)) => charge(b, source, media)
-      _ => ()
+    Fields => {
+      let field = @contract.field_at(read.fields.unwrap(), read.index).unwrap()
+      charge(b, source, field.name)
+      read.child = Some(field.contract)
+      read.step = PushField
+    }
+    PushArray => {
+      work.push((read.child.unwrap(), read.depth + 1))
+      read.child = None
+      read.step = Node
+    }
+    PushField => {
+      work.push((read.child.unwrap(), read.depth + 1))
+      read.child = None
+      read.index += 1
+      if read.index == read.count {
+        read.fields = None
+        read.step = Node
+      } else {
+        read.step = Fields
+      }
     }
   }
-  if work.is_empty() {
+  if read.step == Node && work.is_empty() {
     read.state = Complete
   }
 }
@@ -74,5 +133,7 @@ fn advance_contract_preflight_read_owned(
 ///|
 fn clear_contract_preflight_read(read : ContractPreflightRead) -> Unit {
   read.work.clear()
+  read.fields = None
+  read.child = None
   read.state = Cleared
 }

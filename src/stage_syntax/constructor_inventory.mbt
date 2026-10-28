@@ -331,10 +331,16 @@ fn inspect_program_constructor(
     }
   }
   let stages = stage_count.to_int64()
-  let arrays = 2L + 4L * stages
-  let items = stages + export_count.to_int64() + imports + indexed_names
-  state.arrays += arrays
-  state.items += items
+  let arrays = 2L + 5L * stages
+  let items = stages +
+    export_count.to_int64() +
+    imports +
+    indexed_names +
+    state.inputs
+  // The retained input-name Array and input ObjectView Map were already
+  // constructed in the original inputs loop; do not add either peak twice.
+  state.arrays += 2L + 4L * stages
+  state.items += items - state.inputs
   state.maps += 3L * stages
   state.entries += stages + indexed_names // seen plus three Stage indexes
   let work = max_work - state.work.remaining
@@ -343,9 +349,10 @@ fn inspect_program_constructor(
       stage_records: stage_count,
       import_tuple_bound: imports,
       export_tuples: export_count,
-      name_index_entries: indexed_names,
+      name_index_entries: indexed_names + state.inputs,
       retained_array_capacity_bound: 8L * arrays + 2L * items,
-      retained_map_capacity_bound: 24L * stages + 4L * indexed_names,
+      retained_map_capacity_bound: 32L * stages +
+      4L * (indexed_names + state.inputs),
       inspection_work: work,
     },
     array_owners: state.arrays,
@@ -375,7 +382,8 @@ fn inspect_program_constructor(
 /// retained containers and their shallow records. Do not add retained again
 /// within this peak. Text, control carriers and one diagnostic path still need
 /// their own simultaneous inventory before a caller can reserve the phase.
-pub(all) struct ProgramConstructorContainerExtent {
+pub struct ProgramConstructorContainerExtent {
+  priv original : ProgramConstructorInventory
   retained : ProgramContainerConstructionExtent
   record_headers : Int64
   reference_slots : Int64
@@ -423,10 +431,17 @@ fn constructor_container_extent(
   // recipes now come from the shared collection owner, without parallel
   // copies of its growth constants in this domain.
   let h = constructor_add_product(retained.shallow_record_headers, 1L, 1L)
-  let h = constructor_add_product(h, inventory.object_views, 1L)
+  // The original input view now survives with its Stage and is already in
+  // shallow retained records. All other opened views remain constructor work.
+  let retained_views = inventory.retained.stage_records.to_int64()
+  if inventory.object_views < retained_views {
+    raise Stop
+  }
+  let temporary_views = inventory.object_views - retained_views
+  let h = constructor_add_product(h, temporary_views, 1L)
   let h = constructor_add_product(h, inventory.key_pairs, 1L)
   let r = constructor_add_product(retained.shallow_reference_slots, 1L, 5L)
-  let r = constructor_add_product(r, inventory.object_views, 2L)
+  let r = constructor_add_product(r, temporary_views, 2L)
   let r = constructor_add_product(r, inventory.key_pairs, 1L)
   guard @shape.collection_construction_extent({
       records: h,
@@ -444,6 +459,7 @@ fn constructor_container_extent(
   }
   {
     retained,
+    original: inventory,
     record_headers: value.record_headers,
     reference_slots: value.reference_slots,
     scalar_words: value.scalar_words,
@@ -460,16 +476,16 @@ pub(all) struct ProgramConstructorControlExtent {
 } derive(Eq, Debug)
 
 ///|
+/// Consume the SAME readonly container holder and its original inventory; no
+/// second retained-envelope quote or validation is performed.
 /// Decoder controls beside the separately inventoried containers and one
 /// normalization workspace. These are conservative sums of sequential reads;
 /// only one failure lookup/path is possible because the decoder unwinds at its
 /// first typed error. All names, source spans and Cursor trees remain borrowed.
 pub fn program_constructor_control_extent(
-  inventory : ProgramConstructorInventory,
+  original : ProgramConstructorContainerExtent,
 ) -> ProgramConstructorControlExtent? {
-  guard program_container_construction_extent64(inventory.retained) is Some(_) else {
-    return None
-  }
+  let inventory = original.original
   if inventory.name_reads < inventory.normalization_calls ||
     inventory.retained_name_calls < 0L ||
     inventory.retained_name_calls > inventory.normalization_calls ||
@@ -506,11 +522,16 @@ fn constructor_control_extent(
     1L,
   )
   let elements = constructor_add_product(1L, s, 1L)
-  let cursors = constructor_add_product(
+  let all_cursors = constructor_add_product(
     reads,
-    inventory.element_cursor_slots - s,
+    inventory.element_cursor_slots,
     1L,
   )
+  if all_cursors < 3L * s {
+    raise Stop
+  }
+  // Stage-body, original inputs and original steps Cursors are retained.
+  let cursors = all_cursors - 3L * s
   // Map::get constructs an entry option and value option. wire.lookup then
   // maps that to a Cursor option; charge three alternatives per read. The
   // separate seen.get reads for import/export also need both options. Contains

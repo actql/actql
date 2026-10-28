@@ -315,6 +315,8 @@ pub fn local_program_binding_input_construction_extent() -> @decode_shape.Collec
 
 pub fn local_program_binding_input_facts(LocalProgramBindingInput) -> (@stage_parameters.Source, @decode_core.Cursor?, @value_admission.Limits)?
 
+pub fn local_program_read_constructor_position(LocalProgramRead) -> (Int, Int64)?
+
 pub fn local_program_read_control_construction_extent() -> @decode_shape.CollectionConstructionExtent
 
 pub fn local_program_read_owned_work(LocalProgramRead) -> Int64?
@@ -326,8 +328,6 @@ pub fn local_program_read_reconciled_input_construction_extent() -> @decode_shap
 pub fn local_program_read_reconciled_input_retained_extent() -> @decode_shape.CollectionConstructionExtent
 
 pub fn local_program_read_remaining_work(LocalProgramRead) -> Int?
-
-pub fn local_program_read_stage_index(LocalProgramRead) -> Int?
 
 pub fn local_program_read_step_construction(LocalProgramRead) -> LocalProgramReadStepConstruction?
 

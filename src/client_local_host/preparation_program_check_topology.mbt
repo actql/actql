@@ -40,21 +40,23 @@ let program_topology_body_driver_bytes : Int64 = {
 // Fixed call-expanded metadata controls. Existing pre232/89/491 is below
 // the Source key/ranking path: common pipeline fold93/54/197 plus max of
 // key221/82/473 and ranking229/76/498, Stage observation8/6/16 and original
-// conversion/driver9/0/21. These are constructor controls, never input bytes.
+// conversion/driver9/0/21. Two compound original-position getters replace
+// scalar getters with extra2H2R2W. These are controls, never input bytes.
 let program_topology_quotation_bytes : Int64 = program_source_extent_cost({
-  record_headers: 339L,
-  reference_slots: 142L,
-  scalar_words: 732L,
+  record_headers: 341L,
+  reference_slots: 144L,
+  scalar_words: 734L,
 }).unwrap()
 
 ///|
 // Actual retained Source observation122/75/221, original conversion7/0/17
-// and added same-meter observed-work carriers4/2/8. Fields/keys/maps remain
+// and added same-meter observed-work carriers4/2/8. The new post-constructor
+// original-position tuple/Some adds2H1R3W. Fields/keys/maps remain
 // input-derived in their domain inventories, outside this fixed call frame.
 let program_topology_retained_observation_bytes : Int64 = program_source_extent_cost({
-    record_headers: 133L,
-    reference_slots: 77L,
-    scalar_words: 246L,
+    record_headers: 135L,
+    reference_slots: 78L,
+    scalar_words: 249L,
   },
 ).unwrap()
 
@@ -81,8 +83,10 @@ fn[I, P] topology_quote_still_original(
   read : @stage_results.LocalProgramRead,
 ) -> Bool {
   @stage_results.local_program_read_phase(read) == owner.topology_quoted_phase &&
-  @stage_results.local_program_read_stage_index(read) is Some(position) &&
-  position == owner.topology_quoted_stage
+  @stage_results.local_program_read_constructor_position(read)
+  is Some((stage, position)) &&
+  stage == owner.topology_quoted_stage &&
+  position == owner.topology_quoted_constructor
 }
 
 ///|
@@ -120,12 +124,14 @@ fn[I, P] inspect_program_check_source_topology(
     owner.phase == SourceTopologyBodyRetained {
     let phase = @stage_results.local_program_read_phase(read)
     guard topology_phase_supported(phase) &&
-      @stage_results.local_program_read_stage_index(read) is Some(position) else {
+      @stage_results.local_program_read_constructor_position(read)
+      is Some((stage, position)) else {
       return Err(WrongPhase)
     }
     owner.source_body_quote = None
     owner.topology_quoted_phase = phase
-    owner.topology_quoted_stage = position
+    owner.topology_quoted_stage = stage
+    owner.topology_quoted_constructor = position
     owner.phase = SourceTopologyBodyInspectionInitial
   }
   if !topology_quote_still_original(owner, read) {
@@ -331,7 +337,11 @@ fn[I, P] advance_program_check_source_topology_owned(
       return Err(WrongPhase)
     }
   }
-  guard phase == expected &&
+  guard @stage_results.local_program_read_constructor_position(read)
+    is Some((stage, position)) &&
+    stage == owner.topology_quoted_stage &&
+    position == owner.topology_quoted_constructor + 1L &&
+    phase == expected &&
     @stage_results.local_program_read_owned_work(read) is Some(spent) &&
     spent >= owner.topology_observed_work else {
     owner.phase = Failed

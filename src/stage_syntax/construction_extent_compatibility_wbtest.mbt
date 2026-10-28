@@ -19,14 +19,15 @@ test "public narrow Program extent and explicit wide observer share original geo
   assert_true(program_construction_extent64(original.body, 1L) is None)
   let narrow = program_construction_extent(original.body, 100).unwrap()
   let wide = program_construction_extent64(original.body, 2147483650L).unwrap()
-  // One Stage, no imports, one root export and one stage-result name.
-  // Arrays 2+4=6 with capacity 8*6+2*3=54; maps 3 with 8*3+4=28.
+  // One Stage now retains its original empty input table/name Array too.
+  // No imports, one root export and one stage-result name.
+  // Arrays 2+5=7 with capacity8*7+2*3=62; maps4 with8*4+4=36.
   assert_eq(narrow.stage_records, 1)
   assert_eq(narrow.import_tuple_bound, 0L)
   assert_eq(narrow.export_tuples, 1)
   assert_eq(narrow.name_index_entries, 1L)
-  assert_eq(narrow.retained_array_capacity_bound, 54L)
-  assert_eq(narrow.retained_map_capacity_bound, 28L)
+  assert_eq(narrow.retained_array_capacity_bound, 62L)
+  assert_eq(narrow.retained_map_capacity_bound, 36L)
   assert_eq(wide.stage_records, narrow.stage_records)
   assert_eq(wide.import_tuple_bound, narrow.import_tuple_bound)
   assert_eq(wide.export_tuples, narrow.export_tuples)
@@ -49,12 +50,12 @@ test "public narrow Program extent and explicit wide observer share original geo
   assert_eq(
     program_container_construction_extent64(large),
     Some({
-      record_headers: 38L,
-      reference_slots: 130L,
-      scalar_words: 76L,
-      shallow_record_headers: 4L,
-      shallow_reference_slots: 19L,
-      shallow_scalar_words: 2L,
+      record_headers: 32L,
+      reference_slots: 146L,
+      scalar_words: 47L,
+      shallow_record_headers: 7L,
+      shallow_reference_slots: 28L,
+      shallow_scalar_words: 4L,
     }),
   )
   assert_true(
@@ -64,7 +65,7 @@ test "public narrow Program extent and explicit wide observer share original geo
   assert_true(
     program_container_construction_extent64({
       ..wide,
-      retained_map_capacity_bound: 27L,
+      retained_map_capacity_bound: 35L,
     })
     is None,
   )
