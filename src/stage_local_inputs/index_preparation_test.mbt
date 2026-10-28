@@ -15,9 +15,9 @@ test "Local index construction keeps one original geometry limits and usage thro
     scalar_words: 142L,
   })
   assert_eq(quoted.temporary, {
-    record_headers: 87L,
-    reference_slots: 197L,
-    scalar_words: 221L,
+    record_headers: 101L,
+    reference_slots: 204L,
+    scalar_words: 238L,
   })
   assert_eq(advance_local_environment_preparation(read), LocalEnvironmentGroups)
   let used = local_environment_preparation_index_usage(read).unwrap()

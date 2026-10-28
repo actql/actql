@@ -3,7 +3,7 @@ fn registration_registry_fixture(
   route : Int,
   generated? : Bool = false,
   slots? : Int? = None,
-) -> (@program_check.ParsedCheckRegistry, @syntax.Program) {
+) -> (@program_check.ParsedCheckRegistry, @syntax.Program, @stages.Source) {
   let (text, program, environment, evidence, limits) = public_input_fixture(
     generated~,
   )
@@ -82,7 +82,13 @@ fn registration_registry_fixture(
   @program_check.observe_parsed_check_requests(
     @program_check.prepare_parsed_requests_input(original).unwrap(),
   ).0.unwrap()
-  (original, program)
+  let source = @stages.prepare(program, {
+    max_parameters: limits.compilation.structure.parameters,
+    max_nodes: limits.compilation.traversal.nodes,
+    max_depth: limits.compilation.traversal.depth,
+    max_text_bytes: limits.compilation.traversal.text_bytes,
+  }).unwrap()
+  (original, program, source)
 }
 
 ///|
@@ -103,8 +109,13 @@ fn complete_original_registration(
 test "retained Source registration reaches the original checker with Local and generated Result inputs" {
   for generated in [false, true] {
     for route in [0, 1, 2] {
-      let (registry, program) = registration_registry_fixture(route, generated~)
-      let prepared = @program_check.begin_parsed_source_registration(registry).unwrap()
+      let (registry, program, source) = registration_registry_fixture(
+        route,
+        generated~,
+      )
+      let prepared = @program_check.begin_parsed_source_registration(
+        registry, source,
+      ).unwrap()
       let read = @program_check.parsed_source_registration_read(prepared)
       assert_true(
         physical_equal(
@@ -117,7 +128,7 @@ test "retained Source registration reaches the original checker with Local and g
         is Err(AlreadyConsumed),
       )
       assert_true(
-        @program_check.begin_parsed_source_registration(registry)
+        @program_check.begin_parsed_source_registration(registry, source)
         is Err(RegistryUnavailable),
       )
       complete_original_registration(read)
@@ -162,8 +173,10 @@ test "retained Source registration reaches the original checker with Local and g
 
 ///|
 test "pending Source registration and original cancellation cannot fall back to a fresh checker" {
-  let (registry, _) = registration_registry_fixture(0)
-  let prepared = @program_check.begin_parsed_source_registration(registry).unwrap()
+  let (registry, _, source) = registration_registry_fixture(0)
+  let prepared = @program_check.begin_parsed_source_registration(
+    registry, source,
+  ).unwrap()
   let read = @program_check.parsed_source_registration_read(prepared)
   assert_true(
     @program_check.finish_parsed_source_registration(prepared) is Err(Pending),
@@ -188,8 +201,10 @@ test "pending Source registration and original cancellation cannot fall back to 
 
 ///|
 test "externally transferred original registration cannot be replaced or replayed" {
-  let (registry, _) = registration_registry_fixture(1)
-  let prepared = @program_check.begin_parsed_source_registration(registry).unwrap()
+  let (registry, _, source) = registration_registry_fixture(1)
+  let prepared = @program_check.begin_parsed_source_registration(
+    registry, source,
+  ).unwrap()
   let read = @program_check.parsed_source_registration_read(prepared)
   complete_original_registration(read)
   let original = @context.take_source_registration_result(read)
@@ -210,8 +225,10 @@ test "externally transferred original registration cannot be replaced or replaye
 
 ///|
 test "original selected Source slot refusal remains a checker rejection rather than restarting registration" {
-  let (registry, _) = registration_registry_fixture(0, slots=Some(0))
-  let prepared = @program_check.begin_parsed_source_registration(registry).unwrap()
+  let (registry, _, source) = registration_registry_fixture(0, slots=Some(0))
+  let prepared = @program_check.begin_parsed_source_registration(
+    registry, source,
+  ).unwrap()
   let read = @program_check.parsed_source_registration_read(prepared)
   complete_original_registration(read)
   assert_eq(@context.source_registration_phase(read), RegistrationFailed)

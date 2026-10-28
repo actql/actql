@@ -46,6 +46,12 @@ priv struct SourceResolutionConstruction {
 }
 
 ///|
+priv struct SourceCollectionConstruction {
+  geometry : @source_inputs.CollectionConstructionGeometry
+  work : Int64?
+}
+
+///|
 /// The original Source, Catalog and selected limits are bound once. Later
 /// phases accept no replacement inputs/limits, equal owner or caller verdict.
 /// This is constructor DATA on the outside parent's lifetime, not a Resource
@@ -53,14 +59,17 @@ priv struct SourceResolutionConstruction {
 struct SourceRegistrationRead {
   mut arguments : SourceRegistrationArguments?
   mut collected : @source_inputs.Inputs?
+  mut collection_construction : SourceCollectionConstruction?
   mut collection_work : Int
   mut selection_work : Int
   mut pipeline_work : Int
   mut resolution_construction : SourceResolutionConstruction?
+  mut local_initial_work : Int?
   mut local_child : @local_inputs.LocalEnvironmentPreparation?
   mut local_index_usage : @refs.Usage?
   mut local_index_inspection_work : Int64?
   mut local_groups_work : Int?
+  mut local_snapshot_work : Int?
   mut local_snapshot_emission : (Int, (Int, Int, Int)?)?
   mut state : SourceRegistrationState
 }
@@ -93,14 +102,17 @@ pub fn begin_source_registration(
       max_order_keys,
     }),
     collected: None,
+    collection_construction: None,
     collection_work: 0,
     selection_work: 0,
     pipeline_work: 0,
     resolution_construction: None,
+    local_initial_work: None,
     local_child: None,
     local_index_usage: None,
     local_index_inspection_work: None,
     local_groups_work: None,
+    local_snapshot_work: None,
     local_snapshot_emission: None,
     state: ReadDeclarations,
   })
@@ -449,23 +461,37 @@ pub fn advance_source_registration(
       // Only that completed prefix is subtracted for the Local reader. Its
       // sourceview partition is the SAME collected Inputs, not another scan.
       match read.local_child {
-        None =>
-          match
-            @local_inputs.begin_local_environment_preparation(
-              original.source,
-              @sourceviews.pipeline_environment(views),
-              {
-                ..original.limits,
-                max_work: original.limits.max_work -
-                @sourceviews.pipeline_inputs_work(views),
-              },
-              sourceviews=read.collected,
-            ) {
+        None => {
+          let (result, spent) = @local_inputs.observe_begin_local_environment_preparation(
+            original.source,
+            @sourceviews.pipeline_environment(views),
+            {
+              ..original.limits,
+              max_work: source_registration_local_remaining_work(
+                original, views,
+              ),
+            },
+            sourceviews=read.collected,
+          )
+          read.local_initial_work = Some(spent)
+          match result {
             Err(issue) => read.state = RegistrationDone(Err(LocalInputs(issue)))
             Ok(child) => read.local_child = Some(child)
           }
+        }
         Some(child) => {
-          let phase = @local_inputs.advance_local_environment_preparation(child)
+          let phase = if @local_inputs.local_environment_preparation_phase(
+              child,
+            ) ==
+            LocalEnvironmentSnapshot {
+            let (phase, spent) = @local_inputs.observe_advance_local_environment_snapshot(
+              child,
+            )
+            read.local_snapshot_work = spent
+            phase
+          } else {
+            @local_inputs.advance_local_environment_preparation(child)
+          }
           read.local_index_usage = @local_inputs.local_environment_preparation_index_usage(
             child,
           )
@@ -519,6 +545,7 @@ pub fn take_source_registration_result(
     RegistrationDone(result) => {
       read.arguments = None
       read.collected = None
+      read.collection_construction = None
       read.resolution_construction = None
       clear_source_registration_local(read)
       read.state = RegistrationHandedOff
@@ -536,6 +563,7 @@ pub fn clear_source_registration(read : SourceRegistrationRead) -> Unit {
   let transferred = read.state is RegistrationHandedOff
   read.arguments = None
   read.collected = None
+  read.collection_construction = None
   read.resolution_construction = None
   clear_source_registration_local(read)
   read.state = if transferred {
@@ -547,9 +575,17 @@ pub fn clear_source_registration(read : SourceRegistrationRead) -> Unit {
 
 ///|
 /// Installed constructor DATA, not capacity. Argument record1H3R3W, its Some
-///1H1R1W, read1H9R3W, initial phase1H1W and returned Ok1H1R1W. The supplied
+///1H1R1W, read1H12R3W, initial phase1H1W and returned Ok1H1R1W. The supplied
 /// Source/Catalog/limits and each phase's metadata/constructor overlap remain
 /// separately backed. The collection phase also adds its original observer.
 pub fn source_registration_initial_construction_extent() -> @shape.CollectionConstructionExtent {
-  { record_headers: 5L, reference_slots: 14L, scalar_words: 9L, }
+  { record_headers: 5L, reference_slots: 17L, scalar_words: 9L, }
+}
+
+///|
+/// The original argument record, its Some and the returned read remain held.
+/// The initial phase/Ok alternatives are not part of this retained packet.
+/// Collection/resolution geometry and phase bodies are added by their owners.
+pub fn source_registration_retained_construction_extent() -> @shape.CollectionConstructionExtent {
+  { record_headers: 3L, reference_slots: 16L, scalar_words: 7L, }
 }

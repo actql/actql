@@ -943,6 +943,15 @@ pub(all) enum PreparationWorkPhase {
   CatalogCarriersAdmission
   CatalogRequestsInspection
   CatalogRequestsAdmission
+  SourceCollectionInspection
+  SourceCollection
+  SourceResolutionInspection
+  SourceSelection
+  SourcePipelineRegistration
+  SourceLocalEntry
+  SourceLocalIndexInspection
+  SourceLocalIndex
+  SourceLocalGroups
   SemanticCheck
   LowerAndGraph
   ExecutionPlan

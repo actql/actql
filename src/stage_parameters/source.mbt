@@ -37,13 +37,7 @@ pub fn prepare(
 ) -> Result[Source, Issue] {
   // Only this private holder has completed these exact Program declarations.
   // Relaxing resource ceilings cannot invalidate an already accepted value.
-  if original is Some(source) &&
-    source.program is Some(owner) &&
-    physical_equal(owner, program) &&
-    source.declaration_limits.max_parameters <= limits.max_parameters &&
-    source.declaration_limits.max_nodes <= limits.max_nodes &&
-    source.declaration_limits.max_depth <= limits.max_depth &&
-    source.declaration_limits.max_text_bytes <= limits.max_text_bytes {
+  if original is Some(source) && prepared_source_fits(source, program, limits) {
     return Ok(source)
   }
   let root = @decode.open_object(@stage.program_body(program)).unwrap()
@@ -240,5 +234,41 @@ pub fn source_body(source : Source) -> @decode.Cursor {
   match source.program {
     Some(program) => @stage.program_body(program)
     None => @stage.prefix_body(source.prefix.unwrap())
+  }
+}
+
+///|
+/// Return only the original completed Source when its Program and selected
+/// declaration limits already fit. No declaration reader or Stage copy runs.
+/// Missing correspondence never falls back to preparation in this operation.
+pub fn reuse_prepared(
+  source : Source,
+  program : @stage.Program,
+  limits : @parameter.DeclarationLimits,
+) -> Source? {
+  if prepared_source_fits(source, program, limits) {
+    Some(source)
+  } else {
+    None
+  }
+}
+
+///|
+// One original correspondence rule. The existing prepare reuse path does not
+// allocate the new continuation API's Option before returning its original Ok.
+fn prepared_source_fits(
+  source : Source,
+  program : @stage.Program,
+  limits : @parameter.DeclarationLimits,
+) -> Bool {
+  if source.program is Some(owner) &&
+    physical_equal(owner, program) &&
+    source.declaration_limits.max_parameters <= limits.max_parameters &&
+    source.declaration_limits.max_nodes <= limits.max_nodes &&
+    source.declaration_limits.max_depth <= limits.max_depth &&
+    source.declaration_limits.max_text_bytes <= limits.max_text_bytes {
+    true
+  } else {
+    false
   }
 }

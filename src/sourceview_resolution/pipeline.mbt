@@ -69,6 +69,20 @@ fn new_pipeline_preparation_work(
 }
 
 ///|
+/// Maximum NEW registration work on this same Resolved. The original work
+/// projection owns subtraction of the completed prefix; it is not recharged.
+pub fn pipeline_preparation_work_bound(
+  resolved : Resolved,
+  maximum : Int,
+) -> Int {
+  if maximum < 0 {
+    0
+  } else {
+    new_pipeline_preparation_work(resolved.work, maximum, 0)
+  }
+}
+
+///|
 // The original ordered prefix belongs to this constructor. Semantic execution
 // and its construction quotation borrow the same three costs, not a second
 // Catalogue/Source reader or a new work rule.

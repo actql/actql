@@ -16,6 +16,8 @@ pub fn check_object_keys(Array[String], Array[String], Array[String]) -> Result[
 
 pub fn collection_construction_extent(CollectionConstructionInventory) -> CollectionConstructionExtent?
 
+pub fn collection_construction_quotation_extent() -> CollectionConstructionExtent
+
 pub fn compose_collection_construction_inventories(Array[CollectionConstructionInventory]) -> CollectionConstructionInventory?
 
 pub fn int_work_observation_construction_extent() -> CollectionConstructionExtent

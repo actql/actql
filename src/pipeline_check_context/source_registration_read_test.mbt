@@ -205,7 +205,7 @@ test "original Source registration clearing retires only its own untransferred a
   )
   assert_eq(source_registration_initial_construction_extent(), {
     record_headers: 5L,
-    reference_slots: 14L,
+    reference_slots: 17L,
     scalar_words: 9L,
   })
 }
@@ -450,7 +450,7 @@ test "original registration pipeline construction uses only same held resolution
   assert_true(source_registration_pipeline_construction(read) is None)
   assert_eq(source_registration_initial_construction_extent(), {
     record_headers: 5L,
-    reference_slots: 14L,
+    reference_slots: 17L,
     scalar_words: 9L,
   })
 }
@@ -710,6 +710,7 @@ fn snapshot_emission_registration_read() -> SourceRegistrationRead {
 test "original Source forwards the same Local member emission through clear" {
   let read = snapshot_emission_registration_read()
   assert_true(source_registration_local_snapshot_emission(read) is None)
+  assert_true(source_registration_local_snapshot_work(read) is None)
   let mut observed : (Int, (Int, Int, Int)?)? = None
   let mut steps = 0
   while source_registration_phase(read) != RegistrationComplete {
@@ -729,9 +730,14 @@ test "original Source forwards the same Local member emission through clear" {
   assert_eq(original.0, 0)
   let (bytes, nodes, depth) = original.1.unwrap()
   assert_true(bytes > 0 && nodes > 0 && depth > 0)
+  let work = source_registration_local_snapshot_work(read)
+  assert_eq(work, Some(nodes + 1)) // Authored Stage name s.
   let _ = take_source_registration_result(read).unwrap().unwrap()
   clear_source_registration(read)
   assert_eq(source_registration_phase(read), RegistrationTransferred)
+  assert_true(
+    physical_equal(work, source_registration_local_snapshot_work(read)),
+  )
   assert_true(
     physical_equal(
       source_registration_local_snapshot_emission(read).unwrap(),

@@ -85,7 +85,7 @@ pub fn asof_search_limit_selection(AsOfSearchLimit) -> @pipeline_check_context.A
 
 pub fn asof_search_limit_source(AsOfSearchLimit) -> UnitOperationSource
 
-pub fn begin_parsed_source_registration(ParsedCheckRegistry) -> Result[ParsedSourceRegistration, ParsedSourceRegistrationIssue]
+pub fn begin_parsed_source_registration(ParsedCheckRegistry, @stage_parameters.Source) -> Result[ParsedSourceRegistration, ParsedSourceRegistrationIssue]
 
 pub fn bind_host_verified_request_value_policy(SourceExecution, @check_environment.SourceDataPolicy, Int, Int, Int, Int) -> HostRequestValuePolicyEvidence raise UnitBuildFailure
 
@@ -559,7 +559,11 @@ pub fn parsed_requests_retained_extent(ParsedRequestsInput) -> @check_environmen
 
 pub fn parsed_requests_semantic_work(ParsedRequestsInput) -> Int
 
+pub fn parsed_source_registration_entry_extent() -> @decode_shape.CollectionConstructionExtent
+
 pub fn parsed_source_registration_read(ParsedSourceRegistration) -> @pipeline_check_context.SourceRegistrationRead
+
+pub fn parsed_source_registration_retained_extent() -> @decode_shape.CollectionConstructionExtent
 
 pub fn parsed_values_construction_extent(ParsedValuesInput) -> @check_environment.RegistryConstructionExtent
 
@@ -1064,6 +1068,7 @@ pub suberror ParsedCatalogPreparationIssue {
 
 pub suberror ParsedSourceRegistrationIssue {
   RegistryUnavailable
+  SourceNotRetained
   RegistrationConstruction(LocalConstructionFailure)
   Pending
   Unavailable

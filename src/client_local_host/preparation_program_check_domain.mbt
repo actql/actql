@@ -34,6 +34,46 @@ priv enum ProgramCheckPreparationPhase {
   RequestsMetadataRetained
   RequestsPrepared
   RequestsRetained
+  SourceRegistrationQuoted
+  SourceRegistrationPrepared
+  SourceRegistrationRetained
+  SourceCollectionObservationFunded
+  SourceCollectionInspected
+  SourceCollectionMetadataRetained
+  SourceCollectionPrepared
+  SourceCollectionRetained
+  SourceCollectionFailed
+  SourceResolutionInitial
+  SourceResolutionObservationFunded
+  SourceResolutionInspected
+  SourceResolutionMetadataRetained
+  SourceResolutionPrepared
+  SourceResolutionRetained
+  SourceResolutionFailed
+  SourcePipelineInitial
+  SourcePipelineQuoted
+  SourcePipelinePrepared
+  SourcePipelineRetained
+  SourcePipelineFailed
+  SourceLocalEntryPrepared
+  SourceLocalEntryRetained
+  SourceLocalEntryFailed
+  SourceLocalIndexInitial
+  SourceLocalIndexObservationFunded
+  SourceLocalIndexInspected
+  SourceLocalIndexMetadataRetained
+  SourceLocalIndexPrepared
+  SourceLocalIndexRetained
+  SourceLocalIndexFailed
+  SourceLocalGroupsInitial
+  SourceLocalGroupsQuoted
+  SourceLocalGroupsPrepared
+  SourceLocalGroupsRetained
+  SourceLocalGroupsFailed
+  SourceLocalSnapshotInitial
+  SourceLocalSnapshotObservationFunded
+  SourceLocalSnapshotInspected
+  SourceLocalSnapshotMetadataRetained
   Transferred
   Failed
   Retired
@@ -69,6 +109,9 @@ struct ClientProgramCheckPreparation[I, P] {
   mut views_input : @checked.ParsedViewsInput?
   mut carriers_input : @checked.ParsedCarriersInput?
   mut requests_input : @checked.ParsedRequestsInput?
+  mut registration_source : @stages.Source?
+  mut source_registration : @checked.ParsedSourceRegistration?
+  mut source_body_quote : (Int64, Int64)?
   mut carriers_quote : (Int64, Int64)?
   mut requests_quote : (Int64, Int64)?
   mut requests_body_quote : (Int64, Int64)?
@@ -87,6 +130,7 @@ pub suberror ClientProgramCheckPreparationIssue {
   Capacity(@resources.PreparationCapacityIssue)
   Check(@checked.LocalConstructionFailure)
   Catalog(@checked.ParsedCatalogPreparationIssue)
+  SourceRegistration(@checked.ParsedSourceRegistrationIssue)
   Prelude(@checked.ParsedCheckPreludeIssue)
   Work(@resources.PreparationWorkIssue)
   ChangedInputs
@@ -154,6 +198,9 @@ pub fn[I, P] begin_program_check_preparation(
     views_input: None,
     carriers_input: None,
     requests_input: None,
+    registration_source: None,
+    source_registration: None,
+    source_body_quote: None,
     carriers_quote: None,
     requests_quote: None,
     requests_body_quote: None,
@@ -196,6 +243,9 @@ fn[I, P] transfer_program_check_input(
   owner.views_input = None
   owner.carriers_input = None
   owner.requests_input = None
+  owner.registration_source = None
+  owner.source_registration = None
+  owner.source_body_quote = None
   owner.carriers_quote = None
   owner.requests_quote = None
   owner.requests_body_quote = None
@@ -225,6 +275,11 @@ pub fn[I, P] clear_program_check_preparation(
   // The alias-drop helper marks Transferred for its actual take callers.
   // Clearing must preserve only a real handoff that preceded this helper.
   let transferred = owner.phase == Transferred
+  if !transferred && owner.source_registration is Some(original) {
+    @context.clear_source_registration(
+      @checked.parsed_source_registration_read(original),
+    )
+  }
   transfer_program_check_input(owner)
   if !transferred {
     owner.phase = Retired

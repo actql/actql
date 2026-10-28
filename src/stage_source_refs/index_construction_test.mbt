@@ -165,9 +165,9 @@ test "index geometry ignores opaque nested input text without NFC or data copies
     scalar_words: 92L,
   })
   assert_eq(quote.temporary, {
-    record_headers: 50L,
-    reference_slots: 102L,
-    scalar_words: 112L,
+    record_headers: 64L,
+    reference_slots: 109L,
+    scalar_words: 129L,
   })
   let (_, used) = observe_prepare(large, caps())
   assert_eq(used, { work: 5, text_bytes: 21, })

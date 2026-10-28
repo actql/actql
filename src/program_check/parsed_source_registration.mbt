@@ -16,6 +16,7 @@ pub struct ParsedSourceRegistration {
 ///|
 pub suberror ParsedSourceRegistrationIssue {
   RegistryUnavailable
+  SourceNotRetained
   RegistrationConstruction(LocalConstructionFailure)
   Pending
   Unavailable
@@ -25,10 +26,12 @@ pub suberror ParsedSourceRegistrationIssue {
 /// Only the completed original Catalog can enter. Consume that continuation
 /// BEFORE any constructor, retaining its exact Program, Catalog, limits and
 /// remaining budget. No fallback Catalog reader or replacement tuple is used.
-/// The caller backs Stage preparation, this holder and registration entrance
-/// before calling, then each selected read phase before advancing it.
+/// The caller already owns/backed this original Source, and backs this holder
+/// and registration entrance before calling. This entry never prepares missing
+/// declarations or copies Stages. Each selected read phase is backed separately.
 pub fn begin_parsed_source_registration(
   registry : ParsedCheckRegistry,
+  source : @stages.Source,
 ) -> Result[ParsedSourceRegistration, ParsedSourceRegistrationIssue] {
   if !registry.available {
     return Err(RegistryUnavailable)
@@ -47,12 +50,18 @@ pub fn begin_parsed_source_registration(
     compile_source_limits(original.limits),
     budget,
   )
-  let source = prepare_catalog_stage_source(
-    original.program,
-    limits,
-    original.source_preparation,
-  ) catch {
-    issue => return Err(RegistrationConstruction(Source(issue)))
+  if original.source_preparation is Some(selected) &&
+    !physical_equal(selected, source) {
+    return Err(SourceNotRetained)
+  }
+  guard @stages.reuse_prepared(source, original.program, {
+      max_parameters: limits.max_parameters,
+      max_nodes: limits.topology.max_nodes,
+      max_depth: limits.topology.max_depth,
+      max_text_bytes: limits.topology.max_text_bytes,
+    })
+    is Some(_) else {
+    return Err(SourceNotRetained)
   }
   let read = match
     @context.begin_source_registration(

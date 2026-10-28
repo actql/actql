@@ -148,7 +148,8 @@ let index_geometry_units : @shape.CollectionConstructionExtent = {
 /// conservatively co-counted, not assumed retired after an iteration. Keys,
 /// tree/usage/identifier backing stay with the original source owner; retained
 /// Slot Cursor wrappers are counted separately per possible entry.
-/// UTF admission/VM/quotation frames and the optional observer are separate.
+/// Original UTF8 admission controls are included from their scalar owner.
+/// VM/quotation frames and the optional observer remain separate.
 pub(all) struct IndexConstructionInventory {
   returned : @shape.CollectionConstructionExtent
   temporary : @shape.CollectionConstructionExtent
@@ -287,5 +288,24 @@ pub fn index_construction_inventory(
     is Some(temporary) else {
     return None
   }
+  let temporary = if g.object_views == 0 {
+    temporary
+  } else {
+    guard @shape.add_collection_construction_extents(
+        temporary, index_utf8_admission_units,
+      )
+      is Some(complete) else {
+      return None
+    }
+    complete
+  }
   Some({ returned, temporary, })
+}
+
+///|
+// Transport the scalar owner's immutable units once. No duplicate scalar
+// table, name-length multiplier or text rescan belongs to the Source index.
+let index_utf8_admission_units : @shape.CollectionConstructionExtent = {
+  let (record_headers, reference_slots, scalar_words) = @scalar.utf8_length_admission_construction_units()
+  { record_headers, reference_slots, scalar_words, }
 }

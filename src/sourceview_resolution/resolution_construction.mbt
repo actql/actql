@@ -61,11 +61,10 @@ pub fn resolution_construction_inventory(
   if !resolution_geometry_fits(g) {
     return None
   }
-  let remaining = if g.inherited_work > limits.max_work {
-    0
-  } else {
-    limits.max_work - g.inherited_work
-  }
+  let remaining = resolution_work_after_prefix(
+    g.inherited_work,
+    limits.max_work,
+  )
   let v = Int::min(g.candidate_views, remaining).to_int64()
   let n = if v == 0L {
     0L

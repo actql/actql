@@ -36,6 +36,15 @@ pub(all) enum PreparationWorkPhase {
   CatalogCarriersAdmission
   CatalogRequestsInspection
   CatalogRequestsAdmission
+  SourceCollectionInspection
+  SourceCollection
+  SourceResolutionInspection
+  SourceSelection
+  SourcePipelineRegistration
+  SourceLocalEntry
+  SourceLocalIndexInspection
+  SourceLocalIndex
+  SourceLocalGroups
   SemanticCheck
   LowerAndGraph
   ExecutionPlan
@@ -136,10 +145,19 @@ fn preparation_work_ordinal(phase : PreparationWorkPhase) -> Int {
     CatalogCarriersAdmission => 31
     CatalogRequestsInspection => 32
     CatalogRequestsAdmission => 33
-    SemanticCheck => 34
-    LowerAndGraph => 35
-    ExecutionPlan => 36
-    PublicationProof => 37
+    SourceCollectionInspection => 34
+    SourceCollection => 35
+    SourceResolutionInspection => 36
+    SourceSelection => 37
+    SourcePipelineRegistration => 38
+    SourceLocalEntry => 39
+    SourceLocalIndexInspection => 40
+    SourceLocalIndex => 41
+    SourceLocalGroups => 42
+    SemanticCheck => 43
+    LowerAndGraph => 44
+    ExecutionPlan => 45
+    PublicationProof => 46
   }
 }
 

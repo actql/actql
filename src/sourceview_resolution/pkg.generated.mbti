@@ -243,6 +243,10 @@ pub fn pipeline_preparation_construction(Resolved, Int) -> PipelinePreparationCo
 
 pub fn pipeline_preparation_observation_control_extent() -> @decode_shape.CollectionConstructionExtent
 
+pub fn pipeline_preparation_quotation_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn pipeline_preparation_work_bound(Resolved, Int) -> Int
+
 pub fn pipeline_request_at(PipelineRequests, Int) -> AcquisitionRequest?
 
 pub fn pipeline_requests_count(PipelineRequests) -> Int
@@ -347,7 +351,11 @@ pub fn resolution_construction_inspection_extent() -> @decode_shape.CollectionCo
 
 pub fn resolution_construction_inventory(ResolutionConstructionGeometry, Limits) -> ResolutionConstructionInventory?
 
+pub fn resolution_construction_quotation_extent() -> @decode_shape.CollectionConstructionExtent
+
 pub fn resolution_observation_control_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn resolution_work_bound(@sourceview_input.Inputs, Int) -> Int
 
 pub fn resolve(@sourceview_input.Inputs, @check_environment.SourceRequestContracts, Limits) -> Result[Resolved, Issue]
 

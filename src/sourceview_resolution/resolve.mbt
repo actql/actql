@@ -325,6 +325,26 @@ fn resolution_limits_invalid(limits : Limits) -> Bool {
 }
 
 ///|
+// Same original inherited-prefix convention used by construction and metadata.
+// This is the maximum NEW work, never another debit of completed collection.
+fn resolution_work_after_prefix(inherited : Int, maximum : Int) -> Int {
+  if inherited > maximum {
+    0
+  } else {
+    maximum - inherited
+  }
+}
+
+///|
+pub fn resolution_work_bound(inputs : @inputs.Inputs, maximum : Int) -> Int {
+  if maximum < 0 {
+    0
+  } else {
+    resolution_work_after_prefix(@inputs.work(inputs), maximum)
+  }
+}
+
+///|
 pub fn inputs(v : Resolved) -> @inputs.Inputs {
   v.owner.inputs
 }

@@ -15,15 +15,15 @@ let program_check_quote_controls : @execution.PreparationRepresentationUnits = {
 }
 
 ///|
-// Actual holder1H21R4W and immutable argument snapshot1H7R; twenty live Some
-// alternatives20H20R20W; four cached pair records4H8W; retained inventory1H9W;
+// Actual holder1H24R4W and immutable argument snapshot1H7R; twenty-three live Some
+// alternatives23H23R23W; five cached pair records5H10W; retained inventory1H9W;
 // original debit/Result2H1R3W and entry typed alternatives2H2R2W.
 // Borrowed Program/Source/Catalog/evidence backing is never copied into this
 // fixed packet. Input-sized metadata/binder and later domains grow separately.
 let program_check_driver_controls : @execution.PreparationRepresentationUnits = {
-  record_headers: 1L + 1L + 20L + 4L + 1L + 2L + 2L,
-  reference_slots: 21L + 7L + 20L + 1L + 2L,
-  scalar_words: 4L + 20L + 8L + 9L + 3L + 2L,
+  record_headers: 1L + 1L + 23L + 5L + 1L + 2L + 2L,
+  reference_slots: 24L + 7L + 23L + 1L + 2L,
+  scalar_words: 4L + 23L + 10L + 9L + 3L + 2L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }

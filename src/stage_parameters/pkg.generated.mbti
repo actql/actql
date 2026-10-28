@@ -62,6 +62,8 @@ pub fn program(Source) -> @stage_syntax.Program
 
 pub fn retain_completed_binding(Source, @parameter_binding.BindingReadInput) -> Result[Source, Issue]
 
+pub fn reuse_prepared(Source, @stage_syntax.Program, @parameter_binding.DeclarationLimits) -> Source?
+
 pub fn source(CollectedStage) -> Source
 
 pub fn source_binding_construction_inventory() -> SourceConstructionInventory

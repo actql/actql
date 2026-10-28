@@ -126,3 +126,33 @@ test "pipeline constructor keeps empty Stage groups without invented entries" {
   }
   assert_true(physical_equal(pipeline_resolution(registered), resolved))
 }
+
+///|
+test "pipeline work envelope excludes original inherited work on success and refusal" {
+  let resolved = pipeline_construction_fixture()
+  let inherited = work(resolved)
+  assert_eq(pipeline_preparation_work_bound(resolved, -1), 0)
+  for
+    (extra, expected_spent) in [
+      (-1, 0),
+      (0, 0),
+      (2, 0),
+      (3, 3),
+      (5, 3),
+      (6, 6),
+      (22, 17),
+      (23, 23),
+    ] {
+    let maximum = inherited + extra
+    let bound = pipeline_preparation_work_bound(resolved, maximum)
+    assert_eq(bound, Int::max(0, extra))
+    let (result, spent) = observe_prepare_pipeline_inputs(resolved, maximum)
+    assert_eq(spent, expected_spent)
+    assert_true(spent <= bound)
+    if extra == 23 {
+      assert_true(result is Ok(_))
+    } else {
+      assert_true(result is Err(WorkLimit))
+    }
+  }
+}

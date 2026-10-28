@@ -36,14 +36,14 @@ test "Local snapshot construction captures the same member geometry once before 
   clear_local_environment_preparation(read)
   assert_true(local_environment_snapshot_construction_geometry(read) is None)
   assert_eq(local_environment_snapshot_construction_inspection_extent(), {
-    record_headers: 8L,
-    reference_slots: 9L,
-    scalar_words: 12L,
+    record_headers: 9L,
+    reference_slots: 10L,
+    scalar_words: 15L,
   })
   assert_eq(local_environment_snapshot_construction_retained_extent(), {
-    record_headers: 5L,
-    reference_slots: 6L,
-    scalar_words: 8L,
+    record_headers: 6L,
+    reference_slots: 7L,
+    scalar_words: 11L,
   })
   assert_eq(@environment.member_instance_construction_extent(), {
     record_headers: 1L,
@@ -51,9 +51,9 @@ test "Local snapshot construction captures the same member geometry once before 
     scalar_words: 2L,
   })
   assert_eq(local_environment_snapshot_construction_metadata_extent(), {
-    record_headers: 4L,
-    reference_slots: 4L,
-    scalar_words: 6L,
+    record_headers: 5L,
+    reference_slots: 5L,
+    scalar_words: 9L,
   })
 }
 

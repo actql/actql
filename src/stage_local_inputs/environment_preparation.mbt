@@ -46,6 +46,7 @@ priv struct LocalIndexConstruction {
 priv struct LocalSnapshotConstruction {
   member_index : Int
   original_member : @environment.Member
+  limits : @snapshot.Limits
   geometry : (Int, Int, Int)?
 }
 
@@ -138,6 +139,31 @@ pub fn begin_local_environment_preparation(
     failed_at: None,
     state: ReadIndex,
   })
+}
+
+///|
+/// The SAME original entrance plus its newly charged work. All three early
+/// refusals precede the initial charge; they report actual zero charged work,
+/// not missing nested usage. No Index or snapshot constructor runs here.
+/// The ordinary result-only entrance allocates no additional observation pair.
+pub fn observe_begin_local_environment_preparation(
+  source : @stages.Source,
+  environment : @environment.WireEnvironment,
+  limits : Limits,
+  sourceviews? : @sourceviews.Inputs? = None,
+) -> (Result[LocalEnvironmentPreparation, PrepareEnvironmentIssue], Int) {
+  let result = begin_local_environment_preparation(
+    source,
+    environment,
+    limits,
+    sourceviews~,
+  )
+  let spent = match result {
+    Ok(read) => limits.max_work - read.work
+    Err(InvalidLimits) | Err(ForeignSourceViews) | Err(BudgetExceeded) => 0
+    Err(_) => abort("Local entrance cannot return a later constructor failure")
+  }
+  (result, spent)
 }
 
 ///|
@@ -248,6 +274,7 @@ pub fn observe_local_environment_snapshot_construction(
   read.snapshot_construction = Some({
     member_index: i,
     original_member,
+    limits: local_environment_snapshot_limits(read, original),
     geometry,
   })
   geometry
@@ -279,7 +306,8 @@ pub fn local_environment_snapshot_text_construction(
 
 ///|
 /// Member access controls plus Member1H2R2W, scalar tuple1H3W, its Some1H1R1W,
-/// captured record1H2R1W and its Some1H1R1W. No input-sized work container.
+/// captured record1H3R1W, its Some1H1R1W and SAME selected Limits1H3W.
+/// No input-sized work container or second selection. The body borrows Limits.
 pub fn local_environment_snapshot_construction_inspection_extent() -> @shape.CollectionConstructionExtent {
   @shape.add_collection_construction_extents(
     @environment.member_access_construction_extent(),
@@ -303,9 +331,9 @@ pub fn local_environment_snapshot_construction_metadata_extent() -> @shape.Colle
 
 ///|
 let local_snapshot_metadata_units : @shape.CollectionConstructionExtent = {
-  record_headers: 4L,
-  reference_slots: 4L,
-  scalar_words: 6L,
+  record_headers: 5L,
+  reference_slots: 5L,
+  scalar_words: 9L,
 }
 
 ///|
@@ -319,20 +347,34 @@ let local_snapshot_inspection_retained_units : @shape.CollectionConstructionExte
 /// inner Array is allocated up front, even if a later name charge refuses.
 /// At most count names enter the Map; no name/body rescan is needed to quote
 /// that bound. Source IDs stay borrowed, never copied or re-admitted here.
-/// Shared Map/Array growth rules expand these DATA quantities. Snapshot pushes,
-/// successor Stage storage, phase/error controls and quotation frames remain
-/// separate overlaps; this inventory does not grant or reserve capacity.
+/// Shared Map/Array growth rules expand these DATA quantities. With no members,
+/// this SAME step also allocates the empty successor Stage array. Include that
+/// original tail here; later snapshot pushes/Stage growth and failure/quotation
+/// controls remain separate. This inventory does not grant capacity.
 pub fn local_environment_groups_construction(
   read : LocalEnvironmentPreparation,
 ) -> @shape.CollectionConstructionInventory? {
   guard read.state is MakeGroups else { return None }
   let count = read.count.to_int64()
   Some({
-    // LocalStageGroups1H2R, stored Some1H1R1W, observed work Some1H2W.
-    records: 3L,
-    record_references: 3L,
-    record_words: 3L,
-    reference_arrays: 1L + count,
+    // Groups/Some/work are3H3R3W; the next phase adds1H1W.
+    // No members: successor Some adds1H1R1W and its empty Array below.
+    records: if read.members == 0 {
+      5L
+    } else {
+      4L
+    },
+    record_references: if read.members == 0 {
+      4L
+    } else {
+      3L
+    },
+    record_words: if read.members == 0 {
+      5L
+    } else {
+      4L
+    },
+    reference_arrays: (if read.members == 0 { 2L } else { 1L }) + count,
     reference_items: count,
     scalar_arrays: 0L,
     scalar_items: 0L,
@@ -522,15 +564,11 @@ pub fn advance_local_environment_preparation(
         read.nodes -= n
         read.work -= n
       } else {
-        let (result, emitted) = @snapshot.observe_read_member(entry, {
-          max_bytes: read.text,
-          max_nodes: if read.nodes < read.work {
-            read.nodes
-          } else {
-            read.work
-          },
-          max_depth: original.limits.max_depth,
-        })
+        let limits = match read.snapshot_construction {
+          Some(captured) => captured.limits
+          None => local_environment_snapshot_limits(read, original)
+        }
+        let (result, emitted) = @snapshot.observe_read_member(entry, limits)
         read.snapshot_emission = Some((i, emitted))
         let admitted = match result {
           Ok(value) => value
@@ -710,4 +748,45 @@ let local_environment_initial_units : @shape.CollectionConstructionExtent = {
   record_headers: 5L,
   reference_slots: 19L,
   scalar_words: 11L,
+}
+
+///|
+/// The success owner/arguments/phase survive; only its returned Ok is scratch.
+pub fn local_environment_preparation_retained_construction_extent() -> @shape.CollectionConstructionExtent {
+  local_environment_initial_retained_units
+}
+
+///|
+let local_environment_initial_retained_units : @shape.CollectionConstructionExtent = {
+  record_headers: local_environment_initial_units.record_headers - 1L,
+  reference_slots: local_environment_initial_units.reference_slots - 1L,
+  scalar_words: local_environment_initial_units.scalar_words - 1L,
+}
+
+///|
+pub fn local_environment_preparation_observation_extent() -> @shape.CollectionConstructionExtent {
+  @shape.int_work_result_pair_construction_extent()
+}
+
+///|
+// Original selector used both by the ordinary reader and the retained entry.
+// Construction has no callback or admission; later data is never substituted.
+fn local_environment_snapshot_limits(
+  read : LocalEnvironmentPreparation,
+  original : LocalEnvironmentArguments,
+) -> @snapshot.Limits {
+  {
+    max_bytes: read.text,
+    max_nodes: Int::min(read.nodes, read.work),
+    max_depth: original.limits.max_depth,
+  }
+}
+
+///|
+/// SAME selected limits associated with the captured original Member. None is
+/// unobserved; these DATA are neither permission nor full reader backing.
+pub fn local_environment_snapshot_construction_limits(
+  read : LocalEnvironmentPreparation,
+) -> @snapshot.Limits? {
+  read.snapshot_construction.map(captured => captured.limits)
 }

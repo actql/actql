@@ -1147,7 +1147,8 @@ Currentness, pending cleanup and consumed work stay with that same parent.
 ### Original Source registration continuation
 
 After the original Catalog reaches SourceRequestContracts, its parsed-check
-continuation can be consumed into `ParsedSourceRegistration`. The continuation
+continuation and the actual retained Parameter Source can enter
+`ParsedSourceRegistration`. The continuation
 keeps the same Program, Catalog, references, remaining semantic budget and
 selected Source limits. Its reader is the existing `SourceRegistrationRead`:
 collection, resolution, pipeline registration and nested Local preparation use
@@ -1163,9 +1164,177 @@ checker. An original registration failure is projected through the existing
 checker diagnostic boundary. The previous registry continuation stays consumed.
 
 This is a data continuation on the original outside parent's lifetime. The
-caller must back Stage preparation, continuation controls, borrowed frames and
-registration entrance before entry, each selected registration phase before
-advancement, and the full remaining Context/identity/closure overlap before
+caller must already back the retained Source/declarations and must back
+continuation controls, borrowed frames and registration entrance before entry,
+each selected registration phase before advancement, and the full remaining Context/identity/closure overlap before
 finishing. Semantic limits and completed Catalog accounting do not supply that
 backing. Dropping reader aliases does not acknowledge physical retirement, and
 this continuation does not introduce a Resource owner or a separate Plan.
+The staged registration entrance requires the actual completed Source. Its
+original Program and selected declaration limits are checked by the same
+`stage_parameters` reuse rule as ordinary preparation. An already attached
+Source must be the identical original. Missing or foreign correspondence is a
+construction-state refusal; it is not a language rejection and does not fall
+back to reading declarations or copying Stages. A caller without that Source
+must first complete its existing funded Parameter/Source path.
+
+`ClientProgramCheckPreparation` retains the selected Source across a failed
+same-parent grow, funds only the installed registration entrance, and stores the
+resulting original continuation. After return it can reconcile only that
+entrance's synchronous scratch. Its one-use take observes currentness through
+the existing Resource gate and transfers the original continuation; the request
+parent cannot abort a transferred child. Clearing an untransferred child clears
+only its original registration reader. Prior input/Source/Catalog dependencies,
+consumed work and physical cleanup remain separate obligations. The installed
+initial domain inventory includes the original Source/continuation fields and their
+actual retained Option carriers; no policy ceiling or fixed Values layout is
+used to fund the entrance. Later registration phases and the remaining Context
+still require their own complete backing before execution.
+
+The registration reader binds collection geometry to the same original Source
+and limits before collection. Observation runs once; later borrows reuse that
+completed geometry and its original work carrier. Quotation takes neither
+replacement geometry nor replacement limits. The geometry owner supplies both
+inspection and retained construction units, and the registration owner supplies
+its own cache wrappers. Its reader field is included in the entry's constructor
+and retained packets through the same owner APIs. Semantic collection remains
+the existing collector, with its own original charged-work result and refusal
+precedence; metadata observation does not collect, normalize or resolve inputs.
+Taking or clearing the reader drops its metadata aliases without granting a
+refund, acknowledging external release or reconstructing a continuation.
+
+Collection continues on that same capacity. Before observing its metadata, the
+controller adds both the original observer packet and the constructor quotation
+packet. The latter describes actual quotation objects and is not row capacity,
+policy headroom or an allowance inherited from a different layout. Only after
+that grow does the controller claim the distinct Source-collection-inspection
+work phase and retain its actual work. Reconciliation drops returned observation
+scratch while retaining geometry and the quotation packet.
+
+The body grow uses a quote derived from that original geometry and selected
+limits, retaining it across a failed grow. It then claims the separate original
+semantic-collection work phase and advances the unchanged reader exactly once.
+On success, returned Inputs and normalized text stay backed while returned body
+and quotation scratch retire. An original semantic refusal keeps its entire
+peak until its original result is transferred or cleared; it is not projected
+as a resource-limit failure. Clearing and typed output continuation preserve
+both completed work phases. Selection, Local, Context and completed Plan
+construction retain their own subsequent funding obligations.
+
+
+Resolution follows on the same read and capacity. The original resolver owns
+both the inherited-prefix work convention and the bounds from its retained
+Inputs and Catalog. The controller funds the original metadata and quotation
+packet before observation, preserves that geometry and quote across a failed
+body grow, and records only newly performed selection work. A semantic
+selection refusal retains its full peak and original typed issue; it does not
+repeat collection or substitute a generic resource refusal.
+
+Pipeline registration next borrows that same retained Resolved. Its original
+constructor quotes actual Stage groups and input occurrences in constant time;
+it does not reread names, resolve Sources or reconstruct the Catalog. The
+controller first funds the quotation frame, then the quoted bodies and original
+result/work frame. These are two allocation boundaries: an external current
+callback at the first grow can change the state before the second grow. Each
+boundary uses its existing single current check, with the controller held busy
+through both; no separate check-before-get is added. A failed second grow
+retains the same quote and cannot advance the read or consume pipeline work.
+
+After registration returns, only its new work is charged; completed collection
+and resolution remain inherited semantic facts rather than new debits. The
+successful original PipelineInputs stays backed while returned scratch is
+reconciled. Nested Local preparation remains pending and needs its own backing
+before advancement. Taking or clearing does not turn this intermediate
+registration into a checked Program, completed Plan or physical release.
+
+
+The nested Local entrance uses its existing constructor on the same retained
+Source, Environment, partition and remaining semantic limits. Its observer
+returns that constructor's actual result and initial charged work; early
+invalid-limit, foreign-partition and budget refusals occur before that charge.
+The ordinary result-only entrance still allocates no observation pair. The
+registration keeps this original work carrier even after take or clear.
+
+The parent funds the original Local entry, selected limits, observation and
+returned carriers before invoking it. Successful reconciliation retains the
+original child and only drops returned entrance scratch. Index, grouping,
+snapshot, declaration, reconciliation and assembly each remain pending until
+their own complete overlap is funded. Neither the existence of the Local child
+nor its entry-work observation proves completed Local preparation or physical
+retirement. A failed entry keeps its full peak and original typed refusal.
+
+
+Source Index construction includes the synchronous UTF8 name-admission
+controls supplied by their scalar owner. Those immutable quantities describe
+one call's scalar/result alternatives, not a byte buffer or an allocation count
+multiplied by name length. Source retains original names; neither the descriptor
+nor the Index quote scans, copies, normalizes or re-admits them. The semantic
+indexer still uses its original UTF8 budget and original failure precedence.
+Only a path that can enter a Stage adds these controls; early prefix refusal
+before any Stage preserves its prior quote. VM/call-stack supply, quotation and
+observer frames remain distinct obligations before the funded Index entrance.
+
+
+Local groups continue from the same completed Index. Their work envelope is
+the original Local reader's remaining work: Index work already has its own
+observation and must not be deducted a second time. The grouping step retains
+its actual partial name charge on failure, including an observed zero distinct
+from an unstarted step. It never substitutes a completed Index count.
+
+The grouping owner includes its original no-member successor array and phase
+in the same constructor inventory. With members, that array is still allocated
+only after snapshots; quoting it does not move its construction earlier. The
+controller funds quotation and body as separate current-checked grows on the
+original capacity, retains the same quote after a refusal, and consumes the
+existing grouping work observation once. Successful groups and all preceding
+Source/Index bodies remain backed; only returned quotation and driver scratch
+retire. A typed grouping failure retains its full peak and original issue.
+Snapshot, declaration, reconciliation, assembly and later checking still need
+their own funded continuations before this can produce a completed Plan.
+
+The shared collection expansion owns the fixed construction data of its own
+quotation. Domain quotations compose that original descriptor and their actual
+local controls; they do not reproduce the shared call-tree arithmetic. These
+logical constructor quantities are neither measured allocations nor physical
+backing or permission.
+
+
+Before a Local member is read, the same parent backs capture of its exact
+Environment Member, retained emission geometry and currently selected reader
+limits. The selected max-nodes remains the original minimum of remaining nodes
+and work; the text and depth limits retain their original owners. Repeated
+metadata access returns that original selection, and the existing reader
+borrows it instead of constructing another limits record. The ordinary path
+uses the same selector only at its original point after Connector classification.
+
+This capture does not invoke the Connector selector, emit, encode UTF8, parse,
+admit a schema or read a Snapshot. Successful metadata reconciliation retains
+the Member and limits; an attempted body failure preserves them until original
+take/clear. Only actual body completion can move to another member and select
+its newly remaining limits. A transferred registration keeps its backing and
+cannot be silently aborted by the old Request parent.
+
+The first member's metadata entrance alone is not full Snapshot funding.
+The existing text-emission extent ends at returned text. UTF8 storage, parsed
+nodes, typed/schema construction, identity verification, selector controls and
+held snapshots still require their original owners' complete overlap before
+body entry. Writer observations are not substituted for all of that work.
+Repeated-member work must retain one original allowance across those distinct
+funded boundaries; it cannot reissue a named phase or discard its consumed work.
+
+
+The Local Snapshot step separately exposes its original max-work debit. An
+observer invokes that same constructor once and reports the actual before/after
+remaining-work difference. Its unstarted state is None. A failed writer can
+perform bounded emission while the Local reader has not yet charged its
+node/name budget; Some(0) in that case is only a zero Local debit, never zero
+parser/schema/CPU work. Source forwards the same observation through take and
+clear without replacing earlier Index or group work.
+
+The intended complete Snapshot pass must quote the original members' held and
+temporary bodies before starting its one original named work phase. During
+that funded pass, successive actual Local debits can spend the same allowance.
+The existing prohibition on growing or shrinking backing while a work receipt
+is active remains intact; no new phase issuance, budget reset, nested Ledger
+or weaker resource gate is needed. Complete body quotation and the selected
+pass driver remain separate from this original observation boundary.

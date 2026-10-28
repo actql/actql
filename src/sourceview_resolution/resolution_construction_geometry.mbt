@@ -75,7 +75,10 @@ pub fn observe_resolution_construction_geometry(
       view_count <= limits.max_views &&
       inherited <= limits.max_work {
       scan.visits = 1L
-      let mut remaining = limits.max_work - inherited
+      let mut remaining = resolution_work_after_prefix(
+        inherited,
+        limits.max_work,
+      )
       let policies = @environment.value_contract_policies(
         @environment.source_view_shape_values(
           @environment.read_mode_shapes(
@@ -169,11 +172,7 @@ pub fn resolution_construction_inspection_bound(
     return 0L
   }
   let inherited = @inputs.work(inputs)
-  let remaining = if inherited > limits.max_work {
-    0
-  } else {
-    limits.max_work - inherited
-  }
+  let remaining = resolution_work_after_prefix(inherited, limits.max_work)
   2L + 6L * remaining.to_int64()
 }
 

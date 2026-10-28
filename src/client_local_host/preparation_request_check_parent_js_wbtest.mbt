@@ -8,14 +8,15 @@ let request_check_wire : String =
 fn request_check_source(
   parent : ClientRequestPreparation[Array[Int]],
   input : Array[Int],
+  text? : String = request_check_wire,
 ) -> ClientProgramJsonPreparation[Array[Int], Unit] raise {
   let source = prepare_request_program_json_preparation(
     parent,
     input,
-    request_check_wire,
+    text,
     @publication_host.client_standard_program_preparation_limits().checking.input,
   ).unwrap()
-  for _ in 0..<(request_check_wire.length() + 1) {
+  for _ in 0..<(text.length() + 1) {
     match advance_program_json_preparation(source, 64).unwrap() {
       @source.JsonSourceContinue(..) => ()
       @source.JsonSourceReady(_, ..) => break
@@ -67,11 +68,11 @@ test "request Check parent keeps the exact Source Program and later child on one
   let after = @resources.ledger_usage(parent.ledger)
   assert_eq(
     after.reserved_retention_bytes,
-    before.reserved_retention_bytes + 47592L,
+    before.reserved_retention_bytes + 47744L,
   )
   assert_eq(
     after.reserved_execution_bytes,
-    before.reserved_execution_bytes + 47592L,
+    before.reserved_execution_bytes + 47744L,
   )
   assert_true(
     prepare_request_program_check_preparation(
@@ -112,14 +113,14 @@ test "request Check parent failed grow retains its exact taken Program and origi
     let blocker = @resources.reserve_capacity(
       parent.ledger,
       if retention {
-        limits.retained_bytes - before.reserved_retention_bytes - 47592L + 1L
+        limits.retained_bytes - before.reserved_retention_bytes - 47744L + 1L
       } else {
         0L
       },
       if retention {
         0L
       } else {
-        limits.execution_bytes - before.reserved_execution_bytes - 47592L + 1L
+        limits.execution_bytes - before.reserved_execution_bytes - 47744L + 1L
       },
     ).unwrap()
     let held = @resources.ledger_usage(parent.ledger)

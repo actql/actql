@@ -304,6 +304,14 @@ pub fn[I] finish_program_snapshot(ClientProgramSnapshot[I]) -> Result[@run_publi
 
 pub fn[I] finish_program_validation(ClientProgramValidation[I]) -> Result[Unit, ClientProgramValidationIssue]
 
+pub fn[I, P] inspect_program_check_source_collection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] inspect_program_check_source_local_index(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] inspect_program_check_source_local_snapshot(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] inspect_program_check_source_resolution(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
 pub fn installed_capture_capacity_values(ClientInstalledCaptureCapacity) -> Array[Int64]
 
 pub fn installed_duckdb_capture_capacity(@host.CaptureConfiguration) -> ClientInstalledCaptureCapacity?
@@ -540,6 +548,20 @@ pub fn[I, P] prepare_program_check_registry(ClientProgramCheckPreparation[I, P])
 
 pub fn[I, P] prepare_program_check_requests(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
 
+pub fn[I, P] prepare_program_check_source_collection(ClientProgramCheckPreparation[I, P]) -> Result[@pipeline_check_context.SourceRegistrationPhase, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_source_local_entry(ClientProgramCheckPreparation[I, P]) -> Result[@pipeline_check_context.SourceRegistrationPhase, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_source_local_groups(ClientProgramCheckPreparation[I, P]) -> Result[@pipeline_check_context.SourceRegistrationPhase, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_source_local_index(ClientProgramCheckPreparation[I, P]) -> Result[@pipeline_check_context.SourceRegistrationPhase, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_source_pipeline(ClientProgramCheckPreparation[I, P]) -> Result[@pipeline_check_context.SourceRegistrationPhase, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_source_registration(ClientProgramCheckPreparation[I, P], @stage_parameters.Source) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] prepare_program_check_source_resolution(ClientProgramCheckPreparation[I, P]) -> Result[@pipeline_check_context.SourceRegistrationPhase, ClientProgramCheckPreparationIssue]
+
 pub fn[I, P] prepare_program_check_values(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] prepare_program_check_views(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
@@ -605,6 +627,28 @@ pub fn[I, P] reconcile_program_check_references(ClientProgramCheckPreparation[I,
 pub fn[I, P] reconcile_program_check_registry(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] reconcile_program_check_requests(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_collection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_collection_inspection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_local_entry(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_local_groups(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_local_index(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_local_index_inspection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_local_snapshot_inspection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_pipeline(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_registration(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_resolution(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_resolution_inspection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] reconcile_program_check_values(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
@@ -704,6 +748,8 @@ pub fn[I, P] take_program_check_input(ClientProgramCheckPreparation[I, P]) -> Re
 
 pub fn[I, P] take_program_check_registry(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
 
+pub fn[I, P] take_program_check_source_registration(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedSourceRegistration, ClientProgramCheckPreparationIssue]
+
 pub fn[I, P] take_program_json_preparation_input(ClientProgramJsonPreparation[I, P]) -> Result[@stage_syntax.ParsedProgramInput, ClientProgramJsonPreparationIssue]
 
 pub fn[I, P] take_program_json_preparation_program(ClientProgramJsonPreparation[I, P]) -> Result[@stage_syntax.Program, ClientProgramJsonPreparationIssue]
@@ -713,6 +759,7 @@ pub suberror ClientProgramCheckPreparationIssue {
   Capacity(@physical_resources.PreparationCapacityIssue)
   Check(@program_check.LocalConstructionFailure)
   Catalog(@program_check.ParsedCatalogPreparationIssue)
+  SourceRegistration(@program_check.ParsedSourceRegistrationIssue)
   Prelude(@program_check.ParsedCheckPreludeIssue)
   Work(@physical_resources.PreparationWorkIssue)
   ChangedInputs

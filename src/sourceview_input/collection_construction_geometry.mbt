@@ -242,10 +242,21 @@ pub fn collect_construction_inspection_bound(source : @stages.Source) -> Int64 {
 /// detached Cursor array is allocated by this metadata observation.
 pub fn collect_construction_inspection_extent() -> @shape.CollectionConstructionExtent {
   let field = @decode.indexed_field_construction_extent()
+  let geometry = collect_construction_geometry_extent()
   @shape.collection_construction_extent({
-    records: 2L + 8L * (field.record_headers + 1L) + 1L + 1L + 12L,
+    records: geometry.record_headers +
+    1L +
+    8L * (field.record_headers + 1L) +
+    1L +
+    1L +
+    12L,
     record_references: 8L * (field.reference_slots + 1L) + 12L,
-    record_words: 22L + 8L * (field.scalar_words + 1L) + 11L + 2L + 12L,
+    record_words: geometry.scalar_words +
+    1L +
+    8L * (field.scalar_words + 1L) +
+    11L +
+    2L +
+    12L,
     reference_arrays: 1L,
     reference_items: 3L,
     scalar_arrays: 0L,
@@ -253,4 +264,20 @@ pub fn collect_construction_inspection_extent() -> @shape.CollectionConstruction
     maps: 0L,
     map_entries: 0L,
   }).unwrap()
+}
+
+///|
+// Installed DATA; exposing this inventory does not allocate a new request
+// record. The input-dependent geometry itself remains a separately owned body.
+let collection_geometry_extent : @shape.CollectionConstructionExtent = {
+  record_headers: 1L,
+  reference_slots: 0L,
+  scalar_words: 21L,
+}
+
+///|
+/// SAME immutable constructor geometry: one record with twenty-one scalar
+/// quantities. No original Source/Cursor, normalized text or body is copied.
+pub fn collect_construction_geometry_extent() -> @shape.CollectionConstructionExtent {
+  collection_geometry_extent
 }

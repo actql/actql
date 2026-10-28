@@ -24,6 +24,8 @@ pub fn index_construction_inspection_extent() -> @decode_shape.CollectionConstru
 
 pub fn index_construction_inventory(IndexConstructionGeometry, Limits) -> IndexConstructionInventory?
 
+pub fn index_construction_quotation_extent() -> @decode_shape.CollectionConstructionExtent
+
 pub fn index_preparation_observation_control_extent() -> @decode_shape.CollectionConstructionExtent
 
 pub fn index_usage(Index) -> Usage
