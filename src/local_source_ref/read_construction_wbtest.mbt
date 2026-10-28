@@ -40,3 +40,12 @@ test "reference reader recipe follows actual text and preserves checked wide qua
   assert_eq(widest.retained_utf16_units, 4294967294L)
   assert_eq(widest.scratch_utf16_units, 107374182394L)
 }
+
+///|
+test "Reference inventory quotation has only fixed original constructor controls" {
+  assert_eq(reference_read_inventory_quotation_extent(), {
+    record_headers: 39L,
+    reference_slots: 8L,
+    scalar_words: 81L,
+  })
+}

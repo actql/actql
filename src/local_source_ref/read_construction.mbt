@@ -72,3 +72,23 @@ let reference_read_retained_units : @shape.CollectionConstructionExtent = {
   reference_slots: 3L,
   scalar_words: 0L,
 }
+
+///|
+/// Fixed constructor controls of the quantity recipe itself, not the Reference
+/// body it describes. NFC's record/Some/checked output3H1R7W, UTF8 tuple1H3W,
+/// collection input1H9W plus the SAME shared expansion controls, one input
+/// sum record1H3W, two checked expanded additions10H2R14W, and returned
+/// inventory/Some2H3R3W. No input-sized backing is built by this quotation.
+pub fn reference_read_inventory_quotation_extent() -> @shape.CollectionConstructionExtent {
+  reference_read_inventory_quote_controls
+}
+
+///|
+let reference_read_inventory_quote_controls : @shape.CollectionConstructionExtent = {
+  let expansion = @shape.collection_construction_quotation_extent()
+  {
+    record_headers: expansion.record_headers + 18L,
+    reference_slots: expansion.reference_slots + 6L,
+    scalar_words: expansion.scalar_words + 39L,
+  }
+}

@@ -28,6 +28,7 @@ test "Source collection phases preserve consumed history through the original ty
       SourceLocalIndexInspection,
       SourceLocalIndex,
       SourceLocalGroups,
+      SourceLocalSnapshotReferenceInspection,
     ] {
     let work = begin_preparation_phase_work64(prefix, input, phase, 7L).unwrap()
     spend_preparation_phase_work64(work, 3L).unwrap()
@@ -59,6 +60,7 @@ test "Source collection phases preserve consumed history through the original ty
       SourceLocalIndexInspection,
       SourceLocalIndex,
       SourceLocalGroups,
+      SourceLocalSnapshotReferenceInspection,
     ] {
     assert_true(
       begin_preparation_phase_work64(next, input, phase, 7L)

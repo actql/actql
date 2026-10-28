@@ -74,3 +74,13 @@ pub fn source_registration_local_snapshot_reference_construction(
     @local_inputs.local_environment_snapshot_reference_construction,
   )
 }
+
+///|
+pub fn source_registration_local_snapshot_reference_inspection_extent() -> @shape.CollectionConstructionExtent {
+  @local_inputs.local_environment_snapshot_reference_inspection_extent()
+}
+
+///|
+pub fn source_registration_local_snapshot_reference_retained_extent() -> @shape.CollectionConstructionExtent {
+  @local_inputs.local_environment_snapshot_reference_retained_extent()
+}

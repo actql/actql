@@ -310,6 +310,8 @@ pub fn[I, P] inspect_program_check_source_local_index(ClientProgramCheckPreparat
 
 pub fn[I, P] inspect_program_check_source_local_snapshot(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
+pub fn[I, P] inspect_program_check_source_local_snapshot_reference(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
 pub fn[I, P] inspect_program_check_source_resolution(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn installed_capture_capacity_values(ClientInstalledCaptureCapacity) -> Array[Int64]
@@ -641,6 +643,8 @@ pub fn[I, P] reconcile_program_check_source_local_index(ClientProgramCheckPrepar
 pub fn[I, P] reconcile_program_check_source_local_index_inspection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] reconcile_program_check_source_local_snapshot_inspection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+
+pub fn[I, P] reconcile_program_check_source_local_snapshot_reference(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] reconcile_program_check_source_pipeline(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
