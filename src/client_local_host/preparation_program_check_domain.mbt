@@ -102,7 +102,8 @@ priv enum ProgramCheckPreparationPhase {
   SourceTopologyEntryPrepared
   SourceTopologyEntryComplete
   SourceTopologyEntryFailed
-  SourceTopologyBodyInitial
+  SourceTopologyBodyInspectionInitial
+  SourceTopologyBodyQuoted
   SourceTopologyBodyReturned
   SourceTopologyBodyRetained
   SourceTopologyBodyFailed
@@ -152,7 +153,10 @@ struct ClientProgramCheckPreparation[I, P] {
   mut binding_quote : (Int64, Int64)?
   mut work : @resources.PreparationPhaseWork64?
   mut topology_work : @resources.PreparationPhaseWorkContinuation64?
-  mut topology_spent : Int64
+  // Last original read Usage observation, never another work allowance.
+  mut topology_observed_work : Int64
+  mut topology_quoted_phase : @stage_results.LocalProgramReadPhase
+  mut topology_quoted_stage : Int
   base_retained : Int64
   base_execution : Int64
   mut busy : Bool
@@ -244,7 +248,9 @@ pub fn[I, P] begin_program_check_preparation(
     binding_quote: None,
     work: None,
     topology_work: None,
-    topology_spent: 0L,
+    topology_observed_work: 0L,
+    topology_quoted_phase: @stage_results.LocalInputs,
+    topology_quoted_stage: 0,
     base_retained,
     base_execution,
     busy: false,
@@ -290,7 +296,9 @@ fn[I, P] transfer_program_check_input(
   owner.binding_quote = None
   owner.environment_scratch = None
   owner.topology_work = None
-  owner.topology_spent = 0L
+  owner.topology_observed_work = 0L
+  owner.topology_quoted_phase = @stage_results.LocalInputs
+  owner.topology_quoted_stage = 0
   owner.input = None
   owner.phase = Transferred
 }

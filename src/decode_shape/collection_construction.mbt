@@ -153,3 +153,55 @@ let collection_quote_controls : CollectionConstructionExtent = {
 pub fn collection_construction_quotation_extent() -> CollectionConstructionExtent {
   collection_quote_controls
 }
+
+///|
+/// Scale already-owned DATA units by an observed instance count. The shared
+/// arithmetic owner checks each multiplication; no domain price is introduced.
+pub fn scale_collection_construction_extent(
+  value : CollectionConstructionExtent,
+  count : Int64,
+) -> CollectionConstructionExtent? {
+  if count < 0L ||
+    value.record_headers < 0L ||
+    value.reference_slots < 0L ||
+    value.scalar_words < 0L {
+    return None
+  }
+  if count == 0L {
+    return Some({ record_headers: 0L, reference_slots: 0L, scalar_words: 0L, })
+  }
+  guard @counts.checked_nonnegative_add_product(0L, value.record_headers, count)
+    is Some(h) &&
+    @counts.checked_nonnegative_add_product(0L, value.reference_slots, count)
+    is Some(r) &&
+    @counts.checked_nonnegative_add_product(0L, value.scalar_words, count)
+    is Some(w) else {
+    return None
+  }
+  Some({ record_headers: h, reference_slots: r, scalar_words: w, })
+}
+
+///|
+/// Same checked extent sum for an owned finite recipe. This combines DATA;
+/// it does not select simultaneous lifetime, semantic acceptance or capacity.
+pub fn compose_collection_construction_extents(
+  values : Array[CollectionConstructionExtent],
+) -> CollectionConstructionExtent? {
+  let mut h = 0L
+  let mut r = 0L
+  let mut w = 0L
+  for value in values {
+    guard @counts.checked_nonnegative_add_product(h, value.record_headers, 1L)
+      is Some(next_h) &&
+      @counts.checked_nonnegative_add_product(r, value.reference_slots, 1L)
+      is Some(next_r) &&
+      @counts.checked_nonnegative_add_product(w, value.scalar_words, 1L)
+      is Some(next_w) else {
+      return None
+    }
+    h = next_h
+    r = next_r
+    w = next_w
+  }
+  Some({ record_headers: h, reference_slots: r, scalar_words: w, })
+}

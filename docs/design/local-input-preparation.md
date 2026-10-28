@@ -1633,3 +1633,21 @@ are shared. A failed nested constructor has no complete successful Usage:
 its original read, pending work and peak remain until the original cleanup.
 The work owner's retained-state inventory and the domain's retained input
 selection are separate from their temporary constructor frames.
+
+A constructor quote is bound to the original read phase and Stage position.
+The caller backs its fixed quotation frame before observing dimensions, then
+keeps that same quote across declined admission. A current callback may move or
+retire the read; each callback boundary therefore checks only the original
+phase/position association before the selected constructor can run. There is no
+second external current callback or repeated semantic inspection hidden in that
+association check.
+
+Result-import resolution borrows original producer/port/schema bodies; repeated
+imports retain their own references and wrappers, not duplicate producer data.
+Input registration similarly borrows reconciled Local and selected SourceView
+contracts. Temporary producer/name indexes and mapping arrays retire after their
+constructor returns. Reconciliation observes the original remaining Array/Map
+buffer capacities through their owning modules and the shared storage inventory,
+including spare capacity, rather than keeping construction-growth buffers or
+substituting semantic/policy maxima. These logical quantities do not describe
+opaque VM/GC backing or prove ordinary backend supply.

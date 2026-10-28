@@ -55,6 +55,8 @@ pub fn advance_client_serialization_prefix(ClientSerializationPrefix, Int) -> Re
 
 pub fn[I] advance_program_capture(ClientProgramCapture[I], Int) -> Result[(Bool, Int), ClientClosedValuesPreparationIssue]
 
+pub fn[I, P] advance_program_check_source_topology(ClientProgramCheckPreparation[I, P]) -> Result[@stage_results.LocalProgramReadPhase, ClientProgramCheckPreparationIssue]
+
 pub fn[I, P] advance_program_json_preparation(ClientProgramJsonPreparation[I, P], Int) -> Result[@source_value.JsonSourcePreflightPoll, ClientProgramJsonPreparationIssue]
 
 pub fn[I] advance_program_snapshot(ClientProgramSnapshot[I], Int) -> Result[(Bool, Int), ClientClosedValuesPreparationIssue]
@@ -573,8 +575,6 @@ pub fn[I, P] prepare_program_check_source_resolution(ClientProgramCheckPreparati
 
 pub fn[I, P] prepare_program_check_source_topology_entry(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
-pub fn[I, P] prepare_program_check_source_topology_locals(ClientProgramCheckPreparation[I, P]) -> Result[@stage_results.LocalProgramReadPhase, ClientProgramCheckPreparationIssue]
-
 pub fn[I, P] prepare_program_check_values(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] prepare_program_check_views(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.ParsedCheckRegistry, ClientProgramCheckPreparationIssue]
@@ -671,9 +671,9 @@ pub fn[I, P] reconcile_program_check_source_resolution(ClientProgramCheckPrepara
 
 pub fn[I, P] reconcile_program_check_source_resolution_inspection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
-pub fn[I, P] reconcile_program_check_source_topology_entry(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+pub fn[I, P] reconcile_program_check_source_topology(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
-pub fn[I, P] reconcile_program_check_source_topology_locals(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
+pub fn[I, P] reconcile_program_check_source_topology_entry(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] reconcile_program_check_values(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 

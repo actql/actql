@@ -319,6 +319,10 @@ pub fn local_program_read_remaining_work(LocalProgramRead) -> Int?
 
 pub fn local_program_read_stage_index(LocalProgramRead) -> Int?
 
+pub fn local_program_read_step_construction(LocalProgramRead) -> LocalProgramReadStepConstruction?
+
+pub fn local_program_read_step_retained_extent(LocalProgramRead, LocalProgramReadPhase) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn local_source_context_prefix(PreparedLocalSource) -> (Int, Int)
 
 pub fn local_source_operations(PreparedLocalSource) -> @stage_parameters.BoundOperations
@@ -966,6 +970,10 @@ pub(all) enum LocalProgramReadPhase {
   Failed
   Taken
   Cleared
+} derive(Eq, @debug.Debug)
+
+pub(all) struct LocalProgramReadStepConstruction {
+  peak : @decode_shape.CollectionConstructionExtent
 } derive(Eq, @debug.Debug)
 
 pub(all) struct LocalProgramUsage {

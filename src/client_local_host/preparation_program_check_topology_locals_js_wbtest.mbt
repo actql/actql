@@ -11,10 +11,7 @@ test "original reconciled-input constructor retains one returned work receipt on
     parent.capacity,
     input,
   ).unwrap()
-  assert_eq(
-    prepare_program_check_source_topology_locals(owner).unwrap(),
-    Imports,
-  )
+  assert_eq(advance_program_check_source_topology(owner).unwrap(), Imports)
   assert_true(owner.phase == SourceTopologyBodyReturned && owner.work is None)
   assert_true(
     physical_equal(
@@ -24,13 +21,13 @@ test "original reconciled-input constructor retains one returned work receipt on
   )
   assert_eq(@stage_results.local_program_read_stage_index(read), Some(0))
   assert_eq(@stage_results.local_program_read_owned_work(read), Some(2))
-  assert_eq(owner.topology_spent, 2L)
-  // Independent original constructor census:7H5R10W plus the existing driver,
-  // selected receipt and two metadata carriers. Live state8H11R4W +Usage1H3W.
-  assert_eq(owner.source_body_quote, Some((1328L, 288L)))
+  assert_eq(owner.topology_observed_work, 2L)
+  // The returned quotation frame8352 covers this first constructor too.
+  // After return only live state8H11R4W +original Usage1H3W remains288.
+  assert_eq(owner.source_body_quote, Some((8352L, 288L)))
   assert_eq(
     @resources.preparation_capacity_working_extents(parent.capacity, input),
-    Ok((before.0 + 1328L, before.1 + 1328L)),
+    Ok((before.0 + 8352L, before.1 + 8352L)),
   )
   let work = owner.topology_work.unwrap()
   assert_eq(
@@ -56,17 +53,34 @@ test "original reconciled-input constructor retains one returned work receipt on
     )
     is Err(WrongPhase),
   )
-  reconcile_program_check_source_topology_locals(owner).unwrap()
+  reconcile_program_check_source_topology(owner).unwrap()
   assert_true(owner.phase == SourceTopologyBodyRetained)
   assert_true(physical_equal(owner.topology_work.unwrap(), work))
   assert_eq(
     @resources.preparation_capacity_working_extents(parent.capacity, input),
     Ok((before.0 + 288L, before.1 + 288L)),
   )
-  assert_true(
-    prepare_program_check_source_topology_locals(owner) is Err(WrongPhase),
+  let maximum = @stage_results.local_program_read_remaining_work(read)
+    .unwrap()
+    .to_int64()
+  assert_eq(
+    advance_program_check_source_topology(owner).unwrap(),
+    InputRegistration,
   )
-  assert_eq(@stage_results.local_program_read_phase(read), Imports)
+  assert_true(physical_equal(owner.topology_work.unwrap(), work))
+  assert_eq(advance_program_check_source_topology(owner).unwrap(), Pipeline)
+  assert_true(physical_equal(owner.topology_work.unwrap(), work))
+  assert_eq(@stage_results.local_program_read_owned_work(read), Some(4))
+  assert_eq(owner.topology_observed_work, 4L)
+  reconcile_program_check_source_topology(owner).unwrap()
+  @resources.resume_preparation_phase_work_continuation64(work).unwrap()
+  assert_eq(
+    @resources.spend_preparation_phase_work_continuation64(work, maximum),
+    Err(WorkLimit),
+  )
+  @resources.return_preparation_phase_work_continuation64(work).unwrap()
+  assert_true(advance_program_check_source_topology(owner) is Err(WrongPhase))
+  assert_eq(@stage_results.local_program_read_phase(read), Pipeline)
   clear_program_check_preparation(owner).unwrap()
   assert_eq(
     @resources.finish_preparation_phase_work_continuation64(work),
@@ -107,7 +121,7 @@ test "reconciled-input one-short admission does not claim work or advance the or
         limits.retained_bytes -
         usage.held_bytes -
         usage.reserved_retention_bytes -
-        1328L +
+        8352L +
         1L
       } else {
         0L
@@ -115,10 +129,10 @@ test "reconciled-input one-short admission does not claim work or advance the or
       if retention {
         0L
       } else {
-        limits.execution_bytes - usage.reserved_execution_bytes - 1328L + 1L
+        limits.execution_bytes - usage.reserved_execution_bytes - 8352L + 1L
       },
     ).unwrap()
-    let refused = prepare_program_check_source_topology_locals(owner)
+    let refused = advance_program_check_source_topology(owner)
     assert_true(
       if retention {
         refused is Err(Capacity(Resource(RetentionLimit)))
@@ -127,17 +141,14 @@ test "reconciled-input one-short admission does not claim work or advance the or
       },
     )
     assert_true(
-      owner.phase == SourceTopologyBodyInitial && owner.topology_work is None,
+      owner.phase == SourceTopologyBodyInspectionInitial &&
+      owner.topology_work is None,
     )
-    let quote = owner.source_body_quote.unwrap()
-    assert_eq(quote, (1328L, 288L))
+    assert_true(owner.source_body_quote is None)
     assert_eq(@stage_results.local_program_read_phase(read), LocalInputs)
     @resources.settle_capacity(parent.ledger, blocker).unwrap()
-    assert_eq(
-      prepare_program_check_source_topology_locals(owner).unwrap(),
-      Imports,
-    )
-    assert_true(physical_equal(owner.source_body_quote.unwrap(), quote))
+    assert_eq(advance_program_check_source_topology(owner).unwrap(), Imports)
+    assert_eq(owner.source_body_quote.unwrap(), (8352L, 288L))
     clear_program_check_preparation(owner).unwrap()
     abort_request_preparation_after_cleanup(parent).unwrap()
   }
@@ -164,7 +175,7 @@ test "reconciled-input current reentry and stop cannot start or retire the origi
   let read = @context.sourceview_context_topology_read(context).unwrap()
   let flags = Ref(0)
   action.val = Some(() => {
-    if prepare_program_check_source_topology_locals(owner) is Err(WrongPhase) {
+    if advance_program_check_source_topology(owner) is Err(WrongPhase) {
       flags.val += 1
     }
     if clear_program_check_preparation(owner) is Err(WrongPhase) {
@@ -176,7 +187,7 @@ test "reconciled-input current reentry and stop cannot start or retire the origi
   })
   stop.val = true
   assert_true(
-    prepare_program_check_source_topology_locals(owner)
+    advance_program_check_source_topology(owner)
     is Err(Capacity(Resource(ClosedReservation))),
   )
   action.val = None
@@ -246,9 +257,7 @@ test "original resize current cannot move the read then make this driver execute
       moved.val += 1
     }
   })
-  assert_true(
-    prepare_program_check_source_topology_locals(owner) is Err(WrongPhase),
-  )
+  assert_true(advance_program_check_source_topology(owner) is Err(WrongPhase))
   action.val = None
   assert_eq(moved.val, 1)
   // The driver must stop before Imports, whose inventory was never selected.
@@ -256,4 +265,117 @@ test "original resize current cannot move the read then make this driver execute
   assert_true(owner.topology_work is None)
   clear_program_check_preparation(owner).unwrap()
   abort_request_preparation_after_cleanup(parent).unwrap()
+}
+
+///|
+test "returned quotation storage executes the same small constructor with one original current observation" {
+  let calls = Ref(0)
+  let (parent, owner, _) = context_entry_parent(0, current=() => {
+    calls.val += 1
+    true
+  })
+  prepare_program_check_source_context_input(owner).unwrap()
+  prepare_program_check_source_topology_entry(owner).unwrap()
+  reconcile_program_check_source_topology_entry(owner).unwrap()
+  calls.val = 0
+  assert_eq(advance_program_check_source_topology(owner).unwrap(), Imports)
+  assert_eq(calls.val, 1)
+  clear_program_check_preparation(owner).unwrap()
+  abort_request_preparation_after_cleanup(parent).unwrap()
+}
+
+///|
+test "a retained topology quote cannot be moved to a different original constructor" {
+  let (parent, owner, _) = context_entry_parent(0)
+  prepare_program_check_source_context_input(owner).unwrap()
+  prepare_program_check_source_topology_entry(owner).unwrap()
+  inspect_program_check_source_topology(owner).unwrap()
+  let quote = owner.source_body_quote.unwrap()
+  let context = @checked.parsed_source_context_input(
+      owner.source_registration.unwrap(),
+    )
+    .unwrap()
+    .unwrap()
+  let read = @context.sourceview_context_topology_read(context).unwrap()
+  assert_eq(owner.topology_quoted_phase, LocalInputs)
+  // Adversarial pure continuation movement after quotation; no IO or public
+  // execution is claimed. The caller must not reinterpret the cached quote.
+  assert_eq(@stage_results.advance_local_program_read(read), Imports)
+  assert_true(advance_program_check_source_topology(owner) is Err(WrongPhase))
+  assert_true(physical_equal(owner.source_body_quote.unwrap(), quote))
+  assert_true(owner.topology_work is None)
+  assert_eq(@stage_results.local_program_read_phase(read), Imports)
+  clear_program_check_preparation(owner).unwrap()
+  abort_request_preparation_after_cleanup(parent).unwrap()
+}
+
+///|
+test "128-input registration grows only missing backing and retains its original quote work and read after refusal" {
+  for retention in [true, false] {
+    let (parent, owner, _) = context_entry_parent(128)
+    prepare_program_check_source_context_input(owner).unwrap()
+    prepare_program_check_source_topology_entry(owner).unwrap()
+    assert_eq(advance_program_check_source_topology(owner).unwrap(), Imports)
+    assert_eq(
+      advance_program_check_source_topology(owner).unwrap(),
+      InputRegistration,
+    )
+    reconcile_program_check_source_topology(owner).unwrap()
+    let context = @checked.parsed_source_context_input(
+        owner.source_registration.unwrap(),
+      )
+      .unwrap()
+      .unwrap()
+    let read = @context.sourceview_context_topology_read(context).unwrap()
+    let work = owner.topology_work.unwrap()
+    let prior = @stage_results.local_program_read_owned_work(read).unwrap()
+    inspect_program_check_source_topology(owner).unwrap()
+    let quote = owner.source_body_quote.unwrap()
+    let additional = quote.0 - 8352L
+    assert_true(additional > 0L)
+    let usage = @resources.ledger_usage(parent.ledger)
+    let limits = @resources.ledger_limits(parent.ledger)
+    let blocker = @resources.reserve_capacity(
+      parent.ledger,
+      if retention {
+        limits.retained_bytes -
+        usage.held_bytes -
+        usage.reserved_retention_bytes -
+        additional +
+        1L
+      } else {
+        0L
+      },
+      if retention {
+        0L
+      } else {
+        limits.execution_bytes -
+        usage.reserved_execution_bytes -
+        additional +
+        1L
+      },
+    ).unwrap()
+    let refused = advance_program_check_source_topology(owner)
+    assert_true(
+      if retention {
+        refused is Err(Capacity(Resource(RetentionLimit)))
+      } else {
+        refused is Err(Capacity(Resource(ExecutionLimit)))
+      },
+    )
+    assert_true(owner.phase == SourceTopologyBodyQuoted)
+    assert_true(physical_equal(owner.source_body_quote.unwrap(), quote))
+    assert_true(physical_equal(owner.topology_work.unwrap(), work))
+    assert_eq(@stage_results.local_program_read_phase(read), InputRegistration)
+    assert_eq(@stage_results.local_program_read_owned_work(read), Some(prior))
+    @resources.settle_capacity(parent.ledger, blocker).unwrap()
+    assert_eq(advance_program_check_source_topology(owner).unwrap(), Pipeline)
+    assert_eq(
+      @stage_results.local_program_read_owned_work(read),
+      Some(prior + 128),
+    )
+    assert_true(physical_equal(owner.topology_work.unwrap(), work))
+    clear_program_check_preparation(owner).unwrap()
+    abort_request_preparation_after_cleanup(parent).unwrap()
+  }
 }
