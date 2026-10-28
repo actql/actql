@@ -12,13 +12,14 @@ import {runtimeOptionalField} from '../../../host-common/compiler-binding.genera
 import {AcquisitionOpenError} from '../../../host-common/acquisition-outcome.mjs';
 import {openLocalFileRoot} from '../site/root-filesystem.mjs';
 import {createOwnedScratch} from '../../../../scripts/owned-scratch.mjs';
+import {defaultFileMediaType as mime} from '../../../host-common/file-media-type.mjs';
 
 // Complete original Local installer statements with explicit Common/Account
 // ports and an actual retained native filesystem. This is not a Common
 // admission, public package, permission or end-to-end Content qualification.
 const moduleUrl=new URL('./installed-project-files.mjs',import.meta.url);
 const source=await readFile(moduleUrl,'utf8'),tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
-const selected=new Set(['fail','canonical','cid','positive','text','acknowledged','mime',
+const selected=new Set(['fail','canonical','cid','positive','text','acknowledged',
   'physicalReadChild','installPreparedProjectLocalFiles']);
 const statements=tree.body.flatMap(node=>{
   const value=node.type==='ExportNamedDeclaration'?node.declaration:node;
@@ -31,7 +32,7 @@ assert.equal(selected.size,0);
 const body=statements.join('\n').replaceAll('import.meta.url','moduleUrl');
 const factory=new Function('createHash','canonicalJson','checked','runtimeOptionalField','readFile','moduleUrl',
   'createInstalledRowSource','rowSourceCheckEnvironment','composeInstalledCheckEnvironment',
-  'retainInstalledHostInitializationFailure','AcquisitionOpenError','openLocalFileRoot',
+  'retainInstalledHostInitializationFailure','AcquisitionOpenError','openLocalFileRoot','mime',
   body+'\nreturn installPreparedProjectLocalFiles;');
 const canonical=value=>canonicalJson(value,{dataKeys:true});
 const cid=value=>'sha256:'+createHash('sha256').update(canonical(value)).digest('hex');
@@ -112,7 +113,7 @@ async function fixture({changedAfterFactory=false,failBegin=false,denied=false,s
   }};
   const install=factory(createHash,canonicalJson,checked,runtimeOptionalField,readFile,moduleUrl,
     async value=>{options=value;return{connectorBindings:[],admitsSource:()=>true};},
-    ()=>({wire:'{}'}),()=> '{}',async cause=>cause,AcquisitionOpenError,openLocalFileRoot);
+    ()=>({wire:'{}'}),()=> '{}',async cause=>cause,AcquisitionOpenError,openLocalFileRoot,mime);
   const nativeFilesystem=Object.fromEntries(Object.keys(native).map(name=>[name,native[name]]));
   nativeFilesystem.fileRootRead=(handle,offset,length)=>{
     nativeReads++;const value=Reflect.apply(native.fileRootRead,native,[handle,offset,length]);

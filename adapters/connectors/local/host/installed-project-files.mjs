@@ -12,6 +12,7 @@ import {retainInstalledHostInitializationFailure} from '../../../host-node/insta
 import {AcquisitionOpenError} from '../../../host-common/acquisition-outcome.mjs';
 import {openLocalFileRoot} from '../site/root-filesystem.mjs';
 import {localFileStoreDeclaration} from './local-file-store-declaration.mjs';
+import {defaultFileMediaType as mime} from '../../../host-common/file-media-type.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const canonical = value => canonicalJson(value, {dataKeys: true});
@@ -153,9 +154,6 @@ export async function prepareInstalledProjectLocalFiles(moon, project,
 
 const acknowledged = value => value !== null && typeof value === 'object' &&
   Object.getOwnPropertyDescriptor(value,'pending')?.value === false;
-const mime = path => ({txt:'text/plain',csv:'text/csv',json:'application/json',jsonl:'application/x-ndjson',
-  pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',xml:'application/xml'}[
-  path.split('.').at(-1).toLowerCase()] ?? 'application/octet-stream');
 
 function physicalReadChild({namespace,path,assertCurrent}) {
   let filesystem,reader,opening=false,attempted=false,stopping=false,closed=false,initialFailure;
