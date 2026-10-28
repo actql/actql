@@ -38,7 +38,7 @@ test "original core read retains one budget inputs and operation loop across sem
     "[{\"derive\":{\"next\":\"id + 1\"}},{\"select\":[\"next\"]}]",
   )
   let read = original_core_fixture(source)
-  assert_eq(pipeline_core_read_phase(read), Inputs)
+  assert_true(pipeline_core_read_phase(read) == Inputs)
   assert_eq(pipeline_core_read_owned_work(read), Some(1))
   guard read.state is Reading(original) else { abort("original core expected") }
   assert_true(physical_equal(original.source, source))
@@ -63,15 +63,15 @@ test "original core read retains one budget inputs and operation loop across sem
     ] {
     let before_phase = pipeline_core_read_phase(read)
     let before = pipeline_core_read_owned_work(read).unwrap()
-    assert_eq(pipeline_core_read_phase(read), before_phase)
+    assert_true(pipeline_core_read_phase(read) == before_phase)
     assert_eq(pipeline_core_read_owned_work(read), Some(before))
-    assert_eq(advance_pipeline_core_read(read), expected)
+    assert_true(advance_pipeline_core_read(read) == expected)
     assert_true(pipeline_core_read_owned_work(read).unwrap() >= before)
     assert_true(physical_equal(original.b, budget))
     assert_true(physical_equal(original.inputs, input_array))
     assert_true(physical_equal(original.bodies, bodies))
   }
-  assert_eq(advance_pipeline_core_read(read), Complete)
+  assert_true(advance_pipeline_core_read(read) == Complete)
   let actual_work = pipeline_core_read_owned_work(read).unwrap()
   let checked = take_pipeline_core_read(read).unwrap().unwrap()
   assert_eq(checked.usage.work, actual_work)
@@ -81,7 +81,7 @@ test "original core read retains one budget inputs and operation loop across sem
   assert_true(physical_equal(checked.inputs, input_array))
   assert_true(take_pipeline_core_read(read) is None)
   clear_pipeline_core_read(read)
-  assert_eq(advance_pipeline_core_read(read), Taken)
+  assert_true(advance_pipeline_core_read(read) == Taken)
 }
 
 ///|
@@ -89,10 +89,10 @@ test "original core typed selector failure remains original and clear stops ever
   let source = evidence_read_cursor("[]")
   let missing = evidence_read_cursor("\"missing\"")
   let read = original_core_fixture(source, from=Some(missing))
-  assert_eq(advance_pipeline_core_read(read), Parameters)
-  assert_eq(advance_pipeline_core_read(read), Failed)
+  assert_true(advance_pipeline_core_read(read) == Parameters)
+  assert_true(advance_pipeline_core_read(read) == Failed)
   assert_true(pipeline_core_read_owned_work(read) is None)
-  assert_eq(advance_pipeline_core_read(read), Failed)
+  assert_true(advance_pipeline_core_read(read) == Failed)
   guard take_pipeline_core_read(read) is Some(Err(issue)) else {
     abort("typed original issue expected")
   }
@@ -105,7 +105,7 @@ test "original core typed selector failure remains original and clear stops ever
     }
     assert_true(take_pipeline_core_read(read) is None)
     clear_pipeline_core_read(read)
-    assert_eq(advance_pipeline_core_read(read), Cleared)
+    assert_true(advance_pipeline_core_read(read) == Cleared)
     assert_true(pipeline_core_read_owned_work(read) is None)
   }
 }
