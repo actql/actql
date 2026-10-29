@@ -82,3 +82,14 @@ The fixture has explicit empty, one-page, two-page, provider-error, cursor-cycle
 and byte-limit DATA modes. Their existence is preparation, not executed
 runtime coverage. Multiple connections/current/cancel/cleanup and first-close
 facts must be recorded by the same installed Host conformance caller.
+
+## Source checks and platform scope
+
+The generic distribution command selects `preparation.test.mjs` only. Its
+six cases use synthetic package/digest and provider DATA without importing
+normal software or creating a Host, keys or TLS server. The separate
+`conformance.test.mjs` caller-mechanism cases currently require Darwin
+`/usr/sbin/lsof` for their same-process scoped descriptor observations; they
+are not registered in the Ubuntu distribution job. Those mechanism cases
+do not qualify the normal case or establish a portable descriptor observer.
+The prepared ordinary case retains that same explicit observation dependency.
