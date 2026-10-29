@@ -197,3 +197,51 @@ test('same standard reader preserves its original cancellation reason after deli
   assert.equal(sends,1);assert.equal(consumed,1);assert.equal(closed,1);
   assert.equal(reader.observe().cleanupConfirmed,true);assert.equal(factory.retire(),true);
 });
+
+
+test('native advanced constructor retains its actual late child through original stop settlement', async t => {
+  // Actual shared Host owner; Site/grant/child and stop acknowledgements are
+  // explicit component ports, not physical transport or normal funding.
+  const construction = deferred(), entered = deferred(), stop = deferred();
+  const getterFailure = new Error('same native constructor then getter');
+  const cancellation = new Error('same pending constructor cancellation');
+  let thenReads = 0, childReads = 0, childStops = 0, childRetires = 0;
+  let childStopped = false, childStopSettled = false, bindingCloses = 0;
+  Object.defineProperty(construction.promise, 'then', {get() {
+    thenReads++; throw getterFailure;
+  }});
+  const child = Object.freeze({read() {childReads++;assert.fail('invalid async constructor never starts its child');},
+    requestStop(reason) {
+      assert.equal(this, child);assert.equal(reason, cancellation);childStops++;
+      return stop.promise.then(() => {childStopped = true;childStopSettled = true;});
+    }, retire() {
+      assert.equal(this, child);childRetires++;
+      return childStopped && childStopSettled;
+    }, observe() {assert.equal(this, child);return {cleanupConfirmed:childStopped && childStopSettled};}});
+  t.after(() => {construction.resolve(child);stop.resolve();});
+  const raw = {}, credential = {}, site = Object.freeze({});
+  const originalSite = Object.freeze({site,callResource() {assert.fail('no physical call');},
+    referenceCurrent:()=>true,authorizationPurpose(value) {assert.equal(value,raw);return {kind:'read'};},
+    bindRunAcquisition(value) {assert.equal(value,raw);return Object.freeze({credential,
+      close() {bindingCloses++;return 'closed';}});}});
+  const factory = createInstalledCredentialSourceReader({capacity:{},originalSite,assertCurrent() {},
+    maxResponses:1,createReader() {entered.resolve();return construction.promise;}});
+  const reader = factory.prepare({originalAuthorization:raw,verifyRead() {},authorizationFor() {return {};}});
+  const outcome = reader.read().then(() => assert.fail('invalid constructor cannot succeed'),cause=>cause);
+  await entered.promise;
+  reader.requestStop(cancellation);
+  let retired;
+  assert.doesNotThrow(() => {retired = factory.retire();});
+  assert.equal(retired,false);assert.equal(reader.observe().cleanupConfirmed,false);
+  construction.resolve(child);
+  for (let index=0;index<8;index++) await Promise.resolve();
+  assert.equal(childStops,1);assert.equal(childReads,0);
+  assert.equal(reader.observe().cleanupConfirmed,false);
+  assert.equal(factory.retire(),false);
+  stop.resolve();
+  assert.equal(await outcome,getterFailure);
+  assert.equal(thenReads,1);assert.equal(childStops,1);assert.equal(childReads,0);
+  assert.equal(reader.observe().cleanupConfirmed,true);
+  assert.equal(factory.retire(),true);
+  assert.equal(bindingCloses,1);assert.equal(childRetires,1);
+});
