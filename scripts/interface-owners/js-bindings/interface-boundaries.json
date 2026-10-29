@@ -100244,12 +100244,13 @@
     {
       "module": "packages/run-host-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b9365510c3e60a79136911bd78a4c08dad863d64ff4f0f29cf6e16595539fb09",
+      "sha256": "ef38fb1c4879bb97f188b0ae0e5a558ee2c0fbbfdd07288480e6fb292debfb94",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitCapturedResultSnapshot",
         "admitCompletedSourceObservation",
+        "admitEffectPreviewIdentity",
         "admitEffectRunMaterials",
         "admitEnvironment",
         "admitProfileSelection",
@@ -100279,6 +100280,7 @@
         "compiledPlanCid",
         "describeCommittedResult",
         "effectExecutionShape",
+        "effectPreviewIdentityCid",
         "effectResultDefinitions",
         "effectResultSchema",
         "effectReviewCheckpointBinding",
@@ -100306,6 +100308,7 @@
         "issueEffectRunDefinition",
         "issueEffectRunMaterials",
         "issueEffectSourceDispatch",
+        "issueEffectfulFinalRunReceipt",
         "issuePreparedEffectRunMaterials",
         "issuePublicIndexEntry",
         "issuePublicationAttempt",
@@ -100407,6 +100410,7 @@
         "taskResultNames",
         "taskResultSchema",
         "validateEffectFreePublicationCommit",
+        "validateEffectfulPublicationCommit",
         "validatePublicationChain",
         "validatePublicationRecordTransition",
         "validateRetainedInputPlan",
@@ -100448,6 +100452,16 @@
           "name": "admitCompletedSourceObservation/admitCompletedSourceObservation",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitEffectPreviewIdentity",
+          "parameters": [
+            "wire",
+            "expectedRunIdentityCid",
+            "expectedAuthoringContextCid",
+            "limits"
           ],
           "async": false
         },
@@ -100902,10 +100916,26 @@
           "async": false
         },
         {
+          "name": "effectPreviewIdentityCid",
+          "parameters": [
+            "preview"
+          ],
+          "async": false
+        },
+        {
           "name": "effectProjectionArray",
           "parameters": [
             "value",
             "maximum"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectReceiptWires",
+          "parameters": [
+            "preview",
+            "setReceiptWire",
+            "memberReceiptWires"
           ],
           "async": false
         },
@@ -101381,6 +101411,19 @@
           "name": "issueEffectFreeRunReceipt/issueEffectFreeRunReceipt#3",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "issueEffectfulFinalRunReceipt",
+          "parameters": [
+            "runDefinition",
+            "computationReceipt",
+            "capturedRun",
+            "preview",
+            "setReceiptWire",
+            "memberReceiptWires",
+            "limits"
           ],
           "async": false
         },
@@ -103469,6 +103512,17 @@
         },
         {
           "name": "validateEffectFreePublicationCommit",
+          "parameters": [
+            "evidence",
+            "request",
+            "attempt",
+            "indexEntry",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "validateEffectfulPublicationCommit",
           "parameters": [
             "evidence",
             "request",
@@ -124426,6 +124480,794 @@
               {
                 "path": "packages/run-host-core/original-effect-materials.test.mjs",
                 "anchor": "live package material binding refuses copied and foreign original tuples"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "admitEffectPreviewIdentity"
+          ],
+          "exports": [
+            "admitEffectPreviewIdentity"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "admitEffectPreviewIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "admitEffectPreviewIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "admitEffectPreviewIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "admitEffectPreviewIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "admitEffectPreviewIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "admitEffectPreviewIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "admitEffectPreviewIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "admitEffectPreviewIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "admitEffectPreviewIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "admitEffectPreviewIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "packages/run-host-core/effect-publication.test.mjs",
+                "anchor": "test('publication forwarding includes every Result dependency and exact commit tuple'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "effectReceiptWires"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReceiptWires"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReceiptWires"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReceiptWires"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReceiptWires"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReceiptWires"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReceiptWires"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReceiptWires"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReceiptWires"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReceiptWires"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReceiptWires"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "packages/run-host-core/effect-publication.test.mjs",
+                "anchor": "test('publication forwarding includes every Result dependency and exact commit tuple'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "issueEffectfulFinalRunReceipt"
+          ],
+          "exports": [
+            "issueEffectfulFinalRunReceipt"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "issueEffectfulFinalRunReceipt"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "issueEffectfulFinalRunReceipt"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "issueEffectfulFinalRunReceipt"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "issueEffectfulFinalRunReceipt"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "issueEffectfulFinalRunReceipt"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "issueEffectfulFinalRunReceipt"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "issueEffectfulFinalRunReceipt"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "issueEffectfulFinalRunReceipt"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "issueEffectfulFinalRunReceipt"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "issueEffectfulFinalRunReceipt"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "packages/run-host-core/effect-publication.test.mjs",
+                "anchor": "test('publication forwarding includes every Result dependency and exact commit tuple'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "validateEffectfulPublicationCommit"
+          ],
+          "exports": [
+            "validateEffectfulPublicationCommit"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "validateEffectfulPublicationCommit"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "validateEffectfulPublicationCommit"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "validateEffectfulPublicationCommit"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "validateEffectfulPublicationCommit"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "validateEffectfulPublicationCommit"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "validateEffectfulPublicationCommit"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "validateEffectfulPublicationCommit"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "validateEffectfulPublicationCommit"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "validateEffectfulPublicationCommit"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "validateEffectfulPublicationCommit"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "packages/run-host-core/effect-publication.test.mjs",
+                "anchor": "test('publication forwarding includes every Result dependency and exact commit tuple'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "effectPreviewIdentityCid"
+          ],
+          "exports": [
+            "effectPreviewIdentityCid"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectPreviewIdentityCid"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectPreviewIdentityCid"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectPreviewIdentityCid"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectPreviewIdentityCid"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectPreviewIdentityCid"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectPreviewIdentityCid"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectPreviewIdentityCid"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectPreviewIdentityCid"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectPreviewIdentityCid"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectPreviewIdentityCid"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "packages/run-host-core/effect-publication.test.mjs",
+                "anchor": "test('publication forwarding includes every Result dependency and exact commit tuple'"
               }
             ]
           }
