@@ -41,6 +41,7 @@ struct SourceViewCarrier {
 
 ///|
 struct CarrierSchemas {
+  preparation_max_fields : Int
   modes : SourceReadModes
   entries : Array[CarrierSchema]
   by_cid : Map[String, CarrierSchema]
@@ -362,6 +363,7 @@ fn read_carrier_schemas(
 ) -> Result[CarrierSchemas, CarrierSchemaIssue] {
   let references = modes.shapes.values.policies.references
   let entries = []
+  let mut preparation_max_fields = 0
   let by_cid : Map[String, CarrierSchema] = Map([])
   let views : Map[Int, SourceViewCarrier] = Map([])
   let key_facts : Map[String, RelationKeyFacts] = Map([])
@@ -421,6 +423,11 @@ fn read_carrier_schemas(
         limits.max_work - meter.work,
         meter,
       )
+      let field_bound = match @carrier.relation_rows(carrier) {
+        Some(rows) => @carrier.field_count(rows)
+        None => n
+      }
+      preparation_max_fields = Int::max(preparation_max_fields, field_bound)
       let schema = { envelope, carrier, body_cid, }
       entries.push(schema)
       meter.schemas += 1
@@ -489,6 +496,7 @@ fn read_carrier_schemas(
       }
     }
     Ok({
+      preparation_max_fields,
       modes,
       entries,
       by_cid,

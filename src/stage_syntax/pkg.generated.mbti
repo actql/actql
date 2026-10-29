@@ -135,6 +135,8 @@ pub fn program_json_input_control_extent() -> ProgramConstructorControlExtent
 
 pub fn program_parameter_names(Program) -> Array[String]
 
+pub fn program_preparation_data(Program) -> ProgramPreparationData
+
 pub fn program_representation_extent(Program, Int) -> ProgramRepresentationExtent?
 
 pub fn program_usage(Program) -> ProgramUsage
@@ -315,6 +317,16 @@ pub(all) enum ProgramJsonInputIssue {
   Preflight(@source_value.JsonSourcePreflightIssue)
   Parser(@source_value.JsonParseControlIssue)
   Syntax(SyntaxError)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ProgramPreparationData {
+  operations : Int
+  results : Int
+  external_inputs : Int
+  initial_fields : Int
+  possible_growth : Int
+  projected_fields : Int
+  max_label_utf16 : Int
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ProgramRepresentationExtent {

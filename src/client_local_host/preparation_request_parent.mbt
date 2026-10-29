@@ -6,6 +6,11 @@ priv enum ClientRequestPreparationPhase {
   ProgramJsonFailed
   ProgramCheck
   ProgramCheckFailed
+  ProgramCompiled
+  ProgramPlanQuoted
+  ProgramPlanReserved
+  ProgramBodyReady
+  ProgramBodyFailed
   Selected
   Retiring
   Closed
@@ -26,6 +31,16 @@ struct ClientRequestPreparation[I] {
   mut program_json : ClientProgramJsonPreparation[I, Unit]?
   mut held_program : @syntax.Program?
   mut program_check : ClientProgramCheckPreparation[I, Unit]?
+  // SAME reservation continued to its actual final body type; no second owner.
+  mut program_capacity : @resources.PreparationCapacity[
+    I,
+    @publication_host.PreparedClientProgram,
+  ]?
+  mut compiled_program : @publication_host.PreparedClientProgram?
+  mut program_data : @checked.ParsedCheckDataEstimate?
+  mut program_plan_quote : (Int64, Int64)?
+  mut program_source_free : ClientInstalledManagedSourceFreePreparation?
+  mut program_body_attempted : Bool
   mut phase : ClientRequestPreparationPhase
 }
 
@@ -210,6 +225,12 @@ pub fn[I] begin_request_preparation(
     program_json: None,
     held_program: None,
     program_check: None,
+    program_capacity: None,
+    compiled_program: None,
+    program_data: None,
+    program_plan_quote: None,
+    program_source_free: None,
+    program_body_attempted: false,
     phase: Open,
   })
 }
@@ -405,7 +426,11 @@ pub fn[I] abort_request_preparation_after_cleanup(
     // Only our own retained Program/later-controller transition can clear the
     // Source transfer. Direct index/Program take has no such registered link.
     guard owner.held_program is Some(_) &&
-      (owner.phase == ProgramCheck || owner.phase == ProgramCheckFailed) else {
+      (
+        owner.phase == ProgramCheck ||
+        owner.phase == ProgramCheckFailed ||
+        owner.program_capacity is Some(_)
+      ) else {
       return Err(WrongPhase)
     }
   }
@@ -436,13 +461,30 @@ pub fn[I] abort_request_preparation_after_cleanup(
   // Both registered controllers have relinquished only their own aliases.
   // This caller is explicitly after its borrowed arguments/returned frames.
   owner.held_program = None
+  owner.compiled_program = None
+  owner.program_data = None
+  owner.program_plan_quote = None
+  owner.program_source_free = None
   let retiring = owner.phase == Retiring
   owner.phase = Retiring
-  let stopped = if retiring {
-    @resources.retire_preparation_capacity(owner.capacity)
-  } else {
-    guard owner.input is Some(input) else { return Err(ForeignOriginal) }
-    @resources.abort_preparation_capacity_after_cleanup(owner.capacity, input)
+  let stopped = match owner.program_capacity {
+    Some(capacity) =>
+      if retiring || owner.program_body_attempted {
+        @resources.retire_preparation_capacity(capacity)
+      } else {
+        guard owner.input is Some(input) else { return Err(ForeignOriginal) }
+        @resources.abort_preparation_capacity_after_cleanup(capacity, input)
+      }
+    None =>
+      if retiring {
+        @resources.retire_preparation_capacity(owner.capacity)
+      } else {
+        guard owner.input is Some(input) else { return Err(ForeignOriginal) }
+        @resources.abort_preparation_capacity_after_cleanup(
+          owner.capacity,
+          input,
+        )
+      }
   }
   match stopped {
     Err(issue) => return Err(Capacity(issue))
@@ -452,6 +494,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   match @resources.cleanup_node_preparation_admission(owner.initial) {
     Err(issue) => Err(Initial(issue))
     Ok(_) => {
+      owner.program_capacity = None
       owner.phase = Closed
       Ok(())
     }

@@ -34,6 +34,12 @@ priv enum ProgramCheckPreparationPhase {
   RequestsMetadataRetained
   RequestsPrepared
   RequestsRetained
+  SemanticCheckQuoted
+  SemanticCheckComplete
+  SemanticCheckRejected
+  CompilationQuoted
+  CompilationComplete
+  CompilationFailed
   SourceRegistrationQuoted
   SourceRegistrationPrepared
   SourceRegistrationRetained
@@ -148,6 +154,14 @@ struct ClientProgramCheckPreparation[I, P] {
   mut carriers_quote : (Int64, Int64)?
   mut requests_quote : (Int64, Int64)?
   mut requests_body_quote : (Int64, Int64)?
+  mut check_data : @checked.ParsedCheckDataEstimate?
+  mut check_quote : (Int64, Int64)?
+  mut check_outcome : @checked.CheckOutcome?
+  mut check_work_complete : Bool
+  mut compilation_limits : @publication_host.ClientProgramPreparationLimits?
+  mut compilation_quote : (Int64, Int64)?
+  mut compiled_program : @publication_host.PreparedClientProgram?
+  mut compilation_known_work : Int64
   mut environment_scratch : Int64?
   mut binding_inventory : @shape.CollectionConstructionInventory?
   mut binding_quote : (Int64, Int64)?
@@ -173,6 +187,7 @@ pub suberror ClientProgramCheckPreparationIssue {
   SourceRegistration(@checked.ParsedSourceRegistrationIssue)
   TopologyEntry(@context.SourceViewContextIssue)
   Prelude(@checked.ParsedCheckPreludeIssue)
+  Compilation(@publication_host.ClientProgramPreparationIssue)
   Work(@resources.PreparationWorkIssue)
   ChangedInputs
   WrongPhase
@@ -245,6 +260,14 @@ pub fn[I, P] begin_program_check_preparation(
     carriers_quote: None,
     requests_quote: None,
     requests_body_quote: None,
+    check_data: None,
+    check_quote: None,
+    check_outcome: None,
+    check_work_complete: false,
+    compilation_limits: None,
+    compilation_quote: None,
+    compiled_program: None,
+    compilation_known_work: 0L,
     environment_scratch: None,
     binding_inventory: None,
     binding_quote: None,
@@ -296,6 +319,14 @@ fn[I, P] transfer_program_check_input(
   owner.carriers_quote = None
   owner.requests_quote = None
   owner.requests_body_quote = None
+  owner.check_data = None
+  owner.check_quote = None
+  owner.check_outcome = None
+  owner.check_work_complete = false
+  owner.compilation_limits = None
+  owner.compilation_quote = None
+  owner.compiled_program = None
+  owner.compilation_known_work = 0L
   owner.binding_inventory = None
   owner.binding_quote = None
   owner.environment_scratch = None

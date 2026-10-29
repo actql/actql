@@ -28,6 +28,10 @@ pub fn admit_raw_json(
   let mut remaining_text = limits.max_total_string_bytes
   let mut deepest = 0
   let mut largest_string = 0
+  let mut fields_count = 0
+  let mut texts = 0
+  let mut max_key = 0
+  let mut total_utf16 = 0L
   while work.length() > 0 {
     let task = work.pop().unwrap()
     match task {
@@ -54,6 +58,8 @@ pub fn admit_raw_json(
             match text_charge(text, limits, remaining_text) {
               Ok(size) => {
                 remaining_text -= size
+                texts += 1
+                total_utf16 += text.length().to_int64()
                 largest_string = Int::max(largest_string, size)
               }
               Err(kind) => return Err(at(tree, parent, edge, span, kind))
@@ -110,6 +116,9 @@ pub fn admit_raw_json(
           match text_charge(key, limits, remaining_text) {
             Ok(size) => {
               remaining_text -= size
+              fields_count += 1
+              max_key = Int::max(max_key, key.length())
+              total_utf16 += key.length().to_int64()
               largest_string = Int::max(largest_string, size)
             }
             Err(kind) => return Err(at(tree, parent, edge, span, kind))
@@ -125,6 +134,12 @@ pub fn admit_raw_json(
   Ok({
     tree,
     index: 0,
+    preparation: {
+      fields: fields_count,
+      texts,
+      max_key_utf16: max_key,
+      total_utf16,
+    },
     usage: {
       nodes: tree.length(),
       depth: deepest,
@@ -159,6 +174,8 @@ pub fn admit_raw_scalar_column(
   tree.push({ value: ArrayValue(children), span, parent: -1, edge: Root, })
   let mut remaining_text = limits.max_total_string_bytes
   let mut largest_string = 0
+  let mut texts = 0
+  let mut total_utf16 = 0L
   for index = 0; index < values.length(); index = index + 1 {
     let value : OwnedValue = match values[index] {
       Null => Null
@@ -170,6 +187,8 @@ pub fn admit_raw_scalar_column(
           Err(kind) => return Err(at(tree, 0, Element(index), span, kind))
         }
         remaining_text -= size
+        texts += 1
+        total_utf16 += text.length().to_int64()
         largest_string = Int::max(largest_string, size)
         Text(text)
       }
@@ -181,6 +200,7 @@ pub fn admit_raw_scalar_column(
   Ok({
     tree,
     index: 0,
+    preparation: { fields: 0, texts, max_key_utf16: 0, total_utf16, },
     usage: {
       nodes: values.length() + 1,
       depth: 1,

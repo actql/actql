@@ -1593,6 +1593,7 @@ fn prepare_client_stage_owners(
   limits : @lower.Limits,
   max_parameters~ : Int,
   max_parameter_name_bytes~ : Int,
+  lowering_work_out? : Ref[Int64]? = None,
 ) -> Result[Array[@lower.BoundPrepared], ClientStageOwnerIssue] {
   let identity = @checked.source_identity(checked)
   let selected = @checked.selected_expression_profiles(checked)
@@ -1605,6 +1606,9 @@ fn prepare_client_stage_owners(
     let preparation = match @lower.prepare(pipeline, limits) {
       Ok(value) => value
       Err(issue) => return Err(Lowering(issue))
+    }
+    if lowering_work_out is Some(observed) {
+      observed.val += @lower.usage(preparation).work.to_int64()
     }
     guard @context.program_identity_stage_at(identity, stage) is Some(source) else {
       return Err(MissingStageIdentity(stage))
@@ -1726,6 +1730,51 @@ pub fn prepare_checked_effect_free_client_program(
   max_tasks~ : Int,
   max_graph_work~ : Int,
 ) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
+  prepare_checked_effect_free_client_program_owned(
+    checked,
+    lowering,
+    max_parameters~,
+    max_parameter_name_bytes~,
+    max_tasks~,
+    max_graph_work~,
+  )
+}
+
+///|
+/// The SAME compiler, with work of each completed original lowering pass.
+/// This is a known prefix, not complete binding/Graph or late-failure Usage.
+/// No parser, checker, lowering pass or Plan is repeated to obtain it.
+pub fn observe_prepare_checked_effect_free_client_program(
+  checked : @checked.CheckedProgram,
+  lowering : @lower.Limits,
+  max_parameters~ : Int,
+  max_parameter_name_bytes~ : Int,
+  max_tasks~ : Int,
+  max_graph_work~ : Int,
+) -> (Result[PreparedClientProgram, ClientProgramPreparationIssue], Int64) {
+  let work = Ref(0L)
+  let result = prepare_checked_effect_free_client_program_owned(
+    checked,
+    lowering,
+    max_parameters~,
+    max_parameter_name_bytes~,
+    max_tasks~,
+    max_graph_work~,
+    lowering_work_out=Some(work),
+  )
+  (result, work.val)
+}
+
+///|
+fn prepare_checked_effect_free_client_program_owned(
+  checked : @checked.CheckedProgram,
+  lowering : @lower.Limits,
+  max_parameters~ : Int,
+  max_parameter_name_bytes~ : Int,
+  max_tasks~ : Int,
+  max_graph_work~ : Int,
+  lowering_work_out? : Ref[Int64]? = None,
+) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
   // The checker already refused nonempty Effects on its Pure path. Read its
   // retained classification instead of copying/scanning every Stage again.
   // Only an Effect candidate needs its original Stage for the typed refusal.
@@ -1743,6 +1792,7 @@ pub fn prepare_checked_effect_free_client_program(
     max_parameter_name_bytes~,
     max_tasks~,
     max_graph_work~,
+    lowering_work_out~,
   )
 }
 
@@ -1754,6 +1804,7 @@ fn compile_effect_free_checked_client_program(
   max_parameter_name_bytes~ : Int,
   max_tasks~ : Int,
   max_graph_work~ : Int,
+  lowering_work_out? : Ref[Int64]? = None,
 ) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
   let owners = match
     prepare_client_stage_owners(
@@ -1761,6 +1812,7 @@ fn compile_effect_free_checked_client_program(
       lowering,
       max_parameters~,
       max_parameter_name_bytes~,
+      lowering_work_out~,
     ) {
     Ok(value) => value
     Err(issue) =>
