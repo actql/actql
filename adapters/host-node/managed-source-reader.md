@@ -102,3 +102,10 @@ selection must keep all original Calendar limits, including the separate CA
 configuration ceiling. No field/default is added to the public profile, and
 `maxCaBytes` is not reused as secret/JSON capacity. This projects demand only;
 actual constructor/read/failure overlap still requires the SAME Request parent.
+
+The existing connector-installation author declarations select exactly one
+managed factory or advanced `readPages` callback. They expose the actual
+charged-wire and optional original-authorization ports only to the private
+reader preparer, and describe optional same-cleanup retry/factory retirement.
+The failed-initialization `sourceReader` holding requires its synchronous Bool
+retirement method. These types issue no grant, capacity or cleanup authority.
