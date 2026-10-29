@@ -88,3 +88,17 @@ The original `retire` method and receiver are captured before cleanup awaits.
 A pending retirement keeps its Site pending; independent Effect cleanup may
 still finish. Only an actual synchronous `true` permits Site close. An
 unexpected returned computation is joined, then refused as retirement ACK.
+
+For the original Calendar calendars profile, the SAME implementation selector
+may consume its complete required seventeen-field limits object after the
+SAME installation selected its zero-metadata-response policy. It checks
+`maxResponseBytes * maxPages` and `4 * maxCursorUnits` with BigInt before any
+Number conversion, and checks them against that original policy. The original
+`maxRows` is total rows, page rows are `min(perPage, maxRows)`, and
+`maxRequests` remains a separate original ceiling; it is never extra attempts
+or credit. The identity-text bound comes from the original value-text bound;
+target workspace uses the already selected policy bound. Every repeated
+selection must keep all original Calendar limits, including the separate CA
+configuration ceiling. No field/default is added to the public profile, and
+`maxCaBytes` is not reused as secret/JSON capacity. This projects demand only;
+actual constructor/read/failure overlap still requires the SAME Request parent.
