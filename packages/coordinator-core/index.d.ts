@@ -311,6 +311,16 @@ export function durableOutputPublicationFacts(durable: DurableOutputRecord):
 /** In-process identity from an admitted Site plan, never a custody grant. */
 export function payloadRequestFromOutput(durable: DurableOutputRecord):
   PayloadRequest;
+/** Original historical DATA only; no read/send authority or Store ACK. */
+export function payloadRequestFromDurable(durable: DurablePayloadRecord): PayloadRequest;
+/** Pure projection of the already admitted request's entire publication tuple. */
+export function payloadRequestFacts(request: PayloadRequest): Readonly<{
+  storeAuthorityCid: string; publicationAttemptCid: string;
+  materialGenerationCid: string; resultDefinitionCid: string;
+  logicalRelationCid: string; resultSchemaCid: string;
+  orderingEvidenceCid: string; codecContractCid: string;
+  maxBytes: bigint; rowCount: bigint;
+}>;
 export function payloadRequestCid(request: PayloadRequest): string;
 export function payloadRequestMaxBytes(request: PayloadRequest): bigint;
 export function admitPayloadRequestJson(body: string,
