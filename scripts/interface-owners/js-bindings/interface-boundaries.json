@@ -67028,7 +67028,7 @@
     {
       "module": "adapters/host-node/installed-row-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "13a7f1b9de1e88be4e9614d1e8bd38d3fdc3c5e168523c691d3caa11f4929c10",
+      "sha256": "a69a17b9e96190611e033930da4fa5342a9755218681c05acd30a0659c6ec1bb",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -67159,8 +67159,7 @@
           "parameters": [
             "prepare",
             "receiver",
-            "options",
-            "retire"
+            "options"
           ],
           "async": true
         },
@@ -67179,12 +67178,19 @@
           "async": false
         },
         {
-          "name": "startInstalledRowRun/retireFailedFactory",
+          "name": "startInstalledRowRun/readProvider/retainPreparation/retainPreparation",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/retireFailedPreparation",
           "parameters": [],
           "async": false
         },
         {
-          "name": "startInstalledRowRun/retireFailedFactory/pending/pending",
+          "name": "startInstalledRowRun/retireFailedPreparation/pending/pending",
           "parameters": [
             "resolve",
             "reject"
@@ -67192,12 +67198,12 @@
           "async": false
         },
         {
-          "name": "startInstalledRowRun/retireFailedFactory/retireFailedFactory",
+          "name": "startInstalledRowRun/retireFailedPreparation/retireFailedPreparation",
           "parameters": [],
           "async": false
         },
         {
-          "name": "startInstalledRowRun/retireFailedFactory/retireFailedFactory#2",
+          "name": "startInstalledRowRun/retireFailedPreparation/retireFailedPreparation#2",
           "parameters": [
             "error"
           ],
@@ -67552,11 +67558,12 @@
             "startInstalledRowRun/readProvider",
             "startInstalledRowRun/readProvider/readProvider",
             "startInstalledRowRun/readProvider/readProvider#2",
+            "startInstalledRowRun/readProvider/retainPreparation/retainPreparation",
             "startInstalledRowRun/readerRetired/readerRetired",
-            "startInstalledRowRun/retireFailedFactory",
-            "startInstalledRowRun/retireFailedFactory/pending/pending",
-            "startInstalledRowRun/retireFailedFactory/retireFailedFactory",
-            "startInstalledRowRun/retireFailedFactory/retireFailedFactory#2",
+            "startInstalledRowRun/retireFailedPreparation",
+            "startInstalledRowRun/retireFailedPreparation/pending/pending",
+            "startInstalledRowRun/retireFailedPreparation/retireFailedPreparation",
+            "startInstalledRowRun/retireFailedPreparation/retireFailedPreparation#2",
             "startInstalledRowRun/run/run",
             "startInstalledRowRun/run/run#2",
             "startInstalledRowRun/run/run#3",
@@ -67597,7 +67604,7 @@
               },
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "async function readProvider({prepare, receiver, options, retire})"
+                "anchor": "async function readProvider({prepare, receiver, options})"
               }
             ],
             "identity": [
@@ -68045,7 +68052,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "24041fb4772741a38616cdc9114b1a96737beae3981d52b7b00968d02de99bef",
+      "sha256": "1db6305c5b4307bc07aa299299089db1ef5ca1b3783cc64f317124f8d8c11bb9",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -69913,7 +69920,7 @@
               },
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "async function readProvider({prepare, receiver, options, retire})"
+                "anchor": "async function readProvider({prepare, receiver, options})"
               }
             ],
             "identity": [

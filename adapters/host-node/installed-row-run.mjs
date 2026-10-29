@@ -88,25 +88,25 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   let readerStopRequested = false;
   let reader, readerRead, readerStop, readerObserve, readerRetry;
   let readerStopPending = false, readerStopFailure;
-  let failedFactory, failedFactoryRetire, failedFactoryRetired = false;
+  let failedPreparation, failedPreparationRetire, failedPreparationRetired = false;
   const readerRetired = () => {
     if (closed) return true;
-    if (failedFactoryRetire !== undefined) return failedFactoryRetired && !readerStopPending;
+    if (failedPreparationRetire !== undefined) return failedPreparationRetired && !readerStopPending;
     if (readerObserve === undefined || readerReadPending || readerStopPending) return false;
     // This is the same trusted reader's observation, not a packet Bool, the
     // read Promise's settlement, or the credential Site's close result.
     return Reflect.apply(readerObserve, reader, [])?.cleanupConfirmed === true;
   };
-  function retireFailedFactory() {
-    if (failedFactoryRetired || readerStopPending) return;
+  function retireFailedPreparation() {
+    if (failedPreparationRetired || readerStopPending) return;
     readerStopRequested = true;
     try {
-      const returned = Reflect.apply(failedFactoryRetire, failedFactory, []);
-      if (returned === true) { failedFactoryRetired = true; return; }
+      const returned = Reflect.apply(failedPreparationRetire, failedPreparation, []);
+      if (returned === true) { failedPreparationRetired = true; return; }
       const then = returned?.then;
       if (typeof then === 'function') {
         // Join the SAME unexpected computation, but its settlement cannot
-        // replace the factory's synchronous retirement acknowledgement.
+        // replace this preparation's synchronous retirement acknowledgement.
         readerStopPending = true;
         const pending = new Promise((resolve, reject) => Reflect.apply(then, returned, [resolve, reject]));
         void pending.then(() => { readerStopPending = false; },
@@ -115,7 +115,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     } catch (error) { readerStopFailure = error; }
   }
   const stopReader = () => {
-    if (failedFactoryRetire !== undefined) { retireFailedFactory(); return; }
+    if (failedPreparationRetire !== undefined) { retireFailedPreparation(); return; }
     if (readerStop === undefined || readerStopPending) return;
     const retrying = readerStopRequested;
     if (retrying && (readerRetry === undefined || readerRetired())) return;
@@ -143,28 +143,40 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     if (originalKeyedRead !== undefined) checked(moon.clientProgramInstalledKeyedSourceReadRetire(originalKeyedRead));
     closed = true;
     reader = readerRead = readerStop = readerObserve = readerRetry = undefined;
-    failedFactory = failedFactoryRetire = undefined;
+    failedPreparation = failedPreparationRetire = undefined;
     if (readerStopFailure !== undefined) throw readerStopFailure;
   };
 
   // The trusted installation supplies a pure reader preparer, never a public
   // Run packet. Install the same-acquisition Core borrow before entering it;
   // even a throwing factory/getter leaves that original reservation pending.
-  async function readProvider({prepare, receiver, options, retire}) {
+  async function readProvider({prepare, receiver, options}) {
     const verifyRead = options?.verifyRead, signal = options?.signal;
     if (providerCapacity === undefined || typeof prepare !== 'function' ||
-        typeof verifyRead !== 'function' || retire !== undefined && typeof retire !== 'function') {
+        typeof verifyRead !== 'function') {
       fail('InstalledProviderSourceUnavailable');
     }
     if (closed || readerPrepared) fail('InstalledSourceReaderAlreadyPrepared');
     readerPrepared = true;
     const borrow = checked(moon.clientProgramRowSourceBorrowResponses(run, acquisition));
     checked(moon.clientProgramRowSourceBindResponseCleanup(borrow, readerRetired));
-    try { reader = Reflect.apply(prepare, receiver, [options]); }
+    let originalPreparation, retirePreparation;
+    const retainPreparation = original => {
+      if (originalPreparation !== undefined || original === null || typeof original !== 'object') {
+        fail('InvalidInstalledSourcePreparationRetention');
+      }
+      const method = Object.getOwnPropertyDescriptor(original, 'retire');
+      if (method === undefined || !Object.hasOwn(method, 'value') || typeof method.value !== 'function') {
+        fail('InvalidInstalledSourcePreparationRetention');
+      }
+      originalPreparation = original; retirePreparation = method.value;
+    };
+    try { reader = Reflect.apply(prepare, receiver, [options, retainPreparation]); }
     catch (cause) {
-      // No reader was handed out. Its SAME factory still owns any in-flight
-      // preparation callbacks; only that original retirement can clear them.
-      failedFactory = receiver; failedFactoryRetire = retire;
+      // No reader was handed out. Retire only this original preparation;
+      // whole-factory retirement belongs to installation shutdown. A custom
+      // factory without this handoff remains pending rather than inventing ACK.
+      failedPreparation = originalPreparation; failedPreparationRetire = retirePreparation;
       throw cause;
     }
     if (typeof reader?.then === 'function') {
