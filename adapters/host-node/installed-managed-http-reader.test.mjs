@@ -491,3 +491,21 @@ test('shared Reader cannot acknowledge retirement while an original native setup
  assert.equal(factory.retire(),true,'the same owner retires after original settlement');
  assert.equal(retiredWhileOriginalPending,false,'native setup is still owned until its actual settlement');
 });
+
+test('native setup with a hidden then method still joins the original computation before retirement', async () => {
+  const release = Promise.withResolvers();
+  Object.defineProperty(release.promise, 'then', {value: undefined});
+  const site = {bindRunAcquisition:unused, authorizationPurpose:unused, callResource:unused,
+    referenceCurrent() {return true;}};
+  const factory = createReader({capacity:{}, originalSite:site, assertCurrent() {}, operation:'fixture:read',
+    maxResponses:1, maxResponseBytes:32, maxSecretBytes:32, preparePageReader() {return release.promise;}});
+  const reader = factory.prepare({resource:'records', columns:[], verifyRead() {},
+    authorizationFor:unused, chargePage:unused, consumePage:unused});
+  await assert.rejects(reader.read(), {code:'InstalledSourcePageCallbackNotSynchronous'});
+  const retiredBeforeSettlement = factory.retire();
+  release.resolve();
+  await Reflect.apply(Promise.prototype.then, release.promise, [() => undefined]);
+  for (let index=0; index<4; index++) await Promise.resolve();
+  assert.equal(retiredBeforeSettlement, false);
+  assert.equal(factory.retire(), true);
+});
