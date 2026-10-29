@@ -170,8 +170,11 @@ pub fn[I] begin_request_effect_managed_run(
       owner.effect_plan = None
       owner.program_data = None
       owner.program_plan_quote = None
+      owner.native_parameters = None
+      owner.native_parameters_ready = false
       owner.held_program = None
       owner.input = None
+      owner.query_syntax = None
       owner.phase = Selected
       Ok(run)
     }

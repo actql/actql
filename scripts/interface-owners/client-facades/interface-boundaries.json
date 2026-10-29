@@ -10158,7 +10158,7 @@
     {
       "module": "packages/sdk/internal/private-source-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "39d1580a56e274f8b435f8ec36b4b3271c3949f0b4129edc1b3869db8bb9b45f",
+      "sha256": "f7bcd310b5b8cfd09c7ca1d157bcdded5751d1039a7b620a096021de99d07b3f",
       "exports": [
         "captureSourcePreparation",
         "matchesPublishedSubmissionSnapshot",
@@ -10203,7 +10203,8 @@
             "format",
             "text",
             "parameters",
-            "options"
+            "options",
+            "originalConnection"
           ],
           "async": false
         },
@@ -10242,6 +10243,20 @@
             "receipt",
             "originalFrozenBody"
           ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:captureSourceSnapshot/init:captureSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "value",
+            "snapshot"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourcePreparation/init:captureSourceSnapshot/init:captureSourceSnapshot/init:captureSourceSnapshot",
+          "parameters": [],
           "async": false
         },
         {
@@ -10472,6 +10487,8 @@
             "captureSourcePreparation/init:beforeSourceSnapshot/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
             "captureSourcePreparation/init:bindSourceRequest/init:bindSourceRequest",
             "captureSourcePreparation/init:bindSourceSnapshot/init:bindSourceSnapshot",
+            "captureSourcePreparation/init:captureSourceSnapshot/init:captureSourceSnapshot",
+            "captureSourcePreparation/init:captureSourceSnapshot/init:captureSourceSnapshot/init:captureSourceSnapshot",
             "captureSourcePreparation/init:finishSourceProducer/init:finishSourceProducer",
             "captureSourcePreparation/init:intentCid/init:intentCid",
             "captureSourcePreparation/init:intentCid/init:intentCid/init:intentCid",
@@ -12151,7 +12168,7 @@
     {
       "module": "packages/sdk/internal/submission-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "05eb41a65c70964dbde9c961df98d966a3e9e4d623946990fce8477d9bbc21c3",
+      "sha256": "df2eb5e63adcbd6ae1da74438123ba2f078786d32652cdafbf192e02c93d3102",
       "exports": [
         "RequestHeld",
         "createSubmissionOperations",
@@ -12353,6 +12370,21 @@
             "options",
             "sourceProducer",
             "requestName"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSubmissionOperations/submitIntent/submitIntent/captureSnapshot/captureSnapshot",
+          "parameters": [
+            "value",
+            "observe"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSubmissionOperations/submitIntent/submitIntent/captureSnapshot/captureSnapshot/captureSnapshot",
+          "parameters": [
+            "args"
           ],
           "async": false
         },
@@ -12615,8 +12647,8 @@
           "operations": [
             "createSubmissionOperations/captureQueryAdmission/captureQueryAdmission",
             "createSubmissionOperations/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission",
-            "createSubmissionOperations/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission",
             "createSubmissionOperations/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission#2",
+            "createSubmissionOperations/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission",
             "createSubmissionOperations/submitSource/submitSource"
           ],
           "exports": [],
@@ -12712,9 +12744,6 @@
             "<module>",
             "createSubmissionOperations",
             "createSubmissionOperations/createSubmissionOperations",
-            "createSubmissionOperations/createSubmissionOperations/createSubmissionOperations",
-            "createSubmissionOperations/createSubmissionOperations/createSubmissionOperations#2",
-            "createSubmissionOperations/createSubmissionOperations/createSubmissionOperations#3",
             "createSubmissionOperations/createSubmissionOperations#2",
             "createSubmissionOperations/createSubmissionOperations#3",
             "createSubmissionOperations/createSubmissionOperations#4",
@@ -12722,13 +12751,24 @@
             "createSubmissionOperations/createSubmissionOperations#6",
             "createSubmissionOperations/createSubmissionOperations#7",
             "createSubmissionOperations/createSubmissionOperations#8",
+            "createSubmissionOperations/createSubmissionOperations/createSubmissionOperations",
+            "createSubmissionOperations/createSubmissionOperations/createSubmissionOperations#2",
+            "createSubmissionOperations/createSubmissionOperations/createSubmissionOperations#3",
             "createSubmissionOperations/newSubmission/newSubmission",
             "createSubmissionOperations/retainQueryFailure/retainQueryFailure",
             "createSubmissionOperations/retainQueryResult/retainQueryResult",
             "createSubmissionOperations/startSource/startSource",
+            "createSubmissionOperations/startSource/startSource/startSource",
             "createSubmissionOperations/submit/submit",
             "createSubmissionOperations/submitIntent/submitIntent",
+            "createSubmissionOperations/submitIntent/submitIntent/captureSnapshot/captureSnapshot",
+            "createSubmissionOperations/submitIntent/submitIntent/captureSnapshot/captureSnapshot/captureSnapshot",
             "createSubmissionOperations/submitIntent/submitIntent/pending/pending",
+            "createSubmissionOperations/withSourceProducer/withSourceProducer",
+            "createSubmissionOperations/withSourceProducer/withSourceProducer/finish/finish",
+            "createSubmissionOperations/withSourceProducer/withSourceProducer/finish/finish/retry/retry",
+            "createSubmissionOperations/withSourceProducer/withSourceProducer/pending/pending",
+            "createSubmissionOperations/withSourceProducer/withSourceProducer/pending/pending#2",
             "explainRequestCancellation",
             "explainRequestLookup",
             "explainSubmission",
@@ -12748,13 +12788,7 @@
             "retainSubmissionLookupFailure/retainSubmissionLookupFailure",
             "submissionNotSent/submissionNotSent",
             "submissionUnknown/submissionUnknown",
-            "uninterpretableRequestCancellation/uninterpretableRequestCancellation",
-            "createSubmissionOperations/startSource/startSource/startSource",
-            "createSubmissionOperations/withSourceProducer/withSourceProducer",
-            "createSubmissionOperations/withSourceProducer/withSourceProducer/finish/finish",
-            "createSubmissionOperations/withSourceProducer/withSourceProducer/finish/finish/retry/retry",
-            "createSubmissionOperations/withSourceProducer/withSourceProducer/pending/pending",
-            "createSubmissionOperations/withSourceProducer/withSourceProducer/pending/pending#2"
+            "uninterpretableRequestCancellation/uninterpretableRequestCancellation"
           ],
           "exports": [
             "RequestHeld",

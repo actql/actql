@@ -11,6 +11,8 @@ import {
 }
 
 // Values
+pub fn[T] admit_captured_program_input(T, @source_value.JsonDataReader[T], Limits) -> Result[ParsedProgramInput, SyntaxError]
+
 pub fn admit_generated_prefix(@program_source_builder.Source, Limits) -> Result[Prefix, SyntaxError]
 
 pub fn admit_generated_source(@program_source_builder.Source, Limits) -> Result[Program, SyntaxError]

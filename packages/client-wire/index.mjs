@@ -298,10 +298,16 @@ export const clientWorkspaceMatches = (connection, authenticatedWorkspaceId) =>
   boundedText(authenticatedWorkspaceId) &&
     connection.workspaceId === authenticatedWorkspaceId;
 
+// Native brands are captured once; inspecting a caller's prototype or
+// Symbol.toStringTag would add observable getters/Proxy traps to the snapshot.
+const snapshotStringValueOf = String.prototype.valueOf;
+const snapshotRawJSONBrand = JSON.isRawJSON;
+
 // Client requests observe the JSON value actually submitted at this boundary.
 // Preserve ordinary JSON serialization, but never replace source numbers.
-function snapshotRequest(value, numberError) {
-  return JSON.parse(JSON.stringify(value, (_key, item) => {
+function snapshotRequest(value, numberError, observe) {
+  let units = 0, reserved = 0, values = 0, reservedValues = 0;
+  const document = JSON.stringify(value, (key, item) => {
     let number = item, boxed = false;
     if (item !== null && typeof item === 'object') {
       // Brand-check without invoking user coercion, including across realms.
@@ -315,14 +321,51 @@ function snapshotRequest(value, numberError) {
         (!Number.isFinite(number) || Object.is(number, -0))) {
       throw new TypeError(numberError);
     }
-    return boxed ? number : item;
-  }));
+    let selected = boxed ? number : item;
+    let rawUnits = 0;
+    if (observe !== undefined && !boxed && item !== null && typeof item === 'object') {
+      let stringObject = false;
+      try {snapshotStringValueOf.call(item);stringObject = true;}
+      catch { /* Ordinary objects retain their native serialization. */ }
+      // JSON performs ToString with the string hint for actual String boxes.
+      // Return that primitive so native serialization cannot coerce it again.
+      if (stringObject) selected = `${item}`;
+      else if (typeof snapshotRawJSONBrand === 'function' && snapshotRawJSONBrand(item)) {
+        // The native brand excludes copied objects and Proxies. Its original
+        // frozen rawJSON field is DATA, not another caller property getter.
+        rawUnits = item.rawJSON.length;
+      }
+    }
+    if (observe !== undefined) {
+      // Observe the SAME native traversal after its existing numeric rule.
+      // Reading primitive String lengths does not repeat a getter/toJSON,
+      // enumerate a Proxy or coerce a boxed Number again. Geometric growth
+      // avoids a Resource/current callback for every field or array item.
+      units += 1 + key.length + rawUnits + (typeof selected === 'string' ? selected.length : 0);
+      values++;
+      if (!Number.isSafeInteger(units) || !Number.isSafeInteger(values)) {
+        throw new RangeError('ClientSnapshotSizeOverflow');
+      }
+      if (units > reserved || values > reservedValues) {
+        const nextValues = values > reservedValues ? Math.max(values, reservedValues * 2) : reservedValues;
+        const next = Math.max(nextValues, units > reserved ? Math.max(units, reserved * 2) : reserved);
+        if (!Number.isSafeInteger(next) || !Number.isSafeInteger(nextValues)) {
+          throw new RangeError('ClientSnapshotSizeOverflow');
+        }
+        observe(next, undefined, nextValues);
+        reserved = next;reservedValues = nextValues;
+      }
+    }
+    return selected;
+  });
+  if (observe !== undefined) observe(reserved, document, reservedValues);
+  return JSON.parse(document);
 }
 
 // One serialization owner for check and submit. Preserve the existing check
 // helper's error spelling for direct consumers. SDK callers map local refusal.
-export const snapshotClientRequest = value =>
-  snapshotRequest(value, 'UnrepresentableClientNumber');
+export const snapshotClientRequest = (value, observe) =>
+  snapshotRequest(value, 'UnrepresentableClientNumber', observe);
 export const snapshotCheckRequest = value =>
   snapshotRequest(value, 'UnrepresentableCheckNumber');
 

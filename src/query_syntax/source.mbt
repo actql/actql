@@ -106,6 +106,7 @@ fn scan_tokens(
   ] = (text, max_bytes, path) => {
     @origin.document(text, max_bytes, source_path=path)
   },
+  observe_work? : ((Int) -> Unit)? = None,
 ) -> Result[Tokens, Diagnostic] {
   let caps = [limits.max_tokens, limits.max_literal_bytes, limits.max_work]
   if limits.max_source_bytes < 0 || caps.any(n => n < 0 || n == 2147483647) {
@@ -120,7 +121,7 @@ fn scan_tokens(
   let scanner : Scanner = { text, budget, offset: 0, byte_offset: 0, }
   let tokens : Array[Token] = []
   let identifiers : Map[String, String] = Map([])
-  try {
+  let result = try {
     while true {
       let t = scanner.next()
       match t.value {
@@ -174,6 +175,10 @@ fn scan_tokens(
       })
     _ => Err({ issue: Lexical(UnexpectedToken), span: None, })
   }
+  if observe_work is Some(observe) {
+    observe(budget.used[resource_index(Work)])
+  }
+  result
 }
 
 ///|
