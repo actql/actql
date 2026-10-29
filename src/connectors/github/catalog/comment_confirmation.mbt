@@ -36,8 +36,11 @@ fn comment_final_request_body(
   tag : String,
   limits : PageLimits,
 ) -> Result[String, GraphqlResponseIssue] {
-  if limits.max_bytes <= 0 || limits.max_nodes <= 0 || limits.max_depth <= 0 ||
-    wire.length() > limits.max_bytes || !comment_tag_data(tag) {
+  if limits.max_bytes <= 0 ||
+    limits.max_nodes <= 0 ||
+    limits.max_depth <= 0 ||
+    wire.length() > limits.max_bytes ||
+    !comment_tag_data(tag) {
     return Err(InvalidResponse)
   }
   let bytes = @utf8.encode(wire)
@@ -46,17 +49,21 @@ fn comment_final_request_body(
       max_input_bytes: limits.max_bytes,
       max_nodes: limits.max_nodes,
       max_depth: limits.max_depth,
-    }) is Ok(parsed) &&
+    })
+    is Ok(parsed) &&
     @decode.admit(parsed, {
       max_nodes: limits.max_nodes,
       max_depth: limits.max_depth,
       max_string_bytes: limits.max_bytes,
       max_total_string_bytes: limits.max_bytes,
-    }) is Ok(root) &&
+    })
+    is Ok(root) &&
     @decode.closed_object(root, ["query", "variables"]) is Ok(request) &&
-    required_text(request, "query") is Ok(query) && query == add_comment_mutation &&
+    required_text(request, "query") is Ok(query) &&
+    query == add_comment_mutation &&
     @decode.lookup(request, "variables") is Some(variables_cursor) &&
-    @decode.closed_object(variables_cursor, ["subjectId", "body"]) is Ok(variables) &&
+    @decode.closed_object(variables_cursor, ["subjectId", "body"])
+    is Ok(variables) &&
     required_text(variables, "subjectId") is Ok(actual_subject) &&
     actual_subject == subject_id &&
     required_text(variables, "body") is Ok(physical_body) &&
@@ -82,15 +89,20 @@ pub fn prepare_comment_confirmation(
   request_limits : PageLimits,
   response_limits : PageLimits,
 ) -> Result[CommentConfirmation, GraphqlResponseIssue] {
-  if !valid_subject_id(subject_id) || !valid_subject_id(repository.node_id) ||
-    repository.database_id <= 0L || repository.name_with_owner.is_empty() ||
-    response_limits.max_bytes <= 0 || response_limits.max_nodes <= 0 ||
-    response_limits.max_depth <= 0 || response_limits.max_rows <= 0 {
+  if !valid_subject_id(subject_id) ||
+    !valid_subject_id(repository.node_id) ||
+    repository.database_id <= 0L ||
+    repository.name_with_owner.is_empty() ||
+    response_limits.max_bytes <= 0 ||
+    response_limits.max_nodes <= 0 ||
+    response_limits.max_depth <= 0 ||
+    response_limits.max_rows <= 0 {
     return Err(InvalidResponse)
   }
-  let physical_body = match comment_final_request_body(
-    final_request, subject_id, logical_body, tag, request_limits,
-  ) {
+  let physical_body = match
+    comment_final_request_body(
+      final_request, subject_id, logical_body, tag, request_limits,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -98,15 +110,21 @@ pub fn prepare_comment_confirmation(
   let created = if !headers_known && status == 403 {
     None
   } else {
-    match classify_comment_response(status, headers, body, response_limits, subject_id) {
+    match
+      classify_comment_response(
+        status, headers, body, response_limits, subject_id,
+      ) {
       Created(id~, node_id~) if valid_subject_id(node_id) => Some((id, node_id))
       _ => None
     }
   }
   let request = match created {
     Some((_, node_id)) => {
-      let wire = ({ "query": comment_confirmation_query.to_json(),
-        "variables": { "id": node_id.to_json() } } : Json).stringify()
+      let wire = (
+        {
+          "query": comment_confirmation_query.to_json(),
+          "variables": { "id": node_id.to_json() },
+        } : Json).stringify()
       if @utf8.encode(wire).length() > request_limits.max_bytes {
         return Err(BudgetExceeded)
       }
@@ -114,7 +132,14 @@ pub fn prepare_comment_confirmation(
     }
     None => None
   }
-  Ok({ subject_id, repository, physical_body, created, request, limits: response_limits, })
+  Ok({
+    subject_id,
+    repository,
+    physical_body,
+    created,
+    request,
+    limits: response_limits,
+  })
 }
 
 ///|
@@ -140,11 +165,15 @@ pub fn project_comment_confirmation(
   guard @decode.lookup(data, "node") is Some(cursor) &&
     @decode.open_object(cursor) is Ok(node) &&
     required_text(node, "__typename") is Ok("IssueComment") &&
-    required_text(node, "id") is Ok(node_id) && node_id == expected_node &&
-    required_text(node, "body") is Ok(physical_body) && physical_body == value.physical_body &&
+    required_text(node, "id") is Ok(node_id) &&
+    node_id == expected_node &&
+    required_text(node, "body") is Ok(physical_body) &&
+    physical_body == value.physical_body &&
     required_text(node, "fullDatabaseId") is Ok(id_text) &&
-    @scalar.read_decimal_int64(id_text) is Ok(id) && id > 0L &&
-    id.to_string() == id_text && id == expected_id else {
+    @scalar.read_decimal_int64(id_text) is Ok(id) &&
+    id > 0L &&
+    id.to_string() == id_text &&
+    id == expected_id else {
     return Err(InvalidResponse)
   }
   match comment_repository(node, value.repository) {
@@ -155,7 +184,8 @@ pub fn project_comment_confirmation(
     @decode.lookup(node, "issue") is Some(issue_cursor) &&
     @decode.open_object(issue_cursor) is Ok(issue) &&
     required_text(issue, "__typename") is Ok("Issue") &&
-    required_text(issue, "id") is Ok(subject_id) && subject_id == value.subject_id else {
+    required_text(issue, "id") is Ok(subject_id) &&
+    subject_id == value.subject_id else {
     return Err(ForeignSubject)
   }
   match comment_repository(issue, value.repository) {

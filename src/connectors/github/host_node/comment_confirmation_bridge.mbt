@@ -25,9 +25,19 @@ pub fn github_prepare_comment_confirmation(
     return Err(@catalog.InvalidResponse)
   }
   @catalog.prepare_comment_confirmation(
-    { node_id: repository_node_id, database_id: repository_database_id.to_int64(),
-      name_with_owner: repository_name, },
-    subject_id, logical_body, tag, final_request, status, headers_known, headers, body,
+    {
+      node_id: repository_node_id,
+      database_id: repository_database_id.to_int64(),
+      name_with_owner: repository_name,
+    },
+    subject_id,
+    logical_body,
+    tag,
+    final_request,
+    status,
+    headers_known,
+    headers,
+    body,
     { max_bytes: max_request_bytes, max_nodes, max_depth, max_rows: 1, },
     { max_bytes: max_response_bytes, max_nodes, max_depth, max_rows: 1, },
   )
@@ -38,10 +48,11 @@ pub fn github_prepare_comment_confirmation(
 pub fn github_comment_confirmation_request_json(
   held : @catalog.CommentConfirmation,
 ) -> String {
-  (match @catalog.comment_confirmation_request(held) {
-    Some(body) => { "kind": "ConfirmationRequest", "body": body.to_json() }
-    None => { "kind": "NoConfirmation" }
-  } : Json).stringify()
+  (
+    match @catalog.comment_confirmation_request(held) {
+      Some(body) => { "kind": "ConfirmationRequest", "body": body.to_json() }
+      None => { "kind": "NoConfirmation" }
+    } : Json).stringify()
 }
 
 ///|
@@ -51,9 +62,14 @@ pub fn github_project_comment_confirmation_json(
   status : Int,
   body : Bytes,
 ) -> String {
-  (match @catalog.project_comment_confirmation(held, status, body) {
-    Ok((id, node_id)) => { "kind": "Confirmed", "id": id.to_string().to_json(),
-      "nodeId": node_id.to_json() }
-    Err(_) => { "kind": "Unknown" }
-  } : Json).stringify()
+  (
+    match @catalog.project_comment_confirmation(held, status, body) {
+      Ok((id, node_id)) =>
+        {
+          "kind": "Confirmed",
+          "id": id.to_string().to_json(),
+          "nodeId": node_id.to_json(),
+        }
+      Err(_) => { "kind": "Unknown" }
+    } : Json).stringify()
 }
