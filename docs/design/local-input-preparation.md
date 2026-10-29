@@ -2238,3 +2238,22 @@ and failed-child overlap before these constructors. This Core connection does
 not supply external authority or physical backing. Content/serialization and
 Model boundaries retain their separate existing contracts and cannot be
 silently promoted into this Pure Source purpose.
+
+### Original query syntax continuation
+
+SQL and Pipe syntax can cross a preparation boundary as the actual admitted
+query owner, including its original authored source document. The parsed
+continuation uses the same frontend compiler, target publications, public
+Result selection and emission bounds as the ordinary text entry. It does not
+parse a serialized Program to recover that owner. The retained published
+Environment supplies the same Catalog and declaration context; a foreign
+Environment cannot replace it by matching canonical identities.
+
+The selected parser can also return its original lexical and grammar work
+prefix on failure. These are the existing declared counters, not invocation
+counts, process CPU or lowerer/checker work. Input-document admission precedes
+those counters. Failure there is explicitly incomplete, so a zero known prefix
+cannot establish that no preparation work occurred. A preparation caller must
+fund and retain that input/index backing separately and carry the same original
+syntax into lowering and Program checking. These pure continuation functions
+create no capacity, Resource owner, permission or physical cleanup witness.

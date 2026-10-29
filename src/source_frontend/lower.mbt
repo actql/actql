@@ -335,32 +335,42 @@ pub fn parse_query(
   format : Format,
   source_path? : String = "<source>",
 ) -> Result[@syntax.Query, Issue] {
-  parse_selected_query_script(document, format, source_path~).map(script => {
-    @syntax.script_query(script)
-  })
+  observe_parse_query(document, format, source_path~).0
 }
 
 ///|
-fn parse_selected_query_script(
+/// Same original selected parser plus its completed budgeted prefix. The work
+/// excludes lowerer/checker and input-document admission, and is not process
+/// CPU or a function invocation counter. Incomplete admission stays explicit.
+pub fn observe_parse_query(
   document : String,
   format : Format,
   source_path? : String = "<source>",
-) -> Result[@syntax.QueryScript, Issue] {
+) -> (Result[@syntax.Query, Issue], Int64, Bool) {
   match format {
     Text | Sql => ()
-    Json | Yaml => return Err(InvalidFormat)
+    Json | Yaml => return (Err(InvalidFormat), 0L, true)
   }
-  match
-    @syntax.parse_selected_query_script(
-      document,
-      syntax_limits(),
-      format == Sql,
-      source_path~,
-    ) {
-    Ok(Some(value)) => Ok(value)
+  let (outcome, spent, complete) = @syntax.observe_selected_query_script(
+    document,
+    syntax_limits(),
+    format == Sql,
+    source_path~,
+  )
+  let result = match outcome {
+    Ok(Some(script)) => Ok(@syntax.script_query(script))
     Ok(None) => Err(WrongQueryForm)
     Err(issue) => Err(QuerySyntax(issue))
   }
+  (result, spent, complete)
+}
+
+///|
+/// The unchanged selected lexical and grammar budgets, for one funded phase.
+/// This projects policy DATA; it neither grants work nor selects a new limit.
+pub fn query_syntax_work_limit() -> Int64 {
+  let limits = syntax_limits()
+  limits.lexical.max_work.to_int64() + limits.max_work.to_int64()
 }
 
 ///|
@@ -419,59 +429,84 @@ pub fn lower_with_source(
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
-      guard context is Some(context) else { return Err(MissingQueryContext) }
-      // Only a new public read-only Source with no authored RESULT selects
-      // this configured primary. Structured Programs, explicit exports and
-      // operator-specific Effect output laws keep their existing identities.
-      let context = if public_primary && public_implicit_primary(parsed) {
-        { ..context, result_name: "main", }
-      } else {
-        context
-      }
-      let (program, source, command_selection) = if @syntax.terminal_short_command_effect(
-          parsed,
-        )
-        is Some(_) &&
-        command_targets is Some(publication) {
-        match
-          @query.compile_short_command_with_source(
-            parsed,
-            context,
-            query_limits(),
-            publication,
-            table_writes~,
-            update_targets~,
-            store_targets~,
-          ) {
-          Ok((program, source, selection)) => (program, source, Some(selection))
-          Err(issue) => return Err(QueryLowering(issue))
-        }
-      } else {
-        match
-          @query.compile_with_source(
-            parsed,
-            context,
-            query_limits(),
-            table_writes~,
-            update_targets~,
-            store_targets~,
-            command_targets~,
-          ) {
-          Ok((program, source)) => (program, source, None)
-          Err(issue) => return Err(QueryLowering(issue))
-        }
-      }
-      emit(
-        program,
-        update_targets,
-        store_targets,
-        command_targets,
-        command_selection,
-        @syntax.terminal_effect(parsed).map(clause => clause.kind),
-        @syntax.terminal_insert_effect(parsed) is Some(_),
-      ).map(lowered => (lowered, Some(source)))
+      lower_parsed_with_source(
+        parsed,
+        context,
+        table_writes~,
+        update_targets~,
+        store_targets~,
+        command_targets~,
+        public_primary~,
+      ).map(pair => (pair.0, Some(pair.1)))
     }
   }
+}
+
+///|
+/// Continue the same admitted query syntax and authored source origins. This
+/// entry performs no text parse and issues no checked Program/Run authority.
+/// The original frontend compiler, target selection and emission limits remain
+/// shared with the ordinary text entry.
+pub fn lower_parsed_with_source(
+  parsed : @syntax.Query,
+  context : @query.Context?,
+  table_writes? : Array[@query.TableWriteBinding] = [],
+  update_targets? : @query.UpdateTargetPublication? = None,
+  store_targets? : @query.StoreTargetPublication? = None,
+  command_targets? : @query.CommandTargetPublication? = None,
+  public_primary? : Bool = false,
+) -> Result[(Lowered, @builder.Source), Issue] {
+  guard context is Some(context) else { return Err(MissingQueryContext) }
+  // Only a new public read-only Source with no authored RESULT selects
+  // this configured primary. Structured Programs, explicit exports and
+  // operator-specific Effect output laws keep their existing identities.
+  let context = if public_primary && public_implicit_primary(parsed) {
+    { ..context, result_name: "main", }
+  } else {
+    context
+  }
+  let (program, source, command_selection) = if @syntax.terminal_short_command_effect(
+      parsed,
+    )
+    is Some(_) &&
+    command_targets is Some(publication) {
+    match
+      @query.compile_short_command_with_source(
+        parsed,
+        context,
+        query_limits(),
+        publication,
+        table_writes~,
+        update_targets~,
+        store_targets~,
+      ) {
+      Ok((program, source, selection)) => (program, source, Some(selection))
+      Err(issue) => return Err(QueryLowering(issue))
+    }
+  } else {
+    match
+      @query.compile_with_source(
+        parsed,
+        context,
+        query_limits(),
+        table_writes~,
+        update_targets~,
+        store_targets~,
+        command_targets~,
+      ) {
+      Ok((program, source)) => (program, source, None)
+      Err(issue) => return Err(QueryLowering(issue))
+    }
+  }
+  emit(
+    program,
+    update_targets,
+    store_targets,
+    command_targets,
+    command_selection,
+    @syntax.terminal_effect(parsed).map(clause => clause.kind),
+    @syntax.terminal_insert_effect(parsed) is Some(_),
+  ).map(lowered => (lowered, source))
 }
 
 ///|
