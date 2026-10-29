@@ -73,7 +73,7 @@ export function createInstalledCredentialSourceReader({capacity, site, operation
     let provider, fetchPage, decodePage, onError, setupFailure, setupFailed = false;
     try {
       provider = callProjection(preparePageReader, undefined, [Object.freeze({resource: options.resource,
-        columns, requestWire: options.requestWire, applySynchronousProjection})]);
+        columns, requestWire: options.requestWire}), applySynchronousProjection]);
       fetchPage = method(provider, 'fetchPage'); decodePage = method(provider, 'decodePage');
       const errorField = Object.getOwnPropertyDescriptor(provider, 'onError');
       if (errorField !== undefined) {
