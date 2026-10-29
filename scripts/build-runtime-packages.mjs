@@ -7,7 +7,6 @@ import {fileURLToPath} from 'node:url';
 import {occurrences, repositoryOccurrences, violations} from './check-owned-contract-versions.mjs';
 import {assertGeneratedOwnedContracts} from './generated-owned-contracts.mjs';
 import {runtimePackageInputs} from './runtime-package-inputs.mjs';
-import {checkInterfaceOwners} from './check-interface-owners.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const packages = runtimePackageInputs(root);
@@ -42,7 +41,16 @@ export async function buildExternalLocalNodeRuntime({inputs, destination, compil
   if (rejected.length) throw new Error('Generated external runtime contract versions must remain at 0.1');
 }
 
-async function main(requested) {
+// The normal CLI always resolves the real source-side gate. An imported
+// scheduling fixture may supply an explicit admission/refusal port; that
+// result is not an interface-Owner proof or a product admission capability.
+async function checkSourceInterfaces(root, options) {
+  const {checkInterfaceOwners} = await import('./check-interface-owners.mjs');
+  await checkInterfaceOwners(root, options);
+}
+
+export async function prepareRuntimePackages(requested,
+  {checkInterfaces = checkSourceInterfaces} = {}) {
 const inventory = JSON.parse(readFileSync(join(root,
   'scripts/owned-contract-version-legacy.json'), 'utf8'));
 const source = repositoryOccurrences(root);
@@ -52,7 +60,7 @@ for (const name of requested) {
 }
 const selected = new Set(requested.length ? requested : Object.keys(packages));
 const entries = [...selected].map(name => packages[name]);
-await checkInterfaceOwners(root, {manifests: [...selected].map(name => `packages/${name}/package.json`)});
+await checkInterfaces(root, {manifests: [...selected].map(name => `packages/${name}/package.json`)});
 execFileSync('moon', ['build', '--target', 'js', '--release',
   ...new Set(entries.flatMap(item => item.sources.map(path => `src/${path}`)))],
 {cwd: root, stdio: 'inherit'});
@@ -70,5 +78,5 @@ assertGeneratedOwnedContracts({source, generated, inventory});
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  await main(process.argv.slice(2));
+  await prepareRuntimePackages(process.argv.slice(2));
 }

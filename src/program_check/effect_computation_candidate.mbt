@@ -320,6 +320,15 @@ pub fn effect_program_static_checked_computation(
 }
 
 ///|
+/// The exact source and supplied input retained by this original computation.
+/// This does not re-admit parameters or issue execution or Effect authority.
+pub fn effect_program_static_original_input(
+  candidate : EffectProgramStaticCandidate,
+) -> (@syntax.Program, @decode.Cursor?) {
+  (candidate.computation.checked.source, candidate.computation.supplied)
+}
+
+///|
 pub fn effect_program_static_headers(
   candidate : EffectProgramStaticCandidate,
 ) -> @syntax.EffectHeaders {

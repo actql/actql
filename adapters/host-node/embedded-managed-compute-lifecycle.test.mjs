@@ -46,6 +46,7 @@ function opening() {
 function preparedEnvironmentLifetime({missing = false, retire = () => {},
   consumerRetire = () => {}, install = true} = {}) {
   const opening = declared('openInstalledHost');
+  assert.deepEqual(opening.params.map(node => node.name), ['originalInstallation', 'preparation']);
   const functions = new Map(opening.body.body.filter(node => node.type === 'FunctionDeclaration')
     .map(node => [node.id.name,node]));
   let getter;
@@ -81,8 +82,8 @@ function preparedEnvironmentLifetime({missing = false, retire = () => {},
     assert.strictEqual(publication,original.publication);retirements++;retire();
   };
   const consumer = {calls:0,retained:true,retire:consumerRetire};
-  const create = new Function('original','sourceAliasPublicationOriginal','retireSourceAliasPublicationOriginal','consumer',`
-    const host=original.host,moon=original.moon,preparation=undefined;
+  const create = new Function('original','sourceAliasPublicationOriginal','retireSourceAliasPublicationOriginal','consumer','preparation',`
+    const host=original.host,moon=original.moon;
     let environment=original.environment,sourcePublication=original.publication;
     let preparedSourceEnvironment,clientProgramPreparationReferences,modelRuntimeClosing=false;
     let modelSdkStaticOriginals,originalInstallation={},registerModelProviders,modelProviders;
@@ -115,7 +116,7 @@ function preparedEnvironmentLifetime({missing = false, retire = () => {},
       stop(){modelRuntimeClosing=true;},replaceEnvironment(value){environment=value;},
       replacePublication(value){sourcePublication=value;}};
   `);
-  return {fixture:create(original,sourceAliasPublicationOriginal,retireSourceAliasPublicationOriginal,consumer),original,consumer,
+  return {fixture:create(original,sourceAliasPublicationOriginal,retireSourceAliasPublicationOriginal,consumer,undefined),original,consumer,
     get reads(){return reads;},get retirements(){return retirements;}};
 }
 
@@ -123,6 +124,7 @@ test('Host prepared Environment keeps one original and forwards only its cheap l
   const f = preparedEnvironmentLifetime();
   assert.equal(f.reads,1);
   assert.strictEqual(f.fixture.options.getPreparedSourceEnvironment,f.fixture.get);
+  assert.equal(Object.hasOwn(f.fixture.options,'getFundedPreparation'),false, 'The actual optional preparation argument is absent, not a fabricated funded parent');
   for (let index=0;index<8;index++) assert.strictEqual(f.fixture.get(),f.original.preparedEnvironment);
   assert.equal(f.reads,1,'unchanged Host use does not re-read, encode or prepare its publication');
   assert.equal(f.retirements,0);
@@ -233,7 +235,7 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
   const methods = names.map(name => {
     const property = properties.find(node => node.key.name === name); assert(property, name); return text(property);
   });
-  const originals = {host: {}, installation: {}, generation: {}, supplier: {}, moduleLifetime: {}};
+  const originals = {host: {}, installation: {retainedRelationOutput: false}, generation: {}, supplier: {}, moduleLifetime: {}};
   const ports = {
     prepareManagedComputeInstallation: held => {assert.strictEqual(held, originals); return factory();},
     assertInitialControlHostPreparation: held => {assert.strictEqual(held, originals); current();},
@@ -428,23 +430,43 @@ test('generic Source service begins once on the existing Host Run inventory and 
     {code: 'ForeignInstalledComputeRun'});
 });
 
+function installedSequencePorts(runtime) {
+  const manifests = {}, admission = {}, calls = [];
+  const aoa = '{"execution_contracts":{"REL.values":{},"ACTQL.expression_fragment/0.1":{},"REL.derive.ordered":{}}}';
+  runtime.clientPrepareInstalledCompilationManifests = function(...args) {
+    assert.strictEqual(this, runtime); assert.deepEqual(args, []);
+    calls.push('manifests'); return manifests;
+  };
+  runtime.clientPrepareInstalledSequenceContracts = function(...args) {
+    assert.strictEqual(this, runtime); assert.equal(calls.at(-1), 'manifests');
+    assert.deepEqual(args, ['registry-original', '{}', '{}', '{}']);
+    calls.push('sequence'); return admission;
+  };
+  return {manifests, admission, calls, asset(_control, _originals, path) {
+    assert(['spec/contracts/actql-aoa.json', 'spec/dependencies/aoa-pipeline-registry.json'].includes(path));
+    return path === 'spec/contracts/actql-aoa.json' ? aoa : 'registry-original';
+  }};
+}
+
 test('actual requirements and begin share the retained typed original before Resource admission', async () => {
   const p = managedRunPorts(), original = {}, sequences = {}, prepared = {}, request = {};
   let f, sequencePreparations = 0;
+  const installed = installedSequencePorts(p.runtime);
   const read = new Function('assertSourceManagedHostPreparation', 'originalSourceManagedHostRequest',
     'readInitialControlInstallationAsset', 'checked', 'clientOperationError', 'runtimeIsError',
-    text(declared('prepareInstalledSequenceContractOriginal')) + '\n' +
     text(declared('installedManagedRunContracts')) + '\n' +
+    text(declared('prepareInstalledSequenceContractOriginal')) + '\n' +
     text(declared('readManagedComputeRunRequirements')) + ';return readManagedComputeRunRequirements;')(
     held => assert.strictEqual(held, f.originals),
     (held, value) => {assert.strictEqual(held, f.originals); assert.strictEqual(value, prepared); return request;},
-    () => '{"execution_contracts":{"REL.values":{},"ACTQL.expression_fragment/0.1":{},"REL.derive.ordered":{}}}',
+    installed.asset,
     value => value, code => Object.assign(new Error(code), {code}), () => false);
   p.runtime.clientProgramInstalledManagedRunIssueIsUnsupported = () => false;
   p.runtime.clientProgramInstalledManagedRunRequirements = () => assert.fail('No regeneration');
-  p.runtime.clientProgramPrepareInstalledManagedSourceFreeWithContracts = (value, contracts) => {
-    assert.strictEqual(contracts, p.contracts);
-    assert.strictEqual(value, prepared); sequencePreparations++; return sequences;
+  p.runtime.clientProgramPrepareInstalledManagedSourceFreeWithContracts = (...args) => {
+    assert.strictEqual(args[0], prepared); assert.strictEqual(args[1], installed.admission);
+    assert.deepEqual(args.slice(2), ['{}', '{}', '{}', false]);
+    sequencePreparations++; return sequences;
   };
   p.runtime.clientProgramPreparedInstalledManagedSourceFreeRequirements = held => {
     assert.strictEqual(held, sequences);
@@ -468,6 +490,8 @@ test('actual requirements and begin share the retained typed original before Res
   assert.strictEqual(f.preparation.prepareManagedComputeRun(p.runtime, prepared, request), p.value);
   assert.strictEqual(f.preparation.prepareManagedComputeRun(p.runtime, prepared, request), p.value);
   assert.equal(sequencePreparations, 1);
+  assert.deepEqual(installed.calls, ['manifests', 'sequence']);
+  assert.strictEqual(f.originals.installation.sequenceContractOriginal.admission, installed.admission);
   assert.strictEqual(f.record.computeRuns.get(prepared).original, original);
   assert.strictEqual(f.record.computeRuns.get(prepared).preparedSequences, undefined);
   await f.initialControl.close();
@@ -518,26 +542,24 @@ test('failed begin retains the admission and original cleanup through Unknown wi
 test('pure preparation refusal belongs only to its original pre-Resource Run holder', async () => {
   const p = managedRunPorts(), prepared = {}, request = {}, issue = {}, result = {};
   let f, failure, preparations = 0, current = true;
+  const installed = installedSequencePorts(p.runtime);
   const read = new Function('assertSourceManagedHostPreparation', 'originalSourceManagedHostRequest',
     'readInitialControlInstallationAsset', 'checked', 'clientOperationError', 'runtimeIsError', 'runtimeField',
-    text(declared('prepareInstalledSequenceContractOriginal')) + '\n' +
-    text(declared('installedManagedRunContracts')) + '\n' + text(declared('readManagedComputeRunRequirements')) +
+    text(declared('installedManagedRunContracts')) + '\n' +
+    text(declared('prepareInstalledSequenceContractOriginal')) + '\n' + text(declared('readManagedComputeRunRequirements')) +
     ';return readManagedComputeRunRequirements;')(
     held => {assert.strictEqual(held, f.originals); assert(current);},
     (held, value) => {assert.strictEqual(held, f.originals); assert.strictEqual(value, prepared); return request;},
-    () => '{"execution_contracts":{"REL.values":{},"ACTQL.expression_fragment/0.1":{},"REL.derive.ordered":{}}}',
-    value => {
-      assert(value === p.manifests || value === p.contracts,
-        'Only fixed installation admissions may complete before typed Unsupported');
-      return value;
-    },
+    installed.asset,
+    value => {assert(value === installed.manifests || value === installed.admission); return value;},
     (code, cause) => Object.assign(new Error(code, {cause}), {code}),
     value => {assert.strictEqual(value, result); return true;},
     (value, index) => {assert.strictEqual(value, result); assert.equal(index, 0); return issue;});
   p.runtime.clientProgramInstalledManagedRunRequirements = () => assert.fail('No second preparation');
-  p.runtime.clientProgramPrepareInstalledManagedSourceFreeWithContracts = (value, contracts) => {
-    assert.strictEqual(contracts, p.contracts);
-    assert.strictEqual(value, prepared); preparations++; return result;
+  p.runtime.clientProgramPrepareInstalledManagedSourceFreeWithContracts = (...args) => {
+    assert.strictEqual(args[0], prepared); assert.strictEqual(args[1], installed.admission);
+    assert.deepEqual(args.slice(2), ['{}', '{}', '{}', false]);
+    preparations++; return result;
   };
   p.runtime.clientProgramInstalledManagedRunIssueIsUnsupported = value => {
     assert.strictEqual(value, issue); return true;
@@ -569,6 +591,8 @@ test('pure preparation refusal belongs only to its original pre-Resource Run hol
   assert.equal(project(), true);
   assert.throws(() => f.preparation.prepareManagedComputeRun(p.runtime, prepared, request), error => error === failure);
   assert.equal(preparations, 1); assert.deepEqual(p.log, []);
+  assert.deepEqual(installed.calls, ['manifests', 'sequence']);
+  assert.strictEqual(f.originals.installation.sequenceContractOriginal.admission, installed.admission);
   await f.initialControl.close();
   assert.equal(project(), false, 'Actual successful retirement cuts the nominal refusal holder');
 });
@@ -644,11 +668,14 @@ function sourceFreeOpening() {
         '!acquiring && !inferring && !serializing') matches.push(node);
   });
   assert.equal(matches.length, 1);
-  const helpers = dispatchAst.body.filter(node => node.type === 'FunctionDeclaration' &&
-    ['retainDispatchPreparationHost', 'releaseDispatchPreparationHost'].includes(node.id.name));
-  assert.equal(helpers.length, 2);
+  const helper = name => {
+    const matches = dispatchAst.body.filter(node => node.type === 'FunctionDeclaration' && node.id.name === name);
+    assert.equal(matches.length, 1, name);
+    return dispatchSource.slice(matches[0].start, matches[0].end);
+  };
   return new Function('held', 'moon', 'preparedProgram', 'requested', 'retainedRelationOutput', 'checked', 'preparationLease', `
-    ${helpers.map(node => dispatchSource.slice(node.start, node.end)).join('\n')}
+    ${helper('releaseDispatchPreparationHost')}
+    ${helper('retainDispatchPreparationHost')}
     const acquiring=false, inferring=false, serializing=false;
     const managedComputeRequired=true;
     const registry='registry',values='values',fragment='fragment',ordered='ordered',entry={};let setup;
@@ -860,4 +887,57 @@ test('managed accounting refuses old Usage capability before any sample', () => 
   assert.equal(typeof read,'function');
   assert.equal(read(),undefined,'An older same-size layout cannot be interpreted by the new capability');
   assert.equal(oldReads,0,'No legacy fallback or speculative second sample');
+});
+
+
+test('actual dispatcher retains and returns the captured original preparation borrow', () => {
+  const managedRun = {}, prepared = {}, request = {}, holder = {}, lease = {}, setup = {}, calls = [];
+  const moon = {
+    clientProgramInstalledManagedPreparationBorrow(run, value, requested) {
+      assert.strictEqual(this, moon); assert.strictEqual(run, managedRun);
+      assert.strictEqual(value, prepared); assert.strictEqual(requested, request);
+      calls.push('borrow'); return holder;
+    },
+    clientProgramPreparationBorrowRead(value) {
+      assert.strictEqual(this, moon); assert.strictEqual(value, holder);
+      calls.push('read'); return prepared;
+    },
+    clientProgramPreparationBorrowReturn(value) {
+      assert.strictEqual(this, moon); assert.strictEqual(value, holder); calls.push('return');
+    },
+    clientProgramOpenInstalledManagedSourceFreeHost() {calls.push('open'); return setup;},
+  };
+  const result = sourceFreeOpening()({managedRun}, moon, prepared, request, false, value => value, lease);
+  assert.strictEqual(result.setup, setup); assert.strictEqual(result.entry.preparationHostBorrow, holder);
+  assert.strictEqual(result.entry.preparationHostRuntime, moon);
+  moon.clientProgramPreparationBorrowReturn = () => assert.fail('No replacement return receiver');
+  result.release(); result.release();
+  assert.deepEqual(calls, ['borrow', 'read', 'open', 'return']);
+  assert.equal(result.entry.preparationHostBorrow, undefined);
+  assert.equal(result.entry.preparationHostReturn, undefined);
+  assert.equal(result.entry.preparationHostRuntime, undefined);
+});
+
+test('actual dispatcher refuses foreign or missing preparation custody and returns only its same borrow', () => {
+  for (const hasLease of [false, true]) {
+    const managedRun = {}, prepared = {}, request = {}, holder = {}, calls = [];
+    const moon = {
+      clientProgramInstalledManagedPreparationBorrow(run, value, requested) {
+        assert.strictEqual(this, moon); assert.strictEqual(run, managedRun);
+        assert.strictEqual(value, prepared); assert.strictEqual(requested, request);
+        calls.push('borrow'); return holder;
+      },
+      clientProgramPreparationBorrowRead(value) {
+        assert.strictEqual(this, moon); assert.strictEqual(value, holder);
+        calls.push('read'); return {}; // Another prepared original cannot borrow this owner.
+      },
+      clientProgramPreparationBorrowReturn(value) {
+        assert.strictEqual(this, moon); assert.strictEqual(value, holder); calls.push('return');
+      },
+      clientProgramOpenInstalledManagedSourceFreeHost() {assert.fail('No Host open after custody refusal');},
+    };
+    assert.throws(() => sourceFreeOpening()({managedRun}, moon, prepared, request, false,
+      value => value, hasLease ? {} : undefined), /ForeignPreparationHostCustody/u);
+    assert.deepEqual(calls, hasLease ? ['borrow', 'read', 'return'] : ['borrow', 'return']);
+  }
 });

@@ -1,4 +1,4 @@
-import {ledgerUsageFields} from './ledger-contract.generated.mjs';
+import {ledgerUsageFields} from '../host-common/ledger-contract.generated.mjs';
 // Required integration regression: an authentic generation barrier must be
 // compiled inside the same checked Effect Program, not rewritten to a Source
 // supplying an already issued ContentRef. Physical acceptance is separate.

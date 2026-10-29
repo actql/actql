@@ -1847,6 +1847,8 @@ pub fn prepare_source_free_client_request_identity(PreparedClientProgram, String
 
 pub fn prepare_source_free_client_values_dispatch(ClientValuesRunBinding, ClientRequestIdentity, Int, String, ClientValuesSiteSelection) -> Result[@remote_site_protocol.DispatchRequest, ClientValuesDispatchIssue]
 
+pub fn prepare_static_client_effect_computation(@program_check.EffectProgramStaticCandidate, ClientProgramPreparationLimits, Int, update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue]
+
 pub fn prepare_submission_epoch(String, String, Double, Double) -> Result[@logical_request_scope.SubmissionEpoch, @logical_request_scope.SubmissionIdentityIssue]
 
 pub fn prepared_client_acquired_infer_step(PreparedClientProgram) -> Int?
@@ -2012,6 +2014,8 @@ pub fn register_client_model_raw_capture(ClientInferDispatchAdmission, @run_publ
 pub fn release_client_effect_command_content(ClientEffectCommandContent) -> Unit
 
 pub fn release_recovered_client_effect_command_content(RecoveredClientEffectCommandContent) -> Unit
+
+pub fn[E] reobserve_client_saved_submission_original(ClientSavedSubmissionSnapshot, (String, String) -> Result[ClientJournalPhysicalRow?, E]) -> Result[ClientSavedSubmissionSnapshot?, E]
 
 pub fn[A] reserve_client_keyed_acquisition_attempt(@query_planning.QueryEvidenceRegistration[@sourceview_resolution.KeyedSourceFacts, @program_check.KeyedExecution, A], @query_planning.AcquisitionChoice[@program_check.KeyedExecution], @query_planning.PreparedAcquisition[@program_check.KeyedExecution, ClientKeyedAcquisition]) -> Result[(ClientKeyedAcquisition, @query_planning.QueryEvidenceAttemptAuthority[@sourceview_resolution.KeyedSourceFacts, @program_check.KeyedExecution, A]), @query_planning.QueryEvidenceCustodyIssue]
 

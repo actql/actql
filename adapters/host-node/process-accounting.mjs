@@ -1,7 +1,7 @@
 // Private local-IPC accounting, not ActQL identity or completion evidence.
 // Exact primitive fields are copied before an await; no provider payload lives
 // here. The common MoonBit ledger enforces cumulative relationships and limits.
-import {ledgerLimitsFields, ledgerUsageFields} from './ledger-contract.generated.mjs';
+import {ledgerLimitsFields, ledgerUsageFields} from '../host-common/ledger-contract.generated.mjs';
 
 function copy(value, fields, wire) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {runtimeCore, ledgerUsageSnapshot, ledgerUsageDiagnostic, ledgerUsageHasPendingResources} from './runtime-core.mjs';
-import {ledgerUsageFields} from '../host-node/ledger-contract.generated.mjs';
+import {ledgerUsageFields} from './ledger-contract.generated.mjs';
 
 const camel = name => name.replace(/_([a-z])/gu, (_, letter) => letter.toUpperCase());
 

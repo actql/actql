@@ -2,6 +2,8 @@
 // Existing ordinary managed Root with explicit no-I/O current/cleanup ports.
 // This is a source-component connection, not an installed artifact, physical
 // backing, Account/Effect grant or successful provider operation.
+// Preserve the original Array FFI/input boundary under this declaration only.
+#warnings("-deprecated")
 extern "js" fn effect_parent_test_original(
   loader : PublicationTestLoader,
   plan : ClientInstalledEffectManagedPlan,

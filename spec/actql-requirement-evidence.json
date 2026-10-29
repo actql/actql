@@ -15304,6 +15304,17 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/mapping-contracts.key-upsert-complete-permission-set",
+      "statement_sha256": "b00be94124373433fc3be2fdadfcd36cc4cad16b4809dc4335d0feb5e883c446",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the single complete UPSERT permission rule with independent positive/negative typed issuer, Preview and apply evidence.",
+      "source": {
+        "anchor": "mapping-contracts",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/mapping-generation.product-c4d159e6b70f",
       "statement_sha256": "c4d159e6b70f9e46d4e633b7be91477cdfa54d80956ba6964f6adac0f7a08a1f",
       "status": "pending",

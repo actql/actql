@@ -96,22 +96,51 @@ API`.
 
 **Preview.** Updates, upserts of an existing event, deletes, responses and
 moves are `full_diff`: the Connector reads the event, records its current
-fields and `etag`, and the Preview shows current and new values. The request
-carries that `etag` (`If-Match`); an event changed in between makes the item
-`failed` with `conflict`, and the Run produces a new Preview if asked to
-continue. Inserts and upserts that create are `targeted`: the Preview shows
-the full event that would be created and the calendar it goes to.
+fields and `etag`, and the Preview shows current and new values. The approved
+version and change remain fixed. Updates and deletes use the documented
+[`If-Match` condition](https://developers.google.com/workspace/calendar/api/guides/version-resources);
+a failed condition makes the item `failed` with `conflict`. Continuing requires
+a new Preview, not an automatic rebase or resend. A move must also honor its
+approved version guard, but the update/delete documentation alone does not
+qualify a conditional move contract. A backend without that contract must
+refuse before dispatch; this is an implementation gap, not removal of the
+required move operation. Inserts and upserts that create are `targeted`: the
+Preview shows the full event that would be created and the calendar it goes to.
 
-**Reconciliation.** Before sending, the Connector writes the request's marker
-into the event's private extended properties. A lost reply after a create is
-reconciled by listing events in the request's time window for **that
-marker**; an event with the same summary and time but no marker is not
-evidence. Updates, responses and moves write the request's marker into the same
-extended property in the same request, so they are reconciled by reading the
-event back and finding that marker with the approved values; an `etag` that
-moved, or the values alone, is not evidence. A delete is confirmed by the
-event's `status = 'cancelled'` together with the marker. When none of this settles the outcome, the item stays `unknown` and
-nothing is re-sent.
+**Body-carrying writes.** Creates, updates and responses carry the original
+request marker in the event's private extended properties in the same physical
+write. Marker insertion is not a hidden earlier mutation. A lost create reply
+can be reconciled by an authorized bounded lookup in the request's time window
+for **that marker** and the approved values. Updates and responses use the same
+original marker and approved values in their scoped readback. An equal summary,
+time, changed `etag`, or values alone is not evidence of this operation.
+
+**Native moves and deletes.** The documented
+[`events.move`](https://developers.google.com/workspace/calendar/api/v3/reference/events/move)
+and [`events.delete`](https://developers.google.com/workspace/calendar/api/v3/reference/events/delete)
+requests have no body, so they cannot write a new private marker. Use those
+native operations with the exact approved source event, calendar, destination
+when applicable, notification choice and version guard. Do not replace delete
+with a cancellation PATCH or silently PATCH a marker before moving or deleting.
+A compound operation would need its own explicit Preview, complete operation
+inventory, authority, capacity and disclosed atomicity.
+
+**Confirmation and uncertain replies.** An authentic, retained response bound
+to this same original physical request can confirm only its documented native
+postcondition. A move requires the correlated complete Event response and the
+approved destination/change; a delete requires its correlated native success
+response, whose body is empty. A status number or detached response alone is
+not such evidence. Any postcondition still requiring a readback needs an
+explicitly authorized, funded read under the same operation owner. The existing
+claim, current checks, apply receipt and physical cleanup remain separate.
+
+After sending is possible, a missing, lost, partial or insufficient reply stays
+`unknown` unless authentic evidence settles this exact operation. A later
+missing event, cancellation, source tombstone, destination event, previous
+marker or changed `etag` alone does not prove which write caused it. Google
+does not guarantee private properties on
+[deleted or moved-source tombstones](https://developers.google.com/workspace/calendar/api/v3/reference/events).
+No marker is fabricated, no `OperationRef` is invented, and nothing is re-sent.
 
 ## Limits and cost
 

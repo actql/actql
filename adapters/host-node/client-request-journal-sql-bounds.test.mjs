@@ -24,7 +24,8 @@ function observe(action) {
   const open = DatabaseSync.prototype.open, exec = DatabaseSync.prototype.exec;
   const prepare = DatabaseSync.prototype.prepare;
   const byteLength = Buffer.byteLength;
-  const state = {database: undefined, calls: 0, prepared: 0, bytes: 0, retainedPrepared: 0, retainedSqlBytes: 0};
+  const state = {database: undefined, calls: 0, prepared: 0, bytes: 0,
+    preparedBytes: 0, successfulPreparations: 0};
   DatabaseSync.prototype.open = function() {
     state.database = this; return Reflect.apply(open, this, []);
   };
@@ -34,11 +35,11 @@ function observe(action) {
   };
   DatabaseSync.prototype.prepare = function(sql) {
     state.calls++; state.prepared++;
-    state.bytes += Reflect.apply(byteLength, Buffer, [sql, 'utf8']);
+    const size = Reflect.apply(byteLength, Buffer, [sql, 'utf8']);
+    state.bytes += size; state.preparedBytes += size;
     if (state.failPrepare !== undefined) throw state.failPrepare;
     const statement = Reflect.apply(prepare, this, [sql]);
-    state.retainedPrepared++;
-    state.retainedSqlBytes += Reflect.apply(byteLength, Buffer, [sql, 'utf8']);
+    state.successfulPreparations++;
     return statement;
   };
   try { action(state); }
@@ -49,7 +50,7 @@ function observe(action) {
   return state;
 }
 
-test('primary retained statement and byte ceilings refuse before the next native compilation and still close', async () => {
+test('retained statement and SQL byte ceilings refuse before another native preparation and still close', async () => {
   const {scratch, directory} = await fixture();
   const cases = [{maxPreparedStatements: 1}, {maxSqlBytes: 1},
     {maxTotalSqlBytes: 1}];
@@ -60,8 +61,8 @@ test('primary retained statement and byte ceilings refuse before the next native
         assert.throws(() => { journal = openClientRequestJournal(directory + index,
           {primarySqlLimits: {...defaults, ...selected}}); },
         {code: 'ClientRequestJournalSqlUnavailable'});
+        assert.equal(state.prepared, index === 0 ? 1 : 0);
         if (index === 1) assert.equal(state.calls, 0);
-        assert.equal(state.retainedPrepared, index === 0 ? 1 : 0);
         assert.equal(state.database.isOpen, false);
       } finally { journal?.close(); }
     });
@@ -74,7 +75,8 @@ test(`later byteLength replacement (${label}) cannot bypass the primary aggregat
   const {scratch, directory} = await fixture();
     observe(state => {
       const journal = openClientRequestJournal(directory,
-        {primarySqlLimits: {...defaults, maxPreparedStatements: 10000, maxTotalSqlBytes: 65536}});
+        {primarySqlLimits: {...defaults,
+          maxPreparedStatements: 10000, maxTotalSqlBytes: 65536}});
       const byteLength = Buffer.byteLength;
       let failure, nativeCalls;
       try {
@@ -88,14 +90,15 @@ test(`later byteLength replacement (${label}) cannot bypass the primary aggregat
       } finally { Buffer.byteLength = byteLength; journal.close(); }
       assert.equal(failure?.code, 'ClientRequestJournalSqlUnavailable');
       assert.equal(state.calls, nativeCalls);
-      assert.ok(state.retainedSqlBytes <= 65536);
+      assert.ok(state.preparedBytes <= 65536,
+        'transient exec text is separate from retained prepared SQL');
       assert.equal(state.database.isOpen, false);
     });
   scratch.passed();
 });
 }
 
-test('repeated actual Journal prepares consume one lifetime allowance without GC refunds', async () => {
+test('actual Journal retains each returned statement within its original population until native close', async () => {
   const {scratch, directory} = await fixture();
   observe(state => {
     const primarySqlLimits = {...defaults, maxPreparedStatements: 70};
@@ -122,7 +125,7 @@ test('repeated actual Journal prepares consume one lifetime allowance without GC
   scratch.passed();
 });
 
-test('failed native preparation retains no statement while successful originals exhaust the same live quota', async () => {
+test('failed native preparation retains no returned statement and cannot enlarge the retained population', async () => {
   const {scratch, directory} = await fixture();
   observe(state => {
     const journal = openClientRequestJournal(directory,
@@ -130,17 +133,15 @@ test('failed native preparation retains no statement while successful originals 
     try {
       const cause = new Error('explicit original native prepare failure');
       state.failPrepare = cause;
-      const retained = state.retainedPrepared, retainedBytes = state.retainedSqlBytes;
-      for (let index = 0; index < 70; index++) {
+      const retained = state.successfulPreparations;
+      for (let index = 0; index < 80; index++) {
         assert.throws(() => journal.lookupReconciliationState(ref), error => error === cause);
       }
-      assert.equal(state.retainedPrepared, retained);
-      assert.equal(state.retainedSqlBytes, retainedBytes);
+      assert.equal(state.successfulPreparations, retained);
       state.failPrepare = undefined;
-      for (let index = retained; index < 70; index++) {
+      while (state.successfulPreparations < 70) {
         assert.equal(journal.lookupReconciliationState(ref), undefined);
       }
-      assert.equal(state.retainedPrepared, 70);
       const before = state.calls;
       assert.throws(() => journal.lookupReconciliationState(ref),
         {code: 'ClientRequestJournalSqlUnavailable'});
@@ -155,11 +156,14 @@ test('selected primary SQL limits are immutable own DATA and refuse invalid conf
   const {scratch, directory} = await fixture();
   let getterReads = 0;
   const getter = {...defaults};
-  Object.defineProperty(getter, 'maxPreparedStatements', {get() { getterReads++; return 1000; }});
+  Object.defineProperty(getter, 'maxCalls', {get() { getterReads++; return 1000; }});
+  const activeGetter = {...defaults};
+  Object.defineProperty(activeGetter, 'maxPreparedStatements', {get() { getterReads++; return 1000; }});
   for (const [index, primarySqlLimits] of [
-    {...defaults, maxCalls: 1000}, {...defaults, maxPreparedStatements: 0}, {...defaults, maxTotalSqlBytes: Infinity},
+    {...defaults, maxCalls: 0}, {...defaults, maxCalls: 1000},
+    {...defaults, maxPreparedStatements: 0}, {...defaults, maxTotalSqlBytes: Infinity},
     {...defaults, maxSqlBytes: 1.5}, {...defaults, maxPreparedStatements: -1},
-    {...defaults, extra: 1}, getter,
+    {...defaults, extra: 1}, getter, activeGetter,
   ].entries()) {
     let journal;
     const path = directory + index;

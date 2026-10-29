@@ -895,3 +895,243 @@ projections, independent declaration preimages/CIDs and dependent fixtures must
 be updated together before adoption. Generic outcome schemas, approval, durable
 claim, receipt, recovery, no-resend and physical cleanup laws remain unchanged.
 This documentation resolution is not installed or ordinary execution evidence.
+
+## Gmail reply participants
+
+`ROOT-GMAIL-REPLY-RECIPIENTS-01` resolves the previously unspecified recipient
+selection behind the Gmail guide's promise to keep the conversation's recipients.
+The normative mapping is owned by
+[Gmail reply recipients and threading](../connectors/gmail.md#reply-recipients-and-threading).
+[RFC 5322, sections 3.6.2–3.6.3](https://www.rfc-editor.org/rfc/rfc5322.html#section-3.6.2)
+provides reply destinations but deliberately leaves automatic participant
+selection to the application. The selected mapping keeps visible participants
+and preserves valid self-replies without guessing account aliases. Mailbox
+comparison follows
+[RFC 5321, section 2.4](https://www.rfc-editor.org/rfc/rfc5321.html#section-2.4).
+Thread correspondence also retains
+[Gmail's documented requirements](https://developers.google.com/workspace/gmail/api/guides/threads).
+
+This is an explicit resolution of an underspecified provider operation, not a
+claim that the standards mandate the application choice. It adds no Command
+field, identity domain, permission, outcome variant or machine-schema change.
+Concrete request bytes and their existing request CID must reflect the resolved
+destinations together; independent positive, negative and boundary fixtures and
+actual funded caller integration remain implementation obligations. Documentation
+alone does not qualify an installed reply or ordinary execution.
+
+## Gmail forwarding content
+
+`ROOT-GMAIL-FORWARD-CONTENT-01` resolves the previously unspecified content and
+addressing behind `gmail.forward(message, to[, body])`. The normative choice is
+owned by [Gmail forward content and addressing](../connectors/gmail.md#forward-content-and-addressing).
+This is an explicit application decision: the earlier guide selected neither
+inline text reduction nor a MIME-preserving representation, subject prefix or
+note placement. The Source's plain-text projection does not decide how a whole
+message is forwarded.
+
+Choose lossless encapsulation so the optional note cannot overwrite the
+original body or silently discard its attachments and MIME relationships.
+[RFC 2046, section 5.2](https://www.rfc-editor.org/rfc/rfc2046.html#section-5.2)
+describes this forwarding composition; internationalized messages retain the
+[RFC 6532 message type](https://www.rfc-editor.org/rfc/rfc6532.html#section-3.7).
+[RFC 5322, section 3.6.6](https://www.rfc-editor.org/rfc/rfc5322.html#section-3.6.6)
+distinguishes a new message from the forwarder from resending. These standards
+support the representation; they do not mandate ActQL's subject or note choice.
+Gmail exposes the complete message in
+[raw format](https://developers.google.com/workspace/gmail/api/reference/rest/v1/Format)
+and accepts [MIME message submissions](https://developers.google.com/workspace/gmail/api/guides/sending).
+That provider capability is not an ActQL read grant or completed implementation.
+
+The existing Command inputs and submission outcome remain unchanged; no new
+identity domain, permission, operation handle or public machine-schema field
+is selected. Request bytes and their existing CID must include the complete
+chosen material. Actual original acquisition, independent MIME/subject/note
+fixtures, bounded construction overlap, current/approval/claim/receipt, cold
+restoration and ordinary execution remain implementation obligations. Neither
+a declaration nor a metadata-only reader establishes forward support.
+
+## GitHub repository and organisation Source scopes
+
+`ROOT-GITHUB-REPOSITORY-SCOPE-01` resolves conflicting wording: the GitHub guide
+allowed organisation repository listing based on token type while also declaring
+every connection to be a single repository. The normative boundary is owned by
+[GitHub connection scope](../connectors/github.md#connection-scope). Credential
+capability does not choose or enlarge an admitted ActQL Source scope.
+
+GitHub's [organisation repository endpoint](https://docs.github.com/en/rest/repos/repos#list-organization-repositories)
+requires an explicit organisation selector and supports multiple token types.
+That provider behaviour does not itself supply an ActQL publication or read
+grant. The repository-only installed profile retains a stable repository binding;
+it does not already represent an organisation publication. Keeping that original
+binding closed while requiring a separate organisation Source original resolves
+the scope conflict without removing the documented enumeration requirement.
+
+This selects the scope boundary, not a new profile field, wire representation,
+identity domain, registry or authority issuer. The organisation publication,
+actual bounded acquisition and Host admission must be implemented coherently
+before that route is claimed as supported. Existing repository identities,
+Source/current/Account duties and Effect approval remain unchanged. A finite
+repository metadata reader does not establish organisation enumeration or full
+connector acceptance.
+
+## Explicit organisation repository listing
+
+`ROOT-GITHUB-ORGANIZATION-SOURCE-01` completes the configuration choice left
+open by `ROOT-GITHUB-REPOSITORY-SCOPE-01`. The normative owner is
+[GitHub connection scope](../connectors/github.md#connection-scope). Choose an
+explicit `organization` connection, mutually exclusive with `owner`/`repo`,
+with a separate closed publication that offers only repository metadata.
+Existing repository profiles and identities retain their meaning.
+
+The earlier scope decision already limited enumeration to admitted authority
+and actual provider visibility. Validated pagination completes that visible
+dataset; it does not need a new whole-organisation coverage prerequisite. Nor
+does it prove hidden repositories absent or establish an atomic snapshot. A
+stronger coverage claim requires its own admitted original and contract.
+
+GitHub's [Organisation repositories arguments](https://docs.github.com/en/graphql/reference/orgs#organization)
+default `ownerAffiliations` to include collaborators. Select `[OWNER]` explicitly
+and retain the observed Organisation ID and login through pagination, checking
+each repository's owner against them. Viewer `affiliations` is a different
+filter. Neither metadata nor token breadth grants per-repository rights.
+
+This selects a new configuration alternative, not a new grant or permission
+issuer. Its actual schema, profile, publication and consumers must move together
+under the existing admission owner; no partially enabled route or second profile
+table is sufficient. Provider DTO tests do not qualify ordinary organisation
+Source execution. Bounded construction, currentness, Account/Site authority,
+retention, cold recovery and failure cleanup remain implementation obligations.
+
+## Gmail mutation currentness and provider concurrency
+
+`ROOT-GMAIL-MUTATION-CURRENT-01` corrects an unsupported atomicity promise in
+[Gmail Preview and reconciliation](../connectors/gmail.md#preview-and-reconciliation).
+The former wording implied that transmitting `history_id` would make Gmail
+reject every intervening label change. Google's documented
+[modify request](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages/modify)
+has label deltas but no history precondition; the
+[trash request](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages/trash)
+has an empty body. A generic performance-guide ETag example does not establish
+a conditional contract for either method.
+
+Keep the exact approved before version and mutation, and require a current
+authorized read before sending. A mismatch is an unsent conflict. Do not
+rebuild the approved delta, put history metadata in an unsupported API field,
+or claim that the read closes the later concurrency window. This explicitly
+replaces the connector's overstrong promise with observed-version checking and
+truthful capability disclosure. A consumer requiring atomic enforcement must
+refuse until an actual conditional provider contract is qualified.
+
+The common [mutation capability rules](../spec/execution.md#effect-application)
+already require exact atomicity and reconciliation disclosure before dispatch;
+the [approved target guard](../spec/protocols/run.md#preview-row-state) still
+binds the original version and intended change. Their schemas, canonical
+identities, approval and risk-acceptance rules do not change. No synthetic
+conditional header, OperationRef or automatic risk approval is selected.
+
+An authentic correlated complete response may establish the declared mutation
+postcondition through the existing owner; no blanket extra confirmation read is
+selected merely by analogy with another connector. Any needed read has its own
+funded authority. Once sending is possible, missing or insufficient evidence
+stays uncertain, not a fabricated unsent conflict. Later labels or history alone
+cannot settle a lost reply, and automatic resend remains forbidden. Actual
+provider correlation, claim/receipt, current checks, bounded construction,
+cold recovery and physical cleanup remain required before normal adoption.
+
+## Calendar native move/delete confirmation
+
+`ROOT-CALENDAR-NATIVE-WRITE-CONFIRMATION-01` corrects the blanket marker rule in
+[Calendar Preview and reconciliation](../connectors/calendar.md#preview-and-reconciliation).
+Google's native [move](https://developers.google.com/workspace/calendar/api/v3/reference/events/move)
+and [delete](https://developers.google.com/workspace/calendar/api/v3/reference/events/delete)
+methods take no request body. Deleted events and moved-source tombstones do not
+guarantee retained private properties. Requiring these methods to write a new
+marker in that same request was therefore not an implementable native contract.
+
+Keep same-request markers for body-carrying writes. For native move/delete,
+distinguish an authentic response causally bound to the exact approved physical
+request from later state observations after a lost reply. A complete native
+response may establish the postcondition it actually proves; a remaining
+readback obligation has its own scoped authority and funded owner. Empty delete
+success is not a generic status whitelist. Neither a tombstone, absence,
+destination state nor an old marker alone proves this operation. Insufficient
+evidence stays Unknown, with no automatic resend or synthetic OperationRef.
+
+No marker-PATCH sequence or cancellation-PATCH substitute is selected. A future
+compound mutation must expose every write, permission, capacity and atomicity in
+its original Preview and operation inventory. All six documented Calendar
+operations remain required.
+
+The original full-diff version guard, exact mutation, common all-member
+preflight, approval, claim and cleanup duties remain. The documented
+[conditional update/delete](https://developers.google.com/workspace/calendar/api/guides/version-resources)
+contract does not by itself establish conditional move support. An unqualified
+backend refuses before sending; it must not silently weaken that guard or claim
+move support from these prose changes. No schema, CID, identity domain, grant or
+new outcome variant changes. Actual provider correlation, construction/backing,
+normal execution and cold recovery remain implementation obligations.
+
+## Slack file conversation membership
+
+The file Source's `channels` column denotes visible conversation membership,
+including the original provider's `channels`, `groups` and `ims` inventories.
+The previous array-only description did not specify this mapping. Selecting
+native `channels` alone would discard the private/direct-message relationship
+while the connector retains its required private/direct-message scope.
+
+The selected mapping uses a fixed field order and first occurrence under exact
+String identity. It preserves provider order and original provenance without
+inventing an order by opaque identifiers or treating repeated memberships as
+separate share events. Unknown components produce nullable unknown metadata;
+absence cannot certify an empty inventory. Explicitly empty arrays still have
+their ordinary empty meaning. This does not change the distinction between
+missing and NULL in general Source row contracts.
+
+[Slack's file object](https://docs.slack.dev/reference/objects/file-object/)
+documents separate private-group/direct-message fields and limits their
+observations by caller membership. Those observations cannot grant access or
+prove hidden coverage. File URLs also do not grant credential forwarding: the
+provider may return an external host as `url_private`. Existing destination,
+current and egress checks continue to govern downloads.
+
+This resolves an unspecified mapping before the normal file Source is
+published. It selects no new identity domain, permission, profile option or
+compatibility mode. The implementation must publish its actual Catalog/type
+contract, retain the original fields, bound raw input plus output construction
+and connect Source/Resource/Content/cleanup before normal support is claimed.
+Its existing logical resource model is retained; this requires neither a new
+allocator nor preallocation of every object in the VM heap.
+
+## Kintone UPSERT permissions and original keys
+
+`ROOT-KINTONE-UPSERT-PERMISSIONS-01` applies the existing
+[single exact Mapping permission rule](../spec/protocols/contracts.md#mapping-contracts)
+to the complete logical UPSERT. One `upsert`/`key` rule for the exact write-field
+set carries both existing technical requirements, `kintone:records:create` and
+`kintone:records:update`. Choosing one physical branch from the original lookup
+does not combine two different Mapping rules or reduce the logical operation's
+requirements. Lookup/read authorization remains separate.
+
+The provider's [update-records requirements](https://kintone.dev/en/docs/kintone/rest-api/records/update-records/)
+include add-record permission when native UPSERT is selected, in addition to
+update and field rights. Its [add-record requirements](https://kintone.dev/en/docs/kintone/rest-api/records/add-record/)
+also require add and field rights. These facts support the complete permission
+set; they do not select a different transport, grant authority or qualify the
+connector's original lookup and conditional-write algorithm. No new permission
+token or approval-minimum field is introduced.
+
+The Mapping retains the same observed unique field as its target key, distinct
+from the Relation's native `$id` candidate key. Original Form uniqueness,
+declaration, publication, lookup and write-contract correspondence remain
+required; a CID or caller assertion alone is insufficient. The actual selector
+is non-null on both branches and may supply the required create key separately
+from `SET`. Other missing required create fields still fail. Existing field-type
+and nullability checks remain in force.
+
+This uses the existing closed Mapping representation. New complete Mapping,
+schema and identity-scheme bodies receive their own dependent CIDs and
+independent preimages; old CREATE/UPDATE bodies and read contracts are not
+rewritten. Existing checks for other operations remain. No hidden key field,
+new identity domain, registry, Owner, grant or default is selected. Typed/static
+admission, full construction/backing, current Account and target rights,
+approval, claim, cleanup and cold recovery remain implementation obligations.

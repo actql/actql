@@ -3,7 +3,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
-import {readFileSync, existsSync} from 'node:fs';
+import {readFileSync} from 'node:fs';
 import {compileFunction} from 'node:vm';
 import {parse} from 'acorn';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
@@ -112,18 +112,20 @@ test('selected Journal reuses one original statement for repeated exact SQL with
   scratch.passed();
 });
 
-test('exact statement reuse rebinds parameters and retains native methods without refilling compilation or execution limits', () => {
+test('exact statement reuse preserves retained limits and rejects oversized operands before the original native method', () => {
   const database = new DatabaseSync(':memory:');
   const prepare = database.prepare;
-  let preparations = 0, originalStatement;
+  let preparations = 0, executions = 0, originalStatement;
   database.prepare = function(sql) {
     assert.equal(this, database); preparations++;
     const statement = Reflect.apply(prepare, this, [sql]);
+    const get = statement.get;
+    statement.get = function(...values) {executions++; return Reflect.apply(get, this, values);};
     originalStatement ??= statement;
     return statement;
   };
   const port = boundedOriginalSql(database, {...primarySqlLimits, maxPreparedStatements: 2},
-    {...execution, maxParameters: 1});
+    {...execution, maxParameters: 1, maxParameterBytes: 16});
   try {
     const first = port.database.prepare('SELECT ? AS n');
     assert.equal(first.get(1).n, 1);
@@ -136,31 +138,36 @@ test('exact statement reuse rebinds parameters and retains native methods withou
     assert.throws(() => port.database.prepare('SELECT ? AS other'), {code: 'ClientRequestJournalSqlUnavailable'});
     assert.equal(preparations, 2);
     assert.equal(port.database.prepare('SELECT ? AS n'), first);
-    assert.equal(first.get(4).n, 4);
+    assert.equal(first.get(4).n, 4, 'completed calls create no lifetime issuance debt');
+    assert.equal(executions, 4);
     assert.throws(() => first.get(4, 5), {code: 'ClientRequestJournalSqlUnavailable'});
+    assert.equal(executions, 4, 'excess parameter count refuses before the original native get');
+    assert.throws(() => first.get('界'.repeat(6)), {code: 'ClientRequestJournalSqlUnavailable'});
+    assert.equal(executions, 4, 'oversized operands refuse before the original native get');
     assert.equal(first.get(5).n, 5);
+    assert.equal(preparations, 2, 'failed execution neither replaces nor enlarges retained statements');
   } finally {
     database.close(); assert.equal(database.isOpen, false); port.retireClosedNativeAliases();
   }
 });
 
-test('failed selected native preparation is never cached and retains no live statement quota', () => {
+test('failed native preparation retains no statement and later success still enforces the original retained limit', () => {
   const database = new DatabaseSync(':memory:');
   const prepare = database.prepare;
   let preparations = 0;
   database.prepare = function(sql) {preparations++; return Reflect.apply(prepare, this, [sql]);};
-  const port = boundedOriginalSql(database, {...primarySqlLimits, maxPreparedStatements: 2}, execution);
+  const port = boundedOriginalSql(database, {...primarySqlLimits, maxPreparedStatements: 1,
+    maxTotalSqlBytes: Buffer.byteLength('SELECT ? AS n')}, execution);
   try {
-    for (let index = 0; index < 2; index++) assert.throws(() => port.database.prepare('INVALID SQL'), {code: 'ERR_SQLITE_ERROR'});
-    assert.equal(preparations, 2);
-    assert.throws(() => port.database.prepare('INVALID SQL'), {code: 'ERR_SQLITE_ERROR'});
-    assert.equal(preparations, 3);
-    const first = port.database.prepare('SELECT 1 AS n');
-    const second = port.database.prepare('SELECT 2 AS n');
-    assert.equal(first.get().n, 1); assert.equal(second.get().n, 2);
-    assert.equal(preparations, 5);
-    assert.throws(() => port.database.prepare('SELECT 3 AS n'), {code: 'ClientRequestJournalSqlUnavailable'});
-    assert.equal(preparations, 5);
+    for (let index = 0; index < 8; index++) assert.throws(() => port.database.prepare('INVALID SQL'), {code: 'ERR_SQLITE_ERROR'});
+    assert.equal(preparations, 8);
+    const original = port.database.prepare('SELECT ? AS n');
+    assert.equal(original.get(1).n, 1);
+    assert.equal(preparations, 9);
+    assert.throws(() => port.database.prepare('SELECT ? AS m'), {code: 'ClientRequestJournalSqlUnavailable'});
+    assert.equal(preparations, 9);
+    assert.strictEqual(port.database.prepare('SELECT ? AS n'), original);
+    assert.equal(original.get(2).n, 2);
   } finally {
     database.close(); assert.equal(database.isOpen, false); port.retireClosedNativeAliases();
   }
@@ -222,7 +229,11 @@ for (const boundary of ['compilation', 'wal', 'current']) {
     const transaction = createSqliteTransaction(port.database, 'ClientRequestJournal');
     try {
       assert.throws(() => transaction.run(() => {
-        if (boundary === 'compilation') port.database.prepare('SELECT 1 AS retained');
+        if (boundary === 'compilation') {
+          port.database.prepare('SELECT 1 AS retained').get();
+          assert.throws(() => port.database.prepare('SELECT 2 AS refused'),
+            {code: 'ClientRequestJournalSqlUnavailable'});
+        }
         if (boundary === 'wal') {
           port.database.prepare('CREATE TABLE body_work(n INTEGER)').run();
           port.database.prepare('INSERT INTO body_work VALUES (1)').run();
@@ -256,18 +267,18 @@ test('rollback cleanup keeps the original native method and synchronous reentry 
     }
     return Reflect.apply(exec, this, [sql]);
   };
-  port = boundedOriginalSql(database, primarySqlLimits, execution);
+  port = boundedOriginalSql(database, {...primarySqlLimits, maxPreparedStatements: 1}, execution);
   database.exec = () => {throw new Error('ReplacementMustNotRun');};
   const transaction = createSqliteTransaction(port.database, 'ClientRequestJournal');
   const primary = new Error('OriginalBodyFailure');
   try {
+    port.database.prepare('SELECT 1 AS retained').get();
     assert.throws(() => transaction.run(() => {throw primary;}), error => error === primary);
     assert.equal(rollbacks, 1);
     assert.equal(nested?.code, 'ClientRequestJournalSqlCleanupPending');
     assert.equal(database.isTransaction, false);
-    assert.throws(() => port.database.exec('ROLLBACK'), {code: 'ERR_SQLITE_ERROR'});
-    assert.equal(rollbacks, 2);
-    assert.equal(nested?.code, 'ClientRequestJournalSqlCleanupPending');
+    assert.throws(() => port.database.prepare('SELECT 2 AS refused'), {code: 'ClientRequestJournalSqlUnavailable'});
+    assert.equal(rollbacks, 1);
   } finally {database.close(); port.retireClosedNativeAliases();}
 });
 
@@ -419,18 +430,23 @@ test('unsupported original bind extent refuses before native statement invocatio
   scratch.passed();
 });
 
-test('completed statement calls keep exact cached originals without a fictitious lifetime call debt', async () => {
+test('completed cached Journal reads retain one statement and operand refusal leaves the same original usable', async () => {
   const {scratch, directory} = await fixture();
   instrument(state => {
-    const journal = openClientRequestJournal(directory, options());
+    const journal = openClientRequestJournal(directory, options({...execution, maxParameterBytes: 512}));
     try {
-      assert.equal(journal.lookupReconciliationState(ref), undefined);
-      const preparations = state.preparations.length, calls = state.nativeCalls;
-      for (let accepted = 0; accepted < 100; accepted++) {
+      const calls = state.nativeCalls, prepared = state.preparations.length;
+      for (let index = 0; index < 128; index++) {
         assert.equal(journal.lookupReconciliationState(ref), undefined);
       }
-      assert.equal(state.preparations.length, preparations);
-      assert.equal(state.nativeCalls, calls + 100);
+      assert.equal(state.nativeCalls, calls + 128);
+      assert.equal(state.preparations.length, prepared + 1);
+      assert.throws(() => journal.lookupReconciliationState({...ref, namespaceId: '界'.repeat(256)}),
+        {code: 'ClientRequestJournalSqlUnavailable'});
+      assert.equal(state.nativeCalls, calls + 128);
+      assert.equal(journal.lookupReconciliationState(ref), undefined);
+      assert.equal(state.nativeCalls, calls + 129);
+      assert.equal(state.preparations.length, prepared + 1);
     } finally { journal.close(); }
     assert.equal(state.database.isOpen, false);
   });
@@ -458,26 +474,31 @@ test('failed original cursor close and pending database close retain the same na
 test('selected preparation current callback cannot reenter the same Journal before native preparation', async () => {
   const {scratch, directory} = await fixture();
   instrument(state => {
-    let journal, armed = false, currentReads = 0, nestedFailure, nestedAttempts = 0;
+    let journal, armed = false, inputRead = false, currentReads = 0, nestedFailure, nestedAttempts = 0;
+    const selectedRef = {...ref, get namespaceId() {
+      // The facade and ensureOpen current checks precede argument access.
+      // Arm once here so the next callback is inside selected preparation,
+      // rather than relying on a count of those separate outer checks.
+      if (!inputRead) {inputRead = true; armed = true;}
+      return ref.namespaceId;
+    }};
     journal = openClientRequestJournal(directory, {...options(), primaryCurrent() {
       if (!armed) return;
-      // The delivered Journal forwarder and ensureOpen each check currentness
-      // before SQL begins. Target the third check inside native preparation,
-      // after the original synchronous-operation fence has been acquired.
-      if (++currentReads <= 2) return;
+      currentReads++;
       armed = false;
       nestedAttempts++;
       try { journal.lookupReconciliationState(ref); }
       catch (cause) { nestedFailure = cause; }
     }});
     try {
-      const before = state.nativeCalls;
-      armed = true;
-      assert.equal(journal.lookupReconciliationState(ref), undefined);
+      const before = state.nativeCalls, prepared = state.preparations.length;
+      assert.equal(journal.lookupReconciliationState(selectedRef), undefined);
+      assert.equal(inputRead, true);
       assert.equal(nestedAttempts, 1);
-      assert.equal(currentReads, 3);
+      assert.equal(currentReads, 1);
       assert.equal(nestedFailure?.code, 'ClientRequestJournalSqlCleanupPending');
       assert.equal(state.nativeCalls, before + 1);
+      assert.equal(state.preparations.length, prepared + 1);
       assert.equal(journal.lookupReconciliationState(ref), undefined);
       assert.equal(state.nativeCalls, before + 2);
     } finally { journal.close(); }

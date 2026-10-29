@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {readFileSync, writeFileSync} from 'node:fs';
+import {mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -23,23 +23,25 @@ test('actual Core owns the complete current limits and thirteen-field usage cont
   ]);
   assert.equal(contract.limits.length, 6);
   assert.equal(renderLedgerTransportContract(core), readFileSync(
-    new URL('../adapters/host-node/ledger-contract.generated.mjs', import.meta.url), 'utf8'));
+    new URL('../adapters/host-common/ledger-contract.generated.mjs', import.meta.url), 'utf8'));
 });
 
 test('adding a Core field mechanically reaches the generated transport without another schema edit', async () => {
   const changed = core.replace('pub(all) struct LedgerUsage {', 'pub(all) struct LedgerUsage {\n  future_count : Int');
   const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-ledger-contract-', label: 'Core ledger contract projection'});
-  writeFileSync(join(scratch.path, 'ledger-contract.generated.mjs'), renderLedgerTransportContract(changed));
+  mkdirSync(join(scratch.path, 'host-common'));
+  mkdirSync(join(scratch.path, 'host-node'));
+  writeFileSync(join(scratch.path, 'host-common/ledger-contract.generated.mjs'), renderLedgerTransportContract(changed));
   // The exact production consumer imports the independently changed Core
   // projection. No handwritten replacement codec or field schema is supplied.
-  writeFileSync(join(scratch.path, 'process-accounting.mjs'), readFileSync(
+  writeFileSync(join(scratch.path, 'host-node/process-accounting.mjs'), readFileSync(
     new URL('../adapters/host-node/process-accounting.mjs', import.meta.url)));
-  const module = await import(pathToFileURL(join(scratch.path, 'ledger-contract.generated.mjs')).href);
+  const module = await import(pathToFileURL(join(scratch.path, 'host-common/ledger-contract.generated.mjs')).href);
   assert.deepEqual(module.ledgerUsageFields[0], {name: 'future_count', bits: 32});
   assert.equal(module.ledgerUsageFields.length, 14);
   assert(Object.isFrozen(module.ledgerUsageFields));
   assert(module.ledgerUsageFields.every(Object.isFrozen));
-  const codec = await import(pathToFileURL(join(scratch.path, 'process-accounting.mjs')).href);
+  const codec = await import(pathToFileURL(join(scratch.path, 'host-node/process-accounting.mjs')).href);
   const usage = {...codec.emptyProcessUsage(), future_count: 7};
   assert.equal(Object.keys(usage).length, 14);
   assert.deepEqual(codec.decodeProcessUsage(codec.encodeProcessUsage(usage)), usage);

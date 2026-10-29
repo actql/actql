@@ -103,6 +103,36 @@ test "Notion system timestamp normalization preserves the original version spell
 }
 
 ///|
+test "Notion finer system timestamps preserve exact instants and original versions" {
+  for
+    (original, canonical) in [
+      ("2026-10-18T01:21:30.0001Z", "2026-10-18T01:21:30.0001Z"),
+      ("2026-10-18T10:21:30.000100+09:00", "2026-10-18T01:21:30.0001Z"),
+      ("2026-10-18T10:21:30.123456789+09:00", "2026-10-18T01:21:30.123456789Z"),
+    ] {
+    let original_json = original.to_json().stringify()
+    let canonical_json = canonical.to_json().stringify()
+    let (binding, page) = system_test_setup(
+      system_test_row(created=original_json, edited=original_json),
+    )
+    let row = start_notion_read_row(binding, page, 0, row_test_limits()).unwrap()
+    complete_notion_read_row_property(row, 0, row_test_title(binding, page)).unwrap()
+    assert_eq(
+      notion_read_row_wire(row, 1024, 32, 8),
+      Ok(
+        "{\"amount\":\"9007199254740993.25\",\"created_by\":\"maker\",\"created_time\":" +
+        canonical_json +
+        ",\"id\":\"page\",\"last_edited_by\":\"editor\",\"last_edited_time\":" +
+        canonical_json +
+        ",\"resource\":\"page\",\"title\":\"é😀\",\"url\":\"https://notion.test/page\",\"version\":" +
+        original_json +
+        "}",
+      ),
+    )
+  }
+}
+
+///|
 test "Notion missing malformed or foreign system originals cannot produce a full Source row" {
   for
     wire in [

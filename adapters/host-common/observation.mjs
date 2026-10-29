@@ -3,7 +3,7 @@
 // event-loop turn and can overlap an active public operation.
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {randomUUID, createHash} from 'node:crypto';
-import {ledgerLimitsFields, ledgerUsageFields} from '../host-node/ledger-contract.generated.mjs';
+import {ledgerLimitsFields, ledgerUsageFields} from './ledger-contract.generated.mjs';
 
 export const observationVersion = 'actql-observation/0.1';
 export const observationLimits = Object.freeze({

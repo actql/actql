@@ -10,7 +10,7 @@ import {basename, dirname, isAbsolute, join, relative, resolve, sep} from 'node:
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {build, buildSync} from 'esbuild';
 import {createOwnedScratch} from './owned-scratch.mjs';
-import {packedNpmCache} from './packed-client-packages.mjs';
+import {packedNpmCache, normalNpmPackJsonArgs, parseNpmPackJson, normalPackSourceInputs, initializeNormalPackSourceIndex} from './packed-client-packages.mjs';
 import {tokens} from './portable-core.mjs';
 import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
 import {checkNodeAssembly} from './connector-node-bundles.mjs';
@@ -161,12 +161,11 @@ async function acceptance() {
   const environment = Object.fromEntries(Object.entries(process.env)
     .filter(([key]) => !key.startsWith('ACTQL_') && key !== 'NODE_PATH'));
   environment.npm_config_cache = packedNpmCache(scratch.path);
-  const paths = [...new Set(run('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'],
+  const listed = [...new Set(run('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'],
     repository, environment).split('\0').filter(Boolean))];
+  const paths = await normalPackSourceInputs(repository, listed);
   const sourceHashes = [];
   for (const path of paths) {
-    if (!['src/', 'adapters/', 'scripts/', 'packages/', 'spec/'].some(prefix => path.startsWith(prefix)) &&
-        !['moon.mod', 'package.json', 'package-lock.json'].includes(path)) continue;
     const source = join(repository, path);
     if (!existsSync(source)) {
       assert.ok(!path.startsWith('src/') ||
@@ -180,12 +179,13 @@ async function acceptance() {
     await writeFile(target, bytes);
     sourceHashes.push([path, sha256(bytes)]);
   }
+  initializeNormalPackSourceIndex(coreRoot, sourceHashes.map(([path]) => path));
   await symlink(join(repository, 'node_modules'), join(coreRoot, 'node_modules'), 'dir');
   const fixture = join(coreRoot, 'scripts/fixtures/external-compute');
   await cp(join(fixture, 'external-numeric'), sourceRoot, {recursive: true});
   await cp(join(fixture, 'compute-host'), hostRoot, {recursive: true});
   const pack = async root => {
-    const metadata = JSON.parse(run('npm', ['pack', '--offline', '--json', '--pack-destination', artifacts],
+    const metadata = parseNpmPackJson(run('npm', normalNpmPackJsonArgs(['pack', '--offline', '--json', '--pack-destination', artifacts]),
       root, environment, 180000))[0];
     const path = join(artifacts, metadata.filename), bytes = await readFile(path);
     assert.equal(metadata.integrity, 'sha512-' + createHash('sha512').update(bytes).digest('base64'));

@@ -3035,7 +3035,7 @@ pub fn strategy_host_managed_result_import_begin(
   let bridge_limits = match @builtin.configured_local_module(
     @builtin.configured_host_modules(host),
   ) {
-    Some(local_module) => @publication_local_driver.local_publication_bridge_limits(local_module, run)
+    Some(original_module) => @publication_local_driver.local_publication_bridge_limits(original_module, run)
     None => None
   }
   // LOCAL_PUBLICATION_BRIDGE_POLICY_END

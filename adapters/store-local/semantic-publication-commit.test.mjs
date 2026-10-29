@@ -26,14 +26,27 @@ async function actualSync(path) {
   try { await handle.sync(); } finally { await handle.close(); }
 }
 
-test('semantic metadata durably brackets each original preparation within its owned quota lifetime', async t => {
+test('semantic metadata shares one acknowledged dirty and sealed quota lifetime across durable preparations', async t => {
   const directory=await mkdtemp(join(tmpdir(),'actql-semantic-quota-lifetime-'));
-  let store,armed=false,commits=0;
+  let store,armed=false,header;
+  const acknowledgedHeaders=[];
   t.after(async()=>{armed=false;await store?.close();await rm(directory,{recursive:true});});
   const exec=DatabaseSync.prototype.exec;
   t.mock.method(DatabaseSync.prototype,'exec',function(sql,...args){
-    if(armed&&sql==='COMMIT')commits++;
-    return Reflect.apply(exec,this,[sql,...args]);
+    const result=Reflect.apply(exec,this,[sql,...args]);
+    if(armed){
+      if(sql==='BEGIN IMMEDIATE'||sql==='ROLLBACK')header=undefined;
+      if(sql==='PRAGMA user_version=1'||sql==='PRAGMA user_version=0'){
+        assert.equal(this.isTransaction,true,'the quota header belongs to the original native transaction');
+        header=sql;
+      }
+      if(sql==='COMMIT'){
+        assert.equal(this.isTransaction,false);
+        if(header!==undefined)acknowledgedHeaders.push(header);
+        header=undefined;
+      }
+    }
+    return result;
   });
   store=await openLocalPublicationStore(configuration(directory),control);
   armed=true;
@@ -43,11 +56,13 @@ test('semantic metadata durably brackets each original preparation within its ow
       invocation_template_cid:cid('template-'+i),observation_set_cid:cid('observations-'+i)}),limits);
     originals.push(value);await store.putPublicationContract(value.name,value.wire);
   }
-  assert.equal(commits,7,'one quota dirty mark plus one durable stage and settlement per semantic preparation');
+  assert.deepEqual(acknowledgedHeaders,['PRAGMA user_version=1'],
+    'durable semantic preparation/settlement transactions are separate from the one quota dirty mark');
   assert.equal(store.status().objectCount,3);
   assert.equal(store.status().reservedObjects,0);
   await store.close();
-  assert.equal(commits,8,'one real atomic quota seal follows all original preparation settlements at close');
+  assert.deepEqual(acknowledgedHeaders,['PRAGMA user_version=1','PRAGMA user_version=0'],
+    'one real atomic quota seal follows all original physical ACKs at close');
   armed=false;
   const database=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'),{readOnly:true});
   try{
@@ -60,7 +75,8 @@ test('semantic metadata durably brackets each original preparation within its ow
   for(const value of originals)assert.equal((await store.readPublicationContract(value.identity,value.name)).wire,value.wire);
   assert.equal(store.status().objectCount,3);
   await store.close();
-  assert.equal(commits,8,'read-only opening, selected reads and close do not dirty or seal physical quota');
+  assert.deepEqual(acknowledgedHeaders,['PRAGMA user_version=1','PRAGMA user_version=0'],
+    'read-only opening, selected reads and close do not dirty or seal physical quota');
 });
 
 test('only an actually unsealed physical quota lifetime audits its bounded objects on reopen', async t => {
@@ -189,41 +205,55 @@ test('semantic metadata retains the same failed native close before publication 
   }
 });
 
-test('a lost original object-link reply retires its unpublished generation before releasing capacity', async t => {
+test('a lost original object-link reply retires only its same generation after actual unlink acknowledgement', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-semantic-link-reply-'));
-  const store = await openLocalPublicationStore({...configuration(directory), maxObjects: 1}, control);
+  let store, selectedObject, originalState, retirementAcked = false;
+  const retirement = [];
+  store = await openLocalPublicationStore({...configuration(directory), maxObjects: 1}, control, {
+    async syncDirectory(path) {
+      const retiring = path === join(directory, 'objects') && retirement.includes('unlink-returned') && !retirementAcked;
+      if (retiring) assert.equal(store.status().objectCount, 1, 'unlink alone cannot release the original quota');
+      await actualSync(path);
+      if (retiring) {retirement.push('objects-directory-ack'); retirementAcked = true;}
+    },
+  });
   t.after(async () => { await store.close(); await rm(directory, {recursive: true}); });
-  const originalLink = fsPromises.link;
-  const originalUnlink = fsPromises.unlink;
-  let lost = false, reclaimed = 0;
+  const originalLink = fsPromises.link, originalUnlink = fsPromises.unlink;
+  const primary = Object.assign(new Error('lost original link reply'), {code: 'EIO'});
+  let lost = false;
   fsPromises.link = async function(from, to) {
     const result = await Reflect.apply(originalLink, this, [from, to]);
     if (!lost && String(to).startsWith(join(directory, 'objects') + sep)) {
       lost = true;
-      throw Object.assign(new Error('lost original link reply'), {code: 'EIO'});
+      selectedObject = to;
+      originalState = await fsPromises.lstat(to);
+      throw primary;
     }
     return result;
   };
-  fsPromises.unlink = async function(path) {
-    if (String(path).startsWith(join(directory, 'objects') + sep)) {
-      assert.equal(store.status().objectCount, 1,
-        'the exact installed generation stays charged until its original unlink');
-      reclaimed++;
+  fsPromises.unlink = async function(path, ...args) {
+    if (path === selectedObject) {
+      const state = await fsPromises.lstat(path);
+      assert.equal(state.dev, originalState.dev);
+      assert.equal(state.ino, originalState.ino);
+      retirement.push('same-generation-unlink');
     }
-    return Reflect.apply(originalUnlink, this, [path]);
+    const result = await Reflect.apply(originalUnlink, this, [path, ...args]);
+    if (path === selectedObject) retirement.push('unlink-returned');
+    return result;
   };
   syncBuiltinESMExports();
   try {
-    await assert.rejects(store.putPublicationContract(contract.name, contract.wire), {code: 'EIO'});
+    await assert.rejects(store.putPublicationContract(contract.name, contract.wire), error => error === primary);
     assert.equal(lost, true);
-    assert.equal(reclaimed, 1, 'cleanup retires the one original unpublished generation');
-    assert.deepEqual(await readdir(join(directory, 'objects')), []);
+    assert.deepEqual(retirement, ['same-generation-unlink', 'unlink-returned', 'objects-directory-ack']);
     assert.equal(store.status().objectCount, 0,
-      'capacity is released only after physical cleanup acknowledges the original generation');
+      'only the confirmed original reclamation releases its charge');
     assert.equal(store.status().reservedObjects, 0);
+    assert.deepEqual(await readdir(join(directory, 'objects')), []);
     assert.deepEqual(await readdir(join(directory, 'contracts')), []);
     const stored = await store.putPublicationContract(contract.name, contract.wire);
-    assert.equal(stored.physical.created, true);
+    assert.equal(stored.physical.created, true, 'a completed reclamation is not an existing adopted allocation');
     assert.equal(store.status().objectCount, 1);
   } finally {
     fsPromises.link = originalLink;
@@ -232,7 +262,7 @@ test('a lost original object-link reply retires its unpublished generation befor
   }
 });
 
-test('cold recovery reclaims the completed unpublished original before a fresh allocation', async t => {
+test('cold recovery reclaims only the acknowledged unpublished original before new admission', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-semantic-cold-'));
   let store;
   t.after(async () => { await store?.close(); await rm(directory, {recursive: true}); });
@@ -262,9 +292,37 @@ test('cold recovery reclaims the completed unpublished original before a fresh a
   assert.equal(child.signal, null);
   assert.equal(child.stdout, 'ORIGINAL_OBJECT_DURABLE');
   assert.deepEqual(await readdir(join(directory, 'contracts')), []);
-  assert.equal((await readdir(join(directory, 'objects'))).length, 1,
-    'the selected crash leaves the original physical allocation, not only a reservation');
-  store = await openLocalPublicationStore(selected, control);
+  const originalObject = join(directory, 'objects', cid(contract.wire).slice(7));
+  const originalState = await fsPromises.lstat(originalObject);
+  assert.deepEqual(await fsPromises.readFile(originalObject), Buffer.from(contract.wire));
+  const originalUnlink = fsPromises.unlink, retirement = [];
+  let retirementAcked = false;
+  fsPromises.unlink = async function(path, ...args) {
+    if (path === originalObject) {
+      const state = await fsPromises.lstat(path);
+      assert.equal(state.dev, originalState.dev);
+      assert.equal(state.ino, originalState.ino);
+      retirement.push('same-generation-unlink');
+    }
+    const result = await Reflect.apply(originalUnlink, this, [path, ...args]);
+    if (path === originalObject) retirement.push('unlink-returned');
+    return result;
+  };
+  syncBuiltinESMExports();
+  try {
+    store = await openLocalPublicationStore(selected, control, {
+      async syncDirectory(path) {
+        await actualSync(path);
+        if (path === join(directory, 'objects') && retirement.includes('unlink-returned') && !retirementAcked) {
+          retirement.push('objects-directory-ack'); retirementAcked = true;
+        }
+      },
+    });
+  } finally {
+    fsPromises.unlink = originalUnlink;
+    syncBuiltinESMExports();
+  }
+  assert.deepEqual(retirement, ['same-generation-unlink', 'unlink-returned', 'objects-directory-ack']);
   assert.equal(store.status().objectCount, 0);
   assert.deepEqual(await readdir(join(directory, 'objects')), []);
   assert.deepEqual(await readdir(join(directory, 'staging')), []);

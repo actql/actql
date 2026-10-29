@@ -210,3 +210,32 @@ evidence; they are not retried or removed to pass a test. A real installation
 still requires the separately scoped original auth dependency and original
 secret/key generation, normal capacity, physical-retirement integration and
 the normally packaged Source path.
+
+## Invitation response request data
+
+The Calendar provider response constructor consumes the complete selected
+event body and the caller's original calendar, event, participant and request
+marker. It retains the exact target text and etag. Missing or null prior
+attendee responses remain unknown observations; setting a new explicit response
+does not fabricate their previous values. A projected Source row is not a
+substitute for this original target observation.
+
+Its participant-only PATCH contains one exact attendee email and response,
+`attendeesOmitted: true`, and the original marker in the private
+`actql_request` property. It does not reconstruct unrelated attendee or event
+fields. Incomplete attendee observations, ambiguous/missing participants and
+markers that would be truncated refuse. The provider's `self` flag and equal
+target DATA do not issue connected-Account, scope or permission evidence.
+
+The actual caller must retain the scoped read and approved version, bind the
+participant to the connected Account, recheck current decisions and use the
+same original request and etag condition. Preparing DATA performs no write,
+claim, confirmation or cleanup acknowledgement. Native move/delete retain
+their separate evidence contracts; this constructor implements neither.
+
+Parser and encoder limits bound construction work only. Original response
+bytes, admitted cursor, retained target text, request body, typed input and
+caller evidence may overlap and need complete parent/failed-child backing
+before normal use. Encoder failure cancels only its own partial output; it
+creates no new resource owner or capacity. Actual dispatch, provider outcome,
+Unknown handling and cold request restoration remain caller obligations.

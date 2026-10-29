@@ -20,7 +20,6 @@ function fixture(withModel = false) {
   const runtime = {
     clientProgramInstalledManagedRunRetire() {return ok();},
     clientProgramNodeEffectManagedPlanCleanup() {return ok();},
-    clientProgramInstalledEffectManagedRunCheck() {controls.checks++; return ok();},
     clientProgramInstalledEffectManagedOperationPlan(value, p, r) {
       assert.equal(this, runtime); assert.equal(arguments.length, 3);
       assert.equal(value, parent); assert.equal(p, prepared); assert.equal(r, request);
@@ -70,7 +69,9 @@ function thrown(operation) {
 
 test('public Record and Model Plan readers use one exact bound getter and no preceding check', () => {
   for (const withModel of [false, true]) {
-    const f = fixture(withModel); assert.equal(prepare(f.options), f.parent);
+    const f = fixture(withModel);
+    assert.equal(Object.hasOwn(f.options.runtime, 'clientProgramInstalledEffectManagedRunCheck'), false);
+    assert.equal(prepare(f.options), f.parent);
     assert.equal(f.controls.getters, 1); assert.equal(f.controls.checks, 0);
     assert.equal(prepare(f.options), f.parent); assert.equal(f.controls.getters, 2);
     const run = read(f.options); assert.equal(run.value, f.parent);
@@ -143,7 +144,6 @@ async function acquiredBoundary(change) {
   let returned = false, getters = 0, checks = 0, custody;
   const moon = {clientProgramEffectAcquisitionCount: () => 0,
     clientProgramEffectSerializationOccurrences: () => [{}],
-    clientProgramInstalledEffectManagedRunCheck() {checks++; return ok();},
     clientProgramInstalledEffectManagedOperationPlan(value, p, r) {
       assert.equal(this, moon); assert.equal(arguments.length, 3);
       assert.equal(value, parent); assert.equal(p, prepared); assert.equal(r, request);

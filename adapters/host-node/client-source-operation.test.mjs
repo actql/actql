@@ -95,11 +95,11 @@ test('confirmed same-Journal physical claim issues one original scope and commit
 });
 
 test('bounded Journal facade remains the exact same Source operation owner without accepting a copy', t => {
-  const f = fixture(t, undefined, false, {maxJournalOperations: 16,
+  const f = fixture(t, undefined, false, {primaryCurrent() {},
     maxDatabaseBytes: 1024 * 1024,
-    primarySqlLimits: {maxCalls: 1000, maxPreparedStatements: 1000,
+    primarySqlLimits: {maxPreparedStatements: 1000,
       maxSqlBytes: 65536, maxTotalSqlBytes: 1024 * 1024},
-    primaryExecutionLimits: {maxStatementCalls: 1000, maxParameters: 64,
+    primaryExecutionLimits: {maxParameters: 64,
       maxParameterBytes: 65536, maxResultRows: 1000}});
   assert.equal(f.start(), true);
   const source = f.source();

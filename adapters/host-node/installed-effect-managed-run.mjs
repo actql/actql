@@ -70,7 +70,6 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
     // to this same record and can never acquire another admission on retry.
     run.retire = runtime.clientProgramInstalledManagedRunRetire;
     run.cleanup = runtime.clientProgramNodeEffectManagedPlanCleanup;
-    run.check = runtime.clientProgramInstalledEffectManagedRunCheck;
     run.readPlan = runtime.clientProgramInstalledEffectManagedOperationPlan;
     run.prepare = model === undefined ? runtime.clientProgramNodeEffectManagedPlanPrepare
       : runtime.clientProgramNodeEffectModelManagedPlanPrepare;
@@ -78,7 +77,7 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
       : runtime.clientProgramInstalledEffectModelManagedPlanBegin;
     run.finishModelScope = model === undefined ? undefined : runtime.clientProgramFinishInferOriginalReadScope;
     const original = model === undefined ? manager.prepareEffectPlanRun : manager.prepareEffectModelPlanRun;
-    if (![run.retire, run.cleanup, run.check, run.readPlan, run.prepare, run.begin, original]
+    if (![run.retire, run.cleanup, run.readPlan, run.prepare, run.begin, original]
       .every(value => typeof value === 'function')) fail('NodeManagedRunRuntimeUnavailable');
     if (model !== undefined && typeof run.finishModelScope !== 'function') fail('InstalledEffectModelRuntimeUnavailable');
     run.original = Reflect.apply(original, manager, [prepared, operationPlan]);

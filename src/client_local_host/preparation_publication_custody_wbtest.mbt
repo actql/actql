@@ -11,6 +11,8 @@ extern "js" fn publication_test_url() -> String =
   #|() => import.meta.url
 
 ///|
+// Preserve the original Array FFI/input boundary under this declaration only.
+#warnings("-deprecated")
 extern "js" fn publication_test_original(
   loader : PublicationTestLoader,
   input : () -> Array[Int],

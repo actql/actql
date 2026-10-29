@@ -10,20 +10,16 @@ import {basename, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {performance} from 'node:perf_hooks';
 import {gzipSync} from 'node:zlib';
+import {normalNpmPackJsonArgs, parseNpmPackJson} from './packed-client-packages.mjs';
 
 // Shared normal-prepack adapter. npm owns package versions and filenames.
 export async function packDistributionPackages({repository, destination, run}) {
   const packages = [];
   for (const name of ['client-wire', 'sdk', 'node', 'run-host-core', 'local-node']) {
-    const result = await run('npm', ['pack', '--pack-destination', destination, '--json'],
+    const result = await run('npm', normalNpmPackJsonArgs(['pack', '--pack-destination', destination, '--json']),
       join(repository, 'packages', name));
-    const text = result.stdout.trim();
-    let metadata;
-    for (let offset = text.indexOf('['); offset >= 0; offset = text.indexOf('[', offset + 1)) {
-      try { const value = JSON.parse(text.slice(offset));
-        if (Array.isArray(value) && value.length === 1) {metadata = value[0]; break;}
-      } catch { /* npm lifecycle output can precede the final JSON value. */ }
-    }
+    const report = parseNpmPackJson(result.stdout);
+    const metadata = Array.isArray(report) && report.length === 1 ? report[0] : undefined;
     assert.equal(metadata?.name, `@actql/${name}`, 'npm pack name differs');
     assert.equal(basename(metadata.filename), metadata.filename);
     assert(metadata.filename.endsWith('.tgz') && typeof metadata.version === 'string');

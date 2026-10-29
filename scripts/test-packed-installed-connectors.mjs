@@ -9,7 +9,7 @@ import {join, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
-import {BUILD_INPUTS, packedNpmCache} from './packed-client-packages.mjs';
+import {packedNpmCache, normalNpmPackJsonArgs, parseNpmPackJson, normalPackSourceInputs, initializeNormalPackSourceIndex} from './packed-client-packages.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 import {symlink} from 'node:fs/promises';
 
@@ -35,8 +35,7 @@ function run(command, args, cwd, timeout = 120000) {
 }
 const listed = run('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'],
   repository).split('\0').filter(Boolean);
-const paths = [...new Set(listed)].filter(path => !path.includes('/') ||
-  BUILD_INPUTS.some(prefix => path.startsWith(prefix + '/')));
+const paths = await normalPackSourceInputs(repository, [...new Set(listed)]);
 const sourceDigests = [];
 for (const path of paths) {
   // Sparse checkouts may omit unrelated tests/docs. Every byte actually used
@@ -48,6 +47,7 @@ for (const path of paths) {
   await writeFile(output, bytes);
   sourceDigests.push([path, createHash('sha256').update(bytes).digest('hex')]);
 }
+initializeNormalPackSourceIndex(producer, sourceDigests.map(([path]) => path));
 assert.equal(existsSync(join(producer, '_build')), false);
 for (const name of names) {
   assert.equal(existsSync(join(producer, 'packages', name, '_build')), false);
@@ -57,7 +57,7 @@ await symlink(join(repository, 'node_modules'), join(producer, 'node_modules'), 
 const inputs = localNodePackageInputs(producer);
 const packs = [];
 for (const name of names) {
-  const output = JSON.parse(run('npm', ['pack', '--json', '--pack-destination', artifacts],
+  const output = parseNpmPackJson(run('npm', normalNpmPackJsonArgs(['pack', '--json', '--pack-destination', artifacts]),
     join(producer, 'packages', name), 180000));
   const pack = output[0] ?? output[`@actql/${name}`];
   const path = join(artifacts, pack.filename);

@@ -78,7 +78,7 @@ sourceEnvironment.schema_snapshots = [{...sourceSelector,
   data_classification: 'unknown'}];
 sourceEnvironment.connector_capabilities = [{...sourceSelector,
   capability_contract_cids: [
-    'sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a'],
+    'sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929'],
 }];
 delete sourceEnvironment.evidence_bundle_cid;
 sourceEnvironment.evidence_bundle_cid = machineCid(sourceEnvironment);
@@ -93,6 +93,8 @@ globalThis.fetch = () => { throw new Error('NetworkOnPackedLocalRun'); };
 const effectHost = await import('@actql/local-node/effect-run');
 assert.equal(typeof effectHost.installNodeClientEffectRun, 'function');
 assert.equal(typeof effectHost.openClientRequestJournal, 'function');
+const {checked} = await import('./node_modules/@actql/local-node/adapters/' +
+  'host-common/runtime-result.mjs');
 const owner = await import('@actql/local-node/runtime');
 assert.equal(typeof owner.clientProgramPrepareEffectFree, 'function');
 assert.equal(typeof owner.clientProgramOpenSourceFreeLocalHost, 'function');
@@ -111,11 +113,16 @@ assert(environment);
 const prepared = owner.clientProgramPrepareEffectFree(
   readFileSync('values.json', 'utf8'), 'json', environment);
 assert(prepared);
-const registry = readFileSync(prefix +
+const registryWire = readFileSync(prefix +
   'spec/dependencies/aoa-pipeline-registry.json', 'utf8');
 const contract = JSON.parse(readFileSync(prefix +
   'spec/contracts/actql-aoa.json', 'utf8'));
 const values = JSON.stringify(contract.execution_contracts['REL.values']);
+const fragment = JSON.stringify(contract.execution_contracts[
+  'ACTQL.expression_fragment/0.1']);
+const ordered = JSON.stringify(contract.execution_contracts['REL.derive.ordered']);
+const registry = checked(owner.clientPrepareInstalledSequenceContracts(
+  registryWire, values, fragment, ordered));
 const setup = owner.clientProgramOpenSourceFreeLocalHost(
   prepared, registry, values, 1n, 0n, 0n, 0n);
 assert(setup);
@@ -268,10 +275,7 @@ const authorization = await account.createLocalAuthorizationGate({
 });
 const captured = await physical.openCapturedDuckDBSource({
   moon: owner, preparedProgram: preparedSource, registry, values,
-  fragment: JSON.stringify(contract.execution_contracts[
-    'ACTQL.expression_fragment/0.1']),
-  ordered: JSON.stringify(contract.execution_contracts[
-    'REL.derive.ordered']),
+  fragment, ordered,
   database: databasePath,
   sourceAccess: {authorization, connection: 'local-database',
     resource: databasePath, sourceRef: 'connector://crm/main/r#v'},

@@ -224,11 +224,17 @@ test "preparation representation owner reconciliation deduplicates identity not 
     Some(cost),
   )
   assert_eq(
-    preparation_owned_representation_cost([(original, units), (copy, units)], 3),
+    preparation_owned_representation_cost(
+      [(original, units), (copy, units)],
+      3,
+    ),
     Some(2L * cost),
   )
   assert_true(
-    preparation_owned_representation_cost([(original, units), (copy, units)], 2)
+    preparation_owned_representation_cost(
+      [(original, units), (copy, units)],
+      2,
+    )
     is None,
   )
   assert_true(

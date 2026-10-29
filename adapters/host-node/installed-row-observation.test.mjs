@@ -1,4 +1,4 @@
-import {ledgerUsageFields} from './ledger-contract.generated.mjs';
+import {ledgerUsageFields} from '../host-common/ledger-contract.generated.mjs';
 import {ledgerUsageSnapshot} from '../host-common/runtime-core.mjs';
 import {ledgerUsageFieldsFor} from './fixtures/ledger-usage.mjs';
 // Physical-accounting component cases using the real checked RowRun owner.

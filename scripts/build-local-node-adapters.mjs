@@ -16,9 +16,43 @@ const inside = (root, path) => {
   return suffix === '' || !isAbsolute(suffix) && suffix !== '..' && !suffix.startsWith('..' + sep);
 };
 
+// Validate exact declared package exports without loading a dependency or
+// treating a package name as permission to copy its checkout source.
+function declaredLocalNodePackageImport(inputs) {
+  const resolved = inputs.buildInputs;
+  const core = resolved.modules.find(module => module.root === inputs.coreRoot);
+  const read = path => JSON.parse(readFileSync(resolved.resolveFile(core.namespace, path), 'utf8'));
+  const local = read('packages/local-node/package.json');
+  const manifests = new Map();
+  return (specifier, originalSource) => {
+    const match = /^(@[a-z0-9_-]+\/[a-z0-9_-]+)(\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*)?$/u.exec(specifier);
+    if (!match || match[2]?.split('/').some(part => part === '.' || part === '..')) return false;
+    const [, name, suffix = ''] = match;
+    // Keep the existing self interface and optional native peer entrances.
+    if (name === '@duckdb/node-api') return originalSource === undefined &&
+      Object.hasOwn(local.peerDependencies ?? {}, name) && ['', '/package.json'].includes(suffix);
+    const self = name === local.name;
+    if (self ? suffix !== '/connector-installation'
+      : !Object.hasOwn(local.dependencies ?? {}, name) || !name.startsWith('@actql/')) return false;
+    const directory = 'packages/' + name.slice('@actql/'.length);
+    if (!manifests.has(name)) manifests.set(name, self ? local : read(directory + '/package.json'));
+    const manifest = manifests.get(name);
+    if (manifest.name !== name) return false;
+    const key = suffix ? '.' + suffix : '.';
+    if (!Object.hasOwn(manifest.exports ?? {}, key)) return false;
+    const entry = manifest.exports[key];
+    // The existing workspace exports use a literal or types/default pair.
+    // Do not implement wildcard or conditional export resolution here.
+    const target = typeof entry === 'string' ? entry : entry?.default;
+    if (typeof target !== 'string' || !target.startsWith('./')) return false;
+    const path = resolved.resolveFile(core.namespace, directory + '/' + target.slice(2));
+    return originalSource === undefined || path === originalSource;
+  };
+}
+
 export async function inspectExternalLocalNodeAdapterGraph(inputs) {
   const resolved = inputs.buildInputs;
-  const publicPackage = /^(?:@actql\/(?:sdk(?:\/host-port)?|client-wire|local-node\/connector-installation)|@duckdb\/node-api(?:\/package\.json)?)$/u;
+  const publicPackage = declaredLocalNodePackageImport(inputs);
   const coreTable = join(inputs.coreRoot, inputs.installationTable.destination);
   const coreRuntime = join(inputs.coreRoot, '_build/js/release/build');
   const resolveInput = path => {
@@ -33,7 +67,7 @@ export async function inspectExternalLocalNodeAdapterGraph(inputs) {
     outdir: join(resolved.host.root, '_build/local-node-adapter-graph'),
     plugins: [{name: 'resolved-local-node-inputs', setup(builder) {
       builder.onResolve({filter: /.*/}, args => {
-        if (isBuiltin(args.path) || publicPackage.test(args.path)) return {path: args.path, external: true};
+        if (isBuiltin(args.path) || publicPackage(args.path)) return {path: args.path, external: true};
         if (args.kind === 'entry-point') return {path: resolveInput(resolve(args.path))};
         if (!/^\.\.?\//u.test(args.path)) throw new Error(`UndeclaredLocalNodeDependency:${args.path}`);
         const url = new URL(args.path, pathToFileURL(args.importer));
@@ -59,11 +93,7 @@ export async function inspectExternalLocalNodeAdapterGraph(inputs) {
           ? rewriteLocalNodePackageImports(JSON.stringify(args.path), args.importer) : JSON.stringify(args.path);
         if (publicImport !== JSON.stringify(args.path)) {
           const name = JSON.parse(publicImport);
-          // This existing package export is private to the Core Host rewrite,
-          // not a new dependency available to external provider imports.
-          if (!publicPackage.test(name) && name !== '@actql/sdk/_internal/source-preparation') {
-            throw new Error(`UndeclaredLocalNodeDependency:${name}`);
-          }
+          if (!publicPackage(name, path)) throw new Error(`UndeclaredLocalNodeDependency:${name}`);
           return {path: name, external: true};
         }
         if (inside(coreRuntime, path)) {

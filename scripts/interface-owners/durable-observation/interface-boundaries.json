@@ -246,7 +246,7 @@
     {
       "module": "adapters/host-common/observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6f58b2511c56727c460ecac01d466bf0a247257bdf52eea13ffc40ac1f5644da",
+      "sha256": "b366705b5efcfe28da67e87ca7025635bf296517aa7c9d71cf5cede47b74dcbf",
       "exports": [
         "captureManagedRunObservation",
         "createHostObservationConnection",
@@ -1316,7 +1316,7 @@
         }
       ],
       "imports": [
-        "../host-node/ledger-contract.generated.mjs",
+        "./ledger-contract.generated.mjs",
         "node:async_hooks",
         "node:crypto"
       ],

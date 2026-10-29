@@ -5,6 +5,7 @@ import {mkdirSync, mkdtempSync, rmSync} from 'node:fs';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
+import {normalNpmPackJsonArgs, parseNpmPackJson} from './packed-client-packages.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 execFileSync(process.execPath, ['--test', 'scripts/build-runtime-packages.test.mjs'],
@@ -24,10 +25,10 @@ for (const [name, paths] of Object.entries(expected)) {
   for (const path of paths) rmSync(join(root, 'packages', name, path), {force: true});
 }
 for (const [name, paths] of Object.entries(expected)) {
-  const output = execFileSync('npm', ['pack', '--json', '--pack-destination', destination],
+  const output = execFileSync('npm', normalNpmPackJsonArgs(['pack', '--json', '--pack-destination', destination]),
     {cwd: join(root, 'packages', name), encoding: 'utf8', timeout: 180000,
       maxBuffer: 16 * 1024 * 1024});
-  const metadata = JSON.parse(output);
+  const metadata = parseNpmPackJson(output);
   const pack = metadata[0] ?? metadata[`@actql/${name}`];
   for (const path of paths) {
     assert(pack.files.some(file => file.path === path && file.size > 0),

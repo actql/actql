@@ -92,6 +92,50 @@ export function tokens(source, sourceCode = false) {
   return result;
 }
 
+// One reviewed module-level linker spelling. This is metadata inspection,
+// not a general options parser or authority to change compiler/target policy.
+export function reviewedEsmModuleOptionEnd(list, start) {
+  const literal = [
+    ['word', 'options'], ['symbol', '('], ['string', 'link-flags'],
+    ['symbol', ':'], ['symbol', '['], ['string', '-js-format'],
+    ['symbol', ','], ['string', 'esm'], ['symbol', ']'],
+  ];
+  if (!literal.every(([kind, value], offset) =>
+    list[start + offset]?.kind === kind && list[start + offset].value === value)) {
+    return undefined;
+  }
+  let end = start + literal.length;
+  // The pinned formatter may add one final argument comma, not an array
+  // element, another option, hook or flag.
+  if (list[end]?.kind === 'symbol' && list[end].value === ',') end++;
+  return list[end]?.kind === 'symbol' && list[end].value === ')' ? end + 1 : undefined;
+}
+
+// Read the existing literal target clause as compiler-owned DATA. Neither
+// consumer evaluates its string expressions or uses them to hide dependencies.
+export function readPackageTargetOptions({take, peek}) {
+  const symbol = value => take('symbol', value);
+  symbol('('); take('word', 'targets'); symbol(':'); symbol('{');
+  const targets = [];
+  const files = new Set();
+  while (!peek('}')) {
+    const file = take('string');
+    if (files.has(file)) throw new Error('UnknownManifestOptions: duplicate filename');
+    files.add(file);
+    symbol(':'); symbol('[');
+    const expression = [];
+    while (!peek(']')) {
+      expression.push(take('string'));
+      if (!peek(']')) symbol(',');
+    }
+    symbol(']');
+    targets.push([file, expression]);
+    if (!peek('}')) symbol(',');
+  }
+  symbol('}'); if (peek(',')) symbol(','); symbol(')');
+  return targets;
+}
+
 function packageMetadata(source) {
   const ts = tokens(source);
   let i = 0;
@@ -133,24 +177,7 @@ function packageMetadata(source) {
       // Do not evaluate target expressions or exempt any source/dependency from
       // inspection. The pinned compiler owns their meaning and validation.
       if (targets !== null) throw new Error('UnknownManifestOptions: duplicate targets');
-      symbol('('); take('word', 'targets'); symbol(':'); symbol('{');
-      targets = [];
-      const files = new Set();
-      while (!peek('}')) {
-        const file = take('string');
-        if (files.has(file)) throw new Error('UnknownManifestOptions: duplicate filename');
-        files.add(file);
-        symbol(':'); symbol('[');
-        const expression = [];
-        while (!peek(']')) {
-          expression.push(take('string'));
-          if (!peek(']')) symbol(',');
-        }
-        symbol(']');
-        targets.push([file, expression]);
-        if (!peek('}')) symbol(',');
-      }
-      symbol('}'); if (peek(',')) symbol(','); symbol(')');
+      targets = readPackageTargetOptions({take, peek});
     } else if (directive === 'formatter') {
       symbol('('); take('word', 'ignore'); symbol(':'); symbol('[');
       while (!peek(']')) { take('string'); if (!peek(']')) symbol(','); }
@@ -198,26 +225,12 @@ export function inspectCore(root, roots = coreRoots) {
   let reviewedEsm = false;
   for (let i = 0; i < module.length;) {
     if (module[i]?.kind === 'word' && module[i].value === 'options') {
-      // Review only the existing pinned linker's ESM format selection, not a
-      // general options object, extra flags, hooks or another module format.
-      const literal = [
-        ['word', 'options'], ['symbol', '('], ['string', 'link-flags'],
-        ['symbol', ':'], ['symbol', '['], ['string', '-js-format'],
-        ['symbol', ','], ['string', 'esm'], ['symbol', ']'],
-      ];
-      if (reviewedEsm || !literal.every(([kind, value], offset) =>
-        module[i + offset]?.kind === kind && module[i + offset].value === value)) {
-        throw new Error('UnauditedCoreModuleDirective');
-      }
-      i += literal.length;
-      // The pinned formatter emits an optional final argument comma. This
-      // admits no additional option, flag, value or array-element spelling.
-      if (module[i]?.kind === 'symbol' && module[i].value === ',') i++;
-      if (module[i]?.kind !== 'symbol' || module[i].value !== ')') {
+      const end = reviewedEsmModuleOptionEnd(module, i);
+      if (reviewedEsm || end === undefined) {
         throw new Error('UnauditedCoreModuleDirective');
       }
       reviewedEsm = true;
-      i++;
+      i = end;
       continue;
     }
     const [key,equals,value] = module.slice(i,i+3);

@@ -65,8 +65,10 @@ Operations — sending is an operation, not a record write:
 
 - **send** — `EFFECT COMMAND gmail.send ID key INPUT (to = …, subject = …, body = …)`.
 - **reply** — `EFFECT COMMAND gmail.reply ID key INPUT (in_reply_to = message_id, body = …)`
-  replies within the thread, keeping its subject and recipients.
-- **forward** — `EFFECT COMMAND gmail.forward ID key INPUT (message = message_id, to = …[, body = …])`.
+  replies to the visible participants within the thread, using the
+  [recipient and threading rules below](#reply-recipients-and-threading).
+- **forward** — `EFFECT COMMAND gmail.forward ID key INPUT (message = message_id, to = …[, body = …])`,
+  using the [content and addressing rules below](#forward-content-and-addressing).
 - **purge** — `EFFECT COMMAND gmail.purge TARGET message_id ID key` deletes a
   message permanently, bypassing the trash. It needs the full `mail.google.com`
   scope and is `applied` once Gmail confirms the deletion.
@@ -81,6 +83,80 @@ reserved for a pending provider operation with a genuine OperationRef and its
 status and reconciliation contracts. A Gmail message ID or thread ID is not
 such an operation handle. An unproved response loss remains `unknown`, with no
 automatic resend. Nothing is sent until the approved Effect is applied.
+
+### Reply recipients and threading
+
+`gmail.reply` preserves the visible conversation participants rather than
+choosing recipients from message text or a new lookup. From the same captured
+original message, form `To` from `Reply-To` when that header is present, otherwise
+`From`, followed by the original `To` addresses. Form `Cc` from the original
+`Cc` addresses. Preserve that order and each first retained address's display
+form; remove duplicate mailboxes across `To` then `Cc`. Never copy original
+`Bcc` recipients, infer hidden recipients, or substitute `Sender`, `Return-Path`
+or delivery headers for the reply destination. A malformed present `Reply-To`
+does not silently fall back to `From`.
+
+Compare parsed mailbox local parts case-sensitively, accounting for equivalent
+quoted forms, and domains case-insensitively. Do not infer Gmail dot, plus,
+local-part case or account-alias equivalence. Remove the configured mailbox
+from both destination lists when at least one other destination remains. If
+it is the only destination, retain it: a deliberate reply to oneself is valid.
+Only the configured mailbox is known to be self; no alias lookup or guessed
+mailbox identity is implied.
+
+Keep the original `Subject` value without adding a `Re:` prefix, use its exact
+Gmail `threadId`, and construct `In-Reply-To` and `References` from its original
+message identifiers under
+[RFC 5322, section 3.6.4](https://www.rfc-editor.org/rfc/rfc5322.html#section-3.6.4).
+Gmail requires the matching subject, thread ID and compliant reference headers
+to join the thread; a missing original needed for that correspondence cannot
+be invented. The complete derived destinations, subject and body belong in
+the same targeted Preview and approved immutable request. Header data confers
+no send authority, and changed originals require the existing current and
+correspondence checks. This recipient rule does not change submission outcomes
+or permit a resend after response loss.
+
+### Forward content and addressing
+
+`gmail.forward` creates a new message from the configured mailbox to exactly
+the explicit `to` input, using the same address rules as `gmail.send`. Do not
+import the original message's `To`, `Cc`, `Bcc`, reply destinations, message ID
+or threading headers into the outgoing envelope, and do not supply its Gmail
+`threadId` to force a reply. The new subject is `Fwd: ` followed by the original
+logical Subject value; a missing or empty original Subject produces `Fwd:`.
+Do not strip existing prefixes or rewrite the original value.
+
+Carry the complete original message as an encapsulated message part inside
+`multipart/mixed`, preserving the whole-message octets after Gmail's `raw`
+base64url decoding. This retains its original headers, MIME structure, body
+alternatives, inline parts and attachments. Use `message/rfc822`, or
+`message/global` for an internationalized original under
+[RFC 6532](https://www.rfc-editor.org/rfc/rfc6532.html#section-3.7), with the
+applicable MIME transfer encoding. The Gmail API's outer base64url transport
+is a separate encoding layer. Original headers inside this part are content,
+not outgoing destinations or authority. Do not substitute `body_text`, an
+HTML-to-text projection, a snippet or an attachment listing for the message.
+
+When `body` is present, put its exact logical text in a separate UTF-8
+`text/plain` part before the original message. When absent, omit that note part;
+an explicitly empty note remains present. Do not insert the note into the
+original MIME body, flatten its parts or drop attachments. MIME boundaries
+must not collide with the retained content. The ordered multipart and
+encapsulation rules follow
+[RFC 2046](https://www.rfc-editor.org/rfc/rfc2046.html#section-5.2).
+
+Capture the complete message from the same original mailbox/message and check
+its identity, version and currentness through the existing read owner. The
+bounded read, original bytes, note, MIME construction and encoded request must
+be backed before construction and sending. Missing, foreign, incomplete or
+over-budget material refuses; it never becomes a partial forward. The targeted
+Preview and approved immutable request bind the destinations, derived subject,
+note and complete original message content, including its headers and nested
+attachments. A metadata row alone does not supply that content or read authority.
+
+The existing submission, approval and reconciliation rules above remain in
+force. Put this request's original marker in the new message's outer header;
+a marker inside the forwarded content is not evidence of this submission.
 
 ## Setup
 
@@ -118,9 +194,33 @@ search`.
 
 **Preview.** Label changes and trashing are `full_diff`: the Connector reads
 the message, records its current labels and `history_id`, and the Preview
-shows current and new label sets. The request carries that `history_id`; a
-message whose labels changed in between makes the item `failed` with
-`conflict`. Draft creation and attachments are `targeted` (the draft's
+shows current and new label sets. The approved internal request retains that
+original version guard. Immediately before sending, an authorized read of the
+same message must still match the original `history_id` and before state. A
+mismatch refuses without sending and makes the item `failed` with `conflict`.
+The Connector uses the fixed approved mutation; it does not recompute it from
+the newly read labels.
+
+This is an observed-version check, not an atomic provider compare-and-swap.
+The documented `messages.modify` body has label deltas, not a `historyId`
+precondition; `messages.trash` has an empty body. Do not insert a fictitious
+history field or assume an undocumented `If-Match` guarantee. The Connector must
+advertise the remaining race between the read and mutation before dispatch,
+under the common mutation-capability rules. A caller requiring atomic target
+version enforcement must refuse this route unless a qualified provider
+conditional operation supplies it. A successful pre-send read cannot certify
+that stronger capability or accept business risk on the caller's behalf.
+
+After a possible send, only an authentic complete response correlated with the
+same request, scoped target and approved postcondition can support `applied`
+through the existing claim and Outcome Receipt owner. A status alone does not
+prove it. If additional confirmation is needed, its actual read must be
+authorized and backed; it is not an implicit read grant. A partial, mismatched
+or lost response preserves uncertainty rather than becoming a conflict claiming
+that no mutation occurred. Trashing confirms the declared trash transition,
+not permanent deletion. No asynchronous OperationRef is invented.
+
+Draft creation and attachments are `targeted` (the draft's
 recipients, subject, body and the attachment's name, media type and size).
 Sends, replies and forwards are `targeted`: the Preview lists every message
 that would go out — recipients, subject and body — and nothing is sent until
@@ -147,8 +247,9 @@ re-sent.
 - Attachments count against the Program's byte limit; an attachment larger
   than what remains is refused, not truncated. Messages themselves are capped
   by Gmail at 25 MB including attachments.
-- Bodies are read as plain text; HTML-only mail is converted, which drops
-  formatting and inline images.
+- The `body_text` Source projection is plain text; HTML-only mail is converted,
+  which drops formatting and inline images. This projection does not supply
+  the complete message required by [forward](#forward-content-and-addressing).
 
 ## Example
 

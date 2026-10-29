@@ -5,6 +5,7 @@ import {dirname, join} from 'node:path';
 import test from 'node:test';
 import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
 import {readHostBundles} from './connector-node-bundles.mjs';
+import {inspectCore, copyProductionCore, tokens, readPackageTargetOptions} from './portable-core.mjs';
 
 function fixture(t) {
   const root = mkdtempSync(join(realpathSync(tmpdir()), 'actql-connector-inputs-'));
@@ -73,6 +74,192 @@ function hostFixture(f, roles = ['source', 'effect'], name = 'numeric') {
   f.configuration.connectors.push(selection);
   return {installation, path, write, providerPath, selection};
 }
+
+test('shared reviewed module options preserve both consumers and original module identity', t => {
+  const f = fixture(t), core = f.modules[0].root;
+  const modulePath = join(core, 'moon.mod'), original = readFileSync(modulePath, 'utf8');
+  f.put(join(core, 'src/connector_sdk/main.mbt'), 'pub fn identity(x : Int) -> Int { x }\n');
+  const before = resolveConnectorBuildInputs(f.configuration);
+  for (const option of [
+    'options("link-flags": ["-js-format", "esm"])\n',
+    'options(\n  "link-flags": [ "-js-format", "esm" ],\n)\n',
+    'options(/* selected module format */ "link-flags": ["-js-format", "esm"],)\n',
+  ]) for (const source of [original + option, option + original]) {
+    writeFileSync(modulePath, source);
+    const after = resolveConnectorBuildInputs(f.configuration);
+    assert.deepEqual(after.modules, before.modules);
+    assert.deepEqual(after.computeEntries, before.computeEntries);
+    assert.deepEqual(inspectCore(core, ['connector_sdk']).packages, ['connector_sdk']);
+    assert.equal(readFileSync(modulePath, 'utf8'), source);
+  }
+});
+
+test('shared module option recognition refuses unknown malformed duplicate and extra flags', t => {
+  const f = fixture(t), core = f.modules[0].root;
+  const modulePath = join(core, 'moon.mod'), original = readFileSync(modulePath, 'utf8');
+  f.put(join(core, 'src/connector_sdk/main.mbt'), 'pub fn identity(x : Int) -> Int { x }\n');
+  const valid = 'options("link-flags": ["-js-format", "esm"])';
+  for (const invalid of [
+    'options("other": ["-js-format", "esm"])',
+    'options("pre-build": "node hidden.mjs")',
+    'options(deps: {"hidden/dependency": "1.0.0"})',
+    'options("link-flags": ["-js-format", "cjs"])',
+    'options("link-flags": ["esm", "-js-format"])',
+    'options("link-flags": ["-js-format", "esm", "-extra"])',
+    'options("link-flags": "esm")',
+    'options("link-flags": ["-js-format", "esm",])',
+    'options("link-flags": ["-js-format", "esm"],,)',
+    'options("link-flags": ["-js-format", "esm"], "link-flags": [])',
+    'options("link-flags": ["-js-format", "esm"]',
+    valid + '\n' + valid,
+    valid + '\nunknown = "hidden"',
+  ]) {
+    writeFileSync(modulePath, original + invalid);
+    assert.throws(() => resolveConnectorBuildInputs(f.configuration), undefined, invalid);
+    assert.throws(() => inspectCore(core, ['connector_sdk']), undefined, invalid);
+  }
+});
+
+test('reviewed module options retain dependency target and package metadata refusals', t => {
+  const f = fixture(t), core = f.modules[0].root;
+  const option = 'options("link-flags": ["-js-format", "esm"],)\n';
+  f.mod(0, [], option);
+  f.mod(1, ['actql/actql@0.0.1', 'hidden/dependency@1.0.0'], option);
+  assert.throws(() => resolveConnectorBuildInputs(f.configuration), /Missing or mismatched declared module dependency/);
+  f.mod(1, ['actql/actql@0.0.1'], option);
+  const modulePath = join(core, 'moon.mod'), source = readFileSync(modulePath, 'utf8');
+  writeFileSync(modulePath, source.replace('supported_targets = "+js+wasm+native"', 'supported_targets = "native"'));
+  assert.throws(() => resolveConnectorBuildInputs(f.configuration), /Incompatible JS target/);
+  writeFileSync(modulePath, source);
+  const resolved = resolveConnectorBuildInputs(f.configuration);
+  // Module format DATA is not permission to accept package-level linker data.
+  f.put(join(core, 'src/connector_sdk/moon.pkg'), 'supported_targets = "+js+wasm+native"\n' + option);
+  assert.throws(() => resolved.resolvePackage('actql/actql/connector_sdk'), /Unsupported build metadata syntax/);
+  assert.throws(() => inspectCore(core, ['connector_sdk']), /UnknownManifestSyntax/);
+});
+
+test('shared module recognition leaves Core source purity and foreign file checks intact', t => {
+  const f = fixture(t), core = f.modules[0].root;
+  f.mod(0, [], 'options("link-flags": ["-js-format", "esm"],)\n');
+  const main = join(core, 'src/connector_sdk/main.mbt');
+  for (const source of ['extern "js" fn hidden() -> Int = "Date.now"',
+    'pub fn hidden() -> Unit { println("unrequested") }']) {
+    f.put(main, source);
+    assert.throws(() => inspectCore(core, ['connector_sdk']), /CoreEnvironmentAccess/);
+  }
+  f.put(main, 'pub fn identity(x : Int) -> Int { x }\n');
+  f.put(join(core, 'src/connector_sdk/hidden.c'), 'int hidden(void) { return 1; }\n');
+  assert.throws(() => inspectCore(core, ['connector_sdk']), /CoreForeignFile/);
+});
+
+function targetClause(source) {
+  const list = tokens(source);
+  let index = 0;
+  const take = (kind, value) => {
+    const token = list[index++];
+    assert.equal(token?.kind, kind);
+    if (value !== undefined) assert.equal(token.value, value);
+    return token.value;
+  };
+  take('word', 'options');
+  const result = readPackageTargetOptions({take, peek: value => list[index]?.value === value});
+  assert.equal(index, list.length);
+  return result;
+}
+
+test('shared target reader retains both actual selected Core package target clauses', () => {
+  for (const [name, expected] of [
+    ['physical_resources', [
+      ['node_original_source_child_js.mbt', ['js']],
+      ['node_managed_run_admission_js.mbt', ['js']],
+      ['node_preparation_admission_js.mbt', ['js']],
+      ['node_managed_run_admission_js_wbtest.mbt', ['js']],
+      ['node_original_source_child_js_wbtest.mbt', ['js']],
+      ['ledger_usage_js_boundary_wbtest.mbt', ['js']],
+      ['imported_child_ledger_wasm.mbt', ['wasm']],
+      ['imported_child_ledger_unsupported.mbt', ['not', 'wasm']],
+      ['imported_child_ledger_unsupported_wbtest.mbt', ['not', 'wasm']],
+    ]],
+    ['client_local_host', [
+      ['preparation_publication_custody_wbtest.mbt', ['js']],
+      ['preparation_publication_snapshot_wbtest.mbt', ['js']],
+      ['preparation_publication_start_custody_wbtest.mbt', ['js']],
+      ['preparation_publication_validation_custody_wbtest.mbt', ['js']],
+      ['installed_effect_operation_parent_js_wbtest.mbt', ['js']],
+      ['installed_effect_provider_plan_js_wbtest.mbt', ['js']],
+      ['installed_capture_parent_js_wbtest.mbt', ['js']],
+    ]],
+  ]) {
+    const source = readFileSync(new URL(`../src/${name}/moon.pkg`, import.meta.url), 'utf8');
+    const start = source.indexOf('\noptions(');
+    assert(start >= 0);
+    assert.deepEqual(targetClause(source.slice(start + 1)), expected);
+  }
+});
+
+test('package target DATA survives original path resolution and isolated production copying', t => {
+  const f = fixture(t), core = f.modules[0].root;
+  const path = join(core, 'src/connector_sdk/moon.pkg');
+  const data = [
+    ['first.mbt', ['js']], ['second.mbt', ['not', 'wasm']],
+    ['unlisted.mbt', ['future-compiler-data']], ['ignored_wbtest.mbt', ['js']],
+  ];
+  const source = 'supported_targets = "+js+wasm+native"\noptions(targets: {\n' +
+    data.map(([file, value]) => `${JSON.stringify(file)}: ${JSON.stringify(value)},`).join('\n') + '\n},)\n';
+  f.put(path, source);
+  for (const name of ['first.mbt', 'second.mbt']) f.put(join(dirname(path), name),
+    'pub fn identity(x : Int) -> Int { x }\n');
+  f.put(join(dirname(path), 'ignored_wbtest.mbt'), 'test { }\n');
+  const resolved = resolveConnectorBuildInputs(f.configuration);
+  assert.equal(resolved.resolvePackage('actql/actql/connector_sdk'), path);
+  assert.equal(readFileSync(path, 'utf8'), source);
+  const isolated = join(f.root, 'isolated');
+  copyProductionCore(core, isolated, ['connector_sdk']);
+  const copied = readFileSync(join(isolated, 'src/connector_sdk/moon.pkg'), 'utf8');
+  assert.deepEqual(targetClause(copied.slice(copied.indexOf('\noptions(') + 1)), data.slice(0, 3));
+  assert.equal(readFileSync(path, 'utf8'), source);
+});
+
+test('shared package target reader refuses unknown duplicate malformed and nonliteral options', t => {
+  const f = fixture(t), core = f.modules[0].root, path = join(core, 'src/connector_sdk/moon.pkg');
+  const valid = 'options(targets: {"main.mbt": ["js"]})';
+  for (const invalid of [
+    'options(link: ["socket"])', 'options(targets: {"main.mbt": [js]})',
+    'options(targets: {"main.mbt": "js"})', 'options(targets: {"main.mbt": [["js"]]})',
+    'options(targets: {"main.mbt": ["js"], "main.mbt": ["wasm"]})',
+    'options(targets: {"main.mbt": ["js"]}, link: ["socket"])',
+    'options(targets: {"main.mbt": ["js"]},,)',
+    'options(targets: {"main.mbt": ["js"]}', valid + '\n' + valid,
+    'options(targets: {})\noptions(targets: {})', valid + '\nunknown = "hidden"',
+  ]) {
+    f.put(path, 'supported_targets = "+js+wasm+native"\n' + invalid);
+    assert.throws(() => resolveConnectorBuildInputs(f.configuration)
+      .resolvePackage('actql/actql/connector_sdk'), undefined, invalid);
+    assert.throws(() => inspectCore(core, ['connector_sdk']), undefined, invalid);
+  }
+});
+
+test('literal package targets never hide imports source FFI foreign files or JS incompatibility', t => {
+  const f = fixture(t), core = f.modules[0].root, path = join(core, 'src/connector_sdk/moon.pkg');
+  const targets = '\noptions(targets: {"hidden.mbt": ["wasm"]})\n';
+  const base = 'supported_targets = "+js+wasm+native"\n';
+  f.put(path, base + 'import {"unavailable/driver" @pure}\n' + targets);
+  assert.throws(() => resolveConnectorBuildInputs(f.configuration)
+    .resolvePackage('actql/actql/connector_sdk'), /Unavailable package namespace/);
+  assert.throws(() => inspectCore(core, ['connector_sdk']), /UnreviewedExternal/);
+  f.put(path, base + targets);
+  f.put(join(dirname(path), 'hidden.mbt'), 'extern "js" fn hidden() -> Int = "Date.now"');
+  assert.throws(() => inspectCore(core, ['connector_sdk']), /CoreEnvironmentAccess/);
+  f.put(join(dirname(path), 'hidden.mbt'), 'pub fn identity(x : Int) -> Int { x }\n');
+  f.put(join(dirname(path), 'hidden.c'), 'int hidden(void) { return 1; }\n');
+  assert.throws(() => inspectCore(core, ['connector_sdk']), /CoreForeignFile/);
+  f.put(path, 'supported_targets = "native"\n' + targets);
+  assert.throws(() => resolveConnectorBuildInputs(f.configuration)
+    .resolvePackage('actql/actql/connector_sdk'), /Incompatible JS target/);
+  f.put(path, base + 'pkgtype(kind: "unreviewed")\n' + targets);
+  assert.throws(() => resolveConnectorBuildInputs(f.configuration)
+    .resolvePackage('actql/actql/connector_sdk'), /Unsupported package kind/);
+});
 
 test('external package references retain existing manifest ownership and immutable snapshots', t => {
   const f = fixture(t);

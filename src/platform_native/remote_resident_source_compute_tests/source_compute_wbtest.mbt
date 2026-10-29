@@ -370,8 +370,12 @@ test "resident captured Source survives consumer failure until its existing clea
     resident_compute_configuration(library, path, import_rows=1),
     name,
   )
-  assert_true(owner.execute_task(1) is Err(Compute(_)))
+  // Import row bounds reject preparation before the task's physical-use port.
+  assert_true(
+    owner.execute_task(1) is Err(Compute(DuckDB(Start(Physical(ImportRows))))),
+  )
   let failed = owner.usage()
+  assert_eq(failed.attempts, 1)
   assert_true(failed.held_bytes > 0L)
   assert_true(owner.execute_task(1) is Err(Unavailable))
   assert_eq(owner.usage().attempts, failed.attempts)

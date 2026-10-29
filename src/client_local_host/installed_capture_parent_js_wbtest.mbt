@@ -1,6 +1,8 @@
 ///|
 // Actual ordinary Root import with no physical Source opened. This tests the
 // existing admission/Ledger consumer, not native backing or a database read.
+// Preserve the original Array FFI/input boundary under this declaration only.
+#warnings("-deprecated")
 extern "js" fn capture_parent_original(
   loader : PublicationTestLoader,
   prepared : @publication_host.PreparedClientProgram,

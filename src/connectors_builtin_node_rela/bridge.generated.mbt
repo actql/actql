@@ -3036,8 +3036,8 @@ pub fn strategy_host_managed_result_import_begin(
   // final schema bytes belong only to the projected durable Result encoder.
   let bridge_limits = match
     @builtin.configured_local_module(@builtin.configured_host_modules(host)) {
-    Some(local_module) =>
-      @local_driver.local_publication_bridge_limits(local_module, run)
+    Some(original_module) =>
+      @local_driver.local_publication_bridge_limits(original_module, run)
     None => None
   }
   // Non-Local callers keep their explicit legacy bridge profile. No Local

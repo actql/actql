@@ -3,7 +3,7 @@
 // These snapshots are not a new manifest, identity or runtime authority.
 import {lstatSync, readFileSync, realpathSync} from 'node:fs';
 import {isAbsolute, join, relative, resolve, sep} from 'node:path';
-import {tokens} from './portable-core.mjs';
+import {tokens, reviewedEsmModuleOptionEnd, readPackageTargetOptions} from './portable-core.mjs';
 import {checkHostBundle, checkHostProfiles} from './connector-host-bundles.mjs';
 
 const coreNamespace = 'actql/actql';
@@ -79,6 +79,12 @@ function reader(source, label) {
   return {
     done: () => index === list.length,
     peek: value => list[index]?.value === value,
+    takeReviewedModuleOption() {
+      const end = reviewedEsmModuleOptionEnd(list, index);
+      if (end === undefined) return false;
+      index = end;
+      return true;
+    },
     take(kind, value) {
       const token = list[index++];
       if (!token || token.kind !== kind || (value !== undefined && token.value !== value)) {
@@ -98,6 +104,13 @@ function moduleMetadata(root) {
     'preferred_target', 'license', 'readme', 'repository', 'description']);
   let reviewedEsm = false;
   while (!input.done()) {
+    if (input.peek('options')) {
+      if (reviewedEsm || !input.takeReviewedModuleOption()) {
+        throw new Error('Unsupported or duplicate module metadata: options');
+      }
+      reviewedEsm = true;
+      continue;
+    }
     const key = input.take('word');
     if (key === 'import') {
       input.take('symbol', '{');
@@ -111,20 +124,6 @@ function moduleMetadata(root) {
         if (!input.peek('}')) input.take('symbol', ',');
       }
       input.take('symbol', '}');
-    } else if (key === 'options') {
-      // The current pinned linker selects CJS before module flags. This exact
-      // existing ESM selection is format metadata, not a dependency/build hook
-      // or permission to accept other module options.
-      if (reviewedEsm) throw new Error('Duplicate reviewed module format');
-      for (const [kind, value] of [
-        ['symbol', '('], ['string', 'link-flags'], ['symbol', ':'],
-        ['symbol', '['], ['string', '-js-format'], ['symbol', ','],
-        ['string', 'esm'],
-      ]) input.take(kind, value);
-      input.take('symbol', ']');
-      if (input.peek(',')) input.take('symbol', ',');
-      input.take('symbol', ')');
-      reviewedEsm = true;
     } else if (fields.has(key) && !Object.hasOwn(result, key)) {
       input.take('symbol', '=');
       result[key] = input.take('string');
@@ -139,7 +138,7 @@ function packageMetadata(path) {
   const input = reader(readFileSync(path, 'utf8'), path);
   const imports = [];
   let target;
-  let fileTargets = false;
+  let targets = null;
   while (!input.done()) {
     const directive = input.take('word');
     if (directive === 'supported_targets') {
@@ -158,42 +157,14 @@ function packageMetadata(path) {
         input.take('word', 'for');
         if (!['test', 'wbtest'].includes(input.take('string'))) throw new Error('Unsupported package import scope');
       }
+    } else if (directive === 'options') {
+      if (targets !== null) throw new Error('UnknownManifestOptions: duplicate targets');
+      targets = readPackageTargetOptions(input);
     } else if (directive === 'pkgtype') {
       input.take('symbol', '('); input.take('word', 'kind'); input.take('symbol', ':');
       if (!['executable', 'foreign_library', 'library'].includes(input.take('string'))) {
         throw new Error('Unsupported package kind');
       }
-      if (input.peek(',')) input.take('symbol', ',');
-      input.take('symbol', ')');
-    } else if (directive === 'options') {
-      // File selection does not introduce imports, dependencies or build hooks.
-      // Accept only the existing literal per-file target grammar; the compiler
-      // remains responsible for source selection and source existence.
-      if (fileTargets) throw new Error('Duplicate package file-target options');
-      fileTargets = true;
-      input.take('symbol', '('); input.take('word', 'targets'); input.take('symbol', ':');
-      input.take('symbol', '{');
-      const files = new Set();
-      while (!input.peek('}')) {
-        const file = input.take('string');
-        if (!/^[A-Za-z0-9_][A-Za-z0-9_.-]*\.mbt$/.test(file) || files.has(file)) {
-          throw new Error('Invalid or duplicate package file target');
-        }
-        files.add(file);
-        input.take('symbol', ':'); input.take('symbol', '[');
-        const first = input.take('string');
-        let selected = first;
-        if (first === 'not') {
-          input.take('symbol', ','); selected = input.take('string');
-        }
-        if (!['js', 'wasm', 'wasm-gc', 'native'].includes(selected)) {
-          throw new Error('Unsupported package file target');
-        }
-        if (input.peek(',')) input.take('symbol', ',');
-        input.take('symbol', ']');
-        if (!input.peek('}')) input.take('symbol', ',');
-      }
-      input.take('symbol', '}');
       if (input.peek(',')) input.take('symbol', ',');
       input.take('symbol', ')');
     } else if (directive === 'formatter') {
@@ -209,7 +180,7 @@ function packageMetadata(path) {
     } else throw new Error(`Unsupported package metadata: ${directive}`);
   }
   supportsJS(target, path);
-  return imports;
+  return {imports, targets};
 }
 
 export function resolveConnectorBuildInputs(configuration) {
@@ -279,12 +250,15 @@ export function resolveConnectorBuildInputs(configuration) {
     const directory = ownedPath(owner.sourceRoot, suffix || '.', 'directory');
     if (stat(join(directory, 'moon.pkg.json'))) throw new Error('Unsupported or ambiguous package metadata');
     const path = ownedPath(directory, 'moon.pkg', 'file');
-    for (const imported of packageMetadata(path)) {
+    const metadata = packageMetadata(path);
+    for (const imported of metadata.imports) {
       if (!namespace(imported)) throw new Error('Invalid package dependency identifier');
       // The standard library is supplied by the pinned compiler toolchain.
       if (imported.startsWith('moonbitlang/core/')) continue;
       canImport(owner.namespace, ownerOf(imported).namespace);
     }
+    // Pass the original manifest, including metadata.targets, to the compiler.
+    // No target expression selects files here or rewrites its import closure.
     return path;
   };
   const resolveFile = (name, path) => {
