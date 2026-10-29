@@ -99,7 +99,10 @@ test('query omission and null parameters reach the original before SDK defaults'
   const f = await fixture(t, {...source(), beforeSourceQuery(...args) {seen.push(args); throw original;}});
   await assert.rejects(f.client.sql('original'), error => error === original);
   await assert.rejects(f.client.aql('original', null), error => error === original);
-  assert.deepEqual(seen, [['sql', 'original', undefined, undefined], ['aql-text', 'original', null, undefined]]);
+  assert.deepEqual(seen.map(args => args.slice(0, 4)), [['sql', 'original', undefined, undefined], ['aql-text', 'original', null, undefined]]);
+  assert.equal(seen[0][4], seen[1][4]);
+  assert.equal(Object.isFrozen(seen[0][4]), true);
+  assert.equal(seen[0][4].mode, 'local');
   assert.deepEqual(f.calls, ['connect']);
 });
 

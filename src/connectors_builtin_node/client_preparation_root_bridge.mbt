@@ -76,6 +76,88 @@ pub fn client_program_begin_request_preparation(
 }
 
 ///|
+#export_name("clientProgramReserveRequestSnapshot")
+pub fn client_program_reserve_request_snapshot(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  units : Int64,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.reserve_request_snapshot(parent, input, units)
+}
+
+///|
+#export_name("clientProgramParseRequestQuerySyntax")
+pub fn client_program_parse_request_query_syntax(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  document : String,
+  spelling : String,
+) -> Result[
+  @query_syntax.Query,
+  @client_local_host.ClientRequestQuerySyntaxIssue,
+] {
+  let format = match @source_frontend.select_format(spelling) {
+    Err(issue) =>
+      return Err(
+        @client_local_host.ClientRequestQuerySyntaxIssue::Frontend(issue),
+      )
+    Ok(value) => value
+  }
+  @client_local_host.parse_request_query_syntax(parent, input, document, format)
+}
+
+///|
+#export_name("clientProgramLowerRequestPublishedQuery")
+pub fn client_program_lower_request_published_query(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+  environment : @program_check.CheckEnvironment,
+  declarations : String?,
+  public_primary : Bool,
+) -> Result[
+  (
+    @source_frontend.Lowered,
+    @program_check.PreparedSourceCatalog,
+    @source_frontend.DiagnosticSource,
+  ),
+  @client_local_host.ClientRequestQueryLoweringIssue,
+] {
+  @client_local_host.lower_request_published_query(
+    parent,
+    input,
+    publication,
+    environment,
+    declarations,
+    public_primary~,
+  )
+}
+
+///|
+#export_name("clientProgramPreparedRequestQueryLowering")
+pub fn client_program_prepared_request_query_lowering(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[
+  (
+    @source_frontend.Lowered,
+    @program_check.PreparedSourceCatalog,
+    @source_frontend.DiagnosticSource,
+  ),
+  @client_local_host.ClientRequestQueryLoweringIssue,
+] {
+  @client_local_host.prepared_request_query_lowering(parent, input)
+}
+
+///|
 /// The existing parent retains this exact Source child on the same original input.
 #export_name("clientProgramPrepareRequestProgramJson")
 pub fn client_program_prepare_request_program_json(

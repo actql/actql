@@ -1074,3 +1074,64 @@ test('numeric profile conditions reject values, caller blame and generated posit
     assert.equal(validCheckOutcome(changed), false);
   }
 });
+
+
+test('funded snapshot observes the existing native traversal without repeating caller effects', () => {
+  let gets = 0, keys = 0, json = 0, coerced = 0;
+  const number = Object.assign(new Number(1), {valueOf() {coerced++; return 3.5;}});
+  const parameters = new Proxy({get n() {gets++; return number;}, text: '😀\ud800'}, {
+    ownKeys(target) {keys++; return Reflect.ownKeys(target);},
+  });
+  const original = {input: {toJSON() {json++; return {text: 'SELECT @n AS n', format: 'sql'};}}, parameters};
+  const growth = [];let document;
+  const captured = snapshotClientRequest(original, (units, wire) => {
+    growth.push(units);if (wire !== undefined) document = wire;
+  });
+  assert.equal(gets, 1);assert.equal(keys, 1);assert.equal(json, 1);assert.equal(coerced, 1);
+  assert.deepEqual(captured, {input: {text: 'SELECT @n AS n', format: 'sql'},
+    parameters: {n: 3.5, text: '😀\ud800'}});
+  assert.deepEqual(JSON.parse(document), captured);
+  assert.ok(growth.length > 1);
+  for (let index = 1; index < growth.length - 1; index++) assert.ok(growth[index] >= growth[index - 1] * 2);
+  assert.equal(growth.at(-1), growth.at(-2));
+  const originalFailure = {};
+  assert.throws(() => snapshotClientRequest(original, () => {throw originalFailure;}), cause => cause === originalFailure);
+});
+
+
+test('funded snapshot accounts boxed String native coercion before its wire and detached copy', () => {
+  const text = 'x'.repeat(8192);let coerced = 0;
+  const original = Object.assign(new String('original'), {
+    [Symbol.toPrimitive](hint) {assert.equal(hint, 'string');coerced++;return text;},
+  });
+  const growth = [];
+  const captured = snapshotClientRequest({input: original}, units => {growth.push(units);});
+  assert.deepEqual(captured, {input: text});assert.equal(coerced, 1);
+  assert.ok(Math.max(...growth) >= text.length, 'native boxed text must reach the same snapshot envelope');
+});
+
+
+test('funded snapshot accounts original native raw JSON bytes without a user property read', () => {
+  assert.equal(typeof JSON.rawJSON, 'function');assert.equal(typeof JSON.isRawJSON, 'function');
+  const text = 'r'.repeat(8192);
+  const raw = JSON.rawJSON(JSON.stringify(text));
+  const growth = [];
+  const captured = snapshotClientRequest({input: raw}, units => {growth.push(units);});
+  assert.deepEqual(captured, {input: text});
+  assert.ok(Math.max(...growth) >= raw.rawJSON.length, 'native raw text must reach the same snapshot envelope');
+});
+
+
+test('funded snapshot native brands preserve ordinary object getters and boxed failure semantics', () => {
+  let gets = 0, coercions = 0;
+  const original = {get rawJSON() {gets++;return 'owned';},
+    toString() {coercions++;return 'must-not-coerce';}};
+  assert.deepEqual(snapshotClientRequest({input: original}, () => {}), {input: {rawJSON: 'owned'}});
+  assert.equal(gets, 1);assert.equal(coercions, 0);
+  const invalid = () => Object.assign(new String('original'), {
+    [Symbol.toPrimitive]() {return Symbol('not-json-text');},
+  });
+  assert.throws(() => snapshotClientRequest({input: invalid()}), {name: 'TypeError'});
+  assert.throws(() => snapshotClientRequest({input: invalid()}, () => {}), {name: 'TypeError'});
+  assert.deepEqual(snapshotClientRequest({input: JSON.rawJSON('1.50')}, () => {}), {input: 1.5});
+});

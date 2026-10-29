@@ -5515,7 +5515,7 @@
     {
       "module": "packages/client-wire/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ca6a63c248ce750826c006f6243ab88b9fb56e80abd4521388e44281b3fda949",
+      "sha256": "e985d12b9b2ec7abb17c88cc640a7299d163ce4768a5f401ba71dbd341ce0f87",
       "exports": [
         "*:./interactive-control.generated.js",
         "checkOutcomeProtocol",
@@ -5717,7 +5717,8 @@
         {
           "name": "snapshotClientRequest/snapshotClientRequest",
           "parameters": [
-            "value"
+            "value",
+            "observe"
           ],
           "async": false
         },
@@ -5725,14 +5726,15 @@
           "name": "snapshotRequest",
           "parameters": [
             "value",
-            "numberError"
+            "numberError",
+            "observe"
           ],
           "async": false
         },
         {
-          "name": "snapshotRequest/snapshotRequest",
+          "name": "snapshotRequest/document/document",
           "parameters": [
-            "_key",
+            "key",
             "item"
           ],
           "async": false
@@ -7729,7 +7731,7 @@
         {
           "operations": [
             "snapshotRequest",
-            "snapshotRequest/snapshotRequest"
+            "snapshotRequest/document/document"
           ],
           "exports": [],
           "attributes": {
@@ -10013,8 +10015,8 @@
           "operations": [
             "validResourcePeek",
             "validResourcePeek/validResourcePeek",
-            "validResourcePeek/validResourcePeek/validResourcePeek",
-            "validResourcePeek/validResourcePeek#2"
+            "validResourcePeek/validResourcePeek#2",
+            "validResourcePeek/validResourcePeek/validResourcePeek"
           ],
           "exports": [
             "validResourcePeek"

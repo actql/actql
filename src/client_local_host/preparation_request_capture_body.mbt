@@ -68,6 +68,7 @@ pub fn[I] begin_request_capture_managed_run(
       owner.program_captured = None
       owner.held_program = None
       owner.input = None
+      owner.query_syntax = None
       owner.phase = Selected
       Ok(run)
     }

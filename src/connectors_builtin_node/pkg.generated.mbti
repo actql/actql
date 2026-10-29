@@ -36,8 +36,10 @@ import {
   "actql/actql/pipeline_check_context",
   "actql/actql/platform_native/remote_standard_host",
   "actql/actql/program_check",
+  "actql/actql/program_source_builder",
   "actql/actql/publication_payload",
   "actql/actql/query_planning",
+  "actql/actql/query_syntax",
   "actql/actql/remote_bundle",
   "actql/actql/remote_credential",
   "actql/actql/remote_site_protocol",
@@ -2135,6 +2137,8 @@ pub fn client_program_local_values_plan_graph_wire(@run_publication_host.ClientV
 
 pub fn client_program_local_values_unit_source_json(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientValuesUnitSourceIssue]
 
+pub fn client_program_lower_request_published_query(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, String?, Bool) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog, @program_source_builder.Source), @client_local_host.ClientRequestQueryLoweringIssue]
+
 pub fn client_program_matches_request_identity(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Bool
 
 pub fn client_program_mock_answer_at(@model_execution.ModelMockAnswers, @check_environment.PublicModelTaskDeclaration, Int) -> Result[(String, @value_admission.CheckedValue)?, @model_execution.ModelMockAnswerIssue]
@@ -2335,6 +2339,8 @@ pub fn client_program_park_infer_original_model_resources(@client_infer_host.Exe
 
 pub fn client_program_park_infer_original_model_resources_for_state_write(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope) -> Result[@physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @client_infer_host.Issue]
 
+pub fn client_program_parse_request_query_syntax(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, String, String) -> Result[@query_syntax.Query, @client_local_host.ClientRequestQuerySyntaxIssue]
+
 pub fn client_program_pin_effect_sources(ClientLocalEffectHost, Int) -> Result[@physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.RunIssue]
 
 pub fn client_program_plan_effect_command_key_workspace(ClientLocalEffectHost, @physical_strategy_host.CapturedEffectInputs, Int, @run_publication_host.PublicationOutputExportLimits, Int) -> Result[ClientEffectCommandWorkspace?, ClientEffectCommandWorkspaceIssue]
@@ -2506,6 +2512,8 @@ pub fn client_program_prepare_source_with_parameters(String, String, @program_ch
 pub fn client_program_prepared_installed_managed_source_free_requirements(@client_local_host.ClientInstalledManagedSourceFreePreparation) -> Array[Int64]
 
 pub fn client_program_prepared_local_publication_limits(@client_local_host.ClientInstalledManagedSourceFreePreparation, @run_publication_host.PreparedClientProgram, Int) -> Array[Int]
+
+pub fn client_program_prepared_request_query_lowering(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog, @program_source_builder.Source), @client_local_host.ClientRequestQueryLoweringIssue]
 
 pub fn client_program_private_continuation_retention_shape(Bytes, String, Int, Int) -> String
 
@@ -2702,6 +2710,8 @@ pub fn client_program_reserve_infer_evidence_copy(Int) -> Result[(@physical_reso
 pub fn client_program_reserve_original_infer_publication_capacity(@client_infer_host.Execution, Int64, Int64) -> Result[@model_execution.OriginalModelPublicationCapacity, @client_infer_host.Issue]
 
 pub fn client_program_reserve_publication(@client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal], @run_publication_host.PreparedClientProgram, @physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram]) -> Result[@client_local_host.ClientProgramPublication[ClientLocalPreparationInputOriginal], @client_local_host.ClientClosedValuesPreparationIssue]
+
+pub fn client_program_reserve_request_snapshot(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int64) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_resolve_installed_model_defaults(@run_publication_host.ClientModelProviderDefaults, String?, Int64?, Int) -> Result[@check_environment.ResolvedModelProviderDefaults, @check_environment.ModelProviderDefaultsResolutionIssue]
 

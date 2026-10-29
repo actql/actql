@@ -25,6 +25,31 @@ Installed contract originals contain validated immutable contract data. They
 do not issue resources or permit dispatch. Request originals, installed
 contracts and resource children are separate identities.
 
+## Native SDK snapshot handoff
+
+The SDK remains the single owner of native JSON snapshot semantics. The Host
+receives this call's frozen connection and original Request receipt before any
+option, Parameter or input getter. Query convenience methods forward that same
+connection rather than using the first connection attached to an installation.
+The existing serializer observes its own native traversal; no pre-scan repeats
+getters, `toJSON`, Proxy enumeration or boxed-number conversion.
+
+An input-proportional data envelope grows geometrically on the same Request
+reservation. Each actual expansion uses the shared representation tariff; an
+individual field does not enter a Resource callback merely for being visited.
+The native wire and detached JSON value overlap and remain covered together.
+The original wire is retained from that serialization, before the detached
+value is constructed, for the subsequent original-input handoff. VM-private
+property enumeration and garbage collection are not physical reserved-memory
+promises; regular input limits and the Host/process boundary remain required.
+
+Only the SDK's one original captured value may proceed. A Host bridge cannot
+skip the serializer, repeat it or substitute an equal-shaped copy. A failure
+from the original Resource observer keeps its actual identity. A caller getter
+or `toJSON` throwing an error with the same spelling remains an ordinary native
+snapshot failure; an error code cannot certify Resource origin. Host lease
+retirement retains the same receipt through failure and pending cleanup.
+
 ## Identity and currentness
 
 Admission, ownership transfer, external callbacks, execution and retirement
@@ -2257,3 +2282,36 @@ cannot establish that no preparation work occurred. A preparation caller must
 fund and retain that input/index backing separately and carry the same original
 syntax into lowering and Program checking. These pure continuation functions
 create no capacity, Resource owner, permission or physical cleanup witness.
+
+
+## Request-owned query syntax
+
+The existing Request retains the admitted SQL/Pipe Query, original document,
+format and source coordinates. The same bounded frontend scanner/parser is
+called once after an input-proportional grow. A declined grow retains its exact
+original tuple and cached quote. Syntax success is not name resolution, Program
+checking or execution permission. The existing lexical/grammar counters retain
+an explicitly incomplete prefix when admission fails before those counters;
+they are not a complete meter of later lowering or all preparation work.
+
+## Request-owned query lowering and Program handoff
+
+The original published Environment and Catalog enter the existing lowerer with
+that retained Query. No source text, installation publication or Catalog is
+parsed again. One coarse shared-tariff envelope covers input-proportional
+expanded fields, generated Program data and encoding overlap. It uses retained
+Catalog size DATA, without charging or replaying its historical admission work.
+Small fixed helpers remain Host overhead. Only an actual capacity expansion
+calls external currentness; immutable completed getters and the Program take do
+not. A callback can reenter, so the existing original/phase fences remain.
+
+The Request retains the exact lowered Program, Catalog and diagnostic source.
+The checker receives those same originals and the supplied Parameter cursor;
+it does not obtain a replacement Program from the generated document. Existing
+Parameter declarations/defaults, checking, compiler and installed Plan laws
+remain authoritative. The same prepared body continues into the existing Run
+and final borrower retirement. Query temporary aliases are cut only after
+successful adoption has retained that original body. Unknown and physical
+cleanup obligations remain separate; neither a returned lowerer nor a DATA
+getter acknowledges them. Complete work metering and normal Host adoption must
+be established by their actual consumers, not inferred from syntax counters.

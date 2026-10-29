@@ -24751,7 +24751,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "722bf8b9925e6f4b5c78998c0cdbc674f22fca7f40b3865392ed0f9fb701158f",
+      "sha256": "4610e6bd17a7092c7d1dcc638aa0ea32e80296dffd337d5a8e163f353c6fec5d",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -24767,6 +24767,14 @@
         {
           "name": "[I]make_closed_values_preparation",
           "declaration": "[ I ] make_closed_values_preparation ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , policy : ClientLocalResourcePolicy , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , retained : Int64 , execution : Int64 , module_containers : @ execution . PreparationRepresentationUnits , ) - > ClientClosedValuesPreparation [ I ]"
+        },
+        {
+          "name": "[I]prepare_request_check_preparation_owned",
+          "declaration": "[ I ] prepare_request_check_preparation_owned ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : @ checked . CheckLimits , source_catalog ? : @ checked . PreparedSourceCatalog ?"
+        },
+        {
+          "name": "[I]prepare_request_effect_check_preparation",
+          "declaration": "[ I ] prepare_request_effect_check_preparation ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : @ publication_host . ClientEffectComputationLimits , source_catalog ? : @ checked . PreparedSourceCatalog ?"
         },
         {
           "name": "[I]prepare_request_program_check_preparation",
@@ -24977,6 +24985,8 @@
         },
         {
           "operations": [
+            "[I]prepare_request_check_preparation_owned",
+            "[I]prepare_request_effect_check_preparation",
             "[I]prepare_request_program_check_preparation",
             "to_repr"
           ],
@@ -25046,6 +25056,306 @@
         }
       ],
       "referenceQualification": "Original same-parent preparation control/continuation and first Values consumer only; not an Effect body recipe, installed runtime admission or physical acknowledgement."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_query_syntax.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "19873eb6d57ae78d3260fc5ef335f4edbdf235fcac6fdd3fc7c1c54e5a45aa03",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]parse_request_query_syntax",
+          "declaration": "[ I ] parse_request_query_syntax ( owner : ClientRequestPreparation [ I ] , input : I , document : String , format : @ frontend . Format , source_path ? : String"
+        },
+        {
+          "name": "[I]prepared_request_query_syntax",
+          "declaration": "[ I ] prepared_request_query_syntax ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ query_syntax . Query , ClientRequestQuerySyntaxIssue ]"
+        },
+        {
+          "name": "[I]request_query_syntax_work",
+          "declaration": "[ I ] request_query_syntax_work ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ ( Int64 , Bool ) , ClientRequestQuerySyntaxIssue ]"
+        },
+        {
+          "name": "request_query_syntax_data_bytes",
+          "declaration": "request_query_syntax_data_bytes ( document : String ) - > Int64 ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]parse_request_query_syntax",
+            "[I]prepared_request_query_syntax",
+            "[I]request_query_syntax_work",
+            "request_query_syntax_data_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_query_syntax_js_wbtest.mbt",
+                "anchor": "test \"same Request query syntax"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-Request source/component and immutable DATA handoff only. Not normal artifact execution, complete work metering, physical backing, or a new authority."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_snapshot.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "0ade6e3b478b1b520c9445586cfc384a80c40f09eda68fed981ad32915dc129a",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]reserve_request_snapshot",
+          "declaration": "[ I ] reserve_request_snapshot ( owner : ClientRequestPreparation [ I ] , input : I , units : Int64 , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "request_snapshot_data_bytes",
+          "declaration": "request_snapshot_data_bytes ( units : Int64 ) - > Int64 ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]reserve_request_snapshot",
+            "request_snapshot_data_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_snapshot_js_wbtest.mbt",
+                "anchor": "test \"Request snapshot"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-Request source/component and immutable DATA handoff only. Not normal artifact execution, complete work metering, physical backing, or a new authority."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_query_lowering.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "9aafad1ef16ef030728791cf2efb637aa0498336007edb621cf032d7dab747db",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]lower_request_published_query",
+          "declaration": "[ I ] lower_request_published_query ( owner : ClientRequestPreparation [ I ] , input : I , publication : @ source_publication . PreparedPublishedQueryEnvironment , environment : @ checked . CheckEnvironment , declarations : String ? , public_primary ? : Bool"
+        },
+        {
+          "name": "[I]prepared_request_query_lowering",
+          "declaration": "[ I ] prepared_request_query_lowering ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ ( @ frontend . Lowered , @ checked . PreparedSourceCatalog , @ frontend . DiagnosticSource , ) , ClientRequestQueryLoweringIssue , ]"
+        },
+        {
+          "name": "request_query_lowering_data_bytes",
+          "declaration": "request_query_lowering_data_bytes ( query : ClientRequestQuerySyntax , declarations : String ? , catalog : @ checked . PreparedSourceCatalog , ) - > Int64 ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]lower_request_published_query",
+            "[I]prepared_request_query_lowering",
+            "request_query_lowering_data_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_query_lowering_js_wbtest.mbt",
+                "anchor": "test \"Request original Query"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-Request source/component and immutable DATA handoff only. Not normal artifact execution, complete work metering, physical backing, or a new authority."
     }
   ]
 }

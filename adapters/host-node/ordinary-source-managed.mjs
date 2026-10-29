@@ -1,4 +1,4 @@
-import {closedValuesPreparationAvailable,assertRequestPreparationControl,beginClosedValuesInput,bindClosedValuesSnapshot,cleanupClosedValuesInput,checkedPreparation} from '../local-node/closed-values-preparation-adapter.mjs';
+import {closedValuesPreparationAvailable,assertRequestPreparationControl,beginRequestInput,beginClosedValuesInput,bindClosedValuesSnapshot,cleanupClosedValuesInput,checkedPreparation} from '../local-node/closed-values-preparation-adapter.mjs';
 import {matchesPublishedSubmissionSnapshot} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {open} from 'node:fs/promises';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -240,8 +240,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       // A selected funded context cannot fall back to an unfunded snapshot
       // when its typed capability or installed output mode is unavailable.
       // Resolve it before allocating a producer, including a throwing lookup.
-      const context = kind === 'program' && options === undefined && callbacks.preparationContext !== undefined
-        ? callbacks.preparationContext(originals) : undefined;
+      const context = callbacks.preparationContext === undefined
+        ? undefined : callbacks.preparationContext(originals);
       if (context !== undefined && !closedValuesPreparationAvailable(context)) {
         fail('NodeLocalPreparationAdmissionUnavailable');
       }
@@ -250,22 +250,26 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const receipt = Object.freeze({});
       const producer = {receipt, kind, body: undefined, request: undefined, finished: false, liveRuns: 0, snapshotPublication: undefined, preparation: undefined};
       receipts.set(receipt, producer); producers.add(producer);
-      // One preparation protocol; the narrow shape adapter is staged until
-      // every supported frontend has a construction proof for this owner.
+      // The same parent precedes every SDK snapshot. The old shape-specific
+      // body adapter remains selected only for its original no-option route
+      // until the generic original Program/Plan continuation consumes it.
       if (context !== undefined) {
         const state = {context, original: undefined, admission: undefined, parent: undefined,
           phase: undefined, prepared: undefined, holder: undefined, adopting: false};
         producer.preparation = state;
         try {
           const required = callbacks.preparationRequirements(originals);
-          const accepted = beginClosedValuesInput(state, input, receipt, originalConnection, required, () => {
+          const assertOriginalCurrent = () => {
             // Cleanup may continue while the manager is closing. Exact
             // membership/current installation, not raw Prepared, is retained.
             if (closed || receipts.get(receipt) !== producer || producer.preparation !== state) {
               fail('ForeignInstalledSourceProducer');
             }
             callbacks.validator(originals);
-          });
+          };
+          const accepted = kind === 'program' && options === undefined
+            ? beginClosedValuesInput(state, input, receipt, originalConnection, required, assertOriginalCurrent)
+            : beginRequestInput(state, receipt, originalConnection, required, assertOriginalCurrent);
           if (!accepted) fail('NodeLocalPreparationAdmissionUnavailable');
         } catch (cause) {
           producer.finished = true;
@@ -282,16 +286,49 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       }
       return receipt;
     },
-    beforeSourceQuery(format, text, parameters, options) {
+    beforeSourceQuery(format, text, parameters, options, originalConnection) {
       // SDK owns documented option and input validation/snapshot semantics.
       // No data-only restriction on the trusted embedding caller is added.
-      return view.beforeSourceSnapshot('aql', text, options);
+      return view.beforeSourceSnapshot('aql', text, options, originalConnection);
+    },
+    captureSourceSnapshot(receipt, value, snapshot) {
+      const producer = producerFor(receipt), state = producer.preparation;
+      if (producer.finished || producer.body !== undefined || typeof snapshot !== 'function') {
+        fail('ForeignInstalledSourceProducer');
+      }
+      if (state === undefined || state.phase !== undefined) return snapshot(value);
+      if (state.parent === undefined || state.snapshotting || state.snapshot !== undefined) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      state.snapshotting = true;
+      try {
+        const captured = snapshot(value, (units, document) => {
+          if (producer.finished || producer.preparation !== state || state.parent === undefined) {
+            fail('ForeignInstalledSourceProducer');
+          }
+          if (state.snapshotUnits !== units) {
+            checked(state.context.runtime.clientProgramReserveRequestSnapshot(
+              state.parent, receipt, BigInt(units)));
+            state.snapshotUnits = units;
+          }
+          // Retain the existing serializer's original wire before JSON.parse.
+          // No second serialization observes this caller's input or getters.
+          if (document !== undefined) state.snapshotDocument = document;
+        });
+        state.snapshot = captured;
+        return captured;
+      } finally {state.snapshotting = false;}
     },
     bindSourceSnapshot(receipt, body) {
       current(); const producer = producerFor(receipt);
       if (producer.body !== undefined || producer.finished) fail('ForeignInstalledSourceProducer');
       producer.body = body;
-      if (producer.preparation !== undefined) bindClosedValuesSnapshot(producer.preparation, body);
+      const state = producer.preparation;
+      if (state?.phase !== undefined) bindClosedValuesSnapshot(state, body);
+      else if (state !== undefined && (state.snapshot !== body ||
+          typeof state.snapshotDocument !== 'string' || state.snapshotting)) {
+        fail('ForeignInstalledSourceProducer');
+      }
     },
     publishSourceSnapshot(receipt, body, publication) {
       current(); const producer = producerFor(receipt);

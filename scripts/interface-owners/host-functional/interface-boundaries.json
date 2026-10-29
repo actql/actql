@@ -19524,7 +19524,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -19643,7 +19643,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -29542,7 +29542,7 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6ccb32aeb796cc5cf6e16d04c9b559dd017fc427f8a7e032303b761adde73a46",
+      "sha256": "cbfd3f568227e8ac13a8f970b12af8f1e754ed3ac387ad423b8df09dab48f35c",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -29663,6 +29663,13 @@
           "async": false
         },
         {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:assertSourceSnapshotCurrent/init:assertSourceSnapshotCurrent",
+          "parameters": [
+            "receipt"
+          ],
+          "async": false
+        },
+        {
           "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeResultRead/init:beforeResultRead",
           "parameters": [
             "schemaOrOptions",
@@ -29676,7 +29683,8 @@
             "format",
             "text",
             "parameters",
-            "options"
+            "options",
+            "originalConnection"
           ],
           "async": false
         },
@@ -29704,6 +29712,15 @@
           "parameters": [
             "receipt",
             "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:captureSourceSnapshot/init:captureSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "value",
+            "snapshot"
           ],
           "async": false
         },
@@ -29986,8 +30003,10 @@
         {
           "operations": [
             "createEmbeddedHostRegistry/init:connect/init:connect/port/init:assertResultReadCurrent/init:assertResultReadCurrent",
+            "createEmbeddedHostRegistry/init:connect/init:connect/port/init:assertSourceSnapshotCurrent/init:assertSourceSnapshotCurrent",
             "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeResultRead/init:beforeResultRead",
             "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeSourceQuery/init:beforeSourceQuery",
+            "createEmbeddedHostRegistry/init:connect/init:connect/port/init:captureSourceSnapshot/init:captureSourceSnapshot",
             "createEmbeddedHostRegistry/init:connect/init:connect/retainSourceProducer/retainSourceProducer"
           ],
           "exports": [],
@@ -30001,7 +30020,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "beforeSourceQuery(format, text, parameters, options) {"
+                "anchor": "beforeSourceQuery(format, text, parameters, options, originalConnection) {"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
@@ -30027,7 +30046,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "return retainSourceProducer(sourcePreparation.beforeSourceQuery(format, text, parameters, options));"
+                "anchor": "return retainSourceProducer(sourcePreparation.beforeSourceQuery(format, text, parameters, options, originalConnection));"
               }
             ],
             "failure": [
@@ -76486,7 +76505,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "6af70995ea1c844ed76820e54a999a4a1918d5e7a636c2a3af748b225881b67d",
+      "sha256": "e519c189b7e2a7b17e8372ed40478aaa6267f10185e4b696f11dfbb1a49539d3",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -76689,7 +76708,8 @@
             "format",
             "text",
             "parameters",
-            "options"
+            "options",
+            "originalConnection"
           ],
           "async": false
         },
@@ -76704,7 +76724,7 @@
           "async": false
         },
         {
-          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/accepted/accepted",
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/assertOriginalCurrent/assertOriginalCurrent",
           "parameters": [],
           "async": false
         },
@@ -76730,6 +76750,23 @@
           "parameters": [
             "prepared",
             "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "value",
+            "snapshot"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot/captured/captured",
+          "parameters": [
+            "units",
+            "document"
           ],
           "async": false
         },
@@ -77013,7 +77050,6 @@
             "fail/fail",
             "fileIdentity/fileIdentity",
             "pending/pending",
-            "prepareOrdinarySourceManagedInstallation",
             "prepareOrdinaryManagedInstallation/closeChild",
             "prepareOrdinaryManagedInstallation/current/current",
             "prepareOrdinaryManagedInstallation/producerFor/producerFor",
@@ -77039,7 +77075,8 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#2",
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#3",
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#4",
-            "prepareOrdinaryManagedInstallation/view/init:prepareRun/init:prepareRun"
+            "prepareOrdinaryManagedInstallation/view/init:prepareRun/init:prepareRun",
+            "prepareOrdinarySourceManagedInstallation"
           ],
           "exports": [
             "assertOrdinarySourcePreparationCurrent",
@@ -77544,8 +77581,10 @@
             "prepareOrdinaryManagedInstallation/producerForRequest/producerForRequest",
             "prepareOrdinaryManagedInstallation/retireInitialPreparation/retireInitialPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
-            "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/accepted/accepted",
+            "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/assertOriginalCurrent/assertOriginalCurrent",
             "prepareOrdinaryManagedInstallation/view/init:borrowPreparation/init:borrowPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot",
+            "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot/captured/captured",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation",
             "prepareOrdinaryManagedInstallation/view/init:publishSourceSnapshot/init:publishSourceSnapshot",
             "prepareOrdinaryManagedInstallation/view/init:retireSeveredPreparation/init:retireSeveredPreparation",
@@ -81670,10 +81709,11 @@
     },
     {
       "module": "adapters/local-node/closed-values-preparation-adapter.mjs",
-      "sha256": "852305cdcff349565e2d991a392872fa48df87e71f15a00690e63cc51387d034",
+      "sha256": "7e99791388908028d649d943db1ea2db514a4757b48828dccc38ce05e445d22e",
       "exports": [
         "assertRequestPreparationControl",
         "beginClosedValuesInput",
+        "beginRequestInput",
         "bindClosedValuesSnapshot",
         "checkedPreparation",
         "cleanupClosedValuesInput",
@@ -81692,6 +81732,17 @@
           "parameters": [
             "state",
             "input",
+            "receipt",
+            "connection",
+            "requirements",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginRequestInput",
+          "parameters": [
+            "state",
             "receipt",
             "connection",
             "requirements",
@@ -81789,6 +81840,7 @@
           "operations": [
             "<module>",
             "beginClosedValuesInput",
+            "beginRequestInput",
             "bindClosedValuesSnapshot",
             "checkedPreparation",
             "cleanupClosedValuesInput",
@@ -81801,6 +81853,7 @@
           ],
           "exports": [
             "beginClosedValuesInput",
+            "beginRequestInput",
             "bindClosedValuesSnapshot",
             "checkedPreparation",
             "cleanupClosedValuesInput",
@@ -83530,7 +83583,7 @@
       "sha256": "82d23d01b6c99054e795ee06207f1c03040479a6134eb9be48d4b759d23e992b",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -83779,7 +83832,7 @@
       "sha256": "4991c26ae2929a8caeed0235636d99234aff45dad38e2435c662d5e7af5936d0",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "prepareInstalledEffectManagedPlanRun",
@@ -84144,7 +84197,7 @@
       "sha256": "607afe29963ec6e0ca7edd47030c5ce21f4b6c4c440b774f6b66a3d52ddadaca",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "captureInstalledSourceServices",
         "createInstalledHostServices",

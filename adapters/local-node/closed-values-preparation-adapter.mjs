@@ -77,6 +77,22 @@ export function assertRequestPreparationControl(context) {
       control[0]<=0n || control[1]!==0n) invalid();
 }
 
+// General Request admission observes no caller options, Parameters or source.
+// Actual SDK capture below grows this same parent before its detached data.
+export function beginRequestInput(state, receipt, connection, requirements, assertCurrent) {
+  const moon=state.context.runtime;
+  if(typeof moon.clientProgramReserveRequestSnapshot!=='function') invalid();
+  if (!Object.isFrozen(connection) || connection.mode !== 'local' ||
+      connection.owner !== 'local' || !Array.isArray(connection.consentRefs) ||
+      !Array.isArray(connection.runners)) return false;
+  state.original=resources.retainOrdinaryManagedRun(receipt,requirements,
+    assertCurrent,noPhysicalChildren,'local-preparation');
+  state.admission=checked(moon.clientProgramPrepareLocalPreparationAdmission(state.original,receipt));
+  state.parent=checked(moon.clientProgramBeginRequestPreparation(state.admission,receipt,
+    moon.clientLocalResourcePolicyOriginal()));
+  return true;
+}
+
 export function beginClosedValuesInput(state, input, receipt, connection, requirements, assertCurrent) {
   const moon=state.context.runtime;
   // This is the already frozen SDK connection of THIS call, not the first
@@ -126,7 +142,7 @@ export function bindClosedValuesSnapshot(state, body) {
 }
 
 export function cleanupClosedValuesInput(state, retireInitialPreparation) {
-  if(state.adopting) invalid();
+  if(state.adopting || state.snapshotting) invalid();
   const moon=state.context.runtime;
   if(state.holder!==undefined) {
     try {checkedPreparation(moon,moon.clientProgramAbortClosedValuesPreparationAfterCleanup(state.phase));}
@@ -155,5 +171,5 @@ export function cleanupClosedValuesInput(state, retireInitialPreparation) {
   // Clear only after the original stop is confirmed. No caller snapshot is
   // revoked, and no local Promise completion stands in for physical cleanup.
   if(state.original!==undefined && !resources.ordinaryManagedRunStatus(state.original).stopped) invalid();
-  state.original=state.prepared=undefined;
+  state.original=state.prepared=state.snapshot=state.snapshotDocument=undefined;
 }

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prepareOrdinarySourceManagedInstallation} from './ordinary-source-managed.mjs';
 import resources from './ordinary-node-resource-runtime.cjs';
+import {snapshotClientRequest} from '../../packages/client-wire/index.mjs';
 
 // Actual normal manager/adapter/Resource originals; Core phase/shape results
 // are explicit ports. This does not certify a matching Common or body tariff.
@@ -27,6 +28,10 @@ async function fixture({selectFailure, control=[1024n,0n]}={}) {
     clientProgramBeginRequestPreparation(actual,receipt,selectedPolicy){
       assert.equal(this,moon);assert.equal(actual,admission);assert.equal(receipt,admission.receipt);assert.equal(selectedPolicy,policy);
       assert.equal(admission.ports.status(0),0);calls.push('parent');return ok(parent);
+    },
+    clientProgramReserveRequestSnapshot(actual,receipt,units){
+      assert.equal(this,moon);assert.equal(actual,parent);assert.equal(receipt,admission.receipt);
+      assert.equal(typeof units,'bigint');assert.ok(units>0n);calls.push('snapshot-grow');return ok(undefined);
     },
     clientProgramSelectClosedValuesPreparation(actual,receipt){
       assert.equal(this,moon);assert.equal(actual,parent);assert.equal(receipt,admission.receipt);calls.push('select');
@@ -91,6 +96,45 @@ test('native snapshot fence authenticates the actual ordinary producer receipt a
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, false);
   f.view.finishSourceProducer(receipt, 'failed');
   assert.throws(() => f.view.assertSourceSnapshotCurrent(receipt), {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+  assert.deepEqual(await f.view.close(), {pending: false});
+});
+
+test('normal SQL source retains one Request parent before SDK Parameter and option snapshot', async () => {
+  const f = await fixture();
+  let reads = 0;
+  const parameters = {get n() {reads++; return 7;}};
+  const options = {format: 'sql', parameters};
+  const receipt = f.view.beforeSourceSnapshot('aql', 'SELECT @n AS n', options, connection);
+  try {
+    // The actual SDK owns the following getter/snapshot pass. The Host must
+    // retain this original parent without pre-reading those same values.
+    assert.equal(reads, 0);
+    assert.equal(f.calls.filter(value => value === 'parent').length, 1);
+    assert.ok(f.original);
+  } finally {
+    f.view.finishSourceProducer(receipt, 'failed');
+    assert.deepEqual(await f.view.close(), {pending: false});
+  }
+});
+
+
+test('normal SQL snapshot grows the same parent and observes Parameters exactly once', async () => {
+  const f = await fixture();
+  let reads = 0, coerced = 0;
+  const number = Object.assign(new Number(1), {valueOf() {coerced++; return 7;}});
+  const parameters = {get n() {reads++; return number;}};
+  const receipt = f.view.beforeSourceSnapshot('aql', 'SELECT @n AS n', {parameters}, connection);
+  const body = f.view.captureSourceSnapshot(receipt,
+    {kind: 'aql', input: {text: 'SELECT @n AS n', format: 'sql'}, parameters}, snapshotClientRequest);
+  assert.equal(reads, 1);assert.equal(coerced, 1);
+  assert.deepEqual(body.parameters, {n: 7});
+  assert.equal(f.calls.filter(value => value === 'parent').length, 1);
+  assert.ok(f.calls.filter(value => value === 'snapshot-grow').length > 0);
+  assert.equal(f.calls.includes('select'), false);
+  f.view.bindSourceSnapshot(receipt, body);
+  f.view.finishSourceProducer(receipt, 'failed');
+  assert.equal(f.calls.filter(value => value === 'abort-parent').length, 1);
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
   assert.deepEqual(await f.view.close(), {pending: false});
 });

@@ -2,6 +2,12 @@
 priv enum ClientRequestPreparationPhase {
   Open
   Selecting
+  QuerySyntaxQuoted
+  QuerySyntaxParsed
+  QuerySyntaxFailed
+  QueryLoweringQuoted
+  QueryLowered
+  QueryLoweringFailed
   ProgramJson
   ProgramJsonFailed
   ProgramCheck
@@ -31,6 +37,9 @@ struct ClientRequestPreparation[I] {
   ledger : @resources.Ledger
   capacity : @resources.PreparationCapacity[I, Unit]
   mut input : I?
+  mut snapshot_base : (Int64, Int64)?
+  mut snapshot_units : Int64
+  mut query_syntax : ClientRequestQuerySyntax?
   // The same generic domain holder owns its source/index/Program aliases.
   // Unit remains uncompleted until the actual output-type continuation.
   mut program_json : ClientProgramJsonPreparation[I, Unit]?
@@ -234,6 +243,9 @@ pub fn[I] begin_request_preparation(
     ledger,
     capacity,
     input: Some(input),
+    snapshot_base: None,
+    snapshot_units: 0L,
+    query_syntax: None,
     program_json: None,
     held_program: None,
     program_check: None,
@@ -367,24 +379,43 @@ fn[I] prepare_request_check_preparation_owned(
   ClientProgramCheckPreparation[I, Unit],
   ClientRequestPreparationIssue,
 ] {
-  guard owner.phase == ProgramJson &&
-    owner.held_program is None &&
-    owner.program_check is None &&
-    owner.program_json is Some(source) else {
+  guard owner.program_check is None &&
+    (owner.phase == ProgramJson || owner.phase == QueryLowered) else {
     return Err(WrongPhase)
   }
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(ForeignOriginal)
   }
-  owner.phase = Selecting
-  let program = match take_program_json_preparation_program(source) {
-    Err(issue) => {
-      owner.phase = ProgramJson
-      return Err(ProgramJson(issue))
+  let (program, source_catalog) = if owner.phase == QueryLowered {
+    guard owner.held_program is Some(program) &&
+      owner.query_syntax is Some(query) &&
+      query.lowering is Some(lowering) &&
+      physical_equal(lowering.environment, environment) &&
+      lowering.output is Some((_, catalog, _)) else {
+      return Err(ForeignOriginal)
     }
-    Ok(value) => value
+    if source_catalog is Some(selected) && !physical_equal(selected, catalog) {
+      return Err(ForeignOriginal)
+    }
+    // The lowerer already retained this exact Program and Catalog. Taking
+    // immutable DATA cannot reenter current or construct a replacement tree.
+    (program, Some(catalog))
+  } else {
+    guard owner.held_program is None && owner.program_json is Some(source) else {
+      return Err(WrongPhase)
+    }
+    owner.phase = Selecting
+    let program = match take_program_json_preparation_program(source) {
+      Err(issue) => {
+        owner.phase = ProgramJson
+        return Err(ProgramJson(issue))
+      }
+      Ok(value) => value
+    }
+    owner.held_program = Some(program)
+    (program, source_catalog)
   }
-  owner.held_program = Some(program)
+  owner.phase = Selecting
   let outcome = match effect_limits {
     None =>
       begin_program_check_preparation(
@@ -547,6 +578,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   // Both registered controllers have relinquished only their own aliases.
   // This caller is explicitly after its borrowed arguments/returned frames.
   owner.held_program = None
+  owner.query_syntax = None
   owner.compiled_program = None
   owner.compiled_effect = None
   owner.effect_plan = None

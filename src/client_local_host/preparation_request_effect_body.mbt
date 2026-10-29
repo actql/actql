@@ -172,6 +172,7 @@ pub fn[I] begin_request_effect_managed_run(
       owner.program_plan_quote = None
       owner.held_program = None
       owner.input = None
+      owner.query_syntax = None
       owner.phase = Selected
       Ok(run)
     }
