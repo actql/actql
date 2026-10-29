@@ -33,7 +33,6 @@ priv enum ClientRequestPreparationPhase {
 /// This record owns no second Ledger, byte allowance, parser or serializer.
 struct ClientRequestPreparation[I] {
   initial : @resources.NodePreparationAdmission[I]
-  policy : ClientLocalResourcePolicy
   ledger : @resources.Ledger
   capacity : @resources.PreparationCapacity[I, Unit]
   mut input : I?
@@ -271,7 +270,6 @@ pub fn[I] begin_request_preparation(
   // The manager stores this original before any shape-specific constructor.
   Ok({
     initial,
-    policy,
     ledger,
     capacity,
     input: Some(input),
@@ -525,70 +523,6 @@ fn[I] prepare_request_check_preparation_owned(
 }
 
 ///|
-/// First concrete consumer. Select only the body type, retaining exactly the
-/// original child, Ledger and reservation. The old bootstrap and new driver
-/// coexist until the fixed JS caller stores the result and cuts its old link.
-pub fn[I] select_closed_values_preparation(
-  owner : ClientRequestPreparation[I],
-  input : I,
-  module_containers~ : @execution.PreparationRepresentationUnits,
-) -> Result[ClientClosedValuesPreparation[I], ClientRequestPreparationIssue] {
-  if owner.phase != Open || owner.intent_base is Some(_) {
-    return Err(WrongPhase)
-  }
-  guard owner.input is Some(original) && physical_equal(original, input) else {
-    return Err(ForeignOriginal)
-  }
-  guard client_closed_values_initial_control_capacity(
-      owner.policy,
-      module_containers~,
-    )
-    is Some((retained, execution)) &&
-    client_request_preparation_control_capacity(owner.policy)
-    is Some((bootstrap, _)) &&
-    retained <= 9223372036854775807L - bootstrap else {
-    return Err(Policy)
-  }
-  owner.phase = Selecting
-  let outcome = @resources.reserve_working_preparation_phase(
-    owner.capacity,
-    input,
-    retained + bootstrap,
-    execution,
-  )
-  match outcome {
-    Err(issue) => {
-      owner.phase = Open
-      return Err(Capacity(issue))
-    }
-    Ok(_) => ()
-  }
-  let capacity : @resources.PreparationCapacity[
-    I,
-    @publication_host.PreparedClientProgram,
-  ] = match @resources.continue_preparation_capacity(owner.capacity, input) {
-    Err(issue) => {
-      owner.phase = Open
-      return Err(Capacity(issue))
-    }
-    Ok(value) => value
-  }
-  owner.phase = Selected
-  owner.input = None
-  Ok(
-    make_closed_values_preparation(
-      owner.initial,
-      input,
-      owner.policy,
-      capacity,
-      retained + bootstrap,
-      execution,
-      module_containers,
-    ),
-  )
-}
-
-///|
 /// Only after this fixed callback's construction/snapshot aliases unwound.
 /// Pending original report/stop remains on this same admission; a later callback
 /// cannot replace its original unknown outcome with an acknowledgement.
@@ -723,56 +657,6 @@ pub fn[I] abort_request_preparation_after_cleanup(
       Ok(())
     }
   }
-}
-
-///|
-/// The request parent selects this body-specific driver only after reserving
-/// its complete old/new control overlap on the same original reservation.
-fn[I] make_closed_values_preparation(
-  initial : @resources.NodePreparationAdmission[I],
-  input : I,
-  policy : ClientLocalResourcePolicy,
-  capacity : @resources.PreparationCapacity[
-    I,
-    @publication_host.PreparedClientProgram,
-  ],
-  retained : Int64,
-  execution : Int64,
-  module_containers : @execution.PreparationRepresentationUnits,
-) -> ClientClosedValuesPreparation[I] {
-  let value : ClientClosedValuesPreparation[I] = {
-    original: None,
-    input: Some(input),
-    initial,
-    policy,
-    module_containers,
-    capacity,
-    work: None,
-    header_fields: 0,
-    header_rows: 0,
-    retiring: false,
-    module_constructing: false,
-    text_checked: false,
-    scan_complete: false,
-    document: None,
-    parsed: None,
-    program: None,
-    prepared: None,
-    shape: None,
-    lexical: None,
-    envelope: None,
-    retained_quote: retained,
-    execution_quote: execution,
-    source_free: None,
-    compilation: None,
-    body_ready: false,
-    manager_issued: false,
-    adopted: false,
-    submitted_intent: None,
-    manager_original: None,
-  }
-  value.original = Some(value)
-  value
 }
 
 ///|

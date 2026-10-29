@@ -20,21 +20,27 @@ fn validation_custody_capture(
 fn validation_custody_retire(
   value : ClientProgramPublication,
   ledger : @resources.Ledger,
-  owner : ClientClosedValuesPreparation[Array[Int]],
+  capacity : @resources.PreparationCapacity[
+    Array[Int],
+    @publication_host.PreparedClientProgram,
+  ],
+  initial : @resources.NodePreparationAdmission[Array[Int]],
 ) -> Unit raise {
-  assert_false(@resources.retire_preparation_capacity(owner.capacity).unwrap())
+  assert_false(@resources.retire_preparation_capacity(capacity).unwrap())
   clear_program_publication(value)
-  assert_true(sever_closed_values_body(owner, value.holder))
+  assert_true(@resources.preparation_body_retirement_started(value.holder))
   assert_true(@resources.return_preparation_body_borrow(value.holder).unwrap())
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  @resources.cleanup_node_preparation_admission(initial).unwrap()
 }
 
 ///|
 test "retained validation one active slot and serial reuse share same reservation" {
-  let (publication, ledger, owner) = publication_custody_fixture_originals(() => {
-    ()
-  })
+  let (publication, ledger, capacity, initial) = publication_custody_fixture_originals(() => {
+      ()
+    },
+  )
   let capture = validation_custody_capture(publication)
   let first = new_program_validation(capture, false).unwrap()
   assert_true(new_program_validation(capture, true) is Err(Owner(WrongPhase)))
@@ -57,21 +63,22 @@ test "retained validation one active slot and serial reuse share same reservatio
   fund_validation_inventory(next, 60L, 6).unwrap()
   assert_true(capture.validation_retained > component)
   cancel_program_validation(next)
-  validation_custody_retire(publication, ledger, owner)
+  validation_custody_retire(publication, ledger, capacity, initial)
 }
 
 ///|
 test "retained validation callback cancellation cannot authorize constructor" {
   let armed = Ref(false)
   let selected : Ref[ClientProgramValidation?] = Ref(None)
-  let (publication, ledger, owner) = publication_custody_fixture_originals(() => {
-    if armed.val {
-      armed.val = false
-      if selected.val is Some(value) {
-        cancel_program_validation(value)
+  let (publication, ledger, capacity, initial) = publication_custody_fixture_originals(() => {
+      if armed.val {
+        armed.val = false
+        if selected.val is Some(value) {
+          cancel_program_validation(value)
+        }
       }
-    }
-  })
+    },
+  )
   let capture = validation_custody_capture(publication)
   let value = new_program_validation(capture, false).unwrap()
   selected.val = Some(value)
@@ -86,14 +93,15 @@ test "retained validation callback cancellation cannot authorize constructor" {
   fund_validation_inventory(retry, 6L, 6).unwrap()
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, peak)
   cancel_program_validation(retry)
-  validation_custody_retire(publication, ledger, owner)
+  validation_custody_retire(publication, ledger, capacity, initial)
 }
 
 ///|
 test "retained validation cancellation clears owned pending Plan before retirement" {
-  let (publication, ledger, owner) = publication_custody_fixture_originals(() => {
-    ()
-  })
+  let (publication, ledger, capacity, initial) = publication_custody_fixture_originals(() => {
+      ()
+    },
+  )
   let capture = validation_custody_capture(publication)
   let value = new_program_validation(capture, false).unwrap()
   fund_validation_inventory(value, 2L, 2).unwrap()
@@ -113,7 +121,7 @@ test "retained validation cancellation clears owned pending Plan before retireme
   assert_true(
     @publication.publication_validation_plan_inventory(plan) is Some(_),
   )
-  validation_custody_retire(publication, ledger, owner)
+  validation_custody_retire(publication, ledger, capacity, initial)
   assert_true(value.closed && value.plan is None && capture.validation is None)
   assert_true(@publication.publication_validation_plan_inventory(plan) is None)
   assert_true(
@@ -123,9 +131,10 @@ test "retained validation cancellation clears owned pending Plan before retireme
 
 ///|
 test "retained validation failed growth can clear slot without releasing sibling grant" {
-  let (publication, ledger, owner) = publication_custody_fixture_originals(() => {
-    ()
-  })
+  let (publication, ledger, capacity, initial) = publication_custody_fixture_originals(() => {
+      ()
+    },
+  )
   let capture = validation_custody_capture(publication)
   let value = new_program_validation(capture, false).unwrap()
   let other = @resources.reserve_capacity(ledger, 536870912L - 1000000L, 0L).unwrap()
@@ -144,5 +153,5 @@ test "retained validation failed growth can clear slot without releasing sibling
     536870912L,
   )
   @resources.settle_capacity(ledger, other).unwrap()
-  validation_custody_retire(publication, ledger, owner)
+  validation_custody_retire(publication, ledger, capacity, initial)
 }
