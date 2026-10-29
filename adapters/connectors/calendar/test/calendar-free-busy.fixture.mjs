@@ -4,6 +4,7 @@ import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs
 import assert from 'node:assert/strict';
 import {createHash, generateKeyPairSync, randomUUID} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
+import {readFileSync} from 'node:fs';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
@@ -11,7 +12,9 @@ const common = await import(process.env.ACTQL_TEST_COMMON_URL ?? new URL('../../
 const provider = await import(process.env.ACTQL_TEST_CALENDAR_URL ?? new URL('../../../../_build/js/release/build/connectors/calendar/host_node/host_node.js',import.meta.url).href);
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {canonicalJson, createLocalAuthorizationGate} from '../../../host-node/local-account-config.mjs';
+import {canonicalJson,readAccountConfiguration} from '../../../host-node/local-account-config.mjs';
+import {createAuthorizationGate} from '../../../host-common/authorization-gate.mjs';
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
 import {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
@@ -22,7 +25,7 @@ import {prepareCalendarFreeBusyPages, CALENDAR_FREE_BUSY_OPERATION} from '../sit
 const repo = new URL('../../../../', import.meta.url).pathname;
 const control = runtimeCore(common).remoteCredentialControl;
 const cid = c => `sha256:${c.repeat(64)}`;
-const read = name => readFile(join(repo, name), 'utf8');
+const read = name => readFile(join(process.env.ACTQL_TEST_CONTRACT_ROOT ?? repo, name), 'utf8');
 export const freeBusyRowSchema = Object.freeze({calendar_id:{type:'string',nullable:false},
   start:{type:'timestamp',nullable:false},end:{type:'timestamp',nullable:false}});
 export const freeBusyReadLimits = Object.freeze({maxResponseBytes:4096,maxNodes:512,maxDepth:16,
@@ -56,10 +59,12 @@ async function rowOwner(verifyOriginalTransport, factsWire) {
   const [registry, aoa, query, evidence] = await Promise.all([
     read('spec/dependencies/aoa-pipeline-registry.json'), read('spec/contracts/actql-aoa.json').then(JSON.parse),
     read('spec/contracts/actql-query-acquisition.json'), read('spec/contracts/actql-query-process-evidence.json')]);
-  const requirement = checked(common.clientProgramPrepareLocalQueryRequirement(program, 0, 0, registry,
-    JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+  const values=JSON.stringify(aoa.execution_contracts['REL.values']),
+    fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+    ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const contracts=checked(common.clientPrepareInstalledSequenceContracts(registry,values,fragment,ordered));
+  const requirement=checked(common.clientProgramPrepareLocalQueryRequirement(program,0,0,contracts,
+    values,fragment,ordered));
   const acquisition = checked(common.clientProgramRowSourcePrepareAcquisition(declaration, requirement, query, evidence));
   // Explicit independent component bounds, not normal Host funding.
   const ledger = checked(common.clientProgramAcquisitionLedger(1, 1, 24576n, 100000000n, 100000000n, 0));
@@ -69,7 +74,10 @@ async function rowOwner(verifyOriginalTransport, factsWire) {
   return {charge: bytes => checked(common.clientProgramRowSourceChargePage(run, bytes)),
     page: (rows, charge) => checked(common.clientProgramRowSourceAcceptChargedPage(run, charge, Buffer.from(JSON.stringify(rows)))),
     finish: () => checked(common.clientProgramRowSourceFinish(run)),
-    captureCount: () => {const capture=checked(common.clientProgramRowSourceCapture(run));
+    captureCount: () => {
+      checked(common.clientProgramRowSourceCaptureBegin(run));
+      while(!runtimeField(checked(common.clientProgramRowSourceCaptureAdvance(run,64)),0)) {}
+      const capture=checked(common.clientProgramRowSourceCapture(run));
       const source=checked(common.clientProgramRowSourceCaptureSource(capture));
       return common.clientProgramCapturedSourceRowCount(checked(common.clientProgramIdentifyCapturedSourceRelation(source)));},
     assertNoCapture: () => assert.throws(() => checked(common.clientProgramRowSourceCapture(run)), {code:'MoonBitHostFailure'}),
@@ -125,7 +133,10 @@ export async function freeBusyFixture(t, {account = 'allow', factsWire = '{}'} =
     entry_id:'calendar-read',outcome,principal:{all:true},connection:{any_of:['calendar:fixture']},resource:{any_of:['free_busy']},
     operation:{any_of:['read']},exclusions:[]}]}));
   await writeAccount(account);
-  const gate=await createLocalAuthorizationGate({accountConfig:accountPath,principal:'operator',context:{principal:'operator',contextCid:cid('d')}});
+  const configuration=await readAccountConfiguration(accountPath);
+  const gate=createAuthorizationGate({runtime:common,configuration:configuration.text,
+    configurationCid:configuration.configurationCid,readConfiguration:()=>readFileSync(accountPath,'utf8'),
+    context:{principal:'operator',contextCid:cid('d')}});
   const current=async () => {const decision=await gate.authorize('acquisition',{connection:'calendar:fixture',resource:'free_busy',operation:'read'},
     {subjectCid:scope.runInvocationCid});if(decision.action!=='dispatch')throw Object.assign(new Error('CalendarReadDenied'),{code:'CalendarReadDenied'});};
   const credential={control,journal,ca:cert,resolveSecret:async () => {state.resolutions++;await state.resolved?.();return state.secret;}};
