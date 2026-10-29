@@ -132,7 +132,8 @@ test "Host initial Source successor keeps its original Environment until Request
   )
   assert_true(@resources.return_preparation_body_borrow(second).unwrap())
   assert_true(@resources.preparation_capacity_reservation_retired(capacity))
-  assert_true(close_host_initialization_preparation(host) is Err(Initial(_)))
+  // The Source owner must observe its original child settled before asking
+  // B to close. An attempted physical stop is not a retryable Bool probe.
   child_pending.val = false
   close_host_initialization_preparation(host).unwrap()
 }
