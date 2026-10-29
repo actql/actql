@@ -94,7 +94,8 @@ pub fn client_program_row_source_bind_response_cleanup(
 pub fn client_program_row_source_project_json_page(
   body : Bytes,
   items_path : Array[String],
-  cursor_path : Array[String]?,
+  cursor_path_enabled : Bool,
+  cursor_path : Array[String],
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
@@ -104,8 +105,22 @@ pub fn client_program_row_source_project_json_page(
   @client_row_source_host.ManagedJsonPage,
   @client_row_source_host.ManagedJsonPageIssue,
 ] {
+  if !cursor_path_enabled && !cursor_path.is_empty() {
+    return Err(@client_row_source_host.InvalidLimits)
+  }
   @client_row_source_host.project_managed_json_page(
-    body, items_path, cursor_path, max_bytes, max_nodes, max_depth, max_rows, max_cursor_bytes,
+    body,
+    items_path,
+    if cursor_path_enabled {
+      Some(cursor_path)
+    } else {
+      None
+    },
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_rows,
+    max_cursor_bytes,
   )
 }
 
@@ -126,9 +141,20 @@ pub fn client_program_row_source_json_page_row_count(
 }
 
 ///|
+#export_name("clientProgramRowSourceJsonPageHasNextCursor")
+pub fn client_program_row_source_json_page_has_next_cursor(
+  page : @client_row_source_host.ManagedJsonPage,
+) -> Bool {
+  @client_row_source_host.managed_json_page_next_cursor(page) is Some(_)
+}
+
+///|
 #export_name("clientProgramRowSourceJsonPageNextCursor")
 pub fn client_program_row_source_json_page_next_cursor(
   page : @client_row_source_host.ManagedJsonPage,
-) -> String? {
-  @client_row_source_host.managed_json_page_next_cursor(page)
+) -> Result[String, @client_row_source_host.ManagedJsonPageIssue] {
+  match @client_row_source_host.managed_json_page_next_cursor(page) {
+    Some(cursor) => Ok(cursor)
+    None => Err(@client_row_source_host.CursorShape)
+  }
 }
