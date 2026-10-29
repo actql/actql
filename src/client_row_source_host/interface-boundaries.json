@@ -174,7 +174,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "4cc6fa8e985e5ce0541a2b8ac8018a76e26568f27ef604375811d17f51be17ad",
+      "sha256": "666109c81e38bc3871dd7fdd4be8f7ae346b5ad903dfa9304ed9ec0c13660ae3",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -185,6 +185,7 @@
         "pub fn accept_keyed_row_page(RowSourceRead, Bytes) -> Result[Int, RowSourceIssue]",
         "pub fn accept_row_run_page(RowRun, Bytes) -> Result[Int, RowHostIssue]",
         "pub fn accept_row_run_values(RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]",
+        "pub fn admit_mock_churn_risk_target_document(RowDeclaration, RowDeclaration, Bytes, RowPageLimits, Int) -> Result[MockTargetDocument, RowSourceIssue]",
         "pub fn advance_keyed_row_page(RowSourceRead, Int) -> Result[RowKeyedPagePoll, RowSourceIssue]",
         "pub fn advance_row_capture(RowRun, Int) -> Result[(Bool, Int64), RowHostIssue]",
         "pub fn advance_row_capture_cleanup(RowRun, Int) -> Result[Bool, RowHostIssue]",
@@ -231,23 +232,31 @@
         "pub fn keyed_row_capture_read(RowKeyedSourceCapture) -> Result[@execution_relation.SuppliedRelationRead, RowHostIssue]",
         "pub fn keyed_row_read_facts(RowSourceRead) -> @sourceview_resolution.KeyedSourceFacts?",
         "pub fn keyed_row_read_usage(RowSourceRead) -> (Int, Int64, Int64)",
+        "pub fn managed_json_page_next_cursor(ManagedJsonPage) -> String?",
+        "pub fn managed_json_page_row_count(ManagedJsonPage) -> Int",
+        "pub fn managed_json_page_rows_wire(ManagedJsonPage) -> String",
         "pub fn mock_churn_risk_query_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
         "pub fn mock_churn_risk_query_alias_count(MockChurnRiskCatalogue) -> Int",
         "pub fn mock_churn_risk_source_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
         "pub fn mock_churn_risk_source_count(MockChurnRiskCatalogue) -> Int",
+        "pub fn mock_churn_risk_target_before(MockTargetRow) -> String?",
+        "pub fn mock_churn_risk_target_version(MockTargetRow) -> String?",
         "pub fn mock_churn_risk_update_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
         "pub fn mock_churn_risk_update_alias_count(MockChurnRiskCatalogue) -> Int",
+        "pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String) -> Result[MockTargetRow, RowSourceIssue]",
         "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_declared_row_acquisition(RowSourcePreparation, String, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]",
         "pub fn prepare_declared_row_source(@query_planning.QueryRequirement, String, RowDeclaredView) -> Result[RowSourcePreparation, RowSourceIssue]",
         "pub fn prepare_keyed_row_acquisition(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, @sourceview_resolution.KeyedRowRequest, RowDeclaration, RowKeyedLimits, input_available? : (() -> Bool)?) -> Result[RowKeyedAcquisition, RowHostIssue]",
         "pub fn prepare_keyed_row_capacity(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, RowDeclaration, RowKeyedLimits) -> Result[RowKeyedCapacity, RowHostIssue]",
         "pub fn prepare_mock_churn_risk_catalogue(RowDeclarationLimits) -> Result[MockChurnRiskCatalogue, RowHostIssue]",
+        "pub fn prepare_mock_churn_risk_target_update(MockTargetDocument, MockTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
         "pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]",
         "pub fn prepare_row_delete_mapping(RowDeclaration, String, String, String, String, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_row_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]",
+        "pub fn project_managed_json_page(Bytes, Array[String], Array[String]?, Int, Int, Int, Int, Int) -> Result[ManagedJsonPage, ManagedJsonPageIssue]",
         "pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]",
         "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]",
         "pub fn restore_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]",
@@ -287,6 +296,8 @@
         "pub fn start_original_accounted_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, Int, Int64, Int64, (RowAttempt) -> Bool, prefix? : @physical_resources.Reservation?) -> Result[RowRun, RowHostIssue]",
         "pub fn start_row_acquisition(RowAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]",
         "pub struct MockChurnRiskCatalogue {",
+        "pub struct MockTargetDocument {",
+        "pub struct MockTargetRow {",
         "pub struct RowDeclaration {",
         "pub struct RowDeclaredView {",
         "pub enum RowKeyedPagePoll {",
@@ -322,6 +333,10 @@
         {
           "name": "accept_row_run_values",
           "declaration": "pub fn accept_row_run_values(RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]"
+        },
+        {
+          "name": "admit_mock_churn_risk_target_document",
+          "declaration": "pub fn admit_mock_churn_risk_target_document(RowDeclaration, RowDeclaration, Bytes, RowPageLimits, Int) -> Result[MockTargetDocument, RowSourceIssue]"
         },
         {
           "name": "advance_keyed_row_page",
@@ -508,6 +523,18 @@
           "declaration": "pub fn keyed_row_read_usage(RowSourceRead) -> (Int, Int64, Int64)"
         },
         {
+          "name": "managed_json_page_next_cursor",
+          "declaration": "pub fn managed_json_page_next_cursor(ManagedJsonPage) -> String?"
+        },
+        {
+          "name": "managed_json_page_row_count",
+          "declaration": "pub fn managed_json_page_row_count(ManagedJsonPage) -> Int"
+        },
+        {
+          "name": "managed_json_page_rows_wire",
+          "declaration": "pub fn managed_json_page_rows_wire(ManagedJsonPage) -> String"
+        },
+        {
           "name": "mock_churn_risk_query_alias_at",
           "declaration": "pub fn mock_churn_risk_query_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?"
         },
@@ -524,12 +551,24 @@
           "declaration": "pub fn mock_churn_risk_source_count(MockChurnRiskCatalogue) -> Int"
         },
         {
+          "name": "mock_churn_risk_target_before",
+          "declaration": "pub fn mock_churn_risk_target_before(MockTargetRow) -> String?"
+        },
+        {
+          "name": "mock_churn_risk_target_version",
+          "declaration": "pub fn mock_churn_risk_target_version(MockTargetRow) -> String?"
+        },
+        {
           "name": "mock_churn_risk_update_alias_at",
           "declaration": "pub fn mock_churn_risk_update_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?"
         },
         {
           "name": "mock_churn_risk_update_alias_count",
           "declaration": "pub fn mock_churn_risk_update_alias_count(MockChurnRiskCatalogue) -> Int"
+        },
+        {
+          "name": "observe_mock_churn_risk_target",
+          "declaration": "pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String) -> Result[MockTargetRow, RowSourceIssue]"
         },
         {
           "name": "prepare_churn_risk_mock_update_mapping",
@@ -556,6 +595,10 @@
           "declaration": "pub fn prepare_mock_churn_risk_catalogue(RowDeclarationLimits) -> Result[MockChurnRiskCatalogue, RowHostIssue]"
         },
         {
+          "name": "prepare_mock_churn_risk_target_update",
+          "declaration": "pub fn prepare_mock_churn_risk_target_update(MockTargetDocument, MockTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]"
+        },
+        {
           "name": "prepare_relation_row_write_mapping",
           "declaration": "pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
         },
@@ -574,6 +617,10 @@
         {
           "name": "prepare_row_source",
           "declaration": "pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]"
+        },
+        {
+          "name": "project_managed_json_page",
+          "declaration": "pub fn project_managed_json_page(Bytes, Array[String], Array[String]?, Int, Int, Int, Int, Int) -> Result[ManagedJsonPage, ManagedJsonPageIssue]"
         },
         {
           "name": "project_row_declaration",
@@ -1731,6 +1778,94 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "admit_mock_churn_risk_target_document",
+            "managed_json_page_next_cursor",
+            "managed_json_page_row_count",
+            "managed_json_page_rows_wire",
+            "mock_churn_risk_target_before",
+            "mock_churn_risk_target_version",
+            "observe_mock_churn_risk_target",
+            "prepare_mock_churn_risk_target_update",
+            "project_managed_json_page"
+          ],
+          "exports": [
+            "pub fn admit_mock_churn_risk_target_document(RowDeclaration, RowDeclaration, Bytes, RowPageLimits, Int) -> Result[MockTargetDocument, RowSourceIssue]",
+            "pub fn managed_json_page_next_cursor(ManagedJsonPage) -> String?",
+            "pub fn managed_json_page_row_count(ManagedJsonPage) -> Int",
+            "pub fn managed_json_page_rows_wire(ManagedJsonPage) -> String",
+            "pub fn mock_churn_risk_target_before(MockTargetRow) -> String?",
+            "pub fn mock_churn_risk_target_version(MockTargetRow) -> String?",
+            "pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String) -> Result[MockTargetRow, RowSourceIssue]",
+            "pub fn prepare_mock_churn_risk_target_update(MockTargetDocument, MockTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
+            "pub fn project_managed_json_page(Bytes, Array[String], Array[String]?, Int, Int, Int, Int, Int) -> Result[ManagedJsonPage, ManagedJsonPageIssue]",
+            "pub struct MockTargetDocument {",
+            "pub struct MockTargetRow {"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
         }
       ]
     },
@@ -2858,6 +2993,111 @@
               {
                 "path": "src/check_environment/source_view_shape_wbtest.mbt",
                 "anchor": "test \"Resource identity subtree uses the same generated SourceView rule and work budget\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_row_source_host/managed_json_page.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
+      "sha256": "304e50b7dc081026c4be54f975fb0f8dfc74c5df002856ab9767d79097340fa1",
+      "operations": [
+        {
+          "name": "managed_json_page_next_cursor",
+          "declaration": "managed_json_page_next_cursor ( page : ManagedJsonPage ) - > String ?"
+        },
+        {
+          "name": "managed_json_page_row_count",
+          "declaration": "managed_json_page_row_count ( page : ManagedJsonPage ) - > Int"
+        },
+        {
+          "name": "managed_json_page_rows_wire",
+          "declaration": "managed_json_page_rows_wire ( page : ManagedJsonPage ) - > String"
+        },
+        {
+          "name": "managed_json_path",
+          "declaration": "managed_json_path ( root : @ source . Node , path : Array [ String ] , ) - > @ source . Node ?"
+        },
+        {
+          "name": "project_managed_json_page",
+          "declaration": "project_managed_json_page ( body : Bytes , items_path : Array [ String ] , cursor_path : Array [ String ] ? , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_cursor_bytes : Int , ) - > Result [ ManagedJsonPage , ManagedJsonPageIssue ]"
+        }
+      ],
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "managed_json_page_next_cursor",
+            "managed_json_page_row_count",
+            "managed_json_page_rows_wire",
+            "managed_json_path",
+            "project_managed_json_page"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Verification:"
               }
             ]
           }

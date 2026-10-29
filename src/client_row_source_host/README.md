@@ -140,3 +140,27 @@ must separately resolve original connection evidence and issue an original
 reference; a file name, returned JSON envelope or equal CID cannot stand in for
 that authority. Source reads, Content custody, Plan funding and terminal cleanup
 remain with their existing owners.
+
+### Shared managed JSON page DATA
+
+The managed reader's generic REST decoder uses the existing preserving JSON
+parser once, with its original byte/node/depth ceilings. It selects declared
+object-property paths and copies the selected array's original byte span into
+row wire. It does not convert numeric Nodes into JavaScript Numbers or emit a
+replacement row document. Duplicate keys, invalid UTF8 and the existing number
+refusals apply to the whole response, including unused fields. Missing/null
+cursor means absence; an empty String remains a present opaque cursor.
+
+This projection is DATA after the same physical response retention and byte
+charge. The existing Common row admission still checks the original schema,
+values, page bounds and capture. The Host must provide the same Request parent
+for raw-prefix, parser/index, cursor, wire/output and failed-child overlap before
+construction; neither parser bounds nor a provider capacity scalar supplies
+that admission. Fixed callback and wrapper bookkeeping is trusted Host overhead.
+The projection issues no grant, Source, Resource or cleanup acknowledgement.
+
+The Node bridge keeps Optional cursor values inside typed code: an explicit
+presence Boolean and String-array path enter; presence and a checked String
+getter leave the same opaque page. A missing cursor getter refuses instead of
+silently becoming EOF. Canonical type checks do not certify a matching compiled
+export ABI or an ordinary installed read.
