@@ -59269,7 +59269,7 @@
     },
     {
       "module": "adapters/host-node/node-source-managed-installation.mjs",
-      "sha256": "09d49cc6bd7ddeb7a6fc7e1973969ea3963419ce5517f9ab60411952ae8f8168",
+      "sha256": "7dc280d355f12fde59afbb70054ed07e90dd33c14550354453f02bf3652c7783",
       "exports": [
         "assertManagedComputeInstallationCurrent",
         "assertManagedComputePreparationCurrent",
@@ -76505,7 +76505,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "07425380df4f9d3cbaebc63631910b7154151d53ab480188c26f7ef137681a69",
+      "sha256": "43db86728265e5adc40a9f96295605c698c6f45b1b3c836828de69853f4cd57c",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -81710,7 +81710,7 @@
     },
     {
       "module": "adapters/local-node/closed-values-preparation-adapter.mjs",
-      "sha256": "910ccd2cf75045baf537bf673347abad0bf4b8bb2791e3ecb944cde0b105ceaf",
+      "sha256": "c4a304ae484591e5ab6dfc16bb525f1cdf9126e8a78c3066d282bf1521fc9bc3",
       "exports": [
         "assertRequestPreparationControl",
         "beginClosedValuesInput",
@@ -81736,7 +81736,6 @@
             "input",
             "receipt",
             "connection",
-            "requirements",
             "assertCurrent"
           ],
           "async": false
@@ -81747,7 +81746,6 @@
             "state",
             "receipt",
             "connection",
-            "requirements",
             "assertCurrent"
           ],
           "async": false
@@ -81813,9 +81811,22 @@
           "parameters": [
             "state",
             "input",
-            "requirements",
             "assertCurrent",
             "childrenPending"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRequestPreparation/openRequestPreparation",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRequestPreparation/openRequestPreparation#2",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -81863,7 +81874,9 @@
             "noPhysicalChildren/noPhysicalChildren",
             "phaseAdapter/phaseAdapter",
             "phaseAdapter/phaseAdapter/init:spendWork/init:spendWork",
-            "openRequestPreparation"
+            "openRequestPreparation",
+            "openRequestPreparation/openRequestPreparation",
+            "openRequestPreparation/openRequestPreparation#2"
           ],
           "exports": [
             "beginClosedValuesInput",

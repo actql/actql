@@ -12,7 +12,7 @@ const input = () => ({version:'actql/0.1',id:'parent',stages:[{id:'main',inputs:
   schema:{n:{type:'number',nullable:false}},rows:[{n:1}],
 }}],results:{rows:{from:'v',fields:['n']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}});
 const connection = Object.freeze({mode:'local',owner:'local',consentRefs:Object.freeze([]),runners:Object.freeze([])});
-async function fixture({selectFailure, control=[1024n,0n]}={}) {
+async function fixture({selectFailure, control=[1024n,0n], policyLimits=[10000n,10000n,10000n,100000n,100000n,100000n]}={}) {
   const calls=[],shapes=[],policy={},parent={},phase={},work={};let admission;
   const stop = () => {
     assert.equal(admission.ports.report(0,0,0,0n,0n,0n,0n,0n,0n,0n,0,0,0),0);
@@ -22,6 +22,7 @@ async function fixture({selectFailure, control=[1024n,0n]}={}) {
   const moon={
     clientLocalResourcePolicyOriginal(){assert.equal(this,moon);return policy;},
     clientProgramRequestPreparationControl(actual){assert.equal(this,moon);assert.equal(actual,policy);calls.push('control');return control;},
+    clientLocalPreparationResourceLimits(actual){assert.equal(this,moon);assert.equal(actual,policy);calls.push('policy-limits');return policyLimits;},
     clientProgramPrepareLocalPreparationAdmission(original,receipt){
       assert.equal(this,moon);calls.push('admission');
       admission={original,receipt,ports:resources.prepareOriginalLocalPreparationPorts(original,receipt)};return ok(admission);
@@ -56,7 +57,6 @@ async function fixture({selectFailure, control=[1024n,0n]}={}) {
   const originals={};const view=await prepareOrdinarySourceManagedInstallation(originals,{
     validator(actual){assert.equal(actual,originals);},
     preparationContext(actual){assert.equal(actual,originals);return context;},
-    preparationRequirements(){calls.push('requirements');return {planningWork:10000,attempts:10000,holdings:10000,transferBytes:100000n,retainedBytes:100000n,executionBytes:100000n};},
   },false);
   return {view,calls,shapes,context,get parent(){return parent;},get original(){return admission?.original;}};
 }
@@ -64,7 +64,7 @@ async function fixture({selectFailure, control=[1024n,0n]}={}) {
 test('normal request manager retains one parent before header and original snapshot reservation',async()=>{
   const f=await fixture();const program=input();
   const receipt=f.view.beforeSourceSnapshot('program',program,undefined,connection);
-  assert.deepEqual(f.calls.slice(0,6),['control','requirements','admission','parent','select','header']);
+  assert.deepEqual(f.calls.slice(0,6),['control','policy-limits','admission','parent','select','header']);
   assert.equal(f.calls.filter(x=>x==='parent').length,1);assert.equal(f.calls.filter(x=>x==='snapshot-reserve').length,1);
   const body={kind:'program',input:JSON.parse(JSON.stringify(program)),parameters:null};
   f.view.bindSourceSnapshot(receipt,body);f.view.finishSourceProducer(receipt,'failed');
@@ -76,7 +76,7 @@ test('normal request manager retains one parent before header and original snaps
 test('normal selection throw preserves primary and cleans the exact unselected parent once',async()=>{
   const failure=new Error('OriginalSelectionFailure');const f=await fixture({selectFailure:failure});
   assert.throws(()=>f.view.beforeSourceSnapshot('program',input(),undefined,connection),cause=>cause===failure);
-  assert.deepEqual(f.calls,['control','requirements','admission','parent','select','abort-parent']);
+  assert.deepEqual(f.calls,['control','policy-limits','admission','parent','select','abort-parent']);
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
   assert.deepEqual(await f.view.close(),{pending:false});
 });
@@ -147,22 +147,51 @@ test('actual Request opening needs the original lifetime rather than Source or c
   const f = await fixture();
   const state = {context: {runtime: f.context.runtime}};
   const original = Object.freeze({});
-  const requirements = {planningWork: 100, attempts: 100, holdings: 100,
-    transferBytes: 1000n, retainedBytes: 1000n, executionBytes: 1000n};
   let currents = 0;
   const current = () => {
     currents++;
-    assert.throws(() => openRequestPreparation(state, original, requirements, current, () => false),
+    assert.throws(() => openRequestPreparation(state, original, current, () => false),
       {code: 'NodeLocalPreparationAdmissionUnavailable'});
     assert.throws(() => cleanupClosedValuesInput(state),
       {code: 'NodeLocalPreparationAdmissionUnavailable'});
   };
-  assert.equal(openRequestPreparation(state, original, requirements, current, () => false), f.parent);
+  assert.equal(openRequestPreparation(state, original, current, () => false), f.parent);
   assert.ok(currents > 0);assert.equal(state.opening, false);
   assert.equal(f.calls.filter(value => value === 'parent').length, 1);
-  assert.throws(() => openRequestPreparation(state, original, requirements, current, () => false),
+  assert.throws(() => openRequestPreparation(state, original, current, () => false),
     {code: 'NodeLocalPreparationAdmissionUnavailable'});
   cleanupClosedValuesInput(state);
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
   assert.deepEqual(await f.view.close(), {pending: false});
+});
+
+
+test('actual initial opening selects its original Common policy without a Source or quote callback', async () => {
+  const f = await fixture();
+  const state = {context: {runtime: f.context.runtime}};
+  const original = Object.freeze({});
+  assert.equal(openRequestPreparation(state, original, () => {}, () => false), f.parent);
+  assert.equal(f.calls.filter(value => value === 'policy-limits').length, 1);
+  assert.equal(f.calls.includes('requirements'), false);
+  const ports = resources.prepareOriginalLocalPreparationPorts(state.original, original);
+  assert.equal(ports, null, 'the original sole ports were already retained by Common');
+  cleanupClosedValuesInput(state);
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+  assert.deepEqual(await f.view.close(), {pending: false});
+});
+
+
+test('actual initial policy refusal precedes Resource opening and original current callbacks', async () => {
+  for (const policyLimits of [[], [0n,0n,0n,0n,0n], [2147483648n,0n,0n,0n,0n,0n],
+    [0n,0n,0n,0n,0n,9223372036854775808n], [0n,0n,0n,0n,0n,'0']]) {
+    const f = await fixture({policyLimits});
+    const state = {context: {runtime: f.context.runtime}};
+    let currents = 0;
+    assert.throws(() => openRequestPreparation(state, Object.freeze({}),
+      () => {currents++;}, () => false), {code: 'NodeLocalPreparationAdmissionUnavailable'});
+    assert.equal(currents, 0);assert.equal(f.original, undefined);
+    assert.deepEqual(f.calls, ['policy-limits']);assert.equal(state.opening, false);
+    cleanupClosedValuesInput(state);
+    assert.deepEqual(await f.view.close(), {pending: false});
+  }
 });

@@ -473,30 +473,6 @@ function readSourceManagedRunRequirementsOwned(originals, checkedPrepared) {
     retainedBytes: limits[4], executionBytes: limits[5]});
 }
 
-// Initial preparation and later Compute share one imported child. This fixed
-// namespace projection is available only under the same installed Host and
-// original Common policy; caller-supplied numeric limits are not accepted.
-export function readLocalPreparationResourceRequirements(originals) {
-  assertSourceManagedHostPreparation(originals);
-  const {initialControl, projectRuntime: moon} = originals.installation;
-  if (initialControl === undefined || moon === undefined ||
-      typeof moon.clientLocalResourcePolicyOriginal !== 'function' ||
-      typeof moon.clientLocalPreparationResourceLimits !== 'function') {
-    throw clientOperationError('NodeLocalPreparationAdmissionUnavailable');
-  }
-  const policy = moon.clientLocalResourcePolicyOriginal();
-  const limits = moon.clientLocalPreparationResourceLimits(policy);
-  if (!Array.isArray(limits) || limits.length !== 6 ||
-      limits.some(value => typeof value !== 'bigint' || value < 0n || value > 9223372036854775807n) ||
-      limits.slice(0, 3).some(value => value > 2147483647n)) {
-    throw clientOperationError('InvalidHostRuntimeResult');
-  }
-  assertSourceManagedHostPreparation(originals);
-  return Object.freeze({planningWork: Number(limits[0]), attempts: Number(limits[1]),
-    holdings: Number(limits[2]), transferBytes: limits[3],
-    retainedBytes: limits[4], executionBytes: limits[5]});
-}
-
 // Original immutable installed context for the funded ordinary preparation
 // driver. Shared catalog/contracts remain this installation's dependencies.
 export function retireSourceManagedInitialPreparation(originals, prepared) {

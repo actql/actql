@@ -16,6 +16,7 @@ const fail = code => {throw Object.assign(new Error(code), {code});};
 const ports = () => ({
   clientProgramRequestPreparationControl() {return [1n, 0n];},
   clientLocalResourcePolicyOriginal() {return {};},
+  clientLocalPreparationResourceLimits() {return [1n,1n,1n,1n,1n,1n];},
   clientProgramBeginRequestPreparation() {},
   clientProgramSelectClosedValuesPreparation() {},
   clientProgramAbortRequestPreparation() {},
@@ -86,7 +87,6 @@ test('selected context failure cannot allocate producer slots or fall through to
     () => {throw originalCause;}]) {
     const view = await prepareOrdinarySourceManagedInstallation({}, {
       validator() {}, preparationContext: selected,
-      preparationRequirements() {assert.fail('No quote before capability/mode selection');},
     }, false);
     for (let i = 0; i < 33; i++) {
       assert.throws(() => view.beforeSourceSnapshot('program', {}, undefined, {}), error =>
@@ -96,7 +96,6 @@ test('selected context failure cannot allocate producer slots or fall through to
   }
   const view = await prepareOrdinarySourceManagedInstallation({}, {
     validator() {}, preparationContext: () => context(ports(), false),
-    preparationRequirements: () => ({}),
   }, false);
   // The adapter declines this connection before any resource/Core call. A
   // selected funded path must not reinterpret that decline as raw preparation.

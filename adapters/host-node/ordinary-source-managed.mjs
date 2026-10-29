@@ -258,7 +258,6 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           phase: undefined, prepared: undefined, holder: undefined, adopting: false};
         producer.preparation = state;
         try {
-          const required = callbacks.preparationRequirements(originals);
           const assertOriginalCurrent = () => {
             // Cleanup may continue while the manager is closing. Exact
             // membership/current installation, not raw Prepared, is retained.
@@ -274,8 +273,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             }
           };
           const accepted = kind === 'program' && options === undefined
-            ? beginClosedValuesInput(state, input, receipt, originalConnection, required, assertOriginalCurrent)
-            : beginRequestInput(state, receipt, originalConnection, required, assertOriginalCurrent);
+            ? beginClosedValuesInput(state, input, receipt, originalConnection, assertOriginalCurrent)
+            : beginRequestInput(state, receipt, originalConnection, assertOriginalCurrent);
           if (!accepted) fail('NodeLocalPreparationAdmissionUnavailable');
         } catch (cause) {
           producer.finished = true;

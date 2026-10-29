@@ -2383,3 +2383,12 @@ successful adoption has retained that original body. Unknown and physical
 cleanup obligations remain separate; neither a returned lowerer nor a DATA
 getter acknowledges them. Complete work metering and normal Host adoption must
 be established by their actual consumers, not inferred from syntax counters.
+
+
+The actual Node opening reads the six immutable limits from its original
+Common policy once and passes that same policy to the original admission.
+It does not accept a numerical requirements object or ask an already
+initialized Source to supply that object. The manager and the initial
+constructor can therefore use the same opening without a Source-dependent
+quote callback. The original current and physical-child observations remain
+mandatory; policy DATA does not certify either one or fund the Source body.
