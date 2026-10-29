@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {createHash} from 'node:crypto';
+import {readFile} from 'node:fs/promises';
+import {isAbsolute} from 'node:path';
+import {parse} from 'acorn';
 import {createInstalledCredentialSourceReader} from './installed-credential-source-reader.mjs';
+import {captureConfigurationReaders} from './source-profile-json.mjs';
+import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 import {credentialInvocationBindingKeys} from '../host-common/credential-scope-fields.generated.mjs';
 import {prepareNotionUserListPages,NOTION_USER_LIST_OPERATION,NOTION_USER_LIST_API_VERSION}
   from '../connectors/notion/site/user-list-read.mjs';
@@ -174,5 +181,74 @@ test('both provider adapters retain unexpected asynchronous compiled projections
     }
     assert.equal(f.reader.observe().cleanupConfirmed,true);
     assert.equal(f.requests.length,1);assert.equal(f.delivered.length,0);
+  }
+});
+
+// Execute the actual loader bodies with explicit declaration, Account and Site
+// ports. The real shared factory and initialization cleanup own retirement;
+// no Common admission, credential material, filesystem or provider I/O occurs.
+async function initializationFixture(family) {
+  const path=new URL(`../connectors/${family}/host/installed-${family}-source.mjs`,import.meta.url);
+  const code=await readFile(path,'utf8');
+  const declarations=parse(code,{ecmaVersion:'latest',sourceType:'module'}).body.flatMap(node=>{
+    const value=node.declaration??node;
+    return ['VariableDeclaration','FunctionDeclaration'].includes(value.type)
+      ?[code.slice(value.start,value.end)]:[];
+  }).join('\n');
+  const limitNames=family==='notion'
+    ?['maxResponseBytes','maxTotalResponseBytes','maxNodes','maxDepth','maxRows','maxTotalRows',
+      'maxPages','pageSize','maxCursorBytes','maxIdentityBytes','maxTargetBytes','maxValueNodes',
+      'maxValueTextBytes','maxRowsWireBytes','maxRowsWireNodes','maxRowsWireDepth']
+    :['maxResponseBytes','maxNodes','maxDepth','maxPages','maxRows','maxRequests','perPage',
+      'maxCursorUnits','maxValueNodes','maxValueTextBytes','maxRowsWireBytes','maxRowsWireNodes','maxRowsWireDepth'];
+  const limits=Object.fromEntries([...limitNames,'maxDeclarationBytes','maxDeclarationNodes',
+    'maxSecretBytes','maxCaBytes'].map(name=>[name,10]));
+  const profile={version:`actql-installed-${family}-source/0.1`,connectorId:'fixture',
+    siteProfilePath:'/UNOPENED/site.json',accountConfigurationWire:'{}',limits};
+  const siteProfile={version:`actql-installed-${family}-site/0.1`,apiOrigin:'https://provider.invalid',
+    credentialAuthorityId:'fixture',credentialKeyId:'key',credentialPrivateKeyPath:'/UNOPENED/key',
+    environment:'fixture',journalRoot:'/UNOPENED/journal',namespaceId:'fixture',siteGeneration:1,siteKey:'fixture'};
+  let factory,closed=0;
+  const failure=new Error('same original Source constructor failure');
+  const site={credential:{},referenceCurrent:()=>true,callResource(){assert.fail('no send');},
+    close(){
+      assert.throws(()=>factory.prepare({}),{code:'InstalledSourceReaderFactoryClosed'});
+      closed++;
+    }};
+  const ports={createHash,isAbsolute,canonicalJson:JSON.stringify,checked,captureConfigurationReaders,
+    retainInstalledHostInitializationFailure,createInstalledCredentialSourceReader,
+    prepareNotionUserListPages,prepareCalendarListPages,NOTION_USER_LIST_OPERATION,CALENDAR_LIST_OPERATION,
+    installRowSourceAuthorization:async()=>({context:{contextCid:'explicit declaration port'}}),
+    openRowSourceCredentialSite:async()=>site,rowSourceCheckEnvironment:()=>({wire:'explicit environment port'}),
+    createInstalledRowSource:async input=>{factory=input.providerReader;throw failure;}};
+  const cap=family[0].toUpperCase()+family.slice(1);
+  const load=Function(...Object.keys(ports),declarations+`\nreturn loadInstalled${cap}Source;`)(...Object.values(ports));
+  const provider=Object.fromEntries((family==='notion'
+    ?['notionUserListSchemaWire','notionUserListRelationFactsWire']
+    :['calendarListSchemaWire','calendarListRelationFactsWire','calendarListColumnNames',
+      'calendarListRowsWire','calendarListMetadataJson','calendarProjectCalendarList'])
+    .map(name=>[name,()=>name.endsWith('SchemaWire')?ok('explicit schema port'):'explicit provider port']));
+  const moon={clientProgramRowSourceRestoreRelationDeclaration:()=>ok({}),
+    clientProgramRowSourceDeclarationJson:()=>JSON.stringify({views:[{fields:['id']}]})};
+  return {failure,closed:()=>closed,factory:()=>factory,
+    load:()=>load(profile,{root:'/UNOPENED/root',principalId:'fixture',moon,providerMoon:provider,
+      readerCapacity:{},runtimeBundleCid:'explicit runtime port',baseEnvironmentWire:'{}',
+      resolveSecret(){assert.fail('no secret resolution');},configurationReader:{
+        readJson(){return siteProfile;},readText(){assert.fail('no CA read');}}})};
+}
+
+test('both installed loaders retire their same created reader before Site cleanup on construction failure',async()=>{
+  for(const family of ['notion','calendar']){
+    const f=await initializationFixture(family);let failure;
+    try{
+      await assert.rejects(f.load(),error=>{failure=error;return error.primaryFailure===f.failure;});
+      assert.equal(failure.cleanupPending,false);
+      assert.equal(f.closed(),1);
+      assert.throws(()=>f.factory().prepare({}),{code:'InstalledSourceReaderFactoryClosed'});
+    }finally{
+      // Test-owned unwinding uses the same original aliases even on the red.
+      f.factory()?.retire();
+      await failure?.cleanupHandle.retry();
+    }
   }
 });
