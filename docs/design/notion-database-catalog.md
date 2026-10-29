@@ -1344,3 +1344,14 @@ copying projection DATA cannot supply a binding or retirement acknowledgement.
 The existing property-reader API uses the same provider methods and request/page
 projection while its parent migration remains incomplete. Title and declared
 column modes remain separate, with their original nominal checks.
+
+### Remaining-row database requests
+
+The query caller subtracts successfully delivered complete rows from its
+original `maxTotalRows` before constructing each next POST. It requests the
+smaller of that remainder and the existing `pageSize`. A nonpositive remainder
+refuses before another indexed authorization or physical query. It does not
+truncate a provider response, synthesize an empty completion or change a cursor.
+An earlier delivered prefix remains an incomplete Source when continuation is
+refused. All original query-status, full row/property, aggregate response,
+current, charge and failed-child obligations remain separate.

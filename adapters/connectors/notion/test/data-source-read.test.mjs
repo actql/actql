@@ -44,7 +44,7 @@ async function fixture(t){
   let query=0,property=0;
   f.state.respond=(request,body)=>{
     if(request.method==='POST'){
-      assert.equal(request.url,'/v1/data_sources/s/query');assert.equal(JSON.parse(body).page_size,10);
+      assert.equal(request.url,'/v1/data_sources/s/query');assert.equal(JSON.parse(body).page_size,query===0?8:7);
       const expected=query++===0?{ids:['page1'],cursor:'query cursor'}:{ids:['page2'],cursor:null};
       return queryPage(expected.ids,expected.cursor);
     }
@@ -75,7 +75,7 @@ test('actual Notion query and property operations retain typed rows and original
   assert.match(result.schemaWire,/"precision":20/u);assert.match(result.schemaWire,/"enum":\["ab","cd"\]/u);
   assert.equal(reader.observe().receivedResponses,6);assert.equal(reader.observe().cleanupConfirmed,false);
   assert.deepEqual(f.journal.recover().filter(x=>x.outcome==='succeeded').length,6);
-  assert.deepEqual(JSON.parse(f.state.requests[3].body),{page_size:10,start_cursor:'query cursor'});
+  assert.deepEqual(JSON.parse(f.state.requests[3].body),{page_size:7,start_cursor:'query cursor'});
   assert.match(f.state.requests[2].path,/start_cursor=property%20cursor$/u);
 });
 
