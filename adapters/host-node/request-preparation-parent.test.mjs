@@ -195,3 +195,92 @@ test('actual initial policy refusal precedes Resource opening and original curre
     assert.deepEqual(await f.view.close(), {pending: false});
   }
 });
+
+// The actual connectEmbeddedLocal preparation method, with explicit Common
+// constructor ports and the real ordinary Resource supplier. No runtime build,
+// Source material/IO or full Host/physical acceptance is supplied by this test.
+async function initialHostFixture({beginFailure = false} = {}) {
+  const {parse} = await import('acorn');
+  const {readFileSync} = await import('node:fs');
+  const {openHostInitializationPreparation, closeHostInitializationPreparation} =
+    await import('../local-node/closed-values-preparation-adapter.mjs');
+  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  let method;
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.key?.name === 'hostInitializationPreparation') method = node.value;
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(ast); assert.ok(method);
+  const policy = {}, parent = {}, record = {}, installation = {}, calls = [];
+  let admission;
+  const stop = () => {
+    assert.equal(admission.ports.report(0,0,0,0n,0n,0n,0n,0n,0n,0n,0,0,0), 0);
+    assert.equal(admission.ports.status(2), 0); return ok(undefined);
+  };
+  const moon = {
+    clientLocalResourcePolicyOriginal() {assert.equal(this,moon); calls.push('policy');return policy;},
+    clientLocalPreparationResourceLimits(p) {assert.equal(p,policy);return [1n,1n,1n,10n,1000n,1000n];},
+    clientProgramPrepareLocalPreparationAdmission(original, input) {
+      assert.equal(input,installation);assert.equal(record.hostInitialization.original,original);
+      admission = {original, ports:resources.prepareOriginalLocalPreparationPorts(original,input)};
+      return ok(admission);
+    },
+    clientProgramBeginHostInitializationPreparation(actual,input,p) {
+      assert.equal(actual,admission);assert.equal(input,installation);assert.equal(p,policy);
+      assert.equal(record.hostInitialization.admission,admission);
+      assert.equal(admission.ports.status(0),0);calls.push('initial');
+      if (beginFailure) throw new Error('InitialConstructorFailed');
+      return ok(parent);
+    },
+    clientProgramCloseHostInitializationPreparation(original) {assert.equal(original,parent);calls.push('close');return stop();},
+    clientProgramCleanupLocalPreparationAdmission(original) {assert.equal(original,admission);calls.push('cleanup');return stop();},
+  };
+  record.runtime = moon;
+  const code = `function(${method.params.map(p => source.slice(p.start,p.end)).join(',')})${source.slice(method.body.start,method.body.end)}`;
+  const invoke = new Function('record','moon','originalInstallation','openHostInitializationPreparation',
+    'assertInitialControlHostPreparation','assertInitialControlInstallationCurrent','clientOperationError',
+    `let hostInitialization, sourceManaged, control={}, originals={};return (${code});`)(
+      record,moon,installation,openHostInitializationPreparation,()=>{},()=>{},
+      code=>Object.assign(new Error(code),{code}));
+  return {invoke,moon,parent,record,calls,close:()=>closeHostInitializationPreparation(record.hostInitialization),
+    get original() {return admission.original;},source,ast};
+}
+
+test('actual Host initialization retains the original before construction and reuses it across Requests', async () => {
+  const f = await initialHostFixture();
+  assert.equal(f.invoke(f.moon),f.parent);assert.equal(f.invoke(f.moon),f.parent);
+  assert.deepEqual(f.calls,['policy','initial']);
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,false);
+  assert.throws(()=>f.invoke({...f.moon}),{code:'ForeignInstalledHostPreparation'});
+  f.close();assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
+  assert.throws(()=>f.invoke(f.moon),{code:'InstalledHostPreparationChanged'});
+});
+
+test('actual Host initial constructor failure keeps its same original admission for cleanup', async () => {
+  const f = await initialHostFixture({beginFailure:true});
+  assert.throws(()=>f.invoke(f.moon),/InitialConstructorFailed/);
+  assert.ok(f.record.hostInitialization.admission);
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,false);
+  assert.throws(()=>f.invoke(f.moon),{code:'InstalledHostPreparationChanged'});
+  f.close();assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
+  assert.deepEqual(f.calls,['policy','initial','cleanup']);
+});
+
+test('actual Host passes its early original to installation services before Source loading', async () => {
+  const f = await initialHostFixture();
+  const start = f.source.indexOf('const initialPreparation = preparation?.hostInitializationPreparation(moon);');
+  const service = f.source.indexOf('const installationServices = createInstalledHostServices(', start);
+  const load = f.source.indexOf('await loadInstalledSources(', service);
+  assert.ok(start >= 0 && service > start && load > service);
+  const servicesEnd = f.source.indexOf(';',service);
+  assert.match(f.source.slice(service,servicesEnd),/assertCurrent: assertProjectRuntime, initialPreparation/);
+  const sourceClose = f.source.indexOf('if (sourceManaged !== undefined) {', f.source.indexOf('const initialControl = Object.freeze'));
+  const initialClose = f.source.indexOf('closeHostInitializationPreparation(hostInitialization)',sourceClose);
+  const referenceClose = f.source.indexOf('retirePreparationReferences();',initialClose);
+  assert.ok(sourceClose >= 0 && initialClose > sourceClose && referenceClose > initialClose);
+});

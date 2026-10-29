@@ -83,13 +83,7 @@ export function assertRequestPreparationControl(context) {
 // retain this same state before entry and supply its original current/physical
 // child observation; a profile or cleanup registry is not admitted backing.
 // Both existing Request callers use this exact opening, never a second owner.
-export function openRequestPreparation(state, input, assertCurrent, childrenPending) {
-  if (state.opening || state.original!==undefined || state.admission!==undefined ||
-      state.parent!==undefined || state.phase!==undefined ||
-      typeof assertCurrent!=='function' || typeof childrenPending!=='function') invalid();
-  const moon=state.context.runtime;
-  state.opening=true;
-  try {
+function openPreparationAdmission(state, moon, input, assertCurrent, childrenPending) {
     const policy=moon.clientLocalResourcePolicyOriginal();
     const limits=moon.clientLocalPreparationResourceLimits(policy);
     if (!Array.isArray(limits) || limits.length!==6 ||
@@ -103,10 +97,52 @@ export function openRequestPreparation(state, input, assertCurrent, childrenPend
     state.original=resources.retainOrdinaryManagedRun(input,requirements,
       assertCurrent,childrenPending,'local-preparation');
     state.admission=checked(moon.clientProgramPrepareLocalPreparationAdmission(state.original,input));
+  return policy;
+}
+
+export function openRequestPreparation(state, input, assertCurrent, childrenPending) {
+  if (state.opening || state.original!==undefined || state.admission!==undefined ||
+      state.parent!==undefined || state.phase!==undefined ||
+      typeof assertCurrent!=='function' || typeof childrenPending!=='function') invalid();
+  const moon=state.context.runtime;
+  state.opening=true;
+  try {
+    const policy=openPreparationAdmission(state,moon,input,assertCurrent,childrenPending);
     state.parent=checked(moon.clientProgramBeginRequestPreparation(state.admission,input,
       policy));
     return state.parent;
   } finally {state.opening=false;}
+}
+
+// SAME actual Host initialization owner, independent of late Environment and
+// sequence contracts. The fixed caller retains state before this entrance.
+export function openHostInitializationPreparation(state, moon, input, assertCurrent, childrenPending) {
+  if (state.opening || state.original!==undefined || state.admission!==undefined ||
+      state.parent!==undefined || state.runtime!==undefined ||
+      typeof assertCurrent!=='function' || typeof childrenPending!=='function') invalid();
+  state.runtime=moon;
+  state.opening=true;
+  try {
+    const policy=openPreparationAdmission(state,moon,input,assertCurrent,childrenPending);
+    state.parent=checked(moon.clientProgramBeginHostInitializationPreparation(state.admission,input,policy));
+    return state.parent;
+  } finally {state.opening=false;}
+}
+
+// Caller has retired its SAME Source material and physical children first.
+// A failed/uncertain original remains owned; no status/Promise is made an ACK.
+export function closeHostInitializationPreparation(state) {
+  if (state.opening) invalid();
+  const moon=state.runtime;
+  if (state.parent!==undefined) {
+    checked(moon.clientProgramCloseHostInitializationPreparation(state.parent));
+    state.parent=state.admission=undefined;
+  } else if (state.admission!==undefined) {
+    checked(moon.clientProgramCleanupLocalPreparationAdmission(state.admission));
+    state.admission=undefined;
+  }
+  if (state.original!==undefined && !resources.ordinaryManagedRunStatus(state.original).stopped) invalid();
+  state.original=state.runtime=undefined;
 }
 
 // General Request admission observes no caller options, Parameters or source.

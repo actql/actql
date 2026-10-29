@@ -381,6 +381,8 @@ pub fn client_program_begin_effect_command_key_workspace(ClientEffectCommandWork
 
 pub fn client_program_begin_effect_local_command_key_workspace(ClientEffectCommandWorkspace, @physical_strategy_host.CapturedEffectInputs, Int, Int, @run_publication_host.PublicationOutputExportLimits, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int]) -> Result[ClientEffectManagedInputImport, ClientEffectCommandWorkspaceIssue]
 
+pub fn client_program_begin_host_initialization_preparation(@physical_resources.NodePreparationAdmission[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientLocalResourcePolicy) -> Result[@client_local_host.ClientHostInitializationPreparation[ClientLocalPreparationInputOriginal], @client_local_host.ClientHostInitializationIssue]
+
 pub fn client_program_begin_infer_original_model_invalidation(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]) -> Result[@physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin], @client_infer_host.Issue]
 
 pub fn client_program_begin_infer_original_read_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelQuantityCapacity?, Int64, Int64, Int, Int, Int) -> Result[@run_publication_host.ClientModelReadScope, @client_infer_host.Issue]
@@ -658,6 +660,8 @@ pub fn client_program_cleanup_model_output(@model_execution.ModelOutputPreparati
 pub fn client_program_close_effect_command_key_workspace(ClientEffectCommandWorkspace) -> Result[Bool, ClientEffectCommandWorkspaceIssue]
 
 pub fn client_program_close_effect_source_port(@physical_strategy_host.CapturedEffectInputs, Int) -> Bool
+
+pub fn client_program_close_host_initialization_preparation(@client_local_host.ClientHostInitializationPreparation[ClientLocalPreparationInputOriginal]) -> Result[Unit, @client_local_host.ClientHostInitializationIssue]
 
 pub fn client_program_close_source_capture(@client_local_host.ClientAccountedSourceCapture, Int?) -> Bool
 

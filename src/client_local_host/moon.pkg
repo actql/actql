@@ -69,6 +69,7 @@ options(
     "preparation_request_snapshot_js_wbtest.mbt": [ "js" ],
     "preparation_request_native_input_js_wbtest.mbt": [ "js" ],
     "preparation_request_parent_js_wbtest.mbt": [ "js" ],
+    "preparation_host_initial_js_wbtest.mbt": [ "js" ],
     "preparation_request_program_json_js_wbtest.mbt": [ "js" ],
     "preparation_request_handoff_js_wbtest.mbt": [ "js" ],
     "preparation_request_check_parent_js_wbtest.mbt": [ "js" ],

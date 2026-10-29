@@ -871,3 +871,34 @@ pub fn strategy_begin_original_effect_free_captured_run(
     content_generations~,
   )
 }
+
+///|
+/// The SAME installation initialization original, before Environment/sequence
+/// contracts or Source loading. It is never a completed Request preparation.
+#export_name("clientProgramBeginHostInitializationPreparation")
+pub fn client_program_begin_host_initialization_preparation(
+  initial : @resources.NodePreparationAdmission[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  policy : @client_local_host.ClientLocalResourcePolicy,
+) -> Result[
+  @client_local_host.ClientHostInitializationPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  @client_local_host.ClientHostInitializationIssue,
+] {
+  @client_local_host.begin_host_initialization_preparation(
+    initial, input, policy,
+  )
+}
+
+///|
+#export_name("clientProgramCloseHostInitializationPreparation")
+pub fn client_program_close_host_initialization_preparation(
+  original : @client_local_host.ClientHostInitializationPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+) -> Result[Unit, @client_local_host.ClientHostInitializationIssue] {
+  @client_local_host.close_host_initialization_preparation(original)
+}

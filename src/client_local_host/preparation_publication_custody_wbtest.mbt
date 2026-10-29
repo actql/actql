@@ -53,7 +53,7 @@ fn publication_custody_fixture(
   ).unwrap()
   let holder = @resources.borrow_preparation_body(capacity).unwrap()
   @resources.reserve_preparation_publication_phase(
-    capacity, input, prepared, 1000000L, publication_projection_execution,
+    holder, prepared, 1000000L, publication_projection_execution,
   ).unwrap()
   let owner : ClientClosedValuesPreparation[Array[Int]] = {
     original: None,
@@ -415,4 +415,26 @@ test "publication capture handle failed payload growth retains owned plan until 
   @resources.settle_capacity(ledger, other).unwrap()
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+}
+
+///|
+test "publication continues on the adopted body after the raw input alias is cut" {
+  let calls = Ref(0)
+  let (value, ledger) = publication_custody_fixture(() => calls.val += 1)
+  let original = value.owner.capacity
+  value.owner.input = None
+  let before = @resources.ledger_usage(ledger)
+  let current = calls.val
+  assert_true(refresh_publication_original(value) is Ok(_))
+  assert_eq(calls.val - current, 1)
+  assert_true(physical_equal(value.owner.capacity, original))
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_false(@resources.retire_preparation_capacity(original).unwrap())
+  assert_true(sever_closed_values_body(value.owner, value.holder))
+  assert_true(@resources.return_preparation_body_borrow(value.holder).unwrap())
+  assert_true(publication_original_body(value) is None)
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  @resources.cleanup_node_preparation_admission(value.owner.initial).unwrap()
 }
