@@ -175,6 +175,14 @@ mapping receives an identity over the fixed declaration and exact transport.
 There is no separate author `requestFacts`, `writeOperation`, `footprint`, send
 or CID callback for that path.
 
+The standard transformation receives only frozen `{resource, value}` DATA.
+Classification receives `{resource, value, request, observation}` and the
+original `headers` field when present. The resource and value come from the
+same private request association. These callbacks receive no Run, Preview,
+authorization, grant, current callback or child-preparation port. Existing
+advanced conditional/read integration remains internal until its actual scoped
+Host operation is selected; it is not part of this transformation contract.
+
 GitHub comment CREATE and Sheets append select this declaration. Their original
 repository/target checks, provider request codecs and outcome classifiers remain
 provider-owned. The declaration does not turn a response classification into an

@@ -449,9 +449,10 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
     footprint: () => ({providerNamespace: connectorRegistration, resourceKind, boundaryCid}),
     ...checkOptions,
     prepareRequest(context) {
-      if (context?.member?.kind !== 'create') fail();
+      if (context?.member?.kind !== 'create' || !text(context.member.resource)) fail();
+      const resource = context.member.resource;
       const value = freezeInput(context.value);
-      const request = Reflect.apply(map, write, [context]);
+      const request = Reflect.apply(map, write, [Object.freeze({resource, value})]);
       if (request === null || typeof request !== 'object' || nodeTypes.isProxy(request) ||
           data(request, 'then', true) !== undefined || originals.has(request)) fail();
       const requestOrigin = data(request, 'origin', true), requestMethod = data(request, 'method', true);
@@ -472,7 +473,7 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
         resourceKind, boundaryCid, operation, origin, method, exact.target,
         exact.headers, exact.body])).digest('hex')}`;
       Object.freeze(request);
-      originals.set(request, Object.freeze({value, exact, requestCid}));
+      originals.set(request, Object.freeze({resource, value, exact, requestCid}));
       return Object.freeze({request, requestCid});
     },
     requestFacts(request) { return {value: original(request).value}; },
@@ -487,8 +488,10 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
         statusCode: response.statusCode, body: response.body}), headers: response.headers});
     },
     project(context) {
-      original(context.request);
-      return Reflect.apply(classify, write, [context]);
+      const {resource, value} = original(context.request);
+      return Reflect.apply(classify, write, [Object.freeze({resource, value,
+        request: context.request, observation: context.observation,
+        ...(Object.hasOwn(context, 'headers') ? {headers: context.headers} : {})})]);
     },
   });
 }

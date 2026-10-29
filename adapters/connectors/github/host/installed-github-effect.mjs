@@ -205,9 +205,9 @@ export async function loadInstalledGitHubEffect(profile, {root, principalId,
           headers: JSON.parse(providerMoon.githubRequestHeadersJson()),
           responseHeaders: JSON.parse(providerMoon.githubResponseHeadersJson()),
           maxRequestBytes: commentLimits.maxRequestBytes, maxResponseBytes: commentLimits.maxResponseBytes},
-        request({member, value}) {
+        request({resource, value}) {
           if (typeof providerMoon.githubCommentOutcomeJson !== 'function') fail('InvalidGitHubCommentSend');
-          const comment = commentValue(member.resource, value);
+          const comment = commentValue(resource, value);
           return prepareGitHubCommentRequest({moon: providerMoon,
             origin: site.apiOrigin, subjectId: comment.subject_id,
             body: comment.body});

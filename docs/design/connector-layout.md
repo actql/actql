@@ -477,6 +477,12 @@ unchanged. Plain HTTP request identity includes the installation namespace,
 boundary, operation, fixed origin and exact method, target, ordered headers and
 body bytes, without parsing or normalizing the body.
 
+Standard transformation and classification callbacks receive closed provider
+DATA views. The transform sees only the original resource and logical value;
+classification additionally receives the same request and observation, with
+the original presence or absence of headers. Internal Run, Preview, grants,
+currentness and child lifetime ports remain with the existing Row Effect.
+
 The adapter captures fixed transport and callback inputs before provider awaits.
 It checks the original grant's origin and uses the existing scoped credential
 invocation for one send inside the Row Effect's durable claim. It preserves the

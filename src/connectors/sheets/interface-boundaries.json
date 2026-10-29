@@ -2,7 +2,7 @@
   {
     "module": "adapters/connectors/sheets/host/installed-sheets.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "ca1a4af9d48f25175822a538c8530ebfead6878e3a6687dbaa5a168e5de4c47f",
+    "sha256": "15cbfca5872122ef15e10a45f1cb531b65e53a568b083b20f8d23e070a725598",
     "exports": [
       "SHEETS_EFFECT_VERSION",
       "SHEETS_SITE_VERSION",
@@ -163,7 +163,7 @@
       {
         "name": "load/load#2",
         "parameters": [
-          "member",
+          "resource",
           "value"
         ],
         "async": false

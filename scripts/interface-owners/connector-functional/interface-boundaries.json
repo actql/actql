@@ -4077,7 +4077,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "41b277ed6108fcda88bd32e5b2423882f98a0338f2e9a66b40f2e9105f02e4cf",
+      "sha256": "873b4c012e9839520aab4c784093f9ad6f54010d7df2060e3001f7c48b514086",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -7731,6 +7731,14 @@
               {
                 "path": "adapters/host-node/installed-row-write.test.mjs",
                 "anchor": "actual Row Effect constructor consumes the declaration"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "standard request callbacks receive only original provider DATA"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "standard classification callbacks receive original provider DATA"
               }
             ]
           }

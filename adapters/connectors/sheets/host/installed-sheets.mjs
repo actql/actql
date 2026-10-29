@@ -307,8 +307,8 @@ async function load(profile, options, effect) {
           path: `/v4/spreadsheets/${site.spreadsheetId}:batchUpdate`,
           headers: [['accept', 'application/json']],
           maxRequestBytes: SHEETS_LIMITS.maxRequestBytes, maxResponseBytes: SHEETS_LIMITS.maxResponseBytes},
-        request: ({member, value}) => {
-          if (member.resource !== 'append_rows') fail('UndeclaredSheetsResource');
+        request: ({resource, value}) => {
+          if (resource !== 'append_rows') fail('UndeclaredSheetsResource');
           const request = prepareSheetsAppend({moon: providerMoon, origin: site.apiOrigin,
             spreadsheetId: site.spreadsheetId, sheetId: site.appendSheetId, columns: site.columns, value});
           if (request.path !== `/v4/spreadsheets/${request.spreadsheetId}:batchUpdate`) {
