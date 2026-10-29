@@ -243,3 +243,60 @@ test('returned asynchronous decoder cannot retire its original response borrow b
   assert.equal(retiredBeforeDecoder, false, 'the original response is still borrowed by the pending decoder');
   assert.equal(reader.observe().cleanupConfirmed, true);
 });
+
+for (const callback of ['prepare', 'fetch', 'error']) {
+  test(`refused asynchronous ${callback} callback keeps its original borrow until settlement`, async () => {
+    const entered = Promise.withResolvers(), release = Promise.withResolvers();
+    const response = Object.freeze({accepted:true, statusCode:200, body:new Uint8Array([91,93])});
+    const originalCause = new Error('original projection refusal');
+    const lateCause = new Error('original asynchronous error mapper rejected');
+    let reply, sends = 0, charges = 0, finished = false;
+    const defer = finish => {
+      reply = release.promise.then(() => {finished = true;return finish();});
+      entered.resolve();return reply;
+    };
+    const site = {credential:{}, referenceCurrent() {return true;}, callResource() {sends++;return response;}};
+    const provider = {
+      fetchPage() {
+        return callback === 'fetch' ? defer(() => ({method:'GET',path:'/rows'}))
+          : {method:'GET',path:'/rows'};
+      },
+      decodePage(actual) {assert.strictEqual(actual,response);throw originalCause;},
+      ...(callback === 'error' ? {onError(cause) {
+        assert.strictEqual(cause,originalCause);
+        return defer(() => {assert.strictEqual(cause,originalCause);throw lateCause;});
+      }} : {}),
+    };
+    const factory = createReader({capacity:{}, site, operation:'fixture:read',
+      maxResponses:1,maxResponseBytes:32,maxSecretBytes:32,
+      preparePageReader(input) {
+        return callback === 'prepare' ? defer(() => {
+          assert.equal(input.requestWire,'same original request');return provider;
+        }) : provider;
+      }});
+    const reader = factory.prepare({columns:[],resource:'records',requestWire:'same original request',
+      verifyRead() {},authorizationFor() {return {grant:{},useId:'use',
+        scope:{operation:'fixture:read',resourceOrigin:'https://fixture.invalid'}};},
+      chargePage(body) {assert.strictEqual(body,response.body);charges++;return {};},
+      consumePage() {assert.fail('invalid callbacks cannot admit rows');}});
+    const outcome = reader.read().then(() => undefined,error => error);
+    await entered.promise;
+    reader.requestStop();
+    const retiredBeforeSettlement = reader.observe().cleanupConfirmed;
+    const pendingBeforeSettlement = reader.observe().pendingCallbacks;
+    // Settle and join the exact original before any refusal assertion.
+    release.resolve();
+    if (callback === 'error') await assert.rejects(reply,error => error === lateCause);
+    else await reply;
+    const error = await outcome;
+    reader.retry();
+    assert.equal(error?.code,'InstalledSourcePageCallbackNotSynchronous');
+    assert.equal(retiredBeforeSettlement,false);
+    assert.equal(pendingBeforeSettlement,1);
+    assert.equal(finished,true);
+    assert.equal(sends,callback === 'error' ? 1 : 0);
+    assert.equal(charges,sends);
+    assert.equal(reader.observe().cleanupConfirmed,true);
+    assert.equal(reader.observe().pendingCallbacks,0);
+  });
+}
