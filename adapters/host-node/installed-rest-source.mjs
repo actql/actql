@@ -85,7 +85,6 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
           maxPageBytes: Math.max(...original.sources.map(source => source.limits.maxPageBytes)),
           maxPageRows: Math.max(...original.sources.map(source => source.limits.maxPageRows)),
           maxCaptureRows: Math.max(...original.sources.map(source => source.limits.maxRows))},
-        originalPageLimits: Object.freeze({maxNodes: policy.maxNodes, maxDepth: policy.maxDepth}),
         providerReader});
     } catch (cause) {
       throw await retainInstalledHostInitializationFailure(cause, {sourceProfile: site});
