@@ -1378,7 +1378,7 @@
               },
               {
                 "path": "packages/local-node/connector-installation.mjs",
-                "anchor": "const "
+                "anchor": "export {createInstalledRestSource}"
               }
             ],
             "ownership": [
