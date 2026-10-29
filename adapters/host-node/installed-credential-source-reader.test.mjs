@@ -167,3 +167,33 @@ test('direct standard Source accounting refusal preserves its same binding duty'
   assert.equal(f.events.filter(value => value.startsWith('charge-')).length, 1);
   f.retireBinding(); f.session.close(); assert.equal(f.inspect().retired, true);
 });
+
+test('same standard reader preserves its original cancellation reason after delivery', async () => {
+  const reason=new Error('original cancellation'),raw={},scope=Object.freeze({
+    grantCid:'same',site:'same',siteGeneration:'same',operation:'fixture:cancel',
+    resourceOrigin:'https://example.invalid'});
+  // This component supplies nominal grant/Site/transport ports. It does not
+  // certify actual Account/HTTPS or a normal capacity reservation.
+  const {credentialInvocationBindingKeys}=await import('../host-common/credential-scope-fields.generated.mjs');
+  const originalScope=Object.freeze({...Object.fromEntries(credentialInvocationBindingKeys.map(name=>[name,'same'])),
+    operation:scope.operation,resourceOrigin:scope.resourceOrigin});
+  const grant={},response=Object.freeze({accepted:true,statusCode:200,body:Buffer.from('one')});
+  let sends=0,closed=0,consumed=0;
+  const site=Object.freeze({callResource() {sends++;return response;}});
+  const originalSite=Object.freeze({site,callResource:site.callResource,referenceCurrent:()=>true,
+    authorizationPurpose(value) {assert.equal(value,raw);return {kind:'read'};},
+    bindRunAcquisition(value) {assert.equal(value,raw);return Object.freeze({
+      credential:{control:{identity:()=> 'same'},journal:{claim(_cid,useId) {
+        return {use:{},record:{grantCid:'same',useId},replayed:false};},authorize() {},finish() {}},
+        resolveSecret:()=> 'secret'},close() {closed++;return 'closed';}});}});
+  const factory=createInstalledCredentialSourceReader({capacity:{},originalSite,assertCurrent() {},
+    operation:originalScope.operation,maxResponses:2,maxResponseBytes:64,maxSecretBytes:64,
+    preparePageReader() {return Object.freeze({fetchPage:()=>({method:'GET',path:'/one'}),
+      decodePage:()=>({rows:[{id:'one'}],done:false})});}});
+  const reader=factory.prepare({resource:'one',columns:['id'],originalAuthorization:raw,
+    verifyRead() {},authorizationFor(index) {return {grant,scope:originalScope,useId:String(index)};},
+    chargePage:body=>body,consumePage() {consumed++;reader.requestStop(reason);}});
+  await assert.rejects(reader.read(),error=>error===reason);
+  assert.equal(sends,1);assert.equal(consumed,1);assert.equal(closed,1);
+  assert.equal(reader.observe().cleanupConfirmed,true);assert.equal(factory.retire(),true);
+});

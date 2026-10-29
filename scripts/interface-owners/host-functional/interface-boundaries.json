@@ -44272,7 +44272,7 @@
     {
       "module": "adapters/host-node/installed-host-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b72940be2ca8a0889c34ce606c995e267752e03de86697bb05485faccb6e1d1f",
+      "sha256": "5d792caf648ebad6624cf9ecdb1884b680d6d92c0741f234b15da81f2252ee70",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -44437,6 +44437,7 @@
             "store",
             "checkpoints",
             "dispatchOwner",
+            "sourceReader",
             "sourceProfile",
             "installedEffect",
             "observation",
@@ -44470,6 +44471,11 @@
         },
         {
           "name": "retainInstalledHostInitializationFailure/captureOriginalCleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostInitializationFailure/captureOriginalSourceReaderRetirement",
           "parameters": [],
           "async": false
         },
@@ -44544,6 +44550,11 @@
           "name": "retainInstalledHostInitializationFailure/drain/drain#9",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "retainInstalledHostInitializationFailure/drain/retireSourceReader",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "retainInstalledHostInitializationFailure/observeOriginalCleanup",
@@ -44626,6 +44637,7 @@
             "createInstalledHostShutdown/status/status/status",
             "retainInstalledHostInitializationFailure",
             "retainInstalledHostInitializationFailure/attempt",
+            "retainInstalledHostInitializationFailure/captureOriginalSourceReaderRetirement",
             "retainInstalledHostInitializationFailure/captureOriginalStatus",
             "retainInstalledHostInitializationFailure/drain",
             "retainInstalledHostInitializationFailure/drain/drain",
@@ -44639,6 +44651,7 @@
             "retainInstalledHostInitializationFailure/drain/drain#7",
             "retainInstalledHostInitializationFailure/drain/drain#8",
             "retainInstalledHostInitializationFailure/drain/drain#9",
+            "retainInstalledHostInitializationFailure/drain/retireSourceReader",
             "retainInstalledHostInitializationFailure/observeOriginalCleanup",
             "retainInstalledHostInitializationFailure/retry",
             "retainInstalledHostInitializationFailure/retry/retry",
@@ -83527,7 +83540,7 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "4fd99f63223641e9c92b23ae233d3dd3b9e4dbde52d3408ccdfa1b0e47fe8de5",
+      "sha256": "89f4091779c1d881c95c5fd925fe85d3fd42cbf7f23c1113899b14c405df21f3",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "C — existing standard Host Source/Effect service originals",

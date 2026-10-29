@@ -68,7 +68,9 @@ no read, retry or new authority.
 
 `retry` retries only that cleanup, never a send or grant. Existing RowRun
 cleanup invokes this same retry on a subsequent close. The original failure
-remains primary if physical close also fails.
+remains primary if physical close also fails. A live abort is observed before the
+stopped-state guard, preserving the SAME original cancellation reason through
+the provider error wrapper. This does not permit another read on a closed handle.
 
 The factory's own `retire` requests stop on its SAME active handles and refuses
 completion until all readers have joined and retired. Source close calls this
@@ -79,3 +81,10 @@ acknowledge it.
 This internal SPI does not certify a normal installer, complete capacity
 supplier or matched runtime. Provider migrations must remove their replaced
 outer and inner lifecycle managers in the same coherent composition.
+
+Failed Source construction retains that SAME factory in the existing Host
+initialization cleanup with `{sourceReader: factory, sourceProfile: site}`.
+The original `retire` method and receiver are captured before cleanup awaits.
+A pending retirement keeps its Site pending; independent Effect cleanup may
+still finish. Only an actual synchronous `true` permits Site close. An
+unexpected returned computation is joined, then refused as retirement ACK.
