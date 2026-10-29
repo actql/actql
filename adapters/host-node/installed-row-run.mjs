@@ -97,7 +97,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   const stopReader = () => {
     if (readerStop === undefined || readerStopPending) return;
     const retrying = readerStopRequested;
-    if (retrying && readerRetry === undefined) return;
+    if (retrying && (readerRetry === undefined || readerRetired())) return;
     readerStopRequested = true;
     try {
       const stopping = Reflect.apply(retrying ? readerRetry : readerStop, reader, []);

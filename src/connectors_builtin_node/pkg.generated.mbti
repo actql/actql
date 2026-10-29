@@ -2819,6 +2819,14 @@ pub fn client_program_row_source_is_listing(@client_row_source_host.RowAcquisiti
 
 pub fn client_program_row_source_issue_source_evidence(@client_row_source_host.RowAcquisition, @client_row_source_host.RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[String, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_json_page_has_next_cursor(@client_row_source_host.ManagedJsonPage) -> Bool
+
+pub fn client_program_row_source_json_page_next_cursor(@client_row_source_host.ManagedJsonPage) -> Result[String, @client_row_source_host.ManagedJsonPageIssue]
+
+pub fn client_program_row_source_json_page_row_count(@client_row_source_host.ManagedJsonPage) -> Int
+
+pub fn client_program_row_source_json_page_rows_wire(@client_row_source_host.ManagedJsonPage) -> String
+
 pub fn client_program_row_source_listing_complete(@client_row_source_host.RowRun) -> Bool
 
 pub fn client_program_row_source_listing_report_capacity(Int64, Int64) -> @execution_relation.ExecutionCapacity?
@@ -2828,6 +2836,8 @@ pub fn client_program_row_source_original_read(@client_row_source_host.RowSource
 pub fn client_program_row_source_prepare_acquisition(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @capacity_policy.Policy?) -> Result[@client_row_source_host.RowAcquisition, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_prepare_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
+
+pub fn client_program_row_source_project_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[@client_row_source_host.ManagedJsonPage, @client_row_source_host.ManagedJsonPageIssue]
 
 pub fn client_program_row_source_provider_capacity(Int64, Int64) -> @execution_relation.ExecutionCapacity?
 

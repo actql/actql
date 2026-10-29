@@ -1073,6 +1073,11 @@ export async function createInstalledRowSource({moon, declaration,
   // Public packets/configuration cannot replace either after preparation.
   // The declaration is DATA; Core still reserves on the original Run Ledger.
   let originalReader;
+  // Managed and advanced page readers are distinct installation alternatives.
+  // A managed reader never needs a dummy or fallback unaccounted readPages.
+  if (providerReader === undefined ? typeof readPages !== 'function' : readPages !== undefined) {
+    fail('InvalidInstalledSourceReader');
+  }
   if ((prepareKeyedSourceRead !== undefined || closeKeyedSourceRead !== undefined) &&
       (typeof prepareKeyedSourceRead !== 'function' || typeof closeKeyedSourceRead !== 'function' ||
         providerReader !== undefined || listingReportCapacity !== undefined ||
@@ -1105,10 +1110,17 @@ export async function createInstalledRowSource({moon, declaration,
   }
   if (providerReader !== undefined) {
     if (providerReader === null || typeof providerReader !== 'object' ||
-        Object.keys(providerReader).length !== 2 ||
-        !Object.hasOwn(providerReader, 'capacity') ||
-        !Object.hasOwn(providerReader, 'prepare')) fail('InvalidInstalledSourceReader');
-    const capacity = providerReader.capacity, prepare = providerReader.prepare;
+        nodeTypes.isProxy(providerReader)) fail('InvalidInstalledSourceReader');
+    const fields = Object.getOwnPropertyDescriptors(providerReader);
+    const names = Reflect.ownKeys(fields);
+    if (names.length !== (Object.hasOwn(fields, 'retire') ? 3 : 2) ||
+        ['capacity', 'prepare'].some(function invalidReaderField(name) {
+          return !Object.hasOwn(fields[name] ?? {}, 'value');
+        }) ||
+        Object.hasOwn(fields, 'retire') && (!Object.hasOwn(fields.retire, 'value') ||
+          typeof fields.retire.value !== 'function')) fail('InvalidInstalledSourceReader');
+    const capacity = fields.capacity.value, prepare = fields.prepare.value;
+    const retire = fields.retire?.value;
     if (capacity === undefined || capacity === null || typeof prepare !== 'function' ||
         listingReportCapacity !== undefined) fail('InvalidInstalledSourceReader');
     if (['clientProgramInstalledProviderRowCaptureCapacity',
@@ -1117,7 +1129,7 @@ export async function createInstalledRowSource({moon, declaration,
       'clientProgramRowSourceBindResponseCleanup'].some(name => typeof moon?.[name] !== 'function')) {
       fail('InstalledProviderSourceUnavailable');
     }
-    originalReader = Object.freeze({capacity, prepare, receiver: providerReader});
+    originalReader = Object.freeze({capacity, prepare, retire, receiver: providerReader});
   }
   if (prepareAcquisition !== undefined &&
       (typeof prepareAcquisition !== 'function' ||
@@ -2158,7 +2170,7 @@ export async function createInstalledRowSource({moon, declaration,
         ...(isListing ? {listing: rowListingCallbacks({moon, run, signal,
           currentRead: () => currentRead(prepared, access, signal)})} : {}),
         // The current read decision is taken again before every request.
-        ...(credentialRead ? {authorizationFor: async index => {
+        ...(credentialRead ? {originalAuthorization: grant, authorizationFor: async index => {
           if (index > 0) await currentRead(prepared, access, signal);
           const useId = directReadIdentity === undefined ? `${nonce}-read-${index}`
             : directReadIdentity.useId(nonce, index);
@@ -2169,6 +2181,13 @@ export async function createInstalledRowSource({moon, declaration,
           run, body)),
         consumeObservation: ledger === undefined ? undefined : function consumeObservation(charge) {
           return checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge));
+        },
+        consumePageWire: (wire, {charge} = {}) => {
+          if (typeof wire !== 'string') fail('InvalidInstalledSourcePageWire');
+          const bytes = Buffer.from(wire, 'utf8');
+          return checked(charge === undefined
+            ? moon.clientProgramRowSourceAcceptPage(run, bytes)
+            : moon.clientProgramRowSourceAcceptChargedPage(run, charge, bytes));
         },
         consumePage: (rows, {charge} = {}) => {
           const bytes = Buffer.from(JSON.stringify(rows), 'utf8');
@@ -2248,7 +2267,13 @@ export async function createInstalledRowSource({moon, declaration,
         executionBytes: keyedExecutionBytes, maxBytes: limits.maxPageBytes, maxWork});
     },
     prepare, prepareKeyed, verifyKeyedRead, keyedRecoveryBinding, open, openCapture, openKeyed, openKeyedLookup,
-    close: () => site.close(),
+    close() {
+      if (originalReader?.retire !== undefined &&
+          Reflect.apply(originalReader.retire, originalReader.receiver, []) !== true) {
+        fail('InstalledSourceReaderCleanupPending');
+      }
+      return site.close();
+    },
   });
 }
 

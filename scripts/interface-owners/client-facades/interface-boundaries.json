@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "5b62341a00f6bee5599938b1fc80a9bfd978dd9e36189ada91bcd6a3e1ecc3a2",
+      "sha256": "cd14b94b607d23a299e1978f6b742f34ad13672e678838843447c0b3a3a20b37",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -109,7 +109,7 @@
         {
           "name": "createInstalledRowSource",
           "parameters": [
-            "options: Readonly<{\n  moon: ConnectorRuntimeOwner;\n  declaration: ConnectorRuntimeHandle;\n  declared: RowSourceDeclarationFacts;\n  environmentWire: string;\n  connectorId: string;\n  connectorRegistration: string;\n  connectorRevision: string;\n  site: RowSourceCredentialSite;\n  authorization: InstallationAuthorization;\n  readOperation: string;\n  physicalTarget: (resource: string, fields: readonly string[]) => ConnectorJsonObject;\n  readPages: (request: RowPageRequest) => Awaitable<unknown>;\n  bindingCid: string;\n  limits: RowSourceLimits;\n  /** Trusted target-bound ExecutionCapacity declaration from the selected\n   * Core runtime. Not a grant; the original Source Ledger must reserve it\n   * before additional report allocations or page I/O. No numeric default. */\n  listingReportCapacity?: ConnectorRuntimeHandle;\n  /** Supplemental ordinary reader selection, mutually exclusive with listing\n   * reports. DATA only: same-runtime Core planning/reservation and original\n   * physical/caller retirement are independently required. No fallback. */\n  providerReader?: Readonly<{\n    capacity: ConnectorRuntimeHandle;\n    prepare(request: RowProviderReaderRequest): InstalledRowProviderReader;\n  }>;\n}>"
+            "options: Readonly<{\n  moon: ConnectorRuntimeOwner;\n  declaration: ConnectorRuntimeHandle;\n  declared: RowSourceDeclarationFacts;\n  environmentWire: string;\n  connectorId: string;\n  connectorRegistration: string;\n  connectorRevision: string;\n  site: RowSourceCredentialSite;\n  authorization: InstallationAuthorization;\n  readOperation: string;\n  physicalTarget: (resource: string, fields: readonly string[]) => ConnectorJsonObject;\n  bindingCid: string;\n  limits: RowSourceLimits;\n  /** Trusted target-bound ExecutionCapacity declaration from the selected\n   * Core runtime. Not a grant; the original Source Ledger must reserve it\n   * before additional report allocations or page I/O. No numeric default. */\n  listingReportCapacity?: ConnectorRuntimeHandle;\n}> & (\n  | Readonly<{\n    readPages: (request: RowPageRequest) => Awaitable<unknown>;\n    providerReader?: never;\n  }>\n  | Readonly<{\n    readPages?: never;\n    listingReportCapacity?: never;\n    /** Same-runtime Core planning/reservation and original physical/caller\n     * retirement remain required. Select this original factory, no fallback. */\n    providerReader: Readonly<{\n      capacity: ConnectorRuntimeHandle;\n      prepare(request: RowProviderReaderRequest): InstalledRowProviderReader;\n      retire?(): boolean;\n    }>;\n  }>\n)"
           ],
           "result": "Promise<InstalledRowSource>"
         },
@@ -134,6 +134,11 @@
             "request: RowProviderReaderRequest"
           ],
           "result": "InstalledRowProviderReader"
+        },
+        {
+          "name": "createInstalledRowSource/retire",
+          "parameters": [],
+          "result": "boolean"
         },
         {
           "name": "CredentialContext/<call>",
@@ -244,6 +249,11 @@
           "result": "Awaitable<void>"
         },
         {
+          "name": "InstalledRowProviderReader/retry",
+          "parameters": [],
+          "result": "Awaitable<void>"
+        },
+        {
           "name": "InstalledRowSource/admitsSource",
           "parameters": [
             "sourceRef: string"
@@ -301,7 +311,7 @@
           "name": "retainInstalledHostInitializationFailure",
           "parameters": [
             "cause: unknown",
-            "owners: Readonly<{\n    journal?: InstallationCloseOwner;\n    store?: InstallationCloseOwner;\n    checkpoints?: InstallationCloseOwner & {stop(): Awaitable<unknown>};\n    dispatchOwner?: {drain(): Awaitable<unknown>};\n    sourceProfile?: InstallationCloseOwner;\n    installedEffect?: InstallationCloseOwner;\n  }>"
+            "owners: Readonly<{\n    journal?: InstallationCloseOwner;\n    store?: InstallationCloseOwner;\n    checkpoints?: InstallationCloseOwner & {stop(): Awaitable<unknown>};\n    dispatchOwner?: {drain(): Awaitable<unknown>};\n    /** The SAME factory retires before its Site; only synchronous true is ACK. */\n    sourceReader?: Readonly<{retire(): boolean}>;\n    sourceProfile?: InstallationCloseOwner;\n    installedEffect?: InstallationCloseOwner;\n  }>"
           ],
           "result": "Promise<InstallationFailure>"
         },
@@ -309,6 +319,11 @@
           "name": "retainInstalledHostInitializationFailure/drain",
           "parameters": [],
           "result": "Awaitable<unknown>"
+        },
+        {
+          "name": "retainInstalledHostInitializationFailure/retire",
+          "parameters": [],
+          "result": "boolean"
         },
         {
           "name": "retainInstalledHostInitializationFailure/stop",
@@ -501,6 +516,14 @@
           "result": "number"
         },
         {
+          "name": "RowPageRequest/consumePageWire",
+          "parameters": [
+            "wire: string",
+            "admission?: Readonly<{charge?: ConnectorRuntimeHandle}>"
+          ],
+          "result": "number"
+        },
+        {
           "name": "RowProviderReaderRequest/<call>",
           "parameters": [
             "charge: ConnectorRuntimeHandle"
@@ -576,6 +599,7 @@
             "createInstalledRowSource/<call>",
             "createInstalledRowSource/<call>#2",
             "createInstalledRowSource/prepare",
+            "createInstalledRowSource/retire",
             "CredentialContext/<call>",
             "CredentialJournalOwner/acceptGrant",
             "CredentialJournalOwner/close",
@@ -594,6 +618,7 @@
             "InstalledRowProviderReader/observe",
             "InstalledRowProviderReader/read",
             "InstalledRowProviderReader/requestStop",
+            "InstalledRowProviderReader/retry",
             "InstalledRowSource/admitsSource",
             "InstalledRowSource/close",
             "installRowSourceAuthorization",
@@ -604,6 +629,7 @@
             "openRowSourceCredentialSite/<call>#3",
             "retainInstalledHostInitializationFailure",
             "retainInstalledHostInitializationFailure/drain",
+            "retainInstalledHostInitializationFailure/retire",
             "retainInstalledHostInitializationFailure/stop",
             "RowEffectDriver/admitTargetReadApproval",
             "RowEffectDriver/checkRequest",
@@ -619,6 +645,7 @@
             "RowEffectDriver/prepareRequestChild/<call>#3",
             "RowEffectDriver/project",
             "RowEffectDriver/recheckRequests",
+            "RowEffectDriver/recoverMemberRequests",
             "RowEffectDriver/recoverRequests",
             "RowEffectDriver/recoveryEntry",
             "RowEffectDriver/requestCid",
@@ -632,6 +659,7 @@
             "RowPageRequest/authorizationFor",
             "RowPageRequest/chargePage",
             "RowPageRequest/consumePage",
+            "RowPageRequest/consumePageWire",
             "RowProviderReaderRequest/<call>",
             "RowProviderReaderRequest/verifyRead",
             "rowSourceCheckEnvironment",
@@ -639,8 +667,7 @@
             "RowSourceCredentialSite/close",
             "RowSourceCredentialSite/issueEffectGrant",
             "RowSourceCredentialSite/issueReadGrant",
-            "rowSourceMapping",
-            "RowEffectDriver/recoverMemberRequests"
+            "rowSourceMapping"
           ],
           "exports": [
             "AuthorizationBoundary",
@@ -691,6 +718,7 @@
             "RowEffectProjection",
             "RowEffectRequestChild",
             "RowEffectRequestFacts",
+            "RowEffectTargetObservation",
             "RowEffectValue",
             "RowEffectValueKind",
             "RowMappingSource",
@@ -710,8 +738,7 @@
             "openRowSourceCredentialSite",
             "retainInstalledHostInitializationFailure",
             "rowSourceCheckEnvironment",
-            "rowSourceMapping",
-            "RowEffectTargetObservation"
+            "rowSourceMapping"
           ],
           "attributes": {
             "responsibility": [

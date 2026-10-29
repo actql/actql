@@ -222,3 +222,19 @@ test('truthy, missing or throwing reader cleanup observations never acknowledge 
     assert.equal(f.counts().settles, 0);
   }
 });
+
+test('provider cleanup retries the same retained reader without another prepare read or stop', async () => {
+  const f = fixture(), session = f.start();
+  let retries = 0;
+  f.reader.retry = function() {assert.strictEqual(this, f.reader);retries++;f.retire();};
+  await f.read(session);
+  const state = {};
+  session.closeAfterFailure(state);
+  assert.equal(state.closeFailed, true);
+  assert.equal(await state.recovery.cleanup(), true);
+  assert.equal(retries, 1);
+  assert.equal(f.calls.filter(name => name === 'prepare').length, 1);
+  assert.equal(f.calls.filter(name => name === 'read').length, 1);
+  assert.equal(f.calls.filter(name => name === 'stop').length, 1);
+  assert.equal(f.counts().settles, 1);
+});

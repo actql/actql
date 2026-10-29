@@ -174,7 +174,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "16ce24f20ac13d7c314eac58ab222d9050770f9eb923cc67a97ce21f5fe716da",
+      "sha256": "d4618bf08ffe3366a14413ba0d3cb5b3e848a4415635a2346443203e4ee6e11b",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -232,6 +232,9 @@
         "pub fn keyed_row_capture_read(RowKeyedSourceCapture) -> Result[@execution_relation.SuppliedRelationRead, RowHostIssue]",
         "pub fn keyed_row_read_facts(RowSourceRead) -> @sourceview_resolution.KeyedSourceFacts?",
         "pub fn keyed_row_read_usage(RowSourceRead) -> (Int, Int64, Int64)",
+        "pub fn managed_json_page_next_cursor(ManagedJsonPage) -> String?",
+        "pub fn managed_json_page_row_count(ManagedJsonPage) -> Int",
+        "pub fn managed_json_page_rows_wire(ManagedJsonPage) -> String",
         "pub fn mock_churn_risk_query_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
         "pub fn mock_churn_risk_query_alias_count(MockChurnRiskCatalogue) -> Int",
         "pub fn mock_churn_risk_source_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
@@ -253,6 +256,7 @@
         "pub fn prepare_row_delete_mapping(RowDeclaration, String, String, String, String, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_row_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]",
+        "pub fn project_managed_json_page(Bytes, Array[String], Array[String]?, Int, Int, Int, Int, Int) -> Result[ManagedJsonPage, ManagedJsonPageIssue]",
         "pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]",
         "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]",
         "pub fn restore_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]",
@@ -519,6 +523,18 @@
           "declaration": "pub fn keyed_row_read_usage(RowSourceRead) -> (Int, Int64, Int64)"
         },
         {
+          "name": "managed_json_page_next_cursor",
+          "declaration": "pub fn managed_json_page_next_cursor(ManagedJsonPage) -> String?"
+        },
+        {
+          "name": "managed_json_page_row_count",
+          "declaration": "pub fn managed_json_page_row_count(ManagedJsonPage) -> Int"
+        },
+        {
+          "name": "managed_json_page_rows_wire",
+          "declaration": "pub fn managed_json_page_rows_wire(ManagedJsonPage) -> String"
+        },
+        {
           "name": "mock_churn_risk_query_alias_at",
           "declaration": "pub fn mock_churn_risk_query_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?"
         },
@@ -601,6 +617,10 @@
         {
           "name": "prepare_row_source",
           "declaration": "pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]"
+        },
+        {
+          "name": "project_managed_json_page",
+          "declaration": "pub fn project_managed_json_page(Bytes, Array[String], Array[String]?, Int, Int, Int, Int, Int) -> Result[ManagedJsonPage, ManagedJsonPageIssue]"
         },
         {
           "name": "project_row_declaration",
@@ -1799,6 +1819,82 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "managed_json_page_next_cursor",
+            "managed_json_page_row_count",
+            "managed_json_page_rows_wire",
+            "project_managed_json_page"
+          ],
+          "exports": [
+            "pub fn managed_json_page_next_cursor(ManagedJsonPage) -> String?",
+            "pub fn managed_json_page_row_count(ManagedJsonPage) -> Int",
+            "pub fn managed_json_page_rows_wire(ManagedJsonPage) -> String",
+            "pub fn project_managed_json_page(Bytes, Array[String], Array[String]?, Int, Int, Int, Int, Int) -> Result[ManagedJsonPage, ManagedJsonPageIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
         }
       ]
     },
@@ -2916,6 +3012,111 @@
               {
                 "path": "src/check_environment/source_view_shape_wbtest.mbt",
                 "anchor": "test \"Resource identity subtree uses the same generated SourceView rule and work budget\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_row_source_host/managed_json_page.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
+      "sha256": "304e50b7dc081026c4be54f975fb0f8dfc74c5df002856ab9767d79097340fa1",
+      "operations": [
+        {
+          "name": "managed_json_page_next_cursor",
+          "declaration": "managed_json_page_next_cursor ( page : ManagedJsonPage ) - > String ?"
+        },
+        {
+          "name": "managed_json_page_row_count",
+          "declaration": "managed_json_page_row_count ( page : ManagedJsonPage ) - > Int"
+        },
+        {
+          "name": "managed_json_page_rows_wire",
+          "declaration": "managed_json_page_rows_wire ( page : ManagedJsonPage ) - > String"
+        },
+        {
+          "name": "managed_json_path",
+          "declaration": "managed_json_path ( root : @ source . Node , path : Array [ String ] , ) - > @ source . Node ?"
+        },
+        {
+          "name": "project_managed_json_page",
+          "declaration": "project_managed_json_page ( body : Bytes , items_path : Array [ String ] , cursor_path : Array [ String ] ? , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_cursor_bytes : Int , ) - > Result [ ManagedJsonPage , ManagedJsonPageIssue ]"
+        }
+      ],
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "managed_json_page_next_cursor",
+            "managed_json_page_row_count",
+            "managed_json_page_rows_wire",
+            "managed_json_path",
+            "project_managed_json_page"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Verification:"
               }
             ]
           }

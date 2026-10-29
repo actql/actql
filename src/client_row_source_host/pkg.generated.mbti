@@ -14,6 +14,7 @@ import {
   "actql/actql/physical_strategy_host",
   "actql/actql/query_planning",
   "actql/actql/run_publication",
+  "actql/actql/source_value",
   "actql/actql/sourceview_resolution",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
@@ -129,6 +130,12 @@ pub fn keyed_row_read_facts(RowSourceRead) -> @sourceview_resolution.KeyedSource
 
 pub fn keyed_row_read_usage(RowSourceRead) -> (Int, Int64, Int64)
 
+pub fn managed_json_page_next_cursor(ManagedJsonPage) -> String?
+
+pub fn managed_json_page_row_count(ManagedJsonPage) -> Int
+
+pub fn managed_json_page_rows_wire(ManagedJsonPage) -> String
+
 pub fn mock_churn_risk_query_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?
 
 pub fn mock_churn_risk_query_alias_count(MockChurnRiskCatalogue) -> Int
@@ -170,6 +177,8 @@ pub fn prepare_row_delete_mapping(RowDeclaration, String, String, String, String
 pub fn prepare_row_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]
 
 pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]
+
+pub fn project_managed_json_page(Bytes, Array[String], Array[String]?, Int, Int, Int, Int, Int) -> Result[ManagedJsonPage, ManagedJsonPageIssue]
 
 pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]
 
@@ -250,6 +259,19 @@ pub fn start_row_acquisition(RowAcquisition, String, (RowAttempt) -> Bool) -> Re
 // Errors
 
 // Types and methods
+type ManagedJsonPage
+
+pub(all) enum ManagedJsonPageIssue {
+  InvalidLimits
+  Parse(@source_value.ParseError)
+  ItemsPath
+  ItemsShape
+  RowLimit
+  CursorShape
+  CursorLimit
+  Wire
+} derive(@debug.Debug)
+
 pub struct MockChurnRiskCatalogue {
   // private fields
 }
