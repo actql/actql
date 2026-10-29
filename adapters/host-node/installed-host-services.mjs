@@ -4,7 +4,7 @@
 import {openInstalledRowSite, installedRowCredentialOperationSite, rowSourceCheckEnvironment} from './installed-row-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {readSourceProfileJson, readBoundedConfigurationText, installedConfigurationByteLimit,
-  installedConfigurationChunkBytes} from './source-profile-json.mjs';
+  installedConfigurationChunkBytes, readOriginalConfigurationText} from './source-profile-json.mjs';
 import {runtimeField, runtimeIsBoxedSome} from '../host-common/compiler-binding.generated.mjs';
 import {createInstalledCredentialSourceReader, installedJsonSourceReaderLimitNames,
   installedJsonSourceReaderProfileLimitNames} from './installed-credential-source-reader.mjs';
@@ -14,14 +14,20 @@ const installations = new WeakMap();
 const sourceContexts = new WeakMap();
 const fail = code => {throw Object.assign(new TypeError(code), {code});};
 
-function requireSourceConstructor(services, installation, prepared = false) {
+function requireSourceConstructor(services, installation, fields, prepared = false) {
   const original = installations.get(services);
-  if (original.initialPreparation === undefined && original.material === undefined) return;
-  const material = original.material;
-  if (material?.phase !== 'working' || !material.contexts.some(scope =>
-    scope.active && scope.installation === installation && (!prepared || scope.prepared !== undefined))) {
+  const field = fields.sourceInitialization;
+  if (field === undefined && original.initialPreparation === undefined && original.material === undefined) {
+    return installation;
+  }
+  if (!field || !Object.hasOwn(field, 'value')) fail('InstalledSourceInitializationUnavailable');
+  const context = field.value, selected = sourceContexts.get(context);
+  if (selected?.original !== original || selected.material.phase !== 'working' ||
+      !selected.scope.active || selected.scope.installation !== installation ||
+      prepared && selected.scope.prepared === undefined) {
     fail('InstalledSourceInitializationUnavailable');
   }
+  return context;
 }
 
 // Native initialization uses the SAME initial Resource reservation. These are
@@ -34,16 +40,21 @@ function sourceMaterial(original) {
   if (typeof original.restoreDeclaration !== 'function' || typeof original.declarationJson !== 'function') {
     fail('InstalledSourceInitializationRuntimeUnavailable');
   }
-  const names = ['TakeHostInitializationSourceCapacity', 'ContinueInstalledSourceMaterial',
-    'InstalledSourceConstructionCapacity', 'ReserveInstalledSourceConstruction',
-    'ReconcileInstalledSourceConstruction', 'CompleteInstalledSourceMaterial',
-    'BorrowInstalledSourceMaterial', 'BorrowedInstalledSourceEnvironment',
-    'ReturnInstalledSourceMaterial', 'RetireInstalledSourceMaterial', 'AbortUncontinuedSourceMaterial'];
-  const methods = Object.create(null);
-  for (const name of names) {
-    const fn = original.moon[`clientProgram${name}`];
+  const methods = Object.freeze({
+    TakeHostInitializationSourceCapacity: original.moon.clientProgramTakeHostInitializationSourceCapacity,
+    ContinueInstalledSourceMaterial: original.moon.clientProgramContinueInstalledSourceMaterial,
+    InstalledSourceConstructionCapacity: original.moon.clientProgramInstalledSourceConstructionCapacity,
+    ReserveInstalledSourceConstruction: original.moon.clientProgramReserveInstalledSourceConstruction,
+    ReconcileInstalledSourceConstruction: original.moon.clientProgramReconcileInstalledSourceConstruction,
+    CompleteInstalledSourceMaterial: original.moon.clientProgramCompleteInstalledSourceMaterial,
+    BorrowInstalledSourceMaterial: original.moon.clientProgramBorrowInstalledSourceMaterial,
+    BorrowedInstalledSourceEnvironment: original.moon.clientProgramBorrowedInstalledSourceEnvironment,
+    ReturnInstalledSourceMaterial: original.moon.clientProgramReturnInstalledSourceMaterial,
+    RetireInstalledSourceMaterial: original.moon.clientProgramRetireInstalledSourceMaterial,
+    AbortUncontinuedSourceMaterial: original.moon.clientProgramAbortUncontinuedSourceMaterial,
+  });
+  for (const fn of Object.values(methods)) {
     if (typeof fn !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
-    methods[name] = fn;
   }
   const material = {methods, input: undefined, unit: undefined, capacity: undefined,
     phase: 'opening', busy: false, ioPending: 0, constructors: 0,
@@ -52,12 +63,14 @@ function sourceMaterial(original) {
   // Retain before the one-shot take or continuation can call the original
   // current fence. A failed continuation still owns the uncontinued pair.
   original.material = material;
-  const pair = checked(Reflect.apply(methods.TakeHostInitializationSourceCapacity,
-    original.moon, [original.initialPreparation]));
-  material.input = runtimeField(pair, 0); material.unit = runtimeField(pair, 1);
-  material.capacity = checked(Reflect.apply(methods.ContinueInstalledSourceMaterial,
-    original.moon, [material.unit, material.input]));
-  material.phase = 'working';
+  try {
+    const pair = checked(Reflect.apply(methods.TakeHostInitializationSourceCapacity,
+      original.moon, [original.initialPreparation]));
+    material.input = runtimeField(pair, 0); material.unit = runtimeField(pair, 1);
+    material.capacity = checked(Reflect.apply(methods.ContinueInstalledSourceMaterial,
+      original.moon, [material.unit, material.input]));
+    material.phase = 'working';
+  } catch (cause) {material.phase = 'failed'; throw cause;}
   return material;
 }
 
@@ -132,7 +145,8 @@ export function installedSourceConfigurationReader(services) {
     }
     const bound = options === undefined ? undefined : Object.getOwnPropertyDescriptor(options, 'maxBytes');
     if (bound !== undefined && !Object.hasOwn(bound, 'value')) fail('InvalidInstalledConfigurationReaderOptions');
-    const maxBytes = bound?.value ?? (json ? installedConfigurationByteLimit : undefined);
+    const maxBytes = bound === undefined || bound.value === undefined
+      ? (json ? installedConfigurationByteLimit : undefined) : bound.value;
     if (!Number.isSafeInteger(maxBytes) || maxBytes < 0 ||
         json && maxBytes > installedConfigurationByteLimit) fail('InvalidInstalledSourceProfileByteLimit');
     material.ioPending++;
@@ -171,9 +185,49 @@ export function installedSourceConfigurationReader(services) {
       if (this !== reader) fail('ForeignInstalledConfigurationReader');
       return read(path, options, false);
     },
+    async readOriginalText(path) {
+      if (this !== reader) fail('ForeignInstalledConfigurationReader');
+      material.ioPending++;
+      let decoded;
+      try {
+        const value = await readOriginalConfigurationText(path, {
+          beforeRead(bytes) {
+            reserveSource(original, material, 0n, 0n,
+              2n * BigInt(bytes) + BigInt(installedConfigurationChunkBytes));
+          },
+          beforeDecode(bytes) {
+            decoded = BigInt(bytes);
+            reserveSource(original, material, 0n, 12n * decoded,
+              8n * decoded + BigInt(installedConfigurationChunkBytes));
+          },
+        });
+        material.inputs.push(value); material.text += 12n * decoded;
+        // Preserve the funded key-parser/native byte overlap after handing
+        // the same PEM text to the existing crypto constructor.
+        material.wire += 8n * decoded;
+        reconcileSource(original, material);
+        return value;
+      } catch (cause) {retainSourceFailure(material, cause); throw cause;}
+      finally {material.ioPending--;}
+    },
   });
   material.configurationReader = reader;
   return reader;
+}
+
+export async function withInstalledSourceLoading(services, construct) {
+  if (services === undefined) return construct();
+  const original = installations.get(services);
+  if (original === undefined) fail('ForeignInstalledHostServices');
+  const material = sourceMaterial(original);
+  if (material === undefined) return construct();
+  // Keep the SAME awaited initializer pending through module selection,
+  // runtime identity, provider construction and the final identity reread.
+  // Nested reads retain their actual FD cleanup; no wrapper is priced here.
+  material.ioPending++;
+  try {return await construct();}
+  catch (cause) {retainSourceFailure(material, cause); throw cause;}
+  finally {material.ioPending--;}
 }
 
 // Provider construction consumes only this original context, never a public
@@ -341,6 +395,7 @@ export function borrowInstalledSourceInitialization(services, sourceOriginal, en
 export function retireInstalledSourceInitialization(services) {
   const original = installations.get(services), material = original?.material;
   if (material === undefined || material.phase === 'retired') return true;
+  if (material.phase === 'opening' || material.busy) return false;
   if (material.ioPending !== 0 || material.constructors !== 0) return false;
   if (material.contexts.some(scope => scope.source !== undefined && scope.closed !== true)) return false;
   for (const child of material.cleanup) {
@@ -446,23 +501,23 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       if (publicationOnly) fail('InstalledEffectPublicationSourceUnavailable');
       if (nodeTypes.isProxy(options ?? {})) fail('InvalidInstalledSourceReaderSelection');
       const fields = Object.getOwnPropertyDescriptors(options ?? {});
-      if (Reflect.ownKeys(fields).length !== 3 || ['installation', 'metadataResponses', 'originUnits'].some(name =>
+      if (Reflect.ownKeys(fields).length !== (Object.hasOwn(fields, 'sourceInitialization') ? 4 : 3) || ['installation', 'metadataResponses', 'originUnits'].some(name =>
         !Object.hasOwn(fields[name] ?? {}, 'value'))) fail('InvalidInstalledSourceReaderSelection');
       const installation = fields.installation.value, runtimeBundleCid = selected.get(installation);
       if (runtimeBundleCid === undefined) fail('ForeignInstalledHostServiceInstallation');
-      requireSourceConstructor(services, installation);
+      const selection = requireSourceConstructor(services, installation, fields);
       const metadata = fields.metadataResponses.value, origin = fields.originUnits.value;
       if (![metadata, origin].every(value => Number.isSafeInteger(value) && value >= 0 && value < 2147483647)) {
         fail('InvalidInstalledSourceReaderSelection');
       }
-      const previous = sourceProfiles.get(installation);
+      const previous = sourceProfiles.get(selection);
       if (previous !== undefined) {
         if (previous.runtimeBundleCid !== runtimeBundleCid || previous.metadata !== metadata || previous.origin !== origin) {
           fail('InstalledSourceReaderSelectionChanged');
         }
         return previous.value;
       }
-      if (sourceImplementations.has(installation)) fail('InstalledSourceReaderProfileSelectedLate');
+      if (sourceImplementations.has(selection)) fail('InstalledSourceReaderProfileSelectedLate');
       if (typeof sourceProfile !== 'function') fail('InstalledSourceReaderProfileUnavailable');
       const returned = Reflect.apply(sourceProfile, moon, [metadata, origin]);
       const values = runtimeIsBoxedSome(returned) ? runtimeField(returned, 0) : undefined;
@@ -472,7 +527,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       }
       const value = Object.freeze(Object.fromEntries(installedJsonSourceReaderProfileLimitNames.map(
         (name, index) => [name, values[index]])));
-      current(); sourceProfiles.set(installation, Object.freeze({runtimeBundleCid, metadata, origin, value}));
+      current(); sourceProfiles.set(selection, Object.freeze({runtimeBundleCid, metadata, origin, value}));
       return value;
     },
     sourceReaderImplementation(options) {
@@ -482,14 +537,14 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
         fail('InvalidInstalledSourceReaderSelection');
       }
       const fields = Object.getOwnPropertyDescriptors(options ?? {});
-      if (Reflect.ownKeys(fields).length !== 3 || ['installation', 'limits', 'columnCount'].some(name =>
+      if (Reflect.ownKeys(fields).length !== (Object.hasOwn(fields, 'sourceInitialization') ? 4 : 3) || ['installation', 'limits', 'columnCount'].some(name =>
         !Object.hasOwn(fields[name] ?? {}, 'value'))) fail('InvalidInstalledSourceReaderSelection');
       if (nodeTypes.isProxy(fields.limits.value ?? {})) fail('InvalidInstalledSourceReaderSelection');
       const installation = fields.installation.value, runtimeBundleCid = selected.get(installation);
       if (runtimeBundleCid === undefined) fail('ForeignInstalledHostServiceInstallation');
-      requireSourceConstructor(services, installation);
+      const selection = requireSourceConstructor(services, installation, fields);
       const columns = fields.columnCount.value;
-      const profile = sourceProfiles.get(installation);
+      const profile = sourceProfiles.get(selection);
       let supplied = Object.getOwnPropertyDescriptors(fields.limits.value ?? {}), calendarLimits;
       // This JSON implementation has no request-body construction inventory.
       // Do not discard a selected bound or treat it as actual backing.
@@ -516,7 +571,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
         !Number.isSafeInteger(columns) || columns < 1 || columns > policy[2] ||
         supplied.maxSecretBytes.value > policy[0]) fail('InstalledSourceReaderPolicyUnavailable');
       const limits = Object.freeze(Object.fromEntries(names.map(name => [name, supplied[name].value])));
-      const previous = sourceImplementations.get(installation);
+      const previous = sourceImplementations.get(selection);
       if (previous !== undefined) {
         if (previous.runtimeBundleCid !== runtimeBundleCid || previous.columns !== columns ||
             (previous.calendarLimits === undefined) !== (calendarLimits === undefined) ||
@@ -531,7 +586,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       if (capacity === undefined || capacity === null) fail('InstalledSourceReaderCapacityUnavailable');
       const value = Object.freeze({capacity, limits, runAcquisitionLimits: Object.freeze({
         maxBindings: policy[1], maxSecretBytes: limits.maxSecretBytes})});
-      current(); sourceImplementations.set(installation, Object.freeze({runtimeBundleCid, columns, calendarLimits, value}));
+      current(); sourceImplementations.set(selection, Object.freeze({runtimeBundleCid, columns, calendarLimits, value}));
       return value;
     },
     createSourceReader(options) {
@@ -542,14 +597,15 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       const standard = Object.hasOwn(fields, 'preparePageReader');
       const readerField = standard ? 'preparePageReader'
         : Object.hasOwn(fields, 'readPages') ? 'readPages' : 'createReader';
-      if (Reflect.ownKeys(fields).length !== (standard ? 5 : 4) ||
+      if (Reflect.ownKeys(fields).length !== (standard ? 5 : 4) + (Object.hasOwn(fields, 'sourceInitialization') ? 1 : 0) ||
           ['installation', 'implementation', 'site', readerField, ...(standard ? ['operation'] : [])].some(name =>
             !Object.hasOwn(fields[name] ?? {}, 'value'))) fail('InvalidInstalledSourceReaderSelection');
-      const installation = fields.installation.value, implementation = sourceImplementations.get(installation);
-      requireSourceConstructor(services, installation, true);
+      const installation = fields.installation.value;
+      const selection = requireSourceConstructor(services, installation, fields, true);
+      const implementation = sourceImplementations.get(selection);
       if (implementation === undefined || implementation.value !== fields.implementation.value ||
           implementation.runtimeBundleCid !== selected.get(installation) ||
-          siteInstallations.get(fields.site.value) !== installation) fail('ForeignInstalledSourceReaderSelection');
+          siteInstallations.get(fields.site.value) !== selection) fail('ForeignInstalledSourceReaderSelection');
       const originalSite = installedRowCredentialOperationSite(fields.site.value.credential);
       return createInstalledCredentialSourceReader({capacity: implementation.value.capacity,
         originalSite, [readerField]: fields[readerField].value, assertCurrent: current,
@@ -568,16 +624,18 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       const installation = Object.getOwnPropertyDescriptor(options ?? {}, 'installation')?.value;
       const runtimeBundleCid = selected.get(installation);
       if (runtimeBundleCid === undefined) fail('ForeignInstalledHostServiceInstallation');
-      requireSourceConstructor(services, installation, true);
+      const selection = requireSourceConstructor(services, installation,
+        Object.getOwnPropertyDescriptors(options ?? {}), true);
       // The caller supplies provider configuration only. It cannot replace the
       // original Host/runtime/current association with equal or copied DATA.
       const implementation = implementations.get(installation);
       if (implementation?.constructing) fail('InstalledEffectDefinitionSelectionReentry');
       if (implementation !== undefined) implementation.sealed = true;
       return openInstalledRowSite({...options, root, principalId, commonMoon: moon,
-        runtimeBundleCid, assertCurrent: current}).then(original => {
+        runtimeBundleCid, assertCurrent: current,
+        configurationReader: installedSourceConfigurationReader(services)}).then(original => {
           sites.set(original.site, implementation);
-          siteInstallations.set(original.site, installation);
+          siteInstallations.set(original.site, selection);
         return original;
       });
     },

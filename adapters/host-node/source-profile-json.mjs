@@ -66,7 +66,30 @@ async function readConfiguration(path, maxBytes, openFile, project, beforeDecode
   if (beforeDecode !== undefined && typeof beforeDecode !== 'function') {
     throw new TypeError('InvalidInstalledConfigurationConstruction');
   }
+  return withOriginalFile(path, openFile, original =>
+    readConfigurationBody(original, maxBytes, project, beforeDecode));
+}
+
+// An installed issuer key has no JSON-profile/CA/secret ceiling. The normal
+// initializer funds the size observed on THIS opened FD before buffering; a
+// growing original refuses rather than reading beyond that actual envelope.
+// The existing same-handle close/retry owner remains the only I/O owner.
+export async function readOriginalConfigurationText(path,
+  {openFile = open, beforeRead, beforeDecode} = {}) {
+  if (typeof beforeRead !== 'function' || typeof beforeDecode !== 'function') {
+    throw new TypeError('InvalidInstalledConfigurationConstruction');
+  }
   return withOriginalFile(path, openFile, async original => {
+    const observed = await original.stat();
+    if (!Number.isSafeInteger(observed.size) || observed.size < 0) {
+      throw new TypeError('InvalidInstalledSourceProfileByteLimit');
+    }
+    if (beforeRead(observed.size) !== undefined) throw new TypeError('InvalidInstalledConfigurationConstruction');
+    return readConfigurationBody(original, observed.size, bytes => bytes.toString('utf8'), beforeDecode);
+  });
+}
+
+async function readConfigurationBody(original, maxBytes, project, beforeDecode) {
     const chunks = [];
     let bytes = 0;
     let used = 0;
@@ -97,7 +120,6 @@ async function readConfiguration(path, maxBytes, openFile, project, beforeDecode
         used = 0;
       }
     }
-  });
 }
 
 // Re-read the selected runtime for each installation. Keep the exact byte

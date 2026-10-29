@@ -46,7 +46,8 @@ import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
 import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';
 import {retainInstalledHostServiceInstallation, installedSourceConfigurationReader,
   beginInstalledSourceInitialization, finishInstalledSourceInitialization,
-  reserveInstalledSourceEnvironment, reserveInstalledSourceRuntimeIdentity} from './installed-host-services.mjs';
+  reserveInstalledSourceEnvironment, reserveInstalledSourceRuntimeIdentity,
+  withInstalledSourceLoading} from './installed-host-services.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile} from
   './installed-duckdb-source.mjs';
@@ -368,6 +369,12 @@ export async function publishInstalledSourceProfile(path, {root, principalId,
 export async function loadInstalledSource(path, {root, principalId, moon,
   runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable, installationServices}) {
   if (path === undefined) return undefined;
+  return withInstalledSourceLoading(installationServices, () => loadInstalledSourceMember(path,
+    {root, principalId, moon, runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable, installationServices}));
+}
+
+async function loadInstalledSourceMember(path, {root, principalId, moon,
+  runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable, installationServices}) {
   // The original initial reservation precedes shared profile parsing and
   // identity metadata reads, not merely the selected provider's load call.
   const configurationReader = installationServices === undefined ? undefined

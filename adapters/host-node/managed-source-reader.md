@@ -188,11 +188,23 @@ to `createInstalledRowSource`. They select their Reader implementation and Site
 through the same four existing service methods; this context supplies neither
 permission nor a numerical Reader capacity.
 
+Each normal quartet call also carries that exact `sourceInitialization`.
+The table entry identifies installed connector code; it does not identify one
+of several Source profiles using that code. Profile/implementation selection
+and the original Site association are keyed by the individual Source context,
+so different connections keep their own original origins and valid bounds.
+A changed selection on the same context still refuses. No equal/copied context
+or fabricated table entry can recover another Source's selection.
+
 Native input nodes, decoded text, owned Buffer/wire peaks and complete retained
 prefixes use the existing shared execution-capacity allowances. The recipe
 includes profile projections, declaration/Catalog/manifest assembly, Environment
 merging and failed constructors. Fixed control frames remain Host baseline;
 these logical allowances are not measured JavaScript heap/RSS geometry.
+Issuer-key intake observes the size of the same opened FD and reserves before
+buffering it, without reusing a CA/secret/JSON limit. Growth beyond that original
+extent refuses on the same handle. The original key error wrapper retains its
+actual close/retry owner; no read or key construction is retried for cleanup.
 
 The initializer completes the same body with its actual Source installation and
 prepared Environment. Requests borrow and return that body through the existing

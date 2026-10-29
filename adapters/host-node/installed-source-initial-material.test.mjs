@@ -4,15 +4,18 @@ import {mkdtemp, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {generateKeyPairSync} from 'node:crypto';
 import {createInstalledHostServices, retainInstalledHostServiceInstallation,
   installedSourceConfigurationReader, beginInstalledSourceInitialization,
   assertInstalledSourceConstruction, retainInstalledSourceConstruction,
   closeInstalledSourceConstruction, finishInstalledSourceInitialization,
   completeInstalledSourceInitialization, borrowInstalledSourceInitialization,
-  retireInstalledSourceInitialization} from './installed-host-services.mjs';
+  retireInstalledSourceInitialization, withInstalledSourceLoading} from './installed-host-services.mjs';
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
 import {loadInstalledSource} from './installed-source.mjs';
-import {readSourceProfileJson} from './source-profile-json.mjs';
+import {readSourceProfileJson, readOriginalConfigurationText} from './source-profile-json.mjs';
+import {loadRowSourceCredentialCustody} from './installed-row-source.mjs';
+import {installedJsonSourceReaderProfileLimitNames} from './installed-credential-source-reader.mjs';
 
 const ok = value => ({$tag: 1, _0: value});
 const baseWire = JSON.stringify({version: 'actql-check-environment/0.1',
@@ -23,7 +26,7 @@ const views = [{resource: 'users', resource_kind: 'fixture', schema_wire: '{}', 
 // These are explicit original Core/Resource ports. This tests the actual
 // service/loader/native I/O composition, NOT a compiled Ledger, real Account,
 // RowRun, normal constructor admission or physical Source stop qualification.
-function fixture() {
+function fixture(readerPorts = {}) {
   const initial = {}, input = {}, unit = {}, capacity = {}, events = [];
   let takes = 0, selected, originalEnvironment, live = 0, retiring = false, refuse = false, onReserve;
   const moon = {
@@ -79,6 +82,7 @@ function fixture() {
       return JSON.stringify({evidence_schemas: [], evidence_capabilities: [], view_bodies: [],
         contracts: [], catalog: '{}', manifest_entry: '{}'});
     },
+    ...readerPorts,
   };
   const services = createInstalledHostServices({root: '/UNOPENED/initial-service', principalId: 'fixture',
     moon, initialPreparation: initial, assertCurrent() {}});
@@ -206,4 +210,91 @@ test('normal configuration reader refuses an explicit null bound before reservat
     {code: 'InvalidInstalledSourceProfileByteLimit'});
   assert.equal(f.events.filter(value => Array.isArray(value) && value[0] === 'reserve').length, 0);
   assert.equal(retireInstalledSourceInitialization(f.services), true);
+});
+
+test('two same-family Sources select independent original reader bounds on the same table entry', () => {
+  const profile = [1024, 8192, 256, 16, 5, 10, 4, 5, 256, 512, 4096,
+    1024, 4096, 8192, 4096, 16, 16, 128, 128, 1024, 8192, 4096, 1024];
+  const calls = [];
+  const f = fixture({clientProgramInstalledSourceReaderPolicy() {return [65536, 100000, 100];},
+    clientProgramInstalledJsonSourceReaderProfile(metadata, origin) {
+      calls.push(['profile', metadata, origin]); return {$tag: 1, _0: profile.slice()};
+    },
+    clientProgramInstalledJsonSourceReaderCapacity(limits, columns, secret) {
+      const capacity = Object.freeze({limits, columns, secret}); calls.push(['capacity', capacity]); return capacity;
+    }});
+  const installation = Object.freeze({registration: 'service_fixture', revision: 'service_fixture/0.1'});
+  retainInstalledHostServiceInstallation(f.services, installation, 'sha256:' + 'a'.repeat(64));
+  const first = beginInstalledSourceInitialization(f.services, installation, 'first', baseWire);
+  const second = beginInstalledSourceInitialization(f.services, installation, 'second', baseWire);
+  const select = (sourceInitialization, originUnits, rows) => {
+    const selected = f.services.sourceReaderImplementationProfile({installation, sourceInitialization,
+      metadataResponses: 0, originUnits});
+    assert.deepEqual(Object.keys(selected), installedJsonSourceReaderProfileLimitNames);
+    return f.services.sourceReaderImplementation({installation, sourceInitialization,
+      limits: {...selected, maxRows: rows}, columnCount: 2});
+  };
+  const one = select(first, 20, 3), two = select(second, 27, 4);
+  assert.notEqual(one, two); assert.notEqual(one.capacity, two.capacity);
+  assert.equal(one.limits.maxRows, 3); assert.equal(two.limits.maxRows, 4);
+  assert.equal(select(first, 20, 3), one);
+  assert.equal(select(second, 27, 4), two);
+  assert.deepEqual(calls.filter(value => value[0] === 'profile'), [['profile', 0, 20], ['profile', 0, 27]]);
+  assert.throws(() => select(first, 27, 3), {code: 'InstalledSourceReaderSelectionChanged'});
+  assert.throws(() => select({...second}, 27, 4), {code: 'InstalledSourceInitializationUnavailable'});
+  assert.equal(f.takes(), 1);
+  finishInstalledSourceInitialization(first, undefined, new Error('first explicit constructor finished'), true);
+  finishInstalledSourceInitialization(second, undefined, new Error('second explicit constructor finished'), true);
+  assert.equal(retireInstalledSourceInitialization(f.services), true);
+});
+
+test('normal issuer key read funds the original FD extent and reaches the existing crypto constructor', async () => {
+  const f = fixture(), root = await mkdtemp(join(tmpdir(), 'actql-source-key-material-'));
+  const path = join(root, 'fixture-ed25519.pem');
+  const pem = generateKeyPairSync('ed25519').privateKey.export({format: 'pem', type: 'pkcs8'});
+  await writeFile(path, pem);
+  const configurationReader = installedSourceConfigurationReader(f.services);
+  assert.equal(await configurationReader.readOriginalText(path), pem);
+  const stopBeforeJournal = new Error('same original post-key resolver refusal');
+  await assert.rejects(loadRowSourceCredentialCustody({profile: {credentialPrivateKeyPath: path},
+    configurationReader}, {prepareResolver() {throw stopBeforeJournal;}}), cause => cause === stopBeforeJournal);
+  assert.equal(f.takes(), 1);
+  assert.equal(f.events.filter(value => value === 'reconcile').length, 2);
+  assert.equal(retireInstalledSourceInitialization(f.services), true);
+  let reads = 0, closes = 0;
+  const original = {async stat() {return {size: 7};}, async read(buffer) {
+    reads++; buffer.set(Buffer.from('{"x":12}')); return {bytesRead: 8};
+  }, async close() {closes++;}};
+  const events = [];
+  await assert.rejects(readOriginalConfigurationText('/UNOPENED/growing-original', {
+    openFile: async () => original, beforeRead(bytes) {events.push(bytes);},
+    beforeDecode() {assert.fail('no decode of an outgrown original');}}), /InvalidInstalledSourceProfile/);
+  assert.deepEqual(events, [7]); assert.equal(reads, 1); assert.equal(closes, 1);
+});
+
+test('whole Source loading stays pending across actual awaited selection before any provider handoff', async () => {
+  const f = fixture(); let settle;
+  const pending = new Promise(resolve => {settle = resolve;});
+  const loading = withInstalledSourceLoading(f.services, async () => {
+    assert.equal(retireInstalledSourceInitialization(f.services), false);
+    await pending; return 'same original module selection';
+  });
+  assert.equal(retireInstalledSourceInitialization(f.services), false);
+  settle(); assert.equal(await loading, 'same original module selection');
+  assert.equal(retireInstalledSourceInitialization(f.services), true);
+});
+
+test('issuer error wrapper retains the same original failed FD cleanup owner', async () => {
+  let retry = 0;
+  const cleanupHandle = Object.freeze({status() {return {pending: retry === 0};}, retry() {retry++;}});
+  const original = Object.assign(new Error('same original key read failure'), {cleanupHandle});
+  const configurationReader = Object.freeze({readOriginalText() {
+    assert.equal(this, configurationReader); throw original;
+  }});
+  let failure;
+  try {await loadRowSourceCredentialCustody({profile: {credentialPrivateKeyPath: '/UNOPENED/key'}, configurationReader});}
+  catch (cause) {failure = cause;}
+  assert.equal(failure.code, 'InvalidRowSourceCredentialSite');
+  assert.equal(failure.cause, original); assert.equal(failure.cleanupHandle, cleanupHandle);
+  assert.equal(retry, 0); await failure.cleanupHandle.retry(); assert.equal(retry, 1);
 });
