@@ -1,0 +1,25 @@
+{
+  "version": "actql-bound-join-laws/0.1",
+  "unit": "rows",
+  "law_ids": ["actql.bound.join-output", "actql.bound.asof-left"],
+  "inputs": "L and R are nonnegative safe-integer upper bounds for the actual ordered left and right input occurrences of the checked operation. Repeated producers retain separate occurrences. Unknown counts are not zero. A numeric equality does not establish producer or quantity correspondence.",
+  "unrefined": {
+    "inner": "L * R",
+    "cross_join": "L * R; a right_rows: one assertion is not permission to discard extra rows and remains subject to validation",
+    "left": "L * max(1, R)",
+    "full": "R if L = 0; L if R = 0; L + R if L = 1 or R = 1; otherwise L * R",
+    "semi": "0 if R = 0; otherwise L",
+    "anti": "L",
+    "asof": "L, including unmatched left rows; no right count proof is required for this output bound"
+  },
+  "unique_refinement": {
+    "eligibility": "Use only applicable checked join-key uniqueness evidence or a retained cardinality assertion with its required validation. At least one side must be unique. Equal row types, repeated conditions and distinct producer names are not uniqueness evidence. For a zero input bound use the unrefined rules.",
+    "inner": "min(L, R) if both sides are unique; L if only the right is unique; R if only the left is unique",
+    "left": "L if the right is unique; otherwise L + R - 1 when only the left is unique",
+    "full": "L + R",
+    "semi_and_anti": "L; a smaller bound may follow separately from empty-input rules"
+  },
+  "application": "Equality and interval joins use the rule for their checked kind. Cross join uses the product rule. As-of join uses the left-preserving rule. Each proof retains its governing law, input occurrences and any uniqueness or cardinality validation dependencies; a tighter numeric result does not discharge those dependencies.",
+  "arithmetic": "Compute addition and multiplication exactly and reject a result outside the nonnegative safe-integer range. Do not round, saturate or truncate. Empty-input cases are selected before arithmetic that is unnecessary for that case.",
+  "conditionality": "These are output upper bounds conditional on successful execution, not exact row counts, acquisition completeness, search-work bounds, order evidence, resource enforcement or permission to execute. Failed assertions or exceeded enforced ceilings expose no partial successful result."
+}
