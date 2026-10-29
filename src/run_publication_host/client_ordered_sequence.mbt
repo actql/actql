@@ -95,9 +95,25 @@ fn emit_prepared_client_sequence_steps(
   input : ClientSequenceEmission,
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
+  emit_prepared_client_sequence_range(input, input.first, input.end, out)
+}
+
+///|
+fn emit_prepared_client_sequence_range(
+  input : ClientSequenceEmission,
+  first : Int,
+  end : Int,
+  out : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  if first < input.first || end < first || end > input.end {
+    raise @encode.InvalidStructure
+  }
   let mut ordinal = 0
+  while input.ordered.get(ordinal) is Some((step, _)) && step < first {
+    ordinal += 1
+  }
   @encode.begin_array(out)
-  for step in input.first..<input.end {
+  for step in first..<end {
     if input.ordered.get(ordinal) is Some((index, params)) && index == step {
       @execution.emit_ordered_kernel_node(params, out)
       ordinal += 1

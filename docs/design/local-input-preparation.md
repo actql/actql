@@ -2858,3 +2858,37 @@ sequences and measuring work must be included in the same Request's construction
 inventory. This initial measurement alone does not fund lowering, registry work,
 canonical parsing, final projection, Fragment issuance or the complete artifact.
 The original constructor still performs its existing final admission and guards.
+
+
+### Projected Task and Fragment geometry
+
+A selected Task has two distinct pipeline extents. The initial writer includes
+its original lowering range. The final projection retains only the selected
+canonical nodes, replaces external input references and supplies the declared
+input occurrences. Both roots use one field serializer; the original canonical
+admission, included-node and reference resolution checks remain in the issuer.
+The reader preserves data keys and scalar text, while both writers use the same
+canonical Number encoding. Object sorting changes order, not these extents.
+
+Sizing emits the selected range with the same already prepared ordered params.
+Its original byte size plus one longest generated input-label extent per slice
+value node conservatively bounds all reference replacements. This counts an
+upper bound on occurrences, not a claimed invocation count. A no-replacement
+range adds zero without changing the shared positive-coefficient arithmetic.
+The common measuring writer composes all parent punctuation, nodes and depth.
+The successful writer's own unchanged codec ceiling can tighten this DATA bound;
+it does not admit a pipeline, alter a resource cap or waive failed construction.
+
+Task Fragment sizing shares the actual issuer's input contracts, output port,
+node label, pipeline and identity field definition. Its measuring interpretation
+uses the existing SHA-256 representation extent without issuing a contract or
+manufacturing a CID. It preserves every input occurrence, including repeated
+references to one producer. The original contract/hash and graph admissions
+still run at their existing boundary. Normal output adds no sizing pass.
+
+These initial, projected and Fragment extents remain distinct inputs to the
+Request's full construction overlap. Schema/contract construction, measuring
+workspace/work, parsed trees, graph/fact/witness/template/bindings/protocol
+records and complete artifact retention still require their own simultaneous
+inventories under that same parent before allocation. Byte geometry alone is
+not a funded compiler, Plan, Run or physical-cleanup acknowledgment.
