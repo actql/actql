@@ -25,6 +25,7 @@ pub struct ClientValuesExecutablePlan {
   fact_manifest_wire : String
   fact_manifest_cid : String
   transformations : Array[ClientResultTransformation]
+  priv result_plans : Array[ClientResultPlanIdentity]
   graph_logical_cid : String?
   priv mut read_originals : ClientExecutablePlanReadOriginals?
 }
@@ -136,13 +137,14 @@ fn client_plan_parse_array(
 }
 
 ///|
-fn client_plan_emit_array(
+fn[T] client_plan_emit_array(
   writer : @encode.Writer,
-  values : Array[@canonical.CanonicalValue],
+  values : Array[T],
+  emit_value : (T, @encode.Writer) -> Unit raise @encode.EncodeFailure,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_array(writer)
   for value in values {
-    @canonical.emit_value(value, writer)
+    emit_value(value, writer)
   }
   @encode.end_array(writer)
 }
@@ -202,7 +204,13 @@ fn issue_prepared_client_values_executable_plan_parts(
   }
   let material = match
     issue_prepared_client_execution_material_with_template(
-      value, manifests, template, max_wire_bytes, max_nodes, max_depth,
+      value,
+      manifests,
+      template,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      result_plans=graph.result_plans,
     ) {
     Ok(material) => material
     Err(issue) => return Err(Material(issue))
@@ -217,6 +225,7 @@ fn issue_prepared_client_values_executable_plan_parts(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    result_plans=graph.result_plans,
   ).map(plan => {
     // This Values result has no task-reader continuation. Do not retain its
     // temporary parsed trees in a standalone Plan or completed compilation.
@@ -294,7 +303,13 @@ fn issue_prepared_client_task_plan_parts(
   }
   let material = match
     issue_prepared_client_execution_material_with_template(
-      value, manifests, template, max_wire_bytes, max_nodes, max_depth,
+      value,
+      manifests,
+      template,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      result_plans=graph.result_plans,
     ) {
     Ok(material) => material
     Err(issue) => return Err(Material(issue))
@@ -309,67 +324,70 @@ fn issue_prepared_client_task_plan_parts(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    result_plans=graph.result_plans,
   ).map(plan => ({ plan, }, template, graph))
 }
 
 ///|
 // Only the already admitted children of this invocation are retained here.
 // This is emission material, not a checked Plan or execution authority.
-priv struct ClientExecutablePlanBody {
-  fact_values : Array[@canonical.CanonicalValue]
-  limit_values : Array[@canonical.CanonicalValue]
-  binding_values : Array[@canonical.CanonicalValue]
-  witness_values : Array[@canonical.CanonicalValue]
-  nodes : @canonical.CanonicalValue
-  edges : @canonical.CanonicalValue
-  roots : @canonical.CanonicalValue
-  material_value : @canonical.CanonicalValue
-  manifest_cid : String
-  required_profiles : Array[(String, String)]
+priv struct ClientExecutablePlanBody[T, C] {
+  fact_values : Array[T]
+  limit_values : Array[T]
+  binding_values : Array[T]
+  witness_values : Array[T]
+  nodes : T
+  edges : T
+  roots : T
+  material_value : T
+  manifest_cid : C
+  required_profiles : Array[(String, C)]
 }
 
 ///|
 // The same ordered encoding feeds the existing bounded hash and text writers.
 // The full wire includes its identity; its budget is not the preimage budget.
-fn emit_client_executable_plan_body(
+fn[T, C] emit_client_executable_plan_body(
   writer : @encode.Writer,
-  parts : ClientExecutablePlanBody,
-  cid : String?,
+  parts : ClientExecutablePlanBody[T, C],
+  cid : C?,
+  emit_value : (T, @encode.Writer) -> Unit raise @encode.EncodeFailure,
+  emit_cid : (C, @encode.Writer) -> Unit raise @encode.EncodeFailure,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
   @encode.key(writer, "bound_witnesses")
-  client_plan_emit_array(writer, parts.witness_values)
+  client_plan_emit_array(writer, parts.witness_values, emit_value)
   @encode.key(writer, "data_edges")
-  @canonical.emit_value(parts.edges, writer)
+  emit_value(parts.edges, writer)
   if cid is Some(identity) {
     @encode.key(writer, "executable_plan_cid")
-    @encode.string_value(writer, identity)
+    emit_cid(identity, writer)
   }
   @encode.key(writer, "execution_material")
-  @canonical.emit_value(parts.material_value, writer)
+  emit_value(parts.material_value, writer)
   @encode.key(writer, "limit_bindings")
-  client_plan_emit_array(writer, parts.binding_values)
+  client_plan_emit_array(writer, parts.binding_values, emit_value)
   @encode.key(writer, "nodes")
-  @canonical.emit_value(parts.nodes, writer)
+  emit_value(parts.nodes, writer)
   @encode.key(writer, "plan_fact_manifest_cid")
-  @encode.string_value(writer, parts.manifest_cid)
+  emit_cid(parts.manifest_cid, writer)
   @encode.key(writer, "plan_facts")
-  client_plan_emit_array(writer, parts.fact_values)
+  client_plan_emit_array(writer, parts.fact_values, emit_value)
   @encode.key(writer, "required_profiles")
   @encode.begin_array(writer)
   for (profile_id, contract_cid) in parts.required_profiles {
     @encode.begin_object(writer)
     @encode.key(writer, "contract_cid")
-    @encode.string_value(writer, contract_cid)
+    emit_cid(contract_cid, writer)
     @encode.key(writer, "profile_id")
     @encode.string_value(writer, profile_id)
     @encode.end_object(writer)
   }
   @encode.end_array(writer)
   @encode.key(writer, "resolved_limits")
-  client_plan_emit_array(writer, parts.limit_values)
+  client_plan_emit_array(writer, parts.limit_values, emit_value)
   @encode.key(writer, "root_refs")
-  @canonical.emit_value(parts.roots, writer)
+  emit_value(parts.roots, writer)
   @encode.key(writer, "source_state_requirements")
   @encode.begin_array(writer)
   @encode.end_array(writer)
@@ -380,16 +398,25 @@ fn emit_client_executable_plan_body(
 
 ///|
 fn finish_client_executable_plan_body(
-  parts : ClientExecutablePlanBody,
+  parts : ClientExecutablePlanBody[@canonical.CanonicalValue, String],
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
 ) -> (String, String) raise @encode.EncodeFailure {
   let hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth)
-  emit_client_executable_plan_body(hash, parts, None)
+  emit_client_executable_plan_body(hash, parts, None, @canonical.emit_value, (
+    value,
+    writer,
+  ) => @encode.string_value(writer, value))
   let cid = "sha256:" + @encode.finish_hash(hash)
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
-  emit_client_executable_plan_body(writer, parts, Some(cid))
+  emit_client_executable_plan_body(
+    writer,
+    parts,
+    Some(cid),
+    @canonical.emit_value,
+    (value, writer) => @encode.string_value(writer, value),
+  )
   (@encode.finish(writer), cid)
 }
 
@@ -404,6 +431,7 @@ fn issue_prepared_client_executable_plan_with_parts(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  result_plans~ : Array[ClientResultPlanIdentity],
   required_profiles? : Array[(String, String)] = [],
 ) -> Result[ClientValuesExecutablePlan, ClientValuesExecutablePlanIssue] {
   let facts = match
@@ -504,6 +532,7 @@ fn issue_prepared_client_executable_plan_with_parts(
         max_depth,
       }),
       transformations: transformations.copy(),
+      result_plans: result_plans.copy(),
       graph_logical_cid: if transformations.is_empty() {
         None
       } else {

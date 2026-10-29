@@ -440,7 +440,9 @@ test('normal generic Native Request adopts the same Run and retains its current 
   const body=f.view.captureSourceSnapshot(receipt,{kind:'program',input:input(),parameters:null},snapshotClientRequest);
   f.view.bindSourceSnapshot(receipt,body);f.view.bindSourceRequest(receipt,body,request);
   f.originals.installation={sequenceContractOriginal:{moon,admission:{}}};
-  let retiring=false,returns=0,adopts=0;
+  let retiring=false,returns=0,adopts=0;const compilation={};let compilationReads=0;
+  moon.clientProgramInstalledManagedRunCompilationOriginal=function(actual,p){assert.equal(this,moon);assert.equal(actual,value);assert.equal(p,prepared);compilationReads++;return compilation;};
+  moon.clientProgramClosedValuesCompilationOriginal=()=>assert.fail('The parent-only Run has no ClosedValues phase');
   moon.clientProgramPrepareRequestNativeComputation=()=>ok('effect_free');
   moon.clientProgramPrepareRequestProgramModuleBody=()=>ok(undefined);
   moon.clientProgramBorrowRequestProgramPreparation=()=>ok(holder);
@@ -454,6 +456,7 @@ test('normal generic Native Request adopts the same Run and retains its current 
   await f.view.fundedPreparation(request,undefined);
   const run=f.view.adoptPreparation(prepared,request,identity);
   assert.equal(run.original,f.original);assert.equal(run.value,value);assert.equal(adopts,1);
+  assert.equal(f.view.compilationOriginal(prepared),compilation);assert.equal(compilationReads,1);
   f.view.finishSourceProducer(receipt,'returned');
   // Actual ordinary Resource calls its originally retained current callback.
   // Finishing the SDK producer must not invalidate this same live Run.

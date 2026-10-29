@@ -615,6 +615,7 @@ fn issue_client_infer_plan_graph_for_occurrence(
     let edges : Array[@canonical.CanonicalValue] = []
     let roots : Array[@canonical.CanonicalValue] = []
     let transformations : Array[ClientResultTransformation] = []
+    let result_plans : Array[ClientResultPlanIdentity] = []
     let content_producers : Array[(Int, String, String, String)] = []
     if serialization is Some(component) {
       guard parse_plan_identity_value(
@@ -908,6 +909,7 @@ fn issue_client_infer_plan_graph_for_occurrence(
         edges.push(edge)
       }
       roots.push(parts.root)
+      result_plans.push(parts.plan)
       if parts.selection is Some(selection) {
         transformations.push(selection)
       }
@@ -915,11 +917,11 @@ fn issue_client_infer_plan_graph_for_occurrence(
     let graph_writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
     @encode.begin_object(graph_writer)
     @encode.key(graph_writer, "data_edges")
-    client_plan_emit_array(graph_writer, edges)
+    client_plan_emit_array(graph_writer, edges, @canonical.emit_value)
     @encode.key(graph_writer, "nodes")
-    client_plan_emit_array(graph_writer, nodes)
+    client_plan_emit_array(graph_writer, nodes, @canonical.emit_value)
     @encode.key(graph_writer, "root_refs")
-    client_plan_emit_array(graph_writer, roots)
+    client_plan_emit_array(graph_writer, roots, @canonical.emit_value)
     @encode.end_object(graph_writer)
     Ok({
       owner: value,
@@ -931,6 +933,7 @@ fn issue_client_infer_plan_graph_for_occurrence(
       graph: {
         wire: @encode.finish(graph_writer),
         transformations,
+        result_plans,
         standard_progress_keys: None,
       },
       input_fragment_cid: prefix.logical_cid,

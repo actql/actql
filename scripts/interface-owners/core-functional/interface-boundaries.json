@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "0ca4765ca0a2dd68394ee558561aef5d4516681291e1af3a046cffb3cabf6842",
+      "sha256": "b7e850723057ffd4a5b3622dbf254fc4b24f7d90b9c3a174504d4a1f88f5a496",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -8127,6 +8127,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ],
             "inputsOutputs": [
@@ -8169,6 +8173,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ],
             "identity": [
@@ -8211,6 +8219,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ],
             "ownership": [
@@ -8257,6 +8269,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ],
             "synchronization": [
@@ -8303,6 +8319,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ],
             "failure": [
@@ -8345,6 +8365,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ],
             "cancellation": [
@@ -8383,6 +8407,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ],
             "resources": [
@@ -8433,6 +8461,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ],
             "extension": [
@@ -8475,6 +8507,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ],
             "verification": [
@@ -8537,6 +8573,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ]
           }

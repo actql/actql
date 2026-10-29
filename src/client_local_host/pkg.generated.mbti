@@ -290,8 +290,6 @@ pub fn close_client_source_capture(ClientSourceCapture) -> Bool
 
 pub fn[I] close_host_initialization_preparation(ClientHostInitializationPreparation[I]) -> Result[Unit, ClientHostInitializationIssue]
 
-pub fn[I] closed_values_compilation_original(ClientClosedValuesPreparation[I], @run_publication_host.PreparedClientProgram) -> @run_publication_host.ClientValuesCompilation?
-
 pub fn[I] closed_values_initial_retirement_started(ClientClosedValuesPreparation[I], @physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram]) -> Bool
 
 pub fn[I] closed_values_preparation_accounting(ClientClosedValuesPreparation[I]) -> Result[(Int64, Int64, Int64, Int64, Int64, Int64), ClientClosedValuesPreparationIssue]
@@ -405,6 +403,8 @@ pub fn installed_managed_publication_dag(ClientInstalledManagedRun, @run_publica
 pub fn installed_managed_publication_limits(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, Int) -> @run_publication_host.PublicationOutputExportLimits?
 
 pub fn installed_managed_run_accounting(ClientInstalledManagedRun) -> Result[Array[Int64], ClientInstalledManagedRunIssue]
+
+pub fn installed_managed_run_compilation_original(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> @run_publication_host.ClientRunCompilation?
 
 pub fn installed_managed_run_requirements(@run_publication_host.PreparedClientProgram, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?) -> Result[Array[Int64], ClientInstalledManagedRunIssue]
 

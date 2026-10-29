@@ -8,6 +8,7 @@ pub struct ClientDirectResultRoot {
   node_id : String
   port : String
   row_contract_cid : String
+  priv plan : ClientResultPlanIdentity
 }
 
 ///|
@@ -263,6 +264,7 @@ fn issue_prepared_client_direct_result_root_for_output(
     node_id,
     port: output_port,
     row_contract_cid: client_result_plan_row_contract_cid(plan),
+    plan,
   })
 }
 

@@ -3,6 +3,7 @@
 /// to its own AoA output, never to the producer's untransformed port.
 priv struct ClientResultPlanParts {
   root : @canonical.CanonicalValue
+  plan : ClientResultPlanIdentity
   transformation : (@canonical.CanonicalValue, @canonical.CanonicalValue)?
   selection : ClientResultTransformation?
 }
@@ -73,6 +74,7 @@ fn issue_client_result_plan_parts(
       max_nodes, max_depth,
     ) {
     Ok(root) => {
+      let plan = root.plan
       guard parse_plan_identity_value(
           root.wire,
           max_wire_bytes,
@@ -82,7 +84,7 @@ fn issue_client_result_plan_parts(
         is Some(root) else {
         return Err(Encoding)
       }
-      return Ok({ root, transformation: None, selection: None, })
+      return Ok({ root, plan, transformation: None, selection: None, })
     }
     Err(RequiresResultTransformation) => ()
     Err(issue) => return Err(Root(issue))
@@ -319,7 +321,12 @@ fn issue_client_result_plan_parts(
       @canonical.object_field(parts, "edge") is Some(edge) else {
       return Err(Encoding)
     }
-    Ok({ root, transformation: Some((node, edge)), selection: Some(selected), })
+    Ok({
+      root,
+      plan,
+      transformation: Some((node, edge)),
+      selection: Some(selected),
+    })
   } catch {
     _ => Err(Encoding)
   }

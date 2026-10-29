@@ -55,9 +55,33 @@ struct ClientInstalledManagedSourceFreePreparation {
   sequences : Array[@execution.GeneratedSequence]
   capacity_plan : ClientLocalCapacityPlan
   configuration : ClientPreparedLocalConfiguration?
+  mut compilation : @publication_host.ClientRunCompilation?
   limits : @resources.LedgerLimits
   provider_retained_bytes : Int64
   provider_execution_bytes : Int64
+}
+
+///|
+/// The SAME installed Plan retained this typed compilation before Run adoption.
+/// Reading immutable DATA performs no current callback or compiler work. The
+/// existing payload-retirement fence blocks new reads before final physical
+/// cleanup; existing borrowers keep their own originals. No prepared token,
+/// equal CID or copied Plan can resurrect the retired Run payload.
+pub fn installed_managed_run_compilation_original(
+  run : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> @publication_host.ClientRunCompilation? {
+  guard run.original is Some(original) &&
+    physical_equal(original, run) &&
+    run.ledger is Some(_) &&
+    run.source_free_preparation is Some(plan) &&
+    plan.owner is Pure(owner) &&
+    physical_equal(owner, prepared) &&
+    run.preparation is Some(PureManaged(_, admitted)) &&
+    physical_equal(admitted, prepared) else {
+    return None
+  }
+  plan.compilation
 }
 
 ///|
@@ -210,6 +234,7 @@ fn source_free_installed_managed_preparation_owned(
     sequences,
     capacity_plan,
     configuration: None,
+    compilation: None,
     limits,
     provider_retained_bytes,
     provider_execution_bytes,

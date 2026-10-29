@@ -1,6 +1,10 @@
 ///|
 test "original configured module transfers to actual managed Run and survives until last manager borrow" {
-  let (owner, ledger, environment, public_environment, contracts, manifests) = closed_module_fixture()
+  let currents = Ref(0)
+  let (owner, ledger, environment, public_environment, contracts, manifests) = closed_module_fixture(current=() => {
+      currents.val += 1
+    },
+  )
   let calls = Ref(0)
   prepare_closed_values_module_body(
     owner,
@@ -18,6 +22,7 @@ test "original configured module transfers to actual managed Run and survives un
     family_temporary=closed_module_no_family,
   ).unwrap()
   let prepared = owner.prepared.unwrap()
+  let artifact = owner.compilation.unwrap()
   let original = owner.source_free.unwrap()
   let original_module = original.configuration.unwrap()
   let manager = complete_closed_values_body(owner).unwrap()
@@ -31,6 +36,24 @@ test "original configured module transfers to actual managed Run and survives un
     physical_equal(require_installed_managed_run(run).unwrap(), ledger),
   )
   assert_true(physical_equal(run.source_free_preparation.unwrap(), original))
+  let before_get = currents.val
+  guard installed_managed_run_compilation_original(run, prepared)
+    is Some(@publication_host.Values(retained)) else {
+    fail("Actual Run must retain the original Values compilation")
+  }
+  assert_true(physical_equal(retained, artifact))
+  let foreign = @publication_host.with_prepared_client_values_row_limit(
+    prepared, 1,
+  ).unwrap()
+  assert_true(installed_managed_run_compilation_original(run, foreign) is None)
+
+  assert_eq(currents.val, before_get)
+  let before_get_usage = @resources.ledger_usage(ledger)
+  assert_true(
+    installed_managed_run_compilation_original(run, prepared) is Some(_),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before_get_usage)
+  assert_eq(currents.val, before_get)
   let setup = open_installed_managed_source_free_host(
       run,
       prepared,
@@ -58,6 +81,12 @@ test "original configured module transfers to actual managed Run and survives un
   assert_eq(@resources.ledger_usage(ledger).attempts, 1)
   assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
   assert_true(sever_closed_values_body(owner, manager))
+  assert_true(owner.compilation is None)
+  // Actual Run payload retirement already fenced new borrows before asking
+  // the manager to cut its last raw aliases. A missing artifact here is not
+  // a physical stop ACK and cannot trigger a reconstruction fallback.
+  assert_true(installed_managed_run_compilation_original(run, prepared) is None)
+
   assert_true(@resources.return_preparation_body_borrow(manager).unwrap())
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
@@ -65,4 +94,5 @@ test "original configured module transfers to actual managed Run and survives un
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).attempts, 1)
   assert_true(run.source_free_preparation is None)
+  assert_true(installed_managed_run_compilation_original(run, prepared) is None)
 }

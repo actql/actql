@@ -77028,7 +77028,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "7f3b1a8e71f48ce2d5fe80f78308d90dd4d1f04f2bd18a10f0d36fd0d5a145c2",
+      "sha256": "7964642d55b8b06324c4801214b07739332c99541a49be1aafff8e5e758755a8",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -78512,6 +78512,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ],
             "inputsOutputs": [
@@ -78522,6 +78526,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ],
             "identity": [
@@ -78532,6 +78540,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ],
             "ownership": [
@@ -78542,6 +78554,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ],
             "synchronization": [
@@ -78552,6 +78568,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ],
             "failure": [
@@ -78562,6 +78582,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ],
             "cancellation": [
@@ -78572,6 +78596,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ],
             "resources": [
@@ -78582,6 +78610,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ],
             "extension": [
@@ -78592,6 +78624,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ],
             "verification": [
@@ -78606,6 +78642,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
               }
             ]
           }

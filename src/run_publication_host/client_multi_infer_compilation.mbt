@@ -37,7 +37,13 @@ pub fn issue_prepared_client_multi_infer_compilation(
   }
   let material = match
     issue_prepared_client_execution_material_with_template(
-      value, manifests, template, max_wire_bytes, max_nodes, max_depth,
+      value,
+      manifests,
+      template,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      result_plans=graph.result_plans,
     ) {
     Ok(material) => material
     Err(issue) => return Err(Material(issue))
@@ -54,6 +60,7 @@ pub fn issue_prepared_client_multi_infer_compilation(
       max_nodes,
       max_depth,
       required_profiles=profiles,
+      result_plans=graph.result_plans,
     ) {
     Ok(plan) => { plan, }
     Err(issue) => return Err(Plan(issue))

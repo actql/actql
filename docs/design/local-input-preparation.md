@@ -2739,3 +2739,197 @@ disclose protected Source information. The existing submission/disclosure owner
 must still establish the actual audience and original input binding. It cannot
 replace that obligation with a generic error-code whitelist or treat an
 uncertain Host exception as known nonacceptance.
+
+
+### Run-held original compilation
+
+The installed source-free Plan retains the existing ClientRunCompilation sum,
+whose Values or Tasks member is the actual compiler artifact. The already
+funded Values constructor binds its issued artifact to that same Plan before
+adoption. The Run retains the Plan and the original Prepared owner; its
+immutable getter reads that association directly. A generic Request has no
+ClosedValues phase and must never borrow a compilation from one.
+
+Typed Values and Task admission consume the corresponding original member and
+use the existing issuer's Prepared-owner binding. A wrong variant, foreign
+Prepared, missing Plan or retired Run payload refuses. It cannot invoke a
+compiler to rescue that missing original. Nonmigrated explicit compilation
+remains a separate caller until its own construction/lifetime is migrated.
+
+Reading the retained original performs no Resource/current callback, work debit
+or capacity recalculation. The existing Run payload-retirement fence blocks new
+reads before final physical cleanup. Existing operations must retain their own
+registered dependencies. A missing payload does not acknowledge physical stop;
+an equal CID, copied wrapper or prepared token cannot recreate its custody.
+
+The Plan reference and typed sum share the artifact body; they do not fund its
+construction. Every generic Values/Task constructor must reserve its real
+variable wire/tree/schema/metadata overlap on the original Request capacity
+before allocation, then bind that artifact to this Plan before completing and
+adopting the body. Neither the module quote nor an available codec ceiling is
+spare compiler backing, and a Plan with an absent artifact is not evidence of a
+funded compilation.
+
+### Compiler construction measurements
+
+A compiler construction quote composes the original serializer's UTF-8 byte,
+value-node and peak-container-depth measurements. `encode_core.emit_measurement`
+embeds a completed subtree's metrics only in a measuring writer. It uses the
+same parent punctuation, node debit and depth offset as an encoded document;
+it cannot create text, a hash, comparison evidence or an admitted JSON value.
+Invalid metrics close that writer. A measurement is DATA and grants no storage,
+work, Run authority or right to substitute another prepared input.
+
+The Values Fragment has one body serializer for actual canonical output and
+text-free composition. Both use the same checked task, node label, field names
+and pipeline emitter. The measuring interpretation accounts for the fixed
+lowercase SHA-256 CID representation without manufacturing a representative
+identity. The real issuer still constructs and checks its original pipeline,
+output contract and actual identities. Normal output does not perform another
+Fragment measurement or full pipeline walk.
+
+The Request owner must first back the measuring traversal's own work and
+working representation. It must then account for all concurrently live pipeline,
+schema, graph, material, fact, witness, contract, wire and parsed representations
+before constructing the compilation, retaining the completed artifact in its
+original Plan/Run. A Fragment measurement is one input to that full quote; it
+cannot replace the rest of it or reuse a module-only grant as compiler backing.
+Neither measurement nor later Plan access rechecks permissions, selects another
+input, changes the codec limits or creates a second resource owner.
+
+### Same-original Result material and composed Plan geometry
+
+Each owner-issued Result Plan retains its original Prepared owner, global
+Result ordinal and exact codec byte/node/depth bounds. Graphs retain the complete
+Result Plan inventory, including direct roots; the transformation list still
+contains only Results that require a publication operation. Direct roots carry
+the Plan that they actually issued instead of discarding it. Material
+construction uses that completed Plan only for the same Prepared owner, Result
+ordinal and bounds. Equal CIDs, a different Prepared owner, another Result or
+changed bounds do not select it; the original complete Result issuer remains
+responsible for those independent constructions. This is immutable compilation
+DATA, with no permission, currentness, physical lifetime or Resource grant.
+
+Every graph-bearing compiler passes its actual transformation inventory to the
+private material constructor: Values, Task, Infer, composed Model, Content and
+Effect. Standalone Task and Values material calls retain the Result originals from
+the graph they already validate instead of discarding them in a template
+wrapper. Executable Plan composition requires that same complete inventory.
+The existing compiled Values, Task and Effect holders then keep those Plan
+originals for their Result reader. Standalone owner-based Result preparation
+and independent saved-body admission retain their existing full path. A changed
+owner, Result or codec profile cannot borrow the retained Plan. No graph root,
+transformation decision, Result contract or wire identity changes.
+The same original typed Result port supplies authored projection order and
+input/output field correspondence; material does not reconstruct that mapping
+by searching every canonical-schema position again.
+
+Result Plan and execution material measurements share their actual body
+serializers. The material measurement reads the original semantic Program and
+Result names without issuing a template, bindings, Result Plans or their
+identities. The Executable Plan body likewise composes measured children through
+its one existing field definition, including profiles and the final identity
+field. These extents describe wire/tree geometry, not completed compilation,
+authority or a reservation. The same Request still has to back measurement
+workspace/work and all concurrently live schema, graph, fact, witness, template,
+bindings, protocol, wire and parsed representations before construction.
+
+
+### Checked publication construction input
+
+Publication construction geometry follows the original checked Unit, Result
+port and row/byte scope order. Resolved limits use the capacity owner's retained
+measurement. Bindings share the real argument projection, exact subject/unit/
+enforcement checks and body serializer; a not-yet-issued identity contributes
+only its fixed encoded SHA-256 extent to a measuring writer. No representative
+CID, wire, parser output or binding evidence is created for this purpose.
+
+Witness measurement and issuance share the same original claim traversal,
+deduplication order and finite identity bound. Geometry retains each distinct
+body's extent once while recording all emitter occurrences and their total
+encoded byte/value-node dimensions, including repeated bodies. These totals
+describe that emission work, not complete compiler work or process CPU. The
+actual issuer still compares full bodies for an equal CID, and saved admission
+still compares the complete original inventory. Equal geometry is not identity
+or semantic admission.
+
+These variable-size arrays and measurement traversal also require backing on
+the same Request before allocation. Their extents are inputs to the complete
+compilation overlap quote, not a reservation themselves. Ordinary issuance does
+not perform a second measurement pass or accept measured facts in place of its
+original checked Program, claims, contracts or manifests.
+
+### Original Task pipeline construction input
+
+The initial Task pipeline writer has one field definition shared by text output
+and UTF-8 byte/node/depth measurement. Its scope is the original sequence range
+before canonical admission and selected-task projection. A long Pipe can create
+an initial pipeline larger than the final selected Task. A final wire measurement
+must not stand in for the initial wire, parsed tree or projection overlap.
+Both writers keep the original initial limits; a smaller projection does not
+waive an initial writer refusal.
+
+The Prepared Program retains one successful pipeline selection per original
+graph task and exact sequence limits, including the original selected/prefix,
+Model-completion and Content-completion distinction. Changed limits replace that
+task entry; a failed selection leaves its previous successful original intact.
+Foreign Programs and row-limit views cannot borrow these retained selections.
+The full sequence remains the same original already retained by the Program;
+a selected prefix is never replaced by a full lowering.
+
+Ordered emission prepares its registered contract and exact references once for
+the original sequence range and codec byte/node/depth bounds. Measurement and
+construction reuse those immutable params under the same bounds; changed bounds
+select their own preparation. There is at most one such codec entry per retained
+Task input. Other sequence writers use the same preparation/emission functions,
+with no second operation table or alternate serializer.
+
+These retained inputs and ordered params are compilation DATA, not Resource,
+permission, Run or cleanup authority. Their actual objects, references, selected
+sequences and measuring work must be included in the same Request's construction
+inventory. This initial measurement alone does not fund lowering, registry work,
+canonical parsing, final projection, Fragment issuance or the complete artifact.
+The original constructor still performs its existing final admission and guards.
+
+
+### Projected Task and Fragment geometry
+
+A selected Task has two distinct pipeline extents. The initial writer includes
+its original lowering range. The final projection retains only the selected
+canonical nodes, replaces external input references and supplies the declared
+input occurrences. Both roots use one field serializer; the original canonical
+admission, included-node and reference resolution checks remain in the issuer.
+The reader preserves data keys and scalar text, while both writers use the same
+canonical Number encoding. Object sorting changes order, not these extents.
+
+Sizing emits the selected range with the same already prepared ordered params.
+Its original byte size plus one longest generated input-label extent per slice
+value node conservatively bounds all reference replacements. This counts an
+upper bound on occurrences, not a claimed invocation count. A no-replacement
+range adds zero without changing the shared positive-coefficient arithmetic.
+The common measuring writer composes all parent punctuation, nodes and depth.
+The successful writer's own unchanged codec ceiling can tighten this DATA bound;
+it does not admit a pipeline, alter a resource cap or waive failed construction.
+
+Task Fragment sizing shares the actual issuer's input contracts, output port,
+node label, pipeline and identity field definition. Its measuring interpretation
+uses the existing SHA-256 representation extent without issuing a contract or
+manufacturing a CID. It preserves every input occurrence, including repeated
+references to one producer. The original contract/hash and graph admissions
+still run at their existing boundary. Normal output adds no sizing pass.
+
+These initial, projected and Fragment extents remain distinct inputs to the
+Request's full construction overlap. Schema/contract construction, measuring
+workspace/work, parsed trees, graph/fact/witness/template/bindings/protocol
+records and complete artifact retention still require their own simultaneous
+inventories under that same parent before allocation. Byte geometry alone is
+not a funded compiler, Plan, Run or physical-cleanup acknowledgment.
+
+
+The complete Result inventory is immutable compilation DATA. Provenance lives
+on the existing Result Plan rather than a parallel codec tuple on only its
+transformation wrapper. No persistent cache, public proof token or Resource
+owner is added. Publication execution, request binding, permission, currentness,
+physical completion and failure cleanup remain separate. The full constructor
+quote must include retained Plans, both graph/Executable-Plan arrays and their
+live aliases; old narrower backing evidence does not price these new fields.

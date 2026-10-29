@@ -194,24 +194,15 @@ fn issue_client_values_fragment_parts_graph(
       row, max_wire_bytes, max_nodes, max_depth,
     )
     let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
-    @encode.begin_object(writer)
-    @encode.key(writer, "input_contracts")
-    @encode.begin_object(writer)
-    @encode.end_object(writer)
-    @encode.key(writer, "kind")
-    @encode.string_value(writer, "aoa_fragment")
-    @encode.key(writer, "logical_cid")
-    @encode.string_value(writer, client_values_aoa_identity_cid(aoa.identity))
-    @encode.key(writer, "node_id")
-    @encode.string_value(writer, node_id)
-    @encode.key(writer, "output_contracts")
-    @encode.begin_object(writer)
-    @encode.key(writer, node_id)
-    @encode.string_value(writer, output_contract_cid)
-    @encode.end_object(writer)
-    @encode.key(writer, "pipeline")
-    @canonical.emit_value(pipeline, writer)
-    @encode.end_object(writer)
+    emit_client_values_fragment_body(
+      writer,
+      node_id,
+      pipeline,
+      client_values_aoa_identity_cid(aoa.identity),
+      output_contract_cid,
+      @canonical.emit_value,
+      (value, out) => @encode.string_value(out, value),
+    )
     let wire = @encode.finish(writer)
     Ok(
       (
@@ -277,4 +268,98 @@ pub fn admit_prepared_client_effect_values_fragment(
     return Err(MismatchedNode)
   }
   Ok(issued)
+}
+
+///|
+// One Fragment definition for actual canonical output and text-free size
+// composition. Measurement substitutes no Program, CID, Plan or authority.
+fn[P, C] emit_client_values_fragment_body(
+  writer : @encode.Writer,
+  node_id : String,
+  pipeline : P,
+  logical_cid : C,
+  output_contract_cid : C,
+  emit_pipeline : (P, @encode.Writer) -> Unit raise @encode.EncodeFailure,
+  emit_cid : (C, @encode.Writer) -> Unit raise @encode.EncodeFailure,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "input_contracts")
+  @encode.begin_object(writer)
+  @encode.end_object(writer)
+  @encode.key(writer, "kind")
+  @encode.string_value(writer, "aoa_fragment")
+  @encode.key(writer, "logical_cid")
+  emit_cid(logical_cid, writer)
+  @encode.key(writer, "node_id")
+  @encode.string_value(writer, node_id)
+  @encode.key(writer, "output_contracts")
+  @encode.begin_object(writer)
+  @encode.key(writer, node_id)
+  emit_cid(output_contract_cid, writer)
+  @encode.end_object(writer)
+  @encode.key(writer, "pipeline")
+  emit_pipeline(pipeline, writer)
+  @encode.end_object(writer)
+}
+
+///|
+// Every selected identity field is a lowercase SHA-256 CID: seven ASCII
+// prefix bytes, 64 hex digits and two quotes. Only a measuring sink accepts
+// this extent; it never creates a representative or caller-provided identity.
+fn measure_client_fragment_cid(
+  _ : Unit,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.emit_measurement(writer, ("sha256:".length() + 64 + 2, 1, 0))
+}
+
+///|
+/// Measure this SAME checked Values Fragment without constructing its
+/// pipeline wire/tree, output-contract hash or any claimed identity. Schema
+/// construction and the rest of the compiler overlap remain separate inputs
+/// to the Request owner's complete preallocation quote.
+pub fn measure_prepared_client_values_fragment(
+  value : PreparedClientProgram,
+  task : Int,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(Int, Int, Int), ClientValuesFragmentIssue] {
+  if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  let pipeline = match
+    measure_prepared_client_values_pipeline(
+      value, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Err(issue) => return Err(AoA(Pipeline(issue)))
+    Ok(measurement) => measurement
+  }
+  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) &&
+    @lower.node_at(
+      @lower.bound_preparation(owner),
+      @pipeline.step_count(@lower.pipeline(@lower.bound_preparation(owner))) - 1,
+    )
+    is Some(node) else {
+    return Err(MissingCheckedOutput)
+  }
+  guard @schema.as_object(@lower.node_output_schema(node)) is Some(_) else {
+    return Err(UnrepresentableOutput)
+  }
+  try {
+    let writer = @encode.measuring_writer(max_wire_bytes, max_nodes, max_depth)
+    emit_client_values_fragment_body(
+      writer,
+      @lower.node_id(node),
+      pipeline,
+      (),
+      (),
+      (measurement, out) => @encode.emit_measurement(out, measurement),
+      measure_client_fragment_cid,
+    )
+    Ok(@encode.finish_measurement_usage(writer))
+  } catch {
+    _ => Err(Encoding)
+  }
 }

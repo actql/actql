@@ -148,7 +148,11 @@ pub fn issue_prepared_client_publication_plan_facts(
           Ok(body) => body
           Err(issue) => return Err(Bindings(CheckedBinding(issue)))
         }
-        let entry = "{\"kind\":\"resolved_limit\",\"value\":" + limit + "}"
+        let entry = "{\"kind\":\"" +
+          client_publication_limit_fact_kind() +
+          "\",\"value\":" +
+          limit +
+          "}"
         if @utf8.encode(entry).length() > max_wire_bytes {
           return Err(Limits(BudgetExceeded))
         }
