@@ -29,7 +29,7 @@ const limits = Object.freeze({maxResponseBytes:8192, maxTotalResponseBytes:24576
   maxIdentityBytes:128, maxTargetBytes:1024, maxValueNodes:100, maxValueTextBytes:4096,
   maxRowsWireBytes:8192, maxRowsWireNodes:200, maxRowsWireDepth:8});
 
-function open(family, pages) {
+function open(family, pages, {names} = {}) {
   const operation = family === 'notion' ? NOTION_USER_LIST_OPERATION : CALENDAR_LIST_OPERATION;
   const moon = family === 'notion' ? notion : calendar;
   const scope = Object.freeze({...Object.fromEntries(credentialInvocationBindingKeys.map(name => [name,name])),
@@ -54,7 +54,7 @@ function open(family, pages) {
         {moon,names:columns,limits},applySynchronousProjection);
     }});
   const reader = factory.prepare({resource:family === 'notion' ? 'users' : 'calendars',
-    columns:family === 'notion' ? ['id','name'] : ['summary'],
+    columns:names ?? (family === 'notion' ? ['id','name'] : ['summary']),
     async verifyRead() {},
     authorizationFor(index) {return {grant:{},scope,useId:`page-${index}`};},
     chargePage(body) {
@@ -79,6 +79,20 @@ const users = (value,next) => ({object:'list',type:'user',user:{},results:[value
 const entry = (id,summary) => ({id,summary,timeZone:'Asia/Tokyo',accessRole:'reader',deleted:false});
 const calendars = (value,next) => ({kind:'calendar#calendarList',items:[value],
   ...(next === null ? {} : {nextPageToken:next})});
+
+test('real Notion Source callbacks retain all declared cells before selected or empty user projection',async()=>{
+  for(const names of [['name'],[]]){
+    const original={object:'user',id:'original-id',name:'e\u0301\r\n',type:'person',person:{email:'original@example.test'}};
+    const f=open('notion',[users(original,null)],{names});
+    try{
+      assert.deepEqual(await f.reader.read(),{pages:1,rowCount:1});
+      assert.deepEqual(f.delivered,[{email:'original@example.test',id:'original-id',name:'e\u0301\r\n',type:'person'}]);
+      assert.equal(f.requests.length,1);assert.equal(f.charged.length,1);
+      assert.equal(f.charged[0],f.bodies[0]);
+      assert.equal(f.reader.observe().cleanupConfirmed,false);
+    }finally{f.close();}
+  }
+});
 
 test('real Notion projections preserve original strings and cursor through the shared reader',async() => {
   const f = open('notion',[users(user('N-e\u0301','一\r\n📚'),cursor),users(user('N-é',''),null)]);
