@@ -3,10 +3,12 @@ import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
+import {types as nodeTypes} from 'node:util';
 import {parse} from 'acorn';
 import {createInstalledCredentialSourceReader} from './installed-credential-source-reader.mjs';
 import {captureConfigurationReaders} from './source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
+import {captureInstalledSourceServices} from './installed-host-services.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {credentialInvocationBindingKeys} from '../host-common/credential-scope-fields.generated.mjs';
 import {prepareNotionUserListPages,NOTION_USER_LIST_OPERATION,NOTION_USER_LIST_API_VERSION}
@@ -209,7 +211,7 @@ test('both provider adapters retain unexpected asynchronous compiled projections
 // Execute the actual loader bodies with explicit declaration, Account and Site
 // ports. The real shared factory and initialization cleanup own retirement;
 // no Common admission, credential material, filesystem or provider I/O occurs.
-async function initializationFixture(family) {
+async function initializationFixture(family,{failConstruction=true}={}) {
   const path=new URL(`../connectors/${family}/host/installed-${family}-source.mjs`,import.meta.url);
   const code=await readFile(path,'utf8');
   const declarations=parse(code,{ecmaVersion:'latest',sourceType:'module'}).body.flatMap(node=>{
@@ -231,18 +233,43 @@ async function initializationFixture(family) {
     credentialAuthorityId:'fixture',credentialKeyId:'key',credentialPrivateKeyPath:'/UNOPENED/key',
     environment:'fixture',journalRoot:'/UNOPENED/journal',namespaceId:'fixture',siteGeneration:1,siteKey:'fixture'};
   let factory,closed=0,configurationReads=0;
+  const serviceCalls=[],installation=Object.freeze({registration:family,revision:family+'/0.1'});
+  const declaration=Object.freeze({original:'declaration'}),declared=Object.freeze({views:[{fields:['id']}]}),
+    environment=Object.freeze({wire:'explicit original environment'}),sourcePort=Object.freeze({original:'Source constructor port'});
+  const sourceInitialization={prepareDeclaration(views,expected){
+    assert.equal(this,sourceInitialization);assert.equal(views.length,1);assert.equal(expected,undefined);
+    serviceCalls.push('prepareDeclaration');return Object.freeze({declaration,declared,environment});
+  };
+  const implementation=Object.freeze({runAcquisitionLimits:Object.freeze({maxBindings:1,maxSecretBytes:10})});
   const failure=new Error('same original Source constructor failure');
   const site={credential:{},referenceCurrent:()=>true,callResource(){assert.fail('no send');},
     close(){
       assert.throws(()=>factory.prepare({}),{code:'InstalledSourceReaderFactoryClosed'});
       closed++;
     }};
-  const ports={createHash,isAbsolute,canonicalJson:JSON.stringify,checked,captureConfigurationReaders,
-    retainInstalledHostInitializationFailure,createInstalledCredentialSourceReader,
+  const services={
+    sourceReaderImplementationProfile(input){assert.equal(this,services);assert.equal(input.installation,installation);
+      assert.equal(input.sourceInitialization,sourceInitialization);assert.equal(input.metadataResponses,0);
+      assert.equal(input.originUnits,siteProfile.apiOrigin.length);serviceCalls.push('profile');
+      return Object.freeze({maxDeclarationBytes:10,maxDeclarationNodes:10});},
+    sourceReaderImplementation(input){assert.equal(this,services);assert.equal(input.installation,installation);
+      assert.equal(input.sourceInitialization,sourceInitialization);assert.equal(input.columnCount,1);
+      serviceCalls.push('implementation');return implementation;},
+    async openRowSite(input){assert.equal(this,services);assert.equal(input.installation,installation);
+      assert.equal(input.sourceInitialization,sourceInitialization);assert.equal(input.runAcquisitionLimits,implementation.runAcquisitionLimits);
+      assert(Object.isFrozen(input.profile));serviceCalls.push('site');return{site,authorization:{context:{contextCid:'explicit Account port'}}};},
+    createSourceReader(input){assert.equal(this,services);assert.equal(input.installation,installation);
+      assert.equal(input.sourceInitialization,sourceInitialization);assert.equal(input.implementation,implementation);assert.equal(input.site,site);
+      serviceCalls.push('reader');return createInstalledCredentialSourceReader({capacity:{},site,operation:input.operation,
+        maxResponses:limits.maxPages,maxResponseBytes:limits.maxResponseBytes,maxSecretBytes:limits.maxSecretBytes,
+        preparePageReader:input.preparePageReader});},
+  };
+  const ports={createHash,isAbsolute,nodeTypes,canonicalJson:JSON.stringify,checked,captureConfigurationReaders,
+    retainInstalledHostInitializationFailure,captureInstalledSourceServices,
     prepareNotionUserListPages,prepareCalendarListPages,NOTION_USER_LIST_OPERATION,CALENDAR_LIST_OPERATION,
-    installRowSourceAuthorization:async()=>({context:{contextCid:'explicit declaration port'}}),
-    openRowSourceCredentialSite:async()=>site,rowSourceCheckEnvironment:()=>({wire:'explicit environment port'}),
-    createInstalledRowSource:async input=>{factory=input.providerReader;throw failure;}};
+    createInstalledRowSource:async input=>{factory=input.providerReader;assert.equal(input.sourceInitialization,sourceInitialization);
+      assert.equal(input.environment,environment);assert.equal(input.declaration,declaration);assert.equal(input.declared,declared);
+      assert.equal(input.environmentWire,environment.wire);serviceCalls.push('source');if(failConstruction)throw failure;return sourcePort;}};
   const cap=family[0].toUpperCase()+family.slice(1);
   const load=Function(...Object.keys(ports),declarations+`\nreturn loadInstalled${cap}Source;`)(...Object.values(ports));
   const provider=Object.fromEntries((family==='notion'
@@ -250,12 +277,12 @@ async function initializationFixture(family) {
       'notionUserListRowsWire','notionUserListMetadataJson','notionUserListIds','notionProjectUserList']
     :['calendarListSchemaWire','calendarListRelationFactsWire','calendarListColumnNames',
       'calendarListRowsWire','calendarListMetadataJson','calendarProjectCalendarList'])
-    .map(name=>[name,()=>name.endsWith('SchemaWire')?ok('explicit schema port'):'explicit provider port']));
-  const moon={clientProgramRowSourceRestoreRelationDeclaration:()=>ok({}),
-    clientProgramRowSourceDeclarationJson:()=>JSON.stringify({views:[{fields:['id']}]})};
-  return {failure,siteProfile,closed:()=>closed,factory:()=>factory,configurationReads:()=>configurationReads,
-    load:(overrides={})=>load(profile,{root:'/UNOPENED/root',principalId:'fixture',moon,providerMoon:provider,
-      readerCapacity:{},runtimeBundleCid:'explicit runtime port',baseEnvironmentWire:'{}',
+    .map(name=>[name,()=>name.endsWith('SchemaWire')?ok('explicit schema port'):name.endsWith('ColumnNames')?['id']:'explicit provider port']));
+  return {failure,siteProfile,sourcePort,sourceInitialization,services,serviceCalls,
+    closed:()=>closed,factory:()=>factory,configurationReads:()=>configurationReads,
+    cleanup(){if(factory?.retire()===true&&closed===0)site.close();},
+    load:(overrides={})=>load(profile,{moon:{},providerMoon:provider,installationServices:services,installation,sourceInitialization,
+      runtimeBundleCid:'explicit runtime port',
       resolveSecret(){assert.fail('no secret resolution');},configurationReader:{
         readJson(){configurationReads++;return siteProfile;},readText(){assert.fail('no CA read');}},...overrides})};
 }
@@ -278,10 +305,12 @@ test('both installed loaders retire their same created reader before Site cleanu
 
 
 test('both installed loaders refuse missing Reader inputs before any configuration read',async()=>{
-  for(const family of ['notion','calendar'])for(const missing of ['readerCapacity','resolveSecret']){
+  for(const family of ['notion','calendar'])for(const missing of ['sourceInitialization','installation','installationServices','configurationReader','resolveSecret']){
     const f=await initializationFixture(family),title=family[0].toUpperCase()+family.slice(1);
-    await assert.rejects(f.load({[missing]:undefined}),{code:title+
-      (missing==='readerCapacity'?'ReaderCapacityUnavailable':'CredentialMaterialUnavailable')});
+    const code=missing==='installationServices'?`Installed${title}SourceServicesUnavailable`:
+      missing==='configurationReader'?`Installed${title}ConfigurationReaderUnavailable`:
+      title+(missing==='resolveSecret'?'CredentialMaterialUnavailable':'SourceInitializationUnavailable');
+    await assert.rejects(f.load({[missing]:undefined}),{code});
     assert.equal(f.configurationReads(),0,'no configuration read before required Reader inputs');
     assert.equal(f.factory(),undefined);assert.equal(f.closed(),0);
   }
@@ -302,7 +331,7 @@ test('both installed loaders retain the original provider methods and receiver b
       if(replaced)return()=>assert.fail('replacement provider after configuration await');
       return function(){
         assert.equal(this,provider);calls.push(name);
-        return name.endsWith('SchemaWire')?ok('explicit schema port'):'explicit provider port';
+        return name.endsWith('SchemaWire')?ok('explicit schema port'):name.endsWith('ColumnNames')?['id']:'explicit provider port';
       };
     }});
     try{
@@ -313,7 +342,7 @@ test('both installed loaders retain the original provider methods and receiver b
       });
       assert.deepEqual(readsBeforeAwait,new Map(names.map(name=>[name,1])));
       assert.deepEqual(reads,readsBeforeAwait,'no provider reread after configuration await');
-      assert.deepEqual(calls,names.slice(0,2));
+      assert.deepEqual(calls,[names.find(name=>name.endsWith('ColumnNames')),...names.slice(0,2)]);
       assert.equal(f.closed(),1);
       assert.equal(failure.cleanupPending,false);
     }finally{
@@ -330,6 +359,48 @@ test('Notion refuses an incomplete provider before configuration or Site constru
     const provider=Object.fromEntries(names.filter(name=>name!==missing).map(name=>[name,()=>assert.fail('no provider call')]));
     await assert.rejects(f.load({providerMoon:provider}),{code:'InstalledNotionProviderUnavailable'});
     assert.equal(f.configurationReads(),0);assert.equal(f.factory(),undefined);assert.equal(f.closed(),0);
+  }
+});
+
+test('both installed loaders forward their same original initialization through the complete service quartet',async()=>{
+  for(const family of ['notion','calendar']){
+    const f=await initializationFixture(family,{failConstruction:false});
+    try{
+      assert.equal(await f.load(),f.sourcePort);
+      assert.deepEqual(f.serviceCalls,['profile','implementation','prepareDeclaration','site','reader','source']);
+      assert.equal(f.configurationReads(),1);assert.equal(f.closed(),0);
+    }finally{f.cleanup();}
+    assert.equal(f.closed(),1);
+  }
+});
+
+test('both installed loaders capture original initialization and service methods before configuration awaits',async()=>{
+  for(const family of ['notion','calendar']){
+    const f=await initializationFixture(family,{failConstruction:false});
+    try{
+      assert.equal(await f.load({configurationReader:{async readJson(){
+        await Promise.resolve();
+        f.sourceInitialization.prepareDeclaration=()=>assert.fail('late declaration method');
+        for(const name of ['sourceReaderImplementationProfile','sourceReaderImplementation','openRowSite','createSourceReader']){
+          f.services[name]=()=>assert.fail('late service method');
+        }
+        return f.siteProfile;
+      },readText(){assert.fail('no CA read');}}}),f.sourcePort);
+      assert.deepEqual(f.serviceCalls,['profile','implementation','prepareDeclaration','site','reader','source']);
+    }finally{f.cleanup();}
+  }
+});
+
+test('both installed loaders refuse initializer and service method accessors before configuration I/O',async()=>{
+  for(const family of ['notion','calendar']){
+    const title=family[0].toUpperCase()+family.slice(1),f=await initializationFixture(family);
+    Object.defineProperty(f.sourceInitialization,'prepareDeclaration',{get(){assert.fail('initializer accessor invoked');}});
+    await assert.rejects(f.load(),{code:title+'SourceInitializationUnavailable'});assert.equal(f.configurationReads(),0);
+    for(const name of ['sourceReaderImplementationProfile','sourceReaderImplementation','openRowSite','createSourceReader']){
+      const s=await initializationFixture(family);
+      Object.defineProperty(s.services,name,{get(){assert.fail('service accessor invoked');}});
+      await assert.rejects(s.load(),{code:'Installed'+title+'SourceServicesUnavailable'});assert.equal(s.configurationReads(),0);
+    }
   }
 });
 
