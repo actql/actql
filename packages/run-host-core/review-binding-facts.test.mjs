@@ -7,8 +7,9 @@ import test from 'node:test';
 const abi = `
 export const calls = [];
 export const clientValuesHostAdmitRunEvidenceValue = (name, wire, ...limits) => {
-  calls.push({name: 'admit', args: [name, wire, ...limits]});
-  return {$tag: 1, _0: {name, wire}};
+  const value = {name, wire};
+  calls.push({name: 'admit', args: [name, wire, ...limits], value});
+  return {$tag: 1, _0: value};
 };
 export const clientValuesHostRunEvidenceValueIdentity = () => 'fixture:review';
 export const clientValuesHostRunEvidenceValueWire = value => value.wire;
@@ -34,6 +35,7 @@ const limits = {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 32};
 
 test('Review facts consume the original evidence without parsing caller-visible wire or readmission', async () => {
   const review = owner.admitRunEvidenceValue('review_projection', 'opaque synthetic fixture', limits);
+  const original = calls.at(-1).value;
   calls.length = 0;
   const first = owner.effectReviewProjectionBindingFacts(review);
   await Promise.resolve();
@@ -44,7 +46,7 @@ test('Review facts consume the original evidence without parsing caller-visible 
   assert(Object.isFrozen(first)); assert(Object.isFrozen(first.approvalClaims));
   assert.throws(() => first.approvalClaims.push('partial_application_accepted'), TypeError);
   assert(calls.every(call => call.name === 'facts'), 'Pure observation must not invoke evidence admission');
-  assert.strictEqual(calls[0].value, calls[1].value);
+  assert(calls.every(call => call.value === original), 'Any projection consumes the same original');
 });
 
 test('Review facts refuse copied tokens foreign namespaces and a different admitted family', () => {

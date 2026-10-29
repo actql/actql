@@ -394,6 +394,8 @@ pub fn effect_preview_run_identity(EffectPreviewIdentity) -> String
 
 pub fn effect_preview_semantic_identity(EffectPreviewIdentity) -> String
 
+pub fn effect_review_projection_binding_facts(RunEvidenceValue) -> (String, String, String, Array[String])?
+
 pub fn effect_row_outcome_receipt_dispatch_identity(PublicationContract) -> String?
 
 pub fn effect_row_outcome_receipt_row_identity(PublicationContract) -> String?

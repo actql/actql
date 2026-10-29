@@ -130,6 +130,8 @@ pub fn client_values_host_effect_result_schema(@run_publication_host.ClientEffec
 
 pub fn client_values_host_effect_retained_input_edge(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[@run_publication_host.ClientRetainedInputEdge, @run_publication_host.ClientEffectRetainedInputIssue]
 
+pub fn client_values_host_effect_review_projection_binding_facts(@run_publication.RunEvidenceValue) -> Array[String]
+
 pub fn client_values_host_effect_shape(@run_publication_host.ClientEffectCompilation) -> Array[Int]
 
 pub fn client_values_host_effect_source_evidence_facts(@run_publication_host.ClientEffectCompilation, Int, Int) -> Array[String]?
