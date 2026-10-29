@@ -2706,3 +2706,11 @@ requirements. A plain source-free artifact cannot stand in for either barrier's
 selected component or its lifetime. Their actual funded handoff remains with
 the corresponding Host construction, rather than being inferred from the Task
 artifact's presence.
+
+The complete Task pipeline also consumes the existing per-Program full-sequence
+holder. Its task ordinal, bound owner and every sequence limit must match the
+original retained entry. Compilation and generated execution therefore retain
+the same full lowering rather than preparing another equal sequence. Acquisition,
+Model and Content prefixes select different ranges and remain on their original
+constructors; a full sequence is not a substitute for such a prefix. A different
+Program, row-limit view or changed limit cannot borrow the earlier entry.
