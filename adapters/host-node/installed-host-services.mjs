@@ -238,6 +238,7 @@ export function beginInstalledSourceInitialization(services, installation, conne
   if (original === undefined) fail('ForeignInstalledHostServices');
   const material = sourceMaterial(original);
   if (material === undefined) return undefined;
+  if (material.phase !== 'working') fail('InstalledSourceInitializationClosed');
   if (original.selected.get(installation) === undefined || typeof connectorId !== 'string' ||
       typeof baseEnvironmentWire !== 'string') fail('ForeignInstalledSourceInitialization');
   const scope = {installation, connectorId, baseEnvironmentWire, prepared: undefined,
@@ -259,15 +260,19 @@ export function beginInstalledSourceInitialization(services, installation, conne
     // callback can replace the caller's authored fields.
     const snapshot = [];
     const allowed = ['resource', 'resource_kind', 'schema_wire', 'schema_cid',
-      'request_schema_wire', 'facts_wire', 'acquisition_wire'];
+      'request_schema_wire', 'facts_wire', 'acquisition_wire',
+      'data_classification', 'resource_identity_wire'];
     for (let i = 0; i < views.length; i++) {
       const view = Object.getOwnPropertyDescriptor(views, String(i))?.value;
       if (!view || nodeTypes.isProxy(view)) fail('InvalidInstalledSourceDeclarationViews');
       const fields = Object.getOwnPropertyDescriptors(view);
       const selected = {};
       for (const name of Reflect.ownKeys(fields)) {
-        if (!allowed.includes(name) || !Object.hasOwn(fields[name], 'value') ||
-            typeof fields[name].value !== 'string') fail('InvalidInstalledSourceDeclarationViews');
+        if (!allowed.includes(name) || !Object.hasOwn(fields[name], 'value')) fail('InvalidInstalledSourceDeclarationViews');
+        // Preserve the existing JSON.stringify omission rule. Common alone
+        // decides required fields and optional classification/identity law.
+        if (fields[name].value === undefined) continue;
+        if (typeof fields[name].value !== 'string') fail('InvalidInstalledSourceDeclarationViews');
         units += BigInt(name.length + fields[name].value.length);
         selected[name] = fields[name].value;
       }
@@ -301,7 +306,7 @@ export function beginInstalledSourceInitialization(services, installation, conne
 
 export function assertInstalledSourceConstruction(context, declaration, declared, environment) {
   const retained = sourceContexts.get(context), prepared = retained?.scope.prepared;
-  if (retained === undefined || !retained.scope.active || retained.material.phase !== 'working' ||
+  if (retained === undefined || prepared === undefined || !retained.scope.active || retained.material.phase !== 'working' ||
       prepared?.declaration !== declaration || prepared.declared !== declared || prepared.environment !== environment) {
     fail('ForeignInstalledSourceConstruction');
   }
@@ -347,7 +352,9 @@ export function reserveInstalledSourceEnvironment(services, ...wires) {
 }
 
 export function reserveInstalledSourceRuntimeIdentity(services) {
-  const original = installations.get(services), material = original?.material;
+  const original = installations.get(services);
+  if (original === undefined) fail('ForeignInstalledHostServices');
+  const material = original.material;
   if (material === undefined) return;
   // Runtime identity streams immutable software through this existing single
   // chunk, not a full runtime Buffer. Selected code remains Host baseline.
@@ -355,8 +362,11 @@ export function reserveInstalledSourceRuntimeIdentity(services) {
 }
 
 export function completeInstalledSourceInitialization(services, sourceOriginal, environment, environmentWire) {
-  const original = installations.get(services), material = original?.material;
+  const original = installations.get(services);
+  if (original === undefined) fail('ForeignInstalledHostServices');
+  const material = original.material;
   if (material === undefined) return;
+  if (sourceOriginal !== material.input) fail('ForeignInstalledSourceMaterial');
   if (material.ioPending !== 0 || material.constructors !== 0 || environment === undefined ||
       typeof environmentWire !== 'string') fail('InstalledSourceInitializationPending');
   const bytes = BigInt(Buffer.byteLength(environmentWire));
@@ -370,7 +380,9 @@ export function completeInstalledSourceInitialization(services, sourceOriginal, 
 }
 
 export function borrowInstalledSourceInitialization(services, sourceOriginal, environment) {
-  const original = installations.get(services), material = original?.material;
+  const original = installations.get(services);
+  if (original === undefined) fail('ForeignInstalledHostServices');
+  const material = original.material;
   if (material === undefined) return undefined;
   if (material.phase !== 'ready' || material.sourceOriginal !== sourceOriginal || material.environment !== environment) {
     fail('ForeignInstalledSourceMaterial');
@@ -393,7 +405,9 @@ export function borrowInstalledSourceInitialization(services, sourceOriginal, en
 }
 
 export function retireInstalledSourceInitialization(services) {
-  const original = installations.get(services), material = original?.material;
+  const original = installations.get(services);
+  if (original === undefined) fail('ForeignInstalledHostServices');
+  const material = original.material;
   if (material === undefined || material.phase === 'retired') return true;
   if (material.phase === 'opening' || material.busy) return false;
   if (material.ioPending !== 0 || material.constructors !== 0) return false;

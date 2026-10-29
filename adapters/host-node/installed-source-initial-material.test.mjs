@@ -10,7 +10,8 @@ import {createInstalledHostServices, retainInstalledHostServiceInstallation,
   assertInstalledSourceConstruction, retainInstalledSourceConstruction,
   closeInstalledSourceConstruction, finishInstalledSourceInitialization,
   completeInstalledSourceInitialization, borrowInstalledSourceInitialization,
-  retireInstalledSourceInitialization, withInstalledSourceLoading} from './installed-host-services.mjs';
+  retireInstalledSourceInitialization, withInstalledSourceLoading,
+  reserveInstalledSourceEnvironment, reserveInstalledSourceRuntimeIdentity} from './installed-host-services.mjs';
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
 import {loadInstalledSource} from './installed-source.mjs';
 import {readSourceProfileJson, readOriginalConfigurationText} from './source-profile-json.mjs';
@@ -297,4 +298,23 @@ test('issuer error wrapper retains the same original failed FD cleanup owner', a
   assert.equal(failure.code, 'InvalidRowSourceCredentialSite');
   assert.equal(failure.cause, original); assert.equal(failure.cleanupHandle, cleanupHandle);
   assert.equal(retry, 0); await failure.cleanupHandle.retry(); assert.equal(retry, 1);
+});
+
+test('Source material endpoints refuse foreign services or input without releasing another original', () => {
+  const foreign = {};
+  for (const invoke of [() => reserveInstalledSourceEnvironment(foreign, baseWire),
+    () => reserveInstalledSourceRuntimeIdentity(foreign),
+    () => completeInstalledSourceInitialization(foreign, {}, {}, baseWire),
+    () => borrowInstalledSourceInitialization(foreign, {}, {}),
+    () => retireInstalledSourceInitialization(foreign)]) {
+    assert.throws(invoke, {code: 'ForeignInstalledHostServices'});
+  }
+  const f = fixture(), installation = Object.freeze({registration: 'service_fixture', revision: 'service_fixture/0.1'});
+  retainInstalledHostServiceInstallation(f.services, installation, 'sha256:' + 'a'.repeat(64));
+  installedSourceConfigurationReader(f.services);
+  assert.throws(() => completeInstalledSourceInitialization(f.services, {...f.input}, {}, baseWire),
+    {code: 'ForeignInstalledSourceMaterial'});
+  assert.equal(retireInstalledSourceInitialization(f.services), true);
+  assert.throws(() => beginInstalledSourceInitialization(f.services, installation, 'fixture', baseWire),
+    {code: 'InstalledSourceInitializationClosed'});
 });
