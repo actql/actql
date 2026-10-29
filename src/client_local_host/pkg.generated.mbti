@@ -38,8 +38,6 @@ import {
 }
 
 // Values
-pub fn[I] abort_closed_values_preparation_after_cleanup(ClientClosedValuesPreparation[I]) -> Result[Unit, ClientClosedValuesPreparationIssue]
-
 pub fn[I] abort_request_preparation_after_cleanup(ClientRequestPreparation[I]) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn accounted_client_source_capture_cleanup_pending(ClientAccountedSourceCapture) -> Bool
@@ -71,14 +69,6 @@ pub fn advance_program_validation(ClientProgramValidation, Int) -> Result[(Bool,
 pub fn attach_installed_source_read_acquisition(ClientInstalledSourceRead, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, Int, Int) -> Result[Unit, ClientInstalledSourceReadIssue]
 
 pub fn begin_client_original_keyed_lookup_response(@run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedLookupInput, @run_publication_host.ClientKeyedRequest, @client_row_source_host.RowKeyedSourceCapture) -> Result[Unit, ClientOriginalKeyedChildIssue]
-
-pub fn[I] begin_closed_values_header(ClientClosedValuesPreparation[I]) -> Result[@physical_resources.PreparationPhaseWork, ClientClosedValuesPreparationIssue]
-
-pub fn[I] begin_closed_values_owned_run(ClientClosedValuesPreparation[I], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
-
-pub fn[I] begin_closed_values_scan(ClientClosedValuesPreparation[I], Int, Int) -> Result[@physical_resources.PreparationPhaseWork, ClientClosedValuesPreparationIssue]
-
-pub fn[I] begin_closed_values_text_check(ClientClosedValuesPreparation[I], Int) -> Result[@physical_resources.PreparationPhaseWork, ClientClosedValuesPreparationIssue]
 
 pub fn[I, P] begin_effect_program_check_preparation(@physical_resources.PreparationCapacity[I, P], I, @stage_syntax.Program, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientEffectComputationLimits, source_catalog? : @program_check.PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> Result[ClientProgramCheckPreparation[I, P], ClientProgramCheckPreparationIssue]
 
@@ -131,8 +121,6 @@ pub fn[I] begin_request_effect_managed_run(ClientRequestPreparation[I], @run_pub
 pub fn[I] begin_request_preparation(@physical_resources.NodePreparationAdmission[I], I, ClientLocalResourcePolicy) -> Result[ClientRequestPreparation[I], ClientRequestPreparationIssue]
 
 pub fn[I] begin_request_program_managed_run(ClientRequestPreparation[I], @run_publication_host.ClientRequestIdentity) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
-
-pub fn[I] bind_closed_values_document(ClientClosedValuesPreparation[I], String) -> Result[Unit, ClientClosedValuesPreparationIssue]
 
 pub fn bind_installed_source_read_effect_program(ClientInstalledSourceRead, @run_publication_host.PreparedClientEffectComputation) -> Result[Unit, ClientInstalledSourceReadIssue]
 
@@ -193,8 +181,6 @@ pub fn[I, P] clear_program_json_preparation(ClientProgramJsonPreparation[I, P]) 
 pub fn client_acquired_serialization_prefix_capacity(@run_publication_host.PreparedClientProgram, Int, Int, ClientInstalledSequenceContracts, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_broad_residual_execution(ClientBroadResidual) -> @local.ManagedProviderExecution
-
-pub fn client_closed_values_initial_control_capacity(ClientLocalResourcePolicy, module_containers~ : @execution_relation.PreparationRepresentationUnits) -> (Int64, Int64)?
 
 pub fn client_command_key_workspace_capacity(@execution_relation.GeneratedSequence, @run_publication_host.PublicationOutputExportLimits) -> @execution_relation.ExecutionCapacity?
 
@@ -286,13 +272,7 @@ pub fn close_client_source_capture(ClientSourceCapture) -> Bool
 
 pub fn[I] close_host_initialization_preparation(ClientHostInitializationPreparation[I]) -> Result[Unit, ClientHostInitializationIssue]
 
-pub fn[I] closed_values_initial_retirement_started(ClientClosedValuesPreparation[I], @physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram]) -> Bool
-
-pub fn[I] closed_values_preparation_accounting(ClientClosedValuesPreparation[I]) -> Result[(Int64, Int64, Int64, Int64, Int64, Int64), ClientClosedValuesPreparationIssue]
-
 pub fn closed_values_preparation_capacity_refusal(ClientClosedValuesPreparationIssue) -> (String, String, Int64, Int64, Int64, Int64)?
-
-pub fn[I] closed_values_submitted_intent_original(ClientClosedValuesPreparation[I]) -> @run_publication_host.ClientSubmittedIntent?
 
 pub fn[I, P] compile_effect_program_check_preparation(ClientProgramCheckPreparation[I, P], update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?) -> Result[@run_publication_host.PreparedClientEffectComputation, ClientProgramCheckPreparationIssue]
 
@@ -303,8 +283,6 @@ pub fn complete_client_broad_query_residual(ClientQueryResidual, @acquisition.Du
 pub fn complete_client_broad_residual(ClientBroadResidual) -> Result[@acquisition.DuckDBBroadObservation, @host.BroadHostIssue]
 
 pub fn complete_client_local_content_step(ClientLocalContentStep, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientSerializationInputEvidence, @run_publication.GeneratedContentReference, @value_admission.CheckedValue, () -> Bool, @execution_relation.ValueLimits, Int) -> Result[@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientSerializationGenerationIssue]
-
-pub fn[I] complete_closed_values_body(ClientClosedValuesPreparation[I]) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], ClientClosedValuesPreparationIssue]
 
 pub fn[I] complete_request_capture_preparation(ClientRequestPreparation[I], I, ClientInstalledManagedCapturePlan) -> Result[Unit, ClientRequestPreparationIssue]
 
@@ -331,10 +309,6 @@ pub fn export_client_content_generation_output(@run_publication_host.ClientSeria
 pub fn export_client_infer_retained_input(@execution_relation.CompletedOutput, String) -> Result[ClientInferRetainedInputExport, ClientInferRetainedInputIssue]
 
 pub fn export_client_source_capture(@execution_query.CapturedInputSource, @query_planning.QueryRequirement, String) -> Result[ClientSourceCaptureExport, ClientSourceCaptureIssue]
-
-pub fn[I] finish_closed_values_scan(ClientClosedValuesPreparation[I]) -> Result[Unit, ClientClosedValuesPreparationIssue]
-
-pub fn[I] finish_closed_values_text_check(ClientClosedValuesPreparation[I]) -> Result[Unit, ClientClosedValuesPreparationIssue]
 
 pub fn[I, P] finish_effect_program_check_preparation(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.EffectComputationCandidate, ClientProgramCheckPreparationIssue]
 
@@ -460,8 +434,6 @@ pub fn[I, P] parameter_binding_preparation_outcome(ClientParameterBindingPrepara
 
 pub fn[I, P] parameter_binding_source_outcome(ClientParameterBindingPreparation[I, P]) -> Result[@stage_parameters.Source, @stage_parameters.Issue]?
 
-pub fn[I] parse_closed_values_document(ClientClosedValuesPreparation[I]) -> Result[Unit, ClientClosedValuesPreparationIssue]
-
 pub fn[I] parse_request_query_syntax(ClientRequestPreparation[I], I, String, @source_frontend.Format, source_path? : String) -> Result[@query_syntax.Query, ClientRequestQuerySyntaxIssue]
 
 pub fn prepare_captured_local_requirements(@run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, String?, String?) -> ClientLocalRequirements?
@@ -509,10 +481,6 @@ pub fn prepare_client_query_residual(@execution_query.QuerySequence, @execution_
 pub fn prepare_client_retained_content_output(@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String, String, String, Array[String], () -> Bool) -> Result[ClientRetainedContentOutput, ClientInferRetainedInputIssue]
 
 pub fn prepare_client_serialization_prefix(@run_publication_host.PreparedClientProgram, Int, Int, ClientInstalledSequenceContracts, String, String?, String?) -> @execution_relation.GeneratedSequence?
-
-pub fn[I] prepare_closed_values_module_body(ClientClosedValuesPreparation[I], @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, ClientInstalledSequenceContracts, @run_publication_host.ClientCompilationManifests, retained_output~ : Bool, provider_factory~ : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider], family_retained~ : @execution_relation.PreparationRepresentationUnits, family_array~ : @execution_relation.PreparationRepresentationUnits, family_temporary~ : @execution_relation.PreparationRepresentationUnits) -> Result[Unit, ClientClosedValuesPreparationIssue]
-
-pub fn[I] prepare_closed_values_submitted_intent(ClientClosedValuesPreparation[I], String) -> Result[String, ClientClosedValuesPreparationIssue]
 
 pub fn prepare_effect_local_query_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, ClientInstalledSequenceContracts, String, String?, String?) -> Result[@query_planning.QueryRequirement, ClientLocalQueryIssue]
 
@@ -746,8 +714,6 @@ pub fn[I] request_query_syntax_work(ClientRequestPreparation[I], I) -> Result[(I
 
 pub fn[I] request_submitted_intent_original(ClientRequestPreparation[I], I) -> @run_publication_host.ClientSubmittedIntent?
 
-pub fn[I] reserve_closed_values_snapshot(ClientClosedValuesPreparation[I], ClientClosedValuesInputEnvelope, Int) -> Result[Unit, ClientClosedValuesPreparationIssue]
-
 pub fn reserve_program_publication(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> Result[ClientProgramPublication, ClientClosedValuesPreparationIssue]
 
 pub fn[I] reserve_request_effect_plan(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
@@ -771,10 +737,6 @@ pub fn retire_installed_source_read(ClientInstalledSourceRead) -> Result[Unit, C
 pub fn retry_local_values_execution_failure_cleanup(LocalValuesExecutionFailure) -> Bool
 
 pub fn select_client_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String, ClientDuckDBAcquisitionEstimate, ClientDuckDBAcquisitionEstimate, host_priority? : Array[String]?) -> Result[ClientDuckDBAcquisitionSelection, ClientDuckDBAcquisitionIssue]
-
-pub fn[I] select_closed_values_preparation(ClientRequestPreparation[I], I, module_containers~ : @execution_relation.PreparationRepresentationUnits) -> Result[ClientClosedValuesPreparation[I], ClientRequestPreparationIssue]
-
-pub fn[I] sever_closed_values_body(ClientClosedValuesPreparation[I], @physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram]) -> Bool
 
 pub fn single_captured_local_ledger_limits(@run_publication_host.PreparedClientProgram, @host.NativeHostConfiguration, ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.LedgerLimits?
 
@@ -913,23 +875,6 @@ pub suberror ClientRequestTerminalIssue {
 type ClientAccountedSourceCapture
 
 type ClientBroadResidual
-
-pub(all) struct ClientClosedValuesInputEnvelope {
-  input_bytes_upper : Int
-  node_upper : Int
-  objects : Int
-  arrays : Int
-  fields_upper : Int
-  quoted_tokens : Int
-  quoted_utf16_units : Int
-  longest_quoted_utf16 : Int
-  longest_atom_utf16 : Int
-  depth_upper : Int
-  fields : Int
-  rows : Int
-}
-
-type ClientClosedValuesPreparation[I]
 
 pub(all) enum ClientClosedValuesPreparationIssue {
   ForeignOriginal
@@ -1245,13 +1190,7 @@ pub(all) enum ClientSourceCaptureIssue {
   Original(@client_row_source_host.RowOriginalCaptureIssue)
 }
 
-type ClosedValuesCompilerPhaseLayout derive(Eq)
-
-type ClosedValuesIdentityLayout derive(Eq)
-
 type ClosedValuesLexicalFacts derive(Eq, @debug.Debug)
-
-type ClosedValuesLiteralLayout derive(Eq)
 
 type LocalValuesEffectResultExport
 pub fn LocalValuesEffectResultExport::captured_export(Self) -> @physical_strategy_host.CapturedEffectLocalResultExport?

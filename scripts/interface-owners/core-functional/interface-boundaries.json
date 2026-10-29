@@ -24831,7 +24831,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c9b3a7b967202f102c7b572d4671f06669fcc28b9c4c061e2c072ee91ee3098c",
+      "sha256": "440c63a0659f62840f6df7a99128e2b58a13a2bbce9ff4200e8d037df0a23ecd",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -24843,10 +24843,6 @@
         {
           "name": "[I]begin_request_preparation",
           "declaration": "[ I ] begin_request_preparation ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , policy : ClientLocalResourcePolicy , ) - > Result [ ClientRequestPreparation [ I ] , ClientRequestPreparationIssue ]"
-        },
-        {
-          "name": "[I]make_closed_values_preparation",
-          "declaration": "[ I ] make_closed_values_preparation ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , policy : ClientLocalResourcePolicy , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , retained : Int64 , execution : Int64 , module_containers : @ execution . PreparationRepresentationUnits , ) - > ClientClosedValuesPreparation [ I ]"
         },
         {
           "name": "[I]prepare_request_check_preparation_owned",
@@ -24869,10 +24865,6 @@
           "declaration": "[ I ] request_preparation_accounting ( owner : ClientRequestPreparation [ I ] , ) - > ( Int64 , Int64 , Int64 , Int64 , Int64 , Int64 )"
         },
         {
-          "name": "[I]select_closed_values_preparation",
-          "declaration": "[ I ] select_closed_values_preparation ( owner : ClientRequestPreparation [ I ] , input : I , module_containers ~ : @ execution . PreparationRepresentationUnits , ) - > Result [ ClientClosedValuesPreparation [ I ] , ClientRequestPreparationIssue ]"
-        },
-        {
           "name": "client_request_preparation_control_capacity",
           "declaration": "client_request_preparation_control_capacity ( policy : ClientLocalResourcePolicy , ) - > ( Int64 , Int64 ) ?"
         },
@@ -24891,8 +24883,6 @@
             "<module>",
             "[I]abort_request_preparation_after_cleanup",
             "[I]begin_request_preparation",
-            "[I]make_closed_values_preparation",
-            "[I]select_closed_values_preparation",
             "client_request_preparation_control_capacity",
             "request_preparation_control_units"
           ],
@@ -26356,7 +26346,7 @@
               },
               {
                 "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
-                "anchor": "test \"publication continues on the adopted body"
+                "anchor": "test \"publication continues on the transferred body"
               }
             ]
           }
@@ -26660,8 +26650,8 @@
                 "anchor": "test \"publication selected borrower"
               },
               {
-                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
-                "anchor": "test \"publication continues on the adopted body"
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -26939,7 +26929,7 @@
               },
               {
                 "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
-                "anchor": "test \"publication continues on the adopted body"
+                "anchor": "test \"publication continues on the transferred body"
               }
             ]
           }
@@ -27103,7 +27093,7 @@
               },
               {
                 "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
-                "anchor": "test \"publication continues on the adopted body"
+                "anchor": "test \"publication continues on the transferred body"
               }
             ]
           }
@@ -27292,7 +27282,7 @@
               },
               {
                 "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
-                "anchor": "test \"publication continues on the adopted body"
+                "anchor": "test \"publication continues on the transferred body"
               }
             ]
           }
@@ -27835,7 +27825,7 @@
               },
               {
                 "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
-                "anchor": "test \"publication continuation retains its original borrow"
+                "anchor": "test \"publication continues on the transferred body"
               }
             ]
           }
@@ -33705,6 +33695,865 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_closed_values_capacity_layout.mbt",
+      "sha256": "53b35e271c4c544c94f7abf073b8acb6cdc8211b4089c6116cb552d3e5c3e99d",
+      "exports": [],
+      "operations": [
+        {
+          "name": "closed_values_capacity_record_packet",
+          "declaration": "closed_values_capacity_record_packet ( count : Int64 , fields : Int64 , ) - > @ execution . PreparationRepresentationUnits"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "closed_values_capacity_record_packet"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_closed_values_compiler_layout.mbt",
+      "sha256": "56ce9146cd317a03ba16e338603814b654aede5c7e1417b99fdb159dd4792704",
+      "exports": [],
+      "operations": [
+        {
+          "name": "closed_values_append_capacity",
+          "declaration": "closed_values_append_capacity ( length : Int ) - > Int64 ?"
+        },
+        {
+          "name": "closed_values_map_constructor_layout",
+          "declaration": "closed_values_map_constructor_layout ( entries : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "closed_values_sort_scratch_layout",
+          "declaration": "closed_values_sort_scratch_layout ( fields : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "closed_values_walk_storage_from_extents",
+          "declaration": "closed_values_walk_storage_from_extents ( pending : Int , children : Int , names : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "closed_values_walk_storage_layout",
+          "declaration": "closed_values_walk_storage_layout ( node_upper : Int , largest_object_fields : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "closed_values_append_capacity",
+            "closed_values_map_constructor_layout",
+            "closed_values_sort_scratch_layout",
+            "closed_values_walk_storage_from_extents",
+            "closed_values_walk_storage_layout"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_closed_values_identity_layout.mbt",
+      "sha256": "82f42f61ab9fbac9e3f5407156204e4741f9b2afbf628d943e6f2f289b879a16",
+      "exports": [],
+      "operations": [
+        {
+          "name": "closed_values_identity_emitter_layout",
+          "declaration": "closed_values_identity_emitter_layout ( nodes : Int , fields : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "closed_values_identity_emitter_layout"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_closed_values_initial.mbt",
+      "sha256": "b752d2381e22b8f3af74b7e504d98e1fb947a267d8e27fa4734afdd4a12c795d",
+      "exports": [],
+      "operations": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_closed_values_lexical.mbt",
+      "sha256": "0c160418dc594ed023b2992b48904e96624806613dc9a7e506a582297552113a",
+      "exports": [],
+      "operations": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_closed_values_program.mbt",
+      "sha256": "8607154029be6e3b5f0b72e99b68fb86124a25f7d9f70cdc2d4d39dcc6d88b02",
+      "exports": [],
+      "operations": [
+        {
+          "name": "closed_values_program_arrays",
+          "declaration": "closed_values_program_arrays ( count : Int64 , items : Int64 , growing : Bool , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "closed_values_program_maps",
+          "declaration": "closed_values_program_maps ( count : Int64 , entries : Int64 , growing : Bool , ) - > @ execution . PreparationRepresentationUnits"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "closed_values_program_arrays",
+            "closed_values_program_maps"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_closed_values_shared_writers.mbt",
+      "sha256": "36af5bea60a5a37e9280adcde4794d08b139e982dc0f369058e45cbcfa379781",
+      "exports": [],
+      "operations": [
+        {
+          "name": "closed_values_writer_layout",
+          "declaration": "closed_values_writer_layout ( nodes : Int , depth : Int , count : Int , material_count : Int , material_bytes : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "closed_values_writer_layout"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_closed_values_source.mbt",
+      "sha256": "71ebb4deb30d5a2eaca777307407c5aef9a4461d1a31045b56d4026ea4a08628",
+      "exports": [],
+      "operations": [
+        {
+          "name": "closed_values_source_inventories",
+          "declaration": "closed_values_source_inventories ( facts : ClosedValuesLexicalFacts , ) - > ClosedValuesSourceInventories"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "closed_values_source_inventories"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_closed_values_source_phase.mbt",
+      "sha256": "036ea22cb07e067dde7c638e4f2694840b6bfe100962885320d303e59206f73f",
+      "exports": [],
+      "operations": [
+        {
+          "name": "closed_values_units_subtract",
+          "declaration": "closed_values_units_subtract ( left : @ execution . PreparationRepresentationUnits , right : @ execution . PreparationRepresentationUnits , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "closed_values_units_subtract"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
               }
             ]
           }

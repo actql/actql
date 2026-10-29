@@ -1,4 +1,18 @@
 ///|
+// Real original Node Resource admission and existing Core engine. These tests
+// construct no Source, provider kernel, Host, permission or physical output.
+extern "js" fn closed_module_test_original(
+  loader : PublicationTestLoader,
+  input : () -> Array[Int],
+  limits : () -> Array[Int64],
+  current : () -> Unit,
+) -> @resources.OriginalNodeManagedRunReference =
+  #|(loader,input,limits,current) => {
+  #| const [p,a,h,t,r,e]=limits();
+  #| return loader('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs').retainOrdinaryManagedRun(input(),{planningWork:Number(p),attempts:Number(a),holdings:Number(h),transferBytes:t,retainedBytes:r,executionBytes:e},current,()=>false,'local-preparation');
+  #|}
+
+///|
 fn catalog_current_program() -> @syntax.Program {
   @syntax.parse(
     "{\"version\":\"actql/0.1\",\"id\":\"p\",\"stages\":[{\"id\":\"s\",\"inputs\":{},\"steps\":[],\"results\":{\"r\":{}}}],\"results\":{\"r\":{\"from\":{\"stage\":\"s\",\"result\":\"r\"}}}}",

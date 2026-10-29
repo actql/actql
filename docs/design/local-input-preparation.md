@@ -469,7 +469,7 @@ issue another graph. A changed output mode refuses before graph construction;
 it cannot trigger a late factory or choose a fallback configuration.
 
 The raw sequence preparation still serves explicitly unmigrated Effect/Model
-projections and the fixed closed Values driver. Its absent module choice is
+projections. The Request module path supplies its actual selected module; an absent module choice is
 an inline scalar word priced in that driver's existing semantic constructor
 inventory. Full module construction must not be moved into that fixed driver
 until the selected mode and complete simultaneous constructor inventory are
@@ -643,15 +643,20 @@ parser, relation, provider, Command-selection or Model inventory is included in
 this control quote. The policy's numerical ceilings are necessary limits, not
 credit for any of those representations.
 
-The first consumer is the existing closed Values preparation. Before constructing
-its typed driver, the bootstrap resizes the same reservation for the complete
-existing Values control recipe plus the simultaneous old bootstrap. Its one typed
-continuation preserves the original input, child, Ledger, reservation, borrower
-bound and work history. The Node adapter stores the returned driver before
-cutting its consumed bootstrap link. The driver's ordinary header/scan/snapshot
-phases and retirement then use that same capacity. The installed backend's exact
-module-container inventory is still supplied by the original Node bridge, not
-by JavaScript dimensions or a combined provider profile.
+The Request retains its original snapshot, Program or Query, Parameters,
+checking result and compiler output on that capacity. Its typed continuation
+selects the original Pure prepared body or installed Effect Plan without a
+ClosedValues bootstrap. The old header/ASCII scan, serialized-document parser,
+body selector and their independent module-preparation entrance are retired.
+The existing publication/capture error and shared layout functions remain
+where current consumers still use them; their names do not select an input
+preparation route.
+
+The publication owner retains its actual body borrow, not a reference back to
+that retired input driver. Its resource capacity and initial admission continue
+through the same actual Run, output validation and cleanup. A returned parser,
+closed controller or retired preparation alias cannot stand in for the last
+borrower return or the original physical stop.
 
 ### Preparation output selection
 

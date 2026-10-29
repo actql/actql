@@ -16,7 +16,7 @@ priv struct ClosedValuesSourceInventories {
 }
 
 ///|
-/// Construction bound from already scanned ASCII facts. All arithmetic is
+/// Construction bound from the original admitted source geometry. All arithmetic is
 /// Int64 over Int-bounded disjoint input counts; the shared tariff subsequently
 /// checks conversion to the original Ledger's byte dimensions.
 ///
