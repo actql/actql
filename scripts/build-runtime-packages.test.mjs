@@ -40,7 +40,7 @@ const expectedGates = {
   "check:run-host-core": [
     "node scripts/build-runtime-packages.mjs run-host-core coordinator-core",
     "npm run check:run-host-types",
-    "node --test packages/run-host-core/index.test.mjs packages/run-host-core/schema-field-order.test.mjs packages/run-host-core/checkpoints.test.mjs adapters/host-common/publication-action.test.mjs adapters/host-common/result-access-clock.test.mjs adapters/host-common/result-delivery.test.mjs",
+    "node --test packages/run-host-core/index.test.mjs packages/run-host-core/schema-field-order.test.mjs packages/run-host-core/checkpoints.test.mjs adapters/host-common/publication-action.test.mjs adapters/host-common/result-access-clock.test.mjs adapters/host-common/result-delivery.test.mjs packages/run-host-core/review-binding-facts.test.mjs",
     "node scripts/test-packed-run-host-core.mjs"
   ],
   "check:local-node-assets": [
