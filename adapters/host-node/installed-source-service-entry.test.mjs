@@ -164,3 +164,37 @@ test('Host service current check preserves optional Project original and closing
   assert.throws(make({modelRuntimeView: view, assertNewModelRuntime() {throw originalFailure;}}),
     error => error === originalFailure);
 });
+
+function calendarImplementationFixture() {
+  const installation=Object.freeze({registration:'calendar'}),capacity=Object.freeze({});
+  const observed=[];
+  const moon={clientProgramInstalledSourceReaderPolicy() {return [65536,100000,100];},
+    clientProgramInstalledJsonSourceReaderProfile(metadata,origin) {
+      assert.equal(metadata,0);assert.equal(origin,20);return {$tag:1,_0:values.slice()};},
+    clientProgramInstalledJsonSourceReaderCapacity(limits,columns,secret) {
+      observed.push({limits,columns,secret});return capacity;}};
+  const services=createInstalledHostServices({root:'/UNOPENED/calendar',principalId:'fixture',moon,assertCurrent() {}});
+  retainInstalledHostServiceInstallation(services,installation,'sha256:'+'c'.repeat(64));
+  const policy=services.sourceReaderImplementationProfile({installation,metadataResponses:0,originUnits:20});
+  const limits=Object.freeze({maxResponseBytes:1000,maxNodes:64,maxDepth:8,maxPages:2,maxRows:4,
+    maxRequests:9,perPage:2,maxCursorUnits:17,maxValueNodes:64,maxValueTextBytes:256,
+    maxRowsWireBytes:10000,maxRowsWireNodes:64,maxRowsWireDepth:8,
+    maxDeclarationBytes:100000,maxDeclarationNodes:64,maxSecretBytes:64,maxCaBytes:16000000});
+  return {services,installation,capacity,policy,limits,observed};
+}
+
+test('Calendar original profile selects the same trusted reader implementation without invented fields',() => {
+  const f=calendarImplementationFixture();
+  const options={installation:f.installation,limits:f.limits,columnCount:4};
+  const implementation=f.services.sourceReaderImplementation(options);
+  assert.equal(implementation.capacity,f.capacity);
+  assert.deepEqual(f.observed,[{limits:[1000,2000,64,8,2,4,2,2,68,256,f.policy.maxTargetBytes,64,256,10000,64,8],columns:4,secret:64}]);
+  assert.equal(f.limits.maxRequests,9);assert.equal(f.limits.maxCaBytes,16000000);
+  assert.equal(Object.hasOwn(f.limits,'maxTotalResponseBytes'),false);
+  assert.equal(Object.hasOwn(f.limits,'maxTargetBytes'),false);
+  assert.equal(implementation.limits.maxPages,2);
+  assert.equal(f.services.sourceReaderImplementation({...options,limits:{...f.limits}}),implementation);
+  assert.equal(f.observed.length,1);
+  assert.throws(()=>f.services.sourceReaderImplementation({...options,limits:{...f.limits,maxRequests:8}}),
+    {code:'InstalledSourceReaderSelectionChanged'});
+});
