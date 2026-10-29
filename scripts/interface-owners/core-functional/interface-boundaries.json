@@ -31342,6 +31342,565 @@
         }
       ],
       "referenceQualification": "Original installed immutable contract forwarding on the same Program; not complete compiler funding or ordinary acceptance"
+    },
+    {
+      "module": "src/lowering_relation/kernel.mbt",
+      "sha256": "e56fe5c3678830f87402c0744448fd5e741f17306fe9c8bf1b799d98fe4853a8",
+      "exports": [],
+      "operations": [
+        {
+          "name": "kernel_analytic",
+          "declaration": "kernel_analytic ( kernel : PreparedKernel ) - > PreparedAnalytic ?"
+        },
+        {
+          "name": "kernel_body",
+          "declaration": "kernel_body ( kernel : PreparedKernel ) - > KernelBody"
+        },
+        {
+          "name": "kernel_checked",
+          "declaration": "kernel_checked ( kernel : PreparedKernel ) - > @ relation . CheckedOperation"
+        },
+        {
+          "name": "kernel_count_group",
+          "declaration": "kernel_count_group ( kernel : PreparedKernel ) - > PreparedCountGroup ?"
+        },
+        {
+          "name": "kernel_group",
+          "declaration": "kernel_group ( kernel : PreparedKernel ) - > PreparedGroup ?"
+        },
+        {
+          "name": "kernel_has_veca_bindings",
+          "declaration": "kernel_has_veca_bindings ( kernel : PreparedKernel ) - > Bool"
+        },
+        {
+          "name": "kernel_input",
+          "declaration": "kernel_input ( kernel : PreparedKernel ) - > String"
+        },
+        {
+          "name": "kernel_owner",
+          "declaration": "kernel_owner ( kernel : PreparedKernel ) - > BoundPrepared"
+        },
+        {
+          "name": "kernel_pivot",
+          "declaration": "kernel_pivot ( kernel : PreparedKernel ) - > PreparedPivot ?"
+        },
+        {
+          "name": "kernel_step",
+          "declaration": "kernel_step ( kernel : PreparedKernel ) - > Int"
+        },
+        {
+          "name": "kernel_take",
+          "declaration": "kernel_take ( kernel : PreparedKernel ) - > ( Int64 , Int64 ) ?"
+        },
+        {
+          "name": "kernel_view_entries",
+          "declaration": "kernel_view_entries ( kernel : PreparedKernel ) - > Int"
+        },
+        {
+          "name": "ordered_binding_at",
+          "declaration": "ordered_binding_at ( kernel : PreparedKernel , index : Int , ) - > ( String , Expression ) ?"
+        },
+        {
+          "name": "prepare_kernel",
+          "declaration": "prepare_kernel ( owner : BoundPrepared , step_index : Int , max_bindings ~ : Int , max_name_bytes ~ : Int , limits : ExpressionLimits , ) - > Result [ PreparedKernel , KernelIssue ]"
+        },
+        {
+          "name": "prepare_kernel_measured",
+          "declaration": "prepare_kernel_measured ( owner : BoundPrepared , step_index : Int , max_bindings ~ : Int , max_name_bytes ~ : Int , limits : ExpressionLimits , ) - > Result [ ( PreparedKernel , ExpressionLimits , Int , Int ) , KernelIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "kernel_analytic",
+            "kernel_body",
+            "kernel_checked",
+            "kernel_count_group",
+            "kernel_group",
+            "kernel_has_veca_bindings",
+            "kernel_input",
+            "kernel_owner",
+            "kernel_pivot",
+            "kernel_step",
+            "kernel_take",
+            "kernel_view_entries",
+            "ordered_binding_at",
+            "prepare_kernel",
+            "prepare_kernel_measured"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"independent and copied binding material cannot"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"Unicode object pointer material preserves"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_references_test.mbt",
+                "anchor": "test \"same original runtime and compiler references retain"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/execution_relation/fragment_ordered_execution_wbtest.mbt",
+                "anchor": "test \"checked ordered execution preserves row-major failure"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_references_test.mbt",
+                "anchor": "test \"same original runtime and compiler references retain"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"complete original reference work runs once"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/execution_relation/fragment_ordered_execution_wbtest.mbt",
+                "anchor": "test \"checked ordered execution preserves row-major failure"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"failed reference preparation never installs"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/lowering_relation/ordered_references_test.mbt",
+                "anchor": "test \"same original runtime and compiler references retain"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"complete original reference work runs once"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"independent and copied binding material cannot"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"Unicode object pointer material preserves"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"failed reference preparation never installs"
+              },
+              {
+                "path": "src/execution_relation/fragment_ordered_execution_wbtest.mbt",
+                "anchor": "test \"checked ordered execution preserves row-major failure"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-kernel ordered-reference occurrence retention; actual guards and component only, not complete first-pass funding or ordinary acceptance"
+    },
+    {
+      "module": "src/lowering_relation/ordered_references.mbt",
+      "sha256": "9c298eb750f3d38842e8cb48cc25565ae780da808968152f842814d40f331280",
+      "exports": [],
+      "operations": [
+        {
+          "name": "emit_ordered_references",
+          "declaration": "emit_ordered_references ( index : OrderedReferences , out : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "ordered_reference_at",
+          "declaration": "ordered_reference_at ( index : OrderedReferences , i : Int , ) - > OrderedReference ?"
+        },
+        {
+          "name": "ordered_reference_count",
+          "declaration": "ordered_reference_count ( index : OrderedReferences ) - > Int"
+        },
+        {
+          "name": "ordered_reference_kernel",
+          "declaration": "ordered_reference_kernel ( index : OrderedReferences ) - > PreparedKernel"
+        },
+        {
+          "name": "prepare_ordered_reference_material",
+          "declaration": "prepare_ordered_reference_material ( kernel : PreparedKernel , bindings : Array [ ( String , Expression ) ] , limits : OrderedReferenceLimits , ) - > Result [ OrderedReferenceMaterial , OrderedReferenceIssue ]"
+        },
+        {
+          "name": "prepare_ordered_references",
+          "declaration": "prepare_ordered_references ( kernel : PreparedKernel , limits : OrderedReferenceLimits , ) - > Result [ OrderedReferences , OrderedReferenceIssue ]"
+        },
+        {
+          "name": "prepare_ordered_references_owned",
+          "declaration": "prepare_ordered_references_owned ( kernel : PreparedKernel , limits : OrderedReferenceLimits , prepare ? : ( PreparedKernel , Array [ ( String , Expression ) ] , OrderedReferenceLimits , ) - > Result [ OrderedReferenceMaterial , OrderedReferenceIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "emit_ordered_references",
+            "ordered_reference_at",
+            "ordered_reference_count",
+            "ordered_reference_kernel",
+            "prepare_ordered_reference_material",
+            "prepare_ordered_references",
+            "prepare_ordered_references_owned"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"independent and copied binding material cannot"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"Unicode object pointer material preserves"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_references_test.mbt",
+                "anchor": "test \"same original runtime and compiler references retain"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/execution_relation/fragment_ordered_execution_wbtest.mbt",
+                "anchor": "test \"checked ordered execution preserves row-major failure"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_references_test.mbt",
+                "anchor": "test \"same original runtime and compiler references retain"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"complete original reference work runs once"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/execution_relation/fragment_ordered_execution_wbtest.mbt",
+                "anchor": "test \"checked ordered execution preserves row-major failure"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"failed reference preparation never installs"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/lowering_relation/ordered_references_test.mbt",
+                "anchor": "test \"same original runtime and compiler references retain"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"complete original reference work runs once"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"independent and copied binding material cannot"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"Unicode object pointer material preserves"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"failed reference preparation never installs"
+              },
+              {
+                "path": "src/execution_relation/fragment_ordered_execution_wbtest.mbt",
+                "anchor": "test \"checked ordered execution preserves row-major failure"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-kernel ordered-reference occurrence retention; actual guards and component only, not complete first-pass funding or ordinary acceptance"
+    },
+    {
+      "module": "src/lowering_relation/serialization.mbt",
+      "sha256": "e7744862164634704e36cd1685801fa566a6552d0f3e612b2deaeeea6851ebf0",
+      "exports": [],
+      "operations": [
+        {
+          "name": "prepare_serialization",
+          "declaration": "prepare_serialization ( owner : BoundPrepared , step : Int , max_work ~ : Int , ) - > Result [ PreparedSerialization , SerializationPreparationIssue ]"
+        },
+        {
+          "name": "prepare_serialization_sort_kernel",
+          "declaration": "prepare_serialization_sort_kernel ( value : PreparedSerialization , max_bindings ~ : Int , max_name_bytes ~ : Int , max_work ~ : Int , ) - > Result [ PreparedKernel , KernelIssue ]"
+        },
+        {
+          "name": "serialization_author_guards",
+          "declaration": "serialization_author_guards ( value : PreparedSerialization , ) - > ( Int64 ? , Int64 ? )"
+        },
+        {
+          "name": "serialization_checked",
+          "declaration": "serialization_checked ( value : PreparedSerialization , ) - > @ pipeline . CheckedSerialization"
+        },
+        {
+          "name": "serialization_matches_node",
+          "declaration": "serialization_matches_node ( value : PreparedSerialization , node : PreparedNode , ) - > Bool"
+        },
+        {
+          "name": "serialization_order",
+          "declaration": "serialization_order ( value : PreparedSerialization , ) - > @ pipeline . SerializationOrder"
+        },
+        {
+          "name": "serialization_owner",
+          "declaration": "serialization_owner ( value : PreparedSerialization ) - > BoundPrepared"
+        },
+        {
+          "name": "serialization_preparation_work",
+          "declaration": "serialization_preparation_work ( value : PreparedSerialization ) - > Int"
+        },
+        {
+          "name": "serialization_requires_sort",
+          "declaration": "serialization_requires_sort ( value : PreparedSerialization ) - > Bool"
+        },
+        {
+          "name": "serialization_step",
+          "declaration": "serialization_step ( value : PreparedSerialization ) - > Int"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepare_serialization",
+            "prepare_serialization_sort_kernel",
+            "serialization_author_guards",
+            "serialization_checked",
+            "serialization_matches_node",
+            "serialization_order",
+            "serialization_owner",
+            "serialization_preparation_work",
+            "serialization_requires_sort",
+            "serialization_step"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"independent and copied binding material cannot"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"Unicode object pointer material preserves"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_references_test.mbt",
+                "anchor": "test \"same original runtime and compiler references retain"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/execution_relation/fragment_ordered_execution_wbtest.mbt",
+                "anchor": "test \"checked ordered execution preserves row-major failure"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_references_test.mbt",
+                "anchor": "test \"same original runtime and compiler references retain"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"complete original reference work runs once"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/execution_relation/fragment_ordered_execution_wbtest.mbt",
+                "anchor": "test \"checked ordered execution preserves row-major failure"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"failed reference preparation never installs"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original ordered-reference occurrence material"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/lowering_relation/ordered_references_test.mbt",
+                "anchor": "test \"same original runtime and compiler references retain"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"complete original reference work runs once"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"independent and copied binding material cannot"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"Unicode object pointer material preserves"
+              },
+              {
+                "path": "src/lowering_relation/ordered_reference_material_wbtest.mbt",
+                "anchor": "test \"failed reference preparation never installs"
+              },
+              {
+                "path": "src/execution_relation/fragment_ordered_execution_wbtest.mbt",
+                "anchor": "test \"checked ordered execution preserves row-major failure"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-kernel ordered-reference occurrence retention; actual guards and component only, not complete first-pass funding or ordinary acceptance"
     }
   ]
 }

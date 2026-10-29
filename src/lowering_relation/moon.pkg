@@ -47,3 +47,7 @@ import {
   "actql/actql/source_value" @source,
   "moonbitlang/core/debug",
 } for "test"
+
+import {
+  "actql/actql/source_value" @source,
+} for "wbtest"

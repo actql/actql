@@ -3129,3 +3129,31 @@ The existing installed holder and its retirement owner remain unchanged. This
 forwarding does not price all nested compiler scratch or consumed work, migrate
 unconnected Source/Model/Content/Effect constructors, replace current/attempt
 checks or establish ordinary matching-artifact and physical-backend acceptance.
+
+### Original ordered-reference occurrence material
+
+An ordered kernel's original owner, checked operation, coordinate and immutable
+binding array select one completed reference table. Its first successful
+bounded traversal retains the table plus the actual cumulative work and pointer
+bytes, reference count and peak continuation depth. Runtime Fragment admission
+and later compiler emission can borrow that same occurrence material under
+their different limits. No pointer strings, continuation vectors or occurrence
+records are rebuilt on the second read.
+
+Each new limit is still compared with every requirement of the complete first
+traversal. Negative limits and non-ordered kernels keep their original typed
+precedence. A short limit refuses while preserving the completed original;
+failed first traversal stores no partial material. Different owners, checked
+operations, coordinates or copied binding arrays take the full original path.
+The existing machine Fragment rebase changes only its local input label and
+preserves these exact binding facts. Public kernel/body views remain defensive
+copies and cannot mutate the retained binding array.
+
+The material is private on the existing kernel, with no process-global map or
+input-key cache. It retains original fields rather than a back-reference to the
+kernel, so no new kernel/index reference cycle is created. One table remains
+live with that kernel; runtime/compiled params borrow its entries, and the
+original Plan/Run retirement remains responsible for its existing owner.
+This immutable DATA reuse carries no currentness, permission, physical-start
+or cleanup result. It avoids a repeated variable allocation, but does not price
+all first-pass lowering/Fragment/Carrier scratch or complete compiler work.
