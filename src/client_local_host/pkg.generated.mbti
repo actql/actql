@@ -144,7 +144,11 @@ pub fn borrow_installed_effect_dispatch_preparation(ClientInstalledManagedRun, C
 
 pub fn borrow_installed_managed_dispatch_preparation(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram]?, ClientInstalledManagedRunIssue]
 
+pub fn[I] borrow_request_effect_plan_input(ClientRequestPreparation[I], I) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientEffectComputation], ClientRequestPreparationIssue]
+
 pub fn[I] borrow_request_effect_preparation(ClientRequestPreparation[I]) -> Result[@physical_resources.PreparationBodyBorrow[ClientInstalledEffectManagedPlan], ClientRequestPreparationIssue]
+
+pub fn[I] borrow_request_program_plan_input(ClientRequestPreparation[I], I) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], ClientRequestPreparationIssue]
 
 pub fn[I] borrow_request_program_preparation(ClientRequestPreparation[I]) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], ClientRequestPreparationIssue]
 

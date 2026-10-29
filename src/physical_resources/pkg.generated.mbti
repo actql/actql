@@ -390,6 +390,8 @@ pub fn[P] reserve_node_managed_run_read_bootstrap(NodeManagedRunAdmission[P], P,
 
 pub fn[I, P] reserve_preparation_capacity(Ledger, I, Int64, Int64, max_borrowers~ : Int) -> Result[PreparationCapacity[I, P], PreparationCapacityIssue]
 
+pub fn[I, P, D] reserve_preparation_construction_input(PreparationCapacity[I, P], I, D, Int64, Int64) -> Result[PreparationBodyBorrow[D], PreparationCapacityIssue]
+
 pub fn[P] reserve_preparation_publication_phase(PreparationBodyBorrow[P], P, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
 
 pub fn reserve_shared_capacity(Ledger, Int64) -> Result[SharedCapacity, LedgerIssue]

@@ -40,8 +40,10 @@ pub suberror ClientRequestTerminalIssue {
 ///|
 /// Complete the retained remaining checker and compiler once, then continue
 /// the SAME capacity to its real Pure/Effect body type. Unit is intentional:
-/// the normal Node caller cannot expose a raw Prepared before its funded Plan
-/// and body borrow exist. No second parse/check, no-plan preparation, caller
+/// the normal Node caller receives no raw Prepared. A separate same-reservation
+/// constructor-input borrow can retain immutable DATA before Plan completion,
+/// but cannot replace the actual Plan/body or admit a Run. No second parse/check,
+/// no-plan preparation, caller
 /// mode/Bool, new Resource owner or per-operation current callback is used.
 pub fn[I] finish_request_computation_preparation(
   owner : ClientRequestPreparation[I],

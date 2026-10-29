@@ -58,11 +58,15 @@ pub fn[I] continue_request_effect_preparation(
 /// Fund the Core sequence/Plan construction coexistence before the actual
 /// constructor. Selected provider/request/response backing remains the normal
 /// Host's independent domain on this same parent, never a connector knob.
-pub fn[I] reserve_request_effect_plan(
+fn[I] request_effect_plan_quote(
   owner : ClientRequestPreparation[I],
   input : I,
-) -> Result[Unit, ClientRequestPreparationIssue] {
-  guard (owner.phase == EffectCompiled || owner.phase == EffectPlanQuoted) &&
+) -> Result[(Int64, Int64), ClientRequestPreparationIssue] {
+  guard (
+      owner.phase == EffectCompiled ||
+      owner.phase == EffectPlanQuoted ||
+      owner.phase == EffectPlanReserved
+    ) &&
     owner.effect_capacity is Some(capacity) &&
     owner.program_data is Some(data) else {
     return Err(WrongPhase)
@@ -79,12 +83,66 @@ pub fn[I] reserve_request_effect_plan(
     owner.program_plan_quote = Some((r, e))
     owner.phase = EffectPlanQuoted
   }
-  let (r, e) = owner.program_plan_quote.unwrap()
+  Ok(owner.program_plan_quote.unwrap())
+}
+
+///|
+pub fn[I] reserve_request_effect_plan(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> Result[Unit, ClientRequestPreparationIssue] {
+  if owner.phase != EffectCompiled && owner.phase != EffectPlanQuoted {
+    return Err(WrongPhase)
+  }
+  let (r, e) = match request_effect_plan_quote(owner, input) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let capacity = owner.effect_capacity.unwrap()
   owner.phase = Selecting
   let result = @resources.reserve_working_preparation_phase(
     capacity, input, r, e,
   )
   owner.phase = if result is Ok(_) {
+    EffectPlanReserved
+  } else {
+    EffectPlanQuoted
+  }
+  result.map_err(issue => Capacity(issue))
+}
+
+///|
+/// Same Effect compiler DATA borrowed for its original Plan constructor. The
+/// final body type remains the actual Effect Plan; this token cannot invent it.
+pub fn[I] borrow_request_effect_plan_input(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> Result[
+  @resources.PreparationBodyBorrow[
+    @publication_host.PreparedClientEffectComputation,
+  ],
+  ClientRequestPreparationIssue,
+] {
+  let (r, e) = match request_effect_plan_quote(owner, input) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let capacity = owner.effect_capacity.unwrap()
+  let prepared = owner.compiled_effect.unwrap()
+  let reserved = owner.phase == EffectPlanReserved
+  let (r, e) = if reserved {
+    match @resources.preparation_capacity_working_extents(capacity, input) {
+      Err(issue) => return Err(Capacity(issue))
+      Ok(value) => value
+    }
+  } else {
+    (r, e)
+  }
+  owner.phase = Selecting
+  let result = @resources.reserve_preparation_construction_input(
+    capacity, input, prepared, r, e,
+  )
+  owner.phase = if result is Ok(_) || reserved {
     EffectPlanReserved
   } else {
     EffectPlanQuoted

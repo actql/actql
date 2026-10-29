@@ -2245,8 +2245,9 @@ coexisting-data envelope before construction. A declined grow keeps the same
 quote and original prepared Program, rather than checking or compiling again.
 
 The generic module entry invokes the selected installed constructor once on
-that retained compiler output. It returns no raw Prepared; only the subsequent
-body borrow can expose the original after Plan/configuration completion.
+that retained compiler output. It returns no raw Prepared. A separate funded constructor-input borrow can
+retain that same immutable compiler DATA before Plan/configuration completion;
+only the completed-body path can supply an adopted Plan or Run.
 Synchronous construction fences reentry until the provider callback unwinds.
 A callback exception leaves the original working reservation for the existing
 failed-construction cleanup. The completed-body retirement path applies only
@@ -2528,11 +2529,45 @@ compilation is repeated. A rejected or missing-input check keeps its actual
 `CheckOutcome` rather than becoming a compiler phase error or generic Host
 classification. Known work and failure cleanup remain on the same parent.
 
-The Node terminal returns Unit. Its compiled Pure or Effect body stays inside
-the working Request until the actual installed Plan has been quoted, constructed,
-completed and borrowed. Returning an internal Prepared value from a convenience
-callback is not a replacement for that Plan/body handoff. These terminal methods
-therefore supply no raw Prepared escape, second Resource owner or no-plan success.
+The Node terminal returns Unit. Its compiled Pure or Effect body stays on the
+same working Request reservation. The fixed Plan constructor can retain that
+original through a constructor-input borrow after its complete overlap is
+reserved. Such DATA does not replace the actual installed Plan construction,
+completion and adopted-body handoff. These terminal methods supply no raw
+Prepared escape, second Resource owner or no-plan success.
+
+### Constructor inputs retain the same reservation
+
+The Request Program and Effect Plan-input methods first reuse the original
+checked compiler dimensions and cached construction quote. They reserve the
+complete next-phase coexistence before exposing the original immutable compiler
+DATA. An already reserved phase keeps its actual current extents, including
+later domain growth; reading it does not repeat the quote or shrink to an older
+peak. The final Pure body and Effect Plan keep their existing distinct types.
+
+Resource uses the existing borrower slots and return/retirement engine for this
+constructor input. It claims the slot before the one resize/current boundary,
+then uses callback-free identity and phase fences. Repeated DATA and extent
+reads do not call Host current. A sibling uses the same original slot bound and
+one new current boundary. A refusal rolls back only its provisional slot; it
+neither refunds consumed work nor acknowledges pending cleanup.
+
+This borrowed input cannot reserve publication or stand in for an isolated
+completed body. It grants no Run, dispatch, permission, currentness or physical
+completion. The selected constructor still has to bind the exact original Plan,
+request and configuration. Its completed-body inventory must include every
+still-live constructor input and other original dependency. No spare extent or
+successful sample replaces that domain inventory.
+
+Failed construction and cancellation cut the Request's ordinary aliases but
+keep the same charged reservation while any constructor-input borrower remains.
+Returning an original clears that holder's DATA before possible settlement; a
+second return refuses. Other live holders, pending physical cleanup and Unknown
+still prevent retirement. Once the last original returns, the existing owner
+settles the original debit. No additional cleanup owner or token registry is
+introduced. Portable Resource tests and the actual Pure/Effect constructors
+exercise this boundary; ordinary Host activation and backend supply remain
+separate obligations.
 
 ## Publication continuation retains the original body
 
