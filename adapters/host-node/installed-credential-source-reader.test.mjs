@@ -55,7 +55,10 @@ function fixture({pages = [Buffer.from('one'), Buffer.from('two')],
   const factory = createInstalledCredentialSourceReader({capacity, site,
     operation: scope.operation, maxResponses: pages.length, maxResponseBytes: 1024, maxSecretBytes: 64,
     preparePageReader(input) {
-      prepared++;if (prepareFailure) throw prepareFailure;assert.deepEqual(input, {resource: 'records', columns: ['id'], requestWire: 'original-request'});
+      prepared++;if (prepareFailure) throw prepareFailure;
+      const {applySynchronousProjection, ...data} = input;
+      assert.equal(typeof applySynchronousProjection, 'function');
+      assert.deepEqual(data, {resource: 'records', columns: ['id'], requestWire: 'original-request'});
       const provider = {
         fetchPage(context) {
           assert.strictEqual(this, provider);assert.equal(context.pageIndex, decoded);
