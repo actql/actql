@@ -83,10 +83,13 @@ Account read decision and RowRun; no synthetic filter or replacement Program is
 introduced. A projected field selection cannot conceal an invalid known cell.
 
 The profile supplies bounded parser, page, row, credential and declaration
-limits, not capacity or authority. The actual installer must separately supply
-its original same-runtime `readerCapacity`, Account configuration, scoped
-Credential material, selected Site and current checks. Missing capacity or
-material remains unavailable. The transfer envelope is `maxPages ×
+limits, not capacity or authority. The actual installer supplies its original
+Source initialization context and the existing service quartet; the service
+selects the same-runtime typed implementation/capacity and original Site under
+the initial parent. Account configuration, scoped Credential material and
+current checks remain separate. A public `readerCapacity` object cannot replace
+that original context. Missing context or material remains unavailable. The
+transfer envelope is `maxPages ×
 maxResponseBytes`, a page holds at most `min(perPage, maxRows)` rows, and total
 capture remains bounded by `maxRows`. These dimensions do not measure arbitrary
 Node allocation or establish normal numerical funding.

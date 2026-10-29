@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/notion/site/user-list-read.mjs",
-      "sha256": "7b5c6d5586a6dcbd68d932e05a5d5f72aa8b8c6374378fc455df2756bf289376",
+      "sha256": "99ad92018df1ddcbef741bbd40fedfb7cb4742c28b1eb9f77372416fc7f382ac",
       "exports": [
         "NOTION_USER_LIST_API_VERSION",
         "NOTION_USER_LIST_OPERATION",
@@ -227,6 +227,10 @@
               {
                 "path": "adapters/connectors/notion/test/user-list-read.test.mjs",
                 "anchor": "Notion current Account denies before I/O and after original credential resolution"
+              },
+              {
+                "path": "adapters/host-node/installed-managed-provider-projection.actual.test.mjs",
+                "anchor": "real Notion Source callbacks retain all declared cells before selected or empty user projection"
               }
             ]
           }
