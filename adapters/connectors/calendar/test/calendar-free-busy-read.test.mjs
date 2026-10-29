@@ -32,7 +32,7 @@ test('Calendar free busy original operation and invalid preparation refuse befor
   const f=await freeBusyFixture(t);
   for(const override of [{names:['foreign']},{names:['start','start']},
     {limits:{...f.options.limits,maxCalendars:51}}]){
-    await assert.rejects(f.read(override),error=>error.cause?.code==='InvalidCalendarFreeBusyRead');
+    await assert.rejects(f.read(override),error=>error.code==='InvalidCalendarFreeBusyRead');
   }
   for(const name of ['current','chargeResponse','consumePage']){
     await assert.rejects(f.read({[name]:undefined}),{code:'InstalledSourceReaderMethodUnavailable'});
@@ -40,7 +40,7 @@ test('Calendar free busy original operation and invalid preparation refuse befor
   await assert.rejects(f.read({authorizationFor:()=>({...f.options.initialAuthorization,
     scope:{...f.scope,operation:'calendar:calendars:list'}})}),
     error=>error.cause?.code==='ForeignInstalledSourceReaderAuthorization');
-  await assert.rejects(f.read({limits:{...f.options.limits,maxBodyBytes:1}}),error=>error.cause?.code==='CalendarFreeBusyRequestLimit');
+  await assert.rejects(f.read({limits:{...f.options.limits,maxBodyBytes:1}}),error=>error.code==='CalendarFreeBusyRequestLimit');
   await assert.rejects(f.read({authorizationFor:()=>({...f.options.initialAuthorization,
     scope:{...f.scope,dispatchRequestCid:`sha256:${'d'.repeat(64)}`}})}));
   assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);f.row.assertNoCapture();

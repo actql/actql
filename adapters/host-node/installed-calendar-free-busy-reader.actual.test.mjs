@@ -86,7 +86,7 @@ test('Calendar FreeBusy retains both independent original request body ceilings 
   for(const field of ['maxRequestBytes','maxBodyBytes']){
     const f=fixture({bounds:{[field]:1}});
     try{
-      await assert.rejects(f.reader.read(),error=>error.cause?.code==='CalendarFreeBusyRequestLimit');
+      await assert.rejects(f.reader.read(),error=>error.code==='CalendarFreeBusyRequestLimit');
       assert.equal(f.requests.length,0);assert.equal(f.charges.length,0);assert.deepEqual(f.rows,[]);
     }finally{f.close();}
   }
