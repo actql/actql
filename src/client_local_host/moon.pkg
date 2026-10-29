@@ -58,6 +58,15 @@ import {
 options(
   targets: {
     "preparation_parameter_source_current_wbtest.mbt": [ "js" ],
+    "preparation_program_check_context_input_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_core_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_delta_binding_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_evidence_work_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_imported_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_inputs_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_local_tail_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_pipeline_entry_js_wbtest.mbt": [ "js" ],
+    "preparation_program_check_topology_entry_js_wbtest.mbt": [ "js" ],
     "preparation_program_check_local_snapshot_batch_js_wbtest.mbt": [ "js" ],
     "preparation_program_check_parameters_js_wbtest.mbt": [ "js" ],
     "preparation_program_check_topology_locals_js_wbtest.mbt": [ "js" ],
