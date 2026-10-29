@@ -71,13 +71,46 @@ test('actual Calendar response preserves empty source schema without inventing a
 });
 
 test('actual Calendar response never rounds an unrepresentable timestamp or hides a cell outside projection', () => {
-  for (const value of ['2026-10-17T01:00:00.0001Z', '2026-02-29T01:00:00Z',
+  for (const value of ['2026-10-17T01:00:00.0000000001Z', '2026-02-29T01:00:00Z',
     '2026-10-17T01:00:00-00:00', null]) {
     const body = response(); body.calendars['a@example.test'].busy[0].start = value;
     assert.throws(() => project(body));
   }
   const body = response(); body.calendars['a@example.test'].busy[0].end = '2026-10-17T01:00:00Z';
   assert.throws(() => project(body));
+});
+
+test('actual Calendar complete projection preserves finer UTC instants and the original response', () => {
+  const original = query();
+  assert.equal(rows(project(response(), original)).length, 2);
+  const body = response();
+  body.calendars['a@example.test'].busy = [{
+    start: '2026-10-17T01:00:00.0001Z', end: '2026-10-17T01:00:00.000100001Z',
+  }];
+  const page = project(body, original);
+  assert.deepEqual(rows(page), [{calendar_id: 'a@example.test',
+    start: '2026-10-17T01:00:00.0001Z', end: '2026-10-17T01:00:00.000100001Z'}]);
+  assert.equal(calendar.calendarFreeBusyMatchesQuery(page, original), true);
+  assert.deepEqual(JSON.parse(calendar.calendarFreeBusyMetadataJson(page)), {
+    responseSha256: createHash('sha256').update(JSON.stringify(body)).digest('hex'), rowCount: 1,
+  });
+});
+
+test('actual Calendar interval order compares instants across different fractional widths', () => {
+  const original = query();
+  const body = response();
+  body.calendars['a@example.test'].busy = [{
+    start: '2026-10-17T01:00:00.0001Z', end: '2026-10-17T01:30:00.500Z',
+  }];
+  assert.deepEqual(rows(project(body, original)), [{calendar_id: 'a@example.test',
+    start: '2026-10-17T01:00:00.0001Z', end: '2026-10-17T01:30:00.500Z'}]);
+  for (const interval of [
+    {start: '2026-10-17T02:00:00.000Z', end: '2026-10-17T01:00:00.0001Z'},
+    {start: '2026-10-17T01:00:00.001Z', end: '2026-10-17T01:00:00.0001Z'},
+  ]) {
+    body.calendars['a@example.test'].busy = [interval];
+    assert.throws(() => project(body, original));
+  }
 });
 
 test('actual Calendar bridge enforces independent response rows value and output ceilings', () => {

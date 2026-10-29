@@ -232,7 +232,7 @@ pub fn project_calendar_free_busy(
         @decode.lookup(interval, "end") is Some(end) &&
         @decode.text(end) is Ok(end) &&
         calendar_rfc3339(end) is Some(end) &&
-        start < end else {
+        @admitted.compare_timestamp_text(start, end) == Some(-1) else {
         return Err(InvalidInterval)
       }
       let values = []
