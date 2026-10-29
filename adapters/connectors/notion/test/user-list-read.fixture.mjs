@@ -109,9 +109,17 @@ export async function userListFixture(t,{account='allow',format='sql',accounted=
   let journal,row;const readers=[],factories=[];
   t.after(async()=>{
     const errors=[];
-    try{for(const reader of readers){reader.requestStop();reader.retry();assert.equal(reader.observe().cleanupConfirmed,true);}for(const factory of factories)assert.equal(factory.retire(),true);}catch(cause){errors.push(cause);}
-    try{if(row){row.close();assert.deepEqual(ledgerUsageFieldsFor(row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),[0n,0n,0n,0n]);}}catch(cause){errors.push(cause);}
-    try{journal?.close();}catch(cause){errors.push(cause);}
+    let readersRetired=false;
+    try{
+      for(const reader of readers){reader.requestStop();reader.retry();assert.equal(reader.observe().cleanupConfirmed,true);}
+      for(const factory of factories)assert.equal(factory.retire(),true);
+      readersRetired=true;
+    }catch(cause){errors.push(cause);}
+    if(readersRetired){
+      let rowClosed=false;
+      try{if(row){row.close();assert.deepEqual(ledgerUsageFieldsFor(row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),[0n,0n,0n,0n]);}rowClosed=true;}catch(cause){errors.push(cause);}
+      if(rowClosed)try{journal?.close();}catch(cause){errors.push(cause);}
+    }
     try{await new Promise((resolve,reject)=>server.close(cause=>cause?reject(cause):resolve()));}catch(cause){errors.push(cause);}
     t.diagnostic(`Retained original Notion fixture: ${root}`);
     if(errors.length){t.diagnostic(JSON.stringify(errors.map(error=>({name:error.name,code:error.code,message:error.message}))));throw new AggregateError(errors,'NotionUserListFixtureCleanupUnconfirmed');}
