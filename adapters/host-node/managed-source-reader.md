@@ -88,3 +88,10 @@ The original `retire` method and receiver are captured before cleanup awaits.
 A pending retirement keeps its Site pending; independent Effect cleanup may
 still finish. Only an actual synchronous `true` permits Site close. An
 unexpected returned computation is joined, then refused as retirement ACK.
+
+The existing connector-installation author declarations select exactly one
+managed factory or advanced `readPages` callback. They expose the actual
+charged-wire and optional original-authorization ports only to the private
+reader preparer, and describe optional same-cleanup retry/factory retirement.
+The failed-initialization `sourceReader` holding requires its synchronous Bool
+retirement method. These types issue no grant, capacity or cleanup authority.
