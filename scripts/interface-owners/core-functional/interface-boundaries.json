@@ -33330,6 +33330,386 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "76fb9594637f67a3ee08f44aca8f2219992e72c884a2eebc6f9a4f9ab3b42842",
+      "role": "common-semantics",
+      "owner": "Existing Request preparation and Resource body owners; Node projection only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_abort_request_preparation",
+          "declaration": "client_program_abort_request_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_adopt_request_effect_preparation",
+          "declaration": "client_program_adopt_request_effect_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ client_local_host . ClientInstalledManagedRun , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_adopt_request_program_preparation",
+          "declaration": "client_program_adopt_request_program_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ client_local_host . ClientInstalledManagedRun , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_advance_program_json_preparation",
+          "declaration": "client_program_advance_program_json_preparation ( owner : @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , quantum : Int , ) - > Result [ @ source . JsonSourcePreflightPoll , @ client_local_host . ClientProgramJsonPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_begin_host_initialization_preparation",
+          "declaration": "client_program_begin_host_initialization_preparation ( initial : @ resources . NodePreparationAdmission [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , policy : @ client_local_host . ClientLocalResourcePolicy , ) - > Result [ @ client_local_host . ClientHostInitializationPreparation [ ClientLocalPreparationInputOriginal , ] , @ client_local_host . ClientHostInitializationIssue , ]"
+        },
+        {
+          "name": "client_program_begin_request_preparation",
+          "declaration": "client_program_begin_request_preparation ( initial : @ resources . NodePreparationAdmission [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , policy : @ client_local_host . ClientLocalResourcePolicy , ) - > Result [ @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_borrow_request_effect_plan_input",
+          "declaration": "client_program_borrow_request_effect_plan_input ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_borrow_request_program_plan_input",
+          "declaration": "client_program_borrow_request_program_plan_input ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_borrow_request_program_preparation",
+          "declaration": "client_program_borrow_request_program_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_cleanup_local_preparation_admission",
+          "declaration": "client_program_cleanup_local_preparation_admission ( original : @ resources . NodePreparationAdmission [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ Unit , @ resources . ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "client_program_close_host_initialization_preparation",
+          "declaration": "client_program_close_host_initialization_preparation ( original : @ client_local_host . ClientHostInitializationPreparation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ Unit , @ client_local_host . ClientHostInitializationIssue ]"
+        },
+        {
+          "name": "client_program_complete_request_effect_preparation",
+          "declaration": "client_program_complete_request_effect_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_construct_program_json_preparation",
+          "declaration": "client_program_construct_program_json_preparation ( owner : @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramJsonPreparationIssue ]"
+        },
+        {
+          "name": "client_program_effect_preparation_input_read",
+          "declaration": "client_program_effect_preparation_input_read ( original : @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ) - > @ publication_host . PreparedClientEffectComputation ?"
+        },
+        {
+          "name": "client_program_effect_preparation_input_retirement_started",
+          "declaration": "client_program_effect_preparation_input_retirement_started ( original : @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ) - > Bool"
+        },
+        {
+          "name": "client_program_effect_preparation_input_return",
+          "declaration": "client_program_effect_preparation_input_return ( original : @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ) - > Result [ Bool , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_effect_preparation_input_sibling",
+          "declaration": "client_program_effect_preparation_input_sibling ( original : @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , @ resources . PreparationCapacityIssue , ]"
+        },
+        {
+          "name": "client_program_finish_program_json_preparation",
+          "declaration": "client_program_finish_program_json_preparation ( owner : @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramJsonPreparationIssue ]"
+        },
+        {
+          "name": "client_program_finish_request_computation",
+          "declaration": "client_program_finish_request_computation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Unit , @ client_local_host . ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "client_program_finish_request_submitted_intent",
+          "declaration": "client_program_finish_request_submitted_intent ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_lower_request_published_query",
+          "declaration": "client_program_lower_request_published_query ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , publication : @ source_publication . PreparedPublishedQueryEnvironment , environment : @ program_check . CheckEnvironment , declarations : String ? , public_primary : Bool , ) - > Result [ ( @ source_frontend . Lowered , @ program_check . PreparedSourceCatalog , @ source_frontend . DiagnosticSource , ) , @ client_local_host . ClientRequestQueryLoweringIssue , ]"
+        },
+        {
+          "name": "client_program_parse_request_query_syntax",
+          "declaration": "client_program_parse_request_query_syntax ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , document : String , spelling : String , ) - > Result [ @ query_syntax . Query , @ client_local_host . ClientRequestQuerySyntaxIssue , ]"
+        },
+        {
+          "name": "client_program_preparation_capacity_refusal",
+          "declaration": "client_program_preparation_capacity_refusal ( issue : @ client_local_host . ClientClosedValuesPreparationIssue , ) - > ( String , String , Int64 , Int64 , Int64 , Int64 ) ?"
+        },
+        {
+          "name": "client_program_prepare_local_preparation_admission",
+          "declaration": "client_program_prepare_local_preparation_admission ( original : @ resources . OriginalNodeManagedRunReference , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ resources . NodePreparationAdmission [ ClientLocalPreparationInputOriginal ] , @ resources . ImportedChildLedgerIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_carriers",
+          "declaration": "client_program_prepare_program_check_carriers ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ @ program_check . ParsedCheckRegistry , @ client_local_host . ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_contents",
+          "declaration": "client_program_prepare_program_check_contents ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ @ program_check . ParsedCheckRegistry , @ client_local_host . ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_input",
+          "declaration": "client_program_prepare_program_check_input ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_policies",
+          "declaration": "client_program_prepare_program_check_policies ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ @ program_check . ParsedCheckRegistry , @ client_local_host . ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_prelude",
+          "declaration": "client_program_prepare_program_check_prelude ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ @ program_check . ParsedCheckPrelude , @ client_local_host . ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_references",
+          "declaration": "client_program_prepare_program_check_references ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ @ program_check . ParsedCheckRegistry , @ client_local_host . ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_registry",
+          "declaration": "client_program_prepare_program_check_registry ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ @ program_check . ParsedCheckRegistry , @ client_local_host . ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_requests",
+          "declaration": "client_program_prepare_program_check_requests ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ @ program_check . ParsedCheckRegistry , @ client_local_host . ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_values",
+          "declaration": "client_program_prepare_program_check_values ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ @ program_check . ParsedCheckRegistry , @ client_local_host . ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_views",
+          "declaration": "client_program_prepare_program_check_views ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ @ program_check . ParsedCheckRegistry , @ client_local_host . ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_computation_check",
+          "declaration": "client_program_prepare_request_computation_check ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , environment : @ program_check . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , source_catalog : @ program_check . PreparedSourceCatalog ? , source_preparation : @ stage_parameters . Source ? , ) - > Result [ @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_native_computation",
+          "declaration": "client_program_prepare_request_native_computation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , parameters : NativeJsonValue , environment : @ program_check . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , ) - > Result [ String , @ client_local_host . ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "client_program_prepare_request_native_program_input",
+          "declaration": "client_program_prepare_request_native_program_input ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , parameters : NativeJsonValue , limits : @ stage_syntax . Limits , ) - > Result [ @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_program_check",
+          "declaration": "client_program_prepare_request_program_check ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , environment : @ program_check . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : @ program_check . CheckLimits , source_catalog : @ program_check . PreparedSourceCatalog ? , source_preparation : @ stage_parameters . Source ? , ) - > Result [ @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_program_json",
+          "declaration": "client_program_prepare_request_program_json ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , document : String , limits : @ stage_syntax . Limits , ) - > Result [ @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_program_module_body",
+          "declaration": "client_program_prepare_request_program_module_body ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , ) - > Result [ Unit , ClientRequestProgramModuleBridgeIssue ]"
+        },
+        {
+          "name": "client_program_prepare_request_source_computation",
+          "declaration": "client_program_prepare_request_source_computation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , parameters : NativeJsonValue , environment : @ program_check . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , ) - > Result [ String , @ client_local_host . ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "client_program_prepare_request_submitted_intent",
+          "declaration": "client_program_prepare_request_submitted_intent ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , ) - > Result [ String , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_prepared_request_query_lowering",
+          "declaration": "client_program_prepared_request_query_lowering ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ ( @ source_frontend . Lowered , @ program_check . PreparedSourceCatalog , @ source_frontend . DiagnosticSource , ) , @ client_local_host . ClientRequestQueryLoweringIssue , ]"
+        },
+        {
+          "name": "client_program_reconcile_program_check_carriers",
+          "declaration": "client_program_reconcile_program_check_carriers ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "client_program_reconcile_program_check_contents",
+          "declaration": "client_program_reconcile_program_check_contents ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "client_program_reconcile_program_check_policies",
+          "declaration": "client_program_reconcile_program_check_policies ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "client_program_reconcile_program_check_references",
+          "declaration": "client_program_reconcile_program_check_references ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "client_program_reconcile_program_check_registry",
+          "declaration": "client_program_reconcile_program_check_registry ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "client_program_reconcile_program_check_requests",
+          "declaration": "client_program_reconcile_program_check_requests ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "client_program_reconcile_program_check_values",
+          "declaration": "client_program_reconcile_program_check_values ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "client_program_reconcile_program_check_views",
+          "declaration": "client_program_reconcile_program_check_views ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "client_program_reconcile_program_json_preparation_structure",
+          "declaration": "client_program_reconcile_program_json_preparation_structure ( owner : @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramJsonPreparationIssue ]"
+        },
+        {
+          "name": "client_program_request_parameters_original",
+          "declaration": "client_program_request_parameters_original ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ decode . Cursor ? , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_request_preparation_accounting",
+          "declaration": "client_program_request_preparation_accounting ( owner : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , ) - > ( Int64 , Int64 , Int64 , Int64 , Int64 , Int64 )"
+        },
+        {
+          "name": "client_program_request_preparation_control",
+          "declaration": "client_program_request_preparation_control ( policy : @ client_local_host . ClientLocalResourcePolicy , ) - > Array [ Int64 ]"
+        },
+        {
+          "name": "client_program_request_submitted_intent_original",
+          "declaration": "client_program_request_submitted_intent_original ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > @ publication_host . ClientSubmittedIntent ?"
+        },
+        {
+          "name": "client_program_reserve_request_snapshot",
+          "declaration": "client_program_reserve_request_snapshot ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , units : Int64 , values : Int64 , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "strategy_begin_original_effect_free_captured_run",
+          "declaration": "strategy_begin_original_effect_free_captured_run ( run_definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , definitions : Array [ @ publication . PublicationContract ] , artifacts : Array [ @ publication . PublicationContract ] , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , snapshots : Array [ @ publication . CapturedResultSnapshot ] , advances : Array [ @ publication . PendingSourceStateAdvance ] , authoring : @ publication . RunEvidenceValue , models : Array [ @ publication . RunEvidenceValue ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , max_workspace : Int , content_generations : Array [ @ publication . BoundContentGeneration ] , ) - > @ publication . CapturedRunIssuancePreparation"
+        },
+        {
+          "name": "strategy_captured_run_preparation_limits",
+          "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
+        }
+      ],
+      "referenceQualification": "Exact source/API projection and selected Node component; actual Host funding and ordinary acceptance remain separate",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_abort_request_preparation",
+            "client_program_adopt_request_effect_preparation",
+            "client_program_adopt_request_program_preparation",
+            "client_program_advance_program_json_preparation",
+            "client_program_begin_host_initialization_preparation",
+            "client_program_begin_request_preparation",
+            "client_program_borrow_request_effect_plan_input",
+            "client_program_borrow_request_program_plan_input",
+            "client_program_borrow_request_program_preparation",
+            "client_program_cleanup_local_preparation_admission",
+            "client_program_close_host_initialization_preparation",
+            "client_program_complete_request_effect_preparation",
+            "client_program_construct_program_json_preparation",
+            "client_program_effect_preparation_input_read",
+            "client_program_effect_preparation_input_retirement_started",
+            "client_program_effect_preparation_input_return",
+            "client_program_effect_preparation_input_sibling",
+            "client_program_finish_program_json_preparation",
+            "client_program_finish_request_computation",
+            "client_program_finish_request_submitted_intent",
+            "client_program_lower_request_published_query",
+            "client_program_parse_request_query_syntax",
+            "client_program_preparation_capacity_refusal",
+            "client_program_prepare_local_preparation_admission",
+            "client_program_prepare_program_check_carriers",
+            "client_program_prepare_program_check_contents",
+            "client_program_prepare_program_check_input",
+            "client_program_prepare_program_check_policies",
+            "client_program_prepare_program_check_prelude",
+            "client_program_prepare_program_check_references",
+            "client_program_prepare_program_check_registry",
+            "client_program_prepare_program_check_requests",
+            "client_program_prepare_program_check_values",
+            "client_program_prepare_program_check_views",
+            "client_program_prepare_request_computation_check",
+            "client_program_prepare_request_native_computation",
+            "client_program_prepare_request_native_program_input",
+            "client_program_prepare_request_program_check",
+            "client_program_prepare_request_program_json",
+            "client_program_prepare_request_program_module_body",
+            "client_program_prepare_request_source_computation",
+            "client_program_prepare_request_submitted_intent",
+            "client_program_prepared_request_query_lowering",
+            "client_program_reconcile_program_check_carriers",
+            "client_program_reconcile_program_check_contents",
+            "client_program_reconcile_program_check_policies",
+            "client_program_reconcile_program_check_references",
+            "client_program_reconcile_program_check_registry",
+            "client_program_reconcile_program_check_requests",
+            "client_program_reconcile_program_check_values",
+            "client_program_reconcile_program_check_views",
+            "client_program_reconcile_program_json_preparation_structure",
+            "client_program_request_parameters_original",
+            "client_program_request_preparation_accounting",
+            "client_program_request_preparation_control",
+            "client_program_request_submitted_intent_original",
+            "client_program_reserve_request_snapshot",
+            "strategy_begin_original_effect_free_captured_run",
+            "strategy_captured_run_preparation_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_request_effect_plan_wbtest.mbt",
+                "anchor": "test \"actual Request Effect bridge completes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

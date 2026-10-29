@@ -2333,6 +2333,16 @@ A manager borrow delays retirement; parent cleanup cannot settle a consumed
 successor or infer stop from a returned Promise. Failed construction and
 retirement keep their original cleanup owners and consumed work.
 
+The Node Request bridge completes this original Effect Plan and adopts its Run
+through the same existing Core constructors. Its construction-input borrow is
+also the retained prepared-Effect borrow across completion and adoption; it
+does not require another Plan token or a second preparation parent. The caller
+returns that original borrow only after its own Plan-construction and retained
+callback uses end. The Run cannot retire while that borrow remains live.
+These bridge operations neither construct provider resources nor back their
+request/response or failed-child overlap; the actual Host supplies those duties
+before completing the Plan.
+
 The original numeric limits getter reads immutable admission DATA with its
 nominal input/purpose/phase checks. It supplies no currentness or permission
 witness. The following atomic Run adoption performs the real external current
