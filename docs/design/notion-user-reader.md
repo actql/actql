@@ -198,3 +198,10 @@ Account denial, original journal Unknown/nonresend and preserved cleanup debt.
 Normal original capacity supply, installed/public acceptance, same-Run durable
 recovery and the other Notion Source/write/content profiles remain required.
 This factory does not narrow the full public Notion target to users.
+
+The installed loader captures its original schema, facts and page-projection
+methods with their provider receiver before awaiting configuration. The same
+captured methods build the declaration and prepare each reader; a later change
+to the supplied provider object cannot select another implementation. Missing
+methods refuse before configuration or Site construction. This snapshot is an
+implementation binding, not capacity, Account authority or cleanup evidence.

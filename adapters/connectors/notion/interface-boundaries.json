@@ -1690,7 +1690,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/installed-notion-source.mjs",
-      "sha256": "504dea32ea3df3b7a81e718e04e8efbe015fe405ad54b64080601eb155338093",
+      "sha256": "1e6066d944ffffae62fa55f1718f548cd06bad32d78423a7270ecf38b651de9f",
       "exports": [
         "INSTALLED_NOTION_SITE_VERSION",
         "INSTALLED_NOTION_SOURCE_VERSION",
@@ -1703,6 +1703,27 @@
           "name": "absolute/absolute",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureProvider",
+          "parameters": [
+            "provider"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureProvider/captureProvider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureProvider/captureProvider/captureProvider",
+          "parameters": [
+            "args"
           ],
           "async": false
         },
@@ -1774,7 +1795,7 @@
             "root",
             "principalId",
             "moon",
-            "provider",
+            "providerMoon",
             "baseEnvironmentWire",
             "runtimeBundleCid",
             "resolveSecret",
@@ -1879,6 +1900,9 @@
           "operations": [
             "<module>",
             "absolute/absolute",
+            "captureProvider",
+            "captureProvider/captureProvider",
+            "captureProvider/captureProvider/captureProvider",
             "checkInstalledNotionSourceProfile",
             "checkInstalledNotionSourceProfile/checkInstalledNotionSourceProfile",
             "checkSite",
@@ -2009,6 +2033,14 @@
               {
                 "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
                 "anchor": "both installed loaders refuse missing Reader inputs before any configuration read"
+              },
+              {
+                "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
+                "anchor": "both installed loaders retain the original provider methods and receiver before configuration awaits"
+              },
+              {
+                "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
+                "anchor": "Notion refuses an incomplete provider before configuration or Site construction"
               }
             ]
           }
