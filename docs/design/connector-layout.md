@@ -543,3 +543,25 @@ authorizes nor retries nor settles a response. Provider subject/target checks
 keep their existing separate resource and read operation; response classification
 cannot manufacture a confirmation, Receipt or OperationRef. Advanced conditional
 write, recovery and reconciliation semantics remain under the same Row Effect.
+
+
+### Original Comment confirmation data
+
+A Comment confirming-read preparer consumes the saved final provider request,
+its independently retained logical body and original DispatchKey tag, the actual
+mutation observation, and the original repository and Issue subject. It checks
+the existing provider request CID and exact mutation body without running the
+mutation encoder or stamp finalizer again. Its bounded provider context names
+only the object returned by that mutation; the read compares its opaque and
+numeric identities, complete physical text including the same marker, and both
+Comment and Issue repository correspondence. A PullRequest, partial response,
+missing object or changed body cannot confirm that original Comment.
+
+The returned read descriptor and confirmed projection remain DATA. They issue
+no Account decision, read grant, OperationRef or terminal Effect receipt. The
+existing caller must retain the original final-request/Site association, admit
+and fund the complete constructor and failed-child overlap, perform the actual
+current authorized read, and retain its own cleanup duties. A missing mutation
+reply supplies no point address and remains uncertain; it never authorizes a
+resend. Stored-response recovery checks those same saved originals and does not
+reprepare or remark a mutation.
