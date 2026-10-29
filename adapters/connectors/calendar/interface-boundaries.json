@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-      "sha256": "0026f847c8908fe899281fa7a1a45627da090dc1859266563b1405379db7c9e1",
+      "sha256": "31b3cb74bd8a504032f0a0efd0db62675e48c4a112a50108ae771f57fff35690",
       "exports": [
         "CALENDAR_LIST_OPERATION",
         "CalendarListReadFailure",
@@ -37,7 +37,8 @@
           "parameters": [
             "moon",
             "names",
-            "limits"
+            "limits",
+            "applySynchronousProjection"
           ],
           "async": false
         },
@@ -143,6 +144,10 @@
                 "anchor": "The returned read handle owns cancellation and physical binding close."
               },
               {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "applySynchronousProjection(fn, receiver, args)"
+              },
+              {
                 "path": "docs/design/calendar-list-reader-custody.md",
                 "anchor": "Stop and cleanup retry stay with that"
               }
@@ -201,6 +206,10 @@
               {
                 "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
                 "anchor": "page meaning uses the same Host owner for empty one and multiple pages"
+              },
+              {
+                "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
+                "anchor": "both provider adapters retain unexpected asynchronous compiled projections until their same borrow settles"
               },
               {
                 "path": "adapters/connectors/calendar/test/calendar-list-read.test.mjs",
@@ -2012,7 +2021,7 @@
     },
     {
       "module": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-      "sha256": "b057aec6c06e11f29f8a43a347c322a2a2b7dba50375e9245abfe7b7b6e4e23e",
+      "sha256": "a8f028d3b777d1bdebdba249fce800ad6dd2030b144798652c8c3e44ee111914",
       "exports": [
         "INSTALLED_CALENDAR_SITE_VERSION",
         "INSTALLED_CALENDAR_SOURCE_VERSION",
@@ -2160,7 +2169,8 @@
           "name": "loadInstalledCalendarSource/init:preparePageReader/init:preparePageReader",
           "parameters": [
             "selected",
-            "columns"
+            "columns",
+            "applySynchronousProjection"
           ],
           "async": false
         },
@@ -2285,6 +2295,10 @@
                 "anchor": "The returned read handle owns cancellation and physical binding close."
               },
               {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "applySynchronousProjection(fn, receiver, args)"
+              },
+              {
                 "path": "docs/design/calendar-list-reader-custody.md",
                 "anchor": "Stop and cleanup retry stay with that"
               }
@@ -2343,6 +2357,10 @@
               {
                 "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
                 "anchor": "page meaning uses the same Host owner for empty one and multiple pages"
+              },
+              {
+                "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
+                "anchor": "both provider adapters retain unexpected asynchronous compiled projections until their same borrow settles"
               },
               {
                 "path": "adapters/connectors/calendar/test/calendar-list-read.test.mjs",

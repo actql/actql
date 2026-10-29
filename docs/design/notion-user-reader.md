@@ -102,6 +102,11 @@ additional authorization Owner or OAuth exchange is introduced.
 
 ## Reader graph and physical retirement
 
+Nested compiled projections use the same private Host synchronous invoker.
+It captures the original method and receiver and retains any unexpected
+returned computation until settlement before reader retirement. This invoker
+is internal glue; no author callback receives credential or cleanup authority.
+
 Before I/O the trusted caller must supply the complete simultaneous retained
 and workspace envelope through the existing original acquisition/Resource
 owner. Per-page limits, canonical RowRun transfer charge and an explicit

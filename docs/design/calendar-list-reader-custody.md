@@ -40,6 +40,11 @@ graphs.
 
 ## Lifetime and cleanup
 
+Nested compiled projections use the same private Host synchronous invoker.
+It captures the original method and receiver and retains any unexpected
+returned computation until settlement before reader retirement. This invoker
+is internal glue; no author callback receives credential or cleanup authority.
+
 `prepareCalendarListPages` snapshots the original compiled projections, names
 and limits before I/O. Its synchronous `fetchPage` and `decodePage` describe
 Calendar requests and interpret the same charged response. The callbacks retain

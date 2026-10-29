@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/notion/site/user-list-read.mjs",
-      "sha256": "84b5d0d37c34eef4017d9d0eb0b1bd511c91c2cc8a78fc0b7509145e2dd041c2",
+      "sha256": "0b7ec8c94b96f45b8c067db3fde31001434fdbcd6512071e026fd499028b4561",
       "exports": [
         "NOTION_USER_LIST_API_VERSION",
         "NOTION_USER_LIST_OPERATION",
@@ -38,7 +38,8 @@
           "parameters": [
             "moon",
             "names",
-            "limits"
+            "limits",
+            "applySynchronousProjection"
           ],
           "async": false
         },
@@ -151,6 +152,10 @@
                 "anchor": "The returned read handle owns cancellation and physical binding close."
               },
               {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "applySynchronousProjection(fn, receiver, args)"
+              },
+              {
                 "path": "docs/design/notion-user-reader.md",
                 "anchor": "No new"
               }
@@ -209,6 +214,10 @@
               {
                 "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
                 "anchor": "page meaning uses the same Host owner for empty one and multiple pages"
+              },
+              {
+                "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
+                "anchor": "both provider adapters retain unexpected asynchronous compiled projections until their same borrow settles"
               },
               {
                 "path": "adapters/connectors/notion/test/user-list-read.test.mjs",
@@ -1677,7 +1686,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/installed-notion-source.mjs",
-      "sha256": "680eacfaa3e16b9d4fea01ce2990f2904405dde384edbdb646b31251ea48da2e",
+      "sha256": "ea295af04fb5abdec064229438813e7654b34d0ab8d1656ac0758eda6ef066c1",
       "exports": [
         "INSTALLED_NOTION_SITE_VERSION",
         "INSTALLED_NOTION_SOURCE_VERSION",
@@ -1789,7 +1798,8 @@
           "name": "loadInstalledNotionSource/init:preparePageReader/init:preparePageReader",
           "parameters": [
             "selected",
-            "columns"
+            "columns",
+            "applySynchronousProjection"
           ],
           "async": false
         },
@@ -1917,6 +1927,10 @@
                 "anchor": "The returned read handle owns cancellation and physical binding close."
               },
               {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "applySynchronousProjection(fn, receiver, args)"
+              },
+              {
                 "path": "docs/design/notion-user-reader.md",
                 "anchor": "No new"
               }
@@ -1975,6 +1989,10 @@
               {
                 "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
                 "anchor": "page meaning uses the same Host owner for empty one and multiple pages"
+              },
+              {
+                "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
+                "anchor": "both provider adapters retain unexpected asynchronous compiled projections until their same borrow settles"
               },
               {
                 "path": "adapters/connectors/notion/test/user-list-read.test.mjs",
