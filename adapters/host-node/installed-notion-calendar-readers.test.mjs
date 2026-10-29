@@ -69,7 +69,7 @@ function fixture(family,pages,{limits={},names=columns[family],status=200,consum
     preparePageReader({columns:selected},applySynchronousProjection){return (family === 'notion' ? prepareNotionUserListPages
       :prepareCalendarListPages)({moon,names:selected,limits:bounded},applySynchronousProjection);}});
   const reader=factory.prepare(callbacks);
-  return {reader,requests,events,delivered,moon,bounded,callbacks,
+  return {reader,factory,requests,events,delivered,moon,bounded,callbacks,
     notCurrent(){live=false;},bytes:bodies.reduce((n,b)=>n+BigInt(b.length),0n)};
 }
 
@@ -113,6 +113,28 @@ test('Notion still refuses duplicate identity cursor target page row and aggrega
     assert.equal(f.requests.length,mode==='target'?0:mode==='pages'?1:2);
     f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed,true);
   }
+});
+
+test('Notion requests only the remaining rows on its next original cursor',async()=>{
+  const first=page('notion','one','same-original-cursor');
+  first.rows.push(row('notion','two'));first.ids.push('two');
+  const f=fixture('notion',[first,page('notion','three')],{limits:{maxTotalRows:3,pageSize:2}});
+  try{
+    assert.deepEqual(await f.reader.read(),{pages:2,rowCount:3});
+    assert.deepEqual(f.requests.map(request=>new URL(request.path,'https://provider.invalid').searchParams.get('page_size')),['2','1']);
+    assert.equal(new URL(f.requests[1].path,'https://provider.invalid').searchParams.get('start_cursor'),'same-original-cursor');
+    assert.deepEqual(f.delivered,[row('notion','one'),row('notion','two'),row('notion','three')]);
+  }finally{f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed,true);assert.equal(f.factory.retire(),true);}
+});
+
+test('Notion refuses an incomplete capped Source before another send or indexed grant',async()=>{
+  const f=fixture('notion',[page('notion','one','more'),page('notion','two')],{limits:{maxTotalRows:1}});
+  try{
+    await assert.rejects(f.reader.read(),error=>error.cause?.code==='NotionUserListRowLimit');
+    assert.equal(f.requests.length,1);assert.equal(f.events.filter(event=>event==='charge').length,1);
+    assert.deepEqual(f.events.filter(event=>event.startsWith('grant:')),['grant:0']);
+    assert.equal(f.reader.observe().phase,'failed');
+  }finally{f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed,true);assert.equal(f.factory.retire(),true);}
 });
 
 test('Calendar retains remaining-row requests full columns and duplicate or incomplete-page refusals',async()=>{
