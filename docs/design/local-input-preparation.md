@@ -2825,3 +2825,36 @@ field. These extents describe wire/tree geometry, not completed compilation,
 authority or a reservation. The same Request still has to back measurement
 workspace/work and all concurrently live schema, graph, fact, witness, template,
 bindings, protocol, wire and parsed representations before construction.
+
+
+### Original Task pipeline construction input
+
+The initial Task pipeline writer has one field definition shared by text output
+and UTF-8 byte/node/depth measurement. Its scope is the original sequence range
+before canonical admission and selected-task projection. A long Pipe can create
+an initial pipeline larger than the final selected Task. A final wire measurement
+must not stand in for the initial wire, parsed tree or projection overlap.
+Both writers keep the original initial limits; a smaller projection does not
+waive an initial writer refusal.
+
+The Prepared Program retains one successful pipeline selection per original
+graph task and exact sequence limits, including the original selected/prefix,
+Model-completion and Content-completion distinction. Changed limits replace that
+task entry; a failed selection leaves its previous successful original intact.
+Foreign Programs and row-limit views cannot borrow these retained selections.
+The full sequence remains the same original already retained by the Program;
+a selected prefix is never replaced by a full lowering.
+
+Ordered emission prepares its registered contract and exact references once for
+the original sequence range and codec byte/node/depth bounds. Measurement and
+construction reuse those immutable params under the same bounds; changed bounds
+select their own preparation. There is at most one such codec entry per retained
+Task input. Other sequence writers use the same preparation/emission functions,
+with no second operation table or alternate serializer.
+
+These retained inputs and ordered params are compilation DATA, not Resource,
+permission, Run or cleanup authority. Their actual objects, references, selected
+sequences and measuring work must be included in the same Request's construction
+inventory. This initial measurement alone does not fund lowering, registry work,
+canonical parsing, final projection, Fragment issuance or the complete artifact.
+The original constructor still performs its existing final admission and guards.

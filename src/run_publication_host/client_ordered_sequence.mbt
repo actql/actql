@@ -37,27 +37,33 @@ fn client_compiler_ordered_contract(
 /// Preserve the existing checked node serialization for every other step.
 /// Only registered ordered params extend the logical Plan representation;
 /// no executable-looking incomplete ordered node is emitted by the lowerer.
-fn emit_client_sequence_steps(
+priv struct ClientSequenceEmission {
+  sequence : @lower.PreparedSequence
+  first : Int
+  end : Int
+  ordered : Array[(Int, @execution.OrderedParams)]
+}
+
+///|
+fn prepare_client_sequence_steps(
   sequence : @lower.PreparedSequence,
   first : Int,
   end : Int,
   physical : @execution.RegistryLimits,
-  out : @encode.Writer,
-) -> Unit raise @encode.EncodeFailure {
+) -> ClientSequenceEmission raise @encode.EncodeFailure {
   if first < 0 || end < first || end > @lower.sequence_count(sequence) {
     raise @encode.InvalidStructure
   }
   let mut contract : @execution.RegisteredOrderedContract? = None
-  @encode.begin_array(out)
+  let ordered = []
   for step in first..<end {
     match @lower.sequence_step(sequence, step) {
       Some(@lower.RowStep(kernel)) if @lower.kernel_bindings(kernel)
         is Some(bindings) &&
         @lower.bindings_ordered(bindings) => {
         if contract is None {
-          // Installed body admission is separate from the emitted Plan budget.
-          // Use the existing client runtime's finite registration profile;
-          // a small valid Plan need not fit the much larger contract body.
+          // This is the existing finite registry profile, independent of the
+          // emitted Plan's limits. It grants no physical execution authority.
           contract = client_compiler_ordered_contract({
             max_body_bytes: 100000,
             max_body_nodes: 10000,
@@ -74,13 +80,44 @@ fn emit_client_sequence_steps(
           is Ok(references) else {
           raise @encode.InvalidStructure
         }
-        @execution.emit_ordered_kernel_node(
-          @execution.prepare_ordered_params(selected, references),
-          out,
+        ordered.push(
+          (step, @execution.prepare_ordered_params(selected, references)),
         )
       }
-      _ => @lower.emit_sequence_node(sequence, step, out)
+      _ => ()
+    }
+  }
+  { sequence, first, end, ordered, }
+}
+
+///|
+fn emit_prepared_client_sequence_steps(
+  input : ClientSequenceEmission,
+  out : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  let mut ordinal = 0
+  @encode.begin_array(out)
+  for step in input.first..<input.end {
+    if input.ordered.get(ordinal) is Some((index, params)) && index == step {
+      @execution.emit_ordered_kernel_node(params, out)
+      ordinal += 1
+    } else {
+      @lower.emit_sequence_node(input.sequence, step, out)
     }
   }
   @encode.end_array(out)
+}
+
+///|
+fn emit_client_sequence_steps(
+  sequence : @lower.PreparedSequence,
+  first : Int,
+  end : Int,
+  physical : @execution.RegistryLimits,
+  out : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  emit_prepared_client_sequence_steps(
+    prepare_client_sequence_steps(sequence, first, end, physical),
+    out,
+  )
 }
