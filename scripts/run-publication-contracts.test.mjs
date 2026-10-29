@@ -367,11 +367,14 @@ test('independent Effect row Outcome Receipt 0.1 vector and schema pin', () => {
   assert.equal(hash('{}').slice(7), body.response_physical_sha256);
   assert.equal(hash(JSON.stringify(body)),
     'sha256:0b54f40a3e03a7840f08737b5efd2380f006aea8c4161a6ffeea0af461fe076f');
-  const schema = registry.artifact_schemas.effect_row_outcome_receipt;
+  const union = registry.artifact_schemas.effect_row_outcome_receipt;
+  const schema = union.oneOf[0];
+  assert.equal(machineCid(schema),
+    'sha256:e239b0d9b9229efdc67095bbea81ff8bccc0873a6bc277de7857c7955d8719fd');
   assert.deepEqual(schema.required.toSorted(),
     [...Object.keys(body), 'receipt_cid'].toSorted());
   assert.equal(registry.artifact_schema_cids.effect_row_outcome_receipt,
-    machineCid(schema));
+    machineCid(union));
 });
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
@@ -495,7 +498,7 @@ for (const omission of ['state revision', 'state revision property', 'applied up
         .required.filter(name => name !== 'revision');
       cli.properties.run = structuredClone(registry.artifact_schemas.run_state);
     } else {
-      const applied = registry.artifact_schemas.effect_row_outcome_receipt.properties
+      const applied = registry.artifact_schemas.effect_row_outcome_receipt.oneOf[0].properties
         .typed_outcome.oneOf.find(branch => branch.properties.state.const === 'applied');
       delete applied.$comment;
     }

@@ -355,6 +355,13 @@ fn contract_spec(name : String) -> ContractSpec? {
         identity: "receipt_cid",
         fields: [],
       })
+    "effect_local_operation_receipt" =>
+      Some({
+        name,
+        version: "actql-local-effect-operation-receipt/0.1",
+        identity: "receipt_cid",
+        fields: [],
+      })
     "effect_row_outcome_receipt" =>
       Some({
         name,
@@ -1151,7 +1158,9 @@ pub fn seal_publication_contract(
       max_wire_bytes,
       max_nodes - 1,
       max_depth,
-      data_keys=name == "captured_run" || name == "effect_row_outcome_receipt",
+      data_keys=name == "captured_run" ||
+        name == "effect_row_outcome_receipt" ||
+        name == "effect_local_operation_receipt",
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -1244,7 +1253,9 @@ pub fn admit_publication_contract(
       max_wire_bytes,
       max_nodes,
       max_depth,
-      data_keys=name == "captured_run" || name == "effect_row_outcome_receipt",
+      data_keys=name == "captured_run" ||
+        name == "effect_row_outcome_receipt" ||
+        name == "effect_local_operation_receipt",
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
