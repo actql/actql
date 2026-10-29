@@ -2533,3 +2533,30 @@ issuers/plans, and drops snapshots and contract aliases. It returns no Resource
 borrow, restores no consumed work and acknowledges no physical cleanup. Only
 actual Run/Host retirement and return of the original borrower can release that
 same reservation. Failure retains existing cleanup custody.
+
+## Installed asynchronous original preparation result
+
+The fixed Node installing callback may suspend while its existing Request owner
+prepares the same input. The SDK-facing preparer awaits that original result
+before registering its Prepared token. Its internal DATA record contains the
+selected Pure/Effect kind, original Prepared, and original Environment/Parameter
+material; the record creates no Resource, Run, permission, or cleanup owner.
+A Promise is never registered as a Prepared token. A result arriving after
+installation retirement or original request cancellation cannot be admitted.
+
+Once that callback is selected, an absent or failed result cannot choose the
+legacy serializer. The original failure is propagated without calling a second
+public checker. This does not manufacture an audience-bound check observation,
+certify nonacceptance, or classify an uncertain failure by an error-code list.
+Disclosure still requires the existing nominal observation of the same input.
+The owning Request keeps failure and pending cleanup duties until its original
+retirement; awaiting its result is not an acknowledgement of physical cleanup.
+
+Original input metadata is retained with that same prepared body, including an
+original captured Parameter cursor when supplied by the owner. It is not
+reconstructed from current Host defaults. Stored material emission and cold
+restoration retain their independent exact-input contracts. This result boundary
+does not by itself connect the generic Source/Effect/Content/INFER module and
+backend-material constructors, nor does it remove an installed values override.
+Those actual owners must consume their same Request and checked Plan without a
+raw/no-plan success or an unqualified fallback.
