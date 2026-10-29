@@ -24831,7 +24831,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "052fd7b7e4f1a4db39ec62f5fc7ce25703e645457c30b4a9b4574cff7a2a27db",
+      "sha256": "aff3d8da040f109728076b452c2e4e4f8b2265e6be0e659d424cedd22349799d",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -24863,6 +24863,10 @@
         {
           "name": "[I]prepare_request_program_json_preparation",
           "declaration": "[ I ] prepare_request_program_json_preparation ( owner : ClientRequestPreparation [ I ] , input : I , document : String , limits : @ syntax . Limits , ) - > Result [ ClientProgramJsonPreparation [ I , Unit ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]request_preparation_accounting",
+          "declaration": "[ I ] request_preparation_accounting ( owner : ClientRequestPreparation [ I ] , ) - > ( Int64 , Int64 , Int64 , Int64 , Int64 , Int64 )"
         },
         {
           "name": "[I]select_closed_values_preparation",
@@ -25131,6 +25135,78 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[I]request_preparation_accounting"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request accounting observations"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request accounting observations"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request accounting observations"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request accounting observations"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request accounting observations"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request accounting observations"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request accounting observations"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request accounting observations"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request accounting observations"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"Request diagnostic accounting observes one reservation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request accounting observations"
               }
             ]
           }

@@ -76686,7 +76686,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "7964642d55b8b06324c4801214b07739332c99541a49be1aafff8e5e758755a8",
+      "sha256": "cf6eef9009caf3c9d65ac81c877498ac17680a89519277cb8c4e5aa7823eef11",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -77214,7 +77214,7 @@
         "../../packages/sdk/internal/private-source-preparation.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
-        "../local-node/closed-values-preparation-adapter.mjs",
+        "../local-node/request-preparation-adapter.mjs",
         "./client-program-preparation.mjs",
         "./ordinary-node-resource-runtime.cjs",
         "./source-profile-json.mjs",
@@ -81920,447 +81920,23 @@
       ]
     },
     {
-      "module": "adapters/host-node/closed-values-own-data-scan.mjs",
-      "sha256": "00ed21bd06d3eab9facd99dc686bedded1e5a52544c6a21a407297eb448812b2",
-      "exports": [
-        "closedValuesOwnDataHeaderFields",
-        "closedValuesOwnDataHeaderRows",
-        "closedValuesOwnDataScanControlInventory",
-        "closedValuesOwnDataScanWorkUpper",
-        "probeClosedValuesOwnDataHeader",
-        "retireClosedValuesOwnDataHeader",
-        "scanClosedValuesOwnData",
-        "scanClosedValuesOwnDataAscii"
-      ],
-      "operations": [
-        {
-          "name": "add",
-          "parameters": [
-            "s",
-            "amount"
-          ],
-          "async": false
-        },
-        {
-          "name": "array",
-          "parameters": [
-            "s",
-            "value",
-            "depth"
-          ],
-          "async": false
-        },
-        {
-          "name": "ClosedValuesHeader/constructor:constructor/constructor:constructor",
-          "parameters": [
-            "token",
-            "input",
-            "fields",
-            "rows",
-            "fieldCount",
-            "rowCount"
-          ],
-          "async": false
-        },
-        {
-          "name": "ClosedValuesHeader/method:fields/method:fields",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "ClosedValuesHeader/method:matchesFields/method:matchesFields",
-          "parameters": [
-            "value",
-            "count"
-          ],
-          "async": false
-        },
-        {
-          "name": "ClosedValuesHeader/method:matchesRows/method:matchesRows",
-          "parameters": [
-            "value",
-            "count"
-          ],
-          "async": false
-        },
-        {
-          "name": "ClosedValuesHeader/method:retire/method:retire",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "ClosedValuesHeader/method:rows/method:rows",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "ClosedValuesHeader/static method:matches/static method:matches",
-          "parameters": [
-            "value",
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "closedValuesOwnDataHeaderFields",
-          "parameters": [
-            "header",
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "closedValuesOwnDataHeaderRows",
-          "parameters": [
-            "header",
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "closedValuesOwnDataScanWorkUpper",
-          "parameters": [
-            "header",
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "data",
-          "parameters": [
-            "s",
-            "value",
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "descriptor",
-          "parameters": [
-            "s",
-            "value",
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "falseValue",
-          "parameters": [
-            "s",
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "headerLength",
-          "parameters": [
-            "s",
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "item",
-          "parameters": [
-            "s",
-            "value",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "noToJson",
-          "parameters": [
-            "s",
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "number",
-          "parameters": [
-            "s",
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "plain",
-          "parameters": [
-            "s",
-            "value",
-            "array"
-          ],
-          "async": false
-        },
-        {
-          "name": "probeClosedValuesOwnDataHeader",
-          "parameters": [
-            "input",
-            "options",
-            "phase"
-          ],
-          "async": false
-        },
-        {
-          "name": "record",
-          "parameters": [
-            "s",
-            "value",
-            "expected",
-            "depth"
-          ],
-          "async": false
-        },
-        {
-          "name": "retireClosedValuesOwnDataHeader",
-          "parameters": [
-            "header",
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "scanClosedValues",
-          "parameters": [
-            "input",
-            "options",
-            "phase",
-            "header",
-            "ascii"
-          ],
-          "async": false
-        },
-        {
-          "name": "scanClosedValuesOwnData",
-          "parameters": [
-            "input",
-            "options",
-            "phase",
-            "header"
-          ],
-          "async": false
-        },
-        {
-          "name": "scanClosedValuesOwnDataAscii",
-          "parameters": [
-            "input",
-            "options",
-            "phase"
-          ],
-          "async": false
-        },
-        {
-          "name": "singleKey",
-          "parameters": [
-            "s",
-            "value",
-            "depth"
-          ],
-          "async": false
-        },
-        {
-          "name": "text",
-          "parameters": [
-            "s",
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "work",
-          "parameters": [
-            "s",
-            "amount"
-          ],
-          "async": false
-        }
-      ],
-      "imports": [
-        "node:util"
-      ],
-      "compilerFields": [],
-      "unresolvedSyntax": [],
-      "responsibilityFacet": "primary",
-      "role": "physical-io",
-      "owner": "Existing Local preparation resource and original-custody owners; Node inspection/custody only, no Run grant",
-      "referenceQualification": "Source-backed functional boundary declaration; references do not claim hosted CI or physical-memory coverage.",
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "add",
-            "array",
-            "ClosedValuesHeader/constructor:constructor/constructor:constructor",
-            "ClosedValuesHeader/method:fields/method:fields",
-            "ClosedValuesHeader/method:matchesFields/method:matchesFields",
-            "ClosedValuesHeader/method:matchesRows/method:matchesRows",
-            "ClosedValuesHeader/method:retire/method:retire",
-            "ClosedValuesHeader/method:rows/method:rows",
-            "ClosedValuesHeader/static method:matches/static method:matches",
-            "closedValuesOwnDataHeaderFields",
-            "closedValuesOwnDataHeaderRows",
-            "closedValuesOwnDataScanWorkUpper",
-            "data",
-            "descriptor",
-            "falseValue",
-            "headerLength",
-            "item",
-            "noToJson",
-            "number",
-            "plain",
-            "probeClosedValuesOwnDataHeader",
-            "record",
-            "retireClosedValuesOwnDataHeader",
-            "scanClosedValues",
-            "scanClosedValuesOwnData",
-            "scanClosedValuesOwnDataAscii",
-            "singleKey",
-            "text",
-            "work"
-          ],
-          "exports": [
-            "closedValuesOwnDataHeaderFields",
-            "closedValuesOwnDataHeaderRows",
-            "closedValuesOwnDataScanControlInventory",
-            "closedValuesOwnDataScanWorkUpper",
-            "probeClosedValuesOwnDataHeader",
-            "retireClosedValuesOwnDataHeader",
-            "scanClosedValuesOwnData",
-            "scanClosedValuesOwnDataAscii"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/closed-values-own-data-scan.mjs",
-                "anchor": "export function probeClosedValuesOwnDataHeader("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Responsibility and scope"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/closed-values-own-data-scan.mjs",
-                "anchor": "export function probeClosedValuesOwnDataHeader("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/closed-values-own-data-scan.mjs",
-                "anchor": "export function probeClosedValuesOwnDataHeader("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Identity and currentness"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/closed-values-own-data-scan.mjs",
-                "anchor": "export function probeClosedValuesOwnDataHeader("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## State and lifetimes"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/closed-values-own-data-scan.mjs",
-                "anchor": "export function probeClosedValuesOwnDataHeader("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## State and lifetimes"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/closed-values-own-data-scan.mjs",
-                "anchor": "export function probeClosedValuesOwnDataHeader("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Failure, cancellation and publication"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/closed-values-own-data-scan.mjs",
-                "anchor": "export function probeClosedValuesOwnDataHeader("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Failure, cancellation and publication"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/closed-values-own-data-scan.mjs",
-                "anchor": "export function probeClosedValuesOwnDataHeader("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Work and storage units"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/closed-values-own-data-scan.mjs",
-                "anchor": "export function probeClosedValuesOwnDataHeader("
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "## Extension boundary"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/closed-values-own-data-scan.test.mjs",
-                "anchor": "original work debit exact succeeds and one-short refuses, not fallback"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "module": "adapters/local-node/closed-values-preparation-adapter.mjs",
-      "sha256": "5b1d008f36206e4528b15edcd79df9a9e348f93e10b167aeb484f99fe458acb2",
+      "module": "adapters/local-node/request-preparation-adapter.mjs",
+      "sha256": "c7af9318bcbfa402a70537c7db94444c9de68db6bf5d6bca6dd6112548d87704",
       "exports": [
         "assertRequestPreparationControl",
-        "beginClosedValuesInput",
         "beginRequestInput",
-        "bindClosedValuesSnapshot",
         "checkedPreparation",
-        "cleanupClosedValuesInput",
+        "cleanupRequestInput",
         "closeHostInitializationPreparation",
-        "closedValuesPreparationAvailable",
         "openHostInitializationPreparation",
-        "openRequestPreparation"
+        "openRequestPreparation",
+        "requestPreparationAvailable"
       ],
       "operations": [
         {
           "name": "assertRequestPreparationControl",
           "parameters": [
             "context"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginClosedValuesInput",
-          "parameters": [
-            "state",
-            "input",
-            "receipt",
-            "connection",
-            "assertCurrent"
           ],
           "async": false
         },
@@ -82375,14 +81951,6 @@
           "async": false
         },
         {
-          "name": "bindClosedValuesSnapshot",
-          "parameters": [
-            "state",
-            "body"
-          ],
-          "async": false
-        },
-        {
           "name": "checkedPreparation",
           "parameters": [
             "moon",
@@ -82391,7 +81959,7 @@
           "async": false
         },
         {
-          "name": "cleanupClosedValuesInput",
+          "name": "cleanupRequestInput",
           "parameters": [
             "state",
             "retireInitialPreparation"
@@ -82399,31 +81967,9 @@
           "async": false
         },
         {
-          "name": "closedValuesPreparationAvailable",
-          "parameters": [
-            "context"
-          ],
-          "async": false
-        },
-        {
-          "name": "closedValuesPreparationAvailable/own/own",
-          "parameters": [
-            "object",
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "closeHostInitializationPreparation",
           "parameters": [
             "state"
-          ],
-          "async": false
-        },
-        {
-          "name": "commonInt/commonInt",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -82484,17 +82030,17 @@
           "async": false
         },
         {
-          "name": "phaseAdapter/phaseAdapter",
+          "name": "requestPreparationAvailable",
           "parameters": [
-            "moon",
-            "token"
+            "context"
           ],
           "async": false
         },
         {
-          "name": "phaseAdapter/phaseAdapter/init:spendWork/init:spendWork",
+          "name": "requestPreparationAvailable/own/own",
           "parameters": [
-            "amount"
+            "object",
+            "name"
           ],
           "async": false
         }
@@ -82502,7 +82048,6 @@
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
-        "../host-node/closed-values-own-data-scan.mjs",
         "../host-node/ordinary-node-resource-runtime.cjs",
         "node:util"
       ],
@@ -82516,17 +82061,12 @@
         {
           "operations": [
             "<module>",
-            "beginClosedValuesInput",
             "beginRequestInput",
-            "bindClosedValuesSnapshot",
             "checkedPreparation",
-            "cleanupClosedValuesInput",
-            "closedValuesPreparationAvailable",
-            "commonInt/commonInt",
+            "cleanupRequestInput",
+            "requestPreparationAvailable",
             "invalid/invalid",
             "noPhysicalChildren/noPhysicalChildren",
-            "phaseAdapter/phaseAdapter",
-            "phaseAdapter/phaseAdapter/init:spendWork/init:spendWork",
             "openRequestPreparation",
             "closeHostInitializationPreparation",
             "openHostInitializationPreparation",
@@ -82535,12 +82075,10 @@
             "openPreparationAdmission/openPreparationAdmission#2"
           ],
           "exports": [
-            "beginClosedValuesInput",
             "beginRequestInput",
-            "bindClosedValuesSnapshot",
             "checkedPreparation",
-            "cleanupClosedValuesInput",
-            "closedValuesPreparationAvailable",
+            "cleanupRequestInput",
+            "requestPreparationAvailable",
             "openRequestPreparation",
             "closeHostInitializationPreparation",
             "openHostInitializationPreparation"
@@ -82548,8 +82086,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
-                "anchor": "export function cleanupClosedValuesInput("
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function cleanupRequestInput("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -82562,8 +82100,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
-                "anchor": "export function cleanupClosedValuesInput("
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function cleanupRequestInput("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -82576,8 +82114,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
-                "anchor": "export function cleanupClosedValuesInput("
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function cleanupRequestInput("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -82590,8 +82128,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
-                "anchor": "export function cleanupClosedValuesInput("
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function cleanupRequestInput("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -82604,8 +82142,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
-                "anchor": "export function cleanupClosedValuesInput("
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function cleanupRequestInput("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -82618,8 +82156,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
-                "anchor": "export function cleanupClosedValuesInput("
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function cleanupRequestInput("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -82632,8 +82170,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
-                "anchor": "export function cleanupClosedValuesInput("
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function cleanupRequestInput("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -82646,8 +82184,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
-                "anchor": "export function cleanupClosedValuesInput("
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function cleanupRequestInput("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -82660,8 +82198,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
-                "anchor": "export function cleanupClosedValuesInput("
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function cleanupRequestInput("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -82686,14 +82224,14 @@
         },
         {
           "operations": [
-            "closedValuesPreparationAvailable/own/own"
+            "requestPreparationAvailable/own/own"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
-                "anchor": "export function closedValuesPreparationAvailable"
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function requestPreparationAvailable"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -82706,11 +82244,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
-                "anchor": "export function closedValuesPreparationAvailable"
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function requestPreparationAvailable"
               },
               {
-                "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
+                "path": "adapters/host-node/request-program-module-body-callers.test.mjs",
                 "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
               },
               {
@@ -82720,11 +82258,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
-                "anchor": "export function closedValuesPreparationAvailable"
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function requestPreparationAvailable"
               },
               {
-                "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
+                "path": "adapters/host-node/request-program-module-body-callers.test.mjs",
                 "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
               },
               {
@@ -82734,8 +82272,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
-                "anchor": "export function closedValuesPreparationAvailable"
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function requestPreparationAvailable"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -82748,11 +82286,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
-                "anchor": "export function closedValuesPreparationAvailable"
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function requestPreparationAvailable"
               },
               {
-                "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
+                "path": "adapters/host-node/request-program-module-body-callers.test.mjs",
                 "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
               },
               {
@@ -82762,11 +82300,11 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
-                "anchor": "export function closedValuesPreparationAvailable"
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function requestPreparationAvailable"
               },
               {
-                "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
+                "path": "adapters/host-node/request-program-module-body-callers.test.mjs",
                 "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
               },
               {
@@ -82783,8 +82321,8 @@
                 "anchor": "## Original ModuleBody preparation mode"
               },
               {
-                "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
-                "anchor": "export function closedValuesPreparationAvailable"
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function requestPreparationAvailable"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -82797,7 +82335,7 @@
                 "anchor": "## Original ModuleBody preparation mode"
               },
               {
-                "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
+                "path": "adapters/host-node/request-program-module-body-callers.test.mjs",
                 "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
               },
               {
@@ -82807,7 +82345,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
+                "path": "adapters/host-node/request-program-module-body-callers.test.mjs",
                 "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
               },
               {

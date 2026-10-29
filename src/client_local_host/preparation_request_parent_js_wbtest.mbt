@@ -207,3 +207,29 @@ test "request parent keeps original unknown stop without inferring a new cleanup
   assert_true(owner.phase == Retiring && owner.input is None)
   assert_eq(@resources.ledger_usage(owner.ledger).reserved_retention_bytes, 0L)
 }
+
+///|
+test "Request diagnostic accounting observes one reservation across typed continuation and stop" {
+  let input = [7]
+  let policy = client_local_resource_policy()
+  let initial = request_parent_fixture(input)
+  let owner = begin_request_preparation(initial, input, policy).unwrap()
+  let before = request_preparation_accounting(owner)
+  assert_eq(before, @resources.preparation_capacity_accounting(owner.capacity))
+  let next = select_closed_values_preparation(
+    owner,
+    input,
+    module_containers=empty_family_module_containers,
+  ).unwrap()
+  let active = request_preparation_accounting(owner)
+  assert_eq(active, @resources.preparation_capacity_accounting(next.capacity))
+  assert_true(active.0 > before.0)
+  abort_closed_values_preparation_after_cleanup(next).unwrap()
+  let stopped = request_preparation_accounting(owner)
+  assert_eq(stopped, @resources.preparation_capacity_accounting(next.capacity))
+  assert_eq(
+    (stopped.0, stopped.1, stopped.2, stopped.4, stopped.5),
+    (0L, 0L, 0L, 0L, 0L),
+  )
+  assert_eq(stopped.3, active.3)
+}
