@@ -97,6 +97,23 @@ test('actual Calendar complete projection preserves finer UTC instants and the o
   });
 });
 
+test('actual Calendar interval order compares instants across different fractional widths', () => {
+  const original = query();
+  const body = response();
+  body.calendars['a@example.test'].busy = [{
+    start: '2026-10-17T01:00:00.0001Z', end: '2026-10-17T01:30:00.500Z',
+  }];
+  assert.deepEqual(rows(project(body, original)), [{calendar_id: 'a@example.test',
+    start: '2026-10-17T01:00:00.0001Z', end: '2026-10-17T01:30:00.500Z'}]);
+  for (const interval of [
+    {start: '2026-10-17T02:00:00.000Z', end: '2026-10-17T01:00:00.0001Z'},
+    {start: '2026-10-17T01:00:00.001Z', end: '2026-10-17T01:00:00.0001Z'},
+  ]) {
+    body.calendars['a@example.test'].busy = [interval];
+    assert.throws(() => project(body, original));
+  }
+});
+
 test('actual Calendar bridge enforces independent response rows value and output ceilings', () => {
   for (const [index, value] of [[0, 1], [1, 3], [2, 2], [3, 1], [4, 1], [6, 5], [7, 1]]) {
     const smaller = limits.slice(); smaller[index] = value;
