@@ -1618,7 +1618,7 @@
               },
               {
                 "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
-                "anchor": "readPages(){fail('InstalledSlackLegacyReaderUnavailable');}"
+                "anchor": "providerReader:(()=>{"
               }
             ],
             "verification": [
