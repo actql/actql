@@ -26171,6 +26171,10 @@
               {
                 "path": "src/client_local_host/installed_source_material_js_wbtest.mbt",
                 "anchor": "test \"Source material keeps the same initialized aggregate Environment and debit across Request borrows\""
+              },
+              {
+                "path": "src/client_local_host/installed_source_material_js_wbtest.mbt",
+                "anchor": "test \"Host initial Source successor keeps its original Environment until Request borrows and children settle\""
               }
             ]
           }
