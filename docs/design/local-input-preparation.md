@@ -682,6 +682,14 @@ The existing publication/capture error and shared layout functions remain
 where current consumers still use them; their names do not select an input
 preparation route.
 
+Private scan, compiler-layout and fixed module-construction quotes whose only
+consumer was that removed bootstrap are retired with their dedicated tests.
+The selected provider composition and callback bodies are unchanged. Current
+Program-artifact, scalar-snapshot and publication code keeps only the shared
+layout functions it actually calls, with the same checked arithmetic and
+original input geometry. Their retained code is not a new funding route or a
+promise that every other legacy caller has already migrated.
+
 The publication owner retains its actual body borrow, not a reference back to
 that retired input driver. Its resource capacity and initial admission continue
 through the same actual Run, output validation and cleanup. A returned parser,
