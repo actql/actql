@@ -136,11 +136,9 @@ pub fn measure_prepared_client_pure_compilation_construction(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientPureCompilationConstruction, ClientValuesExecutablePlanIssue] {
-  if max_facts <= 0 ||
-    max_witnesses <= 0 ||
-    max_wire_bytes <= 0 ||
-    max_nodes <= 0 ||
-    max_depth <= 0 {
+  if !client_pure_compilation_limits_valid(
+      max_facts, max_witnesses, max_wire_bytes, max_nodes, max_depth,
+    ) {
     return Err(InvalidLimits)
   }
   let tasks = prepared_client_requires_task_compilation(value)

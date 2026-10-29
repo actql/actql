@@ -6,6 +6,20 @@ struct OrderedReferences {
 }
 
 ///|
+// Completed immutable occurrence material, not a kernel/Run grant. Keeping
+// the original fields rather than the kernel avoids a kernel -> index cycle.
+priv struct OrderedReferenceMaterial {
+  owner : BoundPrepared
+  step_index : Int
+  checked : @relation.CheckedOperation
+  bindings : Array[(String, Expression)]
+  entries : Array[OrderedReference]
+  work : Int
+  pointer_bytes : Int
+  frames : Int
+}
+
+///|
 pub struct OrderedReference {
   at : String
   target : @relation.ReferenceTarget
@@ -60,6 +74,19 @@ pub fn prepare_ordered_references(
   kernel : PreparedKernel,
   limits : OrderedReferenceLimits,
 ) -> Result[OrderedReferences, OrderedReferenceIssue] {
+  prepare_ordered_references_owned(kernel, limits)
+}
+
+///|
+fn prepare_ordered_references_owned(
+  kernel : PreparedKernel,
+  limits : OrderedReferenceLimits,
+  prepare? : (
+    PreparedKernel,
+    Array[(String, Expression)],
+    OrderedReferenceLimits,
+  ) -> Result[OrderedReferenceMaterial, OrderedReferenceIssue] = prepare_ordered_reference_material,
+) -> Result[OrderedReferences, OrderedReferenceIssue] {
   if limits.max_references < 0 ||
     limits.max_pointer_bytes < 0 ||
     limits.max_work < 0 ||
@@ -69,10 +96,41 @@ pub fn prepare_ordered_references(
   guard kernel.body is OrderedBindings(bindings) else {
     return Err(NotOrderedKernel)
   }
+  if kernel.ordered_reference_material is Some(original) &&
+    physical_equal(original.owner, kernel.owner) &&
+    original.step_index == kernel.step_index &&
+    physical_equal(original.checked, kernel.checked) &&
+    physical_equal(original.bindings, bindings) {
+    // A larger ceiling is not another validation. Every smaller ceiling still
+    // checks the complete successful traversal's actual finite requirements.
+    if original.entries.length() > limits.max_references ||
+      original.pointer_bytes > limits.max_pointer_bytes ||
+      original.work > limits.max_work ||
+      original.frames > limits.max_frames {
+      return Err(ReferenceLimit)
+    }
+    return Ok({ kernel, entries: original.entries, })
+  }
+  let material = match prepare(kernel, bindings, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  // No partial table, failed budget or copied body's old association enters.
+  kernel.ordered_reference_material = Some(material)
+  Ok({ kernel, entries: material.entries, })
+}
+
+///|
+fn prepare_ordered_reference_material(
+  kernel : PreparedKernel,
+  bindings : Array[(String, Expression)],
+  limits : OrderedReferenceLimits,
+) -> Result[OrderedReferenceMaterial, OrderedReferenceIssue] {
   let entries : Array[OrderedReference] = []
   let pending : Array[ReferenceFrame] = []
   let mut work = limits.max_work
   let mut bytes = limits.max_pointer_bytes
+  let mut peak_frames = 0
   // Object field segments may be Unicode; charge actual UTF-8 pointer bytes.
   fn append_path(base : String, suffix : String) -> String? {
     guard @scalar.admit_utf8_length(base, work) is Ok(base_bytes) &&
@@ -104,6 +162,7 @@ pub fn prepare_ordered_references(
       return false
     }
     pending.push(frame)
+    peak_frames = Int::max(peak_frames, pending.length())
     true
   }
   for binding_index = 0
@@ -125,11 +184,11 @@ pub fn prepare_ordered_references(
         Visit(expr, path) =>
           match expr.body {
             Field(_, target) => {
-              if entries.length() == limits.max_references ||
-                @scalar.admit_utf8_length(path, bytes) is Err(_) {
+              guard entries.length() < limits.max_references &&
+                @scalar.admit_utf8_length(path, bytes) is Ok(size) else {
                 return Err(ReferenceLimit)
               }
-              bytes -= @scalar.admit_utf8_length(path, bytes).unwrap()
+              bytes -= size
               entries.push({ at: path, target, })
             }
             Literal(_) | TypedNull | EmptyArray | CurrentTimestamp => ()
@@ -278,7 +337,16 @@ pub fn prepare_ordered_references(
       }
     }
   }
-  Ok({ kernel, entries, })
+  Ok({
+    owner: kernel.owner,
+    step_index: kernel.step_index,
+    checked: kernel.checked,
+    bindings,
+    entries,
+    work: limits.max_work - work,
+    pointer_bytes: limits.max_pointer_bytes - bytes,
+    frames: peak_frames,
+  })
 }
 
 ///|

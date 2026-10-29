@@ -167,7 +167,7 @@ fn issue_client_result_plan_parts(
   let order = @results.port_order(port)
   let ordered = @results.publication_term_count(order) != 0
   let output = if ordered { "ordered" } else { "projected" }
-  let node_id = "result_" + result.to_string()
+  let node_id = client_compilation_result_node_id(result)
   let plan = selected.plan
   let pipeline_writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)

@@ -3070,3 +3070,90 @@ manufacture an internal construction. Removing this own-output parse does not
 adopt external JSON, change a public acceptance rule or establish the complete
 compiler's allocation/backing or consumed-work proof. The remaining constructor
 reservation keeps its existing conservative overlap bound.
+
+### Compiler measurement collection backing
+
+The Request retains the selected module before sizing its concrete compiler
+artifact. The sizing operation itself owns variable collections: per-task
+Fragment geometry and port geometry, per-Result geometry and graph vectors,
+publication fact vectors and witness geometry/CID vectors. Their returned data
+coexists with the module and subsequent artifact constructor. It is not free
+because the measured codec does not emit a wire.
+
+Before entering that sizing operation, the original checked graph supplies its
+task, Result, data-edge and original port counts. The original checked
+publications supply both fact scopes and witness occurrences. The latter bound
+the deduplicated witness vectors; they are not consumed work or a claim that
+repeated witness bodies remain distinct. Shared collection construction rules
+expand Array growth/backing and tuple/record storage, and the existing common
+representation tariff prices the result. Generated label storage follows the
+same coordinate constructors as actual Fragment and Result construction.
+Borrowed schema/name/CID/value backing is not copied into this inventory.
+
+The SAME Request capacity grows by this collection envelope before sizing.
+A declined grow retains the exact module, original inputs and absolute quote,
+with no geometry output allocated. Continuation uses those originals without
+re-running the provider factory. After sizing, a later declined artifact grow
+retains the backed geometry; continuation skips the older collection quote so
+it cannot shrink a newer reservation. Both kinds of backing remain on the
+original capacity through body completion and transfer until real retirement.
+
+The original five compiler-bound checks share one predicate with this prelude,
+so invalid configuration keeps its typed refusal before collection admission.
+These bounds remain codec configuration rather than Resource policy. Fixed VM
+or callback wrappers are not a new per-Request census. This collection envelope
+is not the complete nested lowering/Carrier helper scratch proof, complete
+compiler consumed-work accounting, physical backend supply or ordinary-route
+acceptance; those remain separate obligations of the same preparation path.
+
+### Original installed compiler contracts
+
+The installed sequence-contract holder already owns the admitted registry and
+ordered contract. The Request module constructor binds that exact immutable
+ordered contract to its original checked Program before its first module
+callback or compiler measurement. Values, Task and AoA-step emission forward
+that same fact into ordered params; they do not parse and admit the three
+installed registry bodies again. The actual checked kernel, slot references,
+selected range and codec limits retain their existing preparation and guards.
+
+This is a borrowed immutable catalogue fact, not permission or a Run/Resource
+currentness result. It has no Account, callback, dispatch or cleanup argument.
+Its private association follows the existing original Program and its bounded
+views. Rebinding accepts only the same typed original; an equal-body independent
+admission is a different original. Already retained unbound Task input cannot be
+upgraded after emission. Explicit installed absence refuses an ordered kernel
+without entering independent admission. Standalone compiler preparations which
+have not selected an installed holder still perform their own finite admission.
+
+The existing installed holder and its retirement owner remain unchanged. This
+forwarding does not price all nested compiler scratch or consumed work, migrate
+unconnected Source/Model/Content/Effect constructors, replace current/attempt
+checks or establish ordinary matching-artifact and physical-backend acceptance.
+
+### Original ordered-reference occurrence material
+
+An ordered kernel's original owner, checked operation, coordinate and immutable
+binding array select one completed reference table. Its first successful
+bounded traversal retains the table plus the actual cumulative work and pointer
+bytes, reference count and peak continuation depth. Runtime Fragment admission
+and later compiler emission can borrow that same occurrence material under
+their different limits. No pointer strings, continuation vectors or occurrence
+records are rebuilt on the second read.
+
+Each new limit is still compared with every requirement of the complete first
+traversal. Negative limits and non-ordered kernels keep their original typed
+precedence. A short limit refuses while preserving the completed original;
+failed first traversal stores no partial material. Different owners, checked
+operations, coordinates or copied binding arrays take the full original path.
+The existing machine Fragment rebase changes only its local input label and
+preserves these exact binding facts. Public kernel/body views remain defensive
+copies and cannot mutate the retained binding array.
+
+The material is private on the existing kernel, with no process-global map or
+input-key cache. It retains original fields rather than a back-reference to the
+kernel, so no new kernel/index reference cycle is created. One table remains
+live with that kernel; runtime/compiled params borrow its entries, and the
+original Plan/Run retirement remains responsible for its existing owner.
+This immutable DATA reuse carries no currentness, permission, physical-start
+or cleanup result. It avoids a repeated variable allocation, but does not price
+all first-pass lowering/Fragment/Carrier scratch or complete compiler work.

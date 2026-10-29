@@ -20,6 +20,7 @@ import {
   "actql/actql/query_program" @update_targets,
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/decode_core" @decode,
+  "actql/actql/decode_shape" @shape,
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/parameter_references" @parameters,
