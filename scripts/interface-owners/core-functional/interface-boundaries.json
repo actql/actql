@@ -34097,102 +34097,8 @@
       ]
     },
     {
-      "module": "src/client_local_host/preparation_closed_values_capacity_layout.mbt",
-      "sha256": "53b35e271c4c544c94f7abf073b8acb6cdc8211b4089c6116cb552d3e5c3e99d",
-      "exports": [],
-      "operations": [
-        {
-          "name": "closed_values_capacity_record_packet",
-          "declaration": "closed_values_capacity_record_packet ( count : Int64 , fields : Int64 , ) - > @ execution . PreparationRepresentationUnits"
-        }
-      ],
-      "responsibilityFacet": "primary",
-      "role": "common-semantics",
-      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
-      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "closed_values_capacity_record_packet"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
-                "anchor": "test \"request parent reserves controls then grows"
-              },
-              {
-                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
-                "anchor": "test \"publication continues on the transferred body"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
       "module": "src/client_local_host/preparation_closed_values_compiler_layout.mbt",
-      "sha256": "56ce9146cd317a03ba16e338603814b654aede5c7e1417b99fdb159dd4792704",
+      "sha256": "fb8b41c8ed220089f0a32a025ff96f95f14faa827f869d830945831a7741d13a",
       "exports": [],
       "operations": [
         {
@@ -34200,20 +34106,8 @@
           "declaration": "closed_values_append_capacity ( length : Int ) - > Int64 ?"
         },
         {
-          "name": "closed_values_map_constructor_layout",
-          "declaration": "closed_values_map_constructor_layout ( entries : Int , ) - > @ execution . PreparationRepresentationUnits ?"
-        },
-        {
           "name": "closed_values_sort_scratch_layout",
           "declaration": "closed_values_sort_scratch_layout ( fields : Int , ) - > @ execution . PreparationRepresentationUnits ?"
-        },
-        {
-          "name": "closed_values_walk_storage_from_extents",
-          "declaration": "closed_values_walk_storage_from_extents ( pending : Int , children : Int , names : Int , ) - > @ execution . PreparationRepresentationUnits ?"
-        },
-        {
-          "name": "closed_values_walk_storage_layout",
-          "declaration": "closed_values_walk_storage_layout ( node_upper : Int , largest_object_fields : Int , ) - > @ execution . PreparationRepresentationUnits ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -34225,104 +34119,7 @@
           "operations": [
             "<module>",
             "closed_values_append_capacity",
-            "closed_values_map_constructor_layout",
-            "closed_values_sort_scratch_layout",
-            "closed_values_walk_storage_from_extents",
-            "closed_values_walk_storage_layout"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
-                "anchor": "test \"request parent reserves controls then grows"
-              },
-              {
-                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
-                "anchor": "test \"publication continues on the transferred body"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "module": "src/client_local_host/preparation_closed_values_identity_layout.mbt",
-      "sha256": "82f42f61ab9fbac9e3f5407156204e4741f9b2afbf628d943e6f2f289b879a16",
-      "exports": [],
-      "operations": [
-        {
-          "name": "closed_values_identity_emitter_layout",
-          "declaration": "closed_values_identity_emitter_layout ( nodes : Int , fields : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
-        }
-      ],
-      "responsibilityFacet": "primary",
-      "role": "common-semantics",
-      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
-      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "closed_values_identity_emitter_layout"
+            "closed_values_sort_scratch_layout"
           ],
           "exports": [],
           "attributes": {
@@ -34674,100 +34471,6 @@
       ]
     },
     {
-      "module": "src/client_local_host/preparation_closed_values_shared_writers.mbt",
-      "sha256": "36af5bea60a5a37e9280adcde4794d08b139e982dc0f369058e45cbcfa379781",
-      "exports": [],
-      "operations": [
-        {
-          "name": "closed_values_writer_layout",
-          "declaration": "closed_values_writer_layout ( nodes : Int , depth : Int , count : Int , material_count : Int , material_bytes : Int , ) - > @ execution . PreparationRepresentationUnits ?"
-        }
-      ],
-      "responsibilityFacet": "primary",
-      "role": "common-semantics",
-      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
-      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "closed_values_writer_layout"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
-                "anchor": "test \"request parent reserves controls then grows"
-              },
-              {
-                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
-                "anchor": "test \"publication continues on the transferred body"
-              },
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
       "module": "src/client_local_host/preparation_closed_values_source.mbt",
       "sha256": "71ebb4deb30d5a2eaca777307407c5aef9a4461d1a31045b56d4026ea4a08628",
       "exports": [],
@@ -34949,6 +34652,619 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_capacity_refusal.mbt",
+      "sha256": "e009ace96ad0bfb0b9ce0544ac52e179aae0a88eaf8701ad848215e02c5f8d48",
+      "exports": [],
+      "operations": [
+        {
+          "name": "closed_values_preparation_capacity_refusal",
+          "declaration": "closed_values_preparation_capacity_refusal ( issue : ClientClosedValuesPreparationIssue , ) - > ( String , String , Int64 , Int64 , Int64 , Int64 ) ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "closed_values_preparation_capacity_refusal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_compilation_artifact_layout.mbt",
+      "sha256": "ea2d9a5549cd5cc78223b2720738fb60038c0d6bac92d00eed0fc1b26196fa05",
+      "exports": [],
+      "operations": [
+        {
+          "name": "compilation_canonical_emitter_layout",
+          "declaration": "compilation_canonical_emitter_layout ( depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "compilation_writer_ancestry_layout",
+          "declaration": "compilation_writer_ancestry_layout ( nodes : Int , depth : Int , largest_object : Int , count : Int , material_count : Int , bytes : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "compilation_canonical_emitter_layout",
+            "compilation_writer_ancestry_layout"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_compilation_metadata_layout.mbt",
+      "sha256": "648f597b6ae2e16b919ddebb78676034b64139715559b994f44c3c1925be50df",
+      "exports": [],
+      "operations": [
+        {
+          "name": "compilation_metadata_repeat_units",
+          "declaration": "compilation_metadata_repeat_units ( value : @ execution . PreparationRepresentationUnits , count : Int64 , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "compilation_metadata_repeat_units"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_compilation_parse_layout.mbt",
+      "sha256": "ea3468569db4fad90abba01baa915841f31f483b5758a33c9975275844117b34",
+      "exports": [],
+      "operations": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_compilation_shape_composition.mbt",
+      "sha256": "e2c4f5f23cba9ca283018bf7f63281056237cc8b487b0abade224ec1a1a5b130",
+      "exports": [],
+      "operations": [
+        {
+          "name": "compilation_scratch_max",
+          "declaration": "compilation_scratch_max ( a : @ execution . PreparationRepresentationUnits , b : @ execution . PreparationRepresentationUnits , ) - > @ execution . PreparationRepresentationUnits"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "compilation_scratch_max"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_program_selection.mbt",
+      "sha256": "877051c9bb829641eb7f3ed27333d2e598c78fb83210be57bad43b3ea17b6811",
+      "exports": [],
+      "operations": [
+        {
+          "name": "construct_installed_client_family",
+          "declaration": "construct_installed_client_family ( family : InstalledClientFamily , records : @ record_storage . Limits , capacity : @ execution . ExecutionCapacity , ) - > @ local . ManagedProvider"
+        },
+        {
+          "name": "installed_client_family_providers",
+          "declaration": "installed_client_family_providers ( capacity : @ execution . ExecutionCapacity , ) - > Array [ @ local . ManagedProvider ]"
+        },
+        {
+          "name": "selected_client_sga_providers",
+          "declaration": "selected_client_sga_providers ( generated : Array [ @ execution . GeneratedSequence ] , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , ) - > Array [ @ local . ManagedProvider ] ?"
+        },
+        {
+          "name": "selected_graph_delta_policy",
+          "declaration": "selected_graph_delta_policy ( ) - > @ local_sga_provider . DeltaPolicy"
+        },
+        {
+          "name": "selected_graph_limits",
+          "declaration": "selected_graph_limits ( ) - > @ graph_storage . Limits"
+        },
+        {
+          "name": "selected_graph_mean_policy",
+          "declaration": "selected_graph_mean_policy ( ) - > @ local_sga_provider . MeanPolicy"
+        },
+        {
+          "name": "selected_graph_snapshot_policy",
+          "declaration": "selected_graph_snapshot_policy ( ) - > @ local_sga_provider . SnapshotPolicy"
+        },
+        {
+          "name": "selected_graph_supported",
+          "declaration": "selected_graph_supported ( ) - > Bool"
+        },
+        {
+          "name": "selected_graph_union_policy",
+          "declaration": "selected_graph_union_policy ( ) - > @ local_sga_provider . UnionPolicy"
+        },
+        {
+          "name": "selected_record_limits",
+          "declaration": "selected_record_limits ( ) - > @ record_storage . Limits"
+        },
+        {
+          "name": "selected_sga_supported",
+          "declaration": "selected_sga_supported ( ) - > Bool"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "construct_installed_client_family",
+            "installed_client_family_providers",
+            "selected_client_sga_providers",
+            "selected_graph_delta_policy",
+            "selected_graph_limits",
+            "selected_graph_mean_policy",
+            "selected_graph_snapshot_policy",
+            "selected_graph_supported",
+            "selected_graph_union_policy",
+            "selected_record_limits",
+            "selected_sga_supported"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
               }
             ]
           }
