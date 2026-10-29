@@ -137,6 +137,14 @@ original read error, and retry performs no send or replacement-use acquisition.
 The existing RowRun separately controls capture and reservation release. No new
 reader Owner, Ledger, cleanup engine or GC/RSS receipt is introduced.
 
+Before describing a page, the callback subtracts successfully delivered rows
+from the original `maxTotalRows` bound. The same original cursor is sent with
+`page_size = min(pageSize, remaining)`. Zero remaining rows refuses before a
+new indexed authorization or physical send; an incomplete prefix never becomes
+a successful complete Source. The complete-response, identity, cursor, byte and
+cell checks remain separate. These rejection bounds neither reserve the reader
+graph nor supply installation material.
+
 If Source construction fails after the reader factory was created, the installed
 loader retains that same factory with its Site in the existing Host initialization
 cleanup. Its original retirement must complete before the Site can close.

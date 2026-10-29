@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/notion/site/user-list-read.mjs",
-      "sha256": "0b7ec8c94b96f45b8c067db3fde31001434fdbcd6512071e026fd499028b4561",
+      "sha256": "7b5c6d5586a6dcbd68d932e05a5d5f72aa8b8c6374378fc455df2756bf289376",
       "exports": [
         "NOTION_USER_LIST_API_VERSION",
         "NOTION_USER_LIST_OPERATION",
@@ -56,7 +56,8 @@
         {
           "name": "prepareNotionUserListPages/init:fetchPage/init:fetchPage",
           "parameters": [
-            "pageIndex"
+            "pageIndex",
+            "rowCount"
           ],
           "async": false
         },
