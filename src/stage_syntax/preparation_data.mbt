@@ -3,6 +3,7 @@
 /// Container shapes only: no expression/type/schema acceptance or permission.
 pub(all) struct ProgramPreparationData {
   operations : Int
+  effect_members : Int
   results : Int
   external_inputs : Int
   initial_fields : Int
@@ -14,6 +15,7 @@ pub(all) struct ProgramPreparationData {
 ///|
 priv struct ProgramPreparationState {
   mut operations : Int
+  mut effect_members : Int
   mut results : Int
   mut external_inputs : Int
   mut initial_fields : Int

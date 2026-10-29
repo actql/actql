@@ -38,12 +38,10 @@ pub fn[I] node_source_compute_preparation_limits(
     Ok(_) => ()
   }
   guard admission.ledger is Some(ledger) else { return Err(Unavailable) }
-  owner.transitioning = true
-  let outcome = check_node_managed_run_admission(admission, ledger).map(_ => {
-    ledger_limits(ledger)
-  })
-  owner.transitioning = false
-  outcome
+  // Immutable original policy DATA only. The immediately following adoption
+  // owns the reentrant current boundary and post-callback state fence. This
+  // getter cannot admit a Run or certify currentness/physical cleanup.
+  Ok(ledger_limits(ledger))
 }
 
 ///|

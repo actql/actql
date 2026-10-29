@@ -124,6 +124,74 @@ pub fn prepare_parsed_client_effect_computation(
     Ok(value) => value
     Err(issue) => return Err(Candidate(issue))
   }
+  prepare_checked_client_effect_computation_owned(
+    computation, limits, update_targets, store_targets, command_targets,
+  )
+}
+
+///|
+/// Continue the SAME original checked Effect computation. Mapping closure,
+/// target selection, lowering and graph construction keep their original
+/// owners and limits; there is no parser, checker or identity-based upgrade.
+pub fn prepare_checked_client_effect_computation(
+  computation : @checked.EffectComputationCandidate,
+  limits : ClientEffectComputationLimits,
+  update_targets? : @update_targets.UpdateTargetPublication? = None,
+  store_targets? : @update_targets.StoreTargetPublication? = None,
+  command_targets? : @update_targets.CommandTargetPublication? = None,
+) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
+  if command_targets is Some(publication) &&
+    !physical_equal(
+      @checked.effect_computation_environment(computation),
+      @update_targets.command_target_publication_environment(publication),
+    ) {
+    return Err(TargetSelection(ForeignEnvironment))
+  }
+  prepare_checked_client_effect_computation_owned(
+    computation, limits, update_targets, store_targets, command_targets,
+  )
+}
+
+///|
+/// Completed original lowering Usage only, not complete binding/Graph work.
+pub fn observe_prepare_checked_client_effect_computation(
+  computation : @checked.EffectComputationCandidate,
+  limits : ClientEffectComputationLimits,
+  update_targets? : @update_targets.UpdateTargetPublication? = None,
+  store_targets? : @update_targets.StoreTargetPublication? = None,
+  command_targets? : @update_targets.CommandTargetPublication? = None,
+) -> (
+  Result[PreparedClientEffectComputation, ClientEffectComputationIssue],
+  Int64,
+) {
+  if command_targets is Some(publication) &&
+    !physical_equal(
+      @checked.effect_computation_environment(computation),
+      @update_targets.command_target_publication_environment(publication),
+    ) {
+    return (Err(TargetSelection(ForeignEnvironment)), 0L)
+  }
+  let work = Ref(0L)
+  let result = prepare_checked_client_effect_computation_owned(
+    computation,
+    limits,
+    update_targets,
+    store_targets,
+    command_targets,
+    lowering_work_out=Some(work),
+  )
+  (result, work.val)
+}
+
+///|
+fn prepare_checked_client_effect_computation_owned(
+  computation : @checked.EffectComputationCandidate,
+  limits : ClientEffectComputationLimits,
+  update_targets : @update_targets.UpdateTargetPublication?,
+  store_targets : @update_targets.StoreTargetPublication?,
+  command_targets : @update_targets.CommandTargetPublication?,
+  lowering_work_out? : Ref[Int64]? = None,
+) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
   let mappings = match
     @environment.check_mapping_contract_shapes(
       @checked.effect_computation_environment(computation),
@@ -159,6 +227,7 @@ pub fn prepare_parsed_client_effect_computation(
       limits.program.lowering,
       max_parameters=limits.program.max_parameters,
       max_parameter_name_bytes=limits.program.max_parameter_name_bytes,
+      lowering_work_out~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Stage(issue))
@@ -189,12 +258,14 @@ pub fn prepare_parsed_client_effect_computation(
     normalization: None,
     normalization_custody: None,
     source_intent: None,
-    source: parsed,
-    supplied,
+    source: @checked.checked_source_program(checked),
+    supplied: @checked.effect_computation_supplied(computation),
     candidate,
     sequence_preparation_demand,
     graph,
-    check_environment_cid: @checked.checking_environment_cid(environment),
+    check_environment_cid: @environment.cid(
+      @checked.effect_computation_environment(computation),
+    ),
   })
 }
 

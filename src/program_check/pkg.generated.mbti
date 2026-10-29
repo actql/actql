@@ -191,11 +191,15 @@ pub fn diagnostic_undeclared_parameter(CheckDiagnostic) -> String?
 
 pub fn effect_computation_catalog_references(EffectComputationCandidate) -> @check_environment.CatalogReferences
 
+pub fn effect_computation_checked_program(EffectComputationCandidate) -> CheckedProgram
+
 pub fn effect_computation_environment(EffectComputationCandidate) -> @check_environment.WireEnvironment
 
 pub fn effect_computation_headers(EffectComputationCandidate) -> @stage_syntax.EffectHeaders
 
 pub fn effect_computation_stage_results(EffectComputationCandidate) -> @stage_results.Checked
+
+pub fn effect_computation_supplied(EffectComputationCandidate) -> @decode_core.Cursor?
 
 pub fn effect_program_completion_free_inventory(EffectProgramStaticCandidate) -> Result[CompletionFreeInventory, CompletionFreeInventoryIssue]
 
@@ -461,6 +465,8 @@ pub fn numeric_slot_for_requirement(CheckedProgram, Int) -> GroupNumericSlot?
 
 pub fn observe_finish_parsed_check_registry(ParsedCheckRegistry) -> Result[(CheckOutcome, Int, Bool), ParsedCheckPreludeIssue]
 
+pub fn observe_finish_parsed_effect_check_registry(ParsedCheckRegistry) -> (Result[EffectComputationCandidate, EffectComputationIssue], Int, Bool)
+
 pub fn observe_parsed_check_carriers(ParsedCarriersInput) -> (Result[Unit, ParsedCatalogPreparationIssue], Int)
 
 pub fn observe_parsed_check_contents(ParsedContentsInput) -> (Result[Unit, ParsedCatalogPreparationIssue], Int)
@@ -482,6 +488,8 @@ pub fn observe_parsed_check_values(ParsedValuesInput) -> (Result[Unit, ParsedCat
 pub fn observe_parsed_check_views(ParsedViewsInput) -> (Result[Unit, ParsedCatalogPreparationIssue], Int)
 
 pub fn observe_parsed_source_context_input_geometry(ParsedSourceRegistration) -> @pipeline_check_context.SourceViewContextInputGeometry?
+
+pub fn observe_prepare_effect_computation_input(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, Int, Int, source_catalog? : PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> (Result[ParsedCheckInput, EffectComputationIssue], Int)
 
 pub fn parsed_carriers_construction_extent(ParsedCarriersInput) -> @check_environment.RegistryConstructionExtent
 
@@ -627,7 +635,7 @@ pub fn pivot_numeric_slots_operation(PivotNumericSlots) -> UnitOperationSource
 
 pub fn prepare_effect_computation_candidate(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, Int, Int, source_catalog? : PreparedSourceCatalog?) -> Result[EffectComputationCandidate, EffectComputationIssue]
 
-pub fn prepare_effect_computation_input(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, Int, Int, source_catalog? : PreparedSourceCatalog?) -> Result[ParsedCheckInput, EffectComputationIssue]
+pub fn prepare_effect_computation_input(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, Int, Int, source_catalog? : PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> Result[ParsedCheckInput, EffectComputationIssue]
 
 pub fn prepare_infer_input_source_policy(CheckedProgram, Int, Int, Int, Int, Int, Int) -> PublicationSourcePolicy? raise UnitBuildFailure
 
