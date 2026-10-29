@@ -1646,6 +1646,8 @@ pub fn measure_prepared_client_publication_plan_facts(PreparedClientProgram, Int
 
 pub fn measure_prepared_client_publication_witnesses(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationWitnessGeometry, ClientPublicationWitnessIssue]
 
+pub fn measure_prepared_client_result_graph_construction(PreparedClientProgram, Int, String, String, Int, Int, Int) -> Result[ClientResultGraphConstruction, ClientResultPlanPartsIssue]
+
 pub fn measure_prepared_client_result_plan(PreparedClientProgram, Int, Int, Int, Int) -> Result[(Int, Int, Int), ClientResultPlanIssue]
 
 pub fn measure_prepared_client_task_fragment_construction(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[((Int, Int, Int), (Int, Int, Int), (Int, Int, Int)), ClientTaskFragmentIssue]
@@ -3750,6 +3752,15 @@ type ClientResultDeliveryReceipts
 pub fn ClientResultDeliveryReceipts::count(Self) -> Int
 pub fn ClientResultDeliveryReceipts::is_collection(Self) -> Bool
 pub fn ClientResultDeliveryReceipts::matching_identities(Self, Int64, String) -> Result[Array[String], ClientResultDeliveryReceiptIssue]
+
+pub(all) struct ClientResultGraphConstruction {
+  pipeline : (Int, Int, Int)
+  node : (Int, Int, Int)
+  edge : (Int, Int, Int)
+  root : (Int, Int, Int)
+  parts : (Int, Int, Int)
+  direct_root : (Int, Int, Int)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ClientResultPlanAdmissionIssue {
   Issue(ClientResultPlanIssue)

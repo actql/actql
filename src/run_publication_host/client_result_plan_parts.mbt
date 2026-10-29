@@ -173,86 +173,7 @@ fn issue_client_result_plan_parts(
     _ => return Err(Encoding)
   }
   try {
-    @encode.begin_object(pipeline_writer)
-    @encode.key(pipeline_writer, "output")
-    @encode.string_value(pipeline_writer, output)
-    @encode.key(pipeline_writer, "sources")
-    @encode.begin_object(pipeline_writer)
-    @encode.key(pipeline_writer, "input_0")
-    @encode.begin_object(pipeline_writer)
-    @encode.key(pipeline_writer, "sort")
-    @encode.string_value(pipeline_writer, "relation")
-    @encode.end_object(pipeline_writer)
-    @encode.end_object(pipeline_writer)
-    @encode.key(pipeline_writer, "steps")
-    @encode.begin_array(pipeline_writer)
-    @encode.begin_object(pipeline_writer)
-    @encode.key(pipeline_writer, "id")
-    @encode.string_value(pipeline_writer, "projected")
-    @encode.key(pipeline_writer, "in")
-    @encode.begin_array(pipeline_writer)
-    @encode.string_value(pipeline_writer, "input_0")
-    @encode.end_array(pipeline_writer)
-    @encode.key(pipeline_writer, "op")
-    @encode.string_value(pipeline_writer, "REL.select")
-    @encode.key(pipeline_writer, "params")
-    @encode.begin_object(pipeline_writer)
-    @encode.key(pipeline_writer, "columns")
-    @encode.begin_array(pipeline_writer)
-    for field in @results.fields(@results.port_result(port)) {
-      @encode.string_value(pipeline_writer, field)
-    }
-    @encode.end_array(pipeline_writer)
-    @encode.end_object(pipeline_writer)
-    @encode.end_object(pipeline_writer)
-    if ordered {
-      @encode.begin_object(pipeline_writer)
-      @encode.key(pipeline_writer, "id")
-      @encode.string_value(pipeline_writer, "ordered")
-      @encode.key(pipeline_writer, "in")
-      @encode.begin_array(pipeline_writer)
-      @encode.string_value(pipeline_writer, "projected")
-      @encode.end_array(pipeline_writer)
-      @encode.key(pipeline_writer, "op")
-      @encode.string_value(pipeline_writer, "REL.orderByStable")
-      @encode.key(pipeline_writer, "params")
-      @encode.begin_object(pipeline_writer)
-      @encode.key(pipeline_writer, "by")
-      @encode.begin_array(pipeline_writer)
-      for index in 0..<@results.publication_term_count(order) {
-        let term = @results.publication_term_at(order, index).unwrap()
-        @encode.begin_object(pipeline_writer)
-        @encode.key(pipeline_writer, "dir")
-        @encode.string_value(
-          pipeline_writer,
-          match @results.publication_term_direction(term) {
-            @order.Asc => "asc"
-            @order.Desc => "desc"
-          },
-        )
-        @encode.key(pipeline_writer, "field")
-        @encode.string_value(
-          pipeline_writer,
-          @schema.reference_name(@results.publication_term_field(term)),
-        )
-        @encode.key(pipeline_writer, "nulls")
-        @encode.string_value(
-          pipeline_writer,
-          match @results.publication_term_nulls(term) {
-            @order.First => "first"
-            @order.Last => "last"
-          },
-        )
-        @encode.end_object(pipeline_writer)
-      }
-      @encode.end_array(pipeline_writer)
-      @encode.end_object(pipeline_writer)
-      @encode.end_object(pipeline_writer)
-    }
-    @encode.end_array(pipeline_writer)
-    @encode.key(pipeline_writer, "version")
-    @encode.string_value(pipeline_writer, "aoa-pipeline/0.1")
-    @encode.end_object(pipeline_writer)
+    emit_client_result_projection_pipeline(pipeline_writer, port)
     guard parse_plan_identity_value(
         @encode.finish(pipeline_writer),
         max_wire_bytes,
@@ -268,46 +189,28 @@ fn issue_client_result_plan_parts(
     let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
     @encode.begin_object(writer)
     @encode.key(writer, "node")
-    @encode.begin_object(writer)
-    @encode.key(writer, "input_contracts")
-    @encode.begin_object(writer)
-    @encode.key(writer, "input_0")
-    @encode.string_value(writer, producer_contract)
-    @encode.end_object(writer)
-    @encode.key(writer, "kind")
-    @encode.string_value(writer, "aoa_fragment")
-    @encode.key(writer, "logical_cid")
-    @encode.string_value(writer, logical_cid)
-    @encode.key(writer, "node_id")
-    @encode.string_value(writer, node_id)
-    @encode.key(writer, "output_contracts")
-    @encode.begin_object(writer)
-    @encode.key(writer, output)
-    @encode.string_value(writer, plan.row_contract_cid)
-    @encode.end_object(writer)
-    @encode.key(writer, "pipeline")
-    @canonical.emit_value(pipeline, writer)
-    @encode.end_object(writer)
+    emit_client_result_projection_node(
+      writer,
+      producer_contract,
+      logical_cid,
+      node_id,
+      output,
+      plan.row_contract_cid,
+      pipeline,
+      @canonical.emit_value,
+      (value, writer) => @encode.string_value(writer, value),
+    )
     @encode.key(writer, "edge")
-    @encode.begin_object(writer)
-    @encode.key(writer, "carrier")
-    @encode.string_value(writer, "relation")
-    @encode.key(writer, "contract_cid")
-    @encode.string_value(writer, producer_contract)
-    @encode.key(writer, "from")
-    emit_result_plan_ref(writer, producer_node, producer_port)
-    @encode.key(writer, "to")
-    emit_result_plan_ref(writer, node_id, "input_0")
-    @encode.end_object(writer)
+    emit_client_result_projection_edge(
+      writer,
+      producer_contract,
+      producer_node,
+      producer_port,
+      node_id,
+      (value, writer) => @encode.string_value(writer, value),
+    )
     @encode.key(writer, "root")
-    @encode.begin_object(writer)
-    @encode.key(writer, "name")
-    @encode.string_value(writer, plan.result_name)
-    @encode.key(writer, "ref")
-    emit_result_plan_ref(writer, node_id, output)
-    @encode.key(writer, "role")
-    @encode.string_value(writer, "requested_result")
-    @encode.end_object(writer)
+    emit_client_requested_result_root(writer, plan.result_name, node_id, output)
     @encode.end_object(writer)
     guard parse_plan_identity_value(
         @encode.finish(writer),
@@ -330,4 +233,168 @@ fn issue_client_result_plan_parts(
   } catch {
     _ => Err(Encoding)
   }
+}
+
+///|
+// One field definition for actual publication projection and construction
+// geometry. The checked port owns authored fields and the exact ordering law.
+fn emit_client_result_projection_pipeline(
+  writer : @encode.Writer,
+  port : @results.ResultPort,
+) -> Unit raise @encode.EncodeFailure {
+  let order = @results.port_order(port)
+  let ordered = @results.publication_term_count(order) != 0
+  let output = if ordered { "ordered" } else { "projected" }
+  @encode.begin_object(writer)
+  @encode.key(writer, "output")
+  @encode.string_value(writer, output)
+  @encode.key(writer, "sources")
+  @encode.begin_object(writer)
+  @encode.key(writer, "input_0")
+  @encode.begin_object(writer)
+  @encode.key(writer, "sort")
+  @encode.string_value(writer, "relation")
+  @encode.end_object(writer)
+  @encode.end_object(writer)
+  @encode.key(writer, "steps")
+  @encode.begin_array(writer)
+  @encode.begin_object(writer)
+  @encode.key(writer, "id")
+  @encode.string_value(writer, "projected")
+  @encode.key(writer, "in")
+  @encode.begin_array(writer)
+  @encode.string_value(writer, "input_0")
+  @encode.end_array(writer)
+  @encode.key(writer, "op")
+  @encode.string_value(writer, "REL.select")
+  @encode.key(writer, "params")
+  @encode.begin_object(writer)
+  @encode.key(writer, "columns")
+  @encode.begin_array(writer)
+  for field in @results.fields(@results.port_result(port)) {
+    @encode.string_value(writer, field)
+  }
+  @encode.end_array(writer)
+  @encode.end_object(writer)
+  @encode.end_object(writer)
+  if ordered {
+    @encode.begin_object(writer)
+    @encode.key(writer, "id")
+    @encode.string_value(writer, "ordered")
+    @encode.key(writer, "in")
+    @encode.begin_array(writer)
+    @encode.string_value(writer, "projected")
+    @encode.end_array(writer)
+    @encode.key(writer, "op")
+    @encode.string_value(writer, "REL.orderByStable")
+    @encode.key(writer, "params")
+    @encode.begin_object(writer)
+    @encode.key(writer, "by")
+    @encode.begin_array(writer)
+    for index in 0..<@results.publication_term_count(order) {
+      let term = @results.publication_term_at(order, index).unwrap()
+      @encode.begin_object(writer)
+      @encode.key(writer, "dir")
+      @encode.string_value(
+        writer,
+        match @results.publication_term_direction(term) {
+          @order.Asc => "asc"
+          @order.Desc => "desc"
+        },
+      )
+      @encode.key(writer, "field")
+      @encode.string_value(
+        writer,
+        @schema.reference_name(@results.publication_term_field(term)),
+      )
+      @encode.key(writer, "nulls")
+      @encode.string_value(
+        writer,
+        match @results.publication_term_nulls(term) {
+          @order.First => "first"
+          @order.Last => "last"
+        },
+      )
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    @encode.end_object(writer)
+    @encode.end_object(writer)
+  }
+  @encode.end_array(writer)
+  @encode.key(writer, "version")
+  @encode.string_value(writer, "aoa-pipeline/0.1")
+  @encode.end_object(writer)
+}
+
+///|
+fn[P, C] emit_client_result_projection_node(
+  writer : @encode.Writer,
+  producer_contract : C,
+  logical_cid : C,
+  node_id : String,
+  output : String,
+  row_contract_cid : C,
+  pipeline : P,
+  emit_pipeline : (P, @encode.Writer) -> Unit raise @encode.EncodeFailure,
+  emit_cid : (C, @encode.Writer) -> Unit raise @encode.EncodeFailure,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "input_contracts")
+  @encode.begin_object(writer)
+  @encode.key(writer, "input_0")
+  emit_cid(producer_contract, writer)
+  @encode.end_object(writer)
+  @encode.key(writer, "kind")
+  @encode.string_value(writer, "aoa_fragment")
+  @encode.key(writer, "logical_cid")
+  emit_cid(logical_cid, writer)
+  @encode.key(writer, "node_id")
+  @encode.string_value(writer, node_id)
+  @encode.key(writer, "output_contracts")
+  @encode.begin_object(writer)
+  @encode.key(writer, output)
+  emit_cid(row_contract_cid, writer)
+  @encode.end_object(writer)
+  @encode.key(writer, "pipeline")
+  emit_pipeline(pipeline, writer)
+  @encode.end_object(writer)
+}
+
+///|
+fn[C] emit_client_result_projection_edge(
+  writer : @encode.Writer,
+  producer_contract : C,
+  producer_node : String,
+  producer_port : String,
+  node_id : String,
+  emit_cid : (C, @encode.Writer) -> Unit raise @encode.EncodeFailure,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "carrier")
+  @encode.string_value(writer, "relation")
+  @encode.key(writer, "contract_cid")
+  emit_cid(producer_contract, writer)
+  @encode.key(writer, "from")
+  emit_result_plan_ref(writer, producer_node, producer_port)
+  @encode.key(writer, "to")
+  emit_result_plan_ref(writer, node_id, "input_0")
+  @encode.end_object(writer)
+}
+
+///|
+fn emit_client_requested_result_root(
+  writer : @encode.Writer,
+  result_name : String,
+  node_id : String,
+  output : String,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "name")
+  @encode.string_value(writer, result_name)
+  @encode.key(writer, "ref")
+  emit_result_plan_ref(writer, node_id, output)
+  @encode.key(writer, "role")
+  @encode.string_value(writer, "requested_result")
+  @encode.end_object(writer)
 }

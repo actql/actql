@@ -2837,6 +2837,22 @@ bindings, protocol, wire and parsed representations before construction.
 
 ### Checked publication construction input
 
+The publication projection pipeline, its fragment node and edge, and requested
+Result roots each have one field serializer for real construction and text-free
+geometry. Variable field names and publication-order terms come from the
+original checked Result port. Source sorting alone does not invent an authored
+Result-order declaration. The direct-root issuer still performs its original
+producer/target/schema/contract checks, and the transformation issuer retains
+the complete original correspondence checks before emitting either branch.
+
+Potential projection and direct-root measurements do not select a graph
+branch. A compiler quote uses the applicable original branch or a proved upper
+envelope; the actual graph issuer remains responsible for selection. Geometry
+includes the separate pipeline wire/tree and the containing projection parts,
+so the final node's size cannot stand in for that construction overlap. The
+original hash/canonical readers and independent saved-root admission remain
+separate; no Result Plan, CID, wire or parsed tree is issued by measurement.
+
 Publication construction geometry follows the original checked Unit, Result
 port and row/byte scope order. Resolved limits use the capacity owner's retained
 measurement. Bindings share the real argument projection, exact subject/unit/
