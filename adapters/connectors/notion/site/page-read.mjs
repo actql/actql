@@ -15,6 +15,42 @@ const fields=['maxRequestBytes','maxResponseBytes','maxTargetBytes','maxNodes','
   'maxIdentityBytes','maxTextBytes','maxWireBytes','maxWireNodes','maxWireDepth'];
 const ports=['notionProjectPage','notionPageMetadataJson'];
 
+function pagePath(pageId,limits){
+  if(typeof pageId!=='string'||!pageId.isWellFormed()||pageId.length===0||pageId==='.'||pageId==='..')fail('InvalidNotionPageCoordinate');
+  if(pageId.length>limits.maxTargetBytes)fail('NotionPageTargetLimit');
+  const path='/v1/pages/'+encodeURIComponent(pageId);
+  if(Buffer.byteLength(path)>limits.maxTargetBytes)fail('NotionPageTargetLimit');
+  return path;
+}
+
+function projectPage(response,pageId,b,provider,receiver,apply){
+  if(!response.accepted||response.statusCode!==200)fail('NotionPageReadRejected');
+  const page=checked(apply(provider.notionProjectPage,receiver,[response.body,pageId,
+    b.maxResponseBytes,b.maxNodes,b.maxDepth,b.maxDataSources,b.maxProperties,
+    b.maxIdentityBytes,b.maxNameBytes,b.maxTextBytes]));
+  const metadataWire=checked(apply(provider.notionPageMetadataJson,receiver,
+    [page,b.maxWireBytes,b.maxWireNodes,b.maxWireDepth]));
+  return Object.freeze({page,metadataWire});
+}
+
+// Standard shared-reader callbacks for one original page observation. The
+// consumer retains the typed page and metadata DATA with its actual response
+// charge. No transport, Credential, cancellation or cleanup owner is created.
+export function prepareNotionPageReadPages({moon,pageId,limits},applySynchronousProjection){
+  if(typeof applySynchronousProjection!=='function'||!limits||typeof limits!=='object')fail('InvalidNotionPageRead');
+  const provider=Object.freeze(Object.fromEntries(ports.map(name=>[name,moon?.[name]])));
+  const bound=Object.freeze({...limits});
+  if(ports.some(name=>typeof provider[name]!=='function')||
+    !fields.every(name=>positive(bound[name]))||
+    !['maxDataSources','maxProperties','maxNameBytes'].every(name=>count(bound[name])))fail('InvalidNotionPageRead');
+  const path=pagePath(pageId,bound);
+  return Object.freeze({
+    fetchPage(){return{method:'GET',path,headers:[['accept','application/json'],
+      ['notion-version',NOTION_PROPERTY_READ_API_VERSION]],responseHeaders:[]};},
+    decodePage(response){return{rows:[projectPage(response,pageId,bound,provider,moon,applySynchronousProjection)],done:true};},
+  });
+}
+
 export class NotionPageReadFailure extends Error{
   constructor(cause,observation,responseCharge){
     super('NotionPageReadFailed',{cause});this.code='NotionPageReadFailed';
@@ -33,10 +69,7 @@ function prepare({moon,pageId,initialAuthorization,credential,current,chargeResp
     !['maxDataSources','maxProperties','maxNameBytes'].every(name=>count(context.limits[name])))fail('InvalidNotionPageRead');
   const scope=invocationScopeFields(context.scope,context.credential.control);
   if(scope.operation!==NOTION_PAGE_READ_OPERATION)fail('ForeignNotionPageOperation');
-  if(typeof pageId!=='string'||!pageId.isWellFormed()||pageId.length===0||pageId==='.'||pageId==='..')fail('InvalidNotionPageCoordinate');
-  if(pageId.length>context.limits.maxTargetBytes)fail('NotionPageTargetLimit');
-  const path='/v1/pages/'+encodeURIComponent(pageId);
-  if(Buffer.byteLength(path)>context.limits.maxTargetBytes)fail('NotionPageTargetLimit');
+  const path=pagePath(pageId,context.limits);
   const request=Object.freeze({operation:NOTION_PAGE_READ_OPERATION,pageId,path,method:'GET',
     resourceOrigin:scope.resourceOrigin});
   return Object.freeze({provider,providerReceiver:moon,context,request,signal});
@@ -54,12 +87,7 @@ async function readPage(state){
       responseHeaders:[],maxRequestBytes:b.maxRequestBytes,maxResponseBytes:b.maxResponseBytes,signal});
     state.charge=await context.callbacks.chargeResponse(state.observation.body);
     await verify();
-    if(!state.observation.accepted||state.observation.statusCode!==200)fail('NotionPageReadRejected');
-    const page=checked(Reflect.apply(provider.notionProjectPage,providerReceiver,[state.observation.body,request.pageId,
-      b.maxResponseBytes,b.maxNodes,b.maxDepth,b.maxDataSources,b.maxProperties,
-      b.maxIdentityBytes,b.maxNameBytes,b.maxTextBytes]));
-    const metadataWire=checked(Reflect.apply(provider.notionPageMetadataJson,providerReceiver,
-      [page,b.maxWireBytes,b.maxWireNodes,b.maxWireDepth]));
+    const {page,metadataWire}=projectPage(state.observation,request.pageId,b,provider,providerReceiver,Reflect.apply);
     await verify();
     await context.callbacks.consumeObservation(state.charge);
     await verify();

@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {checked} from '../host-common/runtime-result.mjs';
 import {createInstalledCredentialSourceReader} from './installed-credential-source-reader.mjs';
 import {credentialInvocationBindingKeys} from '../host-common/credential-scope-fields.generated.mjs';
 import {prepareNotionUserListPages, NOTION_USER_LIST_OPERATION, NOTION_USER_LIST_API_VERSION}
   from '../connectors/notion/site/user-list-read.mjs';
 import {prepareCalendarListPages, CALENDAR_LIST_OPERATION}
   from '../connectors/calendar/site/calendar-list-read.mjs';
+import {prepareNotionPageReadPages,NOTION_PAGE_READ_OPERATION}
+  from '../connectors/notion/site/page-read.mjs';
 
 // Real provider namespaces and the shared Host reader, with explicit Credential,
 // current, accounting and transport ports. This is not a normal installation,
@@ -147,4 +150,63 @@ test('real Notion projection keeps remaining-page bounds without reading beyond 
     assert.equal(capped.reader.observe().phase,'failed');
     assert.equal(capped.reader.observe().cleanupConfirmed,false);
   }finally{capped.close();}
+});
+
+const pageLimits=Object.freeze({maxRequestBytes:1024,maxResponseBytes:16384,maxTargetBytes:1024,
+  maxNodes:1024,maxDepth:20,maxDataSources:8,maxProperties:16,maxIdentityBytes:128,
+  maxNameBytes:128,maxTextBytes:2048,maxWireBytes:4096,maxWireNodes:128,maxWireDepth:8});
+const originalPage=()=>({object:'page',id:'page',parent:{type:'data_source_id',data_source_id:'s',database_id:'db'},
+  url:'https://notion.example/page',created_by:{object:'user',id:'creator'},last_edited_by:{object:'user',id:'editor'},
+  created_time:'2026-10-17T10:00:00+09:00',last_edited_time:'2026-10-17T00:00:00.123000Z',in_trash:false,
+  properties:{title:{id:'title',type:'title',title:[]}}});
+function openPage(wire,{statusCode=200,limits=pageLimits,afterCharge}={}){
+  const operation=NOTION_PAGE_READ_OPERATION,body=Buffer.from(wire),requests=[],charges=[],delivered=[];
+  const scope=Object.freeze({...Object.fromEntries(credentialInvocationBindingKeys.map(name=>[name,name])),
+    operation,resourceOrigin:'https://provider.invalid'});
+  const credential={control:{identity:()=> 'explicit-page-grant'},journal:{
+    claim(_cid,useId){return{use:{},record:{grantCid:'explicit-page-grant',useId},replayed:false};},
+    authorize(){},finish(){}},resolveSecret:()=> 'explicit-secret'};
+  const site={credential,referenceCurrent(){assert.equal(this,site);return true;},async callResource(input){
+    assert.equal(this,site);requests.push(input.operations.get(operation));assert.equal(requests.length,1);
+    return{accepted:statusCode===200,statusCode,body};}};
+  const factory=createInstalledCredentialSourceReader({capacity:{},site,operation,maxResponses:1,
+    maxResponseBytes:limits.maxResponseBytes,maxSecretBytes:64,
+    preparePageReader(_options,apply){return prepareNotionPageReadPages({moon:notion,pageId:'page',limits},apply);}});
+  const reader=factory.prepare({resource:'page',columns:[],async verifyRead(){},
+    authorizationFor(index){assert.equal(index,0);return{grant:{},scope,useId:'original-page'};},
+    chargePage(value){assert.equal(value,body);const charge=Object.freeze({body:value});charges.push(charge);afterCharge?.(reader);return charge;},
+    consumePage(rows,{charge}){assert.equal(charge,charges[0]);delivered.push(...rows);}});
+  return{reader,factory,body,requests,charges,delivered,close(){reader.requestStop();
+    assert.equal(reader.observe().cleanupConfirmed,true);assert.equal(factory.retire(),true);}};
+}
+
+test('real Notion page projection uses the shared owner and preserves exact original page metadata',async()=>{
+  const wire=' \r\n'+JSON.stringify(originalPage())+'\n',f=openPage(wire);
+  try{
+    assert.deepEqual(await f.reader.read(),{pages:1,rowCount:1});
+    assert.equal(f.requests[0].method,'GET');assert.equal(f.requests[0].path,'/v1/pages/page');
+    assert(f.requests[0].headers.some(([name,value])=>name==='notion-version'&&value===NOTION_USER_LIST_API_VERSION));
+    assert.equal(f.delivered.length,1);const{page,metadataWire}=f.delivered[0],metadata=JSON.parse(metadataWire);
+    assert.equal(checked(notion.notionPageOriginalJson(page,16384)),wire);
+    assert.deepEqual(metadata.parent,{type:'data_source_id',data_source_id:'s',database_id:'db'});
+    assert.equal(metadata.resource,'page');assert.equal(metadata.version,'2026-10-17T00:00:00.123000Z');
+    assert.equal(metadata.created_time,'2026-10-17T01:00:00.000Z');assert.equal(metadata.last_edited_time,'2026-10-17T00:00:00.123Z');
+    assert.equal(f.charges.length,1);assert.equal(f.reader.observe().receivedBodyBytes,BigInt(f.body.length));
+    assert.equal(f.reader.observe().cleanupConfirmed,false);
+  }finally{f.close();}
+});
+
+test('real Notion page projection keeps refusal and post-charge stop under the same shared cleanup',async()=>{
+  for(const mode of ['identity','malformed','wire','rejected','stop']){
+    const wire=mode==='identity'?JSON.stringify({...originalPage(),id:'foreign'}):mode==='malformed'?'{not-json':JSON.stringify(originalPage());
+    const f=openPage(wire,{statusCode:mode==='rejected'?403:200,
+      limits:mode==='wire'?{...pageLimits,maxWireBytes:1}:pageLimits,
+      afterCharge:mode==='stop'?reader=>reader.requestStop():undefined});
+    try{
+      await assert.rejects(f.reader.read(),error=>mode==='rejected'?error.code==='NotionPageReadRejected':
+        mode==='stop'?error.name==='AbortError':error.code==='MoonBitHostFailure');
+      assert.equal(f.requests.length,1);assert.equal(f.charges.length,1);assert.equal(f.delivered.length,0);
+      assert.equal(f.charges[0].body,f.body);
+    }finally{f.close();}
+  }
 });
