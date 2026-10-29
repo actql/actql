@@ -41,7 +41,10 @@ export function restSourcePageReader({moon, source, decodePage}) {
     if (value !== undefined && (typeof value !== 'string' || !value.isWellFormed() ||
         Buffer.byteLength(value, 'utf8') > bound.maxCursorBytes)) fail('InvalidRestSourceCursor');
   };
-  return function preparePageReader() {
+  return function preparePageReader(_input, applySynchronousProjection) {
+    if (transform !== undefined && typeof applySynchronousProjection !== 'function') {
+      fail('RestSourceTransformOwnerUnavailable');
+    }
     let cursor;
     const cursors = new Set();
     return Object.freeze({
@@ -58,11 +61,10 @@ export function restSourcePageReader({moon, source, decodePage}) {
         if (remaining < 0) fail('RestSourceRowLimit');
         let page = project(response.body, items, nextPath, remaining);
         if (transform !== undefined) {
-          const value = transform(Object.freeze({...page}), transformContext);
-          if (typeof value?.then === 'function') {
-            void Promise.resolve(value).catch(() => {});
-            fail('InvalidRestSourceTransform');
-          }
+          // The SAME managed owner invokes and joins even an invalid async
+          // author computation. The invoker never enters the author DATA.
+          const value = applySynchronousProjection(transform, undefined,
+            [Object.freeze({...page}), transformContext]);
           if (value === null || typeof value !== 'object' ||
               typeof value.rowsWire !== 'string' ||
               Object.keys(value).some(key => !['rowsWire', 'nextCursor'].includes(key))) {

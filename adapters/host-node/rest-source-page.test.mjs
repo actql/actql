@@ -23,7 +23,7 @@ function fixture({pages = [], decodePage, limits = {}, pagination} = {}) {
     clientProgramRowSourceJsonPageNextCursor: page => ({$tag: 1, _0: page.next}),
   };
   const prepare = restSourcePageReader({moon, source, decodePage});
-  return {reader: prepare(), calls, moon, source};
+  return {reader: prepare(undefined, (fn, receiver, args) => Reflect.apply(fn, receiver, args)), calls, moon, source};
 }
 const response = body => ({accepted: true, statusCode: 200, body});
 const context = (pageIndex, rowCount) => ({pageIndex, rowCount, receivedBodyBytes: 0n});
@@ -118,9 +118,10 @@ test('a changed transform wire is revalidated by the same Core and cannot author
   assert.equal(bad.calls.length, 1);
 });
 
-test('an asynchronous transform is refused without an unhandled rejection', async () => {
-  const body = Buffer.from('response'), original = new Error('original async author error');
-  const f = fixture({pages: [{body, wire: '[]', count: 0}], decodePage: () => Promise.reject(original)});
-  assert.throws(() => f.reader.decodePage(response(body), context(0, 0)), {code: 'InvalidRestSourceTransform'});
-  await new Promise(resolve => setImmediate(resolve));
+test('optional row transformation has no fallback outside its original managed owner', () => {
+  const f = fixture(); let calls = 0;
+  const prepare = restSourcePageReader({moon: f.moon, source: f.source,
+    decodePage() {calls++;return {rowsWire: '[]'};}});
+  assert.throws(() => prepare(), {code: 'RestSourceTransformOwnerUnavailable'});
+  assert.equal(calls, 0);
 });
