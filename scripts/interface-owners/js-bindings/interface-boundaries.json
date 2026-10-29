@@ -84127,7 +84127,7 @@
     {
       "module": "packages/coordinator-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "9c5b867af45297b71a23f392b30fbb97daa13ee29c38ceceacb8436d94e9f9c8",
+      "sha256": "a3a49743e4f3b4e61c6310b2dfe685ee35431c2064d8853776859858cceb9b51",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -84193,6 +84193,8 @@
         "payloadRecordOpaqueGeneration",
         "payloadRecordOpaqueOwnership",
         "payloadRequestCid",
+        "payloadRequestFacts",
+        "payloadRequestFromDurable",
         "payloadRequestFromOutput",
         "payloadRequestMaxBytes",
         "payloadTransitionDurableJson",
@@ -84894,6 +84896,34 @@
           "async": false
         },
         {
+          "name": "payloadRequestFacts",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "payloadRequestFacts/payloadRequestFacts",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "payloadRequestFacts/payloadRequestFacts#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "payloadRequestFacts/payloadRequestFacts#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "payloadTransitionDurableJson/payloadTransitionDurableJson",
           "parameters": [
             "transition"
@@ -85252,7 +85282,11 @@
       "contracts": [
         {
           "operations": [
-            "<module>"
+            "<module>",
+            "payloadRequestFacts",
+            "payloadRequestFacts/payloadRequestFacts",
+            "payloadRequestFacts/payloadRequestFacts#2",
+            "payloadRequestFacts/payloadRequestFacts#3"
           ],
           "exports": [
             "canRetireCancellationDelivery",
@@ -85276,6 +85310,8 @@
             "payloadRecordActualBytes",
             "payloadRecordDigest",
             "payloadRequestCid",
+            "payloadRequestFacts",
+            "payloadRequestFromDurable",
             "payloadRequestFromOutput",
             "payloadRequestMaxBytes",
             "payloadTransitionExpectedRevision",
@@ -85387,6 +85423,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "packages/coordinator-core/payload.test.mjs",
+                "anchor": "test('durable payload request projects its complete original tuple without changing pending state'"
               }
             ]
           }

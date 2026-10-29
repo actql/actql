@@ -67402,7 +67402,7 @@
     {
       "module": "packages/coordinator-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "13d776169d1f6f7fb2dcc5abbeb0166c087fca0525b0b7ecee081aaa7c02533c",
+      "sha256": "f4155c906bc16c6bba2f44d82f54ae80798d10633811b0e3ed24726c88b3e8ca",
       "role": "common-semantics",
       "owner": "Existing remote_coordinator_abi/Site/Bundle Owners; public same-process type projection",
       "exports": [
@@ -67503,6 +67503,8 @@
         "payloadRecordOpaqueGeneration",
         "payloadRecordOpaqueOwnership",
         "payloadRequestCid",
+        "payloadRequestFacts",
+        "payloadRequestFromDurable",
         "payloadRequestFromOutput",
         "payloadRequestMaxBytes",
         "payloadTransitionDurableJson",
@@ -68236,6 +68238,20 @@
           "result": "string"
         },
         {
+          "name": "payloadRequestFacts",
+          "parameters": [
+            "request: PayloadRequest"
+          ],
+          "result": "Readonly<{\n  storeAuthorityCid: string; publicationAttemptCid: string;\n  materialGenerationCid: string; resultDefinitionCid: string;\n  logicalRelationCid: string; resultSchemaCid: string;\n  orderingEvidenceCid: string; codecContractCid: string;\n  maxBytes: bigint; rowCount: bigint;\n}>"
+        },
+        {
+          "name": "payloadRequestFromDurable",
+          "parameters": [
+            "durable: DurablePayloadRecord"
+          ],
+          "result": "PayloadRequest"
+        },
+        {
           "name": "payloadRequestFromOutput",
           "parameters": [
             "durable: DurableOutputRecord"
@@ -68712,6 +68728,8 @@
             "payloadRecordOpaqueGeneration",
             "payloadRecordOpaqueOwnership",
             "payloadRequestCid",
+            "payloadRequestFacts",
+            "payloadRequestFromDurable",
             "payloadRequestFromOutput",
             "payloadRequestMaxBytes",
             "payloadTransitionDurableJson",
@@ -68859,6 +68877,8 @@
             "payloadRecordOpaqueGeneration",
             "payloadRecordOpaqueOwnership",
             "payloadRequestCid",
+            "payloadRequestFacts",
+            "payloadRequestFromDurable",
             "payloadRequestFromOutput",
             "payloadRequestMaxBytes",
             "payloadTransitionDurableJson",
@@ -69077,6 +69097,10 @@
               {
                 "path": "packages/coordinator-core/holder-terminal.test.mjs",
                 "anchor": "test('holder terminal facade consumes the original shared canonical report in one namespace', () => {"
+              },
+              {
+                "path": "packages/coordinator-core/payload.test.mjs",
+                "anchor": "test('durable payload request projects its complete original tuple without changing pending state'"
               }
             ]
           }

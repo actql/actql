@@ -9,6 +9,39 @@ pub fn coordinator_payload_request_from_output(
 }
 
 ///|
+/// Historical request DATA from this already admitted durable payload record.
+/// Neither this projection nor a Sealed label proves current Store custody,
+/// publication, read authority, physical completion or permission to resend.
+#export_name("coordinatorPayloadRequestFromDurable")
+pub fn coordinator_payload_request_from_durable(
+  durable : @payload.DurablePublicationPayloadRecord,
+) -> @payload.PublicationPayloadRequest {
+  @payload.durable_publication_payload_record_request(durable)
+}
+
+///|
+/// Borrow the existing request's complete publication tuple without encoding,
+/// parsing, hashing or another admission. The caller still checks the exact
+/// committed binding and observes the actual sealed Store generation.
+#export_name("coordinatorPayloadRequestFacts")
+pub fn coordinator_payload_request_facts(
+  request : @payload.PublicationPayloadRequest,
+) -> Array[String] {
+  [
+    @payload.publication_payload_request_store_authority(request),
+    @payload.publication_payload_request_attempt(request),
+    @payload.publication_payload_material_identity(request),
+    @payload.publication_payload_request_result_definition(request),
+    @payload.publication_payload_request_logical_relation(request),
+    @payload.publication_payload_request_schema(request),
+    @payload.publication_payload_request_ordering_evidence(request),
+    @payload.publication_payload_request_codec(request),
+    @payload.publication_payload_request_max_bytes(request).to_string(),
+    @payload.publication_payload_request_row_count(request).to_string(),
+  ]
+}
+
+///|
 #export_name("coordinatorPayloadRequestCid")
 pub fn coordinator_payload_request_cid(
   request : @payload.PublicationPayloadRequest,

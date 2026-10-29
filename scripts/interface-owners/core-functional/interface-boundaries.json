@@ -16192,7 +16192,7 @@
     },
     {
       "module": "packages/coordinator-core/index.mjs",
-      "sha256": "9c5b867af45297b71a23f392b30fbb97daa13ee29c38ceceacb8436d94e9f9c8",
+      "sha256": "a3a49743e4f3b4e61c6310b2dfe685ee35431c2064d8853776859858cceb9b51",
       "role": "physical-io",
       "exports": [
         "acceptedSiteOutput",
@@ -16257,6 +16257,8 @@
         "payloadRecordOpaqueGeneration",
         "payloadRecordOpaqueOwnership",
         "payloadRequestCid",
+        "payloadRequestFacts",
+        "payloadRequestFromDurable",
         "payloadRequestFromOutput",
         "payloadRequestMaxBytes",
         "payloadTransitionDurableJson",
@@ -16958,6 +16960,34 @@
           "async": false
         },
         {
+          "name": "payloadRequestFacts",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "payloadRequestFacts/payloadRequestFacts",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "payloadRequestFacts/payloadRequestFacts#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "payloadRequestFacts/payloadRequestFacts#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "payloadTransitionDurableJson/payloadTransitionDurableJson",
           "parameters": [
             "transition"
@@ -17407,6 +17437,10 @@
             "payloadRecordDurableJson/payloadRecordDurableJson",
             "payloadRecordOpaqueGeneration/payloadRecordOpaqueGeneration",
             "payloadRecordOpaqueOwnership/payloadRecordOpaqueOwnership",
+            "payloadRequestFacts",
+            "payloadRequestFacts/payloadRequestFacts",
+            "payloadRequestFacts/payloadRequestFacts#2",
+            "payloadRequestFacts/payloadRequestFacts#3",
             "payloadTransitionDurableJson/payloadTransitionDurableJson",
             "pollCancelJson/pollCancelJson",
             "pollDispatchJson/pollDispatchJson",
@@ -17517,6 +17551,8 @@
             "payloadRecordOpaqueGeneration",
             "payloadRecordOpaqueOwnership",
             "payloadRequestCid",
+            "payloadRequestFacts",
+            "payloadRequestFromDurable",
             "payloadRequestFromOutput",
             "payloadRequestMaxBytes",
             "payloadTransitionDurableJson",
@@ -17695,6 +17731,10 @@
               {
                 "path": "packages/coordinator-core/holder-terminal.test.mjs",
                 "anchor": "test('holder terminal facade consumes the original shared canonical report in one namespace', () => {"
+              },
+              {
+                "path": "packages/coordinator-core/payload.test.mjs",
+                "anchor": "test('durable payload request projects its complete original tuple without changing pending state'"
               }
             ]
           }
