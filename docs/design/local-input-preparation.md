@@ -2127,7 +2127,7 @@ body through the existing nominal borrower. Source-free Run adoption consumes
 the original initial admission, input, prepared body and installed Plan. It
 never opens a replacement Run Root. Captured Source and Effect retain their
 separate original Plan and request contracts; a source-free body cannot stand
-in for those unfinished ordinary connections.
+in for them.
 
 The synchronous adoption claims its two real body holders before one original
 external currentness callback. Its post-callback fence checks the same original
@@ -2205,3 +2205,36 @@ nominal input/purpose/phase checks. It supplies no currentness or permission
 witness. The following atomic Run adoption performs the real external current
 callback and its original post-callback reservation/stopping fence once.
 There is no reusable currentness proof or additional cleanup owner.
+
+### Captured Source Plan on the original Pure body
+
+A captured Pure computation retains its already selected original Source
+requirements, Row acquisitions or Native capture envelopes, complete generated
+sequences and configured Compute suffix before Run adoption. The original
+occurrence, checked Program and bound invocation context must match; equal CIDs
+or reconstructed declarations cannot substitute. Source and Effect use one
+Compute configuration/capacity constructor. Source acquisition transport and
+the actual configured task overlap remain part of the same resulting limits.
+
+The Request's existing prepared-Program body and its two Resource holders own
+this immutable Plan dependency. A manager borrows that same body. The captured
+Run keeps the original Plan in its existing preparation fields, without another
+Run kind, admission, allocator or cleanup engine. Its read constructor attaches
+the retained original Row acquisition directly. The acquisition already owns
+its admitted declaration; reading this Plan does not restore a declaration,
+prepare another query or regenerate a sequence.
+
+Ledger binding first checks immutable original references, then crosses the
+existing current callback and post-callback reentry fence once. Host opening
+uses the same retained configuration and accounted captured sources. It never
+calls the provider factory again or returns a successful absent Host. The
+original DAG construction error remains typed; an issued DAG whose later
+configuration fails stays on the Run for cleanup. Live reads, manager borrows
+and physical duties still block retirement. Clearing the Plan alias does not
+refund spent attempts, transfer or preparation work.
+
+The normal Host must retain and back its provider, reader, credentials, response
+and failed-child overlap before these constructors. This Core connection does
+not supply external authority or physical backing. Content/serialization and
+Model boundaries retain their separate existing contracts and cannot be
+silently promoted into this Pure Source purpose.

@@ -1437,6 +1437,14 @@ export async function createInstalledRowSource({moon, declaration,
       // prepare another equal requirement or attach a replacement acquisition.
       checked(moon.clientProgramInstalledEffectManagedRunCheck(managedRun, checkedOwner, requestIdentity));
       planned = checked(moon.clientProgramInstalledEffectManagedSourceRead(managedRun, declaration, occurrence.task));
+    } else if (managedRun !== undefined && originalReader !== undefined) {
+      if (typeof moon.clientProgramInstalledManagedCaptureSourceRead !== 'function') {
+        fail('InstalledSourcePlanUnavailable');
+      }
+      // Pure provider reads consume the SAME original Plan acquisition too.
+      // Missing retained-plan support cannot fall back to another equal query.
+      planned = checked(moon.clientProgramInstalledManagedCaptureSourceRead(
+        managedRun, checkedOwner, requestIdentity, declaration, occurrence.task));
     }
     const requirement = planned === undefined ? prepareOriginalSourceQuery({moon,
       preparedProgram, preparedEffect, stage: occurrence.stage, input: occurrence.input,

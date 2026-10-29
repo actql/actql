@@ -69,6 +69,47 @@ pub fn[I] begin_preparation_owned_installed_managed_run(
 }
 
 ///|
+/// Captured Pure preparation keeps the same prepared body and two original
+/// Resource holders. Its retained Source Plan belongs to these same Run fields.
+pub fn[I] begin_preparation_owned_installed_capture_run(
+  initial : @resources.NodePreparationAdmission[I],
+  input : I,
+  capacity : @resources.PreparationCapacity[
+    I,
+    @publication_host.PreparedClientProgram,
+  ],
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledManagedCapturePlan,
+) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
+  if !physical_equal(plan.prepared, prepared) ||
+    !physical_equal(plan.request, request) {
+    return Err(ForeignOriginal)
+  }
+  let limits = match
+    @resources.node_source_compute_preparation_limits(initial, input) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(value) => value
+  }
+  if !installed_effect_limits_fit(plan.limits, limits) {
+    return Err(InsufficientCapacity)
+  }
+  let (admission, ledger, retirement, holder) = match
+    @resources.adopt_node_preparation_admission(
+      initial, input, capacity, prepared,
+    ) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(value) => value
+  }
+  let run = new_installed_managed_run(admission, prepared, request, ledger)
+  run.captured_preparation = Some(plan)
+  run.preparation_retirement = Some(
+    PurePreparation({ retirement, admission, holder: Some(holder), }),
+  )
+  Ok(run)
+}
+
+///|
 /// Adopt the original staged Effect plan without coercing it to a pure
 /// Program or starting another child. The fixed initial owner must have
 /// reserved the complete construction/Run-holder overlap before this call.
@@ -132,6 +173,7 @@ fn[P] retire_preparation_owned_installed_run(
   // durable holder. An existing operation must use its own registered borrow.
   value.preparation = None
   value.source_free_preparation = None
+  value.captured_preparation = None
   value.source_free_captured = None
   value.keyed = None
   value.reads.clear()
@@ -180,6 +222,7 @@ pub fn installed_preparation_payload_severed(
     value.preparation_retirement is Some(retirement) &&
     value.preparation is None &&
     value.source_free_preparation is None &&
+    value.captured_preparation is None &&
     value.source_free_captured is None else {
     return false
   }
