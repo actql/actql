@@ -81,3 +81,10 @@ acknowledge it.
 This internal SPI does not certify a normal installer, complete capacity
 supplier or matched runtime. Provider migrations must remove their replaced
 outer and inner lifecycle managers in the same coherent composition.
+
+Failed Source construction retains that SAME factory in the existing Host
+initialization cleanup with `{sourceReader: factory, sourceProfile: site}`.
+The original `retire` method and receiver are captured before cleanup awaits.
+A pending retirement keeps its Site pending; independent Effect cleanup may
+still finish. Only an actual synchronous `true` permits Site close. An
+unexpected returned computation is joined, then refused as retirement ACK.
