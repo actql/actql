@@ -87,9 +87,9 @@ export function createInstalledCredentialSourceReader({capacity, originalSite, s
             Reflect.apply(referenceCurrent, selectedSite, []) !== true) fail('InstalledSourceReaderNotCurrent');
       };
       const verify = async () => {
-        check(); signal.throwIfAborted();
+        signal.throwIfAborted(); check();
         await Reflect.apply(verifyRead, selected, []);
-        check(); signal.throwIfAborted();
+        signal.throwIfAborted(); check();
       };
       function closeTransport() {
         if (acquisition !== undefined && !bindingClosed) {
