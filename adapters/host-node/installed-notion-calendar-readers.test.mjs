@@ -208,7 +208,7 @@ async function initializationFixture(family) {
   const siteProfile={version:`actql-installed-${family}-site/0.1`,apiOrigin:'https://provider.invalid',
     credentialAuthorityId:'fixture',credentialKeyId:'key',credentialPrivateKeyPath:'/UNOPENED/key',
     environment:'fixture',journalRoot:'/UNOPENED/journal',namespaceId:'fixture',siteGeneration:1,siteKey:'fixture'};
-  let factory,closed=0;
+  let factory,closed=0,configurationReads=0;
   const failure=new Error('same original Source constructor failure');
   const site={credential:{},referenceCurrent:()=>true,callResource(){assert.fail('no send');},
     close(){
@@ -230,11 +230,11 @@ async function initializationFixture(family) {
     .map(name=>[name,()=>name.endsWith('SchemaWire')?ok('explicit schema port'):'explicit provider port']));
   const moon={clientProgramRowSourceRestoreRelationDeclaration:()=>ok({}),
     clientProgramRowSourceDeclarationJson:()=>JSON.stringify({views:[{fields:['id']}]})};
-  return {failure,closed:()=>closed,factory:()=>factory,
-    load:()=>load(profile,{root:'/UNOPENED/root',principalId:'fixture',moon,providerMoon:provider,
+  return {failure,closed:()=>closed,factory:()=>factory,configurationReads:()=>configurationReads,
+    load:(overrides={})=>load(profile,{root:'/UNOPENED/root',principalId:'fixture',moon,providerMoon:provider,
       readerCapacity:{},runtimeBundleCid:'explicit runtime port',baseEnvironmentWire:'{}',
       resolveSecret(){assert.fail('no secret resolution');},configurationReader:{
-        readJson(){return siteProfile;},readText(){assert.fail('no CA read');}}})};
+        readJson(){configurationReads++;return siteProfile;},readText(){assert.fail('no CA read');}},...overrides})};
 }
 
 test('both installed loaders retire their same created reader before Site cleanup on construction failure',async()=>{
@@ -250,5 +250,16 @@ test('both installed loaders retire their same created reader before Site cleanu
       f.factory()?.retire();
       await failure?.cleanupHandle.retry();
     }
+  }
+});
+
+
+test('both installed loaders refuse missing Reader inputs before any configuration read',async()=>{
+  for(const family of ['notion','calendar'])for(const missing of ['readerCapacity','resolveSecret']){
+    const f=await initializationFixture(family),title=family[0].toUpperCase()+family.slice(1);
+    await assert.rejects(f.load({[missing]:undefined}),{code:title+
+      (missing==='readerCapacity'?'ReaderCapacityUnavailable':'CredentialMaterialUnavailable')});
+    assert.equal(f.configurationReads(),0,'no configuration read before required Reader inputs');
+    assert.equal(f.factory(),undefined);assert.equal(f.closed(),0);
   }
 });

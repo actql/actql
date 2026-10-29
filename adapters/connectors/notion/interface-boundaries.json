@@ -1690,7 +1690,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/installed-notion-source.mjs",
-      "sha256": "a31e16d37050fc440da327bcb2b5aeef2b3eb81f252e8c8790628df4f4a7a1ea",
+      "sha256": "504dea32ea3df3b7a81e718e04e8efbe015fe405ad54b64080601eb155338093",
       "exports": [
         "INSTALLED_NOTION_SITE_VERSION",
         "INSTALLED_NOTION_SOURCE_VERSION",
@@ -2005,6 +2005,10 @@
               {
                 "path": "adapters/connectors/notion/test/user-list-read.test.mjs",
                 "anchor": "Notion current Account denies before I/O and after original credential resolution"
+              },
+              {
+                "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
+                "anchor": "both installed loaders refuse missing Reader inputs before any configuration read"
               }
             ]
           }
