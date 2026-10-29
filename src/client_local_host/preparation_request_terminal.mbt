@@ -35,6 +35,7 @@ pub fn[I] prepare_request_computation_check_preparation(
 pub suberror ClientRequestTerminalIssue {
   Preparation(ClientRequestPreparationIssue)
   CheckOutcome(@checked.CheckOutcome)
+  Publication(@source_publication.PreparedPublicationIssue)
 }
 
 ///|
@@ -48,6 +49,9 @@ pub suberror ClientRequestTerminalIssue {
 pub fn[I] finish_request_computation_preparation(
   owner : ClientRequestPreparation[I],
   input : I,
+  update_targets? : @update_targets.UpdateTargetPublication? = None,
+  store_targets? : @update_targets.StoreTargetPublication? = None,
+  command_targets? : @update_targets.CommandTargetPublication? = None,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
   guard owner.phase == ProgramCheck &&
     owner.input is Some(original) &&
@@ -87,7 +91,13 @@ pub fn[I] finish_request_computation_preparation(
   }
   if child.effect_limits is Some(_) {
     if child.phase != CompilationComplete {
-      match compile_effect_program_check_preparation(child) {
+      match
+        compile_effect_program_check_preparation(
+          child,
+          update_targets~,
+          store_targets~,
+          command_targets~,
+        ) {
         Err(issue) => return Err(Preparation(ProgramCheck(issue)))
         Ok(_) => ()
       }

@@ -1462,6 +1462,8 @@ pub fn client_program_release_effect_inputs(@physical_strategy_host.CapturedEffe
 
 pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
+pub fn client_program_request_preparation_issue_code(Result[String, @client_local_host.ClientRequestTerminalIssue]) -> String?
+
 pub fn client_program_request_value_policy_subjects(@run_publication_host.PreparedClientProgram) -> Array[String] raise @program_check.UnitBuildFailure
 
 pub fn client_program_requested_effect_stop(@run_publication_host.ClientSubmittedIntent, String, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @physical_strategy_host.CapturedEffectPreviewInputs) -> Result[@run_publication_host.ClientRequestedEffectStop?, @run_publication_host.ClientRequestedEffectStopIssue]

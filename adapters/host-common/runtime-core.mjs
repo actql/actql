@@ -2689,7 +2689,7 @@ function publicationControl(moon) {
       if (original === undefined) throw new TypeError('Foreign Client original Infer preparation');
       return Object.freeze({graph: runtimeField(original, 0), execution: runtimeField(original, 1)});
     },
-    prepareCheckedClientCompiledRun(checkedProgram, kind, policy, inferGraph, valuesCompilation) {
+    prepareCheckedClientCompiledRun(checkedProgram, kind, policy, inferGraph, compilationOriginal) {
       if (!['values', 'tasks', 'infer', 'serialization'].includes(kind)) {
         throw new TypeError('Invalid Client compilation profile');
       }
@@ -2698,15 +2698,17 @@ function publicationControl(moon) {
           ? 'Content compilation requires its checked graph'
           : 'Infer compilation requires its checked graph');
       }
-      if (valuesCompilation !== undefined && kind !== 'values') {
-        throw new TypeError('Values compilation supplied to another profile');
+      if (compilationOriginal !== undefined && kind !== 'values' && kind !== 'tasks') {
+        throw new TypeError('Compilation supplied without its selected barrier');
       }
       const serializationGraph = kind === 'serialization'
         ? serializationPlanTokens.get(inferGraph) : undefined;
       if (kind === 'serialization' && serializationGraph === undefined) {
         throw new TypeError('Foreign Content compilation graph');
       }
-      const compilation = valuesCompilation !== undefined ? valuesCompilation : compiledRunResult(kind === 'values'
+      // The existing typed issuer below binds this artifact to the SAME
+      // checked Program. A refused original never falls back to compilation.
+      const compilation = compilationOriginal !== undefined ? compilationOriginal : compiledRunResult(kind === 'values'
         ? moon.clientProgramCompileLocalValues(checkedProgram)
         : kind === 'serialization'
           ? moon.clientProgramCompileLocalSerialization(checkedProgram, serializationGraph)

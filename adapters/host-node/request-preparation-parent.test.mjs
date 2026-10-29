@@ -57,8 +57,9 @@ async function fixture({selectFailure, control=[1024n,0n], policyLimits=[10000n,
   const originals={};const view=await prepareOrdinarySourceManagedInstallation(originals,{
     validator(actual){assert.equal(actual,originals);},
     preparationContext(actual){assert.equal(actual,originals);return context;},
+    retireInitialPreparation(actual,prepared){assert.equal(actual,originals);assert.ok(prepared);calls.push('retire-registry-original');},
   },false);
-  return {view,calls,shapes,context,get parent(){return parent;},get original(){return admission?.original;}};
+  return {view,calls,shapes,context,originals,get parent(){return parent;},get original(){return admission?.original;}};
 }
 
 test('generic snapshot passes the same native intent and original Request to Common once without a wire fallback', async () => {
@@ -333,4 +334,208 @@ test('actual Host passes its early original to installation services before Sour
   const initialClose = f.source.indexOf('closeHostInitializationPreparation(hostInitialization)',sourceClose);
   const referenceClose = f.source.indexOf('retirePreparationReferences();',initialClose);
   assert.ok(sourceClose >= 0 && initialClose > sourceClose && referenceClose > initialClose);
+});
+
+
+test('normal generic Native Request prepares the original Parameters compiler module and body on one parent', async () => {
+  const f=await fixture(),moon=f.context.runtime,request={};
+  const program=input(),parameters={n:7,label:'日本語😀'};
+  const receipt=f.view.beforeSourceSnapshot('program',program,{parameters},connection);
+  const body=f.view.captureSourceSnapshot(receipt,{kind:'program',input:program,parameters},snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt,body);f.view.bindSourceRequest(receipt,body,request);
+  const prepared={},holder={},parametersCursor={},calls=[];
+  moon.clientProgramPrepareRequestNativeComputation=function(parent,original,captured,supplied,environment,publication){
+    assert.equal(this,moon);assert.equal(parent,f.parent);assert.equal(original,receipt);
+    assert.equal(captured,body.input);assert.equal(supplied,body.parameters);
+    assert.equal(environment,undefined);assert.equal(publication,f.context.preparedEnvironment);
+    calls.push('compile-original');return ok('effect_free');
+  };
+  moon.clientProgramPrepareRequestProgramModuleBody=function(parent,original,contracts,retained){
+    assert.equal(this,moon);assert.equal(parent,f.parent);assert.equal(original,receipt);
+    assert.equal(contracts,selectedContract);assert.equal(retained,false);calls.push('module-original');return ok(undefined);
+  };
+  moon.clientProgramBorrowRequestProgramPreparation=function(parent){
+    assert.equal(parent,f.parent);calls.push('borrow-original');return ok(holder);
+  };
+  moon.clientProgramPreparationBorrowRead=value=>{assert.equal(value,holder);return prepared;};
+  moon.clientProgramRequestParametersOriginal=function(parent,original){
+    assert.equal(parent,f.parent);assert.equal(original,receipt);return ok(parametersCursor);
+  };
+  let returned=false;
+  const abort=moon.clientProgramAbortRequestPreparation;
+  moon.clientProgramAbortRequestPreparation=function(parent){
+    assert.equal(parent,f.parent);
+    // Model the actual Core pending-borrow result. Its first retire cannot
+    // report physical completion while this same original holder remains.
+    return returned ? Reflect.apply(abort,moon,[parent]) : {$tag:0,_0:{pendingOriginal:holder}};
+  };
+  moon.clientProgramPreparationBorrowRetirementStarted=value=>{assert.equal(value,holder);return true;};
+  moon.clientProgramPreparationBorrowReturn=value=>{assert.equal(value,holder);returned=true;calls.push('return-original');return ok(false);};
+  const selectedContract={};
+  // The actual installation body is supplied by the existing manager fixture,
+  // rather than replacing its original Source/Request callbacks with a driver.
+  f.originals.installation={sequenceContractOriginal:{moon,admission:selectedContract}};
+  try{
+    const first=await f.view.fundedPreparation(request,undefined);
+    const second=await f.view.fundedPreparation(request,undefined);
+    assert.equal(first.prepared,prepared);assert.equal(second.prepared,prepared);
+    assert.equal(first.kind,'effect_free');assert.equal(first.originalInputs.parametersCursor,parametersCursor);
+    assert.equal(first.originalInputs.parameters,undefined);
+    assert.deepEqual(calls,['compile-original','module-original','borrow-original']);
+    assert.equal(f.calls.filter(x=>x==='parent').length,1);assert.equal(f.calls.includes('select'),false);
+  }finally{
+    f.view.finishSourceProducer(receipt,'failed');await f.view.close();
+  }
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
+  assert.deepEqual(calls,['compile-original','module-original','borrow-original','return-original']);
+});
+
+test('normal generic Native Request preserves its first compiler refusal without a second preparation', async () => {
+  const f=await fixture(),moon=f.context.runtime,request={};
+  const receipt=f.view.beforeSourceSnapshot('program',input(),{},connection);
+  const body=f.view.captureSourceSnapshot(receipt,{kind:'program',input:input(),parameters:null},snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt,body);f.view.bindSourceRequest(receipt,body,request);
+  f.originals.installation={sequenceContractOriginal:{moon,admission:{}}};
+  const issue={},failure=Object.assign(new Error('OriginalCompilerRefusal'),{cause:issue});let calls=0;
+  moon.clientProgramPrepareRequestNativeComputation=function(parent,original){
+    assert.equal(parent,f.parent);assert.equal(original,receipt);calls++;throw failure;
+  };
+  moon.clientProgramPrepareRequestProgramModuleBody=()=>assert.fail('No Plan after compiler refusal');
+  try{
+    await assert.rejects(f.view.fundedPreparation(request,undefined),error=>error===failure);
+    await assert.rejects(f.view.fundedPreparation(request,undefined),error=>error===failure);
+    assert.equal(calls,1);
+  }finally{f.view.finishSourceProducer(receipt,'failed');await f.view.close();}
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
+});
+
+test('normal generic Native Request preserves failed Plan construction and rejects synchronous reentry', async () => {
+  const f=await fixture(),moon=f.context.runtime,request={};
+  const receipt=f.view.beforeSourceSnapshot('program',input(),{},connection);
+  const body=f.view.captureSourceSnapshot(receipt,{kind:'program',input:input(),parameters:null},snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt,body);f.view.bindSourceRequest(receipt,body,request);
+  f.originals.installation={sequenceContractOriginal:{moon,admission:{}}};
+  const failure=new Error('OriginalModuleConstructorFailed');let compiles=0,modules=0,reentry;
+  moon.clientProgramPrepareRequestNativeComputation=()=>{compiles++;return ok('effect_free');};
+  moon.clientProgramPrepareRequestProgramModuleBody=function(){
+    modules++;
+    reentry=f.view.fundedPreparation(request,undefined);
+    // Handler cleanup cannot retire the same constructor while it is live.
+    assert.throws(()=>cleanupClosedValuesInput({context:f.context,preparing:true}),
+      {code:'NodeLocalPreparationAdmissionUnavailable'});
+    throw failure;
+  };
+  try{
+    await assert.rejects(f.view.fundedPreparation(request,undefined),error=>error===failure);
+    await assert.rejects(reentry,{code:'ForeignInstalledSourceProducer'});
+    await assert.rejects(f.view.fundedPreparation(request,undefined),error=>error===failure);
+    assert.equal(compiles,1);assert.equal(modules,1);
+  }finally{f.view.finishSourceProducer(receipt,'failed');await f.view.close();}
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
+});
+
+test('normal generic Native Request adopts the same Run and retains its current after handler completion', async () => {
+  const f=await fixture(),moon=f.context.runtime,request={},prepared={},holder={},identity={},value={};
+  const receipt=f.view.beforeSourceSnapshot('program',input(),{},connection);
+  const body=f.view.captureSourceSnapshot(receipt,{kind:'program',input:input(),parameters:null},snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt,body);f.view.bindSourceRequest(receipt,body,request);
+  f.originals.installation={sequenceContractOriginal:{moon,admission:{}}};
+  let retiring=false,returns=0,adopts=0;
+  moon.clientProgramPrepareRequestNativeComputation=()=>ok('effect_free');
+  moon.clientProgramPrepareRequestProgramModuleBody=()=>ok(undefined);
+  moon.clientProgramBorrowRequestProgramPreparation=()=>ok(holder);
+  moon.clientProgramPreparationBorrowRead=actual=>{assert.equal(actual,holder);return prepared;};
+  moon.clientProgramRequestParametersOriginal=()=>ok(undefined);
+  moon.clientProgramAdoptRequestProgramPreparation=function(parent,actualIdentity){
+    assert.equal(this,moon);assert.equal(parent,f.parent);assert.equal(actualIdentity,identity);adopts++;return ok(value);
+  };
+  moon.clientProgramPreparationBorrowRetirementStarted=actual=>{assert.equal(actual,holder);return retiring;};
+  moon.clientProgramPreparationBorrowReturn=actual=>{assert.equal(actual,holder);returns++;return ok(true);};
+  await f.view.fundedPreparation(request,undefined);
+  const run=f.view.adoptPreparation(prepared,request,identity);
+  assert.equal(run.original,f.original);assert.equal(run.value,value);assert.equal(adopts,1);
+  f.view.finishSourceProducer(receipt,'returned');
+  // Actual ordinary Resource calls its originally retained current callback.
+  // Finishing the SDK producer must not invalidate this same live Run.
+  assert.equal(f.view.publicationPreparation(prepared),value);
+  assert.throws(()=>f.view.severPreparation(prepared,f.original),{code:'ForeignInstalledSourceProducer'});
+  assert.equal(returns,0);
+  retiring=true;
+  f.view.severPreparation(prepared,f.original);assert.equal(returns,1);
+  f.view.severPreparation(prepared,f.original);assert.equal(returns,1);
+  // The explicit Common fixture supplies no physical operation. Its original
+  // Resource port still owns stop; the token return above was not that ACK.
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,false);
+  f.context.runtime.clientProgramAbortRequestPreparation(f.parent);
+  f.view.retireSeveredPreparation(f.original);
+  assert.equal((await f.view.close()).pending,false);
+});
+
+test('normal generic Native cleanup keeps its original holder without the required registry retirement', () => {
+  const parent={},holder={},prepared={};let returns=0;
+  const runtime={
+    clientProgramAbortRequestPreparation(actual){assert.equal(actual,parent);return {$tag:0,_0:{pending:holder}};},
+    clientProgramPreparationBorrowRetirementStarted(actual){assert.equal(actual,holder);return true;},
+    clientProgramPreparationBorrowReturn(){returns++;return ok(false);},
+  };
+  const state={context:{runtime},parent,holder,prepared};
+  assert.throws(()=>cleanupClosedValuesInput(state),{code:'NodeLocalPreparationAdmissionUnavailable'});
+  assert.equal(returns,0);assert.equal(state.holder,holder);assert.equal(state.prepared,prepared);
+});
+
+test('normal generic Native Request retains an undefined foreign failure without another constructor', async () => {
+  const f=await fixture(),moon=f.context.runtime,request={};
+  const receipt=f.view.beforeSourceSnapshot('program',input(),{},connection);
+  const body=f.view.captureSourceSnapshot(receipt,{kind:'program',input:input(),parameters:null},snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt,body);f.view.bindSourceRequest(receipt,body,request);
+  f.originals.installation={sequenceContractOriginal:{moon,admission:{}}};let constructors=0;
+  moon.clientProgramPrepareRequestNativeComputation=()=>{constructors++;throw undefined;};
+  try{
+    for(let attempt=0;attempt<2;attempt++) {
+      let rejected=false;
+      await f.view.fundedPreparation(request,undefined).then(()=>assert.fail('Missing original failure'),value=>{
+        rejected=true;assert.equal(value,undefined);
+      });
+      assert.equal(rejected,true);
+    }
+    assert.equal(constructors,1);
+  }finally{f.view.finishSourceProducer(receipt,'failed');await f.view.close();}
+});
+
+
+test('normal generic Native Request projects its retained typed refusal once without a second compiler', async () => {
+  // Real manager/ordinary Resource lifecycle, explicit nominal Core result ports.
+  // These categories must be selected by Core, never reconstructed from JS tags.
+  for (const [category,code] of [
+    ['program_syntax','ClientProgramInvalidInput'],
+    ['check_invalid_input','ClientProgramInvalidInput'],
+    ['supplied_admission','ClientParametersInvalid'],
+    ['needs_inputs','ClientProgramNeedsInputs'],
+    ['source_unresolved','ClientProgramRejected'],
+    [undefined,'MoonBitHostFailure'],
+  ]) {
+    const f=await fixture(),moon=f.context.runtime,request={};
+    const receipt=f.view.beforeSourceSnapshot('program',input(),{},connection);
+    const body=f.view.captureSourceSnapshot(receipt,{kind:'program',input:input(),parameters:null},snapshotClientRequest);
+    f.view.bindSourceSnapshot(receipt,body);f.view.bindSourceRequest(receipt,body,request);
+    f.originals.installation={sequenceContractOriginal:{moon,admission:{}}};
+    const issue=Object.freeze({}),result=Object.freeze({$tag:0,_0:issue});
+    let constructors=0,projections=0,originalFailure;
+    moon.clientProgramPrepareRequestNativeComputation=function(parent,original){
+      assert.equal(this,moon);assert.equal(parent,f.parent);assert.equal(original,receipt);
+      constructors++;return result;
+    };
+    moon.clientProgramRequestPreparationIssueCode=function(original){
+      assert.equal(this,moon);assert.equal(original,result);projections++;return category;
+    };
+    moon.clientProgramPrepareRequestProgramModuleBody=()=>assert.fail('No Plan after typed refusal');
+    try {
+      await assert.rejects(f.view.fundedPreparation(request,undefined),error=>{
+        assert.equal(error.code,code);assert.equal(error.cause,issue);originalFailure=error;return true;
+      });
+      await assert.rejects(f.view.fundedPreparation(request,undefined),error=>error===originalFailure);
+      assert.equal(constructors,1);assert.equal(projections,1);
+    } finally {f.view.finishSourceProducer(receipt,'failed');await f.view.close();}
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
+  }
 });

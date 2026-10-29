@@ -2,6 +2,7 @@ import {closedValuesPreparationAvailable,assertRequestPreparationControl,beginRe
 import {matchesPublishedSubmissionSnapshot} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {open} from 'node:fs/promises';
 import {checked} from '../host-common/runtime-result.mjs';
+import {checkedRequestProgramPreparation} from './client-program-preparation.mjs';
 import {runtimeIsError} from '../host-common/compiler-binding.generated.mjs';
 import {withOriginalFile} from './source-profile-json.mjs';
 import resourceRuntime from './ordinary-node-resource-runtime.cjs';
@@ -261,14 +262,14 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           const assertOriginalCurrent = () => {
             // Cleanup may continue while the manager is closing. Exact
             // membership/current installation, not raw Prepared, is retained.
-            if (closed || producer.finished || receipts.get(receipt) !== producer || producer.preparation !== state) {
+            if (closed || receipts.get(receipt) !== producer || producer.preparation !== state) {
               fail('ForeignInstalledSourceProducer');
             }
             callbacks.validator(originals);
             // The original external current callback may retire this same
             // input before opening returns. Cheap state fences, not another
             // external current call, preserve the exact original after reentry.
-            if (closed || producer.finished || receipts.get(receipt) !== producer || producer.preparation !== state) {
+            if (closed || receipts.get(receipt) !== producer || producer.preparation !== state) {
               fail('ForeignInstalledSourceProducer');
             }
           };
@@ -368,10 +369,55 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const state = producer?.preparation;
       if (state === undefined) return undefined;
       if (!closedValuesPreparationAvailable(state.context)) fail('NodeLocalPreparationAdmissionUnavailable');
-      if (state.context.environment !== environment || state.phase === undefined || state.adopting) {
+      if (state.context.environment !== environment || state.adopting || state.preparing ||
+          state.phase === undefined && state.parent === undefined) {
         fail('ForeignInstalledSourceProducer');
       }
       const moon = state.context.runtime;
+      if (state.parent !== undefined) {
+        // This SAME receipt owns the detached native Program and Parameters.
+        // Its Core entry retains Source/check/compiler originals and typed
+        // failure. No serializer, raw preparation or second parent fallback.
+        if (producer.kind !== 'program' || producer.body !== state.snapshot) {
+          fail('ForeignInstalledSourceProducer');
+        }
+        if (state.preparationFailed) throw state.preparationFailure;
+        if (state.holder === undefined) {
+          const contracts = originals.installation.sequenceContractOriginal;
+          if (contracts === undefined || contracts.moon !== moon) fail('ForeignInstalledSourceProducer');
+          state.preparing = true;
+          try {
+            if (state.compilationKind === undefined) {
+              state.compilationKind = checkedRequestProgramPreparation(moon, moon.clientProgramPrepareRequestNativeComputation(
+                state.parent, producer.receipt, producer.body.input, producer.body.parameters,
+                environment, state.context.preparedEnvironment));
+            }
+            // Actual captured/Effect Plan construction belongs to its existing
+            // Host caller. A logical compiler result cannot select a different
+            // parent or claim that an unconstructed Plan is ready.
+            if (state.compilationKind !== 'effect_free') fail('NodeManagedRunPlanUnavailable');
+            checked(moon.clientProgramPrepareRequestProgramModuleBody(state.parent,
+              producer.receipt, contracts.admission, state.context.retainedRelationOutput));
+            state.holder = checked(moon.clientProgramBorrowRequestProgramPreparation(state.parent));
+          } catch (cause) {
+            state.preparationFailed = true;
+            state.preparationFailure = cause;
+            throw cause;
+          } finally {state.preparing = false;}
+        }
+        const prepared = moon.clientProgramPreparationBorrowRead(state.holder);
+        if (prepared === undefined || state.prepared !== undefined && state.prepared !== prepared) {
+          fail('ForeignInstalledSourceProducer');
+        }
+        state.prepared = prepared;
+        if (!state.parameterMetadataLoaded) {
+          state.parametersCursor = checked(moon.clientProgramRequestParametersOriginal(state.parent, producer.receipt));
+          state.parameterMetadataLoaded = true;
+        }
+        return Object.freeze({kind: state.compilationKind, prepared,
+          originalInputs: Object.freeze({environment, parameters: undefined,
+            parametersCursor: state.parametersCursor})});
+      }
       if (state.holder === undefined) {
         const contracts = originals.installation.sequenceContractOriginal;
         if (contracts === undefined || contracts.moon !== moon) fail('ForeignInstalledSourceProducer');
@@ -425,7 +471,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (state === undefined) return undefined;
       if (state.prepared !== prepared || state.holder === undefined || state.adopting) fail('ForeignInstalledSourceProducer');
       state.adopting = true;
-      const outcome = state.context.runtime.clientProgramAdoptClosedValuesPreparation(state.phase,prepared,identity);
+      const outcome = state.parent === undefined
+        ? state.context.runtime.clientProgramAdoptClosedValuesPreparation(state.phase,prepared,identity)
+        : state.context.runtime.clientProgramAdoptRequestProgramPreparation(state.parent,identity);
       if (runtimeIsError(outcome)) state.adopting = false;
       const value = checked(outcome);
       const run = {prepared,request,producer,purpose:'source-compute',model:undefined,
@@ -448,15 +496,20 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             producer.body === undefined && producer.request === undefined) return;
         fail('ForeignInstalledSourceProducer');
       }
-      if (state.prepared !== prepared ||
-          !state.context.runtime.clientProgramSeverClosedValuesBody(state.phase,state.holder)) {
+      const moon = state.context.runtime;
+      const severed = state.parent === undefined
+        ? moon.clientProgramSeverClosedValuesBody(state.phase,state.holder)
+        : moon.clientProgramPreparationBorrowRead(state.holder) === prepared &&
+          moon.clientProgramPreparationBorrowRetirementStarted(state.holder) === true;
+      if (state.prepared !== prepared || severed !== true) {
         fail('ForeignInstalledSourceProducer');
       }
       // Original membership/currentness depends only on this receipt/state,
       // not the heavy request after retirement has fenced new operations.
       producer.body = producer.request = producer.snapshotPublication = undefined;
       run.prepared = run.request = undefined;
-      state.prepared = undefined;
+      state.prepared = state.snapshot = state.snapshotDocument = state.parametersCursor = undefined;
+      state.preparationFailure = undefined;state.preparationFailed = false;
       const holder = state.holder;state.holder = undefined;
       checked(state.context.runtime.clientProgramPreparationBorrowReturn(holder));
     },
@@ -471,7 +524,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       }
       liveRuns.delete(run);producer.liveRuns--;
       producer.preparation=undefined;
-      state.phase=state.admission=state.original=state.context=undefined;
+      state.phase=state.parent=state.admission=state.original=state.context=undefined;
+      state.compilationKind=state.preparationFailure=undefined;state.preparationFailed=false;
       run.value=run.producer=undefined;
       releaseFinishedProducer(producer);
     },

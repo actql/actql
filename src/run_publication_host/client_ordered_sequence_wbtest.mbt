@@ -90,7 +90,7 @@ test "public ordered Plan uses registered params and exact prior slot references
   )
   assert_true(
     pipeline.contains(
-      "\"row_kernel_contract_cid\":\"sha256:1db41372cc52cfe1fba3e4683285837533c745cd85d8038b646e531696869ecc\"",
+      "\"row_kernel_contract_cid\":\"sha256:00a8fa5a08e8d02ef2e2864deb77be1b6a637d0f7f78d7cfa7b5ec9555573b29\"",
     ),
   )
 }
@@ -169,7 +169,7 @@ test "ordered Plan output exact and one short do not depend on contract body siz
   // Independently assembled from the authored Program and registered params.
   // This small Plan is shorter than its selected ordered contract body.
   let expected =
-    #|{"output":"select_2","sources":{},"steps":[{"id":"values_0","in":[],"op":"REL.values","params":{"rows":[{"id":1}],"schema":{"id":{"nullable":false,"type":"number"}}}},{"id":"derive_1","in":["values_0"],"op":"REL.derive","params":{"bindings":[{"expr":{"body":"id","op":"field"},"name":"old"},{"expr":{"body":[{"body":"old","op":"field"},{"body":1,"op":"literal"}],"op":"add"},"name":"id"},{"expr":{"body":[{"body":"old","op":"field"},{"body":"id","op":"field"}],"op":"add"},"name":"total"}],"references":[{"at":"/bindings/0/expr","target":{"input_field":"id"}},{"at":"/bindings/1/expr/body/0","target":{"prior_slot":0}},{"at":"/bindings/2/expr/body/0","target":{"prior_slot":0}},{"at":"/bindings/2/expr/body/1","target":{"prior_slot":1}}],"row_kernel_contract_cid":"sha256:1db41372cc52cfe1fba3e4683285837533c745cd85d8038b646e531696869ecc"}},{"id":"select_2","in":["derive_1"],"op":"REL.select","params":{"columns":["id","total"]}}],"version":"aoa-pipeline/0.1"}
+    #|{"output":"select_2","sources":{},"steps":[{"id":"values_0","in":[],"op":"REL.values","params":{"rows":[{"id":1}],"schema":{"id":{"nullable":false,"type":"number"}}}},{"id":"derive_1","in":["values_0"],"op":"REL.derive","params":{"bindings":[{"expr":{"body":"id","op":"field"},"name":"old"},{"expr":{"body":[{"body":"old","op":"field"},{"body":1,"op":"literal"}],"op":"add"},"name":"id"},{"expr":{"body":[{"body":"old","op":"field"},{"body":"id","op":"field"}],"op":"add"},"name":"total"}],"references":[{"at":"/bindings/0/expr","target":{"input_field":"id"}},{"at":"/bindings/1/expr/body/0","target":{"prior_slot":0}},{"at":"/bindings/2/expr/body/0","target":{"prior_slot":0}},{"at":"/bindings/2/expr/body/1","target":{"prior_slot":1}}],"row_kernel_contract_cid":"sha256:00a8fa5a08e8d02ef2e2864deb77be1b6a637d0f7f78d7cfa7b5ec9555573b29"}},{"id":"select_2","in":["derive_1"],"op":"REL.select","params":{"columns":["id","total"]}}],"version":"aoa-pipeline/0.1"}
   let prepared = ordered_client_program()
   let limits = run_materials_limits().sequence
   assert_eq(

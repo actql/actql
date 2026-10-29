@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "d943ba91bff32dff8da20481cdbdb78921f400b2bf585ac56c60fc179a9dc169",
+      "sha256": "0ca4765ca0a2dd68394ee558561aef5d4516681291e1af3a046cffb3cabf6842",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -3988,7 +3988,7 @@
             "kind",
             "policy",
             "inferGraph",
-            "valuesCompilation"
+            "compilationOriginal"
           ],
           "async": false
         },
@@ -8123,6 +8123,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "retireCapturedComputation(capturedRun) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "inputsOutputs": [
@@ -8161,6 +8165,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "? moon.strategyCapturedRunFinishRetained(preparation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "identity": [
@@ -8199,6 +8207,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const original = capturedComputationPreparations.get(capturedRun);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "ownership": [
@@ -8241,6 +8253,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const capturedComputationPreparations = new WeakMap();"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "synchronization": [
@@ -8283,6 +8299,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": ": moon.strategyBeginEffectFreeCommitCheckRetained(original, ...args);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "failure": [
@@ -8321,6 +8341,10 @@
               {
                 "path": "adapters/host-common/captured-computation-retention.test.mjs",
                 "anchor": "test('retirement failure preserves the same holder for its original retry'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "cancellation": [
@@ -8355,6 +8379,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "moon.strategyCapturedRunCancel(original);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "resources": [
@@ -8401,6 +8429,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "capturedComputationPreparations.delete(capturedRun);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "extension": [
@@ -8439,6 +8471,10 @@
               {
                 "path": "adapters/host-common/captured-computation-retention.test.mjs",
                 "anchor": "test('restored wrappers take full checking and copied or foreign wrappers refuse'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "verification": [
@@ -8476,7 +8512,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -8497,6 +8533,10 @@
               {
                 "path": "adapters/host-common/captured-computation-retention.test.mjs",
                 "anchor": "test('the original captured preparation reaches both checks with unchanged argument order'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ]
           }
@@ -9267,7 +9307,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -17709,7 +17749,7 @@
     },
     {
       "module": "packages/run-host-core/index.mjs",
-      "sha256": "ef38fb1c4879bb97f188b0ae0e5a558ee2c0fbbfdd07288480e6fb292debfb94",
+      "sha256": "811930c15c2bfbe42bd4d2ea4d3fd9edfc92a51c073d9b4b59807bdcade58d60",
       "role": "physical-io",
       "exports": [
         "admitCapturedResultSnapshot",
@@ -17751,6 +17791,7 @@
         "effectReviewCheckpointBindingFacts",
         "effectReviewCheckpointCancelledState",
         "effectReviewCheckpointMembers",
+        "effectReviewCheckpointPreview",
         "effectReviewCheckpointReconciliationState",
         "effectReviewCheckpointWaitingState",
         "effectRunStartCurrent",
@@ -18507,6 +18548,18 @@
           "name": "effectReviewCheckpointMembers/effectReviewCheckpointMembers",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectReviewCheckpointPreview",
+          "parameters": [
+            "binding",
+            "allowed",
+            "definition",
+            "storedWire",
+            "previewWire",
+            "limits"
           ],
           "async": false
         },
@@ -21147,6 +21200,7 @@
             "effectReviewCheckpointCancelledState",
             "effectReviewCheckpointMembers",
             "effectReviewCheckpointMembers/effectReviewCheckpointMembers",
+            "effectReviewCheckpointPreview",
             "effectReviewCheckpointReconciliationState",
             "effectReviewCheckpointReconciliationState/effectReviewCheckpointReconciliationState",
             "effectReviewCheckpointReconciliationState/snapshot/snapshot",
@@ -21477,6 +21531,7 @@
             "effectReviewCheckpointBindingFacts",
             "effectReviewCheckpointCancelledState",
             "effectReviewCheckpointMembers",
+            "effectReviewCheckpointPreview",
             "effectReviewCheckpointReconciliationState",
             "effectReviewCheckpointWaitingState",
             "effectRunStartCurrent",
@@ -21633,6 +21688,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "inputsOutputs": [
@@ -21655,6 +21714,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -21693,6 +21756,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "ownership": [
@@ -21715,6 +21782,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -21753,6 +21824,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "failure": [
@@ -21775,6 +21850,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -21813,6 +21892,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "resources": [
@@ -21843,6 +21926,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "extension": [
@@ -21865,6 +21952,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -21919,6 +22010,14 @@
               {
                 "path": "packages/run-host-core/effect-publication.test.mjs",
                 "anchor": "test('copied Preview and foreign namespace originals refuse before publication ABI use'"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_checkpoint_reconciliation_wbtest.mbt",
+                "anchor": "test \"original Checkpoint Preview refuses changed stored bytes and another Run\""
               }
             ]
           }
@@ -27321,14 +27420,14 @@
     {
       "module": "src/client_local_host/preparation_request_terminal.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "a81c3417daf6188f6227feceacd2f4b045dc6308dd0fcbb1f3c267b1580846cd",
+      "sha256": "a58f89b55902cf96c3e8388c70e3d8a6b38e72cb9b39f4f6bf76c3ba8ce6e979",
       "role": "common-semantics",
       "owner": "Existing Request checking compiler and preparation capacity owners",
       "exports": [],
       "operations": [
         {
           "name": "[I]finish_request_computation_preparation",
-          "declaration": "[ I ] finish_request_computation_preparation ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+          "declaration": "[ I ] finish_request_computation_preparation ( owner : ClientRequestPreparation [ I ] , input : I , update_targets ? : @ update_targets . UpdateTargetPublication ?"
         },
         {
           "name": "[I]prepare_request_computation_check_preparation",
@@ -27348,54 +27447,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "verification": [
@@ -27406,12 +27541,120 @@
               {
                 "path": "src/client_local_host/preparation_request_terminal_js_wbtest.mbt",
                 "anchor": "test \"normal Request terminal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ]
           }
         }
       ],
       "referenceQualification": "Same-original checking/compilation/Plan controls; normal all-entry activation and ordinary acceptance remain separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_native_computation.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "dfca6a1db001e1c4f71e78cd0775d6d5748b918a6df10cc5b710cd03c4345593",
+      "role": "common-semantics",
+      "owner": "Existing Request Source/check/compiler driver and actual normal Native caller",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,T]prepare_request_native_computation",
+          "declaration": "[ I , T ] prepare_request_native_computation ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , supplied ? : T ?"
+        },
+        {
+          "name": "[I]request_preparation_parameters_original",
+          "declaration": "[ I ] request_preparation_parameters_original ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ decode . Cursor ? , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]request_prepared_computation_kind",
+          "declaration": "[ I ] request_prepared_computation_kind ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ ClientRequestComputationKind , ClientRequestPreparationIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,T]prepare_request_native_computation",
+            "[I]request_preparation_parameters_original",
+            "[I]request_prepared_computation_kind"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_computation_js_wbtest.mbt",
+                "anchor": "test \"normal Native driver keeps original supplied"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('normal generic Native Request prepares"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Actual Native Core flow and real Node manager with explicit Common ports, plus API types; no matching normal artifact or generic backend/Source/Effect completion."
     },
     {
       "module": "src/client_local_host/preparation_publication_snapshot.mbt",

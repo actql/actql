@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
+import {installNodeClientProgramPreparation,checkedRequestProgramPreparation} from './client-program-preparation.mjs';
 
 function fixture(extra = {}) {
   const environment = {};
@@ -104,4 +104,34 @@ test('selected result must retain the exact Environment and cannot admit a forei
      kind:change.kind??'effect_free',prepared:{},originalInputs:{environment,...change}};}});
    await assert.rejects(prepare(request()),{code:'ClientProgramPreparationFailure'});
  }
+});
+
+test('selected funded primitive failure keeps its exact cause without a public recheck',async()=>{
+ for(const cause of [undefined,null,0,'original-foreign-failure']) {
+  let checks=0,entries=0;
+  const {prepare}=fixture({check(){checks++;throw new Error('MustNotRecheck');},
+   getFundedPreparation(){entries++;throw cause;}});
+  await assert.rejects(prepare({kind:'program',input:{},parameters:null}),error=>
+   error.code==='ClientProgramPreparationFailure'&&Object.hasOwn(error,'cause')&&error.cause===cause);
+  assert.equal(entries,1);assert.equal(checks,0);
+ }
+});
+
+
+test('typed Request projection preserves result and thrown-failure identity without public rechecking',async()=>{
+  let projections=0;
+  const moon={clientProgramRequestPreparationIssueCode(result){projections++;assert.equal(result,refusal);return 'check_invalid_input';}};
+  const original={},issue={},refusal={$tag:0,_0:issue};
+  assert.equal(checkedRequestProgramPreparation(moon,{$tag:1,_0:original}),original);
+  assert.equal(projections,0);
+  assert.throws(()=>checkedRequestProgramPreparation(moon,{$tag:7}),{code:'InvalidHostRuntimeResult'});
+  assert.equal(projections,0);
+  let checks=0,preparations=0,first;
+  const {prepare}=fixture({getFundedPreparation(){preparations++;return checkedRequestProgramPreparation(moon,refusal);},
+    check(){checks++;assert.fail('No second public check for the same preparation');}});
+  await assert.rejects(prepare(request()),error=>{
+    assert.equal(error.code,'ClientProgramInvalidInput');assert.equal(error.cause,issue);first=error;return true;
+  });
+  assert.equal(preparations,1);assert.equal(checks,0);assert.equal(projections,1);
+  assert.equal(prepare.sourceCheckFailure(first),false,'No audience-bound report is fabricated');
 });

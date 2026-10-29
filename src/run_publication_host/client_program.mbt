@@ -638,6 +638,7 @@ pub fn emit_prepared_client_task_pipeline(
       max_wire_bytes,
       max_nodes,
       max_depth,
+      preparation=Some((value, task)),
     )
   }
   guard client_task_output_step(value.graph, task, count) is Some(end_step) &&
@@ -677,6 +678,7 @@ pub fn emit_prepared_client_task_pipeline(
     max_depth,
     infer_boundary=completed_infer,
     completed_serialization~,
+    preparation=Some((value, task)),
   )
 }
 
@@ -698,6 +700,7 @@ fn emit_client_task_pipeline_prefix(
   serialization_input? : @lower.PreparedSerialization? = None,
   completed_serialization? : (Int, Int)? = None,
   serialization_boundary? : Int? = None,
+  preparation? : (PreparedClientProgram, Int)? = None,
 ) -> Result[String, ClientTaskPipelineIssue] {
   let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
   let prepared_sequence = if completed_serialization
@@ -732,6 +735,19 @@ fn emit_client_task_pipeline_prefix(
     )
   } else if acquisition_prefix {
     @lower.prepare_sequence_prefix(owner, end_step, limits)
+  } else if preparation is Some((original, task)) {
+    guard @strategy.graph_task_owner(original.graph, task) is Some(selected) &&
+      physical_equal(selected, owner) else {
+      return Err(MissingTask)
+    }
+    // Reuse the SAME full lowering already retained by this Program/module.
+    // Selected acquisition, Model and Content prefixes stay on their distinct
+    // branches above; an equal owner or different limits cannot supply it.
+    match prepare_prepared_client_full_sequence(original, task, limits) {
+      Ok(sequence) => Ok(sequence)
+      Err(Sequence(issue)) => Err(issue)
+      Err(_) => return Err(MissingTask)
+    }
   } else {
     @lower.prepare_sequence(owner, limits)
   }

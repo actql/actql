@@ -18850,10 +18850,11 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6b8c62fbd7b46822cbe42a2af9cb1c5b8f5b31c61c222dfacb1418836bfb5596",
+      "sha256": "5be38f428f9f2f0021bf9925a48e7c70036c2cfc0e2a0fd5ef56b6b252758245",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
+        "checkedRequestProgramPreparation",
         "installNodeClientEffectProgramPreparation",
         "installNodeClientProgramPreparation"
       ],
@@ -18862,6 +18863,14 @@
           "name": "<anonymous>",
           "parameters": [
             "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedRequestProgramPreparation",
+          "parameters": [
+            "moon",
+            "result"
           ],
           "async": false
         },
@@ -19125,11 +19134,13 @@
             "installNodeClientProgramPreparation/verified/verified/verified",
             "installNodeClientProgramPreparation/verified/verified/verified#2",
             "serializeProgram",
-            "installNodeClientProgramPreparation/prepareFunded/prepareFunded"
+            "installNodeClientProgramPreparation/prepareFunded/prepareFunded",
+            "checkedRequestProgramPreparation"
           ],
           "exports": [
             "installNodeClientEffectProgramPreparation",
-            "installNodeClientProgramPreparation"
+            "installNodeClientProgramPreparation",
+            "checkedRequestProgramPreparation"
           ],
           "attributes": {
             "responsibility": [
@@ -19168,6 +19179,14 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ],
             "inputsOutputs": [
@@ -19210,6 +19229,14 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ],
             "identity": [
@@ -19252,6 +19279,14 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ],
             "ownership": [
@@ -19298,6 +19333,14 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "retireReferences() {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ],
             "synchronization": [
@@ -19340,6 +19383,14 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ],
             "failure": [
@@ -19382,6 +19433,14 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ],
             "cancellation": [
@@ -19416,6 +19475,14 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "retireReferences() {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ],
             "resources": [
@@ -19458,6 +19525,14 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "retireReferences() {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ],
             "extension": [
@@ -19500,6 +19575,14 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ],
             "verification": [
@@ -19546,6 +19629,14 @@
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
                 "anchor": "test('retiring one public Environment consumer cuts its aliases without invalidating another holder'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request refusal projection"
               }
             ]
           }
@@ -19563,6 +19654,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "### Original INFER materials in the installed Host"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "inputsOutputs": [
@@ -19573,6 +19668,10 @@
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "identity": [
@@ -19583,6 +19682,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "ownership": [
@@ -19593,6 +19696,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const restoredInferRuns = new WeakSet();"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "synchronization": [
@@ -19603,6 +19710,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "failure": [
@@ -19613,12 +19724,20 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "resources": [
@@ -19629,6 +19748,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "extension": [
@@ -19639,6 +19762,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "compilation and existing custody path."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "verification": [
@@ -19653,6 +19780,10 @@
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
                 "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ]
           }
@@ -19671,6 +19802,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "inputsOutputs": [
@@ -19681,6 +19816,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "identity": [
@@ -19691,6 +19830,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "ownership": [
@@ -19701,6 +19844,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "synchronization": [
@@ -19711,6 +19858,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "failure": [
@@ -19721,6 +19872,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "cancellation": [
@@ -19731,6 +19886,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "resources": [
@@ -19741,6 +19900,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "extension": [
@@ -19751,12 +19914,20 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/client-preparation-custody-public.test.mjs",
                 "anchor": "test('retired Pure preparation preserves saved plan and original lookup after reopen', async () => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ]
           }
@@ -19765,6 +19936,7 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../../packages/client-wire/index.mjs",
+        "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
         "./public-source-preparation.mjs"
       ],
@@ -69942,7 +70114,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "fa2210af2004f4d1802966c69dcf7e42d57fe48cee451cbbe5542e075020341d",
+      "sha256": "f141ff5feff40a95ee1b3a4cb12972dd1eba8615b090922f6a52acf1c7566a3c",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -70043,6 +70215,7 @@
         "effectReviewCheckpointBindingFacts",
         "effectReviewCheckpointCancelledState",
         "effectReviewCheckpointMembers",
+        "effectReviewCheckpointPreview",
         "effectReviewCheckpointReconciliationState",
         "effectReviewCheckpointWaitingState",
         "effectRunStartCurrent",
@@ -70524,6 +70697,18 @@
             "checkpointWire: string"
           ],
           "result": "readonly string[]"
+        },
+        {
+          "name": "effectReviewCheckpointPreview",
+          "parameters": [
+            "binding: EffectReviewCheckpointBinding",
+            "allowed: AllowedEffectRun",
+            "definition: RunDefinition",
+            "storedWire: string",
+            "previewWire: string",
+            "limits: PublicationLimits"
+          ],
+          "result": "EffectPreviewIdentity"
         },
         {
           "name": "effectReviewCheckpointReconciliationState",
@@ -72266,6 +72451,7 @@
             "effectReviewCheckpointBindingFacts",
             "effectReviewCheckpointCancelledState",
             "effectReviewCheckpointMembers",
+            "effectReviewCheckpointPreview",
             "effectReviewCheckpointReconciliationState",
             "effectReviewCheckpointWaitingState",
             "effectRunStartCurrent",
@@ -72485,6 +72671,7 @@
             "effectReviewCheckpointBindingFacts",
             "effectReviewCheckpointCancelledState",
             "effectReviewCheckpointMembers",
+            "effectReviewCheckpointPreview",
             "effectReviewCheckpointReconciliationState",
             "effectReviewCheckpointWaitingState",
             "effectRunStartCurrent",
@@ -72641,6 +72828,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "inputsOutputs": [
@@ -72667,6 +72858,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -72709,6 +72904,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "ownership": [
@@ -72735,6 +72934,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -72777,6 +72980,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "failure": [
@@ -72803,6 +73010,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -72845,6 +73056,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "resources": [
@@ -72879,6 +73094,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "extension": [
@@ -72905,6 +73124,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -72963,6 +73186,14 @@
               {
                 "path": "packages/run-host-core/effect-publication.test.mjs",
                 "anchor": "test('copied Preview and foreign namespace originals refuse before publication ABI use'"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_checkpoint_reconciliation_wbtest.mbt",
+                "anchor": "test \"original Checkpoint Preview refuses changed stored bytes and another Run\""
               }
             ]
           }
@@ -76669,7 +76900,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "44628a2f79f570909b1692cdaffd527c374f54b32fe783da0f1dbcda0f5ac1f3",
+      "sha256": "7f3b1a8e71f48ce2d5fe80f78308d90dd4d1f04f2bd18a10f0d36fd0d5a145c2",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -77198,6 +77429,7 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
         "../local-node/closed-values-preparation-adapter.mjs",
+        "./client-program-preparation.mjs",
         "./ordinary-node-resource-runtime.cjs",
         "./source-profile-json.mjs",
         "node:fs/promises"
@@ -77252,60 +77484,100 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The existing Host and Resource Owners acquire actual buffers, files, database"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "export async function prepareOrdinarySourceManagedInstallation("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "state.originals !== originals"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "child.cleanup = cause?.cleanupHandle;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "if (child.flight !== undefined)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "child.failure = cause;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "closing = true;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "before.size > 1048576n"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.test.mjs",
                 "anchor": "test('ordinary"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ]
           }
@@ -77324,6 +77596,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "inputsOutputs": [
@@ -77334,12 +77610,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/installed_mock_model_run.mbt",
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "ownership": [
@@ -77350,12 +77634,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "failure": [
@@ -77366,12 +77658,20 @@
               {
                 "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
                 "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "resources": [
@@ -77382,12 +77682,20 @@
               {
                 "path": "src/client_local_host/installed_mock_model_run.mbt",
                 "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "verification": [
@@ -77398,6 +77706,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.test.mjs",
                 "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ]
           }
@@ -77413,60 +77725,100 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Responsibility stays with the existing normal Host, Resource, Source, Model,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Inputs are the checked Effect preparation and compilation, allowed Run,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Identity is retained with the same Host, installation and Run."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Ownership of Source capture, Model work and file requests is separate."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Synchronization captures each private operation and its receiver before later"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Failure preserves the original constructor, Source, Model, FileHandle, write,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Cancellation prevents new work but does not make cleanup require current"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Resources include the retained preparation, compilation, definition, request,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Extension remains private to the installed Host and the existing typed"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ]
           }
@@ -77487,6 +77839,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "An ordinary Project Local Source retains its exact connection declaration and"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "inputsOutputs": [
@@ -77497,6 +77853,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "identity": [
@@ -77507,30 +77867,50 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "child.reader = actual;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "if (child.flight !== undefined) return Object.freeze({pending: true});"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "if (pending(observed)) return Object.freeze({pending: true});"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "child.closing = true;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "resources": [
@@ -77541,12 +77921,20 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "This projection remains managed demand, not a physical supplier or read grant."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "separate and never follows merely from installing a normal Local Source."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "verification": [
@@ -77557,6 +77945,10 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "test('single Source dispatcher keeps the original managed parent and singleton capacity arrays'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ]
           }
@@ -77577,60 +77969,100 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "For a selected Local keyed Content path, the ordinary Source installation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "prepareKeyedRead(prepared, declaration, originalRun, request) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "run.purpose !== 'local-content' || run.original !== originalRun"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "child.reader = actual;"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "captureReader(child);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "fail('InstalledSourcePreparationMismatch');"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "async function closeChild(child) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "run.children.length >= run.required.attempts"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "other unsupported backend shapes remain separate connections, not language"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.test.mjs",
                 "anchor": "test('ordinary Content owns one purpose and retains the same keyed physical close through current refusal'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ]
           }
@@ -77651,6 +78083,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "inputsOutputs": [
@@ -77661,6 +78097,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "identity": [
@@ -77671,6 +78111,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "ownership": [
@@ -77681,6 +78125,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "synchronization": [
@@ -77691,6 +78139,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "failure": [
@@ -77701,6 +78153,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "cancellation": [
@@ -77711,6 +78167,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "resources": [
@@ -77721,6 +78181,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "extension": [
@@ -77731,12 +78195,20 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Preparation and capacity authority"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/client-preparation-custody-public.test.mjs",
                 "anchor": "test('retired Pure preparation preserves saved plan and original lookup after reopen', async () => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ]
           }
@@ -77766,6 +78238,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## State and lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "inputsOutputs": [
@@ -77776,6 +78252,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## State and lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "identity": [
@@ -77786,6 +78266,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## State and lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "ownership": [
@@ -77796,6 +78280,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## State and lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "synchronization": [
@@ -77806,6 +78294,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## State and lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "failure": [
@@ -77816,6 +78308,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## State and lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "cancellation": [
@@ -77826,6 +78322,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## State and lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "resources": [
@@ -77836,6 +78336,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## State and lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "extension": [
@@ -77846,12 +78350,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## State and lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/preparation-initial-failure-public.test.mjs",
                 "anchor": "Ready initial preparations retire before Run adoption after Result refusal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ]
           }
@@ -77868,54 +78380,90 @@
               {
                 "path": "docs/design/typed-publication-resource.md",
                 "anchor": "## Scope and responsibility"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/typed-publication-resource.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/typed-publication-resource.md",
                 "anchor": "## Original identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/typed-publication-resource.md",
                 "anchor": "## Ownership and handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/typed-publication-resource.md",
                 "anchor": "## Synchronization and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/typed-publication-resource.md",
                 "anchor": "## Failure and uncertainty"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/typed-publication-resource.md",
                 "anchor": "## Cancellation and retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/typed-publication-resource.md",
                 "anchor": "## Resources and scratch cut"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/typed-publication-resource.md",
                 "anchor": "## Extension and pending work"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "verification": [
@@ -77926,6 +78474,10 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "test('typed retained chain and commit consume original contracts without numeric limit relay'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ]
           }
@@ -77945,6 +78497,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "inputsOutputs": [
@@ -77955,6 +78511,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
                 "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "identity": [
@@ -77965,6 +78525,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
                 "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "ownership": [
@@ -77975,6 +78539,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "synchronization": [
@@ -77985,6 +78553,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
                 "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "failure": [
@@ -77995,6 +78567,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
                 "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "cancellation": [
@@ -78005,6 +78581,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "resources": [
@@ -78015,6 +78595,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "prepareEffectModelPlanRun(prepared, operationPlan)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "extension": [
@@ -78025,6 +78609,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
                 "anchor": "Effect plan is retained before quote and remains the same admission and execution scope"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "verification": [
@@ -78035,6 +78623,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ]
           }
@@ -78049,60 +78641,100 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Native Source snapshot currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ]
           }
@@ -81874,7 +82506,7 @@
     },
     {
       "module": "adapters/local-node/closed-values-preparation-adapter.mjs",
-      "sha256": "ba33606ee31b71f90940044e4941643642103c9beb74dc03625e1895ed21752d",
+      "sha256": "5b1d008f36206e4528b15edcd79df9a9e348f93e10b167aeb484f99fe458acb2",
       "exports": [
         "assertRequestPreparationControl",
         "beginClosedValuesInput",
@@ -82096,6 +82728,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Responsibility and scope"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "inputsOutputs": [
@@ -82106,6 +82742,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "identity": [
@@ -82116,6 +82756,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Identity and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "ownership": [
@@ -82126,6 +82770,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## State and lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "synchronization": [
@@ -82136,6 +82784,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## State and lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "failure": [
@@ -82146,6 +82798,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Failure, cancellation and publication"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "cancellation": [
@@ -82156,6 +82812,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Failure, cancellation and publication"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "resources": [
@@ -82166,6 +82826,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Work and storage units"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "extension": [
@@ -82176,12 +82840,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Extension boundary"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/preparation-capacity-refusal.test.mjs",
                 "anchor": "prepared initial cleanup requires its fixed retirement callback and preserves retry ownership"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ]
           }
@@ -82200,6 +82872,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Original ModuleBody preparation mode"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "inputsOutputs": [
@@ -82210,6 +82886,10 @@
               {
                 "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
                 "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "identity": [
@@ -82220,6 +82900,10 @@
               {
                 "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
                 "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "ownership": [
@@ -82230,6 +82914,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Original ModuleBody preparation mode"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "synchronization": [
@@ -82240,6 +82928,10 @@
               {
                 "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
                 "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "failure": [
@@ -82250,6 +82942,10 @@
               {
                 "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
                 "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "cancellation": {
@@ -82263,6 +82959,10 @@
               {
                 "path": "adapters/local-node/closed-values-preparation-adapter.mjs",
                 "anchor": "export function closedValuesPreparationAvailable"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "extension": [
@@ -82273,6 +82973,10 @@
               {
                 "path": "adapters/host-node/closed-values-module-body-callers.test.mjs",
                 "anchor": "ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "verification": [
@@ -82283,6 +82987,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Original ModuleBody preparation mode"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ]
           }
@@ -82299,60 +83007,100 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Unselected request preparation bootstrap"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Selected native Request driver"
               }
             ]
           }
