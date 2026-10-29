@@ -171,9 +171,12 @@ test "Task projected range consumes the same prepared ordered params and rejects
 test "Task Fragment construction geometry includes the exact full pipeline and CID fields" {
   let value = values_compilation_parts_prepared()
   let limits = run_materials_limits().sequence
-  let (initial, pipeline, fragment) = measure_prepared_client_task_fragment_construction(
+  let measured = measure_prepared_client_task_fragment_construction(
     value, 0, limits, 100000, 10000, 100,
   ).unwrap()
+  let initial = measured.initial_pipeline
+  let pipeline = measured.pipeline
+  let fragment = measured.fragment
   assert_eq(initial, pipeline)
   assert_eq(fragment.1, 26)
   assert_eq(fragment.2, 7)
@@ -199,12 +202,14 @@ test "Task Fragment upper geometry retains every selected port and ordered paylo
   let value = task_projection_ordered_original()
   let limits = prepared_client_values_sequence_limits(value)
   for task in 0..<@strategy.graph_task_count(value.graph) {
-    let (_, pipeline, fragment) = measure_prepared_client_task_fragment_construction(
+    let measured = measure_prepared_client_task_fragment_construction(
       value, task, limits, 1000000, 100000, 100,
     ).unwrap()
     let issued = issue_prepared_client_task_fragment(
       value, task, limits, 1000000, 100000, 100,
     ).unwrap()
+    let pipeline = measured.pipeline
+    let fragment = measured.fragment
     assert_true(pipeline.0 < fragment.0)
     let tree = parse_plan_identity_value(issued.wire, 1000000, 100000, 100).unwrap()
     let writer = @encode.measuring_writer(1000000, 100000, 100)
@@ -221,7 +226,7 @@ test "Task Fragment Unicode and repeated-input geometry uses complete original p
   let value = task_pipeline_geometry_original()
   let limits = prepared_client_values_sequence_limits(value)
   for task in 0..<@strategy.graph_task_count(value.graph) {
-    let (_, _, upper) = measure_prepared_client_task_fragment_construction(
+    let measured = measure_prepared_client_task_fragment_construction(
       value, task, limits, 1000000, 100000, 100,
     ).unwrap()
     let issued = issue_prepared_client_task_fragment(
@@ -231,6 +236,7 @@ test "Task Fragment Unicode and repeated-input geometry uses complete original p
     let writer = @encode.measuring_writer(1000000, 100000, 100)
     @canonical.emit_value(parsed, writer)
     let actual = @encode.finish_measurement_usage(writer)
+    let upper = measured.fragment
     assert_true(actual.0 <= upper.0)
     assert_eq(actual.1, upper.1)
     assert_eq(actual.2, upper.2)

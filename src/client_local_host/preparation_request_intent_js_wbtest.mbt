@@ -262,6 +262,8 @@ test "Request native intent enters the same Program checker module and Run witho
     parent,
     input,
     request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
     retained_output=true,
     provider_factory=_ => [],
   ).unwrap()

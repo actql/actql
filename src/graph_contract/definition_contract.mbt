@@ -125,15 +125,9 @@ pub fn admit(
   input : @carrier.Carrier,
   limits : Limits,
 ) -> Result[CheckedContract, Issue] {
-  if limits.max_bytes < 0 || limits.max_nodes < 0 || limits.max_depth < 0 {
-    return Err(InvalidLimits)
-  }
-  guard input is @carrier.GraphValue(graph) else { return Err(IncompleteGraph) }
-  let profile = @carrier.graph_definition(graph)
-  let count = @carrier.graph_node_count(profile)
-  if count > limits.max_nodes ||
-    @carrier.graph_edge_count(profile) > limits.max_nodes - count {
-    return Err(BudgetExceeded)
+  let graph = match graph_contract_original(input, limits) {
+    Ok(graph) => graph
+    Err(issue) => return Err(issue)
   }
   try {
     let out = @encode.hashing_writer(
@@ -144,6 +138,49 @@ pub fn admit(
     emit_graph(graph, out)
     let (hex, bytes, nodes) = @encode.finish_hash_usage(out)
     Ok({ graph, cid: "sha256:" + hex, bytes, nodes, })
+  } catch {
+    _ => Err(BudgetExceeded)
+  }
+}
+
+///|
+fn graph_contract_original(
+  input : @carrier.Carrier,
+  limits : Limits,
+) -> Result[@carrier.Graph, Issue] {
+  if limits.max_bytes < 0 || limits.max_nodes < 0 || limits.max_depth < 0 {
+    return Err(InvalidLimits)
+  }
+  guard input is @carrier.GraphValue(graph) else { return Err(IncompleteGraph) }
+  let profile = @carrier.graph_definition(graph)
+  let count = @carrier.graph_node_count(profile)
+  if count > limits.max_nodes ||
+    @carrier.graph_edge_count(profile) > limits.max_nodes - count {
+    return Err(BudgetExceeded)
+  }
+  Ok(graph)
+}
+
+///|
+/// Measure the existing keyed Graph contract from its same original typed
+/// definition, with the real codec and bounds, without issuing wire or CID.
+/// This is construction DATA, not a checked contract or physical grant.
+pub fn measure(
+  input : @carrier.Carrier,
+  limits : Limits,
+) -> Result[(Int, Int, Int), Issue] {
+  let graph = match graph_contract_original(input, limits) {
+    Ok(graph) => graph
+    Err(issue) => return Err(issue)
+  }
+  try {
+    let out = @encode.measuring_writer(
+      limits.max_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    emit_graph(graph, out)
+    Ok(@encode.finish_measurement_usage(out))
   } catch {
     _ => Err(BudgetExceeded)
   }

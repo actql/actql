@@ -2523,7 +2523,7 @@ pub fn client_program_prepare_request_program_check(@client_local_host.ClientReq
 
 pub fn client_program_prepare_request_program_json(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, String, @stage_syntax.Limits) -> Result[@client_local_host.ClientProgramJsonPreparation[ClientLocalPreparationInputOriginal, Unit], @client_local_host.ClientRequestPreparationIssue]
 
-pub fn client_program_prepare_request_program_module_body(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledSequenceContracts, Bool) -> Result[Unit, @client_local_host.ClientRequestProgramPlanIssue]
+pub fn client_program_prepare_request_program_module_body(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledSequenceContracts, Bool) -> Result[Unit, ClientRequestProgramModuleBridgeIssue]
 
 pub fn client_program_prepare_request_submitted_intent(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, NativeJsonValue) -> Result[String, @client_local_host.ClientRequestPreparationIssue]
 
@@ -5002,6 +5002,11 @@ pub(all) suberror ClientProgramRunObservationIssue {
 pub(all) suberror ClientProgramRunStateIssue {
   InvalidTerminalOutcome
   Projection(@run_publication.RunStateIssue)
+}
+
+pub suberror ClientRequestProgramModuleBridgeIssue {
+  Manifests(@run_publication_host.ClientCompilationManifestIssue)
+  Preparation(@client_local_host.ClientRequestProgramPlanIssue)
 }
 
 pub(all) suberror NodeHostFailure {

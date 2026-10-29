@@ -404,111 +404,105 @@ fn issue_client_task_plan_graph(
     _ => return Err(Encoding)
   }
   try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "data_edges")
-    @encode.begin_array(writer)
-    for index in 0..<@strategy.graph_data_count(graph) {
-      guard @strategy.graph_data_at(graph, index) is Some(edge) else {
-        return Err(InvalidEdge)
-      }
-      let producer = @strategy.data_edge_producer(edge)
-      let consumer = @strategy.data_edge_consumer(edge)
-      if producer < 0 || producer >= consumer || consumer >= count {
-        return Err(InvalidEdge)
-      }
-      let input = client_task_edge_input(graph, edge)
-      guard fragments.get(producer) is Some(source) &&
-        input_fragments.get(consumer) is Some(destination) &&
-        input is Some((input_name, carrier)) &&
-        client_task_carrier_kind(source.output_carrier) is Some(source_kind) &&
-        @carrier.kind(carrier) == source_kind &&
-        input_nodes.get(consumer) is Some(consumer_node) &&
-        @canonical.object_field(consumer_node, "input_contracts")
-        is Some(input_contracts) &&
-        @canonical.object_field(input_contracts, input_name)
-        is Some(@canonical.String(input_contract_cid)) else {
-        return Err(InvalidEdge)
-      }
-      if input_contract_cid != source.output_contract_cid {
-        return Err(ContractMismatch)
-      }
-      @encode.begin_object(writer)
-      @encode.key(writer, "carrier")
-      @encode.string_value(writer, source.output_carrier)
-      @encode.key(writer, "contract_cid")
-      @encode.string_value(writer, source.output_contract_cid)
-      @encode.key(writer, "from")
-      @encode.begin_object(writer)
-      @encode.key(writer, "node_id")
-      @encode.string_value(writer, source.node_id)
-      @encode.key(writer, "port")
-      @encode.string_value(writer, source.output_port)
-      @encode.end_object(writer)
-      @encode.key(writer, "to")
-      @encode.begin_object(writer)
-      @encode.key(writer, "node_id")
-      @encode.string_value(writer, destination.node_id)
-      @encode.key(writer, "port")
-      @encode.string_value(writer, input_name)
-      @encode.end_object(writer)
-      @encode.end_object(writer)
-      if serialization is Some(component) &&
-        component.serialization.task == consumer {
-        for (name, node_id, port, cid) in component.external_ports {
-          if name != input_name {
-            continue
+    let emitted : Result[Unit, ClientTaskPlanGraphIssue] = emit_client_compilation_graph(
+      writer,
+      writer => {
+        for index in 0..<@strategy.graph_data_count(graph) {
+          guard @strategy.graph_data_at(graph, index) is Some(edge) else {
+            return Err(InvalidEdge)
           }
-          if cid != source.output_contract_cid {
+          let producer = @strategy.data_edge_producer(edge)
+          let consumer = @strategy.data_edge_consumer(edge)
+          if producer < 0 || producer >= consumer || consumer >= count {
+            return Err(InvalidEdge)
+          }
+          let input = client_task_edge_input(graph, edge)
+          guard fragments.get(producer) is Some(source) &&
+            input_fragments.get(consumer) is Some(destination) &&
+            input is Some((input_name, carrier)) &&
+            client_task_carrier_kind(source.output_carrier) is Some(source_kind) &&
+            @carrier.kind(carrier) == source_kind &&
+            input_nodes.get(consumer) is Some(consumer_node) &&
+            @canonical.object_field(consumer_node, "input_contracts")
+            is Some(input_contracts) &&
+            @canonical.object_field(input_contracts, input_name)
+            is Some(@canonical.String(input_contract_cid)) else {
+            return Err(InvalidEdge)
+          }
+          if input_contract_cid != source.output_contract_cid {
             return Err(ContractMismatch)
           }
-          guard client_serialization_plan_edge(
-              source, node_id, port, max_wire_bytes, max_nodes, max_depth,
-            )
-            is Some(extra) else {
-            return Err(Encoding)
+          emit_client_compilation_data_edge(
+            writer,
+            source.output_carrier,
+            source.output_contract_cid,
+            source.node_id,
+            source.output_port,
+            destination.node_id,
+            input_name,
+            (value, writer) => @encode.string_value(writer, value),
+          )
+          if serialization is Some(component) &&
+            component.serialization.task == consumer {
+            for (name, node_id, port, cid) in component.external_ports {
+              if name != input_name {
+                continue
+              }
+              if cid != source.output_contract_cid {
+                return Err(ContractMismatch)
+              }
+              guard client_serialization_plan_edge(
+                  source, node_id, port, max_wire_bytes, max_nodes, max_depth,
+                )
+                is Some(extra) else {
+                return Err(Encoding)
+              }
+              @canonical.emit_value(extra, writer)
+            }
           }
-          @canonical.emit_value(extra, writer)
         }
-      }
+        for edge in model_edges {
+          @canonical.emit_value(edge, writer)
+        }
+        for edge in result_edges {
+          @canonical.emit_value(edge, writer)
+        }
+        Ok(())
+      },
+      writer => {
+        for node in nodes {
+          @canonical.emit_value(node, writer)
+        }
+      },
+      writer => {
+        for root in roots {
+          @canonical.emit_value(root, writer)
+        }
+        for (name, task) in effect_roots {
+          guard fragments.get(task) is Some(fragment) else {
+            return Err(InvalidEdge)
+          }
+          @encode.begin_object(writer)
+          @encode.key(writer, "name")
+          @encode.string_value(writer, name)
+          @encode.key(writer, "ref")
+          @encode.begin_object(writer)
+          @encode.key(writer, "node_id")
+          @encode.string_value(writer, fragment.node_id)
+          @encode.key(writer, "port")
+          @encode.string_value(writer, fragment.output_port)
+          @encode.end_object(writer)
+          @encode.key(writer, "role")
+          @encode.string_value(writer, "effect_result")
+          @encode.end_object(writer)
+        }
+        Ok(())
+      },
+    )
+    match emitted {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
-    for edge in model_edges {
-      @canonical.emit_value(edge, writer)
-    }
-    for edge in result_edges {
-      @canonical.emit_value(edge, writer)
-    }
-    @encode.end_array(writer)
-    @encode.key(writer, "nodes")
-    @encode.begin_array(writer)
-    for node in nodes {
-      @canonical.emit_value(node, writer)
-    }
-    @encode.end_array(writer)
-    @encode.key(writer, "root_refs")
-    @encode.begin_array(writer)
-    for root in roots {
-      @canonical.emit_value(root, writer)
-    }
-    for (name, task) in effect_roots {
-      guard fragments.get(task) is Some(fragment) else {
-        return Err(InvalidEdge)
-      }
-      @encode.begin_object(writer)
-      @encode.key(writer, "name")
-      @encode.string_value(writer, name)
-      @encode.key(writer, "ref")
-      @encode.begin_object(writer)
-      @encode.key(writer, "node_id")
-      @encode.string_value(writer, fragment.node_id)
-      @encode.key(writer, "port")
-      @encode.string_value(writer, fragment.output_port)
-      @encode.end_object(writer)
-      @encode.key(writer, "role")
-      @encode.string_value(writer, "effect_result")
-      @encode.end_object(writer)
-    }
-    @encode.end_array(writer)
-    @encode.end_object(writer)
     let standard_progress_keys = if components.is_empty() &&
       serialization is None &&
       client_task_graph_standard_progress_limits(

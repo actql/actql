@@ -90,66 +90,18 @@ fn client_task_record_role(name : @schema.FieldName) -> String? {
 ///|
 /// The existing 0.1 structural body keeps roles separate from row fields.
 /// It is a bare Carrier contract CID, not a Contract Envelope or data CID.
-fn client_task_record_carrier_contract(
+fn issue_client_task_record_contract(
   carrier : @carrier.Carrier,
+  row : @contract.Contract,
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
 ) -> (String, String)? {
-  let records = match carrier {
-    @carrier.EventValue(events) => @carrier.event_records(events)
-    @carrier.VectorValue(vectors) => @carrier.vector_records(vectors)
-    _ => return None
-  }
-  guard @carrier.complete_schema(records) is Some(schema) &&
-    @schema.as_object(schema) is Some(row) else {
-    return None
-  }
   try {
     let writer = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth)
-    @encode.begin_object(writer)
-    match carrier {
-      @carrier.EventValue(events) => {
-        guard client_task_record_role(@carrier.event_identity(events).name)
-          is Some(id) &&
-          client_task_record_role(@carrier.event_time(events).name)
-          is Some(time) else {
-          return None
-        }
-        @encode.key(writer, "id")
-        @encode.string_value(writer, id)
-        @encode.key(writer, "records")
-        @contract.emit_checked(row, writer)
-        @encode.key(writer, "time")
-        @encode.string_value(writer, time)
-        @encode.key(writer, "version")
-        @encode.string_value(writer, "actql-events-contract/0.1")
-      }
-      @carrier.VectorValue(vectors) => {
-        guard client_task_record_role(@carrier.vector_components(vectors).name)
-          is Some(components) else {
-          return None
-        }
-        @encode.key(writer, "components")
-        @encode.string_value(writer, components)
-        @encode.key(writer, "ids")
-        @encode.begin_array(writer)
-        for index in 0..<@carrier.vector_identity_count(vectors) {
-          guard @carrier.vector_identity_at(vectors, index) is Some(field) &&
-            client_task_record_role(field.name) is Some(name) else {
-            return None
-          }
-          @encode.string_value(writer, name)
-        }
-        @encode.end_array(writer)
-        @encode.key(writer, "records")
-        @contract.emit_checked(row, writer)
-        @encode.key(writer, "version")
-        @encode.string_value(writer, "actql-vectors-contract/0.1")
-      }
-      _ => return None
+    if !emit_client_task_record_carrier_body(carrier, row, writer) {
+      return None
     }
-    @encode.end_object(writer)
     Some(
       (
         client_task_carrier_sort(carrier),
@@ -162,34 +114,70 @@ fn client_task_record_carrier_contract(
 }
 
 ///|
+// The real hash and construction measurement use the same original roles and
+// complete row contract. This codec does not create a resource/permission owner.
+fn emit_client_task_record_carrier_body(
+  carrier : @carrier.Carrier,
+  row : @contract.Contract,
+  writer : @encode.Writer,
+) -> Bool raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  match carrier {
+    @carrier.EventValue(events) => {
+      guard client_task_record_role(@carrier.event_identity(events).name)
+        is Some(id) &&
+        client_task_record_role(@carrier.event_time(events).name) is Some(time) else {
+        return false
+      }
+      @encode.key(writer, "id")
+      @encode.string_value(writer, id)
+      @encode.key(writer, "records")
+      @contract.emit_checked(row, writer)
+      @encode.key(writer, "time")
+      @encode.string_value(writer, time)
+      @encode.key(writer, "version")
+      @encode.string_value(writer, "actql-events-contract/0.1")
+    }
+    @carrier.VectorValue(vectors) => {
+      guard client_task_record_role(@carrier.vector_components(vectors).name)
+        is Some(components) else {
+        return false
+      }
+      @encode.key(writer, "components")
+      @encode.string_value(writer, components)
+      @encode.key(writer, "ids")
+      @encode.begin_array(writer)
+      for index in 0..<@carrier.vector_identity_count(vectors) {
+        guard @carrier.vector_identity_at(vectors, index) is Some(field) &&
+          client_task_record_role(field.name) is Some(name) else {
+          return false
+        }
+        @encode.string_value(writer, name)
+      }
+      @encode.end_array(writer)
+      @encode.key(writer, "records")
+      @contract.emit_checked(row, writer)
+      @encode.key(writer, "version")
+      @encode.string_value(writer, "actql-vectors-contract/0.1")
+    }
+    _ => return false
+  }
+  @encode.end_object(writer)
+  true
+}
+
+///|
 fn client_task_carrier_contract(
   carrier : @carrier.Carrier,
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
 ) -> (String, String)? {
-  match @carrier.kind(carrier) {
-    RelationKind => {
-      guard @carrier.relation_rows(carrier) is Some(rows) &&
-        @carrier.complete_schema(rows) is Some(schema) else {
-        return None
-      }
-      // Conditional Relation fields are not optional ordinary object fields.
-      // Bind the existing presence-aware schema owner at both task ports;
-      // publication still requires a projection to guaranteed columns.
-      if !@schema.all_fields_required(schema) {
-        return @execution.identify_relation_schema(schema, {
-            max_fields: max_nodes,
-            max_bytes: max_wire_bytes,
-            max_nodes,
-            max_depth,
-          })
-          .map(identity => {
-            ("relation", @execution.relation_schema_cid(identity))
-          })
-          .to_option()
-      }
-      guard @schema.as_object(schema) is Some(row) else { return None }
+  guard client_task_contract_source(carrier) is Some(source) else {
+    return None
+  }
+  match source {
+    ObjectRelation(row) => {
       let output_hash = @encode.hashing_writer(
         max_wire_bytes, max_nodes, max_depth,
       ) catch {
@@ -201,11 +189,18 @@ fn client_task_carrier_contract(
       let cid = @encode.finish_hash(output_hash) catch { _ => return None }
       Some(("relation", "sha256:" + cid))
     }
-    GraphKind =>
-      // Public task ports use the keyed contract exclusively. Old carrier
-      // bodies are not an alternative admission path after a failed check.
+    PresenceRelation(schema) =>
+      @execution.identify_relation_schema(schema, {
+        max_fields: max_nodes,
+        max_bytes: max_wire_bytes,
+        max_nodes,
+        max_depth,
+      })
+      .map(identity => ("relation", @execution.relation_schema_cid(identity)))
+      .to_option()
+    GraphCarrier(original) =>
       match
-        @graph_contract.admit(carrier, {
+        @graph_contract.admit(original, {
           max_bytes: max_wire_bytes,
           max_nodes,
           max_depth,
@@ -213,9 +208,9 @@ fn client_task_carrier_contract(
         Ok(contract) => Some(("graph", @graph_contract.cid(contract)))
         Err(_) => None
       }
-    EventsKind | VectorsKind =>
-      client_task_record_carrier_contract(
-        carrier, max_wire_bytes, max_nodes, max_depth,
+    RecordCarrier(original, row) =>
+      issue_client_task_record_contract(
+        original, row, max_wire_bytes, max_nodes, max_depth,
       )
   }
 }
@@ -269,10 +264,7 @@ pub fn measure_prepared_client_task_fragment_construction(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[
-  ((Int, Int, Int), (Int, Int, Int), (Int, Int, Int)),
-  ClientTaskFragmentIssue,
-] {
+) -> Result[ClientTaskFragmentConstruction, ClientTaskFragmentIssue] {
   if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidLimits)
   }
@@ -291,6 +283,15 @@ pub fn measure_prepared_client_task_fragment_construction(
   }
   let selected = @strategy.graph_task_selected_step(value.graph, task)
   let node_id = "task_" + task.to_string()
+  let prepared = @lower.bound_preparation(owner)
+  guard @lower.preparation_carrier_at(prepared, target) is Some(output_carrier) &&
+    measure_client_task_carrier_contract(
+      output_carrier, max_wire_bytes, max_nodes, max_depth,
+    )
+    is Some(output_contract) else {
+    return Err(UnrepresentableContract)
+  }
+  let input_contracts : Array[(Int, Int, Int)] = []
   try {
     let empty = @encode.measuring_writer(max_wire_bytes, max_nodes, max_depth)
     @encode.begin_object(empty)
@@ -310,7 +311,12 @@ pub fn measure_prepared_client_task_fragment_construction(
         (),
         emit_client_task_pipeline_measurement,
         measure_client_fragment_cid,
-        client_task_input_contract_measurement,
+        (carrier, b, n, d) => {
+          measure_client_task_carrier_contract(carrier, b, n, d).map(measurement => {
+            input_contracts.push(measurement)
+            ()
+          })
+        },
         max_wire_bytes,
         max_nodes,
         max_depth,
@@ -346,7 +352,17 @@ pub fn measure_prepared_client_task_fragment_construction(
         max_depth,
         writer,
       ) {
-      Ok(_) => Ok((initial, pipeline, @encode.finish_measurement_usage(writer)))
+      Ok(_) =>
+        Ok({
+          initial_pipeline: initial,
+          pipeline,
+          fragment: @encode.finish_measurement_usage(writer),
+          input_contracts,
+          output_contract,
+          output_carrier: client_task_carrier_sort(output_carrier),
+          node_id,
+          output_port,
+        })
       Err(issue) => Err(issue)
     }
   } catch {

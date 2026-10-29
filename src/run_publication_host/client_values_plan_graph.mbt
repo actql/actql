@@ -119,26 +119,30 @@ fn issue_prepared_client_values_plan_graph_parts(
     _ => return Err(Encoding)
   }
   try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "data_edges")
-    @encode.begin_array(writer)
-    for edge in edges {
-      @canonical.emit_value(edge, writer)
+    let emitted : Result[Unit, ClientValuesPlanGraphIssue] = emit_client_compilation_graph(
+      writer,
+      writer => {
+        for edge in edges {
+          @canonical.emit_value(edge, writer)
+        }
+        Ok(())
+      },
+      writer => {
+        for node in nodes {
+          @canonical.emit_value(node, writer)
+        }
+      },
+      writer => {
+        for root in roots {
+          @canonical.emit_value(root, writer)
+        }
+        Ok(())
+      },
+    )
+    match emitted {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
-    @encode.end_array(writer)
-    @encode.key(writer, "nodes")
-    @encode.begin_array(writer)
-    for node in nodes {
-      @canonical.emit_value(node, writer)
-    }
-    @encode.end_array(writer)
-    @encode.key(writer, "root_refs")
-    @encode.begin_array(writer)
-    for root in roots {
-      @canonical.emit_value(root, writer)
-    }
-    @encode.end_array(writer)
-    @encode.end_object(writer)
     Ok(
       (
         { wire: @encode.finish(writer), transformations, result_plans, },

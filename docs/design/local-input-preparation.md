@@ -2770,6 +2770,51 @@ adopting the body. Neither the module quote nor an available codec ceiling is
 spare compiler backing, and a Plan with an absent artifact is not evidence of a
 funded compilation.
 
+### Original pure artifacts on the Request Plan
+
+The generic pure module constructor retains the selected installed module
+before entering the publication compiler. It uses the same checked Prepared
+owner, installed compilation manifests and original sequence profile. Values
+versus Tasks comes from that Prepared owner's graph and complete Result
+inventory, rather than a new caller flag or an assumed single root.
+
+Construction geometry interprets the actual Fragment, graph, Result Plan,
+execution-material, publication-fact, witness, fact-manifest and Executable Plan
+serializers. Contract bodies are separate variable inputs even when a Fragment
+contains only their CIDs. Repeated input edges and each checked Result remain
+separate occurrences. No representative CID, wire, parsed copy or identity is
+created by that interpretation. A potential Result projection contributes a
+sizing upper bound, not a decision to replace the original direct-root check.
+The original codec limits bound partial and successful construction; they do
+not grant Resource capacity or enlarge a permitted Program.
+
+The next absolute peak is added once to the same Request capacity. Initial
+pipeline and projection scratch is local to one task; the graph owns its
+retained component trees. Sequential parser and writer workspaces take their
+maximum, while distinct retained wires and values coexist. Unicode and escaped
+JSON use the non-normalizing Source construction recipe and data-key canonical
+admission, without borrowing the closed numeric/ASCII profile. Shared
+representation tariffs price these original constructor dimensions. Fixed VM
+continuation wrappers remain installed Host overhead.
+
+A declined grow retains the original module, immutable geometry, absolute
+quote, manifests, sequence contracts, output mode and provider-factory
+association. Continuation cannot replace that tuple or invoke its factory
+again. A synchronous current callback cannot recursively enter another
+constructor or retire the active parent. Typed construction or compilation
+failure leaves no ready body; the same original cleanup path owns retained
+inputs and reservations. Returning a body borrower is separate from completing
+its parent's retirement.
+
+After successful construction, the Plan retains the actual Values/Tasks
+artifact before the body becomes borrowable. Measurement and retry inventories
+have no later consumer and are severed; the constructor peak is not shrunk
+while its local frames may still be live. The Run adopts that same Plan and
+reservation. Its original getter performs neither another compiler entry nor
+an external current callback. These geometry quantities are not consumed-work
+counts: compiler-work observation and the independent Source/Effect/Content/
+Model constructor boundaries retain their own obligations.
+
 ### Compiler construction measurements
 
 A compiler construction quote composes the original serializer's UTF-8 byte,
@@ -2837,6 +2882,22 @@ bindings, protocol, wire and parsed representations before construction.
 
 ### Checked publication construction input
 
+The publication projection pipeline, its fragment node and edge, and requested
+Result roots each have one field serializer for real construction and text-free
+geometry. Variable field names and publication-order terms come from the
+original checked Result port. Source sorting alone does not invent an authored
+Result-order declaration. The direct-root issuer still performs its original
+producer/target/schema/contract checks, and the transformation issuer retains
+the complete original correspondence checks before emitting either branch.
+
+Potential projection and direct-root measurements do not select a graph
+branch. A compiler quote uses the applicable original branch or a proved upper
+envelope; the actual graph issuer remains responsible for selection. Geometry
+includes the separate pipeline wire/tree and the containing projection parts,
+so the final node's size cannot stand in for that construction overlap. The
+original hash/canonical readers and independent saved-root admission remain
+separate; no Result Plan, CID, wire or parsed tree is issued by measurement.
+
 Publication construction geometry follows the original checked Unit, Result
 port and row/byte scope order. Resolved limits use the capacity owner's retained
 measurement. Bindings share the real argument projection, exact subject/unit/
@@ -2860,6 +2921,24 @@ not perform a second measurement pass or accept measured facts in place of its
 original checked Program, claims, contracts or manifests.
 
 ### Original Task pipeline construction input
+
+Task construction DATA includes the original initial/projected pipeline and
+Fragment geometry together with each actual input and output Carrier contract.
+A Fragment's fixed CID representation does not bound the schema body that must
+be serialized to issue that identity. The original Carrier selection is shared
+between identity construction and measurement: required Relation object types,
+conditional Relation field maps, keyed Graph definitions and Events/Vectors
+roles retain their distinct existing codecs. Role order and conditional
+presence are not reconstructed by a measuring table.
+
+Conditional Relation measurement drives the same key/field/contract
+continuation in a private measuring mode. It creates no hash or text sinks,
+does not expose an identity preparation, and returns its original schema and
+pending continuations through the existing cancellation path after completion
+or failure. Ordinary identity generation retains its original hash-before-wire
+passes and saved identity meaning. Graph measurement similarly uses its
+original definition codec and finite bounds without issuing a checked contract.
+Neither measurement is a reservation, semantic admission or a physical ACK.
 
 The initial Task pipeline writer has one field definition shared by text output
 and UTF-8 byte/node/depth measurement. Its scope is the original sequence range
