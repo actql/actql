@@ -83550,7 +83550,7 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "d39c705cff24b21f7c3f09d14bf352aecff8ecff6df132fc32d14490cbcc4cc8",
+      "sha256": "9c96bc35de6312d0d3b5be9d2320785b8bec86c934e6eaa90a74ca635dba5c0c",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -83580,7 +83580,8 @@
         {
           "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare",
           "parameters": [
-            "options"
+            "options",
+            "retainPreparation"
           ],
           "async": false
         },
@@ -83667,6 +83668,16 @@
         },
         {
           "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/preparation/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/preparation/init:retire/init:retire/init:retire",
           "parameters": [],
           "async": false
         },
@@ -83778,6 +83789,8 @@
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/init:requestStop",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop/init:requestStop#2",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:retry/init:retry",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/preparation/init:retire/init:retire",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/preparation/init:retire/init:retire/init:retire",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readStandard",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readStandard/response/response",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/responseCustody/init:retain/init:retain",

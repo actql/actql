@@ -22,54 +22,50 @@ fn installed_source_response_workspace(
   nodes : Int,
   depth : Int,
 ) -> @execution.PreparationRepresentationUnits? {
-  guard @source.json_literal_construction_extent(bytes, nodes, depth)
-    is Some(literal) &&
-    scalar_snapshot_name_normalization_layout(bytes) is Some(normalization) else {
+  guard @source.json_construction_extent(
+      bytes,
+      nodes,
+      depth,
+      normalize_keys=true,
+    )
+    is Some(parsed) &&
+    @decode.admission_construction_inventory(
+      nodes,
+      nodes,
+      nodes,
+      nodes,
+      Int::min(nodes, depth),
+    )
+    is Some(indexed) else {
     return None
   }
-  // Reuse ONLY the decoder's structural families. Each category is separately
-  // bounded by all parsed nodes; simultaneous objects+arrays deliberately
-  // overcount. These are constructor bounds, not facts from the ASCII scan.
-  // Its parser/text/ASCII-control inventories are not consumed below.
-  let indexed = closed_values_source_inventories({
-    input_bytes: bytes,
-    node_upper: nodes,
-    objects: nodes,
-    arrays: nodes,
-    fields_upper: nodes,
-    quoted_tokens: 0,
-    quoted_utf16_units: 0,
-    longest_quoted_utf16: 0,
-    longest_atom_utf16: 0,
-    depth_upper: Int::min(nodes, depth),
-  })
+  // Each decoder category independently overbounds parsed nodes. The shared
+  // inventories own parser/key normalization and indexed admission storage;
+  // a Source response does not claim eligibility for the Values fast path.
   let source : @execution.PreparationRepresentationUnits = {
-    record_headers: literal.record_headers,
-    reference_slots: literal.reference_slots,
-    scalar_words: literal.scalar_words,
-    owned_utf16_units: literal.owned_utf16_units,
+    record_headers: parsed.record_headers,
+    reference_slots: parsed.reference_slots,
+    scalar_words: parsed.scalar_words,
+    owned_utf16_units: parsed.owned_utf16_units,
     owned_wire_bytes: 0L,
   }
-  // Unicode 16's pinned <=4-scalar recursive expansion gives <=8 UTF16
-  // units per decoded key unit. Sum all normalized key output with the
-  // non-normalizing tree bound, even if old text would already be unrooted.
-  // The separate one-key normalization workspace includes scalar arrays,
-  // stable ordering, builder, LF passes and bounded recursive controls.
-  let input_and_keys : @execution.PreparationRepresentationUnits = {
-    record_headers: 1L + nodes.to_int64(),
+  // parse_json_bytes decodes the received Bytes to a separate input String.
+  // The parser borrows that String; normalized key output is already included
+  // by json_construction_extent. Preserve both lifetimes without repricing.
+  let decoded_input : @execution.PreparationRepresentationUnits = {
+    record_headers: 1L,
     reference_slots: 0L,
     scalar_words: 0L,
-    owned_utf16_units: 9L * bytes.to_int64(),
+    owned_utf16_units: bytes.to_int64(),
     owned_wire_bytes: 0L,
   }
   @execution.compose_preparation_representation([
     source,
-    indexed.indexed_additional,
-    indexed.key_admission_peak,
-    indexed.decoder_ancestry_peak,
-    indexed.decoder_controls_peak,
-    normalization,
-    input_and_keys,
+    decode_construction_preparation_units(indexed.indexed),
+    decode_construction_preparation_units(indexed.keys),
+    decode_construction_preparation_units(indexed.ancestry),
+    decode_construction_preparation_units(indexed.controls),
+    decoded_input,
   ])
 }
 

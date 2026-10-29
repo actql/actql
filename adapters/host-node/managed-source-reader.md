@@ -113,8 +113,11 @@ retirement method. These types issue no grant, capacity or cleanup authority.
 Reentrant factory retirement during pure preparation cannot discard an
 unreturned handle. The SAME factory retains that handle and its returned
 callback computations, requests its stop, and remains pending until they join.
-If the prepare handoff throws, the existing RowRun retains the original
-factory retirement method and receiver for that failed handoff. Cleanup
-retries that SAME method; observation is passive, and neither a truthy value
-nor a returned computation's settlement acknowledges release. No new reader
+The private `prepare` caller can retain a receiver-bound retirement view of
+that exact invocation before fallible preparation. If the handoff throws,
+the existing RowRun retries only that original view. Whole-factory retirement
+remains installation shutdown: a failed request cannot stop another live
+request sharing the factory. Observation is passive, and neither a truthy
+value nor a returned computation's settlement acknowledges release. A custom
+throwing factory without the original handoff remains pending. No new reader
 or cleanup owner is created, and no prepare/read/send is retried.

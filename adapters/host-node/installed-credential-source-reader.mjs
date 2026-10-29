@@ -54,15 +54,35 @@ export function createInstalledCredentialSourceReader({capacity, originalSite, s
   let rawCredential = hosted ? undefined : Object.freeze({...sourceSite.credential});
   let factory, preparing = 0, retiring = false, factoryRetired = false;
   const readers = new Set();
-  factory = Object.freeze({capacity, prepare(options) {
+  factory = Object.freeze({capacity, prepare(options, retainPreparation) {
     if (this !== factory) fail('ForeignInstalledCredentialSourceReader');
-    if (retiring || factoryRetired) fail('InstalledSourceReaderFactoryClosed');
+    if (retainPreparation !== undefined && typeof retainPreparation !== 'function') {
+      fail('InvalidInstalledSourcePreparationRetention');
+    }
     if (preparing === Number.MAX_SAFE_INTEGER || readers.size === Number.MAX_SAFE_INTEGER) {
       fail('InstalledSourceReaderInventoryUnavailable');
     }
     preparing++;
-    let handed = false, unreturnedStop;
+    let handed = false, unreturnedStop, preparedReader, preparationPending = true;
+    let preparationRetired = false;
+    const preparation = retainPreparation === undefined ? undefined : Object.freeze({retire() {
+      if (this !== preparation) fail('ForeignInstalledSourcePreparation');
+      if (preparationRetired) return true;
+      if (preparationPending) return false;
+      if (preparedReader !== undefined) {
+        const pending = preparedReader.requestStop();
+        if (pending !== undefined) void Promise.resolve(pending).catch(() => {});
+        if (preparedReader.observe().cleanupConfirmed !== true) return false;
+      }
+      preparedReader = undefined; preparationRetired = true;
+      return true;
+    }});
     try {
+      // This is a view of ONE invocation within this same factory. A failed
+      // prepare cannot retire other requests sharing the installation.
+      if (preparation !== undefined) Reflect.apply(retainPreparation, undefined, [preparation]);
+      retainPreparation = undefined;
+      if (retiring || factoryRetired) fail('InstalledSourceReaderFactoryClosed');
       let verifyRead = ownMethod(options, 'verifyRead');
       let authorizationFor = ownMethod(options, 'authorizationFor');
       let chargePage = standard ? ownMethod(options, 'chargePage') : undefined;
@@ -290,6 +310,7 @@ export function createInstalledCredentialSourceReader({capacity, originalSite, s
       });
       // An in-flight pure callback may have reentered factory retirement.
       // Keep its SAME handle in this owner even when no caller can receive it.
+      preparedReader = handle;
       readers.add(handle);
       if (retiring || factoryRetired) {
         handle.requestStop();
@@ -297,7 +318,10 @@ export function createInstalledCredentialSourceReader({capacity, originalSite, s
       }
       handed = true;options = undefined;
       return handle;
-    } finally {if (!handed) unreturnedStop?.abort();preparing--;}
+    } finally {
+      if (!handed) {unreturnedStop?.abort();options = undefined;}
+      preparationPending = false;preparing--;
+    }
   }, retire() {
     if (this !== factory) fail('ForeignInstalledCredentialSourceReader');
     retiring = true;
