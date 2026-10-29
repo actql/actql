@@ -63,12 +63,13 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
           canonicalJson(value) === canonicalJson(physicalTarget(resource, value.fields));
       }});
     const {site, authorization} = opened;
+    let providerReader;
     try {
       const pages = new Map(original.sources.map(source =>
         [source.resource, restSourcePageReader({moon, source, decodePage})]));
       // One original Host factory for the complete installation. Selecting a
       // pure resource adapter creates no second retirement/cleanup wrapper.
-      const providerReader = services('createSourceReader', {installation, implementation, site, operation,
+      providerReader = services('createSourceReader', {installation, implementation, site, operation,
         preparePageReader(input, applySynchronousProjection) {
           const selected = pages.get(input.resource);
           if (selected === undefined) fail('RestSourceReadTargetMismatch');
@@ -87,7 +88,8 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
           maxCaptureRows: Math.max(...original.sources.map(source => source.limits.maxRows))},
         providerReader});
     } catch (cause) {
-      throw await retainInstalledHostInitializationFailure(cause, {sourceProfile: site});
+      throw await retainInstalledHostInitializationFailure(cause,
+        {sourceReader: providerReader, sourceProfile: site});
     }
   }
   return Object.freeze({checkProfile: metadata.checkProfile, identityParts: metadata.identityParts,
