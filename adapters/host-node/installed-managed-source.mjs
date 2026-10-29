@@ -41,10 +41,12 @@ export function bindInstalledManagedSources(profile, runFor) {
         // new association or upgrade an equal-shaped Source preparation.
         const after = Object.getOwnPropertyDescriptor(facts, name);
         const forwarded = Object.getOwnPropertyDescriptor(forwardedFacts, name);
+        const forwardedParent = Object.getOwnPropertyDescriptor(forwardedFacts, 'managedRun');
         if (after === undefined || !Object.hasOwn(after, 'value') ||
             after.value !== checkedPrepared || forwarded === undefined ||
             !Object.hasOwn(forwarded, 'value') || forwarded.value !== checkedPrepared ||
-            forwardedFacts.managedRun !== parent || runFor(checkedPrepared) !== parent) {
+            forwardedParent === undefined || !Object.hasOwn(forwardedParent, 'value') ||
+            forwardedParent.value !== parent || runFor(checkedPrepared) !== parent) {
           throw new TypeError('ForeignInstalledManagedSource');
         }
         preparations.set(prepared, Object.freeze({prepared: checkedPrepared, parent}));

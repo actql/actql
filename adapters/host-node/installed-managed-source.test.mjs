@@ -98,6 +98,22 @@ test('Pure Source preparation receives the same original managed Run before prep
   assert.equal(calls, 1);
 });
 
+test('Pure Source preparation cannot publish a replaced removed or accessor parent', async () => {
+  const checked = {}, parent = {}, prepared = {};
+  let getters = 0;
+  for (const change of [facts => {facts.managedRun = {};},
+    facts => {delete facts.managedRun;},
+    facts => {Object.defineProperty(facts, 'managedRun', {get() {getters++;return parent;}});}]) {
+    const view = bindInstalledManagedSources({managedCaptureCapacity() {},
+      async prepare(facts) {await Promise.resolve();change(facts);return prepared;},
+      ledgerCapacity() {assert.fail('No foreign association may escape');},
+    }, original => {assert.equal(original, checked);return parent;});
+    await assert.rejects(view.prepare({preparedProgram: checked}), /ForeignInstalledManagedSource/);
+    assert.throws(() => view.ledgerCapacity(prepared), /ForeignInstalledManagedSource/);
+  }
+  assert.equal(getters, 0);
+});
+
 test('Source preparation cannot install a parent association after cancellation during await', async () => {
   const checked = {}, parent = {}, prepared = {}; let current = true, capacities = 0;
   const profile = bindInstalledManagedSources({managedCaptureCapacity() {},
