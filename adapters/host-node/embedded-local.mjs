@@ -1397,7 +1397,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     if (!mockSourceInstallation) {
       installedEffect = await loadInstalledEffects(selectedEffectPaths, {root, principalId, moon,
-        runtimeUrl, baseEnvironmentWire, resolveSecret: resolveEffectSecret, connectorTable});
+        runtimeUrl, baseEnvironmentWire, resolveSecret: resolveEffectSecret, connectorTable, installationServices});
       if (installationSourcePreparation !== undefined) {
         const projectEffects = await preparation.installProjectEffects(moon, baseEnvironmentWire,
           () => createLocalAuthorizationGate({...authorization, principal: principalId}),

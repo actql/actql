@@ -467,6 +467,15 @@ This shared selection does not replace currentness or resource admission.
 
 ## Standard CREATE declaration
 
+The ordinary Effect loader forwards the original Host installation services
+from the embedded owner. Before invoking an installer it retains the exact
+selected installation and runtime association in that same service owner.
+Profile refusal still precedes runtime selection; a copied service or changed
+runtime refuses before installer acquisition. An absent service preserves the
+legacy installer envelope. Existing failed-initialization and adapter cleanup
+remain with their original owners. This installation/Site connection does not
+supply a Run admission, confirmation read, grant or physical operation budget.
+
 The existing installed Row Effect accepts either a standard `write` declaration
 or an advanced driver. The internal `deriveInstalledRowWrite` adapter derives
 routine hooks without another execution owner. Provider mapping runs once on

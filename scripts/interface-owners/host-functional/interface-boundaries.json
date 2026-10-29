@@ -43642,7 +43642,7 @@
     {
       "module": "adapters/host-node/installed-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3033f8ccb680bcf46fb71893ecc0b097b7a3a54dc7809d7dd0da246bddfea485",
+      "sha256": "2e8ced605874de506f17e496ee2a69772bded9f4550e4cc3ce317549de9fe477",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -43689,6 +43689,7 @@
             "baseEnvironmentWire",
             "resolveSecret",
             "connectorTable",
+            "installationServices",
             "own"
           ],
           "async": true
@@ -43980,6 +43981,14 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
+                "anchor": "Effect load forwards the same registered Host service"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
+                "anchor": "Effect load pins one original runtime"
               }
             ]
           }
@@ -44258,6 +44267,7 @@
         "./installed-connectors.mjs",
         "./installed-effect-inventory.mjs",
         "./installed-host-cleanup.mjs",
+        "./installed-host-services.mjs",
         "./installed-row-effect.mjs",
         "./local-account-config.mjs",
         "./source-profile-json.mjs",
