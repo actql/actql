@@ -72,7 +72,7 @@ test('actual Calendar response preserves empty source schema without inventing a
 });
 
 test('actual Calendar response never rounds an unrepresentable timestamp or hides a cell outside projection', () => {
-  for (const value of ['2026-10-17T01:00:00.0001Z', '2026-02-29T01:00:00Z',
+  for (const value of ['2026-10-17T01:00:00.0000000001Z', '2026-02-29T01:00:00Z',
     '2026-10-17T01:00:00-00:00', null]) {
     const body = response(); body.calendars['a@example.test'].busy[0].start = value;
     assert.throws(() => project(body));
