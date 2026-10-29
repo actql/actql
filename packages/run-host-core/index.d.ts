@@ -879,6 +879,13 @@ export function admitPublicationContract<Name extends string>(name: Name,
   wire: string, limits: PublicationLimits): PublicationContract<Name>;
 export function admitRunEvidenceValue(name: string, wire: string,
   limits: PublicationLimits): RunEvidence;
+/** Pure binding DATA from the same admitted public Review, never a grant. */
+export function effectReviewProjectionBindingFacts(review: RunEvidence): Readonly<{
+  previewCid: string;
+  authoringContextCid: string;
+  authorityScopeCid: string;
+  approvalClaims: readonly string[];
+}>;
 /** Seal registered evidence without granting authority or publication. */
 export function sealRunEvidenceValue(name: string, bodyWire: string,
   limits: PublicationLimits): RunEvidence;

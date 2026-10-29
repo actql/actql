@@ -2012,6 +2012,19 @@ export function admitRunEvidenceValue(name, wire, limits) {
   'RunHostEvidenceRejected'));
 }
 
+/** Binding DATA from the same admitted Review. No parsing, admission, current
+ * permission or outcome follows from this immutable projection. */
+export function effectReviewProjectionBindingFacts(review) {
+  const fields = owner.clientValuesHostEffectReviewProjectionBindingFacts(
+    requireHandle(runEvidences, review?.token));
+  if (!Array.isArray(fields) || fields.length < 3 ||
+      fields.some(value => typeof value !== 'string')) {
+    throw new TypeError('InvalidRunHostReviewProjection');
+  }
+  return Object.freeze({previewCid: fields[0], authoringContextCid: fields[1],
+    authorityScopeCid: fields[2], approvalClaims: Object.freeze(fields.slice(3))});
+}
+
 export function sealRunEvidenceValue(name, bodyWire, limits) {
   if (typeof name !== 'string' || typeof bodyWire !== 'string') {
     throw new TypeError('InvalidRunHostEvidence');
