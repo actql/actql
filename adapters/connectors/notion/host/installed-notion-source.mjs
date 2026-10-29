@@ -105,7 +105,15 @@ export async function loadInstalledNotionSource(profile,{root,principalId,moon,p
   const site=await openRowSourceCredentialSite({profile:{...siteProfile,resourceOrigin:siteProfile.apiOrigin},
     principalId,authorization,connection,connectorRegistration:registration,connectorRevision:revision,
     runtimeBundleCid,commonMoon:moon,ca,admitsApprovalTarget,responseHeaders:[],resolveSecret});
+  let providerReader;
   try{
+    providerReader=createInstalledCredentialSourceReader({capacity:readerCapacity,site,
+      operation:NOTION_USER_LIST_OPERATION,maxResponses:limits.maxPages,
+      maxResponseBytes:limits.maxResponseBytes,maxSecretBytes:limits.maxSecretBytes,
+      preparePageReader({resource:selected,columns},applySynchronousProjection){
+        if(selected!==resource)fail('UndeclaredNotionResource');
+        return prepareNotionUserListPages({moon:provider,names:columns,limits},applySynchronousProjection);
+      }});
     return await createInstalledRowSource({moon,declaration,declared,environmentWire:environment.wire,
       connectorId:installed.connectorId,connectorRegistration:registration,connectorRevision:revision,
       authorization,site,readOperation:NOTION_USER_LIST_OPERATION,physicalTarget:target,
@@ -113,12 +121,7 @@ export async function loadInstalledNotionSource(profile,{root,principalId,moon,p
         connectorRegistration:registration,connectorRevision:revision,contextCid:authorization.context.contextCid,
         runtimeBundleCid,...binding,site:siteProfile}),
       limits:{maxPages:limits.maxPages,maxPageBytes:limits.maxResponseBytes,maxPageRows:limits.maxRows,maxCaptureRows:limits.maxTotalRows},
-      providerReader:createInstalledCredentialSourceReader({capacity:readerCapacity,site,
-        operation:NOTION_USER_LIST_OPERATION,maxResponses:limits.maxPages,
-        maxResponseBytes:limits.maxResponseBytes,maxSecretBytes:limits.maxSecretBytes,
-        preparePageReader({resource:selected,columns},applySynchronousProjection){
-          if(selected!==resource)fail('UndeclaredNotionResource');
-          return prepareNotionUserListPages({moon:provider,names:columns,limits},applySynchronousProjection);
-        }})});
-  }catch(cause){throw await retainInstalledHostInitializationFailure(cause,{sourceProfile:site});}
+      providerReader});
+  }catch(cause){throw await retainInstalledHostInitializationFailure(cause,
+    {sourceReader:providerReader,sourceProfile:site});}
 }

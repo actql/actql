@@ -110,7 +110,15 @@ export async function loadInstalledCalendarSource(profile,{root,principalId,moon
   const site=await openRowSourceCredentialSite({profile:{...siteProfile,resourceOrigin:siteProfile.apiOrigin},
     principalId,authorization,connection,connectorRegistration:registration,connectorRevision:revision,
     runtimeBundleCid,commonMoon:moon,ca,admitsApprovalTarget,responseHeaders:[],resolveSecret});
+  let providerReader;
   try{
+    providerReader=createInstalledCredentialSourceReader({capacity:readerCapacity,site,
+      operation:CALENDAR_LIST_OPERATION,maxResponses:limits.maxPages,
+      maxResponseBytes:limits.maxResponseBytes,maxSecretBytes:limits.maxSecretBytes,
+      preparePageReader({resource:selected,columns},applySynchronousProjection){
+        if(selected!==resource)fail('UndeclaredCalendarResource');
+        return prepareCalendarListPages({moon:provider,names:columns,limits},applySynchronousProjection);
+      }});
     return await createInstalledRowSource({moon,declaration,declared,environmentWire:environment.wire,
       connectorId:installed.connectorId,connectorRegistration:registration,connectorRevision:revision,
       authorization,site,readOperation:CALENDAR_LIST_OPERATION,physicalTarget:target,
@@ -119,12 +127,7 @@ export async function loadInstalledCalendarSource(profile,{root,principalId,moon
         runtimeBundleCid,...binding,site:siteProfile}),
       limits:{maxPages:limits.maxPages,maxPageBytes:limits.maxResponseBytes,
         maxPageRows:Math.min(limits.perPage,limits.maxRows),maxCaptureRows:limits.maxRows},
-      providerReader:createInstalledCredentialSourceReader({capacity:readerCapacity,site,
-        operation:CALENDAR_LIST_OPERATION,maxResponses:limits.maxPages,
-        maxResponseBytes:limits.maxResponseBytes,maxSecretBytes:limits.maxSecretBytes,
-        preparePageReader({resource:selected,columns},applySynchronousProjection){
-          if(selected!==resource)fail('UndeclaredCalendarResource');
-          return prepareCalendarListPages({moon:provider,names:columns,limits},applySynchronousProjection);
-        }})});
-  }catch(cause){throw await retainInstalledHostInitializationFailure(cause,{sourceProfile:site});}
+      providerReader});
+  }catch(cause){throw await retainInstalledHostInitializationFailure(cause,
+    {sourceReader:providerReader,sourceProfile:site});}
 }
