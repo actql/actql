@@ -21,7 +21,7 @@ const page = (family,id,next=null) => ({rows:id === null ? [] : [row(family,id)]
 // Actual provider adapters and Host owner, with explicit compiled-projection,
 // Account/grant and physical response ports. No Common/SQLite/TLS or normal
 // installer/Plan qualification is inferred from these callback-boundary cases.
-function fixture(family,pages,{limits={},names=columns[family],status=200,consume,current,charge}={}) {
+function fixture(family,pages,{limits={},names=columns[family],status=200,consume,current,charge,projection}={}) {
   const events=[],requests=[],delivered=[],responses=[];
   const operation = family === 'notion' ? NOTION_USER_LIST_OPERATION : CALENDAR_LIST_OPERATION;
   const scope = Object.freeze({...Object.fromEntries(credentialInvocationBindingKeys.map(k=>[k,k])),
@@ -38,13 +38,13 @@ function fixture(family,pages,{limits={},names=columns[family],status=200,consum
       const response={accepted:true,statusCode:status,body:bodies[requests.length-1]};
       assert(response.body);responses.push(response);events.push('send');return response;}};
   const moon = family === 'notion' ? {
-    notionProjectUserList(body){assert.equal(this,moon);return ok(selected(body));},
+    notionProjectUserList(body){assert.equal(this,moon);const p=selected(body);return projection?projection(body,p):ok(p);},
     notionUserListIds(p){return p.ids;},
     notionUserListMetadataJson(p){return ok(JSON.stringify({rowCount:p.rows.length,nextCursor:p.next}));},
     notionUserListRowsWire(p,selected){assert.deepEqual(selected,names);return ok(JSON.stringify(p.rows));},
     notionUserListColumnNames(){return columns.notion;},
   } : {
-    calendarProjectCalendarList(body){assert.equal(this,moon);return ok(selected(body));},
+    calendarProjectCalendarList(body){assert.equal(this,moon);const p=selected(body);return projection?projection(body,p):ok(p);},
     calendarListMetadataJson(p){return JSON.stringify({rowCount:p.rows.length,ids:p.ids,nextPageToken:p.next});},
     calendarListRowsWire(p,selected){assert.deepEqual(selected,columns.calendar);return ok(JSON.stringify(p.rows));},
     calendarListColumnNames(){return columns.calendar;},
@@ -152,5 +152,27 @@ test('both providers capture original projection methods columns and limits befo
     f.moon[name]=()=>assert.fail('replaced projection');f.callbacks.columns[0]='foreign';f.bounded.maxPages=1;
     assert.equal((await f.reader.read()).rowCount,2);f.reader.requestStop();
     assert(f.reader.observe().cleanupConfirmed);
+  }
+});
+
+
+test('both provider adapters retain unexpected asynchronous compiled projections until their same borrow settles',async()=>{
+  for(const family of ['notion','calendar']){
+    let release,finished;
+    const pending=new Promise(resolve=>{release=resolve;});
+    const settled=new Promise(resolve=>{finished=resolve;});
+    const f=fixture(family,[page(family,'one')],{projection:async(body,value)=>{
+      await pending;assert.equal(body.toString(),'original-page-0');finished();return ok(value);
+    }});
+    await assert.rejects(f.reader.read());f.reader.requestStop();
+    try{
+      assert.equal(f.reader.observe().readPending,false);
+      assert.equal(f.reader.observe().transportClosed,true);
+      assert.equal(f.reader.observe().cleanupConfirmed,false);
+    }finally{
+      release();await settled;await new Promise(resolve=>setImmediate(resolve));
+    }
+    assert.equal(f.reader.observe().cleanupConfirmed,true);
+    assert.equal(f.requests.length,1);assert.equal(f.delivered.length,0);
   }
 });
