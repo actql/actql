@@ -14,6 +14,18 @@ the Core decides when its work is complete.
 
 ## Declarative REST Source route
 
+This section describes the target declarative route; it is not an executable
+recipe for the public `0d2d07b47dfefafc175ac115ad237fb252c72660` checkout. That
+checkout lacks `scripts/connector.mjs`, `scripts/connector-authoring.mjs` and
+`scripts/fixtures/external-rest/normal-case.test.mjs`. It also lacks the REST
+facade export, shared Host service and managed reader, and its installed
+Source loader does not forward the required original initialization context.
+Both the authoring toolkit and matching normal runtime are prerequisites.
+The commands and application snippet below are proposed usage for a source
+and distribution that actually supply both; do not copy them into the named
+public checkout expecting them to run. Source projection alone does not
+establish ordinary acceptance.
+
 For a fixed HTTPS GET API with finite JSON pages, the declarative route keeps
 connector-specific work to one definition and, only when necessary, one pure
 JavaScript row-wire projection. It requires a normal framework distribution
@@ -82,7 +94,9 @@ reserializing them.
 
 ### Scaffold, build and install
 
-With the authoring scripts and matching framework selected:
+After selecting a source that contains the authoring scripts **and** a
+matching normal distribution with the required facade, Host services and
+original initialization backing, the proposed author sequence is:
 
 ```sh
 node scripts/connector.mjs init /absolute/acme-author acme
@@ -100,9 +114,10 @@ author writes no MoonBit package or per-connector Core/Host patch. The
 original generated views wire is DATA for the Host's preparation owner, not
 another author input or a way to acknowledge physical construction.
 
-Install that tarball alongside the deliberately matching normal framework
-packages using ordinary npm lifecycle. The application uses existing public
-installation APIs:
+For that same supported source and normal distribution, install the generated
+tarball alongside its deliberately matching normal framework packages using
+ordinary npm lifecycle. The proposed application composes the existing
+public installation APIs with the required REST implementation:
 
 ```js
 import {installedConnectors} from '@actql-connectors/acme';
