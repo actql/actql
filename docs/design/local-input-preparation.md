@@ -2689,3 +2689,20 @@ request and prepared aliases only behind the original Core retirement fence.
 The existing registry retirement callback is mandatory before returning a
 selected holder. A missing callback, pending handler or uncertain cleanup keeps
 the same holder and debit; logical completion never acknowledges physical stop.
+
+### Original compilation at Task admission
+
+The existing source-free Task admission forwards the exact staged compilation
+to the same typed compiled-Run issuer, just as the Values admission does. That
+issuer binds the artifact to its original checked Program. A foreign artifact
+refuses there; refusal cannot select the compiler again. This relay creates no
+artifact, capacity, Run permission or new holder. Its preparation caller must
+construct and retain the artifact under the same Request/Run reservation before
+supplying it. A caller which has not migrated still selects its explicit compiler
+entry; an absent artifact is not evidence that preparation was funded.
+
+Model and Content compiler entries retain their separate original graph
+requirements. A plain source-free artifact cannot stand in for either barrier's
+selected component or its lifetime. Their actual funded handoff remains with
+the corresponding Host construction, rather than being inferred from the Task
+artifact's presence.

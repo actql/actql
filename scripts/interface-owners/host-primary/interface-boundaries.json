@@ -13212,7 +13212,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "e8f5932be5e14edf7a37733df201ebd7b6e6a808d981b8920f2fe10cbba416d2",
+      "sha256": "dcad8e27ee65d1dbeb3215ea7e0eaeafdaeb95ab0a9c513a3e5311dc0c5dce35",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -13516,6 +13516,7 @@
             "retainedDefinitionWire",
             "resultDataPolicy",
             "requestIdentity",
+            "compilationOriginal",
             "kind"
           ],
           "async": false
@@ -13827,6 +13828,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "### Original INFER materials in the installed Host"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "inputsOutputs": [
@@ -13845,6 +13850,10 @@
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "identity": [
@@ -13859,6 +13868,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "ownership": [
@@ -13873,6 +13886,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const restoredInferRuns = new WeakSet();"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "synchronization": [
@@ -13887,6 +13904,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "failure": [
@@ -13901,6 +13922,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "cancellation": [
@@ -13911,6 +13936,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "resources": [
@@ -13929,6 +13958,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "extension": [
@@ -13943,6 +13976,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "compilation and existing custody path."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ],
             "verification": [
@@ -13965,6 +14002,10 @@
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
                 "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
               }
             ]
           }
