@@ -185,7 +185,7 @@ test "material retains the actual same-original Result Plan without another full
   let plan = client_material_result_plan(
     value,
     0,
-    graph.transformations,
+    graph.result_plans,
     100000,
     10000,
     100,
@@ -195,7 +195,7 @@ test "material retains the actual same-original Result Plan without another full
     },
   ).unwrap()
   assert_eq(calls.val, 0)
-  assert_true(physical_equal(plan, graph.transformations[0].plan))
+  assert_true(physical_equal(plan, graph.result_plans[0]))
 }
 
 ///|
@@ -213,7 +213,7 @@ test "material rebuilds a CID-equal Result Plan from a different original owner"
   let plan = client_material_result_plan(
     foreign,
     0,
-    graph.transformations,
+    graph.result_plans,
     100000,
     10000,
     100,
@@ -223,8 +223,8 @@ test "material rebuilds a CID-equal Result Plan from a different original owner"
     },
   ).unwrap()
   assert_eq(calls.val, 1)
-  assert_eq(plan.cid, graph.transformations[0].plan.cid)
-  assert_true(!physical_equal(plan, graph.transformations[0].plan))
+  assert_eq(plan.cid, graph.result_plans[0].cid)
+  assert_true(!physical_equal(plan, graph.result_plans[0]))
 }
 
 ///|
@@ -245,17 +245,17 @@ test "material changed codec bounds select the original full Result issuer" {
   let plan = client_material_result_plan(
     value,
     0,
-    graph.transformations,
+    graph.result_plans,
     99999,
     10000,
     100,
     issue,
   ).unwrap()
   assert_eq(calls.val, 1)
-  assert_eq(plan.cid, graph.transformations[0].plan.cid)
-  assert_true(!physical_equal(plan, graph.transformations[0].plan))
+  assert_eq(plan.cid, graph.result_plans[0].cid)
+  assert_true(!physical_equal(plan, graph.result_plans[0]))
   assert_true(
-    client_material_result_plan(value, 0, graph.transformations, 1, 1, 1, issue)
+    client_material_result_plan(value, 0, graph.result_plans, 1, 1, 1, issue)
     is Err(_),
   )
   assert_eq(calls.val, 2)
@@ -276,7 +276,7 @@ test "material a different Result cannot reuse the retained original Plan" {
     client_material_result_plan(
       value,
       1,
-      graph.transformations,
+      graph.result_plans,
       100000,
       10000,
       100,
@@ -288,4 +288,32 @@ test "material a different Result cannot reuse the retained original Plan" {
     is Err(MissingResult),
   )
   assert_eq(calls.val, 1)
+}
+
+///|
+test "direct material keeps the original Result Plan without full reissuance" {
+  let value = values_compilation_parts_prepared()
+  let graph = issue_prepared_client_values_plan_graph(
+    value,
+    run_materials_limits().sequence,
+    100000,
+    10000,
+    100,
+  ).unwrap()
+  assert_eq(graph.transformations.length(), 0)
+  let calls = Ref(0)
+  client_material_result_plan(
+    value,
+    0,
+    graph.result_plans,
+    100000,
+    10000,
+    100,
+    (owner, result, bytes, nodes, depth) => {
+      calls.val += 1
+      issue_prepared_client_result_plan(owner, result, bytes, nodes, depth)
+    },
+  ).unwrap()
+  |> ignore
+  assert_eq(calls.val, 0)
 }

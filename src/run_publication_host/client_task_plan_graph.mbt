@@ -39,6 +39,7 @@ fn client_task_edge_input(
 pub struct ClientTaskPlanGraph {
   wire : String
   transformations : Array[ClientResultTransformation]
+  priv result_plans : Array[ClientResultPlanIdentity]
   priv standard_progress_keys : Array[String]?
 }
 
@@ -201,6 +202,7 @@ fn issue_client_task_plan_graph(
   let input_nodes : Array[@canonical.CanonicalValue] = []
   let model_edges : Array[@canonical.CanonicalValue] = []
   let transformations : Array[ClientResultTransformation] = []
+  let result_plans : Array[ClientResultPlanIdentity] = []
   let nodes : Array[@canonical.CanonicalValue] = []
   if infer is Some(_) && !infers.is_empty() {
     return Err(UnsupportedGraph)
@@ -393,6 +395,7 @@ fn issue_client_task_plan_graph(
       result_edges.push(edge)
     }
     roots.push(parts.root)
+    result_plans.push(parts.plan)
     if parts.selection is Some(selection) {
       transformations.push(selection)
     }
@@ -518,6 +521,7 @@ fn issue_client_task_plan_graph(
     Ok({
       wire: @encode.finish(writer),
       transformations,
+      result_plans,
       standard_progress_keys,
     })
   } catch {

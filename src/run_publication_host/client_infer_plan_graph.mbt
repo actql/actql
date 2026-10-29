@@ -615,6 +615,7 @@ fn issue_client_infer_plan_graph_for_occurrence(
     let edges : Array[@canonical.CanonicalValue] = []
     let roots : Array[@canonical.CanonicalValue] = []
     let transformations : Array[ClientResultTransformation] = []
+    let result_plans : Array[ClientResultPlanIdentity] = []
     let content_producers : Array[(Int, String, String, String)] = []
     if serialization is Some(component) {
       guard parse_plan_identity_value(
@@ -908,6 +909,7 @@ fn issue_client_infer_plan_graph_for_occurrence(
         edges.push(edge)
       }
       roots.push(parts.root)
+      result_plans.push(parts.plan)
       if parts.selection is Some(selection) {
         transformations.push(selection)
       }
@@ -931,6 +933,7 @@ fn issue_client_infer_plan_graph_for_occurrence(
       graph: {
         wire: @encode.finish(graph_writer),
         transformations,
+        result_plans,
         standard_progress_keys: None,
       },
       input_fragment_cid: prefix.logical_cid,

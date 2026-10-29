@@ -2799,8 +2799,11 @@ input, changes the codec limits or creates a second resource owner.
 
 ### Same-original Result material and composed Plan geometry
 
-A graph's Result transformation retains its original Result Plan and the exact
-codec byte/node/depth bounds under which that Plan was issued. Material
+Each owner-issued Result Plan retains its original Prepared owner, global
+Result ordinal and exact codec byte/node/depth bounds. Graphs retain the complete
+Result Plan inventory, including direct roots; the transformation list still
+contains only Results that require a publication operation. Direct roots carry
+the Plan that they actually issued instead of discarding it. Material
 construction uses that completed Plan only for the same Prepared owner, Result
 ordinal and bounds. Equal CIDs, a different Prepared owner, another Result or
 changed bounds do not select it; the original complete Result issuer remains
@@ -2809,9 +2812,14 @@ DATA, with no permission, currentness, physical lifetime or Resource grant.
 
 Every graph-bearing compiler passes its actual transformation inventory to the
 private material constructor: Values, Task, Infer, composed Model, Content and
-Effect. A standalone Task material call retains the Result originals from the
-graph it already validates instead of discarding them in a template wrapper.
-A standalone Values material call has no prior Result Plan and issues its own.
+Effect. Standalone Task and Values material calls retain the Result originals from
+the graph they already validate instead of discarding them in a template
+wrapper. Executable Plan composition requires that same complete inventory.
+The existing compiled Values, Task and Effect holders then keep those Plan
+originals for their Result reader. Standalone owner-based Result preparation
+and independent saved-body admission retain their existing full path. A changed
+owner, Result or codec profile cannot borrow the retained Plan. No graph root,
+transformation decision, Result contract or wire identity changes.
 The same original typed Result port supplies authored projection order and
 input/output field correspondence; material does not reconstruct that mapping
 by searching every canonical-schema position again.
@@ -2892,3 +2900,12 @@ workspace/work, parsed trees, graph/fact/witness/template/bindings/protocol
 records and complete artifact retention still require their own simultaneous
 inventories under that same parent before allocation. Byte geometry alone is
 not a funded compiler, Plan, Run or physical-cleanup acknowledgment.
+
+
+The complete Result inventory is immutable compilation DATA. Provenance lives
+on the existing Result Plan rather than a parallel codec tuple on only its
+transformation wrapper. No persistent cache, public proof token or Resource
+owner is added. Publication execution, request binding, permission, currentness,
+physical completion and failure cleanup remain separate. The full constructor
+quote must include retained Plans, both graph/Executable-Plan arrays and their
+live aliases; old narrower backing evidence does not price these new fields.

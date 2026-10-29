@@ -7,6 +7,9 @@ pub struct ClientResultPlanIdentity {
   unit_result_name : String
   unit_result_ordinal : Int
   row_contract_cid : String
+  priv owner : PreparedClientProgram
+  priv result : Int
+  priv codec_limits : (Int, Int, Int)
 }
 
 ///|
@@ -247,6 +250,9 @@ pub fn issue_prepared_client_result_plan(
     unit_result_name,
     unit_result_ordinal,
     row_contract_cid,
+    owner: value,
+    result,
+    codec_limits: (max_wire_bytes, max_nodes, max_depth),
   })
 }
 

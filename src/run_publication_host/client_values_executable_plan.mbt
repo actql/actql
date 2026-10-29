@@ -25,6 +25,7 @@ pub struct ClientValuesExecutablePlan {
   fact_manifest_wire : String
   fact_manifest_cid : String
   transformations : Array[ClientResultTransformation]
+  priv result_plans : Array[ClientResultPlanIdentity]
   graph_logical_cid : String?
   priv mut read_originals : ClientExecutablePlanReadOriginals?
 }
@@ -209,7 +210,7 @@ fn issue_prepared_client_values_executable_plan_parts(
       max_wire_bytes,
       max_nodes,
       max_depth,
-      result_plans=graph.transformations,
+      result_plans=graph.result_plans,
     ) {
     Ok(material) => material
     Err(issue) => return Err(Material(issue))
@@ -224,6 +225,7 @@ fn issue_prepared_client_values_executable_plan_parts(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    result_plans=graph.result_plans,
   ).map(plan => {
     // This Values result has no task-reader continuation. Do not retain its
     // temporary parsed trees in a standalone Plan or completed compilation.
@@ -307,7 +309,7 @@ fn issue_prepared_client_task_plan_parts(
       max_wire_bytes,
       max_nodes,
       max_depth,
-      result_plans=graph.transformations,
+      result_plans=graph.result_plans,
     ) {
     Ok(material) => material
     Err(issue) => return Err(Material(issue))
@@ -322,6 +324,7 @@ fn issue_prepared_client_task_plan_parts(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    result_plans=graph.result_plans,
   ).map(plan => ({ plan, }, template, graph))
 }
 
@@ -428,6 +431,7 @@ fn issue_prepared_client_executable_plan_with_parts(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  result_plans~ : Array[ClientResultPlanIdentity],
   required_profiles? : Array[(String, String)] = [],
 ) -> Result[ClientValuesExecutablePlan, ClientValuesExecutablePlanIssue] {
   let facts = match
@@ -528,6 +532,7 @@ fn issue_prepared_client_executable_plan_with_parts(
         max_depth,
       }),
       transformations: transformations.copy(),
+      result_plans: result_plans.copy(),
       graph_logical_cid: if transformations.is_empty() {
         None
       } else {

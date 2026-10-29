@@ -351,6 +351,7 @@ fn issue_client_serialization_effect_component(
         graph: {
           wire: @encode.finish(writer),
           transformations: [],
+          result_plans: [],
           standard_progress_keys: None,
         },
         external_ports,

@@ -40,7 +40,7 @@ pub fn issue_prepared_client_infer_execution_material(
     max_wire_bytes,
     max_nodes,
     max_depth,
-    result_plans=graph.graph.transformations,
+    result_plans=graph.graph.result_plans,
   )
 }
 
@@ -122,9 +122,16 @@ pub fn issue_prepared_client_values_execution_material(
   if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidLimits)
   }
+  let (graph, _, aoa) = match
+    issue_prepared_client_values_plan_graph_parts(
+      value, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(parts) => parts
+    Err(issue) => return Err(Template(ValuesGraph(issue)))
+  }
   let template = match
-    issue_prepared_source_free_client_bound_template(
-      value, manifests, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    issue_source_free_client_bound_template_from_aoa(
+      value, manifests, aoa, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(template) => template
     Err(issue) => return Err(Template(issue))
@@ -136,7 +143,7 @@ pub fn issue_prepared_client_values_execution_material(
     max_wire_bytes,
     max_nodes,
     max_depth,
-    result_plans=[],
+    result_plans=graph.result_plans,
   )
 }
 
@@ -158,7 +165,7 @@ pub fn issue_prepared_client_task_execution_material(
     issue_prepared_client_task_plan_graph(
       value, sequence_limits, max_wire_bytes, max_nodes, max_depth,
     ) {
-    Ok(graph) => graph.transformations
+    Ok(graph) => graph.result_plans
     Err(issue) => return Err(TaskTemplate(Graph(issue)))
   }
   let template = match
@@ -187,7 +194,7 @@ fn issue_prepared_client_execution_material_with_template(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-  result_plans~ : Array[ClientResultTransformation],
+  result_plans~ : Array[ClientResultPlanIdentity],
   effect_plan_cids? : Array[(String, String)] = [],
   effect_target_selections? : ClientEffectUpdateTargetSelections? = None,
 ) -> Result[ClientExecutionMaterial, ClientExecutionMaterialIssue] {
@@ -348,7 +355,7 @@ pub fn admit_prepared_client_infer_execution_material(
 fn client_material_result_plan(
   value : PreparedClientProgram,
   result : Int,
-  original_plans : Array[ClientResultTransformation],
+  original_plans : Array[ClientResultPlanIdentity],
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
@@ -358,9 +365,10 @@ fn client_material_result_plan(
   ],
 ) -> Result[ClientResultPlanIdentity, ClientResultPlanIssue] {
   for original in original_plans {
-    if client_result_transformation_matches(original, value, result) &&
-      original.plan_limits == (max_wire_bytes, max_nodes, max_depth) {
-      return Ok(original.plan)
+    if physical_equal(original.owner, value) &&
+      original.result == result &&
+      original.codec_limits == (max_wire_bytes, max_nodes, max_depth) {
+      return Ok(original)
     }
   }
   issue(value, result, max_wire_bytes, max_nodes, max_depth)

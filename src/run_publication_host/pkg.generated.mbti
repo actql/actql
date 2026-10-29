@@ -2342,6 +2342,7 @@ pub struct ClientDirectResultRoot {
   node_id : String
   port : String
   row_contract_cid : String
+  // private fields
 }
 
 pub(all) enum ClientDirectResultRootAdmissionIssue {
@@ -3746,6 +3747,7 @@ pub struct ClientResultPlanIdentity {
   unit_result_name : String
   unit_result_ordinal : Int
   row_contract_cid : String
+  // private fields
 }
 
 pub(all) enum ClientResultPlanIssue {
@@ -3785,7 +3787,6 @@ pub struct ClientResultTransformation {
   occurrence : @execution_relation.ManagedResultOccurrence
   plan : ClientResultPlanIdentity
   definition : @run_publication.PublicationContract
-  // private fields
 }
 
 pub(all) enum ClientResultTransformationIssue {
@@ -4569,6 +4570,7 @@ pub(all) enum ClientValuesPipelineIssue {
 pub struct ClientValuesPlanGraph {
   wire : String
   transformations : Array[ClientResultTransformation]
+  // private fields
 }
 
 pub(all) enum ClientValuesPlanGraphAdmissionIssue {

@@ -690,6 +690,7 @@ fn issue_client_serialization_plan_graph_with_policy(
     nodes.push(content_node)
     let roots : Array[@canonical.CanonicalValue] = []
     let transformations : Array[ClientResultTransformation] = []
+    let result_plans : Array[ClientResultPlanIdentity] = []
     for
       result in 0..<(if include_results {
         @strategy.graph_result_count(owner.graph)
@@ -722,6 +723,7 @@ fn issue_client_serialization_plan_graph_with_policy(
         transformations.push(selection)
       }
       roots.push(parts.root)
+      result_plans.push(parts.plan)
     }
     let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
     @encode.begin_object(writer)
@@ -742,6 +744,7 @@ fn issue_client_serialization_plan_graph_with_policy(
       graph: {
         wire: @encode.finish(writer),
         transformations,
+        result_plans,
         standard_progress_keys: None,
       },
       policy,

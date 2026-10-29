@@ -38,7 +38,7 @@ pub fn issue_prepared_client_serialization_compilation(
       max_wire_bytes,
       max_nodes,
       max_depth,
-      result_plans=component.graph.transformations,
+      result_plans=component.graph.result_plans,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Material(issue))
@@ -55,6 +55,7 @@ pub fn issue_prepared_client_serialization_compilation(
       max_nodes,
       max_depth,
       required_profiles=profiles,
+      result_plans=component.graph.result_plans,
     ) {
     Ok(plan) => { plan, }
     Err(issue) => return Err(Plan(issue))
