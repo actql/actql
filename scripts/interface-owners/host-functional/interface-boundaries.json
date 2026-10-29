@@ -69900,7 +69900,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "f141ff5feff40a95ee1b3a4cb12972dd1eba8615b090922f6a52acf1c7566a3c",
+      "sha256": "ccda9e2ffa8b5266f69416c1c7c6e3030995a109878668aa4b2e799015c4073e",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -70004,6 +70004,7 @@
         "effectReviewCheckpointPreview",
         "effectReviewCheckpointReconciliationState",
         "effectReviewCheckpointWaitingState",
+        "effectReviewProjectionBindingFacts",
         "effectRunStartCurrent",
         "effectSourceEvidenceFacts",
         "effectSourceInputBinding",
@@ -70523,6 +70524,13 @@
             "declaredResults: readonly string[]"
           ],
           "result": "string"
+        },
+        {
+          "name": "effectReviewProjectionBindingFacts",
+          "parameters": [
+            "review: RunEvidence"
+          ],
+          "result": "Readonly<{\n  previewCid: string;\n  authoringContextCid: string;\n  authorityScopeCid: string;\n  approvalClaims: readonly string[];\n}>"
         },
         {
           "name": "effectRunStartCurrent",
@@ -72240,6 +72248,7 @@
             "effectReviewCheckpointPreview",
             "effectReviewCheckpointReconciliationState",
             "effectReviewCheckpointWaitingState",
+            "effectReviewProjectionBindingFacts",
             "effectRunStartCurrent",
             "effectSourceEvidenceFacts",
             "effectSourceInputBinding",
@@ -72460,6 +72469,7 @@
             "effectReviewCheckpointPreview",
             "effectReviewCheckpointReconciliationState",
             "effectReviewCheckpointWaitingState",
+            "effectReviewProjectionBindingFacts",
             "effectRunStartCurrent",
             "effectSourceEvidenceFacts",
             "effectSourceInputBinding",
@@ -72618,6 +72628,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "inputsOutputs": [
@@ -72656,6 +72670,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "identity": [
@@ -72694,6 +72712,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "ownership": [
@@ -72732,6 +72754,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "synchronization": [
@@ -72770,6 +72796,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "failure": [
@@ -72808,6 +72838,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "cancellation": [
@@ -72846,6 +72880,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "resources": [
@@ -72884,6 +72922,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "extension": [
@@ -72922,6 +72964,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
               }
             ],
             "verification": [
@@ -72980,6 +73026,14 @@
               {
                 "path": "src/run_publication_host/client_effect_checkpoint_reconciliation_wbtest.mbt",
                 "anchor": "test \"original Checkpoint Preview refuses changed stored bytes and another Run\""
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              },
+              {
+                "path": "src/run_publication/effect_review_projection_binding_facts_wbtest.mbt",
+                "anchor": "test \"Review binding facts do not reinterpret a different admitted evidence family\""
               }
             ]
           }
