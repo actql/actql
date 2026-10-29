@@ -27506,14 +27506,22 @@
     {
       "module": "src/client_local_host/preparation_host_initial.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "83f2d2c30f8082ff57ee5f0fb95f67ddf319c2bd243fc3408faaa3f99bd23de5",
+      "sha256": "cf86eb10b940680013e39dfdd270fc90b655622fca6c7ed90dc5a32bd01f4fab",
       "role": "common-semantics",
       "owner": "Existing Local connection initialization and original Resource preparation owners",
       "exports": [],
       "operations": [
         {
+          "name": "[I]begin_backed_host_initialization_preparation",
+          "declaration": "[ I ] begin_backed_host_initialization_preparation ( initial : @ resources . BackedInitializationAdmission [ I ] , input : I , policy : ClientLocalResourcePolicy , ) - > Result [ ClientHostInitializationPreparation [ I ] , ClientHostInitializationIssue , ]"
+        },
+        {
           "name": "[I]begin_host_initialization_preparation",
           "declaration": "[ I ] begin_host_initialization_preparation ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , policy : ClientLocalResourcePolicy , ) - > Result [ ClientHostInitializationPreparation [ I ] , ClientHostInitializationIssue , ]"
+        },
+        {
+          "name": "[I]begin_host_initialization_preparation_original",
+          "declaration": "[ I ] begin_host_initialization_preparation_original ( initial : ClientHostInitializationOriginal [ I ] , input : I , policy : ClientLocalResourcePolicy , ) - > Result [ ClientHostInitializationPreparation [ I ] , ClientHostInitializationIssue , ]"
         },
         {
           "name": "[I]close_host_initialization_preparation",
@@ -27599,9 +27607,78 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "[I]begin_backed_host_initialization_preparation",
+            "[I]begin_host_initialization_preparation_original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ]
+          }
         }
       ],
-      "referenceQualification": "Actual original Node admission and focused caller/typed capacity components only; Source domain/lifetime consumer and ordinary installed acceptance remain separate."
+      "referenceQualification": "Original Node checks retain their original sources. New backed branches are actual source/type/API qualified only; portable cases and Native factory/census/physical/normal acceptance remain unexecuted/open."
     },
     {
       "module": "src/client_local_host/preparation_request_terminal.mbt",
@@ -30421,6 +30498,404 @@
         }
       ],
       "referenceQualification": "Original canonical Task pipeline constructor and Fragment consumer; not complete compiler work/backing or ordinary runtime acceptance"
+    },
+    {
+      "module": "src/physical_resources/backed_initialization_admission.mbt",
+      "sha256": "3833406856aa8b8607adc24d7a91b1993d90a311aba088b7ced95a33e9e5c355",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]backed_initialization_ledger_published",
+          "declaration": "[ I ] backed_initialization_ledger_published ( owner : BackedInitializationAdmission [ I ] , input : I , ) - > Result [ Bool , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[I]backed_initialization_original",
+          "declaration": "[ I ] backed_initialization_original ( owner : BackedInitializationAdmission [ I ] , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[I]backed_initialization_original_frame",
+          "declaration": "[ I ] backed_initialization_original_frame ( owner : BackedInitializationAdmission [ I ] , input : I , ) - > Result [ ImportedChildLedger , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[I]check_backed_initialization_input",
+          "declaration": "[ I ] check_backed_initialization_input ( owner : BackedInitializationAdmission [ I ] , input : I , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[I]cleanup_backed_initialization_admission",
+          "declaration": "[ I ] cleanup_backed_initialization_admission ( owner : BackedInitializationAdmission [ I ] , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[I]start_backed_initialization_admission",
+          "declaration": "[ I ] start_backed_initialization_admission ( owner : BackedInitializationAdmission [ I ] , ) - > Result [ Ledger , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[I]take_backed_initialization_admission",
+          "declaration": "[ I ] take_backed_initialization_admission ( owner : BackedInitializationAdmission [ I ] , input : I , ) - > Result [ Ledger , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P,C,I]prepare_backed_initialization_admission",
+          "declaration": "[ P , C , I ] prepare_backed_initialization_admission ( projection : BackedExecutionLiveProjection [ P , C , I ] , input : I , ) - > Result [ BackedInitializationAdmission [ I ] , ImportedChildLedgerIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource backed-execution and Native bootstrap physical owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]backed_initialization_ledger_published",
+            "[I]backed_initialization_original",
+            "[I]backed_initialization_original_frame",
+            "[I]check_backed_initialization_input",
+            "[I]cleanup_backed_initialization_admission",
+            "[I]start_backed_initialization_admission",
+            "[I]take_backed_initialization_admission",
+            "[P,C,I]prepare_backed_initialization_admission"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-original initialization input/capacity and retirement Source/type boundary only. Authored cases unexecuted, no actual factory/census/funding/physical ACK or ordinary acceptance."
+    },
+    {
+      "module": "src/physical_resources/backed_live_child.mbt",
+      "sha256": "c737e3765a5bcf1f9c8a55391451046f995129e47268275a6473b44efaca09c9",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[P,C,R]admit_backed_execution_live_child",
+          "declaration": "[ P , C , R ] admit_backed_execution_live_child ( access : BackedExecutionLiveAccess [ P , C , R ] , runtime : R , ) - > Result [ BackedExecutionLiveProjection [ P , C , R ] , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C,R]backed_execution_live_limits",
+          "declaration": "[ P , C , R ] backed_execution_live_limits ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , ) - > Result [ LedgerLimits , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C,R]backed_execution_live_state",
+          "declaration": "[ P , C , R ] backed_execution_live_state ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , ) - > Result [ BackedExecutionLiveState , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C,R]backed_live_original",
+          "declaration": "[ P , C , R ] backed_live_original ( access : BackedExecutionLiveAccess [ P , C , R ] , runtime : R , ) - > Result [ ( BackedExecutionRegion [ P , C ] , P , C , BackedExecutionDelegation [ P , C ] , BackedExecutionReadUse [ P , C ] , ) , BackedExecutionIssue , ]"
+        },
+        {
+          "name": "[P,C,R]backed_live_projection_original",
+          "declaration": "[ P , C , R ] backed_live_projection_original ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , ) - > Result [ BackedExecutionLiveAccess [ P , C , R ] , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C,R]issue_backed_execution_live_access",
+          "declaration": "[ P , C , R ] issue_backed_execution_live_access ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , ticket : BackedExecutionDelegation [ P , C ] , read_use : BackedExecutionReadUse [ P , C ] , runtime : R , ) - > Result [ BackedExecutionLiveAccess [ P , C , R ] , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C,R]report_backed_execution_live_child",
+          "declaration": "[ P , C , R ] report_backed_execution_live_child ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , usage : LedgerUsage , ) - > Result [ Unit , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C,R]retire_backed_execution_live_child_after_owner_ack",
+          "declaration": "[ P , C , R ] retire_backed_execution_live_child_after_owner_ack ( access : BackedExecutionLiveAccess [ P , C , R ] , runtime : R , ) - > Result [ Unit , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C,R]stop_backed_execution_live_child",
+          "declaration": "[ P , C , R ] stop_backed_execution_live_child ( access : BackedExecutionLiveAccess [ P , C , R ] , runtime : R , ) - > Result [ Unit , BackedExecutionIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource backed-execution and Native bootstrap physical owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[P,C,R]admit_backed_execution_live_child",
+            "[P,C,R]backed_execution_live_limits",
+            "[P,C,R]backed_execution_live_state",
+            "[P,C,R]backed_live_original",
+            "[P,C,R]backed_live_projection_original",
+            "[P,C,R]issue_backed_execution_live_access",
+            "[P,C,R]report_backed_execution_live_child",
+            "[P,C,R]retire_backed_execution_live_child_after_owner_ack",
+            "[P,C,R]stop_backed_execution_live_child"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-original initialization input/capacity and retirement Source/type boundary only. Authored cases unexecuted, no actual factory/census/funding/physical ACK or ordinary acceptance."
+    },
+    {
+      "module": "src/platform_native/host_bootstrap/backed_live_child_native.mbt",
+      "sha256": "4bc1478bd3eb3109fee6339f4ec19220aba7b6974484aad6ce6eee6eaa2f4a78",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T,C,I]NativeHostBootstrap::prepare_backed_initialization_live_child",
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : prepare_backed_initialization_live_child ( self : NativeHostBootstrap [ T ] , original : T , domain : NativeBackedExecutionDomain [ T , C ] , child : C , input : I , ) - > Result [ NativeBackedLiveChildAcquisition [ T , C , I ] , NativeBackedExecutionIssue , ]"
+        },
+        {
+          "name": "[T,C,I]NativeHostBootstrap::prepare_backed_original_initialization_admission",
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : prepare_backed_original_initialization_admission ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , ) - > Result [ @ resources . BackedInitializationAdmission [ I ] , NativeBackedOriginalReadIssue , ]"
+        },
+        {
+          "name": "[T,C,R]NativeHostBootstrap::admit_backed_live_child",
+          "declaration": "[ T , C , R ] NativeHostBootstrap : : admit_backed_live_child ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , R ] , runtime : R , ) - > Result [ Unit , NativeBackedExecutionIssue ]"
+        },
+        {
+          "name": "[T,C,R]NativeHostBootstrap::backed_live_child_limits",
+          "declaration": "[ T , C , R ] NativeHostBootstrap : : backed_live_child_limits ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , R ] , runtime : R , ) - > Result [ @ resources . LedgerLimits , NativeBackedExecutionIssue ]"
+        },
+        {
+          "name": "[T,C,R]NativeHostBootstrap::backed_live_child_state",
+          "declaration": "[ T , C , R ] NativeHostBootstrap : : backed_live_child_state ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , R ] , runtime : R , ) - > Result [ @ resources . BackedExecutionLiveState , NativeBackedExecutionIssue ]"
+        },
+        {
+          "name": "[T,C,R]NativeHostBootstrap::issue_backed_live_child_from_read",
+          "declaration": "[ T , C , R ] NativeHostBootstrap : : issue_backed_live_child_from_read ( self : NativeHostBootstrap [ T ] , original : T , domain : NativeBackedExecutionDomain [ T , C ] , child : C , runtime : R , purpose : NativeBackedLiveChildPurpose , ) - > Result [ NativeBackedLiveChildAcquisition [ T , C , R ] , NativeBackedExecutionIssue , ]"
+        },
+        {
+          "name": "[T,C,R]NativeHostBootstrap::original_live_child",
+          "declaration": "[ T , C , R ] NativeHostBootstrap : : original_live_child ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , R ] , runtime : R , ) - > Result [ Unit , NativeBackedExecutionIssue ]"
+        },
+        {
+          "name": "[T,C,R]NativeHostBootstrap::prepare_backed_live_child",
+          "declaration": "[ T , C , R ] NativeHostBootstrap : : prepare_backed_live_child ( self : NativeHostBootstrap [ T ] , original : T , domain : NativeBackedExecutionDomain [ T , C ] , child : C , runtime : R , ) - > Result [ NativeBackedLiveChildAcquisition [ T , C , R ] , NativeBackedExecutionIssue , ]"
+        },
+        {
+          "name": "[T,C,R]NativeHostBootstrap::prepare_backed_original_live_ledger",
+          "declaration": "[ T , C , R ] NativeHostBootstrap : : prepare_backed_original_live_ledger ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , R ] , runtime : R , ) - > Result [ @ resources . ImportedChildLedger , NativeBackedOriginalReadIssue ]"
+        },
+        {
+          "name": "[T,C,R]NativeHostBootstrap::prepare_backed_original_read_ledger",
+          "declaration": "[ T , C , R ] NativeHostBootstrap : : prepare_backed_original_read_ledger ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , R ] , runtime : R , ) - > Result [ @ resources . ImportedChildLedger , NativeBackedOriginalReadIssue ]"
+        },
+        {
+          "name": "[T,C,R]NativeHostBootstrap::prepare_backed_read_live_child",
+          "declaration": "[ T , C , R ] NativeHostBootstrap : : prepare_backed_read_live_child ( self : NativeHostBootstrap [ T ] , original : T , domain : NativeBackedExecutionDomain [ T , C ] , child : C , runtime : R , ) - > Result [ NativeBackedLiveChildAcquisition [ T , C , R ] , NativeBackedExecutionIssue , ]"
+        },
+        {
+          "name": "[T,C,R]NativeHostBootstrap::report_backed_live_child",
+          "declaration": "[ T , C , R ] NativeHostBootstrap : : report_backed_live_child ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , R ] , runtime : R , usage : @ resources . LedgerUsage , ) - > Result [ Unit , NativeBackedExecutionIssue ]"
+        },
+        {
+          "name": "[T,C,R]NativeHostBootstrap::retire_backed_live_child_after_owner_ack",
+          "declaration": "[ T , C , R ] NativeHostBootstrap : : retire_backed_live_child_after_owner_ack ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , R ] , runtime : R , ) - > Result [ Unit , NativeBackedExecutionIssue ]"
+        },
+        {
+          "name": "[T,C,R]NativeHostBootstrap::stop_backed_live_child",
+          "declaration": "[ T , C , R ] NativeHostBootstrap : : stop_backed_live_child ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , R ] , runtime : R , ) - > Result [ Unit , NativeBackedExecutionIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Resource backed-execution and Native bootstrap physical owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T,C,I]NativeHostBootstrap::prepare_backed_initialization_live_child",
+            "[T,C,I]NativeHostBootstrap::prepare_backed_original_initialization_admission",
+            "[T,C,R]NativeHostBootstrap::admit_backed_live_child",
+            "[T,C,R]NativeHostBootstrap::backed_live_child_limits",
+            "[T,C,R]NativeHostBootstrap::backed_live_child_state",
+            "[T,C,R]NativeHostBootstrap::issue_backed_live_child_from_read",
+            "[T,C,R]NativeHostBootstrap::original_live_child",
+            "[T,C,R]NativeHostBootstrap::prepare_backed_live_child",
+            "[T,C,R]NativeHostBootstrap::prepare_backed_original_live_ledger",
+            "[T,C,R]NativeHostBootstrap::prepare_backed_original_read_ledger",
+            "[T,C,R]NativeHostBootstrap::prepare_backed_read_live_child",
+            "[T,C,R]NativeHostBootstrap::report_backed_live_child",
+            "[T,C,R]NativeHostBootstrap::retire_backed_live_child_after_owner_ack",
+            "[T,C,R]NativeHostBootstrap::stop_backed_live_child"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-original initialization input/capacity and retirement Source/type boundary only. Authored cases unexecuted, no actual factory/census/funding/physical ACK or ordinary acceptance."
     }
   ]
 }
