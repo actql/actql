@@ -72,17 +72,10 @@ pub fn[I] reserve_request_program_plan(
     return Err(ForeignOriginal)
   }
   if owner.phase == ProgramCompiled {
-    guard program_check_data_extent_cost(data) is Some(bytes) else {
-      return Err(Policy)
-    }
     let (r, e) = match
-      @resources.preparation_capacity_working_extents(capacity, input) {
-      Err(issue) => return Err(Capacity(issue))
+      original_request_plan_construction_quote(capacity, input, data) {
+      Err(issue) => return Err(issue)
       Ok(value) => value
-    }
-    guard @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
-      @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
-      return Err(Policy)
     }
     owner.program_plan_quote = Some((r, e))
     owner.phase = ProgramPlanQuoted
@@ -195,10 +188,36 @@ pub fn[I] begin_request_program_managed_run(
       owner.program_data = None
       owner.program_plan_quote = None
       owner.program_source_free = None
+      owner.native_parameters = None
+      owner.native_parameters_ready = false
       owner.held_program = None
       owner.input = None
+      owner.query_syntax = None
       owner.phase = Selected
       Ok(run)
     }
   }
+}
+
+///|
+// One shared original sequence/Plan data envelope for both typed body choices.
+// This prices DATA only; the caller retains the same capacity and phase guard.
+fn[I, P] original_request_plan_construction_quote(
+  capacity : @resources.PreparationCapacity[I, P],
+  input : I,
+  data : @checked.ParsedCheckDataEstimate,
+) -> Result[(Int64, Int64), ClientRequestPreparationIssue] {
+  guard program_check_data_extent_cost(data) is Some(bytes) else {
+    return Err(Policy)
+  }
+  let (r, e) = match
+    @resources.preparation_capacity_working_extents(capacity, input) {
+    Err(issue) => return Err(Capacity(issue))
+    Ok(value) => value
+  }
+  guard @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
+    @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
+    return Err(Policy)
+  }
+  Ok((r, e))
 }

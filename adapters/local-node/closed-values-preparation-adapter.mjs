@@ -60,6 +60,7 @@ export function closedValuesPreparationAvailable(context) {
       typeof own(context,'retainedRelationOutput')!=='boolean') return false;
   return typeof own(moon,'clientProgramRequestPreparationControl')==='function' &&
     typeof own(moon,'clientProgramBeginRequestPreparation')==='function' &&
+    typeof own(moon,'clientLocalPreparationResourceLimits')==='function' &&
     typeof own(moon,'clientProgramSelectClosedValuesPreparation')==='function' &&
     typeof own(moon,'clientProgramAbortRequestPreparation')==='function' &&
     typeof own(moon,'clientProgramPrepareClosedValuesModuleBody')==='function' &&
@@ -77,18 +78,57 @@ export function assertRequestPreparationControl(context) {
       control[0]<=0n || control[1]!==0n) invalid();
 }
 
-export function beginClosedValuesInput(state, input, receipt, connection, requirements, assertCurrent) {
+// The existing actual Resource/initial admission entrance. It needs no Source
+// environment, local-connection label or checked Program. The caller MUST
+// retain this same state before entry and supply its original current/physical
+// child observation; a profile or cleanup registry is not admitted backing.
+// Both existing Request callers use this exact opening, never a second owner.
+export function openRequestPreparation(state, input, assertCurrent, childrenPending) {
+  if (state.opening || state.original!==undefined || state.admission!==undefined ||
+      state.parent!==undefined || state.phase!==undefined ||
+      typeof assertCurrent!=='function' || typeof childrenPending!=='function') invalid();
+  const moon=state.context.runtime;
+  state.opening=true;
+  try {
+    const policy=moon.clientLocalResourcePolicyOriginal();
+    const limits=moon.clientLocalPreparationResourceLimits(policy);
+    if (!Array.isArray(limits) || limits.length!==6 ||
+        limits.some(value => typeof value!=='bigint' || value<0n || value>9223372036854775807n) ||
+        limits.slice(0,3).some(value => value>2147483647n)) invalid();
+    // The original policy's immutable DATA selects the existing initial
+    // supplier. No Source installation, caller estimate or second quote is
+    // needed before that supplier owns the first constructor.
+    const requirements=Object.freeze({planningWork:Number(limits[0]),attempts:Number(limits[1]),
+      holdings:Number(limits[2]),transferBytes:limits[3],retainedBytes:limits[4],executionBytes:limits[5]});
+    state.original=resources.retainOrdinaryManagedRun(input,requirements,
+      assertCurrent,childrenPending,'local-preparation');
+    state.admission=checked(moon.clientProgramPrepareLocalPreparationAdmission(state.original,input));
+    state.parent=checked(moon.clientProgramBeginRequestPreparation(state.admission,input,
+      policy));
+    return state.parent;
+  } finally {state.opening=false;}
+}
+
+// General Request admission observes no caller options, Parameters or source.
+// Actual SDK capture below grows this same parent before its detached data.
+export function beginRequestInput(state, receipt, connection, assertCurrent) {
+  const moon=state.context.runtime;
+  if(typeof moon.clientProgramReserveRequestSnapshot!=='function') invalid();
+  if (!Object.isFrozen(connection) || connection.mode !== 'local' ||
+      connection.owner !== 'local' || !Array.isArray(connection.consentRefs) ||
+      !Array.isArray(connection.runners)) return false;
+  openRequestPreparation(state,receipt,assertCurrent,noPhysicalChildren);
+  return true;
+}
+
+export function beginClosedValuesInput(state, input, receipt, connection, assertCurrent) {
   const moon=state.context.runtime;
   // This is the already frozen SDK connection of THIS call, not the first
   // connection that happened to open a shared installed Host.
   if (!Object.isFrozen(connection) || connection.mode !== 'local' ||
       connection.owner !== 'local' || !Array.isArray(connection.consentRefs) ||
       !Array.isArray(connection.runners) || connection.runners.length !== 0) return false;
-  state.original=resources.retainOrdinaryManagedRun(receipt,requirements,
-    assertCurrent,noPhysicalChildren,'local-preparation');
-  state.admission=checked(moon.clientProgramPrepareLocalPreparationAdmission(state.original,receipt));
-  state.parent=checked(moon.clientProgramBeginRequestPreparation(state.admission,receipt,
-    moon.clientLocalResourcePolicyOriginal()));
+  openRequestPreparation(state,receipt,assertCurrent,noPhysicalChildren);
   // Store the same-reservation successor before cutting its consumed parent.
   state.phase=checked(moon.clientProgramSelectClosedValuesPreparation(state.parent,receipt));
   state.parent=undefined;
@@ -126,7 +166,7 @@ export function bindClosedValuesSnapshot(state, body) {
 }
 
 export function cleanupClosedValuesInput(state, retireInitialPreparation) {
-  if(state.adopting) invalid();
+  if(state.opening || state.adopting || state.snapshotting) invalid();
   const moon=state.context.runtime;
   if(state.holder!==undefined) {
     try {checkedPreparation(moon,moon.clientProgramAbortClosedValuesPreparationAfterCleanup(state.phase));}
@@ -155,5 +195,5 @@ export function cleanupClosedValuesInput(state, retireInitialPreparation) {
   // Clear only after the original stop is confirmed. No caller snapshot is
   // revoked, and no local Promise completion stands in for physical cleanup.
   if(state.original!==undefined && !resources.ordinaryManagedRunStatus(state.original).stopped) invalid();
-  state.original=state.prepared=undefined;
+  state.original=state.prepared=state.snapshot=state.snapshotDocument=undefined;
 }

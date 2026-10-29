@@ -5,7 +5,7 @@ pub(all) enum LocalProgramInputIssue {
   InvalidFormat
   SuppliedSyntax(@source.ParseError)
   SuppliedAdmission(@decode.Issue)
-}
+} derive(Debug)
 
 ///|
 pub fn admit_local_program_input(
@@ -20,22 +20,17 @@ pub fn admit_local_program_input(
   let supplied = match parameters {
     None => None
     Some(body) => {
+      let (source_limits, tree_limits) = local_parameter_input_limits()
       let parsed = match
         @source.parse_json_bytes(
           @utf8.encode(body),
-          { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },
+          source_limits,
           source_path="Client Parameters",
         ) {
         Ok(value) => value
         Err(issue) => return Err(SuppliedSyntax(issue))
       }
-      match
-        @decode.admit(parsed, {
-          max_nodes: 8192,
-          max_depth: 64,
-          max_string_bytes: 65536,
-          max_total_string_bytes: 65536,
-        }) {
+      match @decode.admit(parsed, tree_limits) {
         Ok(value) => Some(value)
         Err(issue) => return Err(SuppliedAdmission(issue))
       }
@@ -72,4 +67,44 @@ fn check_published_context(
     Ok(context) => context
     Err(issue) => raise CheckPublicationStop(issue)
   }
+}
+
+///|
+/// The existing Local supplied-values limits, shared by textual and captured
+/// intake. These are selected DATA, never another resource allowance.
+pub fn local_parameter_input_limits() -> (@source.ParseLimits, @decode.Limits) {
+  (
+    { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },
+    {
+      max_nodes: 8192,
+      max_depth: 64,
+      max_string_bytes: 65536,
+      max_total_string_bytes: 65536,
+    },
+  )
+}
+
+///|
+/// Continue the exact captured native values through the SAME Local reader
+/// policy. Its existing normalized-key semantics and refusal limits remain;
+/// no document serialization, Program preparation or second check is run.
+pub fn[T] admit_captured_local_parameters(
+  input : T,
+  reader : @source.JsonDataReader[T],
+) -> Result[@decode.Cursor, LocalProgramInputIssue] {
+  let (source_limits, tree_limits) = local_parameter_input_limits()
+  let parsed = match
+    @source.admit_captured_json(
+      input,
+      reader,
+      source_limits,
+      normalize_keys=true,
+      source_path="Client Parameters",
+    ) {
+    Err(issue) => return Err(SuppliedSyntax(issue))
+    Ok(value) => value
+  }
+  @decode.admit(parsed.node, tree_limits).map_err(issue => {
+    SuppliedAdmission(issue)
+  })
 }

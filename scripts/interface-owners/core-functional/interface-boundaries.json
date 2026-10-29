@@ -23691,7 +23691,7 @@
     {
       "module": "src/client_local_host/installed_source_read.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "fc1428b5b99eb557e036a054aaf9d2cf0ed1069a53204db6b63caff326c09063",
+      "sha256": "24111a396ac6572276841780e21be23e70fee91f95d4951efcd717de5a3a2130",
       "exports": [],
       "operations": [
         {
@@ -24751,7 +24751,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "722bf8b9925e6f4b5c78998c0cdbc674f22fca7f40b3865392ed0f9fb701158f",
+      "sha256": "fe8fce30fe84d9f54da612cde1ef497b7bfa5643eb115fc0b69db2aa4fa08941",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -24767,6 +24767,14 @@
         {
           "name": "[I]make_closed_values_preparation",
           "declaration": "[ I ] make_closed_values_preparation ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , policy : ClientLocalResourcePolicy , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , retained : Int64 , execution : Int64 , module_containers : @ execution . PreparationRepresentationUnits , ) - > ClientClosedValuesPreparation [ I ]"
+        },
+        {
+          "name": "[I]prepare_request_check_preparation_owned",
+          "declaration": "[ I ] prepare_request_check_preparation_owned ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : @ checked . CheckLimits , source_catalog ? : @ checked . PreparedSourceCatalog ?"
+        },
+        {
+          "name": "[I]prepare_request_effect_check_preparation",
+          "declaration": "[ I ] prepare_request_effect_check_preparation ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : @ publication_host . ClientEffectComputationLimits , source_catalog ? : @ checked . PreparedSourceCatalog ?"
         },
         {
           "name": "[I]prepare_request_program_check_preparation",
@@ -24977,6 +24985,9 @@
         },
         {
           "operations": [
+            "<module>",
+            "[I]prepare_request_check_preparation_owned",
+            "[I]prepare_request_effect_check_preparation",
             "[I]prepare_request_program_check_preparation",
             "to_repr"
           ],
@@ -24992,6 +25003,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Program to Check handoff"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_parent.mbt",
+                "anchor": "pub fn[I] prepare_request_effect_check_preparation("
               }
             ],
             "identity": [
@@ -25046,6 +25061,1032 @@
         }
       ],
       "referenceQualification": "Original same-parent preparation control/continuation and first Values consumer only; not an Effect body recipe, installed runtime admission or physical acknowledgement."
+    },
+    {
+      "module": "src/client_local_host/installed_capture_provider_source.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "141e85188f9f88088efb748810e75a040c9d73ccc8fa4b713871f288e92d4696",
+      "exports": [],
+      "operations": [
+        {
+          "name": "begin_installed_managed_capture_source_read",
+          "declaration": "begin_installed_managed_capture_source_read ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( ClientInstalledSourceRead , @ planning . QueryRequirement , @ row_source_host . RowAcquisition , ClientInstalledCaptureCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common Source acquisition, original Resource child and retained Run preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "begin_installed_managed_capture_source_read"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "/// Borrow the original provider acquisition retained by this Pure Plan. The"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "pub fn begin_installed_managed_capture_source_read("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "physical_equal(original, prepared) &&"
+              },
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "physical_equal(original_capacity, capacity) else {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "// read on the original Run before any following refusal can escape."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "// Current may reenter. Recheck the captured originals without another"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "Err(issue) => return Err(issue)"
+              },
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "return Err(ForeignOriginal)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub fn retire_installed_source_read("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "installed_provider_row_capture_capacity_matches("
+              },
+              {
+                "path": "src/client_local_host/installed_capture_plan.mbt",
+                "anchor": "pub fn begin_installed_managed_capture_read("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source_js_wbtest.mbt",
+                "anchor": "test \"Pure provider read reuses the same Request Plan acquisition and crosses current once\""
+              },
+              {
+                "path": "src/client_local_host/installed_capture_provider_source_js_wbtest.mbt",
+                "anchor": "test \"Pure provider tuple refuses foreign original request declaration and occurrence before binding\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_installed_capture_source_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "3a1ceabde7a13d3eba1cb011ec954a583469c6ee2805cc356f51324f1031abce",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_installed_managed_capture_source_read",
+          "declaration": "client_program_installed_managed_capture_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ client_row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ planning . QueryRequirement , @ client_row_source_host . RowAcquisition , @ client_local_host . ClientInstalledCaptureCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common Source acquisition, original Resource child and retained Run preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_installed_managed_capture_source_read"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "/// Borrow the original provider acquisition retained by this Pure Plan. The"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "pub fn begin_installed_managed_capture_source_read("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_capture_source_bridge.mbt",
+                "anchor": "pub fn client_program_installed_managed_capture_source_read("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "physical_equal(original, prepared) &&"
+              },
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "physical_equal(original_capacity, capacity) else {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "// read on the original Run before any following refusal can escape."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "// Current may reenter. Recheck the captured originals without another"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "Err(issue) => return Err(issue)"
+              },
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "return Err(ForeignOriginal)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub fn retire_installed_source_read("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source.mbt",
+                "anchor": "installed_provider_row_capture_capacity_matches("
+              },
+              {
+                "path": "src/client_local_host/installed_capture_plan.mbt",
+                "anchor": "pub fn begin_installed_managed_capture_read("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_capture_provider_source_js_wbtest.mbt",
+                "anchor": "test \"Pure provider read reuses the same Request Plan acquisition and crosses current once\""
+              },
+              {
+                "path": "src/client_local_host/installed_capture_provider_source_js_wbtest.mbt",
+                "anchor": "test \"Pure provider tuple refuses foreign original request declaration and occurrence before binding\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_request_query_syntax.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "19873eb6d57ae78d3260fc5ef335f4edbdf235fcac6fdd3fc7c1c54e5a45aa03",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]parse_request_query_syntax",
+          "declaration": "[ I ] parse_request_query_syntax ( owner : ClientRequestPreparation [ I ] , input : I , document : String , format : @ frontend . Format , source_path ? : String"
+        },
+        {
+          "name": "[I]prepared_request_query_syntax",
+          "declaration": "[ I ] prepared_request_query_syntax ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ query_syntax . Query , ClientRequestQuerySyntaxIssue ]"
+        },
+        {
+          "name": "[I]request_query_syntax_work",
+          "declaration": "[ I ] request_query_syntax_work ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ ( Int64 , Bool ) , ClientRequestQuerySyntaxIssue ]"
+        },
+        {
+          "name": "request_query_syntax_data_bytes",
+          "declaration": "request_query_syntax_data_bytes ( document : String ) - > Int64 ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]parse_request_query_syntax",
+            "[I]prepared_request_query_syntax",
+            "[I]request_query_syntax_work",
+            "request_query_syntax_data_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query syntax"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_query_syntax_js_wbtest.mbt",
+                "anchor": "test \"same Request query syntax"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-Request source/component and immutable DATA handoff only. Not normal artifact execution, complete work metering, physical backing, or a new authority."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_snapshot.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "2dcf49f2c9eb776294069f4095e226961eb10471f32c4df0d20c60ec3f3be1e2",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]reserve_request_snapshot",
+          "declaration": "[ I ] reserve_request_snapshot ( owner : ClientRequestPreparation [ I ] , input : I , units : Int64 , values : Int64 , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "request_snapshot_data_bytes",
+          "declaration": "request_snapshot_data_bytes ( units : Int64 , values : Int64 ) - > Int64 ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]reserve_request_snapshot",
+            "request_snapshot_data_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native SDK snapshot handoff"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_snapshot_js_wbtest.mbt",
+                "anchor": "test \"Request snapshot"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-Request source/component and immutable DATA handoff only. Not normal artifact execution, complete work metering, physical backing, or a new authority."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_query_lowering.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "05e98bf8ca1076b43a35f8d6e009056a2be3fb52546ac26bf1f8062457a05fc4",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]lower_request_published_query",
+          "declaration": "[ I ] lower_request_published_query ( owner : ClientRequestPreparation [ I ] , input : I , publication : @ source_publication . PreparedPublishedQueryEnvironment , environment : @ checked . CheckEnvironment , declarations : String ? , public_primary ? : Bool"
+        },
+        {
+          "name": "[I]prepared_request_query_lowering",
+          "declaration": "[ I ] prepared_request_query_lowering ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ ( @ frontend . Lowered , @ checked . PreparedSourceCatalog , @ frontend . DiagnosticSource , ) , ClientRequestQueryLoweringIssue , ]"
+        },
+        {
+          "name": "request_query_lowering_data_bytes",
+          "declaration": "request_query_lowering_data_bytes ( query : ClientRequestQuerySyntax , declarations : String ? , catalog : @ checked . PreparedSourceCatalog , ) - > Int64 ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]lower_request_published_query",
+            "[I]prepared_request_query_lowering",
+            "request_query_lowering_data_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Request-owned query lowering and Program handoff"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_query_lowering_js_wbtest.mbt",
+                "anchor": "test \"Request original Query"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-Request source/component and immutable DATA handoff only. Not normal artifact execution, complete work metering, physical backing, or a new authority."
+    },
+    {
+      "module": "src/source_value/native_json.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "4d404c2a27278b802aa4f2aa41c7f170ac913849906e51fa9616c1c367b17b2a",
+      "role": "common-semantics",
+      "owner": "Existing Source value admission",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]admit_captured_json",
+          "declaration": "[ T ] admit_captured_json ( input : T , reader : JsonDataReader [ T ] , limits : ParseLimits , program_keys ? : Bool"
+        },
+        {
+          "name": "native_json_string_bytes",
+          "declaration": "native_json_string_bytes ( text : String ) - > Int64 ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]admit_captured_json",
+            "native_json_string_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              },
+              {
+                "path": "src/source_value/native_json_js_wbtest.mbt",
+                "anchor": "test \"native captured input retains"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-Request captured input Source/Program/checker components and actual target API only. Normal Node driver, complete work metering and physical backing remain separate."
+    },
+    {
+      "module": "src/stage_syntax/native_input.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "e100a5d1b8986deeebf92dc893f4745d63ff844fcb4365957dee50c04749c9d1",
+      "role": "common-semantics",
+      "owner": "Existing Program structural admission",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]admit_captured_program_input",
+          "declaration": "[ T ] admit_captured_program_input ( input : T , reader : @ source . JsonDataReader [ T ] , limits : Limits , ) - > Result [ ParsedProgramInput , SyntaxError ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]admit_captured_program_input"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_input_js_wbtest.mbt",
+                "anchor": "test \"Request native input reaches"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-Request captured input Source/Program/checker components and actual target API only. Normal Node driver, complete work metering and physical backing remain separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_native_input.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "543df5c483ccfc9717d206b6e93288e01fdce04beb519e9b35277ef688f0b78d",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,T]prepare_request_native_program_input",
+          "declaration": "[ I , T ] prepare_request_native_program_input ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , limits : @ syntax . Limits , supplied ? : T ?"
+        },
+        {
+          "name": "request_native_input_units",
+          "declaration": "request_native_input_units ( units : Int64 , values : Int64 , limits : @ syntax . Limits , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "request_native_tree_units",
+          "declaration": "request_native_tree_units ( units : Int64 , values : Int64 , limits : @ syntax . Limits , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,T]prepare_request_native_program_input",
+            "request_native_input_units",
+            "request_native_tree_units"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_input_js_wbtest.mbt",
+                "anchor": "test \"Request native input reaches"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-Request captured input Source/Program/checker components and actual target API only. Normal Node driver, complete work metering and physical backing remain separate."
+    },
+    {
+      "module": "src/connectors_builtin_node/client_native_snapshot_reader.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "c1c2241c59fbde2b776df4aa980b817259e13c1bb1bbe7b59d860a5780232373",
+      "role": "common-semantics",
+      "owner": "Existing Node representation adapter",
+      "exports": [],
+      "operations": [
+        {
+          "name": "native_json_bool",
+          "declaration": "native_json_bool ( value : NativeJsonValue ) - > Bool"
+        },
+        {
+          "name": "native_json_field",
+          "declaration": "native_json_field ( value : NativeJsonValue , key : String , ) - > NativeJsonValue"
+        },
+        {
+          "name": "native_json_keys",
+          "declaration": "native_json_keys ( value : NativeJsonValue ) - > FixedArray [ String ]"
+        },
+        {
+          "name": "native_json_kind",
+          "declaration": "native_json_kind ( value : NativeJsonValue ) - > Int"
+        },
+        {
+          "name": "native_json_length",
+          "declaration": "native_json_length ( value : NativeJsonValue ) - > Int"
+        },
+        {
+          "name": "native_json_number_text",
+          "declaration": "native_json_number_text ( value : NativeJsonValue ) - > String"
+        },
+        {
+          "name": "native_json_parameter_is_absent",
+          "declaration": "native_json_parameter_is_absent ( value : NativeJsonValue ) - > Bool"
+        },
+        {
+          "name": "native_json_text",
+          "declaration": "native_json_text ( value : NativeJsonValue ) - > String"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "native_json_bool",
+            "native_json_field",
+            "native_json_keys",
+            "native_json_kind",
+            "native_json_length",
+            "native_json_number_text",
+            "native_json_text",
+            "native_json_parameter_is_absent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_native_snapshot_reader_wbtest.mbt",
+                "anchor": "test \"actual Node captured reader"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-Request captured input Source/Program/checker components and actual target API only. Normal Node driver, complete work metering and physical backing remain separate."
+    },
+    {
+      "module": "src/client_local_preparation/check_input.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local program input admission",
+      "sha256": "d540539a52874e588f07943f59ecd565af7310f0febd796da1beff50d65dd6b6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]admit_captured_local_parameters",
+          "declaration": "[ T ] admit_captured_local_parameters ( input : T , reader : @ source . JsonDataReader [ T ] , ) - > Result [ @ decode . Cursor , LocalProgramInputIssue ]"
+        },
+        {
+          "name": "admit_local_program_input",
+          "declaration": "admit_local_program_input ( format : String , parameters : String ? , ) - > Result [ ( @ syntax . Format , @ decode . Cursor ? ) , LocalProgramInputIssue ]"
+        },
+        {
+          "name": "check_published_context",
+          "declaration": "check_published_context ( environment : @ checked . CheckEnvironment , publication : String , declarations : String ? , ) - > @ query . Context raise CheckPublicationStop"
+        },
+        {
+          "name": "local_parameter_input_limits",
+          "declaration": "local_parameter_input_limits ( ) - > ( @ source . ParseLimits , @ decode . Limits )"
+        },
+        {
+          "name": "source_publication_cursor",
+          "declaration": "source_publication_cursor ( wire : String , ) - > @ decode . Cursor raise CheckPublicationStop"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]admit_captured_local_parameters",
+            "admit_local_program_input",
+            "check_published_context",
+            "local_parameter_input_limits",
+            "source_publication_cursor"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_input_js_wbtest.mbt",
+                "anchor": "test \"Request captured Parameters preserve original key limits"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same existing Local Parameter limits/key policy and captured input through the original Request binder/compiler/Plan. Not ordinary Host initialization, public acceptance or physical backing."
     }
   ]
 }

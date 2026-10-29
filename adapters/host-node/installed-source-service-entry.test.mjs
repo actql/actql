@@ -35,6 +35,17 @@ function fixture() {
     counts: () => [profileCalls, capacityCalls], close() {current = false;}};
 }
 
+test('nominal JSON service refuses a request bound before any unsupported body capacity is issued', () => {
+  const f = fixture();
+  retainInstalledHostServiceInstallation(f.services,f.installation,'sha256:'+'a'.repeat(64));
+  const limits = f.services.sourceReaderImplementationProfile({installation:f.installation,
+    metadataResponses:3,originUnits:20});
+  assert.throws(() => f.services.sourceReaderImplementation({installation:f.installation,
+    limits:{...limits,maxRequestBytes:512},columnCount:3}),
+    {code:'InstalledSourceReaderRequestCapacityUnavailable'});
+  assert.deepEqual(f.counts(),[1,0]);
+});
+
 test('public Source service keeps original installation policy and typed capacity before any Site', () => {
   const f = fixture();
   assert.throws(() => f.services.sourceReaderImplementationProfile({installation: f.installation,

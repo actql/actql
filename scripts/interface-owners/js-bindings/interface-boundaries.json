@@ -39070,7 +39070,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "17020c4484cc2eb014911add1ddbf83925732138bd94d4250a9b3847d2f45a73",
+      "sha256": "84d01e56ed8513522db944707fcadff7efc3d518c22493a405ce73a18fc9c2fe",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -39104,7 +39104,6 @@
         "readLocalContentRunRequirements",
         "readLocalMockModelRunRequirements",
         "readLocalPreparationContext",
-        "readLocalPreparationResourceRequirements",
         "readManagedComputeRunRequirements",
         "readSourceManagedEffectRunRequirements",
         "readSourceManagedOriginalInput",
@@ -41901,27 +41900,6 @@
           "name": "readLocalPreparationContext",
           "parameters": [
             "originals"
-          ],
-          "async": false
-        },
-        {
-          "name": "readLocalPreparationResourceRequirements",
-          "parameters": [
-            "originals"
-          ],
-          "async": false
-        },
-        {
-          "name": "readLocalPreparationResourceRequirements/readLocalPreparationResourceRequirements",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "readLocalPreparationResourceRequirements/readLocalPreparationResourceRequirements#2",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -48877,15 +48855,11 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#2",
             "prepareInstalledSequenceContractOriginal",
             "readLocalPreparationContext",
-            "readLocalPreparationResourceRequirements",
-            "readLocalPreparationResourceRequirements/readLocalPreparationResourceRequirements",
-            "readLocalPreparationResourceRequirements/readLocalPreparationResourceRequirements#2",
             "retireSourceManagedInitialPreparation"
           ],
           "exports": [
             "prepareInstalledSequenceContractOriginal",
             "readLocalPreparationContext",
-            "readLocalPreparationResourceRequirements",
             "retireSourceManagedInitialPreparation"
           ],
           "attributes": {
@@ -68052,7 +68026,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "1db6305c5b4307bc07aa299299089db1ef5ca1b3783cc64f317124f8d8c11bb9",
+      "sha256": "27d501fac080fdeff4b96a4c5d05f566e5a41805bf8265e8729799661434fda8",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

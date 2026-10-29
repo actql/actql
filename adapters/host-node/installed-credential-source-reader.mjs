@@ -33,9 +33,15 @@ function ownMethod(value, name) {
   return field.value;
 }
 
-export function createInstalledCredentialSourceReader({capacity, originalSite, site,
-  createReader, readPages, preparePageReader, operation, assertCurrent,
-  maxResponses, maxResponseBytes, maxSecretBytes}) {
+export function createInstalledCredentialSourceReader(options) {
+  let {capacity, originalSite, site, createReader, readPages, preparePageReader,
+    operation, assertCurrent, maxResponses, maxResponseBytes, maxSecretBytes} = options;
+  const requestBound = Object.getOwnPropertyDescriptor(options, 'maxRequestBytes');
+  if (requestBound !== undefined && (!Object.hasOwn(requestBound, 'value') || !positive(requestBound.value))) {
+    fail('InvalidInstalledCredentialSourceReader');
+  }
+  const maxRequestBytes = requestBound?.value;
+  options = undefined;
   const standard = preparePageReader !== undefined, hosted = originalSite !== undefined;
   if (capacity === undefined || capacity === null || !positive(maxResponses) ||
       (standard ? typeof preparePageReader !== 'function' || createReader !== undefined ||
@@ -139,9 +145,13 @@ export function createInstalledCredentialSourceReader({capacity, originalSite, s
         } finally {cleanupRunning = false;}
       }
       function sync(value) {
-        const then = value?.then;
-        if (typeof then === 'function') {
-          const pending = new Promise((resolve, reject) => Reflect.apply(then, value, [resolve, reject]));
+        const native = types.isPromise(value);
+        const then = native ? undefined : value?.then;
+        if (native || typeof then === 'function') {
+          // Retain the actual native computation before observing its public
+          // then property. A throwing getter cannot acknowledge its stop.
+          const pending = native ? value
+            : new Promise((resolve, reject) => Reflect.apply(then, value, [resolve, reject]));
           pendingCallbacks.add(pending);
           const settled = () => {
             pendingCallbacks.delete(pending);
@@ -149,7 +159,12 @@ export function createInstalledCredentialSourceReader({capacity, originalSite, s
               try {cleanup();} catch (cause) {transportFailure = cause; hadTransportFailure = true;}
             }
           };
-          void pending.then(settled, settled);
+          if (native) {
+            Reflect.apply(Promise.prototype.then, value, [settled, settled]);
+            // Preserve the original observation failure after the native join.
+            // If joining itself throws, the original remains pending/owned.
+            void value.then;
+          } else void pending.then(settled, settled);
           fail('InstalledSourcePageCallbackNotSynchronous');
         }
         return value;
@@ -194,7 +209,10 @@ export function createInstalledCredentialSourceReader({capacity, originalSite, s
           const request = described === null || typeof described !== 'object' || types.isProxy(described)
             ? undefined : ownHttpRequest(described);
           const responseHeaders = ownResponseHeaderNames(described?.responseHeaders ?? []);
-          if (request === undefined || request.method !== 'GET' || request.body !== undefined) fail('InvalidInstalledSourcePageRequest');
+          const boundedPost = request?.method === 'POST' && maxRequestBytes !== undefined &&
+            typeof request.body === 'string' && Buffer.byteLength(request.body) <= maxRequestBytes;
+          if (request === undefined || !boundedPost &&
+              (request.method !== 'GET' || request.body !== undefined)) fail('InvalidInstalledSourcePageRequest');
           const authorization = index === 0 ? initial : ownInvocationAuthorization(await Reflect.apply(authorizationFor, selected, [index]));
           if (authorization.scope.operation !== operation || !invocationBindingsMatch(authorization.scope, initial.scope)) {
             fail('ForeignInstalledSourceReaderAuthorization');
@@ -203,7 +221,10 @@ export function createInstalledCredentialSourceReader({capacity, originalSite, s
           const response = await invokeScopedCredentialOperation({authorization,credential,
             callResource: input => Reflect.apply(callResource, hosted ? selectedSite.site : selectedSite,
               [{...input,currentBeforeSend:verify}]),
-            operation,method:request.method,path:request.target,headers:request.headers,responseHeaders,maxResponseBytes,signal});
+            operation,method:request.method,path:request.target,headers:request.headers,
+            ...(request.body === undefined ? {} : {body:request.body}),
+            ...(maxRequestBytes === undefined ? {} : {maxRequestBytes}),
+            responseHeaders,maxResponseBytes,signal});
           responseCustody.retain(response);
           const charge = await Reflect.apply(chargePage, selected, [response.body]);
           await verify();

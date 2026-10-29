@@ -15,6 +15,7 @@ pub fn installed_provider_row_capture_capacity(
     retained_bytes: @execution.execution_capacity_retained_bytes(complete),
     execution_bytes: @execution.execution_capacity_execution_bytes(complete),
     original_input: true,
+    acquisition: Some(selected),
     provider: Some((selected, provider)),
   })
 }

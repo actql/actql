@@ -3739,6 +3739,7 @@ pub fn parse_query(
 fn parse_query_tokens(
   source : Tokens,
   limits : QueryLimits,
+  observe_work? : ((Int) -> Unit)? = None,
 ) -> Result[Query, Diagnostic] {
   let parser : QueryParser = {
     source,
@@ -3751,7 +3752,7 @@ fn parse_query_tokens(
     synthetic_sources: 0,
     binding_scopes: [],
   }
-  try {
+  let result = try {
     let query = parser.query()
     let commands : Array[CommandEffectClause] = []
     if parser.peek().value == Symbol(59) {
@@ -3795,6 +3796,10 @@ fn parse_query_tokens(
         ),
       })
   }
+  if observe_work is Some(observe) {
+    observe(parser.work)
+  }
+  result
 }
 
 ///|

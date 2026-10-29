@@ -121,3 +121,24 @@ request sharing the factory. Observation is passive, and neither a truthy
 value nor a returned computation's settlement acknowledges release. A custom
 throwing factory without the original handoff remains pending. No new reader
 or cleanup owner is created, and no prepare/read/send is retried.
+
+Pure installed provider Sources receive the original managed Run with the
+same prepared Program and Request. Their Core read port selects the Plan's
+retained requirement, acquisition and reader capacity, crosses the existing
+current boundary, and checks those originals again before returning the tuple.
+It retains a partial read on the same Run if that boundary refuses. Missing
+retained-plan support refuses instead of preparing another equal query or
+acquisition. Later current checks and the ordinary Credential read grant still
+apply. This borrow does not fund earlier installation/configuration/schema
+construction or replace the original parent's constructor/failure overlap.
+
+Native callback Promises stay in the existing pending-callback inventory before
+their public `then` property is observed. The original getter error remains the
+read failure; only actual native settlement can release that callback borrow.
+
+A standard page callback describes a bodyless GET. A factory may also capture an
+explicit positive own-data `maxRequestBytes` and describe a POST with its original
+String body. The Host checks UTF-8 bytes and forwards that same bound and body to
+the scoped Credential invocation. Other methods remain refused. This rejection
+ceiling supplies no constructor capacity: nominal implementations may select only
+request shapes covered by their actual material and retained-overlap recipe.

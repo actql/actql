@@ -35,6 +35,7 @@ test "installed managed retirement tombstone rejects new borrows" {
     keyed: None,
     keyed_reads: [],
     source_free_preparation: None,
+    captured_preparation: None,
     preparation_retirement: None,
     source_free_captured: None,
     source_free_opening: false,

@@ -133,6 +133,9 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       const columns = fields.columnCount.value;
       const profile = sourceProfiles.get(installation);
       let supplied = Object.getOwnPropertyDescriptors(fields.limits.value ?? {}), calendarLimits;
+      // This JSON implementation has no request-body construction inventory.
+      // Do not discard a selected bound or treat it as actual backing.
+      if (Object.hasOwn(supplied, 'maxRequestBytes')) fail('InstalledSourceReaderRequestCapacityUnavailable');
       if (Object.getOwnPropertyDescriptor(installation, 'registration')?.value === 'calendar' &&
           !Object.hasOwn(supplied, 'maxTotalResponseBytes')) {
         const projected = calendarImplementationReaderLimits(supplied, profile);

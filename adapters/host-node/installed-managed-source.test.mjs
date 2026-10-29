@@ -76,6 +76,83 @@ test('plural Source preparations forward one original parent and retain original
   assert.throws(() => profile.sources[0].ledgerCapacity(prepared[0]), /RetiredOriginal/);
 });
 
+test('Pure Source preparation receives the same original managed Run before preparing its selected acquisition', async () => {
+  const checked = {}, parent = {}, prepared = {}, capacity = {}, originalRequest = {};
+  let calls = 0;
+  const source = {
+    managedCaptureCapacity() {return {capacity};},
+    async prepare(facts) {
+      assert.equal(this, source); calls++;
+      assert.equal(facts.preparedProgram, checked);
+      assert.equal(facts.managedRun, parent, 'the original Plan must reach the actual Source preparer');
+      assert.equal(facts.requestIdentity, originalRequest);
+      return prepared;
+    },
+    ledgerCapacity(value) {assert.equal(value, prepared);return {capacity};},
+  };
+  const view = bindInstalledManagedSources(source, original => {
+    assert.equal(original, checked); return parent;
+  });
+  assert.equal(await view.prepare({preparedProgram: checked, requestIdentity: originalRequest}), prepared);
+  assert.equal(view.ledgerCapacity(prepared).managedRun, parent);
+  assert.equal(calls, 1);
+});
+
+test('Pure Source preparation cannot publish a replaced removed or accessor parent', async () => {
+  const checked = {}, parent = {}, prepared = {};
+  let getters = 0;
+  for (const change of [facts => {facts.managedRun = {};},
+    facts => {delete facts.managedRun;},
+    facts => {Object.defineProperty(facts, 'managedRun', {get() {getters++;return parent;}});}]) {
+    const view = bindInstalledManagedSources({managedCaptureCapacity() {},
+      async prepare(facts) {await Promise.resolve();change(facts);return prepared;},
+      ledgerCapacity() {assert.fail('No foreign association may escape');},
+    }, original => {assert.equal(original, checked);return parent;});
+    await assert.rejects(view.prepare({preparedProgram: checked}), /ForeignInstalledManagedSource/);
+    assert.throws(() => view.ledgerCapacity(prepared), /ForeignInstalledManagedSource/);
+  }
+  assert.equal(getters, 0);
+});
+
+test('Pure planned Source prepare consumes its original tuple without another query and refuses a missing callee', async () => {
+  const body = readFileSync(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
+  let node;
+  visit(parse(body, {ecmaVersion: 'latest', sourceType: 'module'}), value => {
+    if (value.type === 'FunctionDeclaration' && value.id.name === 'prepare') {
+      assert.equal(node, undefined);node = value;
+    }
+  });
+  assert(node);
+  const make = new Function('moon', 'declaration', 'originalReader', 'runtimeField', `
+    const sourceAccess={},checked=value=>value;
+    const fail=code=>{throw Object.assign(new Error(code),{code});};
+    const directReadIdentity=undefined;
+    const prepareOriginalSourceQuery=()=>{throw new Error('replacement query forbidden');};
+    ${body.slice(node.start, node.end)}
+    return prepare;
+  `);
+  const prepared = {}, request = {}, parent = {}, declaration = {}, requirement = {};
+  const tuple = [{}, requirement, {}, {}], stop = new Error('observed original requirement frontier');
+  let selected = 0;
+  const moon = {
+    clientProgramInstalledManagedCaptureSourceRead(run, program, identity, declared, occurrence) {
+      assert.equal(run, parent);assert.equal(program, prepared);assert.equal(identity, request);
+      assert.equal(declared, declaration);assert.equal(occurrence, 0);selected++;return tuple;
+    },
+    clientProgramQueryRequirementSourceEvidenceFacts(original) {
+      assert.equal(original, requirement);throw stop;
+    },
+  };
+  const prepare = make(moon, declaration, {capacity: {}}, (value, index) => value[index]);
+  await assert.rejects(prepare({preparedProgram: prepared, requestIdentity: request, managedRun: parent}),
+    error => error === stop);
+  assert.equal(selected, 1);
+  delete moon.clientProgramInstalledManagedCaptureSourceRead;
+  await assert.rejects(prepare({preparedProgram: prepared, requestIdentity: request, managedRun: parent}),
+    {code: 'InstalledSourcePlanUnavailable'});
+  assert.equal(selected, 1);
+});
+
 test('Source preparation cannot install a parent association after cancellation during await', async () => {
   const checked = {}, parent = {}, prepared = {}; let current = true, capacities = 0;
   const profile = bindInstalledManagedSources({managedCaptureCapacity() {},
