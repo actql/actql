@@ -79,12 +79,12 @@ export async function installedNotionSourceIdentityParts(profile,providerProfile
 
 export async function loadInstalledNotionSource(profile,{root,principalId,moon,providerMoon:provider,
   baseEnvironmentWire,runtimeBundleCid,resolveSecret,readerCapacity,configurationReader}={}){
-  const{installed,site:siteProfile,ca,binding}=await readInputs(profile,configurationReader);
   // The existing trusted installer must supply its same-runtime declaration.
   // Public profile amounts, page/transfer limits and fixed spare constants are
   // not a full reader retained/workspace supplier. Never choose legacy readPages.
   if(readerCapacity===undefined||readerCapacity===null)fail('NotionReaderCapacityUnavailable');
   if(typeof resolveSecret!=='function')fail('NotionCredentialMaterialUnavailable');
+  const{installed,site:siteProfile,ca,binding}=await readInputs(profile,configurationReader);
   const{limits}=installed;
   const wire=checked(provider.notionUserListSchemaWire(limits.maxDeclarationBytes,
     limits.maxDeclarationNodes,limits.maxDepth));
