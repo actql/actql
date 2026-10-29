@@ -4,87 +4,24 @@
   "declarations": [
     {
       "module": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-      "sha256": "b4c30cfd9d292eb6936e956dbb41497f13cb2c72a49ec9ddbb15c342b8829de3",
+      "sha256": "31b3cb74bd8a504032f0a0efd0db62675e48c4a112a50108ae771f57fff35690",
       "exports": [
         "CALENDAR_LIST_OPERATION",
         "CalendarListReadFailure",
-        "createCalendarListReader",
-        "readCalendarList"
+        "prepareCalendarListPages"
       ],
       "operations": [
         {
           "name": "CalendarListReadFailure/constructor:constructor/constructor:constructor",
           "parameters": [
-            "cause",
-            "observations"
+            "cause"
           ],
           "async": false
-        },
-        {
-          "name": "createCalendarListReader",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "createCalendarListReader/handle/init:observe/init:observe",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createCalendarListReader/handle/init:read/init:read",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createCalendarListReader/handle/init:read/init:read/result/result",
-          "parameters": [
-            "response"
-          ],
-          "async": false
-        },
-        {
-          "name": "createCalendarListReader/handle/init:requestStop/init:requestStop",
-          "parameters": [
-            "reason"
-          ],
-          "async": false
-        },
-        {
-          "name": "executeCalendarListRead",
-          "parameters": [
-            "provider",
-            "context",
-            "selected",
-            "signal",
-            "received"
-          ],
-          "async": true
-        },
-        {
-          "name": "executeCalendarListRead/response/response",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "executeCalendarListRead/verify/verify",
-          "parameters": [],
-          "async": true
         },
         {
           "name": "fail/fail",
           "parameters": [
             "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalReader",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -96,300 +33,198 @@
           "async": false
         },
         {
-          "name": "prepareCalendarListRead",
+          "name": "prepareCalendarListPages",
           "parameters": [
             "moon",
             "names",
-            "initialAuthorization",
-            "credential",
-            "authorizationFor",
             "limits",
-            "current",
-            "chargeResponse",
-            "consumePage",
-            "signal",
-            "callResource"
+            "applySynchronousProjection"
           ],
           "async": false
         },
         {
-          "name": "prepareCalendarListRead/prepareCalendarListRead",
+          "name": "prepareCalendarListPages/init:decodePage/init:decodePage",
           "parameters": [
-            "value"
+            "response",
+            "pageIndex",
+            "rowCount"
           ],
           "async": false
         },
         {
-          "name": "prepareCalendarListRead/prepareCalendarListRead#2",
+          "name": "prepareCalendarListPages/init:fetchPage/init:fetchPage",
           "parameters": [
-            "name"
+            "pageIndex",
+            "rowCount"
           ],
           "async": false
         },
         {
-          "name": "prepareCalendarListRead/prepareCalendarListRead#3",
+          "name": "prepareCalendarListPages/init:onError/init:onError",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareCalendarListPages/prepareCalendarListPages",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "prepareCalendarListRead/prepareCalendarListRead#4",
+          "name": "prepareCalendarListPages/prepareCalendarListPages#2",
           "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "prepareCalendarListRead/provider/provider",
+          "name": "prepareCalendarListPages/provider/provider",
           "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "readCalendarList",
+          "name": "prepareCalendarListPages/provider/provider/provider",
           "parameters": [
-            "options"
+            "args"
           ],
-          "async": true
+          "async": false
         }
       ],
       "responsibilityFacet": "primary",
-      "role": "physical-io",
-      "owner": "Existing Calendar catalog and physical sequencer; Common RowRun/Account/Credential retain execution, reservation and cleanup authority",
+      "role": "connector-semantics",
+      "owner": "Provider-specific request and checked page DATA only; original Host owns all physical read lifecycle and cleanup",
       "contracts": [
         {
           "operations": [
             "<module>",
-            "executeCalendarListRead",
-            "executeCalendarListRead/response/response",
-            "executeCalendarListRead/verify/verify",
+            "CalendarListReadFailure/constructor:constructor/constructor:constructor",
             "fail/fail",
             "positive/positive",
-            "prepareCalendarListRead",
-            "prepareCalendarListRead/prepareCalendarListRead",
-            "prepareCalendarListRead/prepareCalendarListRead#2",
-            "prepareCalendarListRead/prepareCalendarListRead#3",
-            "prepareCalendarListRead/prepareCalendarListRead#4",
-            "prepareCalendarListRead/provider/provider",
-            "readCalendarList"
+            "prepareCalendarListPages",
+            "prepareCalendarListPages/init:decodePage/init:decodePage",
+            "prepareCalendarListPages/init:fetchPage/init:fetchPage",
+            "prepareCalendarListPages/init:onError/init:onError",
+            "prepareCalendarListPages/prepareCalendarListPages",
+            "prepareCalendarListPages/prepareCalendarListPages#2",
+            "prepareCalendarListPages/provider/provider",
+            "prepareCalendarListPages/provider/provider/provider"
           ],
           "exports": [
             "CALENDAR_LIST_OPERATION",
-            "readCalendarList"
+            "CalendarListReadFailure",
+            "prepareCalendarListPages"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "## Responsibility"
+                "anchor": "The Calendar catalog owns the declared columns, response interpretation and"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-                "anchor": "async function executeCalendarListRead"
+                "anchor": "export function prepareCalendarListPages"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-                "anchor": "invocationBindingsMatch(authorization.scope, context.scope)"
+                "anchor": "export const CALENDAR_LIST_OPERATION"
               }
             ],
             "ownership": [
               {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The returned read handle owns cancellation and physical binding close."
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "applySynchronousProjection(fn, receiver, args)"
+              },
+              {
                 "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "## Originals and overlap"
+                "anchor": "Stop and cleanup retry stay with that"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-                "anchor": "await verify()"
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "after retention, byte charging and a current check."
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "await Reflect.apply(chargePage, selected, [response.body])"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-                "anchor": "throw new CalendarListReadFailure(cause, observations)"
+                "anchor": "return new CalendarListReadFailure(cause);"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The original failure"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-                "anchor": "signal?.throwIfAborted()"
-              }
-            ],
-            "resources": [
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "`requestStop` aborts and closes"
+              },
               {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "## Lifetime and cleanup"
-              }
-            ],
-            "extension": [
-              {
-                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
-                "anchor": "fn calendar_list_columns()"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/connectors/calendar/test/calendar-list-read.test.mjs",
-                "anchor": "actual Calendar TLS pages use original signed grants Account and one accounted RowRun"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "CalendarListReadFailure/constructor:constructor/constructor:constructor"
-          ],
-          "exports": [
-            "CalendarListReadFailure"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-                "anchor": "export class CalendarListReadFailure"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-                "anchor": "constructor(cause, observations)"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-                "anchor": "super('CalendarListReadFailed', {cause})"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "Frozen arrays are shallow"
-              }
-            ],
-            "synchronization": {
-              "notApplicable": "Synchronous wrapping preserves the original cause/body references; it does not stop or acknowledge the original I/O."
-            },
-            "failure": [
-              {
-                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-                "anchor": "Object.freeze(observations.slice())"
-              }
-            ],
-            "cancellation": {
-              "notApplicable": "Wrapping neither initiates nor clears cancellation; the original cause and caller cleanup responsibility remain."
-            },
-            "resources": [
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "combined storage"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "Missing capacity or"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/connectors/calendar/test/calendar-list-read.test.mjs",
-                "anchor": "Calendar cancellation after a delivered page retains the same cause"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "createCalendarListReader",
-            "createCalendarListReader/handle/init:observe/init:observe",
-            "createCalendarListReader/handle/init:read/init:read",
-            "createCalendarListReader/handle/init:read/init:read/result/result",
-            "createCalendarListReader/handle/init:requestStop/init:requestStop",
-            "originalReader"
-          ],
-          "exports": [
-            "createCalendarListReader"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-                "anchor": "export function createCalendarListReader"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-                "anchor": "fail('ForeignCalendarListReader')"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "`createCalendarListReader` snapshots the original invocation before I/O."
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-                "anchor": "if (state.phase !== 'ready')"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "Pending or"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-                "anchor": "state.stop.abort(reason)"
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "`retry` retries only that cleanup, never a send or grant."
               }
             ],
             "resources": [
               {
                 "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-                "anchor": "cleanupConfirmed: false"
+                "anchor": "const bound = Object.freeze({...limits});"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "combined storage."
               }
             ],
             "extension": [
               {
-                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
-                "anchor": "fn calendar_list_columns()"
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The callbacks receive no credential, authorization, raw transport, current"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Provider migrations must remove their replaced"
               }
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-list-read.test.mjs",
-                "anchor": "Calendar copied reader receivers cannot read stop or observe the original acquisition"
+                "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
+                "anchor": "page meaning uses the same Host owner for empty one and multiple pages"
+              },
+              {
+                "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
+                "anchor": "both provider adapters retain unexpected asynchronous compiled projections until their same borrow settles"
+              },
+              {
+                "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
+                "anchor": "both installed loaders retire their same created reader before Site cleanup on construction failure"
               },
               {
                 "path": "adapters/connectors/calendar/test/calendar-list-read.test.mjs",
-                "anchor": "Calendar original reader observes in-flight custody"
+                "anchor": "Calendar Account denial is checked before I/O and again between admitted pages"
               }
             ]
           }
         }
       ],
       "imports": [
-        "../../../host-common/owned-invocation-context.mjs",
-        "../../../host-common/runtime-result.mjs",
-        "../../../site-node/https-credential-resource.mjs"
+        "../../../host-common/runtime-result.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -2185,7 +2020,7 @@
     },
     {
       "module": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-      "sha256": "37338447f727076c87b6d866ccc37c334a3be0caecad58d22e0ae8766d0df34e",
+      "sha256": "8758c9cac1b913b3bc916ce8bbb4127228ea31b96c93e6426d01875c288bab2d",
       "exports": [
         "INSTALLED_CALENDAR_SITE_VERSION",
         "INSTALLED_CALENDAR_SOURCE_VERSION",
@@ -2330,8 +2165,12 @@
           "async": false
         },
         {
-          "name": "loadInstalledCalendarSource/init:readPages/init:readPages",
-          "parameters": [],
+          "name": "loadInstalledCalendarSource/init:preparePageReader/init:preparePageReader",
+          "parameters": [
+            "selected",
+            "columns",
+            "applySynchronousProjection"
+          ],
           "async": false
         },
         {
@@ -2339,86 +2178,6 @@
           "parameters": [
             "selected",
             "fields"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalReaderFactory",
-          "parameters": [
-            "provider",
-            "site",
-            "installed",
-            "capacity"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalReaderFactory/init:prepare/init:prepare",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalReaderFactory/init:prepare/init:prepare/assertCurrent/assertCurrent",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "originalReaderFactory/init:prepare/init:prepare/closeTransport/closeTransport",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:observe/init:observe",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
-          "parameters": [
-            "index"
-          ],
-          "async": true
-        },
-        {
-          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
-          "parameters": [
-            "operation"
-          ],
-          "async": true
-        },
-        {
-          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#3",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#4",
-          "parameters": [
-            "rows",
-            "ticket"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#5",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
-          "parameters": [
-            "reason"
           ],
           "async": false
         },
@@ -2461,10 +2220,10 @@
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-credential-source-reader.mjs",
         "../../../host-node/installed-host-cleanup.mjs",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/source-profile-json.mjs",
-        "../../../site-node/https-credential-resource.mjs",
         "../site/calendar-list-read.mjs",
         "node:crypto",
         "node:path"
@@ -2473,7 +2232,7 @@
       "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "Existing Calendar Catalog, Account/Credential Site and original Common RowRun owners",
+      "owner": "Existing trusted installation and shared Host managed Source reader; no provider lifecycle owner",
       "contracts": [
         {
           "operations": [
@@ -2491,23 +2250,15 @@
             "closedData/closedData",
             "closedData/closedData#2",
             "fail/fail",
+            "installedCalendarSourceIdentityParts",
+            "loadInstalledCalendarSource",
             "loadInstalledCalendarSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledCalendarSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
-            "loadInstalledCalendarSource/init:readPages/init:readPages",
+            "loadInstalledCalendarSource/init:preparePageReader/init:preparePageReader",
             "loadInstalledCalendarSource/target/target",
-            "originalReaderFactory",
-            "originalReaderFactory/init:prepare/init:prepare",
-            "originalReaderFactory/init:prepare/init:prepare/assertCurrent/assertCurrent",
-            "originalReaderFactory/init:prepare/init:prepare/closeTransport/closeTransport",
-            "originalReaderFactory/init:prepare/init:prepare/handle/init:observe/init:observe",
-            "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read",
-            "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
-            "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
-            "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#3",
-            "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#4",
-            "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#5",
-            "originalReaderFactory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
             "positive/positive",
+            "readInputs",
+            "readInputs/reads/reads",
             "sha/sha",
             "text/text"
           ],
@@ -2522,511 +2273,101 @@
             "responsibility": [
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "The Calendar catalog owns"
-              },
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "The installed Calendar factory opens exactly one binding"
-              },
+                "anchor": "The Calendar catalog owns the declared columns, response interpretation and"
+              }
+            ],
+            "inputsOutputs": [
               {
                 "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
                 "anchor": "export async function loadInstalledCalendarSource"
               }
             ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "export function checkInstalledCalendarSourceProfile"
-              },
-              {
-                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
-                "anchor": "pub fn calendar_list_schema_wire("
-              },
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "The schema, four"
-              }
-            ],
             "identity": [
               {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "The same checked SQL/Pipe Program"
-              },
-              {
                 "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "if(this!==handle)fail('ForeignInstalledCalendarReader');"
-              },
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "Equal target or schema DATA cannot"
+                "anchor": "actql-installed-calendar-source/0.1"
               }
             ],
             "ownership": [
               {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The returned read handle owns cancellation and physical binding close."
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "applySynchronousProjection(fn, receiver, args)"
+              },
+              {
                 "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "The common session separately waits"
-              },
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function originalReaderFactory("
-              },
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "const credential=site.credential,callResource=site.callResource;"
+                "anchor": "Stop and cleanup retry stay with that"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "const assertCurrent=async()=>"
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "after retention, byte charging and a current check."
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-                "anchor": "await context.callbacks.consumePage(rows, Object.freeze({charge}));"
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "await Reflect.apply(chargePage, selected, [response.body])"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "}catch(cause){phase='failed';originalFailure=cause;throw cause;}"
+                "anchor": "{sourceReader:providerReader,sourceProfile:site}"
               },
               {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "Pending or"
-              },
-              {
-                "path": "adapters/connectors/calendar/test/installed-calendar-capture.test.mjs",
-                "anchor": "lost-response Credential Unknown after physical close"
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The original failure"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "requestStop(reason)"
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "`requestStop` aborts and closes"
               },
               {
-                "path": "adapters/connectors/calendar/test/installed-calendar-capture.test.mjs",
-                "anchor": "rechecks stop before the next page and does not resend"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "The transfer envelope is"
-              },
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "The response byte limit bounds"
-              },
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "cleanupConfirmed:phase!=="
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "free/busy and event writes do not inherit this registration."
-              },
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "Missing capacity or"
-              },
-              {
-                "path": "src/connectors/calendar/host-bundle.json",
-                "anchor": "\"registration\": \"calendar\""
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/connectors/calendar/test/installed-calendar-capture.test.mjs",
-                "anchor": "captures two original pages and releases its native binding"
-              },
-              {
-                "path": "adapters/connectors/calendar/test/installed-calendar-capture.test.mjs",
-                "anchor": "malformed unselected cell before capture"
-              },
-              {
-                "path": "adapters/connectors/calendar/test/installed-calendar-source.test.mjs",
-                "anchor": "ordinary installed Source selection reaches the Calendar-owned factory"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "installedCalendarSourceIdentityParts",
-            "loadInstalledCalendarSource",
-            "readInputs"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "The Calendar catalog owns"
-              },
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "The installed Calendar factory opens exactly one binding"
-              },
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "export async function loadInstalledCalendarSource"
-              },
-              {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "export function checkInstalledCalendarSourceProfile"
-              },
-              {
-                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
-                "anchor": "pub fn calendar_list_schema_wire("
-              },
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "The schema, four"
-              },
-              {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "The same checked SQL/Pipe Program"
-              },
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "if(this!==handle)fail('ForeignInstalledCalendarReader');"
-              },
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "Equal target or schema DATA cannot"
-              },
-              {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "The common session separately waits"
-              },
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "function originalReaderFactory("
-              },
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "const credential=site.credential,callResource=site.callResource;"
-              },
-              {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "const assertCurrent=async()=>"
-              },
-              {
-                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-                "anchor": "await context.callbacks.consumePage(rows, Object.freeze({charge}));"
-              },
-              {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "}catch(cause){phase='failed';originalFailure=cause;throw cause;}"
-              },
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "Pending or"
-              },
-              {
-                "path": "adapters/connectors/calendar/test/installed-calendar-capture.test.mjs",
-                "anchor": "lost-response Credential Unknown after physical close"
-              },
-              {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "requestStop(reason)"
-              },
-              {
-                "path": "adapters/connectors/calendar/test/installed-calendar-capture.test.mjs",
-                "anchor": "rechecks stop before the next page and does not resend"
-              },
-              {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "The transfer envelope is"
-              },
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "The response byte limit bounds"
-              },
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "cleanupConfirmed:phase!=="
-              },
-              {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "free/busy and event writes do not inherit this registration."
-              },
-              {
-                "path": "docs/design/calendar-list-reader-custody.md",
-                "anchor": "Missing capacity or"
-              },
-              {
-                "path": "src/connectors/calendar/host-bundle.json",
-                "anchor": "\"registration\": \"calendar\""
-              },
-              {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/connectors/calendar/test/installed-calendar-capture.test.mjs",
-                "anchor": "captures two original pages and releases its native binding"
-              },
-              {
-                "path": "adapters/connectors/calendar/test/installed-calendar-capture.test.mjs",
-                "anchor": "malformed unselected cell before capture"
-              },
-              {
-                "path": "adapters/connectors/calendar/test/installed-calendar-source.test.mjs",
-                "anchor": "ordinary installed Source selection reaches the Calendar-owned factory"
-              },
-              {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "Calendar retains supplied configuration readers before awaiting reads."
-              },
-              {
-                "path": "adapters/connectors/calendar/test/installed-calendar-source.test.mjs",
-                "anchor": "test('Calendar original reader public callers preserve pending error and refuse method accessors'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "readInputs/reads/reads"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
-              },
-              {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "The existing configuration-reader owner selects original methods for connectors."
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
-              },
-              {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "The existing configuration-reader owner selects original methods for connectors."
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
-              },
-              {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "The existing configuration-reader owner selects original methods for connectors."
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
-              },
-              {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "The existing configuration-reader owner selects original methods for connectors."
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
-              },
-              {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "The existing configuration-reader owner selects original methods for connectors."
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
-              },
-              {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "The existing configuration-reader owner selects original methods for connectors."
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
-              },
-              {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "`retry` retries only that cleanup, never a send or grant."
               }
             ],
             "resources": [
               {
                 "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+                "anchor": "maxResponseBytes:limits.maxResponseBytes,maxSecretBytes:limits.maxSecretBytes"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "combined storage."
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The callbacks receive no credential, authorization, raw transport, current"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Provider migrations must remove their replaced"
               }
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-                "anchor": "captureConfigurationReaders(configurationReader,readJson,"
+                "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
+                "anchor": "page meaning uses the same Host owner for empty one and multiple pages"
               },
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "export function captureConfigurationReaders("
+                "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
+                "anchor": "both provider adapters retain unexpected asynchronous compiled projections until their same borrow settles"
               },
               {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "The existing configuration-reader owner selects original methods for connectors."
+                "path": "adapters/host-node/installed-notion-calendar-readers.test.mjs",
+                "anchor": "both installed loaders retire their same created reader before Site cleanup on construction failure"
               },
               {
-                "path": "adapters/connectors/calendar/test/installed-calendar-source.test.mjs",
-                "anchor": "test('Calendar original reader public "
+                "path": "adapters/connectors/calendar/test/calendar-list-read.test.mjs",
+                "anchor": "Calendar Account denial is checked before I/O and again between admitted pages"
               }
             ]
           }

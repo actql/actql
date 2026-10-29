@@ -3,7 +3,7 @@
 ## Responsibility
 
 The Calendar catalog owns the declared columns, response interpretation and
-checked values. The physical Calendar sequencer owns the fixed HTTPS operation,
+checked values. The Calendar page callbacks own the fixed request description,
 opaque pagination and whole-acquisition ID/cursor checks. Existing Account,
 Credential, RowAcquisition, RowRun and Ledger owners retain authorization,
 current installation checks, reservations, capture and cleanup. A projected
@@ -40,27 +40,36 @@ graphs.
 
 ## Lifetime and cleanup
 
-Success and `CalendarListReadFailure` retain original response observations.
-Frozen arrays are shallow; returned rows, response bodies, callbacks and errors
-can outlive the read promise. Their semantic ownership and managed limits remain
-explicit. Ordinary supported Node/stdlib allocation and copied-value GC/RSS are
-trusted runtime responsibilities, not additional physical cleanup receipts.
+Nested compiled projections use the same private Host synchronous invoker.
+It captures the original method and receiver and retains any unexpected
+returned computation until settlement before reader retirement. This invoker
+is internal glue; no author callback receives credential or cleanup authority.
 
-`createCalendarListReader` snapshots the original invocation before I/O. Its
-`read`, `requestStop` and `observe` require the original receiver and a read
-starts once. The reader borrows its caller's credential binding and cannot close
-or acknowledge a binding owned by another caller. Its own observation therefore
-keeps `cleanupConfirmed: false`; that does not impose an escaped-JS-value
-retirement or whole-runtime allocation proof on the actual binding owner.
+`prepareCalendarListPages` snapshots the original compiled projections, names
+and limits before I/O. Its synchronous `fetchPage` and `decodePage` describe
+Calendar requests and interpret the same charged response. The callbacks retain
+only Calendar cursor/identity state and checked page DATA. They receive no
+credential, grant, current callback, stop handle or physical cleanup method.
+A query projection never changes the complete declared cells captured by RowRun.
 
-The installed Calendar factory opens exactly one binding for that reader and
-captures the original methods and receiver. After the same read settles it
-closes that binding, and confirms its physical cleanup only when the original
-close returns `closed`. Stop requests abort that same operation. Pending or
-failed close remains unconfirmed, with the original child, binding and error
-retained. The common session separately waits for its captured read/stop and
-owns RowRun close and reservation release. Transport close never establishes
-row completeness, a successful Run, permission or a lost use's outcome.
+The existing Host `createInstalledCredentialSourceReader` owns the one read
+lifetime, current checks, indexed original authorization, Credential binding,
+response retention, charge-before-decode and same-ticket page delivery. Neither
+success nor `CalendarListReadFailure` exports its raw observation graph. The
+provider error preserves the same cause. Stop and cleanup retry stay with that
+Host reader and the original RowRun, rather than a Calendar state machine.
+
+Only the original binding's actual close and the joined read/callback graph may
+confirm cleanup. An unexpected asynchronous page callback is refused but must
+remain retained until that same Promise settles. Pending or failed close stays
+unconfirmed; a later cleanup retries the same duty without another send. The
+original read error remains primary if physical close also fails. Retirement of
+managed aliases is not a GC/RSS proof, row completeness, permission, successful
+Run or resolution of an uncertain Credential use.
+
+If Source construction fails after the reader factory was created, the installed
+loader retains that same factory with its Site in the existing Host initialization
+cleanup. Its original retirement must complete before the Site can close.
 
 ## Ordinary installed calendars Source
 
