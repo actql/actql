@@ -2214,6 +2214,15 @@ The selected sequences, Plan and module constructor receives its additional
 coexisting-data envelope before construction. A declined grow keeps the same
 quote and original prepared Program, rather than checking or compiling again.
 
+The generic module entry invokes the selected installed constructor once on
+that retained compiler output. It returns no raw Prepared; only the subsequent
+body borrow can expose the original after Plan/configuration completion.
+Synchronous construction fences reentry until the provider callback unwinds.
+A callback exception leaves the original working reservation for the existing
+failed-construction cleanup. The completed-body retirement path applies only
+after actual capacity completion has been attempted. The same fixed unwind
+scope serves the earlier construction route without another cleanup owner.
+
 After the actual installed Plan returns, completion binds its exact prepared
 Program and configuration to that same capacity. A manager borrows the original
 body through the existing nominal borrower. Source-free Run adoption consumes

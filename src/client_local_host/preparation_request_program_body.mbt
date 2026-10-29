@@ -134,6 +134,67 @@ pub fn[I] complete_request_program_preparation(
 }
 
 ///|
+pub suberror ClientRequestProgramPlanIssue {
+  Preparation(ClientRequestPreparationIssue)
+  Installed(ClientInstalledManagedRunIssue)
+}
+
+///|
+/// Construct the selected installed Plan/module from the SAME completed
+/// compiler output. Variable sequence/Plan data uses the existing retained
+/// estimate once, before construction. Fixed provider/control wrappers remain
+/// trusted Host overhead; no closed-Values census or second checker is used.
+/// No raw Prepared leaves this call: the next original body borrower reads it
+/// only after the Plan/configuration and capacity completion are retained.
+pub fn[I] prepare_request_program_module_body(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  contracts : ClientInstalledSequenceContracts,
+  retained_output~ : Bool,
+  provider_factory~ : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
+) -> Result[Unit, ClientRequestProgramPlanIssue] {
+  if owner.program_body_attempted {
+    return Err(Preparation(WrongPhase))
+  }
+  match reserve_request_program_plan(owner, input) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(_) => ()
+  }
+  guard owner.phase == ProgramPlanReserved &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.compiled_program is Some(prepared) else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  owner.phase = Selecting
+  preparation_module_call(
+    () => {
+      let installed = contracts.original
+      let plan = match
+        prepare_installed_managed_source_free_with_contracts(
+          prepared,
+          contracts,
+          installed.values_body,
+          installed.fragment_body,
+          installed.ordered_body,
+          retained_output~,
+          provider_factory~,
+        ) {
+        Err(issue) => return Err(Installed(issue))
+        Ok(value) => value
+      }
+      owner.phase = ProgramPlanReserved
+      complete_request_program_preparation(owner, input, plan).map_err(issue => {
+        Preparation(issue)
+      })
+    },
+    () => if owner.phase == Selecting { owner.phase = ProgramBodyFailed },
+  )
+}
+
+///|
 /// Existing original body token for the fixed manager. Live borrowers keep the
 /// reservation during retirement. This neither admits a Run nor proves stop.
 pub fn[I] borrow_request_program_preparation(

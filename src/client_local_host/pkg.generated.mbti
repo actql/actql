@@ -646,6 +646,8 @@ pub fn[I] prepare_request_program_check_preparation(ClientRequestPreparation[I],
 
 pub fn[I] prepare_request_program_json_preparation(ClientRequestPreparation[I], I, String, @stage_syntax.Limits) -> Result[ClientProgramJsonPreparation[I, Unit], ClientRequestPreparationIssue]
 
+pub fn[I] prepare_request_program_module_body(ClientRequestPreparation[I], I, ClientInstalledSequenceContracts, retained_output~ : Bool, provider_factory~ : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> Result[Unit, ClientRequestProgramPlanIssue]
+
 pub fn prepare_serialization_captured_ledger(@run_publication_host.PreparedClientProgram, Int, ClientInstalledCaptureCapacity, Int64, Int64, Int64, Int64, ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn prepare_single_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, ClientInstalledCaptureCapacity, Int64, Int64, ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
@@ -885,6 +887,11 @@ pub suberror ClientProgramCheckPreparationIssue {
   Overflow
 }
 pub impl @debug.Debug for ClientProgramCheckPreparationIssue
+
+pub suberror ClientRequestProgramPlanIssue {
+  Preparation(ClientRequestPreparationIssue)
+  Installed(ClientInstalledManagedRunIssue)
+}
 
 pub suberror ClientRequestQueryLoweringIssue {
   Request(ClientRequestPreparationIssue)

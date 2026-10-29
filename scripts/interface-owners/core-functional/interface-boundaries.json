@@ -27116,6 +27116,126 @@
         }
       ],
       "referenceQualification": "Original publication controller and Resource borrow; legacy constructor and normal generic activation/ordinary acceptance remain separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_program_body.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "ea9ffefc852220aae246ab605bf60eb55288a5a6fab2e1144bc032e6271c49c9",
+      "role": "common-semantics",
+      "owner": "Existing Request preparation and installed Plan owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P]original_request_plan_construction_quote",
+          "declaration": "[ I , P ] original_request_plan_construction_quote ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , data : @ checked . ParsedCheckDataEstimate , ) - > Result [ ( Int64 , Int64 ) , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]begin_request_program_managed_run",
+          "declaration": "[ I ] begin_request_program_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]borrow_request_program_preparation",
+          "declaration": "[ I ] borrow_request_program_preparation ( owner : ClientRequestPreparation [ I ] , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]complete_request_program_preparation",
+          "declaration": "[ I ] complete_request_program_preparation ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedSourceFreePreparation , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]continue_request_program_preparation",
+          "declaration": "[ I ] continue_request_program_preparation ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . PreparedClientProgram , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]prepare_request_program_module_body",
+          "declaration": "[ I ] prepare_request_program_module_body ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
+        },
+        {
+          "name": "[I]reserve_request_program_plan",
+          "declaration": "[ I ] reserve_request_program_plan ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P]original_request_plan_construction_quote",
+            "[I]begin_request_program_managed_run",
+            "[I]borrow_request_program_preparation",
+            "[I]complete_request_program_preparation",
+            "[I]continue_request_program_preparation",
+            "[I]prepare_request_program_module_body",
+            "[I]reserve_request_program_plan"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request module constructor retains same checked output"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same original Request compiler output, capacity and installed Plan constructor; normal all-input activation and physical Source acceptance remain separate."
     }
   ]
 }
