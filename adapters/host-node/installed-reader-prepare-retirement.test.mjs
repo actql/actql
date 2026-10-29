@@ -77,3 +77,52 @@ test('same RowRun retires a failed original factory borrow only after its callba
   assert.equal(await state.recovery.cleanup(),true);
   assert.equal(retired,true);assert.equal(cleanup(),true);
 });
+
+test('failed factory retirement keeps exact then receiver and passive observation without settlement ACK',async()=>{
+  const release=Promise.withResolvers();let reads=0,calls=0,cleanup,ready=false,thenReads=0;
+  const original=new Error('original factory failure');
+  const pending={get then(){thenReads++;return function(resolve,reject){
+    assert.equal(this,pending);return release.promise.then(resolve,reject);
+  };}};
+  const factory={prepare(){reads++;throw original;},retire(){
+    assert.equal(this,factory);calls++;return ready?true:pending;
+  }};
+  const ok=value=>({$tag:1,_0:value});
+  const moon={clientProgramRowSourceStartProviderAccounted:()=>ok({}),
+    clientProgramRowSourceBorrowResponses:()=>ok({}),
+    clientProgramRowSourceBindResponseCleanup(_borrow,observed){cleanup=observed;return ok(undefined);},
+    clientProgramRowSourceCloseAccounted(){return cleanup()?ok(undefined):{$tag:0,_0:'pending'};},
+    clientProgramRowSourceCaptureCleanup:()=>ok(true),clientProgramRowSourceCaptureCleanupAdvance:()=>ok(true)};
+  const session=startInstalledRowRun({moon,acquisition:{},nonce:'same',ledger:{},
+    capacity:{provider:{},transferBytes:0n,executionBytes:0n}});
+  await assert.rejects(session.readProvider({prepare:factory.prepare,receiver:factory,retire:factory.retire,
+    options:{verifyRead(){}}}),error=>error===original);
+  factory.retire=()=>assert.fail('replacement method');
+  const state={};session.closeAfterFailure(state);
+  assert.equal(calls,1);assert.equal(thenReads,1);
+  assert.equal(cleanup(),false);assert.equal(cleanup(),false);assert.equal(calls,1);
+  release.resolve(true);await release.promise;for(let index=0;index<4;index++)await Promise.resolve();
+  assert.equal(cleanup(),false);assert.equal(calls,1);
+  ready=true;assert.equal(await state.recovery.cleanup(),true);
+  assert.equal(calls,2);assert.equal(reads,1);assert.equal(thenReads,1);
+});
+
+test('failed factory retirement never accepts a truthy non-Bool acknowledgement',async()=>{
+  for(const declined of [1,'closed',Object.freeze({cleanupConfirmed:true})]){
+    let cleanup,ready=false,calls=0;
+    const original=new Error('same prepare failure'),factory={prepare(){throw original;},
+      retire(){assert.equal(this,factory);calls++;return ready?true:declined;}};
+    const ok=value=>({$tag:1,_0:value});
+    const moon={clientProgramRowSourceStartProviderAccounted:()=>ok({}),
+      clientProgramRowSourceBorrowResponses:()=>ok({}),
+      clientProgramRowSourceBindResponseCleanup(_borrow,observed){cleanup=observed;return ok(undefined);},
+      clientProgramRowSourceCloseAccounted:()=>cleanup()?ok(undefined):{$tag:0,_0:'pending'},
+      clientProgramRowSourceCaptureCleanup:()=>ok(true),clientProgramRowSourceCaptureCleanupAdvance:()=>ok(true)};
+    const session=startInstalledRowRun({moon,acquisition:{},nonce:'same',ledger:{},
+      capacity:{provider:{},transferBytes:0n,executionBytes:0n}});
+    await assert.rejects(session.readProvider({prepare:factory.prepare,receiver:factory,retire:factory.retire,
+      options:{verifyRead(){}}}),error=>error===original);
+    const state={};session.closeAfterFailure(state);assert.equal(cleanup(),false);
+    assert.equal(calls,1);ready=true;assert.equal(await state.recovery.cleanup(),true);assert.equal(calls,2);
+  }
+});
