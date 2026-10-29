@@ -192,20 +192,40 @@ fn program_json_retained_index_units(
   indexed : @syntax.ParsedProgramInput,
   geometry : @source.JsonSourceGeometry,
 ) -> @execution.PreparationRepresentationUnits? {
+  program_index_retained_units(
+    indexed,
+    geometry.fields,
+    geometry.quoted_tokens,
+    geometry.objects,
+    geometry.arrays,
+  )
+}
+
+///|
+// Both document grammars produce the SAME immutable index/retained Strings.
+// JSON preflight and actual admitted YAML geometry supply only these counts;
+// neither can substitute a parsed owner or another semantic interpretation.
+fn program_index_retained_units(
+  indexed : @syntax.ParsedProgramInput,
+  fields : Int,
+  strings : Int,
+  objects : Int,
+  arrays : Int,
+) -> @execution.PreparationRepresentationUnits? {
   let root = @syntax.program_input_cursor(indexed)
   let actual = @decode.admission_usage(root)
   guard @source.indexed_source_dependency_extent(
       actual.nodes,
-      geometry.fields,
-      geometry.quoted_tokens,
+      fields,
+      strings,
       actual.total_string_bytes.to_int64(),
     )
     is Some(source) &&
     @decode.admission_construction_inventory(
       actual.nodes,
-      geometry.fields,
-      geometry.objects,
-      geometry.arrays,
+      fields,
+      objects,
+      arrays,
       actual.depth,
     )
     is Some(index) else {

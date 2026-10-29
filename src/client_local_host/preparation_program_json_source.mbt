@@ -334,13 +334,16 @@ fn[I, P] reconcile_program_json_preparation_index(
   guard !owner.busy &&
     owner.phase == Indexed &&
     owner.indexed is Some(indexed) &&
-    owner.ready is Some(geometry) &&
+    (owner.ready is Some(_) || owner.retained_index is Some(_)) &&
     owner.input is Some(input) else {
     return Err(WrongPhase)
   }
   owner.busy = true
   let result = reconcile_program_json_preparation_index_owned(
-    owner, input, indexed, geometry,
+    owner,
+    input,
+    indexed,
+    owner.ready,
   )
   owner.busy = false
   result
@@ -351,11 +354,12 @@ fn[I, P] reconcile_program_json_preparation_index_owned(
   owner : ClientProgramJsonPreparation[I, P],
   input : I,
   indexed : @syntax.ParsedProgramInput,
-  geometry : @source.JsonSourceGeometry,
+  geometry : @source.JsonSourceGeometry?,
 ) -> Result[Unit, ClientProgramJsonPreparationIssue] {
   let units = match owner.retained_index {
     Some(original) => original
     None => {
+      guard geometry is Some(geometry) else { return Err(WrongPhase) }
       guard program_json_retained_index_units(indexed, geometry) is Some(value) else {
         return Err(Overflow)
       }

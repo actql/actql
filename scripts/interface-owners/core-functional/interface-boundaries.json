@@ -25226,7 +25226,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c9b3a7b967202f102c7b572d4671f06669fcc28b9c4c061e2c072ee91ee3098c",
+      "sha256": "440c63a0659f62840f6df7a99128e2b58a13a2bbce9ff4200e8d037df0a23ecd",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -25238,10 +25238,6 @@
         {
           "name": "[I]begin_request_preparation",
           "declaration": "[ I ] begin_request_preparation ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , policy : ClientLocalResourcePolicy , ) - > Result [ ClientRequestPreparation [ I ] , ClientRequestPreparationIssue ]"
-        },
-        {
-          "name": "[I]make_closed_values_preparation",
-          "declaration": "[ I ] make_closed_values_preparation ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , policy : ClientLocalResourcePolicy , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , retained : Int64 , execution : Int64 , module_containers : @ execution . PreparationRepresentationUnits , ) - > ClientClosedValuesPreparation [ I ]"
         },
         {
           "name": "[I]prepare_request_check_preparation_owned",
@@ -25264,10 +25260,6 @@
           "declaration": "[ I ] request_preparation_accounting ( owner : ClientRequestPreparation [ I ] , ) - > ( Int64 , Int64 , Int64 , Int64 , Int64 , Int64 )"
         },
         {
-          "name": "[I]select_closed_values_preparation",
-          "declaration": "[ I ] select_closed_values_preparation ( owner : ClientRequestPreparation [ I ] , input : I , module_containers ~ : @ execution . PreparationRepresentationUnits , ) - > Result [ ClientClosedValuesPreparation [ I ] , ClientRequestPreparationIssue ]"
-        },
-        {
           "name": "client_request_preparation_control_capacity",
           "declaration": "client_request_preparation_control_capacity ( policy : ClientLocalResourcePolicy , ) - > ( Int64 , Int64 ) ?"
         },
@@ -25286,8 +25278,6 @@
             "<module>",
             "[I]abort_request_preparation_after_cleanup",
             "[I]begin_request_preparation",
-            "[I]make_closed_values_preparation",
-            "[I]select_closed_values_preparation",
             "client_request_preparation_control_capacity",
             "request_preparation_control_units"
           ],
@@ -26097,7 +26087,7 @@
     {
       "module": "src/client_local_host/preparation_request_native_input.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "0a562e0f5aecc2e7131845910744b2d8c78b483764067977505d4cd9219e0e5b",
+      "sha256": "b2f97eb9fb59afe53150e5c3b62350f8fffb9aa8976346338753bf8fbeef1a9a",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -26105,6 +26095,10 @@
         {
           "name": "[I,T]prepare_request_native_program_input",
           "declaration": "[ I , T ] prepare_request_native_program_input ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , limits : @ syntax . Limits , supplied ? : T ?"
+        },
+        {
+          "name": "[I]request_program_index_preparation",
+          "declaration": "[ I ] request_program_index_preparation ( owner : ClientRequestPreparation [ I ] , input : I , indexed : @ syntax . ParsedProgramInput , units : @ execution . PreparationRepresentationUnits , limits : @ syntax . Limits , r0 : Int64 , e0 : Int64 , ) - > ClientProgramJsonPreparation [ I , Unit ]"
         },
         {
           "name": "request_native_input_geometry",
@@ -26192,6 +26186,78 @@
               {
                 "path": "src/client_local_host/preparation_request_native_input_js_wbtest.mbt",
                 "anchor": "test \"Request native input reaches"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[I]request_program_index_preparation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_document_js_wbtest.mbt",
+                "anchor": "test \"normal Source document"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
               }
             ]
           }
@@ -26675,7 +26741,7 @@
               },
               {
                 "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
-                "anchor": "test \"publication continues on the adopted body"
+                "anchor": "test \"publication continues on the transferred body"
               }
             ]
           }
@@ -26979,8 +27045,8 @@
                 "anchor": "test \"publication selected borrower"
               },
               {
-                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
-                "anchor": "test \"publication continues on the adopted body"
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -27258,7 +27324,7 @@
               },
               {
                 "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
-                "anchor": "test \"publication continues on the adopted body"
+                "anchor": "test \"publication continues on the transferred body"
               }
             ]
           }
@@ -27422,7 +27488,7 @@
               },
               {
                 "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
-                "anchor": "test \"publication continues on the adopted body"
+                "anchor": "test \"publication continues on the transferred body"
               }
             ]
           }
@@ -27611,7 +27677,7 @@
               },
               {
                 "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
-                "anchor": "test \"publication continues on the adopted body"
+                "anchor": "test \"publication continues on the transferred body"
               }
             ]
           }
@@ -28231,7 +28297,7 @@
               },
               {
                 "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
-                "anchor": "test \"publication continuation retains its original borrow"
+                "anchor": "test \"publication continues on the transferred body"
               }
             ]
           }
@@ -33767,7 +33833,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_native_query.mbt",
-      "sha256": "89cf795a48332321669ea094159fb0b7292695d6f1e31c7ece5dcfbc31d16e96",
+      "sha256": "c3b0b3826770ec45ec6db943bc3cfe09b64ea5ef9f1bd03cbfc236b0635c23f8",
       "exports": [],
       "operations": [
         {
@@ -34072,6 +34138,1585 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned Parameter Source"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_program_json_source.mbt",
+      "sha256": "597f610b30de4ef8c76c703c34a27f985b6fa3a36e3def21b6e723a98c8940b8",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P]advance_program_json_preparation",
+          "declaration": "[ I , P ] advance_program_json_preparation ( owner : ClientProgramJsonPreparation [ I , P ] , quantum : Int , ) - > Result [ @ source . JsonSourcePreflightPoll , ClientProgramJsonPreparationIssue ]"
+        },
+        {
+          "name": "[I,P]begin_program_json_preparation",
+          "declaration": "[ I , P ] begin_program_json_preparation ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , document : String , limits : @ syntax . Limits , source_path ? : String"
+        },
+        {
+          "name": "[I,P]clear_program_json_preparation",
+          "declaration": "[ I , P ] clear_program_json_preparation ( owner : ClientProgramJsonPreparation [ I , P ] , ) - > Result [ Unit , ClientProgramJsonPreparationIssue ]"
+        },
+        {
+          "name": "[I,P]current_program_json_preparation",
+          "declaration": "[ I , P ] current_program_json_preparation ( owner : ClientProgramJsonPreparation [ I , P ] , ) - > Result [ Unit , ClientProgramJsonPreparationIssue ]"
+        },
+        {
+          "name": "[I,P]finish_program_json_preparation",
+          "declaration": "[ I , P ] finish_program_json_preparation ( owner : ClientProgramJsonPreparation [ I , P ] , ) - > Result [ Unit , ClientProgramJsonPreparationIssue ]"
+        },
+        {
+          "name": "[I,P]finish_program_json_preparation_index_phase",
+          "declaration": "[ I , P ] finish_program_json_preparation_index_phase ( owner : ClientProgramJsonPreparation [ I , P ] , ) - > Result [ Unit , ClientProgramJsonPreparationIssue ]"
+        },
+        {
+          "name": "[I,P]finish_program_json_preparation_owned",
+          "declaration": "[ I , P ] finish_program_json_preparation_owned ( owner : ClientProgramJsonPreparation [ I , P ] , input : I , original : @ syntax . ProgramJsonInput , geometry : @ source . JsonSourceGeometry , ) - > Result [ Unit , ClientProgramJsonPreparationIssue ]"
+        },
+        {
+          "name": "[I,P]reconcile_program_json_preparation_index",
+          "declaration": "[ I , P ] reconcile_program_json_preparation_index ( owner : ClientProgramJsonPreparation [ I , P ] , ) - > Result [ Unit , ClientProgramJsonPreparationIssue ]"
+        },
+        {
+          "name": "[I,P]reconcile_program_json_preparation_index_owned",
+          "declaration": "[ I , P ] reconcile_program_json_preparation_index_owned ( owner : ClientProgramJsonPreparation [ I , P ] , input : I , indexed : @ syntax . ParsedProgramInput , geometry : @ source . JsonSourceGeometry ? , ) - > Result [ Unit , ClientProgramJsonPreparationIssue ]"
+        },
+        {
+          "name": "[I,P]take_program_json_preparation_input",
+          "declaration": "[ I , P ] take_program_json_preparation_input ( owner : ClientProgramJsonPreparation [ I , P ] , ) - > Result [ @ syntax . ParsedProgramInput , ClientProgramJsonPreparationIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original Request and Parameter/Check semantic owners",
+      "referenceQualification": "Source and actual selected Core/API component only; ordinary matching artifacts remain unverified",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P]advance_program_json_preparation",
+            "[I,P]begin_program_json_preparation",
+            "[I,P]clear_program_json_preparation",
+            "[I,P]current_program_json_preparation",
+            "[I,P]finish_program_json_preparation",
+            "[I,P]finish_program_json_preparation_index_phase",
+            "[I,P]finish_program_json_preparation_owned",
+            "[I,P]reconcile_program_json_preparation_index",
+            "[I,P]reconcile_program_json_preparation_index_owned",
+            "[I,P]take_program_json_preparation_input"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_document_js_wbtest.mbt",
+                "anchor": "test \"normal Source document"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_program_json_source_layout.mbt",
+      "sha256": "73b4998b5fe4021dce98271475f858b45dba7e6a8cf40c0dc85b0092996327b6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "program_index_retained_units",
+          "declaration": "program_index_retained_units ( indexed : @ syntax . ParsedProgramInput , fields : Int , strings : Int , objects : Int , arrays : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "program_json_preparation_initial_inventory",
+          "declaration": "program_json_preparation_initial_inventory ( ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "program_json_retained_index_units",
+          "declaration": "program_json_retained_index_units ( indexed : @ syntax . ParsedProgramInput , geometry : @ source . JsonSourceGeometry , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "program_json_source_index_quote",
+          "declaration": "program_json_source_index_quote ( geometry : @ source . JsonSourceGeometry , limits : @ syntax . Limits , ) - > ( Int64 , Int64 ) ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original Request and Parameter/Check semantic owners",
+      "referenceQualification": "Source and actual selected Core/API component only; ordinary matching artifacts remain unverified",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "program_index_retained_units",
+            "program_json_preparation_initial_inventory",
+            "program_json_retained_index_units",
+            "program_json_source_index_quote"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_document_js_wbtest.mbt",
+                "anchor": "test \"normal Source document"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_request_document.mbt",
+      "sha256": "f4ff66c868fe6c040cb6f8679a187ecdb12f09c1e873b24dd67c6fbbe3ccb955",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]prepare_request_document_computation",
+          "declaration": "[ I ] prepare_request_document_computation ( owner : ClientRequestPreparation [ I ] , input : I , document : String , format : @ syntax . Format , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , ) - > Result [ ClientRequestComputationKind , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_document_input",
+          "declaration": "[ I ] prepare_request_document_input ( owner : ClientRequestPreparation [ I ] , input : I , document : String , format : @ syntax . Format , limits : @ syntax . Limits , ) - > Result [ ClientProgramJsonPreparation [ I , Unit ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "request_document_parse_bytes",
+          "declaration": "request_document_parse_bytes ( document : String , limits : @ syntax . Limits , ) - > Int64 ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original Request and Parameter/Check semantic owners",
+      "referenceQualification": "Source and actual selected Core/API component only; ordinary matching artifacts remain unverified",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]prepare_request_document_computation",
+            "[I]prepare_request_document_input",
+            "request_document_parse_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_document_js_wbtest.mbt",
+                "anchor": "test \"normal Source document"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "76fb9594637f67a3ee08f44aca8f2219992e72c884a2eebc6f9a4f9ab3b42842",
+      "role": "common-semantics",
+      "owner": "Existing Request preparation and Resource body owners; Node projection only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_abort_request_preparation",
+          "declaration": "client_program_abort_request_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_adopt_request_effect_preparation",
+          "declaration": "client_program_adopt_request_effect_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ client_local_host . ClientInstalledManagedRun , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_adopt_request_program_preparation",
+          "declaration": "client_program_adopt_request_program_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ client_local_host . ClientInstalledManagedRun , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_advance_program_json_preparation",
+          "declaration": "client_program_advance_program_json_preparation ( owner : @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , quantum : Int , ) - > Result [ @ source . JsonSourcePreflightPoll , @ client_local_host . ClientProgramJsonPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_begin_host_initialization_preparation",
+          "declaration": "client_program_begin_host_initialization_preparation ( initial : @ resources . NodePreparationAdmission [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , policy : @ client_local_host . ClientLocalResourcePolicy , ) - > Result [ @ client_local_host . ClientHostInitializationPreparation [ ClientLocalPreparationInputOriginal , ] , @ client_local_host . ClientHostInitializationIssue , ]"
+        },
+        {
+          "name": "client_program_begin_request_preparation",
+          "declaration": "client_program_begin_request_preparation ( initial : @ resources . NodePreparationAdmission [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , policy : @ client_local_host . ClientLocalResourcePolicy , ) - > Result [ @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_borrow_request_effect_plan_input",
+          "declaration": "client_program_borrow_request_effect_plan_input ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_borrow_request_program_plan_input",
+          "declaration": "client_program_borrow_request_program_plan_input ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_borrow_request_program_preparation",
+          "declaration": "client_program_borrow_request_program_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_cleanup_local_preparation_admission",
+          "declaration": "client_program_cleanup_local_preparation_admission ( original : @ resources . NodePreparationAdmission [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ Unit , @ resources . ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "client_program_close_host_initialization_preparation",
+          "declaration": "client_program_close_host_initialization_preparation ( original : @ client_local_host . ClientHostInitializationPreparation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ Unit , @ client_local_host . ClientHostInitializationIssue ]"
+        },
+        {
+          "name": "client_program_complete_request_effect_preparation",
+          "declaration": "client_program_complete_request_effect_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_construct_program_json_preparation",
+          "declaration": "client_program_construct_program_json_preparation ( owner : @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramJsonPreparationIssue ]"
+        },
+        {
+          "name": "client_program_effect_preparation_input_read",
+          "declaration": "client_program_effect_preparation_input_read ( original : @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ) - > @ publication_host . PreparedClientEffectComputation ?"
+        },
+        {
+          "name": "client_program_effect_preparation_input_retirement_started",
+          "declaration": "client_program_effect_preparation_input_retirement_started ( original : @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ) - > Bool"
+        },
+        {
+          "name": "client_program_effect_preparation_input_return",
+          "declaration": "client_program_effect_preparation_input_return ( original : @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ) - > Result [ Bool , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_effect_preparation_input_sibling",
+          "declaration": "client_program_effect_preparation_input_sibling ( original : @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , @ resources . PreparationCapacityIssue , ]"
+        },
+        {
+          "name": "client_program_finish_program_json_preparation",
+          "declaration": "client_program_finish_program_json_preparation ( owner : @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramJsonPreparationIssue ]"
+        },
+        {
+          "name": "client_program_finish_request_computation",
+          "declaration": "client_program_finish_request_computation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Unit , @ client_local_host . ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "client_program_finish_request_submitted_intent",
+          "declaration": "client_program_finish_request_submitted_intent ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_lower_request_published_query",
+          "declaration": "client_program_lower_request_published_query ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , publication : @ source_publication . PreparedPublishedQueryEnvironment , environment : @ program_check . CheckEnvironment , declarations : String ? , public_primary : Bool , ) - > Result [ ( @ source_frontend . Lowered , @ program_check . PreparedSourceCatalog , @ source_frontend . DiagnosticSource , ) , @ client_local_host . ClientRequestQueryLoweringIssue , ]"
+        },
+        {
+          "name": "client_program_parse_request_query_syntax",
+          "declaration": "client_program_parse_request_query_syntax ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , document : String , spelling : String , ) - > Result [ @ query_syntax . Query , @ client_local_host . ClientRequestQuerySyntaxIssue , ]"
+        },
+        {
+          "name": "client_program_preparation_capacity_refusal",
+          "declaration": "client_program_preparation_capacity_refusal ( issue : @ client_local_host . ClientClosedValuesPreparationIssue , ) - > ( String , String , Int64 , Int64 , Int64 , Int64 ) ?"
+        },
+        {
+          "name": "client_program_prepare_local_preparation_admission",
+          "declaration": "client_program_prepare_local_preparation_admission ( original : @ resources . OriginalNodeManagedRunReference , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ resources . NodePreparationAdmission [ ClientLocalPreparationInputOriginal ] , @ resources . ImportedChildLedgerIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_carriers",
+          "declaration": "client_program_prepare_program_check_carriers ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ @ program_check . ParsedCheckRegistry , @ client_local_host . ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_contents",
+          "declaration": "client_program_prepare_program_check_contents ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ @ program_check . ParsedCheckRegistry , @ client_local_host . ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_input",
+          "declaration": "client_program_prepare_program_check_input ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_policies",
+          "declaration": "client_program_prepare_program_check_policies ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ @ program_check . ParsedCheckRegistry , @ client_local_host . ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_prelude",
+          "declaration": "client_program_prepare_program_check_prelude ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ @ program_check . ParsedCheckPrelude , @ client_local_host . ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_references",
+          "declaration": "client_program_prepare_program_check_references ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ @ program_check . ParsedCheckRegistry , @ client_local_host . ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_registry",
+          "declaration": "client_program_prepare_program_check_registry ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ @ program_check . ParsedCheckRegistry , @ client_local_host . ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_requests",
+          "declaration": "client_program_prepare_program_check_requests ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ @ program_check . ParsedCheckRegistry , @ client_local_host . ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_values",
+          "declaration": "client_program_prepare_program_check_values ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ @ program_check . ParsedCheckRegistry , @ client_local_host . ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_program_check_views",
+          "declaration": "client_program_prepare_program_check_views ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ @ program_check . ParsedCheckRegistry , @ client_local_host . ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_computation_check",
+          "declaration": "client_program_prepare_request_computation_check ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , environment : @ program_check . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , source_catalog : @ program_check . PreparedSourceCatalog ? , source_preparation : @ stage_parameters . Source ? , ) - > Result [ @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_native_computation",
+          "declaration": "client_program_prepare_request_native_computation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , parameters : NativeJsonValue , environment : @ program_check . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , ) - > Result [ String , @ client_local_host . ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "client_program_prepare_request_native_program_input",
+          "declaration": "client_program_prepare_request_native_program_input ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , parameters : NativeJsonValue , limits : @ stage_syntax . Limits , ) - > Result [ @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_program_check",
+          "declaration": "client_program_prepare_request_program_check ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , environment : @ program_check . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : @ program_check . CheckLimits , source_catalog : @ program_check . PreparedSourceCatalog ? , source_preparation : @ stage_parameters . Source ? , ) - > Result [ @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_program_json",
+          "declaration": "client_program_prepare_request_program_json ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , document : String , limits : @ stage_syntax . Limits , ) - > Result [ @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_program_module_body",
+          "declaration": "client_program_prepare_request_program_module_body ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , ) - > Result [ Unit , ClientRequestProgramModuleBridgeIssue ]"
+        },
+        {
+          "name": "client_program_prepare_request_source_computation",
+          "declaration": "client_program_prepare_request_source_computation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , parameters : NativeJsonValue , environment : @ program_check . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , ) - > Result [ String , @ client_local_host . ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "client_program_prepare_request_submitted_intent",
+          "declaration": "client_program_prepare_request_submitted_intent ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , ) - > Result [ String , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_prepared_request_query_lowering",
+          "declaration": "client_program_prepared_request_query_lowering ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ ( @ source_frontend . Lowered , @ program_check . PreparedSourceCatalog , @ source_frontend . DiagnosticSource , ) , @ client_local_host . ClientRequestQueryLoweringIssue , ]"
+        },
+        {
+          "name": "client_program_reconcile_program_check_carriers",
+          "declaration": "client_program_reconcile_program_check_carriers ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "client_program_reconcile_program_check_contents",
+          "declaration": "client_program_reconcile_program_check_contents ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "client_program_reconcile_program_check_policies",
+          "declaration": "client_program_reconcile_program_check_policies ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "client_program_reconcile_program_check_references",
+          "declaration": "client_program_reconcile_program_check_references ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "client_program_reconcile_program_check_registry",
+          "declaration": "client_program_reconcile_program_check_registry ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "client_program_reconcile_program_check_requests",
+          "declaration": "client_program_reconcile_program_check_requests ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "client_program_reconcile_program_check_values",
+          "declaration": "client_program_reconcile_program_check_values ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "client_program_reconcile_program_check_views",
+          "declaration": "client_program_reconcile_program_check_views ( owner : @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "client_program_reconcile_program_json_preparation_structure",
+          "declaration": "client_program_reconcile_program_json_preparation_structure ( owner : @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramJsonPreparationIssue ]"
+        },
+        {
+          "name": "client_program_request_parameters_original",
+          "declaration": "client_program_request_parameters_original ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ decode . Cursor ? , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_request_preparation_accounting",
+          "declaration": "client_program_request_preparation_accounting ( owner : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , ) - > ( Int64 , Int64 , Int64 , Int64 , Int64 , Int64 )"
+        },
+        {
+          "name": "client_program_request_preparation_control",
+          "declaration": "client_program_request_preparation_control ( policy : @ client_local_host . ClientLocalResourcePolicy , ) - > Array [ Int64 ]"
+        },
+        {
+          "name": "client_program_request_submitted_intent_original",
+          "declaration": "client_program_request_submitted_intent_original ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > @ publication_host . ClientSubmittedIntent ?"
+        },
+        {
+          "name": "client_program_reserve_request_snapshot",
+          "declaration": "client_program_reserve_request_snapshot ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , units : Int64 , values : Int64 , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "strategy_begin_original_effect_free_captured_run",
+          "declaration": "strategy_begin_original_effect_free_captured_run ( run_definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , definitions : Array [ @ publication . PublicationContract ] , artifacts : Array [ @ publication . PublicationContract ] , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , snapshots : Array [ @ publication . CapturedResultSnapshot ] , advances : Array [ @ publication . PendingSourceStateAdvance ] , authoring : @ publication . RunEvidenceValue , models : Array [ @ publication . RunEvidenceValue ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , max_workspace : Int , content_generations : Array [ @ publication . BoundContentGeneration ] , ) - > @ publication . CapturedRunIssuancePreparation"
+        },
+        {
+          "name": "strategy_captured_run_preparation_limits",
+          "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
+        }
+      ],
+      "referenceQualification": "Exact source/API projection and selected Node component; actual Host funding and ordinary acceptance remain separate",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_abort_request_preparation",
+            "client_program_adopt_request_effect_preparation",
+            "client_program_adopt_request_program_preparation",
+            "client_program_advance_program_json_preparation",
+            "client_program_begin_host_initialization_preparation",
+            "client_program_begin_request_preparation",
+            "client_program_borrow_request_effect_plan_input",
+            "client_program_borrow_request_program_plan_input",
+            "client_program_borrow_request_program_preparation",
+            "client_program_cleanup_local_preparation_admission",
+            "client_program_close_host_initialization_preparation",
+            "client_program_complete_request_effect_preparation",
+            "client_program_construct_program_json_preparation",
+            "client_program_effect_preparation_input_read",
+            "client_program_effect_preparation_input_retirement_started",
+            "client_program_effect_preparation_input_return",
+            "client_program_effect_preparation_input_sibling",
+            "client_program_finish_program_json_preparation",
+            "client_program_finish_request_computation",
+            "client_program_finish_request_submitted_intent",
+            "client_program_lower_request_published_query",
+            "client_program_parse_request_query_syntax",
+            "client_program_preparation_capacity_refusal",
+            "client_program_prepare_local_preparation_admission",
+            "client_program_prepare_program_check_carriers",
+            "client_program_prepare_program_check_contents",
+            "client_program_prepare_program_check_input",
+            "client_program_prepare_program_check_policies",
+            "client_program_prepare_program_check_prelude",
+            "client_program_prepare_program_check_references",
+            "client_program_prepare_program_check_registry",
+            "client_program_prepare_program_check_requests",
+            "client_program_prepare_program_check_values",
+            "client_program_prepare_program_check_views",
+            "client_program_prepare_request_computation_check",
+            "client_program_prepare_request_native_computation",
+            "client_program_prepare_request_native_program_input",
+            "client_program_prepare_request_program_check",
+            "client_program_prepare_request_program_json",
+            "client_program_prepare_request_program_module_body",
+            "client_program_prepare_request_source_computation",
+            "client_program_prepare_request_submitted_intent",
+            "client_program_prepared_request_query_lowering",
+            "client_program_reconcile_program_check_carriers",
+            "client_program_reconcile_program_check_contents",
+            "client_program_reconcile_program_check_policies",
+            "client_program_reconcile_program_check_references",
+            "client_program_reconcile_program_check_registry",
+            "client_program_reconcile_program_check_requests",
+            "client_program_reconcile_program_check_values",
+            "client_program_reconcile_program_check_views",
+            "client_program_reconcile_program_json_preparation_structure",
+            "client_program_request_parameters_original",
+            "client_program_request_preparation_accounting",
+            "client_program_request_preparation_control",
+            "client_program_request_submitted_intent_original",
+            "client_program_reserve_request_snapshot",
+            "strategy_begin_original_effect_free_captured_run",
+            "strategy_captured_run_preparation_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_request_effect_plan_wbtest.mbt",
+                "anchor": "test \"actual Request Effect bridge completes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Node Request bridge completes this original Effect Plan"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_closed_values_capacity_layout.mbt",
+      "sha256": "53b35e271c4c544c94f7abf073b8acb6cdc8211b4089c6116cb552d3e5c3e99d",
+      "exports": [],
+      "operations": [
+        {
+          "name": "closed_values_capacity_record_packet",
+          "declaration": "closed_values_capacity_record_packet ( count : Int64 , fields : Int64 , ) - > @ execution . PreparationRepresentationUnits"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "closed_values_capacity_record_packet"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_closed_values_compiler_layout.mbt",
+      "sha256": "56ce9146cd317a03ba16e338603814b654aede5c7e1417b99fdb159dd4792704",
+      "exports": [],
+      "operations": [
+        {
+          "name": "closed_values_append_capacity",
+          "declaration": "closed_values_append_capacity ( length : Int ) - > Int64 ?"
+        },
+        {
+          "name": "closed_values_map_constructor_layout",
+          "declaration": "closed_values_map_constructor_layout ( entries : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "closed_values_sort_scratch_layout",
+          "declaration": "closed_values_sort_scratch_layout ( fields : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "closed_values_walk_storage_from_extents",
+          "declaration": "closed_values_walk_storage_from_extents ( pending : Int , children : Int , names : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "closed_values_walk_storage_layout",
+          "declaration": "closed_values_walk_storage_layout ( node_upper : Int , largest_object_fields : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "closed_values_append_capacity",
+            "closed_values_map_constructor_layout",
+            "closed_values_sort_scratch_layout",
+            "closed_values_walk_storage_from_extents",
+            "closed_values_walk_storage_layout"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_closed_values_identity_layout.mbt",
+      "sha256": "82f42f61ab9fbac9e3f5407156204e4741f9b2afbf628d943e6f2f289b879a16",
+      "exports": [],
+      "operations": [
+        {
+          "name": "closed_values_identity_emitter_layout",
+          "declaration": "closed_values_identity_emitter_layout ( nodes : Int , fields : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "closed_values_identity_emitter_layout"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_closed_values_initial.mbt",
+      "sha256": "b752d2381e22b8f3af74b7e504d98e1fb947a267d8e27fa4734afdd4a12c795d",
+      "exports": [],
+      "operations": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_closed_values_lexical.mbt",
+      "sha256": "0c160418dc594ed023b2992b48904e96624806613dc9a7e506a582297552113a",
+      "exports": [],
+      "operations": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_closed_values_program.mbt",
+      "sha256": "8607154029be6e3b5f0b72e99b68fb86124a25f7d9f70cdc2d4d39dcc6d88b02",
+      "exports": [],
+      "operations": [
+        {
+          "name": "closed_values_program_arrays",
+          "declaration": "closed_values_program_arrays ( count : Int64 , items : Int64 , growing : Bool , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "closed_values_program_maps",
+          "declaration": "closed_values_program_maps ( count : Int64 , entries : Int64 , growing : Bool , ) - > @ execution . PreparationRepresentationUnits"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "closed_values_program_arrays",
+            "closed_values_program_maps"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_closed_values_shared_writers.mbt",
+      "sha256": "36af5bea60a5a37e9280adcde4794d08b139e982dc0f369058e45cbcfa379781",
+      "exports": [],
+      "operations": [
+        {
+          "name": "closed_values_writer_layout",
+          "declaration": "closed_values_writer_layout ( nodes : Int , depth : Int , count : Int , material_count : Int , material_bytes : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "closed_values_writer_layout"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_closed_values_source.mbt",
+      "sha256": "71ebb4deb30d5a2eaca777307407c5aef9a4461d1a31045b56d4026ea4a08628",
+      "exports": [],
+      "operations": [
+        {
+          "name": "closed_values_source_inventories",
+          "declaration": "closed_values_source_inventories ( facts : ClosedValuesLexicalFacts , ) - > ClosedValuesSourceInventories"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "closed_values_source_inventories"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_closed_values_source_phase.mbt",
+      "sha256": "036ea22cb07e067dde7c638e4f2694840b6bfe100962885320d303e59206f73f",
+      "exports": [],
+      "operations": [
+        {
+          "name": "closed_values_units_subtract",
+          "declaration": "closed_values_units_subtract ( left : @ execution . PreparationRepresentationUnits , right : @ execution . PreparationRepresentationUnits , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
+      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "closed_values_units_subtract"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
               }
             ]
           }

@@ -152,7 +152,7 @@ pub fn[I, T] prepare_request_native_query_computation(
 
 ///|
 /// Ordinary detached native Source envelope. Fixed header reads enter no
-/// variable copy; the same Request owns native values, declarations and Query.
+/// variable copy; the same Request owns native values and its document/Query.
 /// Typed input failures are issued here, not forged by a Host error wrapper.
 pub fn[I, T] prepare_request_native_source_computation(
   owner : ClientRequestPreparation[I],
@@ -192,12 +192,6 @@ pub fn[I, T] prepare_request_native_source_computation(
     }
     Ok(value) => value
   }
-  if selected != @frontend.Sql && selected != @frontend.Text {
-    // JSON/YAML Source document intake is still a separate unconnected
-    // continuation, not evidence that the authored valid format is invalid.
-    owner.phase = Open
-    return Err(Preparation(WrongPhase))
-  }
   let declarations = (reader.field)(captured, "parameterDeclarations")
   let declarations = if (reader.kind)(declarations) == 6 {
     None
@@ -205,6 +199,35 @@ pub fn[I, T] prepare_request_native_source_computation(
     Some(declarations)
   }
   let document = (reader.text)(document)
+  if selected == @frontend.Json || selected == @frontend.Yaml {
+    // Declaration overrides belong only to textual Query input. JSON/YAML
+    // carry their original declarations inside the authored Program itself.
+    if declarations is Some(_) {
+      owner.phase = ProgramJsonFailed
+      return Err(QuerySyntax(Frontend(@frontend.InvalidFormat)))
+    }
+    owner.phase = Open
+    match
+      prepare_request_native_query_input(owner, input, reader, supplied, None) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    return prepare_request_document_computation(
+      owner,
+      input,
+      document,
+      if selected == @frontend.Json {
+        @syntax.Json
+      } else {
+        @syntax.Yaml
+      },
+      environment,
+      publication,
+      evidence,
+      program_limits,
+      effect_limits,
+    )
+  }
   owner.phase = Open
   prepare_request_native_query_computation(
     owner,

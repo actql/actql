@@ -469,7 +469,7 @@ issue another graph. A changed output mode refuses before graph construction;
 it cannot trigger a late factory or choose a fallback configuration.
 
 The raw sequence preparation still serves explicitly unmigrated Effect/Model
-projections and the fixed closed Values driver. Its absent module choice is
+projections. The Request module path supplies its actual selected module; an absent module choice is
 an inline scalar word priced in that driver's existing semantic constructor
 inventory. Full module construction must not be moved into that fixed driver
 until the selected mode and complete simultaneous constructor inventory are
@@ -673,15 +673,20 @@ parser, relation, provider, Command-selection or Model inventory is included in
 this control quote. The policy's numerical ceilings are necessary limits, not
 credit for any of those representations.
 
-The first consumer is the existing closed Values preparation. Before constructing
-its typed driver, the bootstrap resizes the same reservation for the complete
-existing Values control recipe plus the simultaneous old bootstrap. Its one typed
-continuation preserves the original input, child, Ledger, reservation, borrower
-bound and work history. The Node adapter stores the returned driver before
-cutting its consumed bootstrap link. The driver's ordinary header/scan/snapshot
-phases and retirement then use that same capacity. The installed backend's exact
-module-container inventory is still supplied by the original Node bridge, not
-by JavaScript dimensions or a combined provider profile.
+The Request retains its original snapshot, Program or Query, Parameters,
+checking result and compiler output on that capacity. Its typed continuation
+selects the original Pure prepared body or installed Effect Plan without a
+ClosedValues bootstrap. The old header/ASCII scan, serialized-document parser,
+body selector and their independent module-preparation entrance are retired.
+The existing publication/capture error and shared layout functions remain
+where current consumers still use them; their names do not select an input
+preparation route.
+
+The publication owner retains its actual body borrow, not a reference back to
+that retired input driver. Its resource capacity and initial admission continue
+through the same actual Run, output validation and cleanup. A returned parser,
+closed controller or retired preparation alias cannot stand in for the last
+borrower return or the original physical stop.
 
 ### Preparation output selection
 
@@ -2363,6 +2368,16 @@ A manager borrow delays retirement; parent cleanup cannot settle a consumed
 successor or infer stop from a returned Promise. Failed construction and
 retirement keep their original cleanup owners and consumed work.
 
+The Node Request bridge completes this original Effect Plan and adopts its Run
+through the same existing Core constructors. Its construction-input borrow is
+also the retained prepared-Effect borrow across completion and adoption; it
+does not require another Plan token or a second preparation parent. The caller
+returns that original borrow only after its own Plan-construction and retained
+callback uses end. The Run cannot retire while that borrow remains live.
+These bridge operations neither construct provider resources nor back their
+request/response or failed-child overlap; the actual Host supplies those duties
+before completing the Plan.
+
 The original numeric limits getter reads immutable admission DATA with its
 nominal input/purpose/phase checks. It supplies no currentness or permission
 witness. The following atomic Run adoption performs the real external current
@@ -2796,6 +2811,34 @@ does not implement it is an internal correspondence failure; it cannot be
 projected as evidence that the authored input was invalid. The SQL/Pipe entry
 alone does not qualify the other Source document controllers or ordinary
 installed/backend execution.
+
+### Source document Request continuation
+
+The existing public JSON/YAML Source spellings select their explicit Program
+grammar on the same Request as SQL/Pipe and native Program input. These formats
+carry declarations in their original Program; an external declaration override
+remains invalid there. Native supplied values are admitted first under their
+existing limits and normalization rules, before parsing the document.
+
+The fixed caller folds the original document's UTF16 length and bounded node
+upper extent through the existing common value-node/text allowances for the
+simultaneous parser output and new index. Its fixed controls use the existing
+Program Host baseline. These are logical allowances, not measured memory,
+physical supply or a new parser/Resource policy. The exact selected original
+parser then constructs the index once, preserving Program key rules, Unicode,
+spans, typed first refusal and the same immutable input limits. No format
+fallback, serialization or alternate interpretation is inserted.
+
+After the parser returns, actual immutable index geometry feeds the existing
+Source/index dependency recipe. The same Program phase is retained before its
+reconciliation/current callback, and only returned parse scratch is released.
+JSON preflight and direct document parsing therefore share the same index,
+Program constructor, retirement and Resource owner; neither fabricates the
+other's parser geometry. Native Program intake uses that same holder constructor.
+The existing shared checker/compiler, Catalog, Pure/Effect selection, original
+Plan and Run handoff continue unchanged. The Request Selecting fence covers
+reentry; failure retains its original parent cleanup duty and does not authorize
+resubmission, a physical ACK or replacement capacity.
 
 ### Original Request accounting observations
 

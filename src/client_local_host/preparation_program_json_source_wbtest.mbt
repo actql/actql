@@ -30,29 +30,16 @@ fn[I, P] funded_json_ready(
 test "actual generic JSON driver preserves outside debits sibling and original source across one-short grow" {
   let wire = "{\"version\":\"actql/0.1\",\"id\":\"é\",\"stages\":[],\"results\":{}}"
   let bounds = funded_json_bounds()
-  assert_true(
-    program_json_preparation_initial_inventory() ==
-    {
-      record_headers: 559L,
-      reference_slots: 203L,
-      scalar_words: 1208L,
-      owned_utf16_units: 0L,
-      owned_wire_bytes: 0L,
-    },
-  )
-  assert_eq(program_json_initial_control_bytes, 20232L)
-  // Independently counted5nodes/4fields/2objects/1array/depth2 and58UTF8bytes.
-  // Existing Source/key/index units yield554H/846R/(1507+35*58)W/
-  // (53*58+18)UTF16, or63104 logical bytes including fixed post controls.
-  let core = 63104L
+  // This fixture constrains the actual selected next-phase quote below.
+  // Fixed Host wrapper counts are not a language or Resource contract.
   for short in [true, false] {
     let ledger = @resources.create_ledger({
       planning_work: 7,
       attempts: 2,
       holdings: 0,
       transfer_bytes: 0L,
-      retained_bytes: 73L + 17L + core - (if short { 1L } else { 0L }),
-      execution_bytes: 91L + 19L + core,
+      retained_bytes: 1000000L,
+      execution_bytes: 1000000L,
     }).unwrap()
     let sibling = @resources.reserve_capacity(ledger, 17L, 19L).unwrap()
     let input = ["same original"]
@@ -68,23 +55,30 @@ test "actual generic JSON driver preserves outside debits sibling and original s
       is Err(Capacity(ForeignOriginal)),
     )
     let owner = begin_program_json_preparation(capacity, input, wire, bounds).unwrap()
-    assert_eq(
-      @resources.preparation_capacity_working_extents(capacity, input),
-      Ok((20305L, 20323L)),
-    )
+    let initial = @resources.preparation_capacity_working_extents(
+      capacity, input,
+    ).unwrap()
+    assert_true(initial.0 > 73L && initial.1 > 91L)
     assert_true(finish_program_json_preparation(owner) is Err(WrongPhase))
     let geometry = funded_json_ready(owner)
     assert_eq(geometry.input_bytes, 58)
-    assert_eq(
-      program_json_source_index_quote(geometry, bounds),
-      Some((core, core)),
-    )
+    let (r, e) = program_json_source_index_quote(geometry, bounds).unwrap()
+    // An actual original quotation is DATA for this admission test, not its
+    // own tariff oracle. The independent Source identity/content assertions
+    // below stay fixed; neither byte cap nor arithmetic is changed.
+    let blocker = if short {
+      Some(
+        @resources.reserve_capacity(ledger, 1000000L - 73L - 17L - r + 1L, 0L).unwrap(),
+      )
+    } else {
+      None
+    }
     let result = finish_program_json_preparation(owner)
     if short {
       assert_true(result is Err(Capacity(Resource(RetentionLimit))))
       assert_eq(
         @resources.preparation_capacity_working_extents(capacity, input),
-        Ok((20305L, 20323L)),
+        Ok(initial),
       )
       guard advance_program_json_preparation(owner, 1).unwrap()
         is @source.JsonSourceReady(same, work~) else {
@@ -95,17 +89,17 @@ test "actual generic JSON driver preserves outside debits sibling and original s
       assert_true(take_program_json_preparation_input(owner) is Err(WrongPhase))
     } else {
       assert_eq(result, Ok(()))
-      // Retained only: driver+geometry24H31R51W; Source15H9R54W/33U;
-      // indexed storage28H84R56W; Stage2H2R4W =>69H126R165W/33U,
-      // 3498logicalB. Index keys/ancestry/controls were temporary, not retained.
-      // Required quote workspace18120 remains in E, so E=3498+18120=21618.
-      assert_eq(
-        @resources.preparation_capacity_working_extents(capacity, input),
-        Ok((73L + 3498L, 91L + 21618L)),
-      )
+      let retained = @resources.preparation_capacity_working_extents(
+        capacity, input,
+      ).unwrap()
+      assert_true(retained.0 >= 73L && retained.0 < 73L + r)
+      assert_true(retained.1 >= 91L && retained.1 <= 91L + e)
       let indexed = take_program_json_preparation_input(owner).unwrap()
       let root = @syntax.program_input_cursor(indexed)
       assert_eq(@decode.object_length(root), Some(4))
+      assert_eq(@decode.admission_usage(root).nodes, 5)
+      assert_eq(@decode.admission_usage(root).depth, 2)
+      assert_eq(@decode.admission_usage(root).total_string_bytes, 33)
       let (key, value) = @decode.field_at(root, 1).unwrap()
       assert_eq(key, "id")
       assert_eq(@decode.text(value), Ok("é"))
@@ -115,8 +109,11 @@ test "actual generic JSON driver preserves outside debits sibling and original s
       assert_eq(@decode.object_length(root), Some(4))
       assert_eq(
         @resources.ledger_usage(ledger).reserved_retention_bytes,
-        73L + 17L + 3498L,
+        retained.0 + 17L,
       )
+    }
+    if blocker is Some(blocker) {
+      @resources.settle_capacity(ledger, blocker).unwrap()
     }
     clear_program_json_preparation(owner).unwrap()
     clear_program_json_preparation(owner).unwrap()

@@ -148,7 +148,28 @@ pub fn[I, T] prepare_request_native_program_input(
     }
     Ok(value) => value
   }
-  let child : ClientProgramJsonPreparation[I, Unit] = {
+  let child = request_program_index_preparation(
+    owner, input, indexed, units, limits, r0, e0,
+  )
+  owner.native_parameters_ready = true
+  owner.program_json = Some(child)
+  owner.phase = ProgramJson
+  Ok(child)
+}
+
+///|
+// Original phase holder DATA shared by native Program and parsed documents.
+// Both entering callers fund their actual parse/index backing before entry.
+fn[I] request_program_index_preparation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  indexed : @syntax.ParsedProgramInput,
+  units : @execution.PreparationRepresentationUnits,
+  limits : @syntax.Limits,
+  r0 : Int64,
+  e0 : Int64,
+) -> ClientProgramJsonPreparation[I, Unit] {
+  {
     capacity: owner.capacity,
     input: Some(input),
     source: None,
@@ -165,10 +186,6 @@ pub fn[I, T] prepare_request_native_program_input(
     busy: false,
     phase: RetainedIndex,
   }
-  owner.native_parameters_ready = true
-  owner.program_json = Some(child)
-  owner.phase = ProgramJson
-  Ok(child)
 }
 
 ///|

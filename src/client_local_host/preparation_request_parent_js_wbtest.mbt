@@ -36,47 +36,28 @@ fn request_parent_fixture(
 }
 
 ///|
-test "request parent reserves controls before body selection and continues one original debit" {
+test "request parent reserves controls then grows its original snapshot reservation" {
   let input = [1]
   let policy = client_local_resource_policy()
   let initial = request_parent_fixture(input)
   let owner = begin_request_preparation(initial, input, policy).unwrap()
+  let original = owner.capacity
   let (bootstrap, zero) = client_request_preparation_control_capacity(policy).unwrap()
   assert_eq(zero, 0L)
   let before = @resources.ledger_usage(owner.ledger)
   assert_eq(before.reserved_retention_bytes, bootstrap)
   assert_eq(before.reserved_execution_bytes, 0L)
   assert_eq(before.held_bytes, 0L)
-  assert_true(owner.phase == Open && owner.input is Some(_))
-  let next = select_closed_values_preparation(
-    owner,
-    input,
-    module_containers=empty_family_module_containers,
-  ).unwrap()
-  assert_true(physical_equal(next.initial, initial))
-  let (body, scratch) = client_closed_values_initial_control_capacity(
-    policy,
-    module_containers=empty_family_module_containers,
-  ).unwrap()
+  reserve_request_snapshot(owner, input, 16L, 2L).unwrap()
   let after = @resources.ledger_usage(owner.ledger)
-  assert_eq(after.reserved_retention_bytes, bootstrap + body)
-  assert_eq(after.reserved_execution_bytes, scratch)
+  assert_true(physical_equal(owner.capacity, original))
+  assert_true(physical_equal(owner.initial, initial))
+  assert_true(after.reserved_retention_bytes > before.reserved_retention_bytes)
+  assert_true(after.reserved_execution_bytes > 0L)
+  assert_eq(after.live_reservations, before.live_reservations)
   assert_eq(after.held_bytes, 0L)
-  assert_true(owner.phase == Selected && owner.input is None)
-  assert_true(
-    select_closed_values_preparation(
-      owner,
-      input,
-      module_containers=empty_family_module_containers,
-    )
-    is Err(WrongPhase),
-  )
-  assert_true(abort_request_preparation_after_cleanup(owner) is Err(WrongPhase))
-  assert_eq(@resources.ledger_usage(owner.ledger), after)
-  // Exercise the real next driver's first operation, not only its constructor.
-  // Its work remains on the same original until that driver retires it.
-  assert_true(begin_closed_values_header(next) is Ok(_))
-  abort_closed_values_preparation_after_cleanup(next).unwrap()
+  assert_true(owner.phase == Open && owner.input is Some(_))
+  abort_request_preparation_after_cleanup(owner).unwrap()
   assert_eq(@resources.ledger_usage(owner.ledger).reserved_retention_bytes, 0L)
   assert_eq(@resources.ledger_usage(owner.ledger).reserved_execution_bytes, 0L)
 }
@@ -91,30 +72,20 @@ test "request parent foreign input cannot select or resize its retained original
   ).unwrap()
   let before = @resources.ledger_usage(owner.ledger)
   assert_true(
-    select_closed_values_preparation(
-      owner,
-      [1],
-      module_containers=empty_family_module_containers,
-    )
-    is Err(ForeignOriginal),
+    reserve_request_snapshot(owner, [1], 16L, 2L) is Err(ForeignOriginal),
   )
   assert_eq(@resources.ledger_usage(owner.ledger), before)
   assert_true(owner.phase == Open && owner.input is Some(_))
   abort_request_preparation_after_cleanup(owner).unwrap()
   assert_true(owner.phase == Closed && owner.input is None)
   assert_true(
-    select_closed_values_preparation(
-      owner,
-      input,
-      module_containers=empty_family_module_containers,
-    )
-    is Err(WrongPhase),
+    reserve_request_snapshot(owner, input, 16L, 2L) is Err(WrongPhase),
   )
   assert_eq(@resources.ledger_usage(owner.ledger).reserved_retention_bytes, 0L)
 }
 
 ///|
-test "request parent selection currentness cannot reenter select or retire the same reservation" {
+test "request parent snapshot currentness cannot reenter growth or retire the same reservation" {
   let input = [1]
   let selected : Ref[ClientRequestPreparation[Array[Int]]?] = Ref(None)
   let armed = Ref(false)
@@ -124,11 +95,7 @@ test "request parent selection currentness cannot reenter select or retire the s
     if armed.val && !entered.val {
       entered.val = true
       let owner = selected.val.unwrap()
-      refused.val = select_closed_values_preparation(
-          owner,
-          input,
-          module_containers=empty_family_module_containers,
-        )
+      refused.val = reserve_request_snapshot(owner, input, 16L, 2L)
         is Err(WrongPhase) &&
         abort_request_preparation_after_cleanup(owner) is Err(WrongPhase)
     }
@@ -141,13 +108,9 @@ test "request parent selection currentness cannot reenter select or retire the s
   ).unwrap()
   selected.val = Some(owner)
   armed.val = true
-  let next = select_closed_values_preparation(
-    owner,
-    input,
-    module_containers=empty_family_module_containers,
-  ).unwrap()
+  reserve_request_snapshot(owner, input, 16L, 2L).unwrap()
   assert_true(entered.val && refused.val)
-  abort_closed_values_preparation_after_cleanup(next).unwrap()
+  abort_request_preparation_after_cleanup(owner).unwrap()
 }
 
 ///|
@@ -162,12 +125,7 @@ test "request parent original-current failure preserves its charged original cle
   let before = @resources.ledger_usage(owner.ledger)
   current.val = false
   assert_true(
-    select_closed_values_preparation(
-      owner,
-      input,
-      module_containers=empty_family_module_containers,
-    )
-    is Err(Capacity(_)),
+    reserve_request_snapshot(owner, input, 16L, 2L) is Err(Capacity(_)),
   )
   assert_true(owner.phase == Open && owner.input is Some(_))
   assert_eq(
@@ -193,12 +151,7 @@ test "request parent keeps original unknown stop without inferring a new cleanup
   assert_true(abort_request_preparation_after_cleanup(owner) is Err(Initial(_)))
   assert_true(owner.phase == Retiring)
   assert_true(
-    select_closed_values_preparation(
-      owner,
-      input,
-      module_containers=empty_family_module_containers,
-    )
-    is Err(WrongPhase),
+    reserve_request_snapshot(owner, input, 16L, 2L) is Err(WrongPhase),
   )
   // The original imported stop was attempted and its failure is retained.
   // A later false callback is not another issued physical acknowledgement.
@@ -209,24 +162,20 @@ test "request parent keeps original unknown stop without inferring a new cleanup
 }
 
 ///|
-test "Request diagnostic accounting observes one reservation across typed continuation and stop" {
+test "Request diagnostic accounting observes one reservation across snapshot growth and stop" {
   let input = [7]
   let policy = client_local_resource_policy()
   let initial = request_parent_fixture(input)
   let owner = begin_request_preparation(initial, input, policy).unwrap()
   let before = request_preparation_accounting(owner)
   assert_eq(before, @resources.preparation_capacity_accounting(owner.capacity))
-  let next = select_closed_values_preparation(
-    owner,
-    input,
-    module_containers=empty_family_module_containers,
-  ).unwrap()
+  reserve_request_snapshot(owner, input, 16L, 2L).unwrap()
   let active = request_preparation_accounting(owner)
-  assert_eq(active, @resources.preparation_capacity_accounting(next.capacity))
+  assert_eq(active, @resources.preparation_capacity_accounting(owner.capacity))
   assert_true(active.0 > before.0)
-  abort_closed_values_preparation_after_cleanup(next).unwrap()
+  abort_request_preparation_after_cleanup(owner).unwrap()
   let stopped = request_preparation_accounting(owner)
-  assert_eq(stopped, @resources.preparation_capacity_accounting(next.capacity))
+  assert_eq(stopped, @resources.preparation_capacity_accounting(owner.capacity))
   assert_eq(
     (stopped.0, stopped.1, stopped.2, stopped.4, stopped.5),
     (0L, 0L, 0L, 0L, 0L),

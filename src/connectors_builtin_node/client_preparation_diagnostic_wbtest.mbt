@@ -364,7 +364,7 @@ test "native Query terminal keeps foreign and retired originals outside semantic
 }
 
 ///|
-test "native Query terminal does not relabel an unconnected valid Source document format" {
+test "native Source document terminal projects original invalid Program instead of unconnected phase" {
   let environment = original_lookup_diagnostic_environment(false)
   let publication = @source_publication.prepare_published_query_environment(
     environment,
@@ -388,10 +388,15 @@ test "native Query terminal does not relabel an unconnected valid Source documen
     assert_true(
       result
       is Err(
-        @client_local_host.ClientRequestTerminalIssue::Preparation(WrongPhase)
+        @client_local_host.ClientRequestTerminalIssue::Preparation(
+          ProgramJson(Syntax(_))
+        )
       ),
     )
-    assert_eq(client_program_request_preparation_issue_code(result), None)
+    assert_eq(
+      client_program_request_preparation_issue_code(result),
+      Some("check_invalid_input"),
+    )
     @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
   }
 }
