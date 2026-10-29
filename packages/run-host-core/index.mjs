@@ -12,6 +12,7 @@ const retainedTaskInputs = new WeakMap();
 import {publicationAction} from './publication-action.mjs';
 
 const environments = new WeakMap();
+const publishedEnvironments = new WeakMap();
 const preparations = new WeakMap();
 const sourcePreparations = new WeakMap();
 const compilations = new WeakMap();
@@ -151,25 +152,57 @@ export function admitEnvironment(body, evidenceBundleCid, profiles) {
   return handle(environments, value, 'check-environment');
 }
 
-export function prepare(document, format, environment, parametersWire) {
+/** Retain only static metadata under its original admitted Environment. */
+export function preparePublishedEnvironment(environment, publicationWire) {
+  if (typeof publicationWire !== 'string') throw new TypeError('InvalidRunHostSourcePublication');
+  if (typeof owner.clientValuesHostPreparePublishedEnvironment !== 'function') {
+    throw new Error('RunHostPreparedEnvironmentUnavailable');
+  }
+  const value = checked(owner.clientValuesHostPreparePublishedEnvironment(
+    requireHandle(environments, environment), publicationWire),
+  'RunHostPublishedEnvironmentRejected');
+  return handle(publishedEnvironments, {value, environment, publicationWire},
+    'prepared-published-environment');
+}
+
+function requirePublishedEnvironment(prepared, environment, publicationWire) {
+  if (prepared === undefined) return undefined;
+  const original = requireHandle(publishedEnvironments, prepared);
+  if (original.environment !== environment || publicationWire !== undefined &&
+      original.publicationWire !== publicationWire) {
+    throw new TypeError('ForeignRunHostPublishedEnvironment');
+  }
+  return original.value;
+}
+
+/** A nominal/full-wire join only; never current authorization or custody. */
+export function publishedEnvironmentMatches(prepared, environment, publicationWire) {
+  const original = requireHandle(publishedEnvironments, prepared);
+  requireHandle(environments, environment);
+  return original.environment === environment && original.publicationWire === publicationWire;
+}
+
+export function prepare(document, format, environment, parametersWire, publishedEnvironment) {
   if (typeof document !== 'string' || !['json', 'yaml'].includes(format) ||
       parametersWire !== undefined && typeof parametersWire !== 'string') {
     throw new TypeError('InvalidRunHostPreparation');
   }
   const value = checked(owner.clientValuesHostPrepare(document, format,
-    requireHandle(environments, environment), parametersWire),
+    requireHandle(environments, environment), parametersWire,
+    requirePublishedEnvironment(publishedEnvironment, environment)),
   'RunHostPreparationRejected');
   return handle(preparations, value, 'prepared-program');
 }
 
 /** Select the existing preparation Owner from one ordinary parsed Program. */
-export function prepareProgram(document, format, environment, parametersWire) {
+export function prepareProgram(document, format, environment, parametersWire, publishedEnvironment) {
   if (typeof document !== 'string' || !['json', 'yaml'].includes(format) ||
       parametersWire !== undefined && typeof parametersWire !== 'string') {
     throw new TypeError('InvalidRunHostPreparation');
   }
   const selected = checked(owner.clientValuesHostPrepareProgram(document, format,
-    requireHandle(environments, environment), parametersWire), 'RunHostProgramPreparationRejected');
+    requireHandle(environments, environment), parametersWire,
+    requirePublishedEnvironment(publishedEnvironment, environment)), 'RunHostProgramPreparationRejected');
   const kind = owner.clientValuesHostProgramPreparationKind(selected);
   if (kind === 'effect_free') {
     const value = owner.clientValuesHostProgramPreparationEffectFree(selected);
@@ -185,18 +218,22 @@ export function prepareProgram(document, format, environment, parametersWire) {
 }
 
 /** One original submitted source and trusted installation publication. */
-export function prepareSourceProgram(intent, environment, publicationWire) {
-  return prepareSourceProgramOriginal(intent, environment, publicationWire, 'public-main');
+export function prepareSourceProgram(intent, environment, publicationWire, publishedEnvironment) {
+  return prepareSourceProgramOriginal(intent, environment, publicationWire,
+    'public-main', publishedEnvironment);
 }
 
-function prepareSourceProgramOriginal(intent, environment, publicationWire, primaryResultRecipe) {
+function prepareSourceProgramOriginal(intent, environment, publicationWire, primaryResultRecipe,
+  publishedEnvironment) {
   if (typeof publicationWire !== 'string') throw new TypeError('InvalidRunHostSourcePublication');
   const originalIntent = requireHandle(submittedIntents, intent);
   const originalEnvironment = requireHandle(environments, environment);
   const prepare = primaryResultRecipe === undefined
     ? owner.clientValuesHostPrepareSourceProgram : owner.clientValuesHostPreparePublicSourceProgram;
   const value = checked(Reflect.apply(prepare, owner, [originalIntent,
-    originalEnvironment, publicationWire]), 'RunHostSourcePreparationRejected');
+    originalEnvironment, publicationWire,
+    requirePublishedEnvironment(publishedEnvironment, environment, publicationWire)]),
+  'RunHostSourcePreparationRejected');
   const kind = owner.clientValuesHostSourceProgramKind(value);
   const raw = kind === 'effect_free' ? owner.clientValuesHostSourceProgramPure(value)
     : kind === 'effect' ? owner.clientValuesHostSourceProgramEffect(value) : undefined;
@@ -252,7 +289,7 @@ export function sourceProgramSourceInput(prepared) {
 }
 
 /** Re-admit saved originals; the Host still verifies current custody and Run. */
-export function restoreSourceProgram(originals, environment) {
+export function restoreSourceProgram(originals, environment, publishedEnvironment) {
   const keys = ['intentWire', 'intentCid', 'environmentCid', 'publicationWire'];
   const recipe = originals === null || typeof originals !== 'object' ? undefined
     : Object.getOwnPropertyDescriptor(originals, 'primaryResultRecipe');
@@ -273,7 +310,7 @@ export function restoreSourceProgram(originals, environment) {
   // upgrade a saved source preparation merely because new public input uses
   // main. Run restoration independently checks its saved request/materials.
   const selected = prepareSourceProgramOriginal(intent, environment,
-    originals.publicationWire, recipe?.value);
+    originals.publicationWire, recipe?.value, publishedEnvironment);
   const actual = sourceProgramOriginals(selected.prepared);
   if (keys.some(key => actual[key] !== originals[key])) throw new TypeError('ForeignRunHostSourceOriginals');
   return selected;
@@ -311,13 +348,14 @@ export function compileTasks(prepared) {
 }
 
 /** Static Effect closure; no acquisition, approval or physical apply. */
-export function prepareEffect(document, format, environment, parametersWire) {
+export function prepareEffect(document, format, environment, parametersWire, publishedEnvironment) {
   if (typeof document !== 'string' || !['json', 'yaml'].includes(format) ||
       parametersWire !== undefined && typeof parametersWire !== 'string') {
     throw new TypeError('InvalidRunHostPreparation');
   }
   return handle(effectPreparations, checked(owner.clientValuesHostPrepareEffect(
-    document, format, requireHandle(environments, environment), parametersWire),
+    document, format, requireHandle(environments, environment), parametersWire,
+    requirePublishedEnvironment(publishedEnvironment, environment)),
   'RunHostEffectPreparationRejected'), 'prepared-effect-program');
 }
 
@@ -2169,6 +2207,19 @@ export function admitRunEvidenceValue(name, wire, limits) {
   return runEvidence(checked(owner.clientValuesHostAdmitRunEvidenceValue(
     name, wire, maxWireBytes, maxNodes, maxDepth),
   'RunHostEvidenceRejected'));
+}
+
+/** Binding DATA from the same admitted Review. No parsing, admission, current
+ * permission or outcome follows from this immutable projection. */
+export function effectReviewProjectionBindingFacts(review) {
+  const fields = owner.clientValuesHostEffectReviewProjectionBindingFacts(
+    requireHandle(runEvidences, review?.token));
+  if (!Array.isArray(fields) || fields.length < 3 ||
+      fields.some(value => typeof value !== 'string')) {
+    throw new TypeError('InvalidRunHostReviewProjection');
+  }
+  return Object.freeze({previewCid: fields[0], authoringContextCid: fields[1],
+    authorityScopeCid: fields[2], approvalClaims: Object.freeze(fields.slice(3))});
 }
 
 export function sealRunEvidenceValue(name, bodyWire, limits) {

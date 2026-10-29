@@ -180,3 +180,71 @@ test('a separate facade namespace cannot supply its valid source handles to this
   assert.throws(() => host.compileTasks(foreignPrepared.prepared), /ForeignRunHostHandle/u);
   assert.throws(() => host.sourceProgramOriginals(foreignPrepared.prepared), /ForeignRunHostSourcePreparation/u);
 });
+
+test('prepared Environment preserves new source queries and saved primary recipes', () => {
+  const env = environment();
+  const retained = host.preparePublishedEnvironment(env, publication);
+  assert(Object.isFrozen(retained));
+  assert.equal(host.publishedEnvironmentMatches(retained, env, publication), true);
+  const original = intent('SELECT @n AS n', 'sql', {n: 3}, {n: {type: 'number'}});
+  const fresh = host.prepareSourceProgram(original, env, publication);
+  const reused = host.prepareSourceProgram(original, env, publication, retained);
+  const compiled = selected => host.compileTasks(selected.prepared);
+  assert.deepEqual(host.privateTaskCompilationWires(compiled(reused)),
+    host.privateTaskCompilationWires(compiled(fresh)));
+  const request = host.prepareSourceRequest(reused.prepared, original, scope, 'prepared-original');
+  assert.equal(host.requestRelation(request,
+    host.prepareSourceRequest(fresh.prepared, original, scope, 'prepared-original')), 'same_request');
+  assert.deepEqual(host.taskResultDefinitions(reused.prepared, compiled(reused)).map(x => x.name), ['main']);
+  const saved = host.sourceProgramOriginals(reused.prepared);
+  const restored = host.restoreSourceProgram(saved, env, retained);
+  assert.deepEqual(host.sourceProgramOriginals(restored.prepared), saved);
+  const {primaryResultRecipe, ...historical} = saved;
+  assert.equal(primaryResultRecipe, 'public-main');
+  const legacy = host.restoreSourceProgram(historical, env, retained);
+  assert.deepEqual(host.taskResultDefinitions(legacy.prepared, compiled(legacy)).map(x => x.name), ['answer']);
+  assert.deepEqual(host.sourceProgramOriginals(legacy.prepared), historical);
+  const changedIntent = intent('SELECT @n + 1 AS n', 'sql', {n: 4}, {n: {type: 'number'}});
+  const changed = host.prepareSourceProgram(changedIntent, env, publication, retained);
+  assert.notEqual(host.requestFields(host.prepareSourceRequest(changed.prepared, changedIntent,
+    scope, 'prepared-original')).callerInputIntentCid, host.requestFields(request).callerInputIntentCid);
+});
+
+test('prepared Environment refuses copied, foreign and changed publication originals', async () => {
+  const env = environment();
+  const retained = host.preparePublishedEnvironment(env, publication);
+  assert.equal(host.publishedEnvironmentMatches(retained, environment(), publication), false);
+  assert.equal(host.publishedEnvironmentMatches(retained, env, publication + ' '), false);
+  assert.throws(() => host.prepareSourceProgram(intent(), env, publication, {...retained}), /ForeignRunHostHandle/u);
+  assert.throws(() => host.prepareSourceProgram(intent(), environment(), publication, retained),
+    /ForeignRunHostPublishedEnvironment/u);
+  assert.throws(() => host.prepareSourceProgram(intent(), env, publication + ' ', retained),
+    /ForeignRunHostPublishedEnvironment/u);
+  const foreign = await import('./index.mjs?foreign-prepared-environment');
+  const foreignEnv = foreign.admitEnvironment(environmentWire, evidenceCid, {rela: true});
+  const foreignRetained = foreign.preparePublishedEnvironment(foreignEnv, publication);
+  assert.throws(() => host.prepareSourceProgram(intent(), env, publication, foreignRetained),
+    /ForeignRunHostHandle/u);
+});
+
+test('prepared Environment supplies the same Pure and Effect document preparation owners', () => {
+  const pure = readFileSync(new URL('../sdk/fixtures/parameter-values.json', import.meta.url), 'utf8');
+  const env = environment();
+  const retained = host.preparePublishedEnvironment(env, publication);
+  const original = host.prepare(pure, 'json', env, '{"n":3}');
+  const selected = host.prepareProgram(pure, 'json', env, '{"n":3}', retained);
+  assert.equal(selected.kind, 'effect_free');
+  assert.deepEqual(host.privateTaskCompilationWires(host.compileTasks(selected.prepared)),
+    host.privateTaskCompilationWires(host.compileTasks(original)));
+  assert.throws(() => host.prepare(pure, 'json', env, '{', retained),
+    {code: 'RunHostPreparationRejected'});
+  const wire = readFileSync(new URL('./fixtures/source-compute-effect.environment.json', import.meta.url), 'utf8').trimEnd();
+  const effectEnv = host.admitEnvironment(wire, JSON.parse(wire).evidence_bundle_cid, {rela: true});
+  const effectPublication = JSON.stringify({environmentCid: JSON.parse(wire).evidence_bundle_cid, aliases: []});
+  const effectRetained = host.preparePublishedEnvironment(effectEnv, effectPublication);
+  const document = readFileSync(new URL('./fixtures/source-compute-effect.program.json', import.meta.url), 'utf8');
+  const effect = host.prepareProgram(document, 'json', effectEnv, undefined, effectRetained);
+  assert.equal(effect.kind, 'effect');
+  assert.deepEqual(host.privateEffectCompilationWires(host.compileEffect(effect.prepared)),
+    host.privateEffectCompilationWires(host.compileEffect(host.prepareEffect(document, 'json', effectEnv))));
+});

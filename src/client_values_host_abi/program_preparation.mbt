@@ -21,10 +21,18 @@ pub fn client_values_host_prepare_program(
   format : String,
   environment : @checked.CheckEnvironment,
   parameters : String?,
+  publication_environment : @source_publication.PreparedPublishedQueryEnvironment?,
 ) -> Result[
   ClientValuesHostProgramPreparation,
   ClientValuesHostProgramPreparationIssue,
 ] {
+  let (update_targets, store_targets, command_targets, catalog) = match
+    client_values_host_published_effect_parts(
+      publication_environment, environment,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Input(Publication(issue)))
+  }
   let (selected, supplied) = match
     client_values_host_program_input(format, parameters) {
     Ok(value) => value
@@ -46,13 +54,21 @@ pub fn client_values_host_prepare_program(
           supplied,
           [],
           client_values_host_effect_limits(),
+          update_targets~,
+          store_targets~,
+          command_targets~,
+          source_catalog=catalog,
         )
         .map(value => ClientValuesHostProgramPreparation::Effect(value))
         .map_err(issue => ClientValuesHostProgramPreparationIssue::Effect(issue))
     }
   }
   @host.prepare_parsed_effect_free_client_program(
-    parsed, environment, supplied, limits,
+    parsed,
+    environment,
+    supplied,
+    limits,
+    source_catalog=catalog,
   )
   .map(value => ClientValuesHostProgramPreparation::EffectFree(value))
   .map_err(issue => ClientValuesHostProgramPreparationIssue::EffectFree(issue))

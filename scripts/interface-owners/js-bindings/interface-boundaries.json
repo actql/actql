@@ -101355,7 +101355,7 @@
     {
       "module": "packages/run-host-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "811930c15c2bfbe42bd4d2ea4d3fd9edfc92a51c073d9b4b59807bdcade58d60",
+      "sha256": "795283a0dd0275435a9b247299890d6397679877833060562d4ddb510c432e66",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -101401,6 +101401,7 @@
         "effectReviewCheckpointPreview",
         "effectReviewCheckpointReconciliationState",
         "effectReviewCheckpointWaitingState",
+        "effectReviewProjectionBindingFacts",
         "effectRunStartCurrent",
         "effectSourceEvidenceFacts",
         "effectSourceInputBinding",
@@ -101452,6 +101453,7 @@
         "prepareEffectRetainedTaskInputEdge",
         "prepareEffectTaskPhysicalStart",
         "prepareProgram",
+        "preparePublishedEnvironment",
         "prepareRequest",
         "prepareResultMaterialHoldsStep",
         "prepareRetainedInputCurrentQuery",
@@ -101483,6 +101485,7 @@
         "projectSiteRun",
         "projectTaskSiteRun",
         "publicationIndexScopeKey",
+        "publishedEnvironmentMatches",
         "readStoredRunPlanOriginal",
         "requestFields",
         "requestRelation",
@@ -102209,6 +102212,20 @@
             "storedWire",
             "updatedAt",
             "declaredResults"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectReviewProjectionBindingFacts",
+          "parameters": [
+            "review"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectReviewProjectionBindingFacts/effectReviewProjectionBindingFacts",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -103501,7 +103518,8 @@
             "document",
             "format",
             "environment",
-            "parametersWire"
+            "parametersWire",
+            "publishedEnvironment"
           ],
           "async": false
         },
@@ -103511,7 +103529,8 @@
             "document",
             "format",
             "environment",
-            "parametersWire"
+            "parametersWire",
+            "publishedEnvironment"
           ],
           "async": false
         },
@@ -103552,7 +103571,16 @@
             "document",
             "format",
             "environment",
-            "parametersWire"
+            "parametersWire",
+            "publishedEnvironment"
+          ],
+          "async": false
+        },
+        {
+          "name": "preparePublishedEnvironment",
+          "parameters": [
+            "environment",
+            "publicationWire"
           ],
           "async": false
         },
@@ -103831,7 +103859,8 @@
           "parameters": [
             "intent",
             "environment",
-            "publicationWire"
+            "publicationWire",
+            "publishedEnvironment"
           ],
           "async": false
         },
@@ -103841,7 +103870,8 @@
             "intent",
             "environment",
             "publicationWire",
-            "primaryResultRecipe"
+            "primaryResultRecipe",
+            "publishedEnvironment"
           ],
           "async": false
         },
@@ -104100,6 +104130,15 @@
           "async": false
         },
         {
+          "name": "publishedEnvironmentMatches",
+          "parameters": [
+            "prepared",
+            "environment",
+            "publicationWire"
+          ],
+          "async": false
+        },
+        {
           "name": "readStoredRunPlanOriginal",
           "parameters": [
             "original",
@@ -104162,6 +104201,15 @@
           "async": false
         },
         {
+          "name": "requirePublishedEnvironment",
+          "parameters": [
+            "prepared",
+            "environment",
+            "publicationWire"
+          ],
+          "async": false
+        },
+        {
           "name": "restoreEffectRunNormalization",
           "parameters": [
             "materials"
@@ -104172,7 +104220,8 @@
           "name": "restoreSourceProgram",
           "parameters": [
             "originals",
-            "environment"
+            "environment",
+            "publishedEnvironment"
           ],
           "async": false
         },
@@ -125429,7 +125478,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/run-host-core/index.mjs",
-                "anchor": "export function prepareSourceProgram(intent, environment, publicationWire) {"
+                "anchor": "export function prepareSourceProgram(intent, environment, publicationWire, publishedEnvironment) {"
               }
             ],
             "identity": [
@@ -126550,6 +126599,637 @@
               {
                 "path": "src/run_publication_host/client_effect_checkpoint_reconciliation_wbtest.mbt",
                 "anchor": "test \"original Checkpoint Preview admits the same Run and original authoring data\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "effectReviewProjectionBindingFacts",
+            "effectReviewProjectionBindingFacts/effectReviewProjectionBindingFacts"
+          ],
+          "exports": [
+            "effectReviewProjectionBindingFacts"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectReviewProjectionBindingFacts"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/review-projection-bindings.md",
+                "anchor": "# Immutable Review binding facts"
+              },
+              {
+                "path": "src/run_publication/effect_review_projection_binding_facts_wbtest.mbt",
+                "anchor": "test \"Review binding facts retain the admitted original and isolate returned claims\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "preparePublishedEnvironment"
+          ],
+          "exports": [
+            "preparePublishedEnvironment"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "preparePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "preparePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "preparePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "preparePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "preparePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "preparePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "preparePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "preparePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "preparePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "preparePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              },
+              {
+                "path": "packages/run-host-core/source-preparation.test.mjs",
+                "anchor": "test('prepared Environment preserves new source queries and saved primary recipes'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publishedEnvironmentMatches"
+          ],
+          "exports": [
+            "publishedEnvironmentMatches"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "publishedEnvironmentMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "publishedEnvironmentMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "publishedEnvironmentMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "publishedEnvironmentMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "publishedEnvironmentMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "publishedEnvironmentMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "publishedEnvironmentMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "publishedEnvironmentMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "publishedEnvironmentMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "publishedEnvironmentMatches"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              },
+              {
+                "path": "packages/run-host-core/source-preparation.test.mjs",
+                "anchor": "test('prepared Environment preserves new source queries and saved primary recipes'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "requirePublishedEnvironment"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "requirePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "requirePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "requirePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "requirePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "requirePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "requirePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "requirePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "requirePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "requirePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "requirePublishedEnvironment"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              },
+              {
+                "path": "packages/run-host-core/source-preparation.test.mjs",
+                "anchor": "test('prepared Environment preserves new source queries and saved primary recipes'"
               }
             ]
           }
