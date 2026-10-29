@@ -61241,7 +61241,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "7d6aca5d0115cdac1bbcaecd1e7aacd1cd16409e424029093bc1dc7e0ba57198",
+      "sha256": "873b4c012e9839520aab4c784093f9ad6f54010d7df2060e3001f7c48b514086",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -61504,6 +61504,7 @@
             "runtimeBundleCid",
             "bindingCid",
             "driver",
+            "write",
             "ledgerRoot",
             "installation",
             "continuationBinding",
@@ -62904,6 +62905,112 @@
             "memberIndex",
             "rowIndex",
             "projected"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite",
+          "parameters": [
+            "write",
+            "connectorRegistration"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/data",
+          "parameters": [
+            "value",
+            "key",
+            "optional"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#2",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/fail/fail",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/freezeInput",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:prepareRequest/init:prepareRequest",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:project/init:project",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:requestFacts/init:requestFacts",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/init:send/init:send",
+          "parameters": [
+            "request",
+            "authorization",
+            "credential",
+            "callResource",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "deriveInstalledRowWrite/original/original",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/text/text",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -66996,6 +67103,96 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "deriveInstalledRowWrite",
+            "deriveInstalledRowWrite/cid/cid",
+            "deriveInstalledRowWrite/data",
+            "deriveInstalledRowWrite/deriveInstalledRowWrite",
+            "deriveInstalledRowWrite/deriveInstalledRowWrite#2",
+            "deriveInstalledRowWrite/deriveInstalledRowWrite#3",
+            "deriveInstalledRowWrite/deriveInstalledRowWrite#4",
+            "deriveInstalledRowWrite/fail/fail",
+            "deriveInstalledRowWrite/freezeInput",
+            "deriveInstalledRowWrite/init:prepareRequest/init:prepareRequest",
+            "deriveInstalledRowWrite/init:project/init:project",
+            "deriveInstalledRowWrite/init:requestFacts/init:requestFacts",
+            "deriveInstalledRowWrite/init:send/init:send",
+            "deriveInstalledRowWrite/original/original",
+            "deriveInstalledRowWrite/text/text"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Standard CREATE declaration"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function deriveInstalledRowWrite(write, connectorRegistration)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "'actql-installed-row-write-request/0.1'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const originals = new WeakMap();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRequest(context) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "InvalidInstalledRowWrite"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "maxRequestBytes, maxResponseBytes, signal"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Advanced conditional"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "actual Row Effect constructor consumes the declaration"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "standard request callbacks receive only original provider DATA"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "standard classification callbacks receive original provider DATA"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -67004,6 +67201,8 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/completed-run-publication.mjs",
         "../host-common/effect-preparation-result.mjs",
+        "../host-common/http-exchange.mjs",
+        "../host-common/owned-invocation-context.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
         "./effect-command-key.mjs",
