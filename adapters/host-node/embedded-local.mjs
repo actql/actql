@@ -1946,7 +1946,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   const prepareSubmit = installNodeClientProgramPreparation({moon,
     environment, sourcePublication, valuesMaxRows, check,
     ...(preparation === undefined ? {} : {getFundedPreparation: (request, selectedEnvironment) =>
-      preparation.fundedPreparation?.(request, selectedEnvironment)}),
+      preparation.fundedPreparation(request, selectedEnvironment)}),
     ...(preparedSourceEnvironment?.preparedEnvironment === undefined ? {} : {getPreparedSourceEnvironment}),
     verifyRequestValuePolicy, restoreEffectOriginal: updateTargetOriginals.restorePrepared,
     restoreInferOriginal: (original, definition, request, evidence) =>
@@ -5444,7 +5444,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       const manager = computeManaged;
       if (manager === undefined) return undefined;
       assertManagedComputeInstallationCurrent(manager, originals);
-      return manager.fundedPreparation?.(originalSourceManagedHostRequest(originals, request), environment);
+      return manager.fundedPreparation(originalSourceManagedHostRequest(originals, request), environment);
     },
     borrowManagedPreparation(prepared, request) {
       const manager = computeManaged;

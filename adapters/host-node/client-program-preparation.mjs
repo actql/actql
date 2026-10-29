@@ -119,6 +119,7 @@ export function installNodeClientProgramPreparation({moon, environment,
   const retiredOriginals = new WeakSet();
   const effectOwned = new WeakSet();
   const sourceCheckFailures = new WeakSet();
+  const fundedFailures = new WeakSet();
   let installedEvidence = Object.freeze([...effectEvidence]);
   effectEvidence = undefined;
   let retired = false;
@@ -144,6 +145,36 @@ export function installNodeClientProgramPreparation({moon, environment,
     ? installNodeClientEffectProgramPreparation({moon,
       environment, evidence: installedEvidence})
     : request => preparePublishedEffect(request, environment);
+  const prepareFunded = async (request, selectedEnvironment) => {
+    try {
+      const original = await getFundedPreparation(request, selectedEnvironment);
+      if (retired) fail('ClientProgramPreparationFailure');
+      request.signal?.throwIfAborted();
+      if (original === undefined || original === null ||
+          !['effect_free', 'effectful'].includes(original.kind) ||
+          original.prepared === null || typeof original.prepared !== 'object' ||
+          original.originalInputs?.environment !== selectedEnvironment ||
+          original.originalInputs.parameters !== undefined &&
+            typeof original.originalInputs.parameters !== 'string') {
+        fail('ClientProgramPreparationFailure');
+      }
+      const prepared = original.prepared;
+      if (original.kind === 'effectful') {
+        if (!allowEffects) fail('ClientProgramUnsupported');
+        effectOwned.add(prepared);
+      } else {
+        // This is original DATA from the same fixed Request owner. It neither
+        // certifies a Run nor supplies a second preparation/cleanup authority.
+        owned.set(prepared, Object.freeze({...original.originalInputs}));
+      }
+      return prepared;
+    } catch (error) {
+      if (error !== null && (typeof error === 'object' || typeof error === 'function')) {
+        fundedFailures.add(error);
+      }
+      throw error;
+    }
+  };
   const prepare = (request, selectedEnvironment = environment) => {
     if (retired) fail('ClientProgramPreparationFailure');
     // Fixed Local owner may already have parsed/checked this exact pending
@@ -151,12 +182,9 @@ export function installNodeClientProgramPreparation({moon, environment,
     // so the funded route never makes an unquoted second document/AST copy.
     // No values override is silently applied to that original owner.
     if (getFundedPreparation !== undefined && valuesMaxRows === undefined) {
-      const original = getFundedPreparation(request, selectedEnvironment);
-      if (original !== undefined) {
-        if (request.kind !== 'program' || request.parameters !== null) fail('ClientProgramInvalidInput');
-        owned.set(original, Object.freeze({environment: selectedEnvironment, parameters: undefined}));
-        return original;
-      }
+      // Selection is mandatory. A missing/failed owner cannot silently choose
+      // the old serializer or return a Promise as if it were a Prepared token.
+      return prepareFunded(request, selectedEnvironment);
     }
     const {document, format, supplied, declarations} =
       serializeProgram(request);
@@ -216,8 +244,11 @@ export function installNodeClientProgramPreparation({moon, environment,
   // The Local planner accepts only this installation's checked owner. This
   // keeps the exact runtime and environment binding without parsing it again.
   const disclosed = check === undefined ? prepare : async request => {
-    try { return prepare(request); }
+    try { return await prepare(request); }
     catch (error) {
+      // The selected owner already performed its check. Keep its exact failure;
+      // nominal audience-bound observation is a separate existing projection.
+      if (fundedFailures.has(error)) throw error;
       if ((error?.code !== 'ClientProgramRejected' && !sourceCheckFailures.has(error)) || request.kind !== 'aql' ||
           !['aql', 'aql-text', 'sql'].includes(request.input.format)) throw error;
       // Preparation already refused. The same public check Owner may disclose

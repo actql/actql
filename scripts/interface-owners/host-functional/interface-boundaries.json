@@ -18850,7 +18850,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0f82edab80f60ffccdda1d56db5504ea1b3161864fac69610d79f5e16e1def0d",
+      "sha256": "6b8c62fbd7b46822cbe42a2af9cb1c5b8f5b31c61c222dfacb1418836bfb5596",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -19042,6 +19042,14 @@
           "async": false
         },
         {
+          "name": "installNodeClientProgramPreparation/prepareFunded/prepareFunded",
+          "parameters": [
+            "request",
+            "selectedEnvironment"
+          ],
+          "async": true
+        },
+        {
           "name": "installNodeClientProgramPreparation/preparePublishedEffect/preparePublishedEffect",
           "parameters": [
             "request",
@@ -19116,7 +19124,8 @@
             "installNodeClientProgramPreparation/verified/verified",
             "installNodeClientProgramPreparation/verified/verified/verified",
             "installNodeClientProgramPreparation/verified/verified/verified#2",
-            "serializeProgram"
+            "serializeProgram",
+            "installNodeClientProgramPreparation/prepareFunded/prepareFunded"
           ],
           "exports": [
             "installNodeClientEffectProgramPreparation",
@@ -19524,7 +19533,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -19643,7 +19652,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -76515,7 +76524,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "b467e46eb425b17ed1bcc4b482480c115ec236b7b0c8f8b2a9983f8624d510f5",
+      "sha256": "49f5c2764051b94f14fb480d5bd506aba21ea94af5cc24cdc3c4188eda4fe999",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -76812,7 +76821,7 @@
             "request",
             "environment"
           ],
-          "async": false
+          "async": true
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:intentCid/init:intentCid",
@@ -83657,7 +83666,7 @@
       "sha256": "82d23d01b6c99054e795ee06207f1c03040479a6134eb9be48d4b759d23e992b",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -83906,7 +83915,7 @@
       "sha256": "4991c26ae2929a8caeed0235636d99234aff45dad38e2435c662d5e7af5936d0",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "prepareInstalledEffectManagedPlanRun",
@@ -84271,7 +84280,7 @@
       "sha256": "607afe29963ec6e0ca7edd47030c5ce21f4b6c4c440b774f6b66a3d52ddadaca",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "captureInstalledSourceServices",
         "createInstalledHostServices",

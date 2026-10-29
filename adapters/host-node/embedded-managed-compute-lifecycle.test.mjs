@@ -4,6 +4,7 @@ import test from 'node:test';
 import {parse} from 'acorn';
 import {installedHostShutdown} from './embedded-local-lifecycle.mjs';
 import {bindInstalledManagedSources} from './installed-managed-source.mjs';
+import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mjs';
 
 // Selected actual Host statements/methods with explicit original ports. These
 // counters prove consumer order/custody, not physical admission or a full Host.
@@ -230,7 +231,7 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
   const properties = preparation.init.arguments[0].properties;
   const names = ['prepareManagedCompute', 'requestPreparation', 'sourcePreparation',
     'bindSourceRequest', 'prepareManagedComputeRun', 'bindManagedComputeRunObservation',
-    'managedComputeUsageReader', 'isOriginalManagedComputePreparationRefusal',
+    'managedComputeUsageReader', 'isOriginalManagedComputePreparationRefusal', 'fundedPreparation',
     'bindManagedSources', 'managesInstalledSources', 'prepareManagedSourceRun'];
   const methods = names.map(name => {
     const property = properties.find(node => node.key.name === name); assert(property, name); return text(property);
@@ -245,7 +246,7 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
     },
     clientOperationError: code => Object.assign(new Error(code), {code}),
     retirePreparationReferences: retire, controlClose, originals, runtime,
-    checked: value => value,
+    checked: value => value, finishInstalledEffectModelScope,
     bindInstalledManagedSources,
     originalSourceManagedHostRequest(held, value) {assert.strictEqual(held, originals); return value;},
     beforeChild, beforeChildClose, source,
@@ -255,7 +256,7 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
     let resultPublication, resultPublicationClose, resultPublicationFlight;
     let sourceManaged=source??beforeChild, sourceManagedClose=source?.close??beforeChildClose, hostJournal;
     let moon=runtime, mockPreparation=source===undefined?undefined:{}, projectSourcePreparation;
-    let control={}, duty, originalInstallation=originals.installation;
+    let control={}, duty, hostInitialization, originalInstallation=originals.installation;
     const host=originals.host, record={}, adopted=true;
     const profiles={bindSourceRequest(...args){record.lineage=args;}};
     const initialControl=${text(initial.init)};
@@ -263,6 +264,22 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
     return {preparation,initialControl,record,originals};
   `)(...Object.values(ports));
 }
+
+test('actual Host forwards the selected async manager result once without an optional raw fallback', async () => {
+  const request={},environment={},result={};let calls=0;
+  const raw={fundedPreparation(value,selected){
+    assert.strictEqual(this,raw);assert.strictEqual(value,request);assert.strictEqual(selected,environment);
+    calls++;return Promise.resolve(result);
+  },close(){return {pending:false};}};
+  const f=lifecycle({factory:async()=>raw});
+  await f.preparation.prepareManagedCompute();
+  assert.strictEqual(await f.preparation.fundedPreparation(request,environment),result);
+  assert.equal(calls,1);
+  delete raw.fundedPreparation;
+  assert.throws(()=>f.preparation.fundedPreparation(request,environment),TypeError);
+  assert.equal(calls,1);
+  await f.initialControl.close();
+});
 
 test('managed usage reader selects only the same admitted Run and releases its installation alias', () => {
   const runtime = {}, f = lifecycle({factory() {}, runtime});
