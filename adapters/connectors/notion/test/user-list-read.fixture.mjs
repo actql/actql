@@ -114,7 +114,7 @@ export async function userListFixture(t,{account='allow',format='sql',accounted=
     try{journal?.close();}catch(cause){errors.push(cause);}
     try{await new Promise((resolve,reject)=>server.close(cause=>cause?reject(cause):resolve()));}catch(cause){errors.push(cause);}
     t.diagnostic(`Retained original Notion fixture: ${root}`);
-    if(errors.length)throw new AggregateError(errors,'NotionUserListFixtureCleanupUnconfirmed');
+    if(errors.length){t.diagnostic(JSON.stringify(errors.map(error=>({name:error.name,code:error.code,message:error.message}))));throw new AggregateError(errors,'NotionUserListFixtureCleanupUnconfirmed');}
   });
   const authority=generateKeyPairSync('ed25519');
   await Promise.all([writeFile(join(root,'credential-authority.key'),authority.privateKey.export({format:'pem',type:'pkcs8'}),{mode:0o600}),
