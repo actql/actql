@@ -506,7 +506,8 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
     const requestOrigin = data(request, 'origin', true), requestMethod = data(request, 'method', true);
     if ((requestOrigin !== undefined && requestOrigin !== origin) ||
         (requestMethod !== undefined && requestMethod !== method) ||
-        data(request, 'headers', true) !== undefined || data(request, 'path') !== path) fail();
+        data(request, 'headers', true) !== undefined || data(request, 'path') !== path ||
+        (stamp !== undefined && Object.getOwnPropertyDescriptor(request, 'query') !== undefined)) fail();
     const body = data(request, 'body');
     if (typeof body !== 'string') fail();
     const exact = ownHttpRequest({method, path,
