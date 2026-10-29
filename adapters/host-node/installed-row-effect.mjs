@@ -588,8 +588,24 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
           return selected.finalized;
         }
         const physical = Reflect.apply(finalize, stamp, [Object.freeze({request, requestTag})]);
-        const then = physical !== null && ['object', 'function'].includes(typeof physical)
-          ? Reflect.get(physical, 'then') : undefined;
+        let then, thenFailure, thenLookupFailed = false;
+        try {
+          then = physical !== null && ['object', 'function'].includes(typeof physical)
+            ? Reflect.get(physical, 'then') : undefined;
+        } catch (cause) {
+          thenLookupFailed = true;
+          thenFailure = cause;
+        }
+        if (nodeTypes.isPromise(physical)) {
+          // A native computation can replace or throw from its own `then`.
+          // Join that SAME computation through the intrinsic before retaining
+          // the original lookup failure or refusing its async return.
+          await new Promise(resolve => Reflect.apply(Promise.prototype.then, physical,
+            [() => resolve(), () => resolve()]));
+          if (thenLookupFailed) throw thenFailure;
+          fail();
+        }
+        if (thenLookupFailed) throw thenFailure;
         if (typeof then === 'function') {
           // Join an invalid async borrow under the SAME capture await. It
           // remains invalid after either settlement; no detached cleanup ACK.
