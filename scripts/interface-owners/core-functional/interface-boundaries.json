@@ -25876,6 +25876,911 @@
         }
       ],
       "referenceQualification": "Same existing Local Parameter limits/key policy and captured input through the original Request binder/compiler/Plan. Not ordinary Host initialization, public acceptance or physical backing."
+    },
+    {
+      "module": "src/physical_resources/preparation_publication_phase.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "0cfef712979c91746e13650a40e58ac5fb3cf6591876103d825c9324ef52f227",
+      "role": "common-semantics",
+      "owner": "Existing Resource preparation and original body-borrow owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P]reserve_original_preparation_publication_phase",
+          "declaration": "[ I , P ] reserve_original_preparation_publication_phase ( borrowed : PreparationCapacityBorrow [ I , P ] , body : P , retained_peak : Int64 , execution_peak : Int64 , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[P]reserve_preparation_publication_phase",
+          "declaration": "[ P ] reserve_preparation_publication_phase ( holder : PreparationBodyBorrow [ P ] , body : P , retained_peak : Int64 , execution_peak : Int64 , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P]reserve_original_preparation_publication_phase",
+            "[P]reserve_preparation_publication_phase"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Scope and responsibility"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Original identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Ownership and handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Synchronization and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Failure and uncertainty"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Cancellation and retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Resources and scratch cut"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Extension and pending work"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              },
+              {
+                "path": "src/physical_resources/preparation_publication_phase_wbtest.mbt",
+                "anchor": "test \"publication selected borrower"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the adopted body"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-original Resource and Local publication components plus actual API types only; normal generic body/initial Source lifetime/distribution/backend completion remain separate."
+    },
+    {
+      "module": "src/physical_resources/preparation_capacity.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "3486e0db9324e7187c5776ba5a60899b41f2f1e131d0416146de7d352d0d155e",
+      "role": "common-semantics",
+      "owner": "Existing Resource preparation and original body-borrow owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P]abort_preparation_capacity_after_cleanup",
+          "declaration": "[ I , P ] abort_preparation_capacity_after_cleanup ( owner : PreparationCapacity [ I , P ] , input : I , ) - > Result [ Bool , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]begin_preparation_capacity_phase",
+          "declaration": "[ I , P ] begin_preparation_capacity_phase ( owner : PreparationCapacity [ I , P ] , input : I , previous : P , retained_peak : Int64 , execution_peak : Int64 , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]borrow_preparation_body",
+          "declaration": "[ I , P ] borrow_preparation_body ( owner : PreparationCapacity [ I , P ] , ) - > Result [ PreparationBodyBorrow [ P ] , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]borrow_preparation_capacity",
+          "declaration": "[ I , P ] borrow_preparation_capacity ( owner : PreparationCapacity [ I , P ] , ) - > Result [ PreparationCapacityBorrow [ I , P ] , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]claim_preparation_run_retirement",
+          "declaration": "[ I , P ] claim_preparation_run_retirement ( owner : PreparationCapacity [ I , P ] , ) - > Result [ PreparationRetirement , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]complete_preparation_capacity",
+          "declaration": "[ I , P ] complete_preparation_capacity ( owner : PreparationCapacity [ I , P ] , input : I , body : P , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]finish_preparation_capacity_run_current",
+          "declaration": "[ I , P ] finish_preparation_capacity_run_current ( owner : PreparationCapacity [ I , P ] , input : I , body : P , ledger : Ledger , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]finish_preparation_retirement",
+          "declaration": "[ I , P ] finish_preparation_retirement ( owner : PreparationCapacity [ I , P ] , ) - > Result [ Bool , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]make_preparation_body_borrow",
+          "declaration": "[ I , P ] make_preparation_body_borrow ( value : PreparationCapacityBorrow [ I , P ] , ) - > PreparationBodyBorrow [ P ]"
+        },
+        {
+          "name": "[I,P]preparation_capacity_borrow_value",
+          "declaration": "[ I , P ] preparation_capacity_borrow_value ( value : PreparationCapacityBorrow [ I , P ] , ) - > P ?"
+        },
+        {
+          "name": "[I,P]preparation_capacity_has_executing_work",
+          "declaration": "[ I , P ] preparation_capacity_has_executing_work ( owner : PreparationCapacity [ I , P ] , ) - > Bool"
+        },
+        {
+          "name": "[I,P]preparation_capacity_usage_isolated",
+          "declaration": "[ I , P ] preparation_capacity_usage_isolated ( owner : PreparationCapacity [ I , P ] , ledger : Ledger , bootstrap : CapacityReservation ? , ) - > Bool"
+        },
+        {
+          "name": "[I,P]reconcile_working_preparation_phase",
+          "declaration": "[ I , P ] reconcile_working_preparation_phase ( owner : PreparationCapacity [ I , P ] , input : I , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]reserve_preparation_capacity",
+          "declaration": "[ I , P ] reserve_preparation_capacity ( ledger : Ledger , input : I , retained_peak : Int64 , execution_peak : Int64 , max_borrowers ~ : Int , ) - > Result [ PreparationCapacity [ I , P ] , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]reserve_working_preparation_phase",
+          "declaration": "[ I , P ] reserve_working_preparation_phase ( owner : PreparationCapacity [ I , P ] , input : I , retained_peak : Int64 , execution_peak : Int64 , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]retire_preparation_capacity",
+          "declaration": "[ I , P ] retire_preparation_capacity ( owner : PreparationCapacity [ I , P ] , ) - > Result [ Bool , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]return_preparation_capacity_borrow",
+          "declaration": "[ I , P ] return_preparation_capacity_borrow ( value : PreparationCapacityBorrow [ I , P ] , ) - > Result [ Bool , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]transfer_preparation_capacity_to_run",
+          "declaration": "[ I , P ] transfer_preparation_capacity_to_run ( owner : PreparationCapacity [ I , P ] , input : I , body : P , ledger : Ledger , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]transfer_preparation_retirement_to_run",
+          "declaration": "[ I , P ] transfer_preparation_retirement_to_run ( owner : PreparationCapacity [ I , P ] , input : I , body : P , ledger : Ledger , ) - > Result [ PreparationRetirement , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[P]borrow_preparation_body_sibling",
+          "declaration": "[ P ] borrow_preparation_body_sibling ( value : PreparationBodyBorrow [ P ] , ) - > Result [ PreparationBodyBorrow [ P ] , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[P]preparation_body_borrow_value",
+          "declaration": "[ P ] preparation_body_borrow_value ( value : PreparationBodyBorrow [ P ] ) - > P ?"
+        },
+        {
+          "name": "[P]preparation_body_retirement_started",
+          "declaration": "[ P ] preparation_body_retirement_started ( value : PreparationBodyBorrow [ P ] , ) - > Bool"
+        },
+        {
+          "name": "[P]preparation_body_usage_isolated",
+          "declaration": "[ P ] preparation_body_usage_isolated ( value : PreparationBodyBorrow [ P ] , ledger : Ledger , ) - > Bool"
+        },
+        {
+          "name": "[P]return_preparation_body_borrow",
+          "declaration": "[ P ] return_preparation_body_borrow ( value : PreparationBodyBorrow [ P ] , ) - > Result [ Bool , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "preparation_capacity_phase_is_working",
+          "declaration": "preparation_capacity_phase_is_working ( phase : PreparationCapacityPhase , ) - > Bool"
+        },
+        {
+          "name": "retire_transferred_preparation",
+          "declaration": "retire_transferred_preparation ( value : PreparationRetirement , ) - > Result [ Bool , PreparationCapacityIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P]abort_preparation_capacity_after_cleanup",
+            "[I,P]begin_preparation_capacity_phase",
+            "[I,P]borrow_preparation_body",
+            "[I,P]borrow_preparation_capacity",
+            "[I,P]claim_preparation_run_retirement",
+            "[I,P]complete_preparation_capacity",
+            "[I,P]finish_preparation_capacity_run_current",
+            "[I,P]finish_preparation_retirement",
+            "[I,P]make_preparation_body_borrow",
+            "[I,P]preparation_capacity_borrow_value",
+            "[I,P]preparation_capacity_has_executing_work",
+            "[I,P]preparation_capacity_usage_isolated",
+            "[I,P]reconcile_working_preparation_phase",
+            "[I,P]reserve_preparation_capacity",
+            "[I,P]reserve_working_preparation_phase",
+            "[I,P]retire_preparation_capacity",
+            "[I,P]return_preparation_capacity_borrow",
+            "[I,P]transfer_preparation_capacity_to_run",
+            "[I,P]transfer_preparation_retirement_to_run",
+            "[P]borrow_preparation_body_sibling",
+            "[P]preparation_body_borrow_value",
+            "[P]preparation_body_retirement_started",
+            "[P]preparation_body_usage_isolated",
+            "[P]return_preparation_body_borrow",
+            "preparation_capacity_phase_is_working",
+            "retire_transferred_preparation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Scope and responsibility"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Original identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Ownership and handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Synchronization and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Failure and uncertainty"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Cancellation and retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Resources and scratch cut"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Extension and pending work"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              },
+              {
+                "path": "src/physical_resources/preparation_publication_phase_wbtest.mbt",
+                "anchor": "test \"publication selected borrower"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the adopted body"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-original Resource and Local publication components plus actual API types only; normal generic body/initial Source lifetime/distribution/backend completion remain separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_publication_owner.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "fee52984ad0845d4021ea541873dbde97f40ee1d7e5dad9e9de6dbe8a64c8529",
+      "role": "common-semantics",
+      "owner": "Existing original Local publication owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]publication_original_body",
+          "declaration": "[ I ] publication_original_body ( value : ClientProgramPublication [ I ] , ) - > @ publication_host . PreparedClientProgram ?"
+        },
+        {
+          "name": "[I]refresh_publication_original",
+          "declaration": "[ I ] refresh_publication_original ( value : ClientProgramPublication [ I ] , ) - > Result [ @ publication_host . PreparedClientProgram , ClientClosedValuesPreparationIssue , ]"
+        },
+        {
+          "name": "[I]reserve_program_publication",
+          "declaration": "[ I ] reserve_program_publication ( owner : ClientClosedValuesPreparation [ I ] , prepared : @ publication_host . PreparedClientProgram , holder : @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram , ] , ) - > Result [ ClientProgramPublication [ I ] , ClientClosedValuesPreparationIssue ]"
+        },
+        {
+          "name": "[I]reserve_publication_constructor",
+          "declaration": "[ I ] reserve_publication_constructor ( value : ClientProgramPublication [ I ] , retained_add : Int64 , temporary : Int64 , ) - > Result [ Unit , ClientClosedValuesPreparationIssue ]"
+        },
+        {
+          "name": "reserve_program_publication_phase",
+          "declaration": "reserve_program_publication_phase ( holder : @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram , ] , prepared : @ publication_host . PreparedClientProgram , retained : Int64 , execution : Int64 , ) - > Result [ Unit , ClientClosedValuesPreparationIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]publication_original_body",
+            "[I]refresh_publication_original",
+            "[I]reserve_program_publication",
+            "[I]reserve_publication_constructor",
+            "reserve_program_publication_phase"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Scope and responsibility"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Original identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Ownership and handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Synchronization and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Failure and uncertainty"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Cancellation and retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Resources and scratch cut"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Extension and pending work"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              },
+              {
+                "path": "src/physical_resources/preparation_publication_phase_wbtest.mbt",
+                "anchor": "test \"publication selected borrower"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the adopted body"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-original Resource and Local publication components plus actual API types only; normal generic body/initial Source lifetime/distribution/backend completion remain separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_publication_capture.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "c1be3f1f85601e3e75ad9ccb3f2981fd9a2d94df9686ab059bb42656c70f6c1e",
+      "role": "common-semantics",
+      "owner": "Existing original Local publication owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]advance_program_capture",
+          "declaration": "[ I ] advance_program_capture ( capture : ClientProgramCapture [ I ] , quantum : Int , ) - > Result [ ( Bool , Int ) , ClientClosedValuesPreparationIssue ]"
+        },
+        {
+          "name": "[I]cancel_program_capture",
+          "declaration": "[ I ] cancel_program_capture ( capture : ClientProgramCapture [ I ] ) - > Unit"
+        },
+        {
+          "name": "[I]clear_program_publication",
+          "declaration": "[ I ] clear_program_publication ( owner : ClientClosedValuesPreparation [ I ] , ) - > Unit"
+        },
+        {
+          "name": "[I]finish_program_capture",
+          "declaration": "[ I ] finish_program_capture ( capture : ClientProgramCapture [ I ] , ) - > Result [ @ publication . PublicationContract , ClientClosedValuesPreparationIssue , ]"
+        },
+        {
+          "name": "[I]prepare_program_capture",
+          "declaration": "[ I ] prepare_program_capture ( value : ClientProgramPublication [ I ] , definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , definitions : Array [ @ publication . PublicationContract ] , artifacts : Array [ @ publication . PublicationContract ] , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , snapshots : Array [ @ publication . CapturedResultSnapshot ] , authoring : @ publication . RunEvidenceValue , models : Array [ @ publication . RunEvidenceValue ] , ) - > Result [ ClientProgramCapture [ I ] , ClientClosedValuesPreparationIssue ]"
+        },
+        {
+          "name": "[I]program_capture_limits",
+          "declaration": "[ I ] program_capture_limits ( capture : ClientProgramCapture [ I ] , ) - > Result [ ( Int , Int , Int ) , ClientClosedValuesPreparationIssue ]"
+        },
+        {
+          "name": "[I]start_program_capture",
+          "declaration": "[ I ] start_program_capture ( capture : ClientProgramCapture [ I ] , ) - > Result [ ClientProgramCapture [ I ] , ClientClosedValuesPreparationIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]advance_program_capture",
+            "[I]cancel_program_capture",
+            "[I]clear_program_publication",
+            "[I]finish_program_capture",
+            "[I]prepare_program_capture",
+            "[I]program_capture_limits",
+            "[I]start_program_capture"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Scope and responsibility"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Original identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Ownership and handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Synchronization and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Failure and uncertainty"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Cancellation and retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Resources and scratch cut"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Extension and pending work"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              },
+              {
+                "path": "src/physical_resources/preparation_publication_phase_wbtest.mbt",
+                "anchor": "test \"publication selected borrower"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the adopted body"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-original Resource and Local publication components plus actual API types only; normal generic body/initial Source lifetime/distribution/backend completion remain separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_publication_validation.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "1db2ab858af95801e8c6d1cb100a8597fe3844c08fc21d2b3e321e9bc1ae5722",
+      "role": "common-semantics",
+      "owner": "Existing original Local publication owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,T]validation_failure",
+          "declaration": "[ I , T ] validation_failure ( value : ClientProgramValidation [ I ] , issue : ClientProgramValidationIssue , ) - > Result [ T , ClientProgramValidationIssue ]"
+        },
+        {
+          "name": "[I]advance_program_validation",
+          "declaration": "[ I ] advance_program_validation ( value : ClientProgramValidation [ I ] , quantum : Int , ) - > Result [ ( Bool , Int ) , ClientProgramValidationIssue ]"
+        },
+        {
+          "name": "[I]cancel_program_validation",
+          "declaration": "[ I ] cancel_program_validation ( value : ClientProgramValidation [ I ] ) - > Unit"
+        },
+        {
+          "name": "[I]finish_program_validation",
+          "declaration": "[ I ] finish_program_validation ( value : ClientProgramValidation [ I ] , ) - > Result [ Unit , ClientProgramValidationIssue ]"
+        },
+        {
+          "name": "[I]finish_program_validation_plan",
+          "declaration": "[ I ] finish_program_validation_plan ( value : ClientProgramValidation [ I ] , plan : @ publication . PublicationValidationPlan , ) - > Result [ ClientProgramValidation [ I ] , ClientProgramValidationIssue ]"
+        },
+        {
+          "name": "[I]fund_validation_inventory",
+          "declaration": "[ I ] fund_validation_inventory ( value : ClientProgramValidation [ I ] , slots : Int64 , arrays : Int , ) - > Result [ Unit , ClientProgramValidationIssue ]"
+        },
+        {
+          "name": "[I]grow_program_validation",
+          "declaration": "[ I ] grow_program_validation ( value : ClientProgramValidation [ I ] , retained : Int64 , execution : Int64 , ) - > Result [ Unit , ClientProgramValidationIssue ]"
+        },
+        {
+          "name": "[I]new_program_validation",
+          "declaration": "[ I ] new_program_validation ( capture : ClientProgramCapture [ I ] , commit_kind : Bool , ) - > Result [ ClientProgramValidation [ I ] , ClientProgramValidationIssue ]"
+        },
+        {
+          "name": "[I]prepare_program_chain_validation",
+          "declaration": "[ I ] prepare_program_chain_validation ( capture : ClientProgramCapture [ I ] , run_definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , definitions : Array [ @ publication . PublicationContract ] , artifacts : Array [ @ publication . PublicationContract ] , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , captured_run : @ publication . PublicationContract , ) - > Result [ ClientProgramValidation [ I ] , ClientProgramValidationIssue ]"
+        },
+        {
+          "name": "[I]prepare_program_commit_validation",
+          "declaration": "[ I ] prepare_program_commit_validation ( capture : ClientProgramCapture [ I ] , run_definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , definitions : Array [ @ publication . PublicationContract ] , artifacts : Array [ @ publication . PublicationContract ] , derivations : Array [ @ publication . PublicationContract ] , orderings : Array [ @ publication . PublicationContract ] , retentions : Array [ @ publication . PublicationContract ] , bindings : Array [ @ publication . PublicationContract ] , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , captured_run : @ publication . PublicationContract , request : @ publication . PublicationContract , attempt : @ publication . PublicationContract , index_entry : @ publication . PublicationContract , ) - > Result [ ClientProgramValidation [ I ] , ClientProgramValidationIssue ]"
+        },
+        {
+          "name": "[I]start_program_validation",
+          "declaration": "[ I ] start_program_validation ( value : ClientProgramValidation [ I ] , ) - > Result [ ClientProgramValidation [ I ] , ClientProgramValidationIssue ]"
+        },
+        {
+          "name": "[I]validation_original",
+          "declaration": "[ I ] validation_original ( value : ClientProgramValidation [ I ] ) - > Bool"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,T]validation_failure",
+            "[I]advance_program_validation",
+            "[I]cancel_program_validation",
+            "[I]finish_program_validation",
+            "[I]finish_program_validation_plan",
+            "[I]fund_validation_inventory",
+            "[I]grow_program_validation",
+            "[I]new_program_validation",
+            "[I]prepare_program_chain_validation",
+            "[I]prepare_program_commit_validation",
+            "[I]start_program_validation",
+            "[I]validation_original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Scope and responsibility"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Original identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Ownership and handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Synchronization and currentness"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Failure and uncertainty"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Cancellation and retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Resources and scratch cut"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Extension and pending work"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication uses the adopted body borrow"
+              },
+              {
+                "path": "src/physical_resources/preparation_publication_phase_wbtest.mbt",
+                "anchor": "test \"publication selected borrower"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the adopted body"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-original Resource and Local publication components plus actual API types only; normal generic body/initial Source lifetime/distribution/backend completion remain separate."
     }
   ]
 }

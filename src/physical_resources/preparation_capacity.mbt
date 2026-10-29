@@ -427,6 +427,10 @@ struct PreparationBodyBorrow[P] {
     PreparationCapacityIssue,
   ]
   isolated_usage_original : (Ledger, CapacityReservation?) -> Bool
+  reserve_publication_original : (P, Int64, Int64) -> Result[
+    Unit,
+    PreparationCapacityIssue,
+  ]
 }
 
 ///|
@@ -460,6 +464,11 @@ fn[I, P] make_preparation_body_borrow(
     isolated_usage_original: (ledger, bootstrap) => {
       !value.returned &&
       preparation_capacity_usage_isolated(value.owner, ledger, bootstrap)
+    },
+    reserve_publication_original: (body, retained, execution) => {
+      reserve_original_preparation_publication_phase(
+        value, body, retained, execution,
+      )
     },
   }
 }

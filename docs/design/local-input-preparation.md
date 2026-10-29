@@ -2392,3 +2392,18 @@ initialized Source to supply that object. The manager and the initial
 constructor can therefore use the same opening without a Source-dependent
 quote callback. The original current and physical-child observations remain
 mandatory; policy DATA does not certify either one or fund the Source body.
+
+
+## Publication uses the adopted body borrow
+
+After Run adoption, publication grows the original reservation through its
+existing live body borrow. The fixed Resource adapter retains the real
+borrower internally; publication does not recover the generic preparation
+input or select a new reservation. The same token, current boundary,
+monotone retained/execution peaks and cleanup duties remain in force.
+
+If currentness returns that selected borrow, another live holder cannot
+authorize the constructor. The existing publication projection still reports
+ForeignOriginal; the Resource operation retains its precise BorrowReturned
+result. Neither a returned token nor an equal body can create replacement
+custody. Original stopping and actual physical cleanup stay separate.

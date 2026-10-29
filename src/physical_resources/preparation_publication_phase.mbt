@@ -1,18 +1,29 @@
 ///|
-/// Fixed publication driver only: extend the original adopted preparation
-/// reservation, never create a new Ledger or reservation. The caller derives
-/// both totals from retained original plans and constructor inventories.
-/// Live body borrowers remain charged; execution is a monotone high-water
-/// debit until actual retirement, not a claim about garbage collection.
-pub fn[I, P] reserve_preparation_publication_phase(
-  owner : PreparationCapacity[I, P],
-  input : I,
+/// Publication extends the SAME adopted reservation through its original live
+/// body borrow. The generic preparation input and raw capacity never return
+/// to the caller. This is not a new grant, borrower or retirement owner.
+pub fn[P] reserve_preparation_publication_phase(
+  holder : PreparationBodyBorrow[P],
   body : P,
   retained_peak : Int64,
   execution_peak : Int64,
 ) -> Result[Unit, PreparationCapacityIssue] {
-  guard owner.input is Some(original) &&
-    physical_equal(original, input) &&
+  (holder.reserve_publication_original)(body, retained_peak, execution_peak)
+}
+
+///|
+fn[I, P] reserve_original_preparation_publication_phase(
+  borrowed : PreparationCapacityBorrow[I, P],
+  body : P,
+  retained_peak : Int64,
+  execution_peak : Int64,
+) -> Result[Unit, PreparationCapacityIssue] {
+  if borrowed.returned {
+    return Err(BorrowReturned)
+  }
+  let owner = borrowed.owner
+  guard borrowed.body is Some(original) &&
+    physical_equal(original, body) &&
     owner.body is Some(original_body) &&
     physical_equal(original_body, body) else {
     return Err(ForeignOriginal)
@@ -40,10 +51,13 @@ pub fn[I, P] reserve_preparation_publication_phase(
     Err(issue) => Err(Resource(issue))
     Ok(_) =>
       // A currentness callback can return an existing borrower. Do not
-      // authorize construction if the last live body custody was cut there.
-      // The admitted debit remains charged for the ordinary retirement path.
+      // authorize construction after this selected custody was returned,
+      // even while another slot remains live. Original stopping precedence
+      // and the admitted debit remain with the ordinary retirement path.
       if owner.ledger.imported_child is Some(origin) && origin.stopping {
         Err(Resource(ClosedReservation))
+      } else if borrowed.returned {
+        Err(BorrowReturned)
       } else if owner.borrowers <= 0 {
         Err(WorkActive)
       } else {

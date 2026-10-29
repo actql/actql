@@ -57,7 +57,6 @@ pub fn[I] reserve_program_publication(
 ) -> Result[ClientProgramPublication[I], ClientClosedValuesPreparationIssue] {
   guard owner.original is Some(original) &&
     physical_equal(original, owner) &&
-    owner.input is Some(input) &&
     owner.prepared is Some(body) &&
     physical_equal(body, prepared) &&
     owner.manager_original is Some(issued) &&
@@ -116,14 +115,10 @@ pub fn[I] reserve_program_publication(
     publication_projection_execution,
   )
   match
-    @resources.reserve_preparation_publication_phase(
-      owner.capacity,
-      input,
-      prepared,
-      controls_retained,
-      quote_execution,
+    reserve_program_publication_phase(
+      holder, prepared, controls_retained, quote_execution,
     ) {
-    Err(issue) => return Err(Capacity(issue))
+    Err(issue) => return Err(issue)
     Ok(_) => {
       owner.retained_quote = controls_retained
       owner.execution_quote = quote_execution
@@ -174,15 +169,8 @@ pub fn[I] reserve_program_publication(
     quote_execution,
     execution + publication_projection_execution,
   )
-  match
-    @resources.reserve_preparation_publication_phase(
-      owner.capacity,
-      input,
-      prepared,
-      total_r,
-      total_e,
-    ) {
-    Err(issue) => return Err(Capacity(issue))
+  match reserve_program_publication_phase(holder, prepared, total_r, total_e) {
+    Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   // Recheck the exact token after imported callbacks, not merely borrower count.
@@ -219,19 +207,17 @@ fn[I] refresh_publication_original(
   ClientClosedValuesPreparationIssue,
 ] {
   let owner = value.owner
-  guard publication_original_body(value) is Some(prepared) &&
-    owner.input is Some(input) else {
+  guard publication_original_body(value) is Some(prepared) else {
     return Err(ForeignOriginal)
   }
   match
-    @resources.reserve_preparation_publication_phase(
-      owner.capacity,
-      input,
+    reserve_program_publication_phase(
+      value.holder,
       prepared,
       owner.retained_quote,
       owner.execution_quote,
     ) {
-    Err(issue) => return Err(Capacity(issue))
+    Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   match publication_original_body(value) {
@@ -249,8 +235,7 @@ fn[I] reserve_publication_constructor(
   temporary : Int64,
 ) -> Result[Unit, ClientClosedValuesPreparationIssue] {
   let owner = value.owner
-  guard publication_original_body(value) is Some(prepared) &&
-    owner.input is Some(input) else {
+  guard publication_original_body(value) is Some(prepared) else {
     return Err(ForeignOriginal)
   }
   if retained_add < 0L ||
@@ -265,14 +250,13 @@ fn[I] reserve_publication_constructor(
     temporary + publication_projection_execution,
   )
   match
-    @resources.reserve_preparation_publication_phase(
-      owner.capacity,
-      input,
+    reserve_program_publication_phase(
+      value.holder,
       prepared,
       retained,
       execution,
     ) {
-    Err(issue) => return Err(Capacity(issue))
+    Err(issue) => return Err(issue)
     Ok(_) => {
       owner.retained_quote = retained
       owner.execution_quote = execution
@@ -282,4 +266,26 @@ fn[I] reserve_publication_constructor(
     return Err(ForeignOriginal)
   }
   Ok(())
+}
+
+///|
+// The existing publication failure stays ForeignOriginal when its exact
+// manager borrow was returned during currentness. This is one typed Result
+// projection, not another check/current call or an error-code whitelist.
+fn reserve_program_publication_phase(
+  holder : @resources.PreparationBodyBorrow[
+    @publication_host.PreparedClientProgram,
+  ],
+  prepared : @publication_host.PreparedClientProgram,
+  retained : Int64,
+  execution : Int64,
+) -> Result[Unit, ClientClosedValuesPreparationIssue] {
+  @resources.reserve_preparation_publication_phase(
+    holder, prepared, retained, execution,
+  ).map_err(issue => {
+    match issue {
+      BorrowReturned => ForeignOriginal
+      _ => Capacity(issue)
+    }
+  })
 }
