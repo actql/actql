@@ -626,3 +626,47 @@ test('standard stamped finalizer cannot add a post-Preview query component', asy
     body: '{}', requestCid: boundaryCid, requestTag, query: [['unexpected', '1']]})});
   await assert.rejects(fixture.finalize(), {code: 'InvalidInstalledRowWrite'});
 });
+
+// The complete normal declaration with explicit pure provider helper ports.
+// This checks caller forwarding only; the genuine provider helper and normal
+// module dependency must be composed before a runtime consumer is qualified.
+test('GitHub standard declaration forwards original logical request and late stamp DATA', async () => {
+  const providerMoon = {githubCommentOutcomeJson() {},
+    githubRequestHeadersJson: () => '[]', githubResponseHeadersJson: () => '[]'};
+  const site = {apiOrigin: origin}, repository = Object.freeze({nodeId: 'repository'});
+  const value = Object.freeze({subject_id: 'I_original', body: ''});
+  const logical = Object.freeze({version: 'fixture-logical/0.1', origin,
+    method: 'POST', path: GITHUB_GRAPHQL_PATH, subjectId: value.subject_id, logicalBody: ''});
+  const recipe = Object.freeze({separator: '\n\n', prefix: '<!-- actql:effect:', suffix: ' -->'});
+  const tag = `sha256:${'e'.repeat(64)}`;
+  let mapped = 0, finalized = 0;
+  const write = selectedWrite('../connectors/github/host/installed-github-effect.mjs', {
+    GITHUB_COMMENT_CREATE_OPERATION, GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION,
+    GITHUB_COMMENT_STAMP_RECIPE: recipe, site, repository, boundaryCid, providerMoon,
+    commentLimits: {maxRequestBytes: 300_000, maxResponseBytes: 100_000},
+    commentValue: (_resource, original) => {assert.equal(original, value); return original;},
+    prepareGitHubCommentLogicalRequest(context) {
+      mapped++; assert.deepEqual(context, {origin, subjectId: value.subject_id, body: ''}); return logical;
+    },
+    finalizeGitHubCommentRequest(context) {
+      finalized++; assert.deepEqual(Object.keys(context).sort(), ['moon', 'request', 'requestTag']);
+      assert.equal(context.moon, providerMoon); assert.equal(context.request, logical);
+      assert.equal(context.requestTag, tag);
+      return Object.freeze({...logical, body: 'original final physical bytes', requestTag: tag, requestCid: boundaryCid});
+    },
+    prepareGitHubCommentRequest: () => assert.fail('normal stamped path cannot encode before Preview'),
+    checkGitHubCommentSubject: () => assert.fail('a declaration does not authorize a read'),
+    projectGitHubCommentObservation: () => assert.fail('no response exists'),
+    commentOutcome: () => assert.fail('no response exists'),
+    fail: code => {throw Object.assign(new Error(code), {code});},
+  });
+  const driver = deriveInstalledRowWrite(write, 'github');
+  const prepared = driver.prepareRequest({member, value,
+    createRowIdentity: Object.freeze({content_cid: providerCid, occurrence: 0})});
+  assert.equal(mapped, 1); assert.equal(finalized, 0); assert.equal(prepared.request, logical);
+  assert.equal(driver[standardWriteStamp].recipe, recipe);
+  const result = await driver[standardWriteStamp].finalize(prepared.request, tag);
+  assert.equal(finalized, 1); assert.equal(result.requestCid, boundaryCid);
+  assert.equal(result.request.requestTag, tag); assert.equal(result.request.logicalBody, '');
+  assert.equal(driver.requestFacts(result.request).value, value);
+});
