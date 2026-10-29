@@ -3,6 +3,7 @@ package "actql/actql/client_values_host_abi"
 
 import {
   "actql/actql/checkpoint_runtime",
+  "actql/actql/client_source_publication",
   "actql/actql/decode_core",
   "actql/actql/host_observation",
   "actql/actql/logical_request_scope",
@@ -289,7 +290,7 @@ pub fn client_values_host_plan_node_id(@run_publication_host.ClientValuesCompila
 
 pub fn client_values_host_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
 
-pub fn client_values_host_prepare(String, String, @program_check.CheckEnvironment, String?) -> Result[@run_publication_host.PreparedClientProgram, ClientValuesHostPreparationIssue]
+pub fn client_values_host_prepare(String, String, @program_check.CheckEnvironment, String?, @client_source_publication.PreparedPublishedQueryEnvironment?) -> Result[@run_publication_host.PreparedClientProgram, ClientValuesHostPreparationIssue]
 
 pub fn client_values_host_prepare_cancellation(@run_publication.PublicationContract, String, Bool, Bool, Bool) -> Result[String, @run_publication_host.ClientRunStartIssue]
 
@@ -303,7 +304,7 @@ pub fn client_values_host_prepare_dispatch(@run_publication_host.PreparedClientP
 
 pub fn client_values_host_prepare_durable_result_row_frames(Int, Int, Int, Int, Int) -> @run_publication.DurableResultRowFrames raise ClientValuesHostDeliveryIssue
 
-pub fn client_values_host_prepare_effect(String, String, @program_check.CheckEnvironment, String?) -> Result[@run_publication_host.PreparedClientEffectComputation, ClientValuesHostEffectPreparationIssue]
+pub fn client_values_host_prepare_effect(String, String, @program_check.CheckEnvironment, String?, @client_source_publication.PreparedPublishedQueryEnvironment?) -> Result[@run_publication_host.PreparedClientEffectComputation, ClientValuesHostEffectPreparationIssue]
 
 pub fn client_values_host_prepare_effect_retained_task_dispatch(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity, Int, String, String, Int, String, String, String, String, String, String, String, String, ClientValuesHostRetainedTaskInput) -> Result[@remote_site_protocol.DispatchRequest, @run_publication_host.ClientEffectRetainedInputIssue]
 
@@ -315,9 +316,11 @@ pub fn client_values_host_prepare_physical_start(@run_publication_host.ClientReq
 
 pub fn client_values_host_prepare_pre_start_failure(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, Bool) -> Result[Bool, @run_publication_host.ClientRunStartIssue]
 
-pub fn client_values_host_prepare_program(String, String, @program_check.CheckEnvironment, String?) -> Result[ClientValuesHostProgramPreparation, ClientValuesHostProgramPreparationIssue]
+pub fn client_values_host_prepare_program(String, String, @program_check.CheckEnvironment, String?, @client_source_publication.PreparedPublishedQueryEnvironment?) -> Result[ClientValuesHostProgramPreparation, ClientValuesHostProgramPreparationIssue]
 
-pub fn client_values_host_prepare_public_source_program(@run_publication_host.ClientSubmittedIntent, @program_check.CheckEnvironment, String) -> Result[@run_publication_host.ClientSourcePreparation, @run_publication_host.ClientSourcePreparationIssue]
+pub fn client_values_host_prepare_public_source_program(@run_publication_host.ClientSubmittedIntent, @program_check.CheckEnvironment, String, @client_source_publication.PreparedPublishedQueryEnvironment?) -> Result[@run_publication_host.ClientSourcePreparation, @run_publication_host.ClientSourcePreparationIssue]
+
+pub fn client_values_host_prepare_published_environment(@program_check.CheckEnvironment, String) -> Result[@client_source_publication.PreparedPublishedQueryEnvironment, @client_source_publication.PublicationIssue]
 
 pub fn client_values_host_prepare_remote_task_physical_start(@run_publication_host.ClientRemoteTaskProgress, String, String, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, Bool) -> Result[Bool, Unit]
 
@@ -337,7 +340,7 @@ pub fn client_values_host_prepare_retained_task_input(@run_publication_host.Clie
 
 pub fn client_values_host_prepare_run_start(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Result[Int, @run_publication_host.ClientRunStartIssue]
 
-pub fn client_values_host_prepare_source_program(@run_publication_host.ClientSubmittedIntent, @program_check.CheckEnvironment, String) -> Result[@run_publication_host.ClientSourcePreparation, @run_publication_host.ClientSourcePreparationIssue]
+pub fn client_values_host_prepare_source_program(@run_publication_host.ClientSubmittedIntent, @program_check.CheckEnvironment, String, @client_source_publication.PreparedPublishedQueryEnvironment?) -> Result[@run_publication_host.ClientSourcePreparation, @run_publication_host.ClientSourcePreparationIssue]
 
 pub fn client_values_host_prepare_task_dispatch(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity, Int, Int, String, String, Int, String, String, String, String, String, String, String, String) -> Result[@remote_site_protocol.DispatchRequest, @run_publication_host.ClientTaskDispatchIssue]
 
@@ -638,6 +641,7 @@ pub(all) enum ClientValuesHostPreparationIssue {
   InvalidFormat
   SuppliedSyntax(@source_value.ParseError)
   SuppliedAdmission(@decode_core.Issue)
+  Publication(@client_source_publication.PreparedPublicationIssue)
   Program(@run_publication_host.ClientProgramPreparationIssue)
 }
 

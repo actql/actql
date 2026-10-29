@@ -8476,7 +8476,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9267,7 +9267,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -17709,7 +17709,7 @@
     },
     {
       "module": "packages/run-host-core/index.mjs",
-      "sha256": "84db110c389c1ac532f4f1850caf58b4a3c9cebe02bc73bb2ac66178b1f4468c",
+      "sha256": "795283a0dd0275435a9b247299890d6397679877833060562d4ddb510c432e66",
       "role": "physical-io",
       "exports": [
         "admitCapturedResultSnapshot",
@@ -17806,6 +17806,7 @@
         "prepareEffectRetainedTaskInputEdge",
         "prepareEffectTaskPhysicalStart",
         "prepareProgram",
+        "preparePublishedEnvironment",
         "prepareRequest",
         "prepareResultMaterialHoldsStep",
         "prepareRetainedInputCurrentQuery",
@@ -17837,6 +17838,7 @@
         "projectSiteRun",
         "projectTaskSiteRun",
         "publicationIndexScopeKey",
+        "publishedEnvironmentMatches",
         "readStoredRunPlanOriginal",
         "requestFields",
         "requestRelation",
@@ -19869,7 +19871,8 @@
             "document",
             "format",
             "environment",
-            "parametersWire"
+            "parametersWire",
+            "publishedEnvironment"
           ],
           "async": false
         },
@@ -19879,7 +19882,8 @@
             "document",
             "format",
             "environment",
-            "parametersWire"
+            "parametersWire",
+            "publishedEnvironment"
           ],
           "async": false
         },
@@ -19920,7 +19924,16 @@
             "document",
             "format",
             "environment",
-            "parametersWire"
+            "parametersWire",
+            "publishedEnvironment"
+          ],
+          "async": false
+        },
+        {
+          "name": "preparePublishedEnvironment",
+          "parameters": [
+            "environment",
+            "publicationWire"
           ],
           "async": false
         },
@@ -20199,7 +20212,8 @@
           "parameters": [
             "intent",
             "environment",
-            "publicationWire"
+            "publicationWire",
+            "publishedEnvironment"
           ],
           "async": false
         },
@@ -20209,7 +20223,8 @@
             "intent",
             "environment",
             "publicationWire",
-            "primaryResultRecipe"
+            "primaryResultRecipe",
+            "publishedEnvironment"
           ],
           "async": false
         },
@@ -20468,6 +20483,15 @@
           "async": false
         },
         {
+          "name": "publishedEnvironmentMatches",
+          "parameters": [
+            "prepared",
+            "environment",
+            "publicationWire"
+          ],
+          "async": false
+        },
+        {
           "name": "readStoredRunPlanOriginal",
           "parameters": [
             "original",
@@ -20530,6 +20554,15 @@
           "async": false
         },
         {
+          "name": "requirePublishedEnvironment",
+          "parameters": [
+            "prepared",
+            "environment",
+            "publicationWire"
+          ],
+          "async": false
+        },
+        {
           "name": "restoreEffectRunNormalization",
           "parameters": [
             "materials"
@@ -20540,7 +20573,8 @@
           "name": "restoreSourceProgram",
           "parameters": [
             "originals",
-            "environment"
+            "environment",
+            "publishedEnvironment"
           ],
           "async": false
         },
@@ -21333,6 +21367,7 @@
             "prepareEffectRetainedTaskInputEdge",
             "prepareEffectTaskPhysicalStart",
             "prepareProgram",
+            "preparePublishedEnvironment",
             "prepareRequest",
             "prepareRequest/prepareRequest",
             "prepareResultMaterialHoldsStep",
@@ -21394,6 +21429,7 @@
             "publicationLimits",
             "publicationLimits/publicationLimits",
             "publicationToken",
+            "publishedEnvironmentMatches",
             "readStoredRunPlanOriginal",
             "readStoredRunPlanOriginal/readStoredRunPlanOriginal",
             "readStoredRunPlanOriginal/readStoredRunPlanOriginal#2",
@@ -21402,6 +21438,7 @@
             "requestFields",
             "requestRelation",
             "requireHandle",
+            "requirePublishedEnvironment",
             "restoreEffectRunNormalization",
             "resultDefinitions",
             "resultDefinitions/resultDefinitions",
@@ -21563,6 +21600,7 @@
             "prepareEffectRetainedTaskInputEdge",
             "prepareEffectTaskPhysicalStart",
             "prepareProgram",
+            "preparePublishedEnvironment",
             "prepareRequest",
             "prepareResultMaterialHoldsStep",
             "prepareRetainedInputCurrentQuery",
@@ -21592,6 +21630,7 @@
             "projectSiteRun",
             "projectTaskSiteRun",
             "publicationIndexScopeKey",
+            "publishedEnvironmentMatches",
             "readStoredRunPlanOriginal",
             "requestFields",
             "requestRelation",
@@ -21674,6 +21713,10 @@
               {
                 "path": "docs/design/review-projection-bindings.md",
                 "anchor": "# Immutable Review binding facts"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
               }
             ],
             "inputsOutputs": [
@@ -21712,6 +21755,10 @@
               {
                 "path": "docs/design/review-projection-bindings.md",
                 "anchor": "# Immutable Review binding facts"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
               }
             ],
             "identity": [
@@ -21750,6 +21797,10 @@
               {
                 "path": "docs/design/review-projection-bindings.md",
                 "anchor": "# Immutable Review binding facts"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
               }
             ],
             "ownership": [
@@ -21788,6 +21839,10 @@
               {
                 "path": "docs/design/review-projection-bindings.md",
                 "anchor": "# Immutable Review binding facts"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
               }
             ],
             "synchronization": [
@@ -21826,6 +21881,10 @@
               {
                 "path": "docs/design/review-projection-bindings.md",
                 "anchor": "# Immutable Review binding facts"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
               }
             ],
             "failure": [
@@ -21864,6 +21923,10 @@
               {
                 "path": "docs/design/review-projection-bindings.md",
                 "anchor": "# Immutable Review binding facts"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
               }
             ],
             "cancellation": [
@@ -21902,6 +21965,10 @@
               {
                 "path": "docs/design/review-projection-bindings.md",
                 "anchor": "# Immutable Review binding facts"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
               }
             ],
             "resources": [
@@ -21940,6 +22007,10 @@
               {
                 "path": "docs/design/review-projection-bindings.md",
                 "anchor": "# Immutable Review binding facts"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
               }
             ],
             "extension": [
@@ -21978,6 +22049,10 @@
               {
                 "path": "docs/design/review-projection-bindings.md",
                 "anchor": "# Immutable Review binding facts"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
               }
             ],
             "verification": [
@@ -22040,6 +22115,14 @@
               {
                 "path": "src/run_publication/effect_review_projection_binding_facts_wbtest.mbt",
                 "anchor": "test \"Review binding facts do not reinterpret a different admitted evidence family\""
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "# Prepared publication Environment in Run Host"
+              },
+              {
+                "path": "packages/run-host-core/source-preparation.test.mjs",
+                "anchor": "test('prepared Environment refuses copied, foreign and changed publication originals'"
               }
             ]
           }
@@ -22111,7 +22194,7 @@
               },
               {
                 "path": "packages/run-host-core/index.mjs",
-                "anchor": "export function prepareSourceProgram(intent, environment, publicationWire) {"
+                "anchor": "export function prepareSourceProgram(intent, environment, publicationWire, publishedEnvironment) {"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
