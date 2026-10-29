@@ -12,6 +12,8 @@ pub fn github_api_version() -> String
 
 pub fn github_classify_failure_json(Int, Array[String], Array[String]) -> String
 
+pub fn github_comment_confirmation_request_json(@catalog.CommentConfirmation) -> String
+
 pub fn github_comment_outcome_json(Int, Array[String], Array[String], Bytes, Int, Int, Int, String) -> String
 
 pub fn github_comment_subject_json(Bytes, Int, Int, Int, String, String, Double, String) -> String
@@ -47,6 +49,10 @@ pub fn github_issues_page_json(Bytes, Int, Int, Int, Int, String, Double, String
 pub fn github_issues_request_json(String, Int, Bool, String, String, Array[String], Bool, String) -> String
 
 pub fn github_next_page_json(Bool, String, String, String, Int, Int) -> String
+
+pub fn github_prepare_comment_confirmation(String, String, String, String, String, Double, String, Int, Bool, Array[String], Array[String], Bytes, Int, Int, Int, Int) -> Result[@catalog.CommentConfirmation, @catalog.GraphqlResponseIssue]
+
+pub fn github_project_comment_confirmation_json(@catalog.CommentConfirmation, Int, Bytes) -> String
 
 pub fn github_pull_request_page_read_accept(@catalog.PullRequestPageRead, Bytes) -> Result[Unit, @catalog.GraphqlResponseIssue]
 
