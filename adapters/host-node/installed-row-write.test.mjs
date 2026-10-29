@@ -115,6 +115,39 @@ test('standard declaration captures callbacks and preserves the independent read
   }
 });
 
+test('standard request callbacks receive only original provider DATA, not the RSE lifetime context', () => {
+  const value = {name: 'original'}, internal = Object.freeze({});
+  const write = declaration({request(context) {
+    assert.deepEqual(Object.keys(context).sort(), ['resource', 'value']);
+    assert.equal(context.resource, member.resource); assert.equal(context.value, value);
+    assert.ok(Object.isFrozen(context)); assert.ok(Object.isFrozen(context.value));
+    return {path: '/records', body: '{}'};
+  }});
+  const driver = deriveInstalledRowWrite(write, 'fixture');
+  const prepared = driver.prepareRequest({member, value, runOriginal: internal,
+    requestOrigin: internal, createRowIdentity: internal, current: internal,
+    authorization: internal, signal: internal, assertCurrent() {}, prepareOperationChild() {}});
+  assert.equal(driver.requestFacts(prepared.request).value, value);
+});
+
+test('standard classification callbacks receive original provider DATA and preserve header absence', () => {
+  const value = {name: 'original'}, internal = Object.freeze({}), observation = Object.freeze({body: new Uint8Array([123, 125])});
+  const write = declaration({classify(context) {
+    assert.deepEqual(Object.keys(context).sort(), ['observation', 'request', 'resource', 'value',
+      ...(Object.hasOwn(context, 'headers') ? ['headers'] : [])].sort());
+    assert.equal(context.resource, member.resource); assert.equal(context.value, value);
+    assert.equal(context.observation, observation); assert.ok(Object.isFrozen(context));
+    return Object.hasOwn(context, 'headers') ? 'present' : 'absent';
+  }});
+  const driver = deriveInstalledRowWrite(write, 'fixture');
+  const {request} = driver.prepareRequest({member, value});
+  const context = {request, observation, member, resource: 'foreign caller DATA',
+    value: {name: 'foreign'}, runOriginal: internal, preview: internal,
+    current: internal, authorization: internal, signal: internal, assertCurrent() {}, prepareOperationChild() {}};
+  assert.equal(driver.project(context), 'absent');
+  assert.equal(driver.project({...context, headers: undefined}), 'present');
+});
+
 test('actual Row Effect constructor consumes the declaration and refuses a simultaneous advanced driver before acquisition', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-standard-create-'));
   t.after(() => rm(root, {recursive: true, force: true}));
