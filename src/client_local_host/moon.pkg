@@ -91,6 +91,7 @@ options(
     "installed_effect_operation_parent_js_wbtest.mbt": [ "js" ],
     "installed_effect_provider_plan_js_wbtest.mbt": [ "js" ],
     "installed_capture_parent_js_wbtest.mbt": [ "js" ],
+    "installed_capture_provider_source_js_wbtest.mbt": [ "js" ],
     "installed_effect_provider_plan_js_wbtest.mbt": [ "js" ],
     "managed_source_free_preparation_js_wbtest.mbt": [ "js" ],
   },
