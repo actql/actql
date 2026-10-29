@@ -2246,6 +2246,27 @@ selects the original Request, policy and backing. No per-wrapper census or
 connector-supplied H/R/W inventory is an adoption requirement.
 
 
+### Request-owned Parameter Source
+
+The normal Request check entry selects the existing Parameter declaration and
+Source continuation when its caller has not already supplied that original.
+The Request retains this same continuation before fallible construction and
+uses its own capacity for declaration preflight, types, defaults and the final
+Source. An external test or frontend does not have to construct it first.
+
+A completed Source on that same Request and Program is immutable retained DATA.
+Reusing it checks its original declaration controller and references without
+another reader, work receipt or current callback. Typed declaration/default and
+Source errors remain their original variants; they do not become a generic
+phase failure or successful absence. Reentry is fenced while the Request selects
+this continuation, and a refused grow keeps its original partial duty attached.
+
+The actual checker receives this same Source and supplied-value cursor.
+Compilation retains the semantic output before the Request clears the domain's
+local aliases and continues its capacity to Pure or Effect. Failed preparation
+clears the same domain before the existing Request retirement; clearing these
+aliases neither settles capacity nor acknowledges physical cleanup.
+
 ### Effect inventory on the same parsed input
 
 An Effect computation first retains its original validated header inventory

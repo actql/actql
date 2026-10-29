@@ -41,7 +41,19 @@ fn request_check_fixture() -> (
     input,
     client_local_resource_policy(),
   ).unwrap()
-  (parent, request_check_source(parent, input), input)
+  let source = request_check_source(parent, input)
+  // These cases isolate the later Check entry debit/current boundary. The
+  // distinct normal-entry cases exercise this original Parameter phase too.
+  parent.phase = Selecting
+  prepare_request_parameter_source_owned(
+    parent,
+    input,
+    source.program.unwrap(),
+    @publication_host.client_standard_program_preparation_limits().checking,
+  ).unwrap()
+  |> ignore
+  parent.phase = ProgramJson
+  (parent, source, input)
 }
 
 ///|
@@ -238,7 +250,16 @@ test "request Check parent fences reentry and retains Program before the later c
     client_local_resource_policy(),
   ).unwrap()
   selected.val = Some(parent)
-  request_check_source(parent, input) |> ignore
+  let source = request_check_source(parent, input)
+  parent.phase = Selecting
+  prepare_request_parameter_source_owned(
+    parent,
+    input,
+    source.program.unwrap(),
+    @publication_host.client_standard_program_preparation_limits().checking,
+  ).unwrap()
+  |> ignore
+  parent.phase = ProgramJson
   armed.val = true
   let child = prepare_request_program_check_preparation(
     parent,

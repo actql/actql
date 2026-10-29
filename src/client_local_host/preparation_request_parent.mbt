@@ -47,6 +47,8 @@ struct ClientRequestPreparation[I] {
   mut native_parameters : @decode.Cursor?
   mut native_parameters_ready : Bool
   mut held_program : @syntax.Program?
+  mut parameter_declarations : ClientParameterDeclarationPreflight[I, Unit]?
+  mut parameter_source : @stages.Source?
   mut program_check : ClientProgramCheckPreparation[I, Unit]?
   mut computation_limits : @publication_host.ClientProgramPreparationLimits?
   // SAME reservation continued to its actual final body type; no second owner.
@@ -79,6 +81,9 @@ pub(all) enum ClientRequestPreparationIssue {
   ProgramJson(ClientProgramJsonPreparationIssue)
   ProgramCheck(ClientProgramCheckPreparationIssue)
   Parameters(@local_preparation.LocalProgramInputIssue)
+  ParameterPreparation(ClientParameterDeclarationPreflightIssue)
+  ParameterDeclarations(@parameters.Issue)
+  ParameterSource(@stages.Issue)
 } derive(Debug)
 
 ///|
@@ -256,6 +261,8 @@ pub fn[I] begin_request_preparation(
     native_parameters: None,
     native_parameters_ready: false,
     held_program: None,
+    parameter_declarations: None,
+    parameter_source: None,
     program_check: None,
     computation_limits: None,
     program_capacity: None,
@@ -452,6 +459,23 @@ fn[I] prepare_request_check_preparation_owned(
       }
   }
   owner.phase = Selecting
+  let source_preparation = match source_preparation {
+    Some(original) => Some(original)
+    None => {
+      let checking = match effect_limits {
+        Some(selected) => selected.program.checking
+        None => limits
+      }
+      match
+        prepare_request_parameter_source_owned(owner, input, program, checking) {
+        Err(issue) => {
+          owner.phase = ProgramCheckFailed
+          return Err(issue)
+        }
+        Ok(source) => Some(source)
+      }
+    }
+  }
   let outcome = match effect_limits {
     None =>
       begin_program_check_preparation(
@@ -611,7 +635,11 @@ pub fn[I] abort_request_preparation_after_cleanup(
     }
     owner.phase = previous
   }
-  // Both registered controllers have relinquished only their own aliases.
+  match clear_request_parameter_source(owner) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // Registered controllers have relinquished only their own aliases.
   // This caller is explicitly after its borrowed arguments/returned frames.
   owner.held_program = None
   owner.native_parameters = None

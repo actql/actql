@@ -21,6 +21,10 @@ pub fn[I] continue_request_effect_preparation(
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(ForeignOriginal)
   }
+  match clear_request_parameter_source(owner) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if owner.program_json is Some(source) {
     match clear_program_json_preparation(source) {
       Err(issue) => return Err(ProgramJson(issue))

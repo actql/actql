@@ -24751,7 +24751,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "5fcacf5fdba801199f35deea988be30101f88cc5120e19d0224e84ab194b6d38",
+      "sha256": "6cb115358aa5b5932d42aa1074b27ea1ec7feaaae0d2f94bba5409cfc2e50736",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -27120,7 +27120,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "ea9ffefc852220aae246ab605bf60eb55288a5a6fab2e1144bc032e6271c49c9",
+      "sha256": "d26691d9fd5daa6cb208a4cb4d5165c571cecd4ea9a576dd6f34ac0b36973ff4",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Plan owners",
       "exports": [],
@@ -27236,6 +27236,101 @@
         }
       ],
       "referenceQualification": "Same original Request compiler output, capacity and installed Plan constructor; normal all-input activation and physical Source acceptance remain separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_parameters.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "0ad9c0d43b0d635fe65b8763176313605aa2db9e32754cf91cfa7513c2e1b711",
+      "role": "common-semantics",
+      "owner": "Existing Request and Parameter declaration/Source owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]clear_request_parameter_source",
+          "declaration": "[ I ] clear_request_parameter_source ( owner : ClientRequestPreparation [ I ] , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_parameter_source_owned",
+          "declaration": "[ I ] prepare_request_parameter_source_owned ( owner : ClientRequestPreparation [ I ] , input : I , program : @ syntax . Program , checking : @ checked . CheckLimits , ) - > Result [ @ stages . Source , ClientRequestPreparationIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]clear_request_parameter_source",
+            "[I]prepare_request_parameter_source_owned"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_parameters_js_wbtest.mbt",
+                "anchor": "test \"Request-owned Parameters retain default"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Actual existing Request check caller retains the same Parameter domain on its capacity. Semantic declarations/defaults remain owned by parameter_binding/stage_parameters; normal all-entry Runtime acceptance remains separate."
     }
   ]
 }

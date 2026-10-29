@@ -1190,6 +1190,9 @@ pub(all) enum ClientRequestPreparationIssue {
   ProgramJson(ClientProgramJsonPreparationIssue)
   ProgramCheck(ClientProgramCheckPreparationIssue)
   Parameters(@client_local_preparation.LocalProgramInputIssue)
+  ParameterPreparation(ClientParameterDeclarationPreflightIssue)
+  ParameterDeclarations(@parameter_binding.Issue)
+  ParameterSource(@stage_parameters.Issue)
 } derive(@debug.Debug)
 
 pub struct ClientRetainedContentOutput {

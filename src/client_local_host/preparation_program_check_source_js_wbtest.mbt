@@ -24,55 +24,8 @@ fn registration_parent_fixture(
     input,
     client_local_resource_policy(),
   ).unwrap()
-  let json = request_check_source(parent, input, text~)
-  let program = json.program.unwrap()
+  request_check_source(parent, input, text~) |> ignore
   let limits = @publication_host.client_standard_program_preparation_limits().checking
-  let root = @syntax.program_body(program)
-  let mut params = None
-  for index in 0..<@decode.object_length(root).unwrap() {
-    let (name, original) = @decode.field_at(root, index).unwrap()
-    if name == "params" {
-      params = Some(original)
-      break
-    }
-  }
-  let parameters = begin_parameter_declaration_preflight(
-    parent.capacity,
-    input,
-    params,
-    {
-      max_parameters: limits.compilation.structure.parameters,
-      max_nodes: limits.compilation.traversal.nodes,
-      max_depth: limits.compilation.traversal.depth,
-      max_text_bytes: limits.compilation.traversal.text_bytes,
-    },
-  ).unwrap()
-  prepare_parameter_declaration_preflight(parameters).unwrap()
-  reconcile_parameter_declaration_preflight(parameters).unwrap()
-  prepare_parameter_declaration_header(parameters).unwrap()
-  let original = parameter_declaration_preflight_outcome(parameters).unwrap().0.unwrap()
-  if @parameters.declaration_read_phase(original) !=
-    @parameters.DeclarationComplete {
-    prepare_parameter_declaration_inventory(parameters).unwrap()
-    reconcile_parameter_declaration_inventory(parameters).unwrap()
-    while @parameters.declaration_read_phase(original) !=
-          @parameters.DeclarationComplete {
-      match @parameters.declaration_read_phase(original) {
-        @parameters.DeclarationType =>
-          prepare_parameter_declaration_type(parameters).unwrap()
-        @parameters.DeclarationValue =>
-          prepare_parameter_declaration_value(parameters).unwrap()
-        _ => abort("original funded Parameter declaration expected")
-      }
-    }
-  }
-  reconcile_parameter_declarations(parameters).unwrap()
-  prepare_parameter_declaration_source(parameters, program).unwrap()
-  reconcile_parameter_declaration_source(parameters).unwrap()
-  let source = parameter_declaration_source_outcome(parameters)
-    .unwrap()
-    .unwrap()
-  clear_parameter_declaration_preflight(parameters).unwrap()
   let selected_environment = match environment {
     Some(original) => original
     None => catalog_domain_environment()
@@ -87,7 +40,6 @@ fn registration_parent_fixture(
         [],
         program_limits,
         selected_effect_limits,
-        source_preparation=Some(source),
       ).unwrap()
     None =>
       match effect_limits {
@@ -99,7 +51,6 @@ fn registration_parent_fixture(
             supplied,
             [],
             limits,
-            source_preparation=Some(source),
           ).unwrap()
         Some(selected) =>
           prepare_request_effect_check_preparation(
@@ -109,10 +60,10 @@ fn registration_parent_fixture(
             supplied,
             [],
             selected,
-            source_preparation=Some(source),
           ).unwrap()
       }
   }
+  let source = owner.arguments.unwrap().source_preparation.unwrap()
   prepare_program_check_input(owner).unwrap()
   prepare_program_check_prelude(owner).unwrap() |> ignore
   prepare_program_check_registry(owner).unwrap() |> ignore
