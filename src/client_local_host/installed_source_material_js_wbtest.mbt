@@ -89,9 +89,7 @@ test "Host initial Source successor keeps its original Environment until Request
     input,
     client_local_resource_policy(),
   ).unwrap()
-  let (original, capacity) = take_host_initialization_preparation_capacity(
-    host,
-  ).unwrap()
+  let (original, capacity) = take_host_initialization_preparation_capacity(host).unwrap()
   assert_true(physical_equal(original, input))
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, original).unwrap(),
@@ -105,7 +103,11 @@ test "Host initial Source successor keeps its original Environment until Request
   @resources.reserve_working_preparation_phase(next, original, 256L, 128L).unwrap()
   let source = ["same actual initialized Source aggregate"]
   @resources.complete_preparation_capacity(
-    next, original, (source, environment), 256L, 0L,
+    next,
+    original,
+    (source, environment),
+    256L,
+    0L,
   ).unwrap()
   let first = @resources.borrow_preparation_body(next).unwrap()
   let second = @resources.borrow_preparation_body_sibling(first).unwrap()
