@@ -17018,7 +17018,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               }
             ],
             "extension": [
@@ -19437,7 +19437,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -22680,7 +22680,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -25965,7 +25965,7 @@
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "max_bytes > 2147483519"
+                "anchor": "fn valid_client_submitted_intent_limits("
               },
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
@@ -76524,7 +76524,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "49f5c2764051b94f14fb480d5bd506aba21ea94af5cc24cdc3c4188eda4fe999",
+      "sha256": "44628a2f79f570909b1692cdaffd527c374f54b32fe783da0f1dbcda0f5ac1f3",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",

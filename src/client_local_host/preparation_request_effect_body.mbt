@@ -178,6 +178,9 @@ pub fn[I] begin_request_effect_managed_run(
       owner.native_parameters = None
       owner.native_parameters_ready = false
       owner.held_program = None
+      owner.submitted_intent = None
+      owner.intent_base = None
+      owner.intent_peak_live = false
       owner.input = None
       owner.query_syntax = None
       owner.phase = Selected

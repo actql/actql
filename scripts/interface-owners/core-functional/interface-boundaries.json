@@ -24751,7 +24751,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "6cb115358aa5b5932d42aa1074b27ea1ec7feaaae0d2f94bba5409cfc2e50736",
+      "sha256": "6be82c6574a40263a078bf220f05eedfe19a2d5323d779b8db4c73f90073c6d5",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -25060,7 +25060,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_syntax.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "19873eb6d57ae78d3260fc5ef335f4edbdf235fcac6fdd3fc7c1c54e5a45aa03",
+      "sha256": "abc4396b449c18a68586ba260794e6ba2a325ddae55e674a86e4ea8acb99acf6",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -25165,7 +25165,7 @@
     {
       "module": "src/client_local_host/preparation_request_snapshot.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "2dcf49f2c9eb776294069f4095e226961eb10471f32c4df0d20c60ec3f3be1e2",
+      "sha256": "58e1eb73b7af71ef4247e21016cc0f1e132d7f6ce5f740f109b42fb889e9dc48",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -25545,7 +25545,7 @@
     {
       "module": "src/client_local_host/preparation_request_native_input.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "543df5c483ccfc9717d206b6e93288e01fdce04beb519e9b35277ef688f0b78d",
+      "sha256": "d72e7fc16f9cbe210865838065a736a55eea1ce18c025c345272b5ebf555048a",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -25553,6 +25553,10 @@
         {
           "name": "[I,T]prepare_request_native_program_input",
           "declaration": "[ I , T ] prepare_request_native_program_input ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , limits : @ syntax . Limits , supplied ? : T ?"
+        },
+        {
+          "name": "request_native_input_geometry",
+          "declaration": "request_native_input_geometry ( units : Int64 , values : Int64 , max_bytes : Int , max_depth : Int , ) - > ( Int , Int , Int ) ?"
         },
         {
           "name": "request_native_input_units",
@@ -25569,7 +25573,8 @@
             "<module>",
             "[I,T]prepare_request_native_program_input",
             "request_native_input_units",
-            "request_native_tree_units"
+            "request_native_tree_units",
+            "request_native_input_geometry"
           ],
           "exports": [],
           "attributes": {
@@ -25635,6 +25640,116 @@
               {
                 "path": "src/client_local_host/preparation_request_native_input_js_wbtest.mbt",
                 "anchor": "test \"Request native input reaches"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-Request captured input Source/Program/checker components and actual target API only. Normal Node driver, complete work metering and physical backing remain separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_intent.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "078f648df9400737dabdff11ff1897be414060760dbd34bf1cc9b89de27d246b",
+      "role": "common-semantics",
+      "owner": "Existing submitted-intent identity and original Request preparation Owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,T]prepare_request_submitted_intent",
+          "declaration": "[ I , T ] prepare_request_submitted_intent ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , ) - > Result [ String , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]finish_request_submitted_intent",
+          "declaration": "[ I ] finish_request_submitted_intent ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]request_intent_input_ready",
+          "declaration": "[ I ] request_intent_input_ready ( owner : ClientRequestPreparation [ I ] ) - > Bool"
+        },
+        {
+          "name": "[I]request_submitted_intent_original",
+          "declaration": "[ I ] request_submitted_intent_original ( owner : ClientRequestPreparation [ I ] , input : I , ) - > @ publication_host . ClientSubmittedIntent ?"
+        },
+        {
+          "name": "request_intent_construction_bytes",
+          "declaration": "request_intent_construction_bytes ( units : Int64 , values : Int64 ) - > Int64 ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,T]prepare_request_submitted_intent",
+            "[I]finish_request_submitted_intent",
+            "[I]request_submitted_intent_original",
+            "request_intent_construction_bytes",
+            "[I]request_intent_input_ready"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native submitted intent on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native submitted intent on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native submitted intent on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native submitted intent on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native submitted intent on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native submitted intent on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native submitted intent on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native submitted intent on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native submitted intent on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Native submitted intent on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_intent_js_wbtest.mbt",
+                "anchor": "test \"Request native intent preserves"
               }
             ]
           }
@@ -27120,7 +27235,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d26691d9fd5daa6cb208a4cb4d5165c571cecd4ea9a576dd6f34ac0b36973ff4",
+      "sha256": "d5b690124c58919fd98b3218928941fe7e552055eeacc4b15ad53f7a165e1500",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Plan owners",
       "exports": [],
