@@ -462,6 +462,8 @@ distribution[3] = distribution[3]
     'adapters/host-node/client-submission.test.mjs adapters/host-node/source-request-lineage.test.mjs adapters/host-node/journal-lifecycle-limits.test.mjs adapters/host-node/client-pre-admission-refusal.test.mjs ')
   .replace('adapters/host-node/client-submission-attempt.test.mjs ',
     'adapters/host-node/client-submission-attempt.test.mjs adapters/host-node/client-submission-operation.test.mjs ');
+distribution[3] += ' scripts/connector-authoring.cli.test.mjs';
+
 for (const files of [
   ['adapters/host-node/client-null-context.test.mjs'],
   ['adapters/host-node/public-text-time.test.mjs'],
