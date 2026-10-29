@@ -6,7 +6,7 @@ import {
   "actql/actql/client_source_publication" @source_publication,
   "actql/actql/client_local_preparation" @local_preparation,
   "actql/actql/source_frontend" @frontend,
-  "actql/actql/query_syntax",
+  "actql/actql/query_syntax" @query_syntax,
   "actql/actql/expression_typing" @typing,
   "actql/actql/encode_core" @encode,
   "actql/actql/stage_syntax" @syntax,
