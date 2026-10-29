@@ -1150,6 +1150,8 @@ pub fn client_standard_effect_computation_limits() -> ClientEffectComputationLim
 
 pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationLimits
 
+pub fn client_standard_pure_compilation_limits() -> ClientPureCompilationLimits
+
 pub fn client_standard_values_sequence_limits() -> @lowering_relation.SequenceLimits
 
 pub fn client_submission_epoch_token_authority_scope_cid(ClientSubmissionEpochToken) -> String
@@ -1645,6 +1647,8 @@ pub fn measure_prepared_client_execution_material(PreparedClientProgram, ClientC
 pub fn measure_prepared_client_publication_plan_facts(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationPlanFactGeometry, ClientPublicationPlanFactIssue]
 
 pub fn measure_prepared_client_publication_witnesses(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationWitnessGeometry, ClientPublicationWitnessIssue]
+
+pub fn measure_prepared_client_pure_compilation_construction(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientPureCompilationConstruction, ClientValuesExecutablePlanIssue]
 
 pub fn measure_prepared_client_result_graph_construction(PreparedClientProgram, Int, String, String, Int, Int, Int) -> Result[ClientResultGraphConstruction, ClientResultPlanPartsIssue]
 
@@ -3614,6 +3618,32 @@ pub struct ClientPublicationWitnesses {
   bodies : Array[String]
   cids : Array[String]
 }
+
+pub(all) struct ClientPureCompilationConstruction {
+  limits : ClientPureCompilationLimits
+  tasks : Bool
+  fragments : Array[ClientTaskFragmentConstruction]
+  results : Array[(Int, Int, Int)]
+  projections : Array[ClientResultGraphConstruction]
+  nodes : (Int, Int, Int)
+  edges : (Int, Int, Int)
+  roots : (Int, Int, Int)
+  graph : (Int, Int, Int)
+  program : (Int, Int, Int)
+  material : (Int, Int, Int)
+  facts : ClientPublicationPlanFactGeometry
+  witnesses : ClientPublicationWitnessGeometry
+  fact_manifest : (Int, Int, Int)
+  executable_plan : (Int, Int, Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClientPureCompilationLimits {
+  max_facts : Int
+  max_witnesses : Int
+  max_wire_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ClientQueryRequirementIssue {
   Acquisition(ClientAcquisitionIssue)

@@ -71,6 +71,15 @@ struct ClientRequestPreparation[I] {
   mut effect_plan : ClientInstalledEffectManagedPlan?
   mut program_data : @checked.ParsedCheckDataEstimate?
   mut program_plan_quote : (Int64, Int64)?
+  mut program_artifact_geometry : @publication_host.ClientPureCompilationConstruction?
+  mut program_artifact_quote : (Int64, Int64)?
+  mut program_artifact_inputs : (
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    Bool,
+    (@execution.ExecutionCapacity) -> Array[@local.ManagedProvider],
+  )?
   mut program_source_free : ClientInstalledManagedSourceFreePreparation?
   mut program_captured : ClientInstalledManagedCapturePlan?
   mut program_body_attempted : Bool
@@ -286,6 +295,9 @@ pub fn[I] begin_request_preparation(
     effect_plan: None,
     program_data: None,
     program_plan_quote: None,
+    program_artifact_geometry: None,
+    program_artifact_quote: None,
+    program_artifact_inputs: None,
     program_source_free: None,
     program_captured: None,
     program_body_attempted: false,
@@ -679,6 +691,9 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.effect_plan = None
   owner.program_data = None
   owner.program_plan_quote = None
+  owner.program_artifact_geometry = None
+  owner.program_artifact_quote = None
+  owner.program_artifact_inputs = None
   owner.program_source_free = None
   owner.program_captured = None
   let retiring = owner.phase == Retiring

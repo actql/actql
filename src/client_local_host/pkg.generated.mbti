@@ -654,7 +654,7 @@ pub fn[I] prepare_request_program_check_preparation(ClientRequestPreparation[I],
 
 pub fn[I] prepare_request_program_json_preparation(ClientRequestPreparation[I], I, String, @stage_syntax.Limits) -> Result[ClientProgramJsonPreparation[I, Unit], ClientRequestPreparationIssue]
 
-pub fn[I] prepare_request_program_module_body(ClientRequestPreparation[I], I, ClientInstalledSequenceContracts, retained_output~ : Bool, provider_factory~ : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> Result[Unit, ClientRequestProgramPlanIssue]
+pub fn[I] prepare_request_program_module_body(ClientRequestPreparation[I], I, ClientInstalledSequenceContracts, manifests~ : @run_publication_host.ClientCompilationManifests, compilation_limits~ : @run_publication_host.ClientPureCompilationLimits, retained_output~ : Bool, provider_factory~ : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> Result[Unit, ClientRequestProgramPlanIssue]
 
 pub fn[I, T] prepare_request_submitted_intent(ClientRequestPreparation[I], I, T, @source_value.JsonDataReader[T]) -> Result[String, ClientRequestPreparationIssue]
 
@@ -907,6 +907,9 @@ pub impl @debug.Debug for ClientProgramCheckPreparationIssue
 pub suberror ClientRequestProgramPlanIssue {
   Preparation(ClientRequestPreparationIssue)
   Installed(ClientInstalledManagedRunIssue)
+  Construction(@run_publication_host.ClientValuesExecutablePlanIssue)
+  ValuesCompilation(@run_publication_host.ClientValuesCompilationIssue)
+  TaskCompilation(@run_publication_host.ClientTaskCompilationIssue)
 }
 
 pub suberror ClientRequestQueryLoweringIssue {

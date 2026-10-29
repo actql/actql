@@ -200,6 +200,9 @@ pub fn[I] complete_request_program_preparation(
 pub suberror ClientRequestProgramPlanIssue {
   Preparation(ClientRequestPreparationIssue)
   Installed(ClientInstalledManagedRunIssue)
+  Construction(@publication_host.ClientValuesExecutablePlanIssue)
+  ValuesCompilation(@publication_host.ClientValuesCompilationIssue)
+  TaskCompilation(@publication_host.ClientTaskCompilationIssue)
 }
 
 ///|
@@ -213,6 +216,8 @@ pub fn[I] prepare_request_program_module_body(
   owner : ClientRequestPreparation[I],
   input : I,
   contracts : ClientInstalledSequenceContracts,
+  manifests~ : @publication_host.ClientCompilationManifests,
+  compilation_limits~ : @publication_host.ClientPureCompilationLimits,
   retained_output~ : Bool,
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
@@ -233,27 +238,154 @@ pub fn[I] prepare_request_program_module_body(
     owner.compiled_program is Some(prepared) else {
     return Err(Preparation(ForeignOriginal))
   }
+  if owner.program_artifact_inputs
+    is Some(
+      (
+        original_manifests,
+        original_limits,
+        original_contracts,
+        original_output,
+        original_factory,
+      )
+    ) {
+    if !physical_equal(original_manifests, manifests) ||
+      original_limits != compilation_limits ||
+      !physical_equal(original_contracts, contracts) ||
+      original_output != retained_output ||
+      !physical_equal(original_factory, provider_factory) {
+      return Err(Preparation(ForeignOriginal))
+    }
+  } else {
+    owner.program_artifact_inputs = Some(
+      (
+        manifests, compilation_limits, contracts, retained_output, provider_factory,
+      ),
+    )
+  }
   owner.phase = Selecting
   preparation_module_call(
     () => {
       let installed = contracts.original
-      let plan = match
-        prepare_installed_managed_source_free_with_contracts(
-          prepared,
-          contracts,
-          installed.values_body,
-          installed.fragment_body,
-          installed.ordered_body,
-          retained_output~,
-          provider_factory~,
-        ) {
-        Err(issue) => return Err(Installed(issue))
-        Ok(value) => value
+      let plan = match owner.program_source_free {
+        Some(original) => original
+        None =>
+          match
+            prepare_installed_managed_source_free_with_contracts(
+              prepared,
+              contracts,
+              installed.values_body,
+              installed.fragment_body,
+              installed.ordered_body,
+              retained_output~,
+              provider_factory~,
+            ) {
+            Err(issue) => return Err(Installed(issue))
+            Ok(value) => {
+              owner.program_source_free = Some(value)
+              value
+            }
+          }
       }
+      let limits = compilation_limits
+      let sequence = @publication_host.prepared_client_values_sequence_limits(
+        prepared,
+      )
+      let geometry = match owner.program_artifact_geometry {
+        Some(original) => original
+        None =>
+          match
+            @publication_host.measure_prepared_client_pure_compilation_construction(
+              prepared,
+              manifests,
+              sequence,
+              limits.max_facts,
+              limits.max_witnesses,
+              limits.max_wire_bytes,
+              limits.max_nodes,
+              limits.max_depth,
+            ) {
+            Err(issue) => return Err(Construction(issue))
+            Ok(value) => {
+              owner.program_artifact_geometry = Some(value)
+              value
+            }
+          }
+      }
+      let capacity = owner.program_capacity.unwrap()
+      let (r, e) = match owner.program_artifact_quote {
+        Some(original) => original
+        None => {
+          guard program_artifact_construction_cost(geometry) is Some(bytes) else {
+            return Err(Preparation(Policy))
+          }
+          let (r, e) = match
+            @resources.preparation_capacity_working_extents(capacity, input) {
+            Err(issue) => return Err(Preparation(Capacity(issue)))
+            Ok(value) => value
+          }
+          guard @execution.checked_preparation_add_product(r, bytes, 1L)
+            is Some(r) &&
+            @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
+            return Err(Preparation(Policy))
+          }
+          owner.program_artifact_quote = Some((r, e))
+          (r, e)
+        }
+      }
+      match
+        @resources.reserve_working_preparation_phase(capacity, input, r, e) {
+        Err(issue) => {
+          // The original module, immutable measurement and absolute quote
+          // survive a declined grow. Never repeat its factory on continuation.
+          owner.phase = ProgramPlanReserved
+          return Err(Preparation(Capacity(issue)))
+        }
+        Ok(_) => ()
+      }
+      let artifact : @publication_host.ClientRunCompilation = if geometry.tasks {
+        match
+          @publication_host.issue_prepared_client_task_compilation(
+            prepared,
+            manifests,
+            sequence,
+            limits.max_facts,
+            limits.max_witnesses,
+            limits.max_wire_bytes,
+            limits.max_nodes,
+            limits.max_depth,
+          ) {
+          Err(issue) => return Err(TaskCompilation(issue))
+          Ok(value) => @publication_host.Tasks(value)
+        }
+      } else {
+        match
+          @publication_host.issue_prepared_client_values_compilation(
+            prepared,
+            manifests,
+            sequence,
+            limits.max_facts,
+            limits.max_witnesses,
+            limits.max_wire_bytes,
+            limits.max_nodes,
+            limits.max_depth,
+          ) {
+          Err(issue) => return Err(ValuesCompilation(issue))
+          Ok(value) => @publication_host.Values(value)
+        }
+      }
+      plan.compilation = Some(artifact)
       owner.phase = ProgramPlanReserved
-      complete_request_program_preparation(owner, input, plan).map_err(issue => {
-        Preparation(issue)
-      })
+      let completed = complete_request_program_preparation(owner, input, plan)
+      if completed is Ok(_) {
+        // The actual Plan now owns its compilation. Measurement/retry DATA
+        // has no subsequent consumer; do not retain another per-task graph
+        // inventory through the SDK body borrower or the eventual Run.
+        // Keep the peak reservation until this constructor has unwound.
+        owner.program_artifact_geometry = None
+        owner.program_artifact_quote = None
+        owner.program_artifact_inputs = None
+      }
+      completed.map_err(issue => Preparation(issue))
     },
     () => if owner.phase == Selecting { owner.phase = ProgramBodyFailed },
   )
@@ -314,6 +446,9 @@ pub fn[I] begin_request_program_managed_run(
       owner.compiled_program = None
       owner.program_data = None
       owner.program_plan_quote = None
+      owner.program_artifact_geometry = None
+      owner.program_artifact_quote = None
+      owner.program_artifact_inputs = None
       owner.program_source_free = None
       owner.native_parameters = None
       owner.native_parameters_ready = false

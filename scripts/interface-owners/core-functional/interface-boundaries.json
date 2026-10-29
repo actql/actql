@@ -8548,7 +8548,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9347,7 +9347,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -24831,7 +24831,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "6be82c6574a40263a078bf220f05eedfe19a2d5323d779b8db4c73f90073c6d5",
+      "sha256": "05be6d27788e1e3205e5187bafd8c37ae2f89baedaf5da549e339f1276674dc7",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -24884,6 +24884,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "[I]abort_request_preparation_after_cleanup",
             "[I]begin_request_preparation",
             "[I]make_closed_values_preparation",
@@ -27609,7 +27610,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c37e2c85e5654cf0daddbf5e45a0cc4aa0a85695f218b044396f45fc7b5ccb4c",
+      "sha256": "508056c4efd354c4f7c8f0e2a0eac0a5cdfc2e3523e1128c22be1a61056d4362",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Plan owners",
       "exports": [],
@@ -27640,7 +27641,7 @@
         },
         {
           "name": "[I]prepare_request_program_module_body",
-          "declaration": "[ I ] prepare_request_program_module_body ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
+          "declaration": "[ I ] prepare_request_program_module_body ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
         },
         {
           "name": "[I]request_program_plan_quote",
@@ -27990,6 +27991,414 @@
         }
       ],
       "referenceQualification": "Actual existing Request check caller retains the same Parameter domain on its capacity. Semantic declarations/defaults remain owned by parameter_binding/stage_parameters; normal all-entry Runtime acceptance remains separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_program_artifact_layout.mbt",
+      "sha256": "598d1b44737d6c432d0d567d592ea810825337af438d2bff86e7f4506e3ecdc6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "program_artifact_construction_cost",
+          "declaration": "program_artifact_construction_cost ( value : @ publication_host . ClientPureCompilationConstruction , ) - > Int64 ?"
+        },
+        {
+          "name": "program_artifact_parse_layout",
+          "declaration": "program_artifact_parse_layout ( geometry : ( Int , Int , Int ) , ) - > CompilationParseLayout ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "program_artifact_construction_cost",
+            "program_artifact_parse_layout"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"generic Request module retains its funded compilation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"generic Request module retains its funded compilation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"artifact reservation derives from original constructor bodies"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"generic Request module retains its funded compilation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_compilation_construction_wbtest.mbt",
+                "anchor": "test \"complete pure compilation construction covers"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"artifact reservation derives from original constructor bodies"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original pure compiler sizing and same-Request artifact custody; not full consumed-work or installed runtime acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_compilation_graph_body.mbt",
+      "sha256": "d1c4c07bc7666a2f2c00dbea8bb3d01a8f9f8e980002f485b181060c57cce15e",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[C]emit_client_compilation_data_edge",
+          "declaration": "[ C ] emit_client_compilation_data_edge ( writer : @ encode . Writer , carrier : String , contract : C , from_node : String , from_port : String , to_node : String , to_port : String , emit_cid : ( C , @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "[E]emit_client_compilation_graph",
+          "declaration": "[ E ] emit_client_compilation_graph ( writer : @ encode . Writer , edges : ( @ encode . Writer ) - > Result [ Unit , E ] raise @ encode . EncodeFailure , nodes : ( @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , roots : ( @ encode . Writer ) - > Result [ Unit , E ] raise @ encode . EncodeFailure , ) - > Result [ Unit , E ] raise @ encode . EncodeFailure"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[C]emit_client_compilation_data_edge",
+            "[E]emit_client_compilation_graph"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"generic Request module retains its funded compilation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"generic Request module retains its funded compilation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"artifact reservation derives from original constructor bodies"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"generic Request module retains its funded compilation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_compilation_construction_wbtest.mbt",
+                "anchor": "test \"complete pure compilation construction covers"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"artifact reservation derives from original constructor bodies"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original pure compiler sizing and same-Request artifact custody; not full consumed-work or installed runtime acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_pure_compilation_construction.mbt",
+      "sha256": "8d5931a90062020468a1ce16ad6741a952eac3c904dfdc50d574cf382370c591",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_compilation_successful_geometry",
+          "declaration": "client_compilation_successful_geometry ( value : ( Int , Int , Int ) , bytes : Int , nodes : Int , depth : Int , ) - > ( Int , Int , Int )"
+        },
+        {
+          "name": "client_standard_pure_compilation_limits",
+          "declaration": "client_standard_pure_compilation_limits ( ) - > ClientPureCompilationLimits"
+        },
+        {
+          "name": "measure_client_compilation_array",
+          "declaration": "measure_client_compilation_array ( values : Array [ ( Int , Int , Int ) ] , ) - > ( Int , Int , Int ) raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "measure_client_values_fragment_construction",
+          "declaration": "measure_client_values_fragment_construction ( value : PreparedClientProgram , limits : @ lower . SequenceLimits , bytes : Int , nodes : Int , depth : Int , ) - > Result [ ClientTaskFragmentConstruction , ClientValuesFragmentIssue ]"
+        },
+        {
+          "name": "measure_prepared_client_pure_compilation_construction",
+          "declaration": "measure_prepared_client_pure_compilation_construction ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientPureCompilationConstruction , ClientValuesExecutablePlanIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_compilation_successful_geometry",
+            "client_standard_pure_compilation_limits",
+            "measure_client_compilation_array",
+            "measure_client_values_fragment_construction",
+            "measure_prepared_client_pure_compilation_construction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"generic Request module retains its funded compilation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"generic Request module retains its funded compilation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"artifact reservation derives from original constructor bodies"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original pure artifacts on the Request Plan"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"generic Request module retains its funded compilation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_compilation_construction_wbtest.mbt",
+                "anchor": "test \"complete pure compilation construction covers"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"artifact reservation derives from original constructor bodies"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original pure compiler sizing and same-Request artifact custody; not full consumed-work or installed runtime acceptance"
     }
   ]
 }

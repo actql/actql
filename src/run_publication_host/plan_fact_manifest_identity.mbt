@@ -141,18 +141,13 @@ fn finish_plan_fact_manifest_identity(
   // hashing its already-issued identity again. Saved input uses the reader below.
   try {
     let measure = @encode.measuring_writer(max_wire_bytes, max_nodes, max_depth)
-    @encode.begin_object(measure)
-    @encode.key(measure, "plan_fact_manifest_cid")
-    @encode.string_value(measure, cid)
-    @encode.key(measure, "plan_facts")
-    @encode.begin_array(measure)
-    for value in encoded.values {
-      @canonical.emit_value(value, measure)
-    }
-    @encode.end_array(measure)
-    @encode.key(measure, "version")
-    @encode.string_value(measure, "actql-plan-fact-manifest/0.1")
-    @encode.end_object(measure)
+    emit_client_plan_fact_manifest_body(
+      measure,
+      encoded.values,
+      cid,
+      @canonical.emit_value,
+      (value, writer) => @encode.string_value(writer, value),
+    )
     let _ = @encode.finish_measurement(measure)
     Ok({ wire, cid, })
   } catch {
@@ -230,4 +225,22 @@ pub fn check_plan_fact_manifest_identity(
     return Err(CidMismatch)
   }
   Ok(actual_cid)
+}
+
+///|
+fn[T, C] emit_client_plan_fact_manifest_body(
+  writer : @encode.Writer,
+  values : Array[T],
+  cid : C,
+  emit_value : (T, @encode.Writer) -> Unit raise @encode.EncodeFailure,
+  emit_cid : (C, @encode.Writer) -> Unit raise @encode.EncodeFailure,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "plan_fact_manifest_cid")
+  emit_cid(cid, writer)
+  @encode.key(writer, "plan_facts")
+  client_plan_emit_array(writer, values, emit_value)
+  @encode.key(writer, "version")
+  @encode.string_value(writer, "actql-plan-fact-manifest/0.1")
+  @encode.end_object(writer)
 }

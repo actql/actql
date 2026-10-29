@@ -370,16 +370,10 @@ fn[C] emit_client_result_projection_edge(
   node_id : String,
   emit_cid : (C, @encode.Writer) -> Unit raise @encode.EncodeFailure,
 ) -> Unit raise @encode.EncodeFailure {
-  @encode.begin_object(writer)
-  @encode.key(writer, "carrier")
-  @encode.string_value(writer, "relation")
-  @encode.key(writer, "contract_cid")
-  emit_cid(producer_contract, writer)
-  @encode.key(writer, "from")
-  emit_result_plan_ref(writer, producer_node, producer_port)
-  @encode.key(writer, "to")
-  emit_result_plan_ref(writer, node_id, "input_0")
-  @encode.end_object(writer)
+  emit_client_compilation_data_edge(
+    writer, "relation", producer_contract, producer_node, producer_port, node_id,
+    "input_0", emit_cid,
+  )
 }
 
 ///|

@@ -942,6 +942,12 @@ pub fn client_program_finish_request_computation(
 ///|
 /// The checked Request original, not a new raw or no-plan preparation. The
 /// existing installed contracts/factory construct the selected module once.
+pub suberror ClientRequestProgramModuleBridgeIssue {
+  Manifests(@publication_host.ClientCompilationManifestIssue)
+  Preparation(@client_local_host.ClientRequestProgramPlanIssue)
+}
+
+///|
 #export_name("clientProgramPrepareRequestProgramModuleBody")
 pub fn client_program_prepare_request_program_module_body(
   parent : @client_local_host.ClientRequestPreparation[
@@ -950,14 +956,20 @@ pub fn client_program_prepare_request_program_module_body(
   input : ClientLocalPreparationInputOriginal,
   contracts : @client_local_host.ClientInstalledSequenceContracts,
   retained_output : Bool,
-) -> Result[Unit, @client_local_host.ClientRequestProgramPlanIssue] {
+) -> Result[Unit, ClientRequestProgramModuleBridgeIssue] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
   @client_local_host.prepare_request_program_module_body(
     parent,
     input,
     contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
     retained_output~,
     provider_factory=installed_client_family_providers,
-  )
+  ).map_err(issue => Preparation(issue))
 }
 
 ///|

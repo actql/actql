@@ -1,6 +1,8 @@
 ///|
-/// Constructor facts for canonical_json::from_source on already canonical ASCII
-/// keys. Source AST/text/UTF8 wire and parser owners are separate dependencies.
+/// Constructor facts for canonical_json::from_source with data_keys=true.
+/// ScalarText keys are retained unchanged, including Unicode; this path does
+/// not normalize identifier names. Source AST/text/UTF8 wire and parser owners
+/// are separate dependencies. Bounds are construction DATA, not tree admission.
 /// This is a representation projection, never a permit to admit another tree.
 priv struct CompilationCanonicalShape {
   nodes : Int
