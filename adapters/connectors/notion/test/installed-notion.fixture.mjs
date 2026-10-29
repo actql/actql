@@ -10,8 +10,8 @@ import {loadInstalledNotionSource} from '../host/installed-notion-source.mjs';
 import {userListFixture,userListReadLimits} from './user-list-read.fixture.mjs';
 
 // Explicit private test declaration only, not normal installation quantities.
-// Original capture/ledger/raw aliases remain retained after this child exits.
-const pending=new Set();
+// This fixture retains its original state files as evidence; the shared Host
+// still owns the actual reader and RowRun cleanup.
 const repo=new URL('../../../../',import.meta.url);
 export async function installedNotionFixture(t,{account='allow'}={}){
   const f=await userListFixture(t,{accounted:false});
@@ -45,19 +45,20 @@ export async function installedNotionFixture(t,{account='allow'}={}){
     const preparedProgram=common.clientProgramPreparationReady(outcome);assert.ok(preparedProgram,common.clientProgramPreparationIssueCode(outcome));
     const [registry,aoa]=await Promise.all([readFile(new URL('spec/dependencies/aoa-pipeline-registry.json',repo),'utf8'),
       readFile(new URL('spec/contracts/actql-aoa.json',repo),'utf8').then(JSON.parse)]);
-    const preparation={preparedProgram,registry,values:JSON.stringify(aoa.execution_contracts['REL.values']),
-      fragment:JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-      ordered:JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
+    const values=JSON.stringify(aoa.execution_contracts['REL.values']),
+      fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+      ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+    const contracts=checked(common.clientPrepareInstalledSequenceContracts(registry,values,fragment,ordered));
+    const preparation={preparedProgram,registry:contracts,values,fragment,ordered};
     const preparedSource=await source.prepare(preparation),planned=source.ledgerCapacity(preparedSource);
     const ledger=common.clientProgramPrepareSingleCapturedLocalInstalledLedger(preparedProgram,
-      planned.capacity,planned.transferBytes,planned.executionBytes,registry,
+      planned.capacity,planned.transferBytes,planned.executionBytes,preparation.registry,
       preparation.values,preparation.fragment,preparation.ordered);assert.ok(ledger);
     return{...preparation,preparedSource,ledger};
   };
   const retain=async(capture,ledger)=>{
-    pending.add({capture,ledger,sources,f});
-    await writeFile(join(f.root,'pending-reader-custody.json'),JSON.stringify({cleanupConfirmed:false,
-      reason:'Original raw/Promise/callback aliases remain; original RowRun reservation retained',
+    assert.equal(typeof capture.close,'function');
+    await writeFile(join(f.root,'reader-before-close.json'),JSON.stringify({phase:'before original close',
       usage:common.clientProgramMultiCapturedLedgerUsage(ledger).map(v=>typeof v==='bigint'?v.toString():v)}));
   };
   t.after(async()=>{for(const source of sources)await source.close();});

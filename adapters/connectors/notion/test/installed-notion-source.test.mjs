@@ -4,6 +4,7 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {createPublicKey} from 'node:crypto';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {ledgerUsageHasPendingResources} from '../../../host-common/runtime-core.mjs';
 import {loadInstalledSource} from '../../../host-node/installed-source.mjs';
 import {checkInstalledNotionSourceProfile,installedNotionSourceIdentityParts} from '../host/installed-notion-source.mjs';
 import {installedNotionFixture} from './installed-notion.fixture.mjs';
@@ -34,7 +35,7 @@ test('installed Notion original strings Site generation and selected TLS remain 
   assert.equal(a[1].siteGeneration,1);assert.equal(typeof next[2].caSha256,'string');assert.equal(f.state.requests.length,0);
 });
 
-test('installed Notion actual SQL and AQL retain original multi-page users and the same pending capture',async t=>{
+test('installed Notion actual SQL and AQL retain original multi-page users and close the same Host reader',async t=>{
   for(const format of ['sql','aql']){
     const f=await installedNotionFixture(t),source=await f.load(),preparation=await f.prepare(source,{format});
     const opened=await source.openCapture(preparation);await f.retain(opened,preparation.ledger);
@@ -45,9 +46,10 @@ test('installed Notion actual SQL and AQL retain original multi-page users and t
       {email:'one@example.test',id:'U1',name:'one',type:'person'},
       {email:null,id:'U2',name:'two',type:'bot'}]);
     assert.equal(f.state.requests.length,2);assert.equal(f.state.resolutions,2);
-    const held=f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger);
-    await assert.rejects(async()=>opened.close(),{code:'MoonBitHostFailure'});
-    assert.deepEqual(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger),held);assert.equal(f.state.requests.length,2);
+    assert.equal(ledgerUsageHasPendingResources(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger)),true);
+    await opened.close();
+    assert.equal(ledgerUsageHasPendingResources(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger)),false);
+    assert.equal(f.state.requests.length,2);
   }
 });
 
