@@ -1188,6 +1188,8 @@ wire to the independently supplied original Run identity and authoring context.
 The facade retains that actual Common value in its module namespace; a copied
 handle, scalar identity or foreign namespace cannot replace it. Its immutable
 member count bounds receipt capture before reading the member array.
+The pure semantic-identity observer supplies the existing Preview CID for the
+original Checkpoint join; it is distinct from a full Store byte digest.
 
 Final receipt issuance requires the original Run Definition, computation
 Receipt, captured Run, Preview and complete set/member receipts. Commit

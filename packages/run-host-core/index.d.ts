@@ -1040,6 +1040,9 @@ export interface EffectPreviewIdentity {
 export function admitEffectPreviewIdentity(wire: string,
   expectedRunIdentityCid: string, expectedAuthoringContextCid: string,
   limits: PublicationLimits): EffectPreviewIdentity;
+/** Existing semantic identity for joining the original Checkpoint Preview;
+ * this pure observer is not a Store digest or current authority. */
+export function effectPreviewIdentityCid(preview: EffectPreviewIdentity): string;
 /** Derive only from the complete original computation/capture/Effect receipts. */
 export function issueEffectfulFinalRunReceipt(runDefinition: PublicationContract,
   computationReceipt: PublicationContract, capturedRun: PublicationContract,

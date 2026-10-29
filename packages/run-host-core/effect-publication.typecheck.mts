@@ -1,4 +1,4 @@
-import {admitEffectPreviewIdentity, issueEffectfulFinalRunReceipt,
+import {admitEffectPreviewIdentity, effectPreviewIdentityCid, issueEffectfulFinalRunReceipt,
   validateEffectfulPublicationCommit, type EffectPreviewIdentity,
   type EffectfulPublicationCommitEvidence, type PublicationContract,
   type PublicationRequestContract, type PublicationAttemptContract,
@@ -12,6 +12,7 @@ declare const attempt: PublicationAttemptContract;
 declare const index: PublicIndexEntryContract;
 const limits = {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 32};
 const preview: EffectPreviewIdentity = admitEffectPreviewIdentity('wire', 'originalRun', 'context', limits);
+const previewCid: string = effectPreviewIdentityCid(preview);
 const receipt: PublicationContract = issueEffectfulFinalRunReceipt(definition,
   computation, captured, preview, 'set', ['member'], limits);
 const evidence: EffectfulPublicationCommitEvidence = {runDefinition: definition,
@@ -28,3 +29,5 @@ const copied: EffectPreviewIdentity = {kind: 'effect-preview-identity'};
 validateEffectfulPublicationCommit({runDefinition: definition}, request, attempt, index, limits);
 // @ts-expect-error Historical wire DATA cannot replace a nominal contract.
 issueEffectfulFinalRunReceipt('wire', computation, captured, preview, 'set', [], limits);
+// @ts-expect-error A semantic identity string is not the admitted original.
+effectPreviewIdentityCid(previewCid);

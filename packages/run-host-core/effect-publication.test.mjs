@@ -19,6 +19,7 @@ export const clientValuesHostPublicationContractWire = value => value.wire;
 export const clientValuesHostAdmitEffectPreviewIdentity = (...args) =>
   result('preview', args, {fixturePreview: ++control.serial, memberCount: 2});
 export const clientValuesHostEffectPreviewMemberCount = value => value.memberCount;
+export const clientValuesHostEffectPreviewSemanticIdentity = value => 'fixture:preview-semantic:' + value.fixturePreview;
 export const clientValuesHostIssueEffectfulFinalRunReceipt = (...args) =>
   result('receipt', args, {cid: 'fixture:final', wire: 'fixture final receipt'});
 export const clientValuesHostValidateEffectfulPublicationCommit = (...args) =>
@@ -69,6 +70,19 @@ test('Preview admission forwards the independent original tuple and exact limits
   assert.deepEqual(f.previewOriginal.args, ['original preview wire',
     'independent original Run identity', 'independent original context', 65536, 4096, 32]);
   assert.equal(control.calls.filter(call => call.name === 'preview').length, 1);
+});
+
+test('Preview semantic identity observes the original without admission or scalar substitution', () => {
+  const f = originals();
+  const original = f.receiptOriginal.args[3];
+  const before = control.calls.length;
+  assert.equal(owner.effectPreviewIdentityCid(f.evidence.preview),
+    `fixture:preview-semantic:${original.fixturePreview}`);
+  assert.equal(control.calls.length, before, 'A pure identity getter must not re-admit evidence');
+  assert.throws(() => owner.effectPreviewIdentityCid({...f.evidence.preview}), /ForeignRunHostHandle/u);
+  assert.throws(() => owner.effectPreviewIdentityCid('fixture:preview-semantic'), /ForeignRunHostHandle/u);
+  const other = foreign.admitEffectPreviewIdentity('foreign', 'run', 'context', limits);
+  assert.throws(() => owner.effectPreviewIdentityCid(other), /ForeignRunHostHandle/u);
 });
 
 test('final receipt forwarding retains the complete original member inventory', () => {

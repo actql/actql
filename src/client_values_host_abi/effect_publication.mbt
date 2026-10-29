@@ -29,6 +29,15 @@ pub fn client_values_host_effect_preview_member_count(
 }
 
 ///|
+/// Return the admitted semantic identity, distinct from a Store byte digest.
+#export_name("clientValuesHostEffectPreviewSemanticIdentity")
+pub fn client_values_host_effect_preview_semantic_identity(
+  preview : @publication.EffectPreviewIdentity,
+) -> String {
+  @publication.effect_preview_semantic_identity(preview)
+}
+
+///|
 /// The existing owner derives the final Receipt from the actual computation,
 /// captured Run and admitted original Effect receipts, never from task progress.
 #export_name("clientValuesHostIssueEffectfulFinalRunReceipt")

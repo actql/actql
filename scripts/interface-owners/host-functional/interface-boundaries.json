@@ -69900,7 +69900,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "1ac62ae5c798ec5833a6f83bef4b95fd737ac9c03095ff5fd04c89a045564f87",
+      "sha256": "fa2210af2004f4d1802966c69dcf7e42d57fe48cee451cbbe5542e075020341d",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -69994,6 +69994,7 @@
         "compiledPlanCid",
         "describeCommittedResult",
         "effectExecutionShape",
+        "effectPreviewIdentityCid",
         "effectResultDefinitions",
         "effectResultSchema",
         "effectReviewCheckpointBinding",
@@ -70418,6 +70419,13 @@
             "compilation: EffectCompilation"
           ],
           "result": "Readonly<{taskCount: number; acquisitionCount: number; effectCount: number}>"
+        },
+        {
+          "name": "effectPreviewIdentityCid",
+          "parameters": [
+            "preview: EffectPreviewIdentity"
+          ],
+          "result": "string"
         },
         {
           "name": "effectResultDefinitions",
@@ -72209,6 +72217,7 @@
             "compiledPlanCid",
             "describeCommittedResult",
             "effectExecutionShape",
+            "effectPreviewIdentityCid",
             "effectResultDefinitions",
             "effectResultSchema",
             "effectReviewCheckpointBinding",
@@ -72427,6 +72436,7 @@
             "compiledPlanCid",
             "describeCommittedResult",
             "effectExecutionShape",
+            "effectPreviewIdentityCid",
             "effectResultDefinitions",
             "effectResultSchema",
             "effectReviewCheckpointBinding",
@@ -72585,6 +72595,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "inputsOutputs": [
@@ -72611,6 +72625,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -72645,6 +72663,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "ownership": [
@@ -72671,6 +72693,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -72705,6 +72731,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "failure": [
@@ -72731,6 +72761,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -72765,6 +72799,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "resources": [
@@ -72795,6 +72833,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "extension": [
@@ -72821,6 +72863,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -72859,6 +72905,14 @@
               {
                 "path": "packages/run-host-core/effect-checkpoint-retention.test.mjs",
                 "anchor": "original Checkpoint cancelled DATA forwards same originals without a scalar authority input"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "packages/run-host-core/effect-publication.test.mjs",
+                "anchor": "test('copied Preview and foreign namespace originals refuse before publication ABI use'"
               },
               {
                 "path": "docs/design/remote-site-execution.md",

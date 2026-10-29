@@ -2476,6 +2476,11 @@ export function admitEffectPreviewIdentity(wire, expectedRunIdentityCid,
   'effect-preview-identity');
 }
 
+export function effectPreviewIdentityCid(preview) {
+  return owner.clientValuesHostEffectPreviewSemanticIdentity(
+    requireHandle(effectPreviewIdentities, preview).value);
+}
+
 function effectReceiptWires(preview, setReceiptWire, memberReceiptWires) {
   if (typeof setReceiptWire !== 'string' || !Array.isArray(memberReceiptWires) ||
       memberReceiptWires.length !== preview.memberCount) {
