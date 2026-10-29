@@ -35,7 +35,8 @@ export function prepareNotionUserListPages({moon, names, limits}, applySynchrono
   const columns = Object.freeze(provider.notionUserListColumnNames().slice());
   if (names.length > columns.length || new Set(names).size !== names.length ||
       names.some(name => !columns.includes(name))) fail('InvalidNotionUserListRead');
-  const selected = Object.freeze(names.slice()), cursors = new Set(), ids = new Set();
+  // Source capture keeps the complete declared row before the user's SELECT.
+  const selected = Object.freeze(columns.slice()), cursors = new Set(), ids = new Set();
   let cursor;
   return Object.freeze({
     fetchPage({pageIndex, rowCount}) {
