@@ -71,7 +71,11 @@ test('Notion cross-page IDs stay checked when selected output omits identity',as
   const f=await userListFixture(t),projected=[];
   f.state.pages=[userPage([user('U1','one')],'next'),userPage([user('U1','changed')],null)];
   await assert.rejects(f.create({names:['name'],consumePage:(rows,{charge})=>{
-    f.row.observe(charge);projected.push(...rows);
+    f.row.observe(charge);
+    // User projection follows complete Source capture; it cannot prune the
+    // Source callback's identity or other declared cells first.
+    assert.deepEqual(rows,[{email:null,id:'U1',name:'one',type:null}]);
+    projected.push(...rows.map(({name})=>({name})));
   }}).read(),error=>error.cause.code==='NotionUserListDuplicateUser');
   assert.deepEqual(projected,[{name:'one'}]);assert.equal(f.state.requests.length,2);f.row.assertNoCapture();
 });

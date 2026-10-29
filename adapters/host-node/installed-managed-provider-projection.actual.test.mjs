@@ -98,7 +98,8 @@ test('real Notion projections preserve original strings and cursor through the s
   const f = open('notion',[users(user('N-e\u0301','一\r\n📚'),cursor),users(user('N-é',''),null)]);
   try {
     assert.deepEqual(await f.reader.read(),{pages:2,rowCount:2});
-    assert.deepEqual(f.delivered,[{id:'N-e\u0301',name:'一\r\n📚'},{id:'N-é',name:''}]);
+    assert.deepEqual(f.delivered,[{email:null,id:'N-e\u0301',name:'一\r\n📚',type:'bot'},
+      {email:null,id:'N-é',name:'',type:'bot'}]);
     assert.equal(f.charged.length,2);
     for(const [i,request] of f.requests.entries()) {
       assert.equal(request.method,'GET');
@@ -116,7 +117,7 @@ test('real Notion projections preserve original strings and cursor through the s
   try {
     await assert.rejects(duplicate.reader.read(),error => error.cause?.code === 'NotionUserListDuplicateUser');
     assert.equal(duplicate.charged.length,2);
-    assert.deepEqual(duplicate.delivered,[{id:'same',name:'first'}]);
+    assert.deepEqual(duplicate.delivered,[{email:null,id:'same',name:'first',type:'bot'}]);
   } finally {duplicate.close();}
 });
 
@@ -157,8 +158,10 @@ test('real Notion projection keeps remaining-page bounds without reading beyond 
     assert.deepEqual(await f.reader.read(),{pages:3,rowCount:4});
     assert.deepEqual(f.requests.map(request=>new URL(request.path,'https://provider.invalid').searchParams.get('page_size')),['2','2','1']);
     assert.deepEqual(f.requests.map(request=>new URL(request.path,'https://provider.invalid').searchParams.get('start_cursor')),[null,cursor,cursor+' next']);
-    assert.deepEqual(f.delivered,[{id:'one',name:'first'},{id:'two',name:'second'},
-      {id:'three',name:'third'},{id:'four',name:'fourth'}]);
+    assert.deepEqual(f.delivered,[{email:null,id:'one',name:'first',type:'bot'},
+      {email:null,id:'two',name:'second',type:'bot'},
+      {email:null,id:'three',name:'third',type:'bot'},
+      {email:null,id:'four',name:'fourth',type:'bot'}]);
     assert.equal(f.charged.length,3);assert.equal(f.reader.observe().cleanupConfirmed,false);
   }finally{f.close();}
   const capped=open('notion',[batch([user('one','first'),user('two','second')],cursor),

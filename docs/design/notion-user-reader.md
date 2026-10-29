@@ -28,6 +28,12 @@ Every declared cell is checked before projection, including an unselected email.
 Duplicate identities within the page refuse the whole page. These checks do not
 prove that other pages have no duplicate or that a token can see all users.
 
+The Source page callback also emits every declared cell, even when its requested
+field list is a subset or empty. That list is validated against the same
+original declaration; it does not prune the row before RowRun capture. The
+user's SELECT projects the captured relation later. Identity, nullable email,
+name and kind therefore remain available to the same Source original.
+
 ## Checked projection and identity
 
 The page retains checked cells privately. Selection preserves caller column order
@@ -179,12 +185,14 @@ when projection does not retain `id`. This supplies no KeySet, ResourceRef,
 Command ID proof or mutation authority. Account/current admission and the same
 trusted installation remain separately required at every acquisition.
 
-The trusted installer must supply the same-runtime original provider-reader
-capacity. Neither public configuration numbers nor page/transfer ceilings issue
-that declaration. Missing supply is `NotionReaderCapacityUnavailable`; absent
-physical Credential material is `NotionCredentialMaterialUnavailable`. The
-ordinary factory can be discovered while those independent supplies are absent.
-Private test capacity amounts do not establish normal numerical adequacy.
+The trusted installer supplies the original Source initialization context and
+the existing service quartet. That service selects the same-runtime typed
+provider implementation and its capacity under the original initial parent.
+Public configuration numbers and page/transfer ceilings cannot replace it.
+A missing context is `NotionSourceInitializationUnavailable`; absent physical
+Credential material is `NotionCredentialMaterialUnavailable`. Discovery of the
+factory alone supplies neither original. Private test capacity amounts do not
+establish normal numerical adequacy.
 
 The factory selects the existing accounted provider-reader path exclusively,
 without a dummy `readPages` callback. It reserves the original capacity and
