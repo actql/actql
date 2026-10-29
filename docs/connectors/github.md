@@ -189,8 +189,16 @@ GitHub does not render). The physical body preserves the original logical body
 and appends two LF characters followed by
 `<!-- actql:effect:<original-request-tag> -->`. An absent body uses only the
 marker; an explicitly empty body retains the two LF characters. The tag is the
-same original request tag, not a newly issued identifier, and the logical row
-remains separate from the physical body. A lost reply is reconciled by listing recent issues,
+exact CID text of the original Common-issued row `DispatchKey`, bound to the
+logical request scope, complete approved Preview and canonical item identity.
+It is not the recovery locator, a physical Run/attempt ID or a separate binding
+hash. The Preview binds the logical body and stamp derivation recipe; after
+key derivation the Host supplies only that original tag DATA to the provider
+and binds the final marked request before dispatch. Business-payload identity
+and final transport identity remain separate. Recovery retains the same key,
+marked bytes and original provider request CID; it never generates another tag
+or reuses an unmarked request CID for different bytes. The logical row remains
+separate from the physical body. A lost reply is reconciled by listing recent issues,
 pull requests or comments for that marker; a body with the same text but no
 marker is not evidence. File commits are reconciled by reading the branch
 head: a commit whose message carries the marker and whose tree holds the

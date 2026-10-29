@@ -1183,3 +1183,36 @@ rewritten. Existing checks for other operations remain. No hidden key field,
 new identity domain, registry, Owner, grant or default is selected. Typed/static
 admission, full construction/backing, current Account and target rights,
 approval, claim, cleanup and cold recovery remain implementation obligations.
+
+## GitHub request marker identity
+
+`ROOT-GITHUB-REQUEST-MARKER-01` selects the previously unspecified identity
+behind the GitHub guide's original request tag. The normative owner is
+[GitHub Preview and reconciliation](../connectors/github.md#preview-and-reconciliation).
+Use the exact CID text of the original Common-issued row `DispatchKey` for the
+approved Preview. This reuses the existing identity and issuer, without a new
+hash algorithm, tag domain, profile field or provider codec identity.
+
+The common [stamped recovery contract](../spec/execution.md#reconciliation)
+already requires the Preview to bind a stamp derivation recipe and the logical
+business payload, then insert the stamp after key derivation. This avoids a
+cycle in which the Preview would hash a marker derived from that same Preview.
+The recovery locator finds the durable item; it is not the exact approved
+dispatch key. A separate installation, codec or request-binding hash does not
+automatically supply the provider marker either. Physical Run, attempt and
+worker identifiers remain audit provenance rather than idempotency inputs.
+
+The Host retains the original key and supplies only its tag DATA to provider
+transformation. The provider's existing canonical request issuer then binds
+the actual marked bytes. Its CID is distinct from a protocol's saved-envelope
+CID and from the logical business-payload CID. Changed physical bytes receive
+their actual request identity; an unmarked request CID cannot be kept for a
+marked body. Cold recovery retains the original key, bytes and request CID,
+without mapping again, issuing a new tag or resending an uncertain operation.
+
+This is an application-level representation choice using the closed existing
+DispatchKey preimage. It changes no Common schema, identity preimage, grant or
+claim rule. Earlier retained requests are not retagged or silently upgraded.
+Actual late request construction, bounded overlap, capability/recipe binding,
+approval, durable claim, confirming reads and physical cleanup remain required;
+the documentation alone does not qualify ordinary GitHub writes.
