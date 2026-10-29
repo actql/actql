@@ -172,3 +172,41 @@ fn issue_effect_row_receipt_terminal_entry_admitted(
     Err(_) => Err(InvalidTransition)
   }
 }
+
+///|
+/// The same Ledger terminal reduction consumes a re-admitted original local
+/// operation receipt. Its backend first confirms atomic mutation/receipt
+/// custody; neither this projection nor a current target value proves COMMIT.
+pub fn issue_effect_row_receipt_terminal_entry_from_local(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  scope : LogicalRequestScope,
+  locator : LogicalItemLocator,
+  key : EffectDispatchKey,
+  canonical_request_cid : String,
+  current : EffectLedgerEntry,
+  history : Array[EffectLedgerEntry],
+  dispatch_entry_cid : String,
+  response : @publication.EffectLocalOperationReceipt,
+  receipt_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[EffectLedgerEntry, EffectRowReceiptCommitIssue] {
+  if response.operation.canonical_request_cid != canonical_request_cid {
+    return Err(ForeignReceipt)
+  }
+  let receipt = match
+    @publication.admit_effect_row_outcome_receipt_from_local(
+      preview, member_index, row_index, dispatch_entry_cid, response, receipt_wire,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(ForeignReceipt)
+  }
+  issue_effect_row_receipt_terminal_entry_admitted(
+    preview, member_index, row_index, scope, locator, key, canonical_request_cid,
+    current, history, dispatch_entry_cid, receipt, max_wire_bytes, max_nodes, max_depth,
+  )
+}
