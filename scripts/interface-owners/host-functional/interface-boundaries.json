@@ -69900,7 +69900,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "b8160e2f834ed6cc3e4a811649792b85409ad7310b2a457209fc38f41e3b1c68",
+      "sha256": "1ac62ae5c798ec5833a6f83bef4b95fd737ac9c03095ff5fd04c89a045564f87",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -69910,7 +69910,9 @@
         "DeliveryContractView",
         "DurableResultRowFrames",
         "EffectCompilation",
+        "EffectPreviewIdentity",
         "EffectReviewCheckpointBinding",
+        "EffectfulPublicationCommitEvidence",
         "IssuedDeliveryAttemptFacts",
         "IssuedDeliveryAttemptOriginal",
         "IssuedEffectRunMaterials",
@@ -69962,6 +69964,7 @@
         "ValuesSiteSelection",
         "admitCapturedResultSnapshot",
         "admitCompletedSourceObservation",
+        "admitEffectPreviewIdentity",
         "admitEffectRunMaterials",
         "admitEnvironment",
         "admitProfileSelection",
@@ -70018,6 +70021,7 @@
         "issueEffectRunDefinition",
         "issueEffectRunMaterials",
         "issueEffectSourceDispatch",
+        "issueEffectfulFinalRunReceipt",
         "issuePreparedEffectRunMaterials",
         "issuePublicIndexEntry",
         "issuePublicationAttempt",
@@ -70119,6 +70123,7 @@
         "taskResultNames",
         "taskResultSchema",
         "validateEffectFreePublicationCommit",
+        "validateEffectfulPublicationCommit",
         "validatePublicationChain",
         "validatePublicationRecordTransition",
         "validateRetainedInputPlan",
@@ -70142,6 +70147,16 @@
             "facts: Readonly<{\n  sourceEvidenceWire: string;\n  inputLogicalWire: string;\n  sourceRef: string;\n  sourceContractCid: string;\n  authorityScopeCid: string;\n  effectiveDataPolicyCid: string;\n  limits: PublicationLimits;\n}>"
           ],
           "result": "string"
+        },
+        {
+          "name": "admitEffectPreviewIdentity",
+          "parameters": [
+            "wire: string",
+            "expectedRunIdentityCid: string",
+            "expectedAuthoringContextCid: string",
+            "limits: PublicationLimits"
+          ],
+          "result": "EffectPreviewIdentity"
         },
         {
           "name": "admitEffectRunMaterials",
@@ -70637,6 +70652,19 @@
             "manifest: PublicationContract",
             "normalizationJournal: RunEvidence",
             "facts: Readonly<{\n    bindingNames: readonly string[];\n    bindingDigests: readonly string[];\n    sourceEvidence: readonly RunEvidence[];\n    modelEvidence: readonly RunEvidence[];\n    barrierAttemptReceiptCids: readonly string[];\n  }>",
+            "limits: PublicationLimits"
+          ],
+          "result": "PublicationContract"
+        },
+        {
+          "name": "issueEffectfulFinalRunReceipt",
+          "parameters": [
+            "runDefinition: PublicationContract",
+            "computationReceipt: PublicationContract",
+            "capturedRun: PublicationContract",
+            "preview: EffectPreviewIdentity",
+            "setReceiptWire: string",
+            "memberReceiptWires: readonly string[]",
             "limits: PublicationLimits"
           ],
           "result": "PublicationContract"
@@ -72051,6 +72079,17 @@
           "result": "void"
         },
         {
+          "name": "validateEffectfulPublicationCommit",
+          "parameters": [
+            "evidence: EffectfulPublicationCommitEvidence",
+            "request: PublicationRequestContract",
+            "attempt: PublicationAttemptContract",
+            "indexEntry: PublicIndexEntryContract",
+            "limits: PublicationLimits"
+          ],
+          "result": "void"
+        },
+        {
           "name": "validatePublicationChain",
           "parameters": [
             "runDefinition: PublicationContract",
@@ -72141,6 +72180,7 @@
             "RetainedInputPlanCurrent/<call>#4",
             "admitCapturedResultSnapshot",
             "admitCompletedSourceObservation",
+            "admitEffectPreviewIdentity",
             "admitEffectRunMaterials",
             "admitEnvironment",
             "admitProfileSelection",
@@ -72160,6 +72200,7 @@
             "admitTaskRun",
             "admitTaskRunDefinition",
             "beginResultMaterialHolds",
+            "bindPreparedEffectRunMaterials",
             "captureOriginalRunPlan",
             "checkRunBinding",
             "compileEffect",
@@ -72171,7 +72212,11 @@
             "effectResultDefinitions",
             "effectResultSchema",
             "effectReviewCheckpointBinding",
+            "effectReviewCheckpointBindingFacts",
+            "effectReviewCheckpointCancelledState",
             "effectReviewCheckpointMembers",
+            "effectReviewCheckpointReconciliationState",
+            "effectReviewCheckpointWaitingState",
             "effectRunStartCurrent",
             "effectSourceEvidenceFacts",
             "effectSourceInputBinding",
@@ -72191,6 +72236,7 @@
             "issueEffectRunDefinition",
             "issueEffectRunMaterials",
             "issueEffectSourceDispatch",
+            "issueEffectfulFinalRunReceipt",
             "issuePreparedEffectRunMaterials",
             "issuePublicIndexEntry",
             "issuePublicationAttempt",
@@ -72287,15 +72333,11 @@
             "taskResultNames",
             "taskResultSchema",
             "validateEffectFreePublicationCommit",
+            "validateEffectfulPublicationCommit",
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput",
-            "bindPreparedEffectRunMaterials",
-            "effectReviewCheckpointBindingFacts",
-            "effectReviewCheckpointWaitingState",
-            "effectReviewCheckpointReconciliationState",
-            "effectReviewCheckpointCancelledState"
+            "validateRetainedTaskInput"
           ],
           "exports": [
             "AllowedEffectRun",
@@ -72304,7 +72346,9 @@
             "DeliveryContractView",
             "DurableResultRowFrames",
             "EffectCompilation",
+            "EffectPreviewIdentity",
             "EffectReviewCheckpointBinding",
+            "EffectfulPublicationCommitEvidence",
             "IssuedDeliveryAttemptFacts",
             "IssuedDeliveryAttemptOriginal",
             "IssuedEffectRunMaterials",
@@ -72354,6 +72398,7 @@
             "ValuesSiteSelection",
             "admitCapturedResultSnapshot",
             "admitCompletedSourceObservation",
+            "admitEffectPreviewIdentity",
             "admitEffectRunMaterials",
             "admitEnvironment",
             "admitProfileSelection",
@@ -72386,7 +72431,9 @@
             "effectResultSchema",
             "effectReviewCheckpointBinding",
             "effectReviewCheckpointBindingFacts",
+            "effectReviewCheckpointCancelledState",
             "effectReviewCheckpointMembers",
+            "effectReviewCheckpointReconciliationState",
             "effectReviewCheckpointWaitingState",
             "effectRunStartCurrent",
             "effectSourceEvidenceFacts",
@@ -72407,6 +72454,7 @@
             "issueEffectRunDefinition",
             "issueEffectRunMaterials",
             "issueEffectSourceDispatch",
+            "issueEffectfulFinalRunReceipt",
             "issuePreparedEffectRunMaterials",
             "issuePublicIndexEntry",
             "issuePublicationAttempt",
@@ -72502,12 +72550,11 @@
             "taskResultNames",
             "taskResultSchema",
             "validateEffectFreePublicationCommit",
+            "validateEffectfulPublicationCommit",
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput",
-            "effectReviewCheckpointReconciliationState",
-            "effectReviewCheckpointCancelledState"
+            "validateRetainedTaskInput"
           ],
           "attributes": {
             "responsibility": [
@@ -72534,6 +72581,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "inputsOutputs": [
@@ -72560,6 +72611,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "identity": [
@@ -72586,6 +72641,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "ownership": [
@@ -72612,6 +72671,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "synchronization": [
@@ -72638,6 +72701,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "failure": [
@@ -72664,6 +72731,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "cancellation": [
@@ -72690,6 +72761,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "resources": [
@@ -72716,6 +72791,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "extension": [
@@ -72742,6 +72821,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The same nominal association may supply the original to the existing persistence"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
               }
             ],
             "verification": [
@@ -72776,6 +72859,14 @@
               {
                 "path": "packages/run-host-core/effect-checkpoint-retention.test.mjs",
                 "anchor": "original Checkpoint cancelled DATA forwards same originals without a scalar authority input"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Effectful publication forwarding"
+              },
+              {
+                "path": "packages/run-host-core/effect-publication.test.mjs",
+                "anchor": "test('copied Preview and foreign namespace originals refuse before publication ABI use'"
               }
             ]
           }

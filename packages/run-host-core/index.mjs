@@ -19,6 +19,7 @@ const taskCompilations = new WeakMap();
 const effectPreparations = new WeakMap();
 const effectCompilations = new WeakMap();
 const effectAllowedRuns = new WeakMap();
+const effectPreviewIdentities = new WeakMap();
 const effectCheckpointBindings = new WeakMap();
 const effectMaterialOwners = new WeakMap();
 const issuedEffectMaterials = new WeakMap();
@@ -2455,6 +2456,77 @@ export function validateEffectFreePublicationCommit(evidence, request,
     publicationToken(request), publicationToken(attempt),
     publicationToken(indexEntry), maxWireBytes, maxNodes, maxDepth),
   'RunHostPublicationCommitRejected');
+}
+
+// Historical semantic DATA only. Current apply permission, physical outcomes
+// and Store commit remain duties of their original owners.
+export function admitEffectPreviewIdentity(wire, expectedRunIdentityCid,
+  expectedAuthoringContextCid, limits) {
+  if (typeof wire !== 'string' || typeof expectedRunIdentityCid !== 'string' ||
+      typeof expectedAuthoringContextCid !== 'string') {
+    throw new TypeError('InvalidRunHostEffectPreview');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  const value = checked(
+    owner.clientValuesHostAdmitEffectPreviewIdentity(wire,
+      expectedRunIdentityCid, expectedAuthoringContextCid,
+      maxWireBytes, maxNodes, maxDepth), 'RunHostEffectPreviewRejected');
+  return handle(effectPreviewIdentities, {value,
+    memberCount: owner.clientValuesHostEffectPreviewMemberCount(value)},
+  'effect-preview-identity');
+}
+
+function effectReceiptWires(preview, setReceiptWire, memberReceiptWires) {
+  if (typeof setReceiptWire !== 'string' || !Array.isArray(memberReceiptWires) ||
+      memberReceiptWires.length !== preview.memberCount) {
+    throw new TypeError('InvalidRunHostEffectReceipts');
+  }
+  const members = [];
+  for (let index = 0; index < preview.memberCount; index++) {
+    const wire = memberReceiptWires[index];
+    if (typeof wire !== 'string') {
+      throw new TypeError('InvalidRunHostEffectReceipts');
+    }
+    members.push(wire);
+  }
+  return {setReceiptWire, memberReceiptWires: members};
+}
+
+export function issueEffectfulFinalRunReceipt(runDefinition, computationReceipt,
+  capturedRun, preview, setReceiptWire, memberReceiptWires, limits) {
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  const originalPreview = requireHandle(effectPreviewIdentities, preview);
+  const receipts = effectReceiptWires(originalPreview, setReceiptWire, memberReceiptWires);
+  return publicationContract(checked(
+    owner.clientValuesHostIssueEffectfulFinalRunReceipt(
+      publicationToken(runDefinition), publicationToken(computationReceipt),
+      publicationToken(capturedRun), originalPreview.value,
+      receipts.setReceiptWire, receipts.memberReceiptWires,
+      maxWireBytes, maxNodes, maxDepth), 'RunHostEffectfulFinalReceiptRejected'));
+}
+
+export function validateEffectfulPublicationCommit(evidence, request,
+  attempt, indexEntry, limits) {
+  if (evidence === null || typeof evidence !== 'object') {
+    throw new TypeError('InvalidRunHostEffectfulPublicationCommit');
+  }
+  const {runDefinition, invocation, definitions, artifacts, derivations, orderings,
+    retentions, durableBindings, manifest, computationReceipt, capturedRun,
+    preview, setReceiptWire, memberReceiptWires, finalReceipt} = evidence;
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  const originalPreview = requireHandle(effectPreviewIdentities, preview);
+  const receipts = effectReceiptWires(originalPreview, setReceiptWire, memberReceiptWires);
+  checked(owner.clientValuesHostValidateEffectfulPublicationCommit(
+    publicationToken(runDefinition), publicationToken(invocation),
+    publicationItems(definitions), publicationItems(artifacts),
+    publicationItems(derivations), publicationItems(orderings),
+    publicationItems(retentions), publicationItems(durableBindings),
+    publicationToken(manifest), publicationToken(computationReceipt),
+    publicationToken(capturedRun), originalPreview.value,
+    receipts.setReceiptWire, receipts.memberReceiptWires,
+    publicationToken(finalReceipt), publicationToken(request),
+    publicationToken(attempt), publicationToken(indexEntry),
+    maxWireBytes, maxNodes, maxDepth), 'RunHostEffectfulPublicationCommitRejected');
 }
 
 export function issuePublicationRecord(attempt, previous, facts, limits) {

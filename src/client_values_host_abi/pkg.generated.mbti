@@ -133,6 +133,8 @@ pub fn client_values_host_effect_checkpoint_waiting_state(@checkpoint_runtime.Se
 
 pub fn client_values_host_effect_compiled_plan_wire(@run_publication_host.ClientEffectCompilation) -> String
 
+pub fn client_values_host_effect_preview_member_count(@run_publication.EffectPreviewIdentity) -> Int
+
 pub fn client_values_host_effect_request_identity(@run_publication_host.PreparedClientEffectComputation, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
 
 pub fn client_values_host_effect_result_definitions(@run_publication_host.ClientEffectCompilation) -> Result[Array[String], @run_publication.PublicationInventoryIssue]

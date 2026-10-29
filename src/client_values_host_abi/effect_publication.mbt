@@ -20,6 +20,15 @@ pub fn client_values_host_admit_effect_preview_identity(
 }
 
 ///|
+/// Read the original immutable inventory bound without admitting it again.
+#export_name("clientValuesHostEffectPreviewMemberCount")
+pub fn client_values_host_effect_preview_member_count(
+  preview : @publication.EffectPreviewIdentity,
+) -> Int {
+  @publication.effect_preview_member_count(preview)
+}
+
+///|
 /// The existing owner derives the final Receipt from the actual computation,
 /// captured Run and admitted original Effect receipts, never from task progress.
 #export_name("clientValuesHostIssueEffectfulFinalRunReceipt")

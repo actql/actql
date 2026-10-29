@@ -7,6 +7,7 @@ declare const taskCompilationBrand: unique symbol;
 declare const effectPreparationBrand: unique symbol;
 declare const effectCompilationBrand: unique symbol;
 declare const effectAllowedBrand: unique symbol;
+declare const effectPreviewIdentityBrand: unique symbol;
 declare const effectCheckpointBindingBrand: unique symbol;
 declare const issuedEffectMaterialsBrand: unique symbol;
 declare const requestBrand: unique symbol;
@@ -1029,6 +1030,42 @@ export function validateEffectFreePublicationCommit(evidence: Readonly<{
   capturedRun: PublicationContract;
 }>, request: PublicationRequestContract,
   attempt: PublicationAttemptContract,
+  indexEntry: PublicIndexEntryContract, limits: PublicationLimits): void;
+/** Historical Preview DATA from this module's Common admission; no Allow,
+ * physical outcome, claim, Store commit or acknowledgement is supplied. */
+export interface EffectPreviewIdentity {
+  readonly [effectPreviewIdentityBrand]: true;
+}
+/** Expected original identity/context come independently from trusted custody. */
+export function admitEffectPreviewIdentity(wire: string,
+  expectedRunIdentityCid: string, expectedAuthoringContextCid: string,
+  limits: PublicationLimits): EffectPreviewIdentity;
+/** Derive only from the complete original computation/capture/Effect receipts. */
+export function issueEffectfulFinalRunReceipt(runDefinition: PublicationContract,
+  computationReceipt: PublicationContract, capturedRun: PublicationContract,
+  preview: EffectPreviewIdentity, setReceiptWire: string,
+  memberReceiptWires: readonly string[], limits: PublicationLimits): PublicationContract;
+export interface EffectfulPublicationCommitEvidence {
+  readonly runDefinition: PublicationContract;
+  readonly invocation: PublicationContract;
+  readonly definitions: readonly PublicationContract[];
+  readonly artifacts: readonly PublicationContract[];
+  readonly derivations: readonly PublicationContract[];
+  readonly orderings: readonly PublicationContract[];
+  readonly retentions: readonly PublicationContract[];
+  readonly durableBindings: readonly PublicationContract[];
+  readonly manifest: PublicationContract;
+  readonly computationReceipt: PublicationContract;
+  readonly capturedRun: PublicationContract;
+  readonly preview: EffectPreviewIdentity;
+  readonly setReceiptWire: string;
+  readonly memberReceiptWires: readonly string[];
+  readonly finalReceipt: PublicationContract;
+}
+/** Complete Common Effectful/Result-evidence validation before the separate
+ * current Store CAS; successful validation is not a commit acknowledgement. */
+export function validateEffectfulPublicationCommit(evidence: EffectfulPublicationCommitEvidence,
+  request: PublicationRequestContract, attempt: PublicationAttemptContract,
   indexEntry: PublicIndexEntryContract, limits: PublicationLimits): void;
 /** Sequence and predecessor come from the shared publication owner. */
 export function issuePublicationRecord(attempt: PublicationAttemptContract,

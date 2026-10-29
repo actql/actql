@@ -1180,6 +1180,30 @@ all whole-Run no-grant, no dispatch/unknown outcome/publication, physical stop,
 revision/current and CAS duties. Pending requests or task cleanup alone cannot
 select this terminal projection, and the reconciliation path remains separate.
 
+## Effectful publication forwarding
+
+The Run Host facade forwards the existing complete Effectful receipt and
+publication checks to the Run Publication owner. Preview admission binds its
+wire to the independently supplied original Run identity and authoring context.
+The facade retains that actual Common value in its module namespace; a copied
+handle, scalar identity or foreign namespace cannot replace it. Its immutable
+member count bounds receipt capture before reading the member array.
+
+Final receipt issuance requires the original Run Definition, computation
+Receipt, captured Run, Preview and complete set/member receipts. Commit
+validation additionally requires the Invocation, all Result Definitions,
+artifacts, derivations, orderings, retentions, durable bindings, manifest and
+the original publication request/attempt/index chain. Visible contract fields
+cannot replace the retained Common contract. Missing or refused evidence does
+not produce a successful receipt or commit.
+
+These synchronous functions inspect historical DATA. They do not acquire
+resources, grant current approval, dispatch an Effect, settle cancellation or
+Unknown, perform a Store CAS, or acknowledge physical mutation or cleanup.
+The actual Host retains those existing operation and lifetime duties. Typed
+forwarding alone does not establish a matching compiled package or an executed
+public operation.
+
 ## Original holder terminal reports
 
 The portable protocol represents an immutable ordered inventory of original
