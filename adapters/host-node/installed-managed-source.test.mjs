@@ -76,6 +76,28 @@ test('plural Source preparations forward one original parent and retain original
   assert.throws(() => profile.sources[0].ledgerCapacity(prepared[0]), /RetiredOriginal/);
 });
 
+test('Pure Source preparation receives the same original managed Run before preparing its selected acquisition', async () => {
+  const checked = {}, parent = {}, prepared = {}, capacity = {}, originalRequest = {};
+  let calls = 0;
+  const source = {
+    managedCaptureCapacity() {return {capacity};},
+    async prepare(facts) {
+      assert.equal(this, source); calls++;
+      assert.equal(facts.preparedProgram, checked);
+      assert.equal(facts.managedRun, parent, 'the original Plan must reach the actual Source preparer');
+      assert.equal(facts.requestIdentity, originalRequest);
+      return prepared;
+    },
+    ledgerCapacity(value) {assert.equal(value, prepared);return {capacity};},
+  };
+  const view = bindInstalledManagedSources(source, original => {
+    assert.equal(original, checked); return parent;
+  });
+  assert.equal(await view.prepare({preparedProgram: checked, requestIdentity: originalRequest}), prepared);
+  assert.equal(view.ledgerCapacity(prepared).managedRun, parent);
+  assert.equal(calls, 1);
+});
+
 test('Source preparation cannot install a parent association after cancellation during await', async () => {
   const checked = {}, parent = {}, prepared = {}; let current = true, capacities = 0;
   const profile = bindInstalledManagedSources({managedCaptureCapacity() {},
