@@ -30748,7 +30748,7 @@
     },
     {
       "module": "src/platform_native/host_bootstrap/backed_live_child_native.mbt",
-      "sha256": "4bc1478bd3eb3109fee6339f4ec19220aba7b6974484aad6ce6eee6eaa2f4a78",
+      "sha256": "5bbc35ab0833805f39923d85baf2c1f5cd2e30c0eb83e028fefcc5d5610d377a",
       "exports": [],
       "operations": [
         {
@@ -30895,7 +30895,300 @@
           }
         }
       ],
-      "referenceQualification": "Same-original initialization input/capacity and retirement Source/type boundary only. Authored cases unexecuted, no actual factory/census/funding/physical ACK or ordinary acceptance."
+      "referenceQualification": "Same-original Native initialization source and existing owner semantics only. Exact product consuming types are retained separately; physical cases, whole Source census/backing and normal funding remain unexecuted."
+    },
+    {
+      "module": "src/platform_native/host_bootstrap/backed_initialization_native.mbt",
+      "sha256": "248287e46993958e3827ee2bfcb08d272d9467f2d8f1b96dfa6a04b5d00c4ab3",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T,C,I]NativeHostBootstrap::close_backed_preparation",
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : close_backed_preparation ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , ) - > Result [ Unit , NativeBackedInitializationIssue ]"
+        },
+        {
+          "name": "[T,C,I]NativeHostBootstrap::close_backed_preparation_original",
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : close_backed_preparation_original ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , state : NativeBackedInitialization [ T , C , I ] , ) - > Result [ Unit , NativeBackedInitializationIssue ]"
+        },
+        {
+          "name": "[T,C,I]NativeHostBootstrap::initialize_backed_preparation",
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : initialize_backed_preparation ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , budget : NativeBackedInitializationBudget , ) - > Result [ @ resources . BackedInitializationAdmission [ I ] , NativeBackedInitializationIssue , ]"
+        },
+        {
+          "name": "[T,C,I]NativeHostBootstrap::initialize_backed_preparation_original",
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : initialize_backed_preparation_original ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , budget : NativeBackedInitializationBudget , state : NativeBackedInitialization [ T , C , I ] , ) - > Result [ @ resources . BackedInitializationAdmission [ I ] , NativeBackedInitializationIssue , ]"
+        },
+        {
+          "name": "[T,C,I]NativeHostBootstrap::original_initialization_cleanup",
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : original_initialization_cleanup ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , ) - > Result [ NativeBackedInitialization [ T , C , I ] , NativeBackedInitializationIssue , ]"
+        },
+        {
+          "name": "initialization_control_scope_clear_ffi",
+          "declaration": "initialization_control_scope_clear_ffi ( ) - > Int"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Resource backed-execution and Native installed arena physical owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T,C,I]NativeHostBootstrap::close_backed_preparation",
+            "[T,C,I]NativeHostBootstrap::close_backed_preparation_original",
+            "[T,C,I]NativeHostBootstrap::initialize_backed_preparation",
+            "[T,C,I]NativeHostBootstrap::initialize_backed_preparation_original",
+            "[T,C,I]NativeHostBootstrap::original_initialization_cleanup",
+            "initialization_control_scope_clear_ffi"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Native input-bound assembly/caller source and original ownership only. Physical component cases, whole Source funding and normal/runtime acceptance remain separate and unexecuted."
+    },
+    {
+      "module": "src/platform_native/installed_arena_control/initial_preparation_native.mbt",
+      "sha256": "c3136bfd104308edfca825021644e094f9eb96e0af0f54694af965b1453d559f",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]InstalledArenaHost::close_preparation",
+          "declaration": "[ I ] InstalledArenaHost : : close_preparation ( self : InstalledArenaHost , live : @ bootstrap . NativeBackedLiveChild [ InstalledArenaHost , InstalledArenaDomain , I , ] , ) - > Result [ Unit , @ bootstrap . NativeBackedInitializationIssue ]"
+        },
+        {
+          "name": "[I]InstalledArenaHost::initialize_preparation",
+          "declaration": "[ I ] InstalledArenaHost : : initialize_preparation ( self : InstalledArenaHost , live : @ bootstrap . NativeBackedLiveChild [ InstalledArenaHost , InstalledArenaDomain , I , ] , input : I , budget : @ bootstrap . NativeBackedInitializationBudget , ) - > Result [ @ resources . BackedInitializationAdmission [ I ] , @ bootstrap . NativeBackedInitializationIssue , ]"
+        },
+        {
+          "name": "[I]InstalledArenaHost::prepare_domain_initialization_child",
+          "declaration": "[ I ] InstalledArenaHost : : prepare_domain_initialization_child ( self : InstalledArenaHost , domain : InstalledArenaDomain , input : I , ) - > Result [ @ bootstrap . NativeBackedLiveChildAcquisition [ InstalledArenaHost , InstalledArenaDomain , I , ] , @ bootstrap . NativeBackedExecutionIssue , ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Resource backed-execution and Native installed arena physical owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]InstalledArenaHost::close_preparation",
+            "[I]InstalledArenaHost::initialize_preparation",
+            "[I]InstalledArenaHost::prepare_domain_initialization_child"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Native input-bound assembly/caller source and original ownership only. Physical component cases, whole Source funding and normal/runtime acceptance remain separate and unexecuted."
+    },
+    {
+      "module": "src/platform_native/client_host/initial_preparation_native.mbt",
+      "sha256": "6aff8123fb60b72baad1529dd7b05771aab78360c91ec13a33ea966c3ae1b9c2",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]begin_native_host_initialization_preparation",
+          "declaration": "[ I ] begin_native_host_initialization_preparation ( arena : @ arena . InstalledArenaHost , live : @ bootstrap . NativeBackedLiveChild [ @ arena . InstalledArenaHost , @ arena . InstalledArenaDomain , I , ] , input : I , budget : @ bootstrap . NativeBackedInitializationBudget , policy : @ local . ClientLocalResourcePolicy , ) - > Result [ @ local . ClientHostInitializationPreparation [ I ] , NativeHostInitializationIssue , ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native installed Host and Local initialization preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]begin_native_host_initialization_preparation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/platform_native/host_bootstrap/INITIALIZATION.md",
+                "anchor": "# Native initialization assembly"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Native input-bound assembly/caller source and original ownership only. Physical component cases, whole Source funding and normal/runtime acceptance remain separate and unexecuted."
     }
   ]
 }

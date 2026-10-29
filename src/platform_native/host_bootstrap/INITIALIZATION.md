@@ -41,3 +41,10 @@ physical ACK. A lost report retains the original report outcome. Physical
 retirement, successful accounting report and final Common read-use return are
 separate observations, and each successful stage is latched before another
 fallible cleanup step.
+
+Cancellation and a refused constructor retain the same cleanup duty; neither
+proves physical retirement or authorizes a new input. Verification must
+distinguish nominal input identity, original one-use transitions, actual
+currentness, child-alias retirement, logical quiescence, usage reporting and
+final parent custody. A type-correct assembly alone proves none of the
+physical acknowledgements or the adequacy of a normal installed profile.
