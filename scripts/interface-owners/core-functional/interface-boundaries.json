@@ -24831,7 +24831,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "039eea6f93c5335e259896b4dd07dd3838a6e336e16fff31cb398049388ad6b5",
+      "sha256": "c9b3a7b967202f102c7b572d4671f06669fcc28b9c4c061e2c072ee91ee3098c",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -27770,7 +27770,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "e9daa6d239d657ff0d17b322a33a7bdafa124640abc02740968c84cb43f2201b",
+      "sha256": "406423800e18b7f90439efd48eec10d08b650d2a9fa36d03cfd2bf4b523ea8d3",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Plan owners",
       "exports": [],
@@ -28048,7 +28048,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "01506a46df7ebc33a8073a83df93b75864d9b032efad1cf1ed7dfb50868b1c34",
+      "sha256": "1a9185dd20394a461ae92a9d2eef8d1ed72a85628353812cdcd64ab92db48c0b",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -28168,26 +28168,33 @@
     {
       "module": "src/client_local_host/preparation_request_parameters.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "0ad9c0d43b0d635fe65b8763176313605aa2db9e32754cf91cfa7513c2e1b711",
+      "sha256": "04824a20446d43a07c928f483c30d0e23b7b2ef4699c260fae34184619ebb542",
       "role": "common-semantics",
       "owner": "Existing Request and Parameter declaration/Source owners",
       "exports": [],
       "operations": [
         {
           "name": "[I]clear_request_parameter_source",
-          "declaration": "[ I ] clear_request_parameter_source ( owner : ClientRequestPreparation [ I ] , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+          "declaration": "[ I ] clear_request_parameter_source ( owner : ClientRequestPreparation [ I ] , ) - > Unit"
         },
         {
-          "name": "[I]prepare_request_parameter_source_owned",
-          "declaration": "[ I ] prepare_request_parameter_source_owned ( owner : ClientRequestPreparation [ I ] , input : I , program : @ syntax . Program , checking : @ checked . CheckLimits , ) - > Result [ @ stages . Source , ClientRequestPreparationIssue ]"
+          "name": "[I]construct_request_parameter_check_owned",
+          "declaration": "[ I ] construct_request_parameter_check_owned ( owner : ClientRequestPreparation [ I ] , input : I , program : @ syntax . Program , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , checking : @ checked . CheckLimits , source_catalog : @ checked . PreparedSourceCatalog ? , effect_limits : @ publication_host . ClientEffectComputationLimits ? , work : @ resources . PreparationPhaseWorkContinuation64 , spent : Ref [ Int64 ] , returned : Ref [ Bool ] , ) - > Result [ ClientProgramCheckPreparation [ I , Unit ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]prepare_request_parameter_check_owned",
+          "declaration": "[ I ] prepare_request_parameter_check_owned ( owner : ClientRequestPreparation [ I ] , input : I , program : @ syntax . Program , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : @ checked . CheckLimits , source_catalog : @ checked . PreparedSourceCatalog ? , source_preparation : @ stages . Source ? , effect_limits : @ publication_host . ClientEffectComputationLimits ? , ) - > Result [ ClientProgramCheckPreparation [ I , Unit ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "request_parameter_source_bytes",
+          "declaration": "request_parameter_source_bytes ( program : @ syntax . Program , geometry : @ decode . SubtreeConstructionGeometry ? , ) - > Int64 ?"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "[I]clear_request_parameter_source",
-            "[I]prepare_request_parameter_source_owned"
+            "[I]clear_request_parameter_source"
           ],
           "exports": [],
           "attributes": {
@@ -28253,6 +28260,80 @@
               {
                 "path": "src/client_local_host/preparation_request_parameters_js_wbtest.mbt",
                 "anchor": "test \"Request-owned Parameters retain default"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[I]construct_request_parameter_check_owned",
+            "[I]prepare_request_parameter_check_owned",
+            "request_parameter_source_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parameters_js_wbtest.mbt",
+                "anchor": "test \"one Parameter semantic phase"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
               }
             ]
           }
@@ -32623,6 +32704,211 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_parameter_source_layout.mbt",
+      "sha256": "464d605785f6583a11d9e92dfe5278834cb92332612471cd591f0a38852ea585",
+      "exports": [],
+      "operations": [
+        {
+          "name": "parameter_source_binding_construction_bytes",
+          "declaration": "parameter_source_binding_construction_bytes ( ) - > ( Int64 , Int64 ) ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original Request and Parameter/Check semantic owners",
+      "referenceQualification": "Source and actual selected Core/API component only; ordinary matching artifacts remain unverified",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "parameter_source_binding_construction_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parameters_js_wbtest.mbt",
+                "anchor": "test \"one Parameter semantic phase"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_program_check_domain.mbt",
+      "sha256": "d339071e3ef8165c1c0a5f8230bbaa78443ee8abb80aba0f8246bce346aabef3",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P]begin_effect_program_check_preparation",
+          "declaration": "[ I , P ] begin_effect_program_check_preparation ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , program : @ syntax . Program , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : @ publication_host . ClientEffectComputationLimits , source_catalog ? : @ checked . PreparedSourceCatalog ?"
+        },
+        {
+          "name": "[I,P]begin_program_check_preparation",
+          "declaration": "[ I , P ] begin_program_check_preparation ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , program : @ syntax . Program , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : @ checked . CheckLimits , source_catalog ? : @ checked . PreparedSourceCatalog ?"
+        },
+        {
+          "name": "[I,P]clear_program_check_preparation",
+          "declaration": "[ I , P ] clear_program_check_preparation ( owner : ClientProgramCheckPreparation [ I , P ] , ) - > Result [ Unit , ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "[I,P]current_program_check_preparation",
+          "declaration": "[ I , P ] current_program_check_preparation ( owner : ClientProgramCheckPreparation [ I , P ] , ) - > Result [ Unit , ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "[I,P]new_program_check_preparation",
+          "declaration": "[ I , P ] new_program_check_preparation ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , program : @ syntax . Program , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : @ checked . CheckLimits , source_catalog : @ checked . PreparedSourceCatalog ? , source_preparation : @ stages . Source ? , base_retained : Int64 , base_execution : Int64 , ) - > ClientProgramCheckPreparation [ I , P ]"
+        },
+        {
+          "name": "[I,P]transfer_program_check_input",
+          "declaration": "[ I , P ] transfer_program_check_input ( owner : ClientProgramCheckPreparation [ I , P ] , ) - > Unit"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original Request and Parameter/Check semantic owners",
+      "referenceQualification": "Source and actual selected Core/API component only; ordinary matching artifacts remain unverified",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P]begin_effect_program_check_preparation",
+            "[I,P]begin_program_check_preparation",
+            "[I,P]clear_program_check_preparation",
+            "[I,P]current_program_check_preparation",
+            "[I,P]new_program_check_preparation",
+            "[I,P]transfer_program_check_input"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parameters_js_wbtest.mbt",
+                "anchor": "test \"one Parameter semantic phase"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
               }
             ]
           }

@@ -54,7 +54,6 @@ struct ClientRequestPreparation[I] {
   mut native_parameters_ready : Bool
   mut native_query_declarations : (@decode.Cursor, @parameters.Declarations)?
   mut held_program : @syntax.Program?
-  mut parameter_declarations : ClientParameterDeclarationPreflight[I, Unit]?
   mut parameter_source : @stages.Source?
   mut program_check : ClientProgramCheckPreparation[I, Unit]?
   mut computation_limits : @publication_host.ClientProgramPreparationLimits?
@@ -105,7 +104,6 @@ pub(all) enum ClientRequestPreparationIssue {
   Parameters(@local_preparation.LocalProgramInputIssue)
   Intent(@publication_host.ClientSubmittedIntentIssue)
   Work(@resources.PreparationWorkIssue)
-  ParameterPreparation(ClientParameterDeclarationPreflightIssue)
   ParameterDeclarations(@parameters.Issue)
   ParameterSource(@stages.Issue)
 } derive(Debug)
@@ -292,7 +290,6 @@ pub fn[I] begin_request_preparation(
     native_parameters_ready: false,
     native_query_declarations: None,
     held_program: None,
-    parameter_declarations: None,
     parameter_source: None,
     program_check: None,
     computation_limits: None,
@@ -510,53 +507,14 @@ fn[I] prepare_request_check_preparation_owned(
       }
   }
   owner.phase = Selecting
-  let source_preparation = match source_preparation {
-    Some(original) => Some(original)
-    None => {
-      let checking = match effect_limits {
-        Some(selected) => selected.program.checking
-        None => limits
-      }
-      match
-        prepare_request_parameter_source_owned(owner, input, program, checking) {
-        Err(issue) => {
-          owner.phase = ProgramCheckFailed
-          return Err(issue)
-        }
-        Ok(source) => Some(source)
-      }
-    }
-  }
-  let outcome = match effect_limits {
-    None =>
-      begin_program_check_preparation(
-        owner.capacity,
-        input,
-        program,
-        environment,
-        supplied,
-        evidence,
-        limits,
-        source_catalog~,
-        source_preparation~,
-      )
-    Some(selected) =>
-      begin_effect_program_check_preparation(
-        owner.capacity,
-        input,
-        program,
-        environment,
-        supplied,
-        evidence,
-        selected,
-        source_catalog~,
-        source_preparation~,
-      )
-  }
+  let outcome = prepare_request_parameter_check_owned(
+    owner, input, program, environment, supplied, evidence, limits, source_catalog,
+    source_preparation, effect_limits,
+  )
   match outcome {
     Err(issue) => {
       owner.phase = ProgramCheckFailed
-      Err(ProgramCheck(issue))
+      Err(issue)
     }
     Ok(child) => {
       owner.program_check = Some(child)
@@ -686,10 +644,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
     }
     owner.phase = previous
   }
-  match clear_request_parameter_source(owner) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
+  clear_request_parameter_source(owner)
   // Registered controllers have relinquished only their own aliases.
   // This caller is explicitly after its borrowed arguments/returned frames.
   if owner.intent_work is Some(work) {

@@ -2249,24 +2249,33 @@ connector-supplied H/R/W inventory is an adoption requirement.
 
 ### Request-owned Parameter Source
 
-The normal Request check entry selects the existing Parameter declaration and
-Source continuation when its caller has not already supplied that original.
-The Request retains this same continuation before fallible construction and
-uses its own capacity for declaration preflight, types, defaults and the final
-Source. An external test or frontend does not have to construct it first.
+The normal Request check entry constructs missing Parameter declarations and
+Source in one semantic phase under its original capacity. It observes the
+original immutable parameter subtree once for node/text dimensions, then folds
+its types/default output and synchronous workspace plus the actual Stage copy
+and root-field Map through the existing common value-node, decoded-text and
+cursor-root allowances. Original indexed input remains borrowed; fixed reader,
+Result and quote controls use the existing Check Host baseline. This logical
+allowance is not measured RAM or a new physical allocator.
 
-A completed Source on that same Request and Program is immutable retained DATA.
-Reusing it checks its original declaration controller and references without
-another reader, work receipt or current callback. Typed declaration/default and
-Source errors remain their original variants; they do not become a generic
-phase failure or successful absence. Reentry is fenced while the Request selects
-this continuation, and a refused grow keeps its original partial duty attached.
+The Request adds that variable backing and the fixed Check holder to one grow.
+The same named work continuation records the metadata work, returns across the
+original grow/current callback, then resumes for the original declaration read
+and Source construction. Capacity failure retains consumed metadata work; no
+receipt is reset or regranted. The Selecting fence prevents reentrant adoption
+or retirement. No external callback occurs between the admitted grow and these
+synchronous constructors, so per-header, per-type, per-value and reconciliation
+current checks are unnecessary. The old fine-grained declaration controller and
+its public exports are removed; effective supplied-value binding is separate.
 
-The actual checker receives this same Source and supplied-value cursor.
-Compilation retains the semantic output before the Request clears the domain's
-local aliases and continues its capacity to Pure or Effect. Failed preparation
-clears the same domain before the existing Request retirement; clearing these
-aliases neither settles capacity nor acknowledges physical cleanup.
+The same existing declaration reader preserves typed first refusals and finite
+node/depth/text limits. Source construction consumes that completed original
+reader, never a copied semantic result. The checker receives that Source and
+original supplied-value cursor. Compilation retains its semantic output before
+Request aliases clear and the same capacity continues to Pure or Effect.
+Clearing immutable aliases neither settles capacity, refunds work nor reports
+physical cleanup. Independently supplied prepared Sources retain their existing
+full correspondence and admission boundaries.
 
 ### Effect inventory on the same parsed input
 

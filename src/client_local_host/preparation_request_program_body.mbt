@@ -22,10 +22,7 @@ pub fn[I] continue_request_program_preparation(
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(ForeignOriginal)
   }
-  match clear_request_parameter_source(owner) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
+  clear_request_parameter_source(owner)
   // Return the already transferred Source controller's local aliases before
   // selecting the final body. Its output is retained by this exact compiler.
   if owner.program_json is Some(source) {

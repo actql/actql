@@ -241,7 +241,32 @@ pub fn[I, P] begin_program_check_preparation(
     Err(issue) => return Err(Capacity(issue))
     Ok(_) => ()
   }
-  Ok({
+  Ok(
+    new_program_check_preparation(
+      capacity, input, program, environment, supplied, evidence, limits, source_catalog,
+      source_preparation, base_retained, base_execution,
+    ),
+  )
+}
+
+///|
+// Pure holder construction after this module's original capacity admission.
+// Request entry folds its Parameter backing into that SAME admission first;
+// this private constructor neither checks current again nor issues capacity.
+fn[I, P] new_program_check_preparation(
+  capacity : @resources.PreparationCapacity[I, P],
+  input : I,
+  program : @syntax.Program,
+  environment : @checked.CheckEnvironment,
+  supplied : @decode.Cursor?,
+  evidence : Array[@context.StageCapacityInput],
+  limits : @checked.CheckLimits,
+  source_catalog : @checked.PreparedSourceCatalog?,
+  source_preparation : @stages.Source?,
+  base_retained : Int64,
+  base_execution : Int64,
+) -> ClientProgramCheckPreparation[I, P] {
+  {
     capacity,
     input: Some(input),
     arguments: Some({
@@ -296,7 +321,7 @@ pub fn[I, P] begin_program_check_preparation(
     base_execution,
     busy: false,
     phase: BindingInitial,
-  })
+  }
 }
 
 ///|
