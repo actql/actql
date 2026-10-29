@@ -23,6 +23,7 @@ fn validation_custody_retire(
   owner : ClientClosedValuesPreparation[Array[Int]],
 ) -> Unit raise {
   assert_false(@resources.retire_preparation_capacity(owner.capacity).unwrap())
+  clear_program_publication(value)
   assert_true(sever_closed_values_body(owner, value.holder))
   assert_true(@resources.return_preparation_body_borrow(value.holder).unwrap())
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)

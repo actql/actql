@@ -75,7 +75,6 @@ pub fn[I] begin_closed_values_owned_run(
     Err(issue) => Err(issue)
     Ok(run) => {
       owner.adopted = true
-      owner.adopted_run = Some(run)
       Ok(run)
     }
   }
@@ -102,13 +101,6 @@ pub fn[I] sever_closed_values_body(
     return false
   }
   owner.retiring = true
-  if owner.publication is Some(publication) {
-    clear_program_publication(publication)
-  }
-  owner.publication = None
-  owner.adopted_run = None
-  owner.publication_definition = None
-  owner.publication_invocation = None
   owner.document = None
   owner.parsed = None
   owner.program = None

@@ -714,14 +714,8 @@ fn[I] make_closed_values_preparation(
     body_ready: false,
     manager_issued: false,
     adopted: false,
-    adopted_run: None,
     submitted_intent: None,
     manager_original: None,
-    publication: None,
-    publication_started: false,
-    publication_invocation_started: false,
-    publication_definition: None,
-    publication_invocation: None,
   }
   value.original = Some(value)
   value

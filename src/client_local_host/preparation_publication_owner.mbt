@@ -46,31 +46,18 @@ let publication_projection_execution : Int64 = 371664L
 ///|
 /// Fixed adopted-owner entry. No supplied row count, policy override or bytes.
 /// One issued continuation fences the serial Result-publication invocation.
-pub fn[I] reserve_program_publication(
-  owner : ClientClosedValuesPreparation[I],
+pub fn reserve_program_publication(
+  owner : ClientInstalledManagedRun,
   prepared : @publication_host.PreparedClientProgram,
-  holder : @resources.PreparationBodyBorrow[
-    @publication_host.PreparedClientProgram,
-  ],
 ) -> Result[ClientProgramPublication, ClientClosedValuesPreparationIssue] {
-  guard owner.original is Some(original) &&
-    physical_equal(original, owner) &&
-    owner.prepared is Some(body) &&
-    physical_equal(body, prepared) &&
-    owner.manager_original is Some(issued) &&
-    physical_equal(issued, holder) &&
-    @resources.preparation_body_borrow_value(holder) is Some(held) &&
-    physical_equal(held, prepared) else {
-    return Err(ForeignOriginal)
+  let holder = match managed_run_publication_body(owner, prepared) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
   }
-  if !owner.adopted ||
-    owner.retiring ||
-    owner.publication_started ||
-    owner.publication is Some(_) ||
-    @resources.preparation_body_retirement_started(holder) {
+  if owner.publication_started || owner.publication is Some(_) {
     return Err(WrongPhase)
   }
-  guard owner.source_free is Some(source_free) else {
+  guard owner.source_free_preparation is Some(source_free) else {
     return Err(ForeignOriginal)
   }
   let plan = source_free.capacity_plan
@@ -79,22 +66,22 @@ pub fn[I] reserve_program_publication(
     physical_equal(demand.original, inventory) &&
     plan.graph is Some(graph) &&
     owner.publication_definition is Some(_) &&
-    owner.publication_invocation is Some(_) else {
-    return Err(Policy)
-  }
-  guard owner.adopted_run is Some(adopted_run) else {
+    owner.publication_invocation is Some(_) &&
+    !owner.source_free_opening &&
+    owner.source_free_captured is Some(captured) &&
+    owner.ledger is Some(ledger) &&
+    physical_equal(ledger, @strategy.captured_dag_ledger(captured)) else {
     return Err(ForeignOriginal)
   }
-  let captured = match
-    installed_managed_publication_dag(adopted_run, prepared) {
-    Err(issue) => return Err(Installed(issue))
+  let (baseline, prior_execution) = match
+    @resources.preparation_body_borrow_reserved_extents(holder) {
+    Err(issue) => return Err(Capacity(issue))
     Ok(value) => value
   }
   owner.publication_started = true
   // The fixed future descriptor/control packet is separate from row payloads:
   // input bag/Plan/extent/empty arrays616, getter112, issued capture handle and
   // result/Option/transition carriers <=512; 808 explicit conservative slack.
-  let baseline = owner.retained_quote
   if baseline > 9223372036854775807L - 2048L {
     return Err(Policy)
   }
@@ -109,22 +96,18 @@ pub fn[I] reserve_program_publication(
   }
   let controls_retained = baseline + 2048L + node_arrays
   let quote_execution = Int64::max(
-    owner.execution_quote,
-    publication_projection_execution,
+    prior_execution, publication_projection_execution,
   )
   match
     reserve_program_publication_phase(
       holder, prepared, controls_retained, quote_execution,
     ) {
     Err(issue) => return Err(issue)
-    Ok(_) => {
-      owner.retained_quote = controls_retained
-      owner.execution_quote = quote_execution
-    }
+    Ok(_) => ()
   }
   guard @resources.preparation_body_borrow_value(holder) is Some(current) &&
     physical_equal(current, prepared) &&
-    !owner.retiring else {
+    managed_run_publication_body(owner, prepared) is Ok(_) else {
     return Err(ForeignOriginal)
   }
   guard scalar_snapshot_layout(inventory.fields, inventory.names, demand.rows)
@@ -174,7 +157,7 @@ pub fn[I] reserve_program_publication(
   // Recheck the exact token after imported callbacks, not merely borrower count.
   guard @resources.preparation_body_borrow_value(holder) is Some(current) &&
     physical_equal(current, prepared) &&
-    !owner.retiring else {
+    managed_run_publication_body(owner, prepared) is Ok(_) else {
     return Err(ForeignOriginal)
   }
   let value : ClientProgramPublication = {
@@ -194,8 +177,6 @@ pub fn[I] reserve_program_publication(
     next_snapshot_index: 0,
     completed_snapshots: [],
   }
-  owner.retained_quote = total_r
-  owner.execution_quote = total_e
   value.original = Some(value)
   owner.publication = Some(value)
   Ok(value)
@@ -291,4 +272,41 @@ fn reserve_program_publication_phase(
       _ => Capacity(issue)
     }
   })
+}
+
+///|
+/// The fixed actual Run supplies its existing private body holder. No caller
+/// provides a substitute borrow, raw preparation input or second owner. This
+/// is original correspondence DATA; the later Resource grow owns currentness.
+fn managed_run_publication_body(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[
+  @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+  ClientClosedValuesPreparationIssue,
+] {
+  guard value.original is Some(original) &&
+    physical_equal(original, value) &&
+    value.ledger is Some(_) &&
+    value.preparation is Some(PureManaged(_, original_prepared)) &&
+    physical_equal(original_prepared, prepared) &&
+    value.preparation_retirement is Some(PurePreparation(custody)) &&
+    custody.holder is Some(holder) &&
+    !@resources.preparation_body_retirement_started(holder) &&
+    @resources.preparation_body_borrow_value(holder) is Some(body) &&
+    physical_equal(body, prepared) else {
+    return Err(ForeignOriginal)
+  }
+  Ok(holder)
+}
+
+///|
+/// Semantic alias retirement only, before returning the Run's same body role.
+fn clear_managed_run_publication(value : ClientInstalledManagedRun) -> Unit {
+  if value.publication is Some(publication) {
+    clear_program_publication(publication)
+  }
+  value.publication = None
+  value.publication_definition = None
+  value.publication_invocation = None
 }

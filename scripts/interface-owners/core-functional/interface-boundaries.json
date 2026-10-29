@@ -24751,7 +24751,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "fe9a2089f5b837881fe4f7909db5318093334134f86cd30dc4da621e04f0b91a",
+      "sha256": "5fcacf5fdba801199f35deea988be30101f88cc5120e19d0224e84ab194b6d38",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -26019,7 +26019,7 @@
     {
       "module": "src/physical_resources/preparation_capacity.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "26c6f8273016f79e5eaaa4bcbecae557c71379daa8c1f931dd09a432734b9e9e",
+      "sha256": "16fd485598b7aa92c122fcb462b76978fa79e953ccf58981c58d5d5ab307a800",
       "role": "common-semantics",
       "owner": "Existing Resource preparation and original body-borrow owner",
       "exports": [],
@@ -26109,6 +26109,10 @@
           "declaration": "[ P ] borrow_preparation_body_sibling ( value : PreparationBodyBorrow [ P ] , ) - > Result [ PreparationBodyBorrow [ P ] , PreparationCapacityIssue ]"
         },
         {
+          "name": "[P]preparation_body_borrow_reserved_extents",
+          "declaration": "[ P ] preparation_body_borrow_reserved_extents ( value : PreparationBodyBorrow [ P ] , ) - > Result [ ( Int64 , Int64 ) , PreparationCapacityIssue ]"
+        },
+        {
           "name": "[P]preparation_body_borrow_value",
           "declaration": "[ P ] preparation_body_borrow_value ( value : PreparationBodyBorrow [ P ] ) - > P ?"
         },
@@ -26163,7 +26167,8 @@
             "[P]return_preparation_body_borrow",
             "preparation_capacity_phase_is_working",
             "retire_transferred_preparation",
-            "[I,P]preparation_capacity_reservation_retired"
+            "[I,P]preparation_capacity_reservation_retired",
+            "[P]preparation_body_borrow_reserved_extents"
           ],
           "exports": [],
           "attributes": {
@@ -26283,14 +26288,18 @@
     {
       "module": "src/client_local_host/preparation_publication_owner.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "8dd5c81be39270e18fd2a37da5d3942d294332818cf51998b4b3164fcb6d6e2f",
+      "sha256": "082c8b1a14e09af5c962c236c100d8f396706589fbc2aa7ea5dcc95b4e28759a",
       "role": "common-semantics",
       "owner": "Existing original Local publication owner",
       "exports": [],
       "operations": [
         {
-          "name": "[I]reserve_program_publication",
-          "declaration": "[ I ] reserve_program_publication ( owner : ClientClosedValuesPreparation [ I ] , prepared : @ publication_host . PreparedClientProgram , holder : @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram , ] , ) - > Result [ ClientProgramPublication , ClientClosedValuesPreparationIssue ]"
+          "name": "clear_managed_run_publication",
+          "declaration": "clear_managed_run_publication ( value : ClientInstalledManagedRun ) - > Unit"
+        },
+        {
+          "name": "managed_run_publication_body",
+          "declaration": "managed_run_publication_body ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] , ClientClosedValuesPreparationIssue , ]"
         },
         {
           "name": "publication_original_body",
@@ -26299,6 +26308,10 @@
         {
           "name": "refresh_publication_original",
           "declaration": "refresh_publication_original ( value : ClientProgramPublication , ) - > Result [ @ publication_host . PreparedClientProgram , ClientClosedValuesPreparationIssue , ]"
+        },
+        {
+          "name": "reserve_program_publication",
+          "declaration": "reserve_program_publication ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ) - > Result [ ClientProgramPublication , ClientClosedValuesPreparationIssue ]"
         },
         {
           "name": "reserve_program_publication_phase",
@@ -26313,11 +26326,13 @@
         {
           "operations": [
             "<module>",
-            "[I]reserve_program_publication",
             "reserve_program_publication_phase",
             "publication_original_body",
             "refresh_publication_original",
-            "reserve_publication_constructor"
+            "reserve_publication_constructor",
+            "clear_managed_run_publication",
+            "managed_run_publication_body",
+            "reserve_program_publication"
           ],
           "exports": [],
           "attributes": {

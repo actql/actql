@@ -1705,7 +1705,7 @@ pub fn client_program_issue_local_values_plan_graph(@run_publication_host.Prepar
 
 pub fn client_program_issue_prepared_effect_run_materials(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity?) -> Result[String, @run_publication_host.ClientEffectRunMaterialsIssue]
 
-pub fn client_program_issue_publication_invocation(@client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @client_local_host.ClientClosedValuesPreparationIssue]
+pub fn client_program_issue_publication_invocation(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @client_local_host.ClientClosedValuesPreparationIssue]
 
 pub fn client_program_issue_publication_plan_facts(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientPublicationPlanFacts, @run_publication_host.ClientPublicationPlanFactIssue]
 
@@ -2719,7 +2719,7 @@ pub fn client_program_reserve_infer_evidence_copy(Int) -> Result[(@physical_reso
 
 pub fn client_program_reserve_original_infer_publication_capacity(@client_infer_host.Execution, Int64, Int64) -> Result[@model_execution.OriginalModelPublicationCapacity, @client_infer_host.Issue]
 
-pub fn client_program_reserve_publication(@client_local_host.ClientClosedValuesPreparation[ClientLocalPreparationInputOriginal], @run_publication_host.PreparedClientProgram, @physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram]) -> Result[@client_local_host.ClientProgramPublication, @client_local_host.ClientClosedValuesPreparationIssue]
+pub fn client_program_reserve_publication(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> Result[@client_local_host.ClientProgramPublication, @client_local_host.ClientClosedValuesPreparationIssue]
 
 pub fn client_program_reserve_request_snapshot(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int64, Int64) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 

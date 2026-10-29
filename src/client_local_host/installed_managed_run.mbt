@@ -36,6 +36,11 @@ struct ClientInstalledManagedRun {
   mut preparation_retirement : ClientManagedPreparationCustody?
   mut source_free_captured : @strategy.CapturedDAG?
   mut source_free_opening : Bool
+  mut publication_invocation_started : Bool
+  mut publication_definition : @publication.PublicationContract?
+  mut publication_invocation : @publication.PublicationContract?
+  mut publication_started : Bool
+  mut publication : ClientProgramPublication?
 }
 
 ///|
@@ -656,6 +661,11 @@ fn new_installed_managed_run_owned(
     preparation_retirement: None,
     source_free_captured: None,
     source_free_opening: false,
+    publication_invocation_started: false,
+    publication_definition: None,
+    publication_invocation: None,
+    publication_started: false,
+    publication: None,
   }
   value.original = Some(value)
   value

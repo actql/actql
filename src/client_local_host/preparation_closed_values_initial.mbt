@@ -33,14 +33,8 @@ struct ClientClosedValuesPreparation[I] {
   mut source_free : ClientInstalledManagedSourceFreePreparation?
   mut body_ready : Bool
   mut manager_issued : Bool
-  mut adopted_run : ClientInstalledManagedRun?
   mut adopted : Bool
   mut submitted_intent : @publication_host.ClientSubmittedIntent?
-  mut publication_invocation_started : Bool
-  mut publication_definition : @publication.PublicationContract?
-  mut publication_invocation : @publication.PublicationContract?
-  mut publication_started : Bool
-  mut publication : ClientProgramPublication?
   mut manager_original : @resources.PreparationBodyBorrow[
     @publication_host.PreparedClientProgram,
   ]?
@@ -354,13 +348,6 @@ pub fn[I] abort_closed_values_preparation_after_cleanup(
   owner.document = None
   owner.parsed = None
   owner.program = None
-  if owner.publication is Some(publication) {
-    clear_program_publication(publication)
-  }
-  owner.publication = None
-  owner.adopted_run = None
-  owner.publication_definition = None
-  owner.publication_invocation = None
   owner.prepared = None
   owner.submitted_intent = None
   owner.source_free = None

@@ -245,3 +245,72 @@ test "publication selected borrower cannot be replaced by another live slot duri
   assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
   assert_eq(ledger_usage(ledger).reserved_execution_bytes, 0L)
 }
+
+///|
+test "body reserved extents are exact original DATA without another current observation" {
+  let ledger = create_ledger({
+    planning_work: 0,
+    attempts: 0,
+    holdings: 0,
+    transfer_bytes: 0L,
+    retained_bytes: 100L,
+    execution_bytes: 100L,
+  }).unwrap()
+  let input = [1]
+  let body = [2]
+  let owner : PreparationCapacity[Array[Int], Array[Int]] = reserve_preparation_capacity(
+    ledger,
+    input,
+    30L,
+    10L,
+    max_borrowers=2,
+  ).unwrap()
+  complete_preparation_capacity(owner, input, body, 30L, 0L).unwrap()
+  let selected = borrow_preparation_body(owner).unwrap()
+  let spare = borrow_preparation_body(owner).unwrap()
+  let calls = Ref(0)
+  ledger.imported_child = Some({
+    nonce: 1L,
+    admit: _ => 0,
+    current: _ => {
+      calls.val += 1
+      0
+    },
+    limit: (_, _) => 0L,
+    capacity: (_, _) => 0L,
+    report: (_, _) => 0,
+    stop: _ => 0,
+    fixed_capacities: false,
+    ledger: Some(ledger),
+    stopping: false,
+    unavailable: false,
+  })
+  let unrelated = reserve_capacity(ledger, 7L, 11L).unwrap()
+  let before = calls.val
+  assert_eq(
+    preparation_body_borrow_reserved_extents(selected).unwrap(),
+    (30L, 0L),
+  )
+  assert_eq(calls.val, before)
+  transfer_preparation_capacity_to_run(owner, input, body, ledger).unwrap()
+  reserve_preparation_publication_phase(selected, body, 50L, 20L).unwrap()
+  let before = calls.val
+  assert_eq(
+    preparation_body_borrow_reserved_extents(selected).unwrap(),
+    (50L, 20L),
+  )
+  assert_eq(calls.val, before)
+  assert_false(return_preparation_body_borrow(selected).unwrap())
+  assert_true(
+    preparation_body_borrow_reserved_extents(selected) is Err(BorrowReturned),
+  )
+  assert_eq(
+    preparation_body_borrow_reserved_extents(spare).unwrap(),
+    (50L, 20L),
+  )
+  assert_false(retire_preparation_capacity(owner).unwrap())
+  assert_true(preparation_body_borrow_reserved_extents(spare) is Err(Retired))
+  assert_true(return_preparation_body_borrow(spare).unwrap())
+  settle_capacity(ledger, unrelated).unwrap()
+  assert_eq(ledger_usage(ledger).live_reservations, 0)
+}

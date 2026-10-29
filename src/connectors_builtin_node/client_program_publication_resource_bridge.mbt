@@ -3,18 +3,13 @@
 /// The handle carries provenance, not caller-supplied byte/work quantities.
 #export_name("clientProgramReservePublication")
 pub fn client_program_reserve_publication(
-  owner : @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
+  owner : @client_local_host.ClientInstalledManagedRun,
   prepared : @publication_host.PreparedClientProgram,
-  holder : @resources.PreparationBodyBorrow[
-    @publication_host.PreparedClientProgram,
-  ],
 ) -> Result[
   @client_local_host.ClientProgramPublication,
   @client_local_host.ClientClosedValuesPreparationIssue,
 ] {
-  @client_local_host.reserve_program_publication(owner, prepared, holder)
+  @client_local_host.reserve_program_publication(owner, prepared)
 }
 
 ///|
@@ -22,9 +17,7 @@ pub fn client_program_reserve_publication(
 /// exact returned original to the same preparation's publication lineage.
 #export_name("clientProgramIssuePublicationInvocation")
 pub fn client_program_issue_publication_invocation(
-  owner : @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
+  owner : @client_local_host.ClientInstalledManagedRun,
   prepared : @publication_host.PreparedClientProgram,
   compiled : @publication_host.ClientCompiledRun,
   definition : @publication.PublicationContract,

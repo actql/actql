@@ -302,6 +302,8 @@ pub fn[T] park_original_resource_consumer(FundedReadConsumer[T], T) -> Result[Or
 
 pub fn[T] park_original_resource_consumer_for_state_write(FundedReadConsumer[T], T) -> Result[OriginalResourcePark[T], OriginalReadIssue]
 
+pub fn[P] preparation_body_borrow_reserved_extents(PreparationBodyBorrow[P]) -> Result[(Int64, Int64), PreparationCapacityIssue]
+
 pub fn[P] preparation_body_borrow_value(PreparationBodyBorrow[P]) -> P?
 
 pub fn[P] preparation_body_retirement_started(PreparationBodyBorrow[P]) -> Bool

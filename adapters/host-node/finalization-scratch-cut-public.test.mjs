@@ -31,12 +31,12 @@ test('completed managed finalization retires scratch before publication while ou
   const original=String(loaded.source);
   const reserve=`      return checkedPreparation(state.context.runtime,
         state.context.runtime.clientProgramReservePublication(
-          state.phase, prepared, state.holder));`;
+          run.value, prepared));`;
   const stop='      liveRuns.delete(run);producer.liveRuns--;';
   assert.equal(original.split(reserve).length,2);assert.equal(original.split(stop).length,2);
   const source=original.replace(reserve,`      const publication = checkedPreparation(state.context.runtime,
         state.context.runtime.clientProgramReservePublication(
-          state.phase, prepared, state.holder));
+          run.value, prepared));
       globalThis[Symbol.for('actql.test.finalization-scratch-cut')](state,'publication');
       return publication;`).replace(stop,`      globalThis[Symbol.for('actql.test.finalization-scratch-cut')](state,'stopped');\n${stop}`);
   console.log(JSON.stringify({testInstrumentation:'readonly-finalization-accounting',cohort:coherence.sourceTreeDigest,originalSha256:createHash('sha256').update(original).digest('hex'),instrumentedSha256:createHash('sha256').update(source).digest('hex')}));

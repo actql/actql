@@ -418,7 +418,7 @@ pub fn installed_row_capture_capacity(@client_row_source_host.RowAcquisition) ->
 
 pub fn installed_source_reader_policy() -> Array[Int]
 
-pub fn[I] issue_program_publication_invocation(ClientClosedValuesPreparation[I], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), ClientClosedValuesPreparationIssue]
+pub fn issue_program_publication_invocation(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), ClientClosedValuesPreparationIssue]
 
 pub fn local_values_execution_failure_cleanup_pending(LocalValuesExecutionFailure) -> Bool
 
@@ -754,7 +754,7 @@ pub fn[I] request_query_syntax_work(ClientRequestPreparation[I], I) -> Result[(I
 
 pub fn[I] reserve_closed_values_snapshot(ClientClosedValuesPreparation[I], ClientClosedValuesInputEnvelope, Int) -> Result[Unit, ClientClosedValuesPreparationIssue]
 
-pub fn[I] reserve_program_publication(ClientClosedValuesPreparation[I], @run_publication_host.PreparedClientProgram, @physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram]) -> Result[ClientProgramPublication, ClientClosedValuesPreparationIssue]
+pub fn reserve_program_publication(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> Result[ClientProgramPublication, ClientClosedValuesPreparationIssue]
 
 pub fn[I] reserve_request_effect_plan(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
 

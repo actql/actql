@@ -50,6 +50,7 @@ test "typed snapshot foreign terminal handle cannot cut the original slot" {
   assert_eq(publication.completed_snapshots.length(), 0)
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 1000000L)
   assert_false(@resources.retire_preparation_capacity(owner.capacity).unwrap())
+  clear_program_publication(publication)
   assert_true(sever_closed_values_body(owner, publication.holder))
   assert_true(
     @resources.return_preparation_body_borrow(publication.holder).unwrap(),

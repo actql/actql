@@ -386,10 +386,11 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     publicationPreparation(prepared) {
       const run = runFor(prepared), state = run.producer.preparation;
       if (state === undefined || state.prepared !== prepared ||
-          state.holder === undefined || !state.adopting || state.phase === undefined) {
+          state.holder === undefined || !state.adopting) {
         fail('ForeignInstalledSourceProducer');
       }
-      return state.phase;
+      if (run.value === undefined) fail('NodeManagedRunAdmissionUnavailable');
+      return run.value;
     },
     reservePublication(prepared) {
       const run = runFor(prepared), state = run.producer.preparation;
@@ -397,9 +398,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           state.holder === undefined || !state.adopting) {
         fail('ForeignInstalledSourceProducer');
       }
+      if (run.value === undefined) fail('NodeManagedRunAdmissionUnavailable');
       return checkedPreparation(state.context.runtime,
         state.context.runtime.clientProgramReservePublication(
-          state.phase, prepared, state.holder));
+          run.value, prepared));
     },
     compilationOriginal(prepared) {
       const run = runFor(prepared), state = run.producer.preparation;

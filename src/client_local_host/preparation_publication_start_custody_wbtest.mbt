@@ -46,6 +46,7 @@ test "publication capture start rechecks exact plan after callback cancellation"
   assert_true(capture.issuer is None)
   assert_true(@publication.capture_construction_layout_facts(plan) is None)
   assert_false(@resources.retire_preparation_capacity(owner.capacity).unwrap())
+  clear_program_publication(value)
   assert_true(sever_closed_values_body(owner, value.holder))
   assert_true(@resources.return_preparation_body_borrow(value.holder).unwrap())
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)

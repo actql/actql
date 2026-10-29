@@ -87,14 +87,8 @@ fn publication_custody_fixture_originals(
     body_ready: true,
     manager_issued: true,
     adopted: true,
-    adopted_run: None,
     submitted_intent: None,
     manager_original: Some(holder),
-    publication: None,
-    publication_started: true,
-    publication_invocation_started: false,
-    publication_definition: None,
-    publication_invocation: None,
   }
   owner.original = Some(owner)
   let value : ClientProgramPublication = {
@@ -115,7 +109,6 @@ fn publication_custody_fixture_originals(
     completed_snapshots: [],
   }
   value.original = Some(value)
-  owner.publication = Some(value)
   (value, ledger, owner)
 }
 
@@ -149,11 +142,11 @@ test "publication handle rejects manager returned by currentness while sibling s
 test "publication escaped handle and one-shot continuation reject retired owner" {
   let (value, ledger, owner) = publication_custody_fixture_originals(() => ())
   let prepared = publication_original_body(value).unwrap()
-  assert_true(
-    reserve_program_publication(owner, prepared, value.holder)
-    is Err(WrongPhase),
-  )
+  let used = managed_publication_duplicate_fixture(prepared)
+  assert_true(reserve_program_publication(used, prepared) is Err(WrongPhase))
+  retire_installed_managed_run(used).unwrap()
   assert_false(@resources.retire_preparation_capacity(owner.capacity).unwrap())
+  clear_program_publication(value)
   assert_true(sever_closed_values_body(owner, value.holder))
   assert_true(@resources.return_preparation_body_borrow(value.holder).unwrap())
   assert_true(refresh_publication_original(value) is Err(ForeignOriginal))
@@ -215,6 +208,7 @@ test "publication capture handle retirement cancels private issuer before zero" 
   value.capture_started = true
   value.capture = Some(capture)
   assert_false(@resources.retire_preparation_capacity(owner.capacity).unwrap())
+  clear_program_publication(value)
   assert_true(sever_closed_values_body(owner, value.holder))
   assert_true(capture.issuer is None)
   assert_eq(
@@ -258,6 +252,7 @@ test "publication capture handle callback cancellation cannot resume escaped iss
     "closed",
   )
   assert_false(@resources.retire_preparation_capacity(owner.capacity).unwrap())
+  clear_program_publication(value)
   assert_true(sever_closed_values_body(owner, value.holder))
   assert_true(@resources.return_preparation_body_borrow(value.holder).unwrap())
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
@@ -333,6 +328,7 @@ test "publication two original handles refuse same CID foreign invocation before
     assert_false(
       @resources.retire_preparation_capacity(owner.capacity).unwrap(),
     )
+    clear_program_publication(value)
     assert_true(sever_closed_values_body(owner, value.holder))
     assert_true(
       @resources.return_preparation_body_borrow(value.holder).unwrap(),
@@ -416,6 +412,7 @@ test "publication capture handle failed payload growth retains owned plan until 
     publication_projection_execution,
   )
   assert_false(@resources.retire_preparation_capacity(owner.capacity).unwrap())
+  clear_program_publication(value)
   assert_true(sever_closed_values_body(owner, value.holder))
   assert_true(capture.plan is None)
   assert_true(@resources.return_preparation_body_borrow(value.holder).unwrap())
@@ -439,6 +436,7 @@ test "publication continues on the adopted body after the raw input alias is cut
   assert_true(physical_equal(owner.capacity, original))
   assert_eq(@resources.ledger_usage(ledger), before)
   assert_false(@resources.retire_preparation_capacity(original).unwrap())
+  clear_program_publication(value)
   assert_true(sever_closed_values_body(owner, value.holder))
   assert_true(@resources.return_preparation_body_borrow(value.holder).unwrap())
   assert_true(publication_original_body(value) is None)
@@ -462,7 +460,6 @@ test "publication continuation retains its original borrow after legacy preparat
   legacy.prepared = None
   legacy.manager_original = None
   legacy.source_free = None
-  legacy.publication = None
   assert_true(
     physical_equal(
       @resources.preparation_body_borrow_value(holder).unwrap(),
@@ -490,6 +487,7 @@ test "publication controller copy cannot replace its original before current" {
   assert_eq(calls.val, before)
   assert_true(publication_original_body(value) is Some(_))
   assert_false(@resources.retire_preparation_capacity(owner.capacity).unwrap())
+  clear_program_publication(value)
   assert_true(sever_closed_values_body(owner, value.holder))
   assert_true(@resources.return_preparation_body_borrow(value.holder).unwrap())
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
