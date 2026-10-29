@@ -104,6 +104,45 @@ fn[I, P] prepare_program_check_input_owned(
       owner.phase = Failed
       return Err(Overflow)
     }
+    // Original header count is retained by Program construction. These new
+    // input-scaled arrays/records coexist with the actual binder; borrowed
+    // declaration text/index stays with its existing owner. Fixed controls
+    // remain trusted Host overhead, not another per-wrapper census.
+    let extra = if owner.effect_limits is Some(_) {
+      let n = @syntax.program_preparation_data(arguments.program).effect_members.to_int64()
+      let stages = @syntax.stage_count(arguments.program).to_int64()
+      let inventory : @shape.CollectionConstructionInventory = {
+        records: 2L * n,
+        record_references: 16L * n,
+        record_words: 2L * n,
+        reference_arrays: stages + 1L,
+        reference_items: 2L * n + stages,
+        scalar_arrays: 0L,
+        scalar_items: 0L,
+        maps: 0L,
+        map_entries: 0L,
+      }
+      guard @shape.collection_construction_extent(inventory) is Some(header) &&
+        @execution.preparation_representation_cost(
+          program_structure_units(
+            header.record_headers,
+            header.reference_slots,
+            header.scalar_words,
+          ),
+        )
+        is Some(bytes) else {
+        owner.phase = Failed
+        return Err(Overflow)
+      }
+      bytes
+    } else {
+      0L
+    }
+    guard @execution.checked_preparation_add_product(r1, extra, 1L) is Some(r1) &&
+      @execution.checked_preparation_add_product(e1, extra, 1L) is Some(e1) else {
+      owner.phase = Failed
+      return Err(Overflow)
+    }
     owner.binding_quote = Some((r1, e1))
     owner.phase = BindingQuoted
   }
@@ -169,15 +208,44 @@ fn[I, P] prepare_program_check_input_owned(
     Ok(value) => value
   }
   owner.work = Some(receipt)
-  let (result, spent) = @checked.observe_parsed_check_input_preparation(
-    arguments.program,
-    arguments.environment,
-    arguments.supplied,
-    arguments.evidence,
-    arguments.limits,
-    source_catalog=arguments.source_catalog,
-    source_preparation=arguments.source_preparation,
-  )
+  let (result, spent) = match owner.effect_limits {
+    None => {
+      let (outcome, work) = @checked.observe_parsed_check_input_preparation(
+        arguments.program,
+        arguments.environment,
+        arguments.supplied,
+        arguments.evidence,
+        arguments.limits,
+        source_catalog=arguments.source_catalog,
+        source_preparation=arguments.source_preparation,
+      )
+      (
+        outcome.map_err(issue => {
+          ClientProgramCheckPreparationIssue::Check(issue)
+        }),
+        work,
+      )
+    }
+    Some(limits) => {
+      let (outcome, work) = @checked.observe_prepare_effect_computation_input(
+        arguments.program,
+        arguments.environment,
+        arguments.supplied,
+        arguments.evidence,
+        arguments.limits,
+        limits.max_members,
+        limits.max_header_work,
+        source_catalog=arguments.source_catalog,
+        source_preparation=arguments.source_preparation,
+      )
+      (
+        outcome.map_err(issue => {
+          ClientProgramCheckPreparationIssue::EffectInput(issue)
+        }),
+        work,
+      )
+    }
+  }
   if result is Ok(value) {
     owner.check_input = Some(value)
   }
@@ -202,7 +270,7 @@ fn[I, P] prepare_program_check_input_owned(
   match result {
     Err(issue) => {
       owner.phase = Failed
-      Err(Check(issue))
+      Err(issue)
     }
     Ok(_) => {
       owner.phase = CheckPrepared

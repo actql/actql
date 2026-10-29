@@ -2172,3 +2172,66 @@ These factories are Host implementation details, not connector-author APIs.
 Connector definitions supply ordinary contracts and provider data; the Host
 selects the original Request, policy and backing. No per-wrapper census or
 connector-supplied H/R/W inventory is an adoption requirement.
+
+
+### Effect inventory on the same parsed input
+
+An Effect computation first retains its original validated header inventory
+and subtracts the original header work before binding computation inputs.
+The same parsed input carries that inventory through prelude, Catalog and
+remaining computation construction. The phased Effect finish consumes its
+original registry once and returns the actual typed computation candidate.
+It does not upgrade an independently checked Program by matching identity,
+recheck the computation or skip static Mapping/Effect closure.
+
+Pure parsed input has no Effect headers and keeps its existing unsupported
+Effect refusal. Both diagnostic projection and the typed Effect continuation
+invoke one original remaining computation constructor. Header/member work,
+provided Parameter values, prepared Catalog provenance and Source preparation
+keep their original bindings and finite limits. Current grants, captured
+values, Preview, durable claims, physical stop and cleanup remain separate.
+
+This internal candidate handoff enables the Host's subsequent compiler and
+Plan continuation. It is not an executable Effect, final Resource transfer or
+an additional connector-author lifecycle.
+
+
+### Effect compiler and original Plan body
+
+The Request selects the installed Effect configuration before its original
+input binder. Its validated header count is retained by Program construction,
+and the new header array/record storage overlaps the same input binder on
+the same parent. The original header work and binding prefix are charged
+once. The optional original Parameter/Source preparation travels unchanged;
+no default source or parameter configuration substitutes for it.
+
+The typed Effect candidate retains its exact supplied Cursor and checked
+computation. Static Mapping closure, target selection, lowering and graph
+construction share one existing compiler body with synchronous callers.
+A declined grow retains that original candidate, installed limits and target
+publication references. It cannot replace a publication with an equal copy or
+rerun computation checking to recover a candidate. Known completed lowering
+work remains a prefix, not complete failed or nested work. Preparation-phase
+receipts remain distinct from dispatch planning work and cannot be refilled
+by reopening their original phase.
+
+The final Effect body is its actual installed Plan. The same Request capacity
+continues from Unit to that typed Plan; an Effect is never cast to a Pure
+prepared Program. The Core sequence/Plan construction envelope coexists with
+the retained compiler. The normal Host must also fund its selected provider,
+request/response, physical backing and failed-child overlap on this same
+parent before construction. Core collection estimates do not grant that
+external supply or create connector-author capacity knobs.
+
+Completion retains the exact Plan with its original prepared computation,
+request and configuration. The existing preparation-owned Effect Run consumes
+that same initial admission and body, retaining its two actual holders.
+A manager borrow delays retirement; parent cleanup cannot settle a consumed
+successor or infer stop from a returned Promise. Failed construction and
+retirement keep their original cleanup owners and consumed work.
+
+The original numeric limits getter reads immutable admission DATA with its
+nominal input/purpose/phase checks. It supplies no currentness or permission
+witness. The following atomic Run adoption performs the real external current
+callback and its original post-callback reservation/stopping fence once.
+There is no reusable currentness proof or additional cleanup owner.

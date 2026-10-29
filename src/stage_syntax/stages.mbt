@@ -246,6 +246,7 @@ fn decode_envelope(
   }
   let preparation : ProgramPreparationState = {
     operations: 0,
+    effect_members: 0,
     results: 0,
     external_inputs: 0,
     initial_fields: 0,
@@ -354,6 +355,7 @@ fn decode_envelope(
       Some(value) => names(value, false)
       None => []
     }
+    preparation.effect_members += effects.length()
     // Effects are roots even without public Results. This is structural syntax,
     // not authorization: every Effect still needs the common semantic checker.
     let open_prefix = prefix && stages.length() == nodes.length() - 1
@@ -415,6 +417,7 @@ fn decode_envelope(
     source_usage,
     preparation: {
       operations: preparation.operations,
+      effect_members: preparation.effect_members,
       results: preparation.results + exports.length(),
       external_inputs: preparation.external_inputs,
       initial_fields: preparation.initial_fields,

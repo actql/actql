@@ -5,6 +5,9 @@
 pub fn[I, P] finish_program_check_preparation(
   owner : ClientProgramCheckPreparation[I, P],
 ) -> Result[@checked.CheckOutcome, ClientProgramCheckPreparationIssue] {
+  if owner.effect_limits is Some(_) {
+    return Err(WrongPhase)
+  }
   if owner.phase == RequestsPrepared {
     match reconcile_program_check_requests(owner) {
       Err(issue) => return Err(issue)
@@ -29,6 +32,57 @@ fn[I, P] finish_program_check_preparation_owned(
   input : I,
   original : @checked.ParsedCheckRegistry,
 ) -> Result[@checked.CheckOutcome, ClientProgramCheckPreparationIssue] {
+  let work = match begin_program_remaining_check(owner, input, original) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let (outcome, spent, complete) = match
+    @checked.observe_finish_parsed_check_registry(original) {
+    Err(issue) => {
+      owner.phase = Failed
+      return Err(Prelude(issue))
+    }
+    Ok(value) => value
+  }
+  let charged = @resources.spend_preparation_phase_work64(
+    work,
+    spent.to_int64(),
+  )
+  match @resources.finish_preparation_phase_work64(work) {
+    Err(issue) => {
+      owner.phase = Failed
+      return Err(Work(issue))
+    }
+    Ok(_) => owner.work = None
+  }
+  match charged {
+    Err(issue) => {
+      owner.phase = Failed
+      return Err(Work(issue))
+    }
+    Ok(_) => ()
+  }
+  owner.check_outcome = Some(outcome)
+  owner.check_work_complete = complete
+  owner.phase = if outcome is @checked.Checked(_) {
+    SemanticCheckComplete
+  } else {
+    SemanticCheckRejected
+  }
+  // Keep this single conservative data envelope with the original checked
+  // output until the actual Plan/Run handoff or existing clear. No early refund.
+  Ok(outcome)
+}
+
+///|
+fn[I, P] begin_program_remaining_check(
+  owner : ClientProgramCheckPreparation[I, P],
+  input : I,
+  original : @checked.ParsedCheckRegistry,
+) -> Result[
+  @resources.PreparationPhaseWork64,
+  ClientProgramCheckPreparationIssue,
+] {
   if owner.phase == RequestsRetained {
     guard @checked.parsed_check_registry_data_estimate(original) is Some(data) &&
       program_check_data_extent_cost(data) is Some(bytes) else {
@@ -87,14 +141,54 @@ fn[I, P] finish_program_check_preparation_owned(
     }
     Ok(_) => ()
   }
-  let (outcome, spent, complete) = match
-    @checked.observe_finish_parsed_check_registry(original) {
-    Err(issue) => {
-      owner.phase = Failed
-      return Err(Prelude(issue))
+  Ok(work)
+}
+
+///|
+/// Same original remaining semantic phase, retaining its typed Effect result.
+pub fn[I, P] finish_effect_program_check_preparation(
+  owner : ClientProgramCheckPreparation[I, P],
+) -> Result[
+  @checked.EffectComputationCandidate,
+  ClientProgramCheckPreparationIssue,
+] {
+  if owner.phase == RequestsPrepared {
+    match reconcile_program_check_requests(owner) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
     }
+  }
+  guard !owner.busy &&
+    owner.effect_limits is Some(_) &&
+    (owner.phase == RequestsRetained || owner.phase == SemanticCheckQuoted) &&
+    owner.input is Some(input) &&
+    owner.check_registry is Some(original) else {
+    return Err(WrongPhase)
+  }
+  owner.busy = true
+  let result = finish_effect_program_check_preparation_owned(
+    owner, input, original,
+  )
+  owner.busy = false
+  result
+}
+
+///|
+fn[I, P] finish_effect_program_check_preparation_owned(
+  owner : ClientProgramCheckPreparation[I, P],
+  input : I,
+  original : @checked.ParsedCheckRegistry,
+) -> Result[
+  @checked.EffectComputationCandidate,
+  ClientProgramCheckPreparationIssue,
+] {
+  let work = match begin_program_remaining_check(owner, input, original) {
+    Err(issue) => return Err(issue)
     Ok(value) => value
   }
+  let (result, spent, complete) = @checked.observe_finish_parsed_effect_check_registry(
+    original,
+  )
   let charged = @resources.spend_preparation_phase_work64(
     work,
     spent.to_int64(),
@@ -113,16 +207,18 @@ fn[I, P] finish_program_check_preparation_owned(
     }
     Ok(_) => ()
   }
-  owner.check_outcome = Some(outcome)
   owner.check_work_complete = complete
-  owner.phase = if outcome is @checked.Checked(_) {
-    SemanticCheckComplete
-  } else {
-    SemanticCheckRejected
+  match result {
+    Err(issue) => {
+      owner.phase = SemanticCheckRejected
+      Err(EffectInput(issue))
+    }
+    Ok(candidate) => {
+      owner.effect_candidate = Some(candidate)
+      owner.phase = SemanticCheckComplete
+      Ok(candidate)
+    }
   }
-  // Keep this single conservative data envelope with the original checked
-  // output until the actual Plan/Run handoff or existing clear. No early refund.
-  Ok(outcome)
 }
 
 ///|

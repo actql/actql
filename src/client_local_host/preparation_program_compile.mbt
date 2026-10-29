@@ -10,7 +10,8 @@ pub fn[I, P] compile_program_check_preparation(
   @publication_host.PreparedClientProgram,
   ClientProgramCheckPreparationIssue,
 ] {
-  guard !owner.busy &&
+  guard owner.effect_limits is None &&
+    !owner.busy &&
     (owner.phase == SemanticCheckComplete || owner.phase == CompilationQuoted) &&
     owner.input is Some(input) &&
     owner.check_outcome is Some(@checked.Checked(checked)) &&
@@ -40,6 +41,59 @@ fn[I, P] compile_program_check_preparation_owned(
   limits : @publication_host.ClientProgramPreparationLimits,
 ) -> Result[
   @publication_host.PreparedClientProgram,
+  ClientProgramCheckPreparationIssue,
+] {
+  let work = match
+    begin_program_compilation_work(owner, input, checked, data, limits) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let (result, known) = @publication_host.observe_prepare_checked_effect_free_client_program(
+    checked,
+    limits.lowering,
+    max_parameters=limits.max_parameters,
+    max_parameter_name_bytes=limits.max_parameter_name_bytes,
+    max_tasks=limits.max_tasks,
+    max_graph_work=limits.max_graph_work,
+  )
+  owner.compilation_known_work = known
+  let charged = @resources.spend_preparation_phase_work64(work, known)
+  match @resources.finish_preparation_phase_work64(work) {
+    Err(issue) => {
+      owner.phase = CompilationFailed
+      return Err(Work(issue))
+    }
+    Ok(_) => owner.work = None
+  }
+  match charged {
+    Err(issue) => {
+      owner.phase = CompilationFailed
+      return Err(Work(issue))
+    }
+    Ok(_) => ()
+  }
+  match result {
+    Err(issue) => {
+      owner.phase = CompilationFailed
+      Err(Compilation(issue))
+    }
+    Ok(prepared) => {
+      owner.compiled_program = Some(prepared)
+      owner.phase = CompilationComplete
+      Ok(prepared)
+    }
+  }
+}
+
+///|
+fn[I, P] begin_program_compilation_work(
+  owner : ClientProgramCheckPreparation[I, P],
+  input : I,
+  checked : @checked.CheckedProgram,
+  data : @checked.ParsedCheckDataEstimate,
+  limits : @publication_host.ClientProgramPreparationLimits,
+) -> Result[
+  @resources.PreparationPhaseWork64,
   ClientProgramCheckPreparationIssue,
 ] {
   if owner.phase == SemanticCheckComplete {
@@ -85,13 +139,83 @@ fn[I, P] compile_program_check_preparation_owned(
     Ok(value) => value
   }
   owner.work = Some(work)
-  let (result, known) = @publication_host.observe_prepare_checked_effect_free_client_program(
-    checked,
-    limits.lowering,
-    max_parameters=limits.max_parameters,
-    max_parameter_name_bytes=limits.max_parameter_name_bytes,
-    max_tasks=limits.max_tasks,
-    max_graph_work=limits.max_graph_work,
+  Ok(work)
+}
+
+///|
+fn[T] same_effect_publication(left : T?, right : T?) -> Bool {
+  match (left, right) {
+    (None, None) => true
+    (Some(a), Some(b)) => physical_equal(a, b)
+    _ => false
+  }
+}
+
+///|
+/// Original retained Effect candidate to the existing static/lowering/graph
+/// body. Declined grows retain all original publication selections and limits.
+pub fn[I, P] compile_effect_program_check_preparation(
+  owner : ClientProgramCheckPreparation[I, P],
+  update_targets? : @update_targets.UpdateTargetPublication? = None,
+  store_targets? : @update_targets.StoreTargetPublication? = None,
+  command_targets? : @update_targets.CommandTargetPublication? = None,
+) -> Result[
+  @publication_host.PreparedClientEffectComputation,
+  ClientProgramCheckPreparationIssue,
+] {
+  guard !owner.busy &&
+    (owner.phase == SemanticCheckComplete || owner.phase == CompilationQuoted) &&
+    owner.input is Some(input) &&
+    owner.effect_candidate is Some(candidate) &&
+    owner.effect_limits is Some(limits) &&
+    owner.check_data is Some(data) else {
+    return Err(WrongPhase)
+  }
+  if owner.effect_targets is Some((update, store, command)) {
+    if !same_effect_publication(update, update_targets) ||
+      !same_effect_publication(store, store_targets) ||
+      !same_effect_publication(command, command_targets) {
+      return Err(ChangedInputs)
+    }
+  } else {
+    owner.effect_targets = Some(
+      (update_targets, store_targets, command_targets),
+    )
+  }
+  owner.busy = true
+  let result = compile_effect_program_check_preparation_owned(
+    owner, input, candidate, data, limits, update_targets, store_targets, command_targets,
+  )
+  owner.busy = false
+  result
+}
+
+///|
+fn[I, P] compile_effect_program_check_preparation_owned(
+  owner : ClientProgramCheckPreparation[I, P],
+  input : I,
+  candidate : @checked.EffectComputationCandidate,
+  data : @checked.ParsedCheckDataEstimate,
+  limits : @publication_host.ClientEffectComputationLimits,
+  update_targets : @update_targets.UpdateTargetPublication?,
+  store_targets : @update_targets.StoreTargetPublication?,
+  command_targets : @update_targets.CommandTargetPublication?,
+) -> Result[
+  @publication_host.PreparedClientEffectComputation,
+  ClientProgramCheckPreparationIssue,
+] {
+  let checked = @checked.effect_computation_checked_program(candidate)
+  let work = match
+    begin_program_compilation_work(owner, input, checked, data, limits.program) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let (result, known) = @publication_host.observe_prepare_checked_client_effect_computation(
+    candidate,
+    limits,
+    update_targets~,
+    store_targets~,
+    command_targets~,
   )
   owner.compilation_known_work = known
   let charged = @resources.spend_preparation_phase_work64(work, known)
@@ -112,10 +236,10 @@ fn[I, P] compile_program_check_preparation_owned(
   match result {
     Err(issue) => {
       owner.phase = CompilationFailed
-      Err(Compilation(issue))
+      Err(EffectCompilation(issue))
     }
     Ok(prepared) => {
-      owner.compiled_program = Some(prepared)
+      owner.compiled_effect = Some(prepared)
       owner.phase = CompilationComplete
       Ok(prepared)
     }

@@ -270,11 +270,23 @@ fn finish_parsed_check_registry_owned(
   prepared : ParsedCheckRegistry,
   source_context? : @context.SourceViewContextInput? = None,
 ) -> CheckOutcome {
+  let original = prepared.prelude.original
+  checking_outcome(original.program, original.environment, () => {
+    construct_after_parsed_check_registry(prepared, source_context~)
+  })
+}
+
+///|
+fn construct_after_parsed_check_registry(
+  prepared : ParsedCheckRegistry,
+  source_context? : @context.SourceViewContextInput? = None,
+) -> CheckedProgram raise LocalConstructionFailure {
   let prelude = prepared.prelude
   let {
     program,
     environment,
     supplied,
+    effect_headers,
     inputs,
     limits,
     source_catalog,
@@ -284,31 +296,29 @@ fn finish_parsed_check_registry_owned(
     Registered(_, _, _, selected, _, _) => selected
     _ => compile_source_limits(limits)
   }
-  checking_outcome(program, environment, () => {
-    check_after_prelude(
-      program,
-      environment.wire,
-      supplied,
-      [],
-      environment.expressions,
-      environment.operations,
-      source_limits,
-      prelude.budget,
-      prelude.declaration_work,
-      has_effects=false,
-      numeric_profile=environment.numeric,
-      calendar=environment.calendar,
-      text_rank=environment.text_rank,
-      capacity_inputs=Some(inputs),
-      graph=environment.graph,
-      model_tasks=environment.model_tasks,
-      request_value_policies=environment.request_value_policies,
-      source_catalog~,
-      source_preparation~,
-      environment_start=Some(prepared.start),
-      source_context~,
-    )
-  })
+  check_after_prelude(
+    program,
+    environment.wire,
+    supplied,
+    [],
+    environment.expressions,
+    environment.operations,
+    source_limits,
+    prelude.budget,
+    prelude.declaration_work,
+    has_effects=effect_headers is Some(_),
+    numeric_profile=environment.numeric,
+    calendar=environment.calendar,
+    text_rank=environment.text_rank,
+    capacity_inputs=Some(inputs),
+    graph=environment.graph,
+    model_tasks=environment.model_tasks,
+    request_value_policies=environment.request_value_policies,
+    source_catalog~,
+    source_preparation~,
+    environment_start=Some(prepared.start),
+    source_context~,
+  )
 }
 
 ///|
