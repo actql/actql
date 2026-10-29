@@ -1959,6 +1959,8 @@ pub fn prepared_client_publication_data_policy_cid(PreparedClientProgram) -> Str
 
 pub fn prepared_client_publication_policy_bodies(PreparedClientProgram, Int, Int, Int) -> Result[Array[(String, String, String)], @program_check.LocalDependencyBodyIssue]
 
+pub fn prepared_client_pure_measurement_storage(PreparedClientProgram, ClientPureCompilationLimits) -> Result[@execution_relation.PreparationRepresentationUnits, ClientValuesExecutablePlanIssue]
+
 pub fn prepared_client_requires_query_time(PreparedClientProgram, Int, Int) -> Result[Bool, ClientQueryTimeIssue]
 
 pub fn prepared_client_requires_task_compilation(PreparedClientProgram) -> Bool

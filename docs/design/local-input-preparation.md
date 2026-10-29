@@ -3070,3 +3070,38 @@ manufacture an internal construction. Removing this own-output parse does not
 adopt external JSON, change a public acceptance rule or establish the complete
 compiler's allocation/backing or consumed-work proof. The remaining constructor
 reservation keeps its existing conservative overlap bound.
+
+### Compiler measurement collection backing
+
+The Request retains the selected module before sizing its concrete compiler
+artifact. The sizing operation itself owns variable collections: per-task
+Fragment geometry and port geometry, per-Result geometry and graph vectors,
+publication fact vectors and witness geometry/CID vectors. Their returned data
+coexists with the module and subsequent artifact constructor. It is not free
+because the measured codec does not emit a wire.
+
+Before entering that sizing operation, the original checked graph supplies its
+task, Result, data-edge and original port counts. The original checked
+publications supply both fact scopes and witness occurrences. The latter bound
+the deduplicated witness vectors; they are not consumed work or a claim that
+repeated witness bodies remain distinct. Shared collection construction rules
+expand Array growth/backing and tuple/record storage, and the existing common
+representation tariff prices the result. Generated label storage follows the
+same coordinate constructors as actual Fragment and Result construction.
+Borrowed schema/name/CID/value backing is not copied into this inventory.
+
+The SAME Request capacity grows by this collection envelope before sizing.
+A declined grow retains the exact module, original inputs and absolute quote,
+with no geometry output allocated. Continuation uses those originals without
+re-running the provider factory. After sizing, a later declined artifact grow
+retains the backed geometry; continuation skips the older collection quote so
+it cannot shrink a newer reservation. Both kinds of backing remain on the
+original capacity through body completion and transfer until real retirement.
+
+The original five compiler-bound checks share one predicate with this prelude,
+so invalid configuration keeps its typed refusal before collection admission.
+These bounds remain codec configuration rather than Resource policy. Fixed VM
+or callback wrappers are not a new per-Request census. This collection envelope
+is not the complete nested lowering/Carrier helper scratch proof, complete
+compiler consumed-work accounting, physical backend supply or ordinary-route
+acceptance; those remain separate obligations of the same preparation path.

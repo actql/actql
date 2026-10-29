@@ -142,7 +142,7 @@ test "generic Request module retains its funded compilation before body and same
 ///|
 test "funded artifact grow retains original module and measurement across both one-byte-short boundaries" {
   for retention in [true, false] {
-    let (parent, input, _) = request_program_body_fixture()
+    let (parent, input, prepared) = request_program_body_fixture()
     reserve_request_program_plan(parent, input).unwrap()
     let capacity = parent.program_capacity.unwrap()
     let base = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
@@ -155,17 +155,25 @@ test "funded artifact grow retains original module and measurement across both o
     let contracts = request_program_module_contracts()
     let manifests = request_program_module_manifests()
     let compilation_limits = @publication_host.client_standard_pure_compilation_limits()
+    let storage = @execution.preparation_representation_cost(
+      @publication_host.prepared_client_pure_measurement_storage(
+        prepared, compilation_limits,
+      ).unwrap(),
+    ).unwrap()
+    let measurement = (base.0 + storage, base.1 + storage)
+    // Admit the newly priced prior measurement, then keep this existing case
+    // scoped to the later artifact grow and its original cached measurement.
     let block = @resources.reserve_capacity(
       parent.ledger,
       if retention {
-        limits.retained_bytes - base.0
+        limits.retained_bytes - measurement.0
       } else {
         0L
       },
       if retention {
         0L
       } else {
-        limits.execution_bytes - base.1
+        limits.execution_bytes - measurement.1
       },
     ).unwrap()
     assert_true(
@@ -184,7 +192,7 @@ test "funded artifact grow retains original module and measurement across both o
     let installed = parent.program_source_free.unwrap()
     let geometry = parent.program_artifact_geometry.unwrap()
     let quote = parent.program_artifact_quote.unwrap()
-    assert_true(quote.0 > base.0 && quote.1 > base.1)
+    assert_true(quote.0 > measurement.0 && quote.1 > measurement.1)
     assert_true(installed.compilation is None)
     assert_true(borrow_request_program_preparation(parent) is Err(WrongPhase))
     assert_true(
@@ -229,7 +237,7 @@ test "funded artifact grow retains original module and measurement across both o
     assert_eq(parent.program_artifact_quote, Some(quote))
     assert_eq(
       @resources.preparation_capacity_working_extents(capacity, input),
-      Ok(base),
+      Ok(measurement),
     )
     assert_true(
       prepare_request_program_module_body(
@@ -1027,6 +1035,117 @@ test "Request installed module preserves exact one-byte-short refusal before its
     ).unwrap()
     assert_eq(calls.val, 1)
     assert_eq(parent.program_plan_quote.unwrap(), quote)
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "actual Request refuses one-short measurement storage before its original geometry allocation" {
+  for retention in [true, false] {
+    let (parent, input, prepared) = request_program_body_fixture()
+    let capacity = parent.program_capacity.unwrap()
+    let storage = @execution.preparation_representation_cost(
+      @publication_host.prepared_client_pure_measurement_storage(
+        prepared,
+        @publication_host.client_standard_pure_compilation_limits(),
+      ).unwrap(),
+    ).unwrap()
+    assert_true(storage > 1L)
+    let blocker : Ref[@resources.CapacityReservation?] = Ref(None)
+    let calls = Ref(0)
+    let contracts = request_program_module_contracts()
+    let factory = _ => {
+      calls.val += 1
+      let usage = @resources.ledger_usage(parent.ledger)
+      let limits = @resources.ledger_limits(parent.ledger)
+      let r = limits.retained_bytes -
+        usage.held_bytes -
+        usage.reserved_retention_bytes
+      let e = limits.execution_bytes - usage.reserved_execution_bytes
+      blocker.val = Some(
+        @resources.reserve_capacity(
+          parent.ledger,
+          if retention {
+            r - storage + 1L
+          } else {
+            0L
+          },
+          if retention {
+            0L
+          } else {
+            e - storage + 1L
+          },
+        ).unwrap(),
+      )
+      []
+    }
+    let refused = prepare_request_program_module_body(
+      parent,
+      input,
+      contracts,
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+      retained_output=true,
+      provider_factory=factory,
+    )
+    assert_true(
+      if retention {
+        refused is Err(Preparation(Capacity(Resource(RetentionLimit))))
+      } else {
+        refused is Err(Preparation(Capacity(Resource(ExecutionLimit))))
+      },
+    )
+    assert_true(parent.program_artifact_geometry is None)
+    assert_true(parent.program_artifact_quote is None)
+    assert_true(parent.program_source_free is Some(_))
+    assert_true(physical_equal(capacity, parent.program_capacity.unwrap()))
+    assert_true(parent.phase == ProgramPlanReserved)
+    assert_eq(calls.val, 1)
+    @resources.settle_capacity(parent.ledger, blocker.val.unwrap()).unwrap()
+    prepare_request_program_module_body(
+      parent,
+      input,
+      contracts,
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+      retained_output=true,
+      provider_factory=factory,
+    ).unwrap()
+    assert_eq(calls.val, 1)
+    assert_true(parent.program_source_free.unwrap().compilation is Some(_))
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "measurement storage preserves each original invalid compiler bound before its allocation" {
+  let standard = @publication_host.client_standard_pure_compilation_limits()
+  for
+    limits in [
+      { ..standard, max_facts: 0, },
+      { ..standard, max_witnesses: 0, },
+      { ..standard, max_wire_bytes: 0, },
+      { ..standard, max_nodes: 0, },
+      { ..standard, max_depth: 0, },
+    ] {
+    let (parent, input, _) = request_program_body_fixture()
+    assert_true(
+      prepare_request_program_module_body(
+        parent,
+        input,
+        request_program_module_contracts(),
+        manifests=request_program_module_manifests(),
+        compilation_limits=limits,
+        retained_output=true,
+        provider_factory=_ => [],
+      )
+      is Err(Construction(InvalidLimits)),
+    )
+    assert_true(parent.program_artifact_geometry is None)
+    assert_true(parent.program_measurement_quote is None)
+    assert_true(parent.program_artifact_work is None)
     abort_request_preparation_after_cleanup(parent).unwrap()
     assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   }

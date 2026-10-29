@@ -24831,7 +24831,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "64b6375d1394b7cd671d12e9fdcf8df55487bb2a6928c6aba043404721e100f2",
+      "sha256": "052fd7b7e4f1a4db39ec62f5fc7ce25703e645457c30b4a9b4574cff7a2a27db",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -27610,7 +27610,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "63e853ef9566279d392a8ec24be734343b1dad081f5fbe5b21e0fe7c706caafd",
+      "sha256": "9ec3ef093f46eb64d0fc2cdc7917ec1d2002790a5d3783a7dc39e42d911e684d",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Plan owners",
       "exports": [],
@@ -28233,7 +28233,7 @@
     },
     {
       "module": "src/run_publication_host/client_compilation_graph_body.mbt",
-      "sha256": "d1c4c07bc7666a2f2c00dbea8bb3d01a8f9f8e980002f485b181060c57cce15e",
+      "sha256": "37c9a9580895b14289dcfaf7e7ab8e4126e8de3aab96ed704c8265f348566e12",
       "exports": [],
       "operations": [
         {
@@ -28243,6 +28243,14 @@
         {
           "name": "[E]emit_client_compilation_graph",
           "declaration": "[ E ] emit_client_compilation_graph ( writer : @ encode . Writer , edges : ( @ encode . Writer ) - > Result [ Unit , E ] raise @ encode . EncodeFailure , nodes : ( @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , roots : ( @ encode . Writer ) - > Result [ Unit , E ] raise @ encode . EncodeFailure , ) - > Result [ Unit , E ] raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "client_compilation_result_node_id",
+          "declaration": "client_compilation_result_node_id ( result : Int ) - > String"
+        },
+        {
+          "name": "client_compilation_task_node_id",
+          "declaration": "client_compilation_task_node_id ( task : Int ) - > String"
         }
       ],
       "responsibilityFacet": "primary",
@@ -28358,13 +28366,134 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_compilation_result_node_id",
+            "client_compilation_task_node_id"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Original pure compiler sizing and same-Request artifact custody; not full consumed-work or installed runtime acceptance"
     },
     {
       "module": "src/run_publication_host/client_pure_compilation_construction.mbt",
-      "sha256": "8d5931a90062020468a1ce16ad6741a952eac3c904dfdc50d574cf382370c591",
+      "sha256": "632cf5596842da0a638a37c75d392c7b5e62c2d61578df68557ae3fb5a83aa49",
       "exports": [],
       "operations": [
         {
@@ -28864,7 +28993,7 @@
     },
     {
       "module": "src/run_publication_host/client_values_executable_plan.mbt",
-      "sha256": "10d24f563e73fc340bd63bbb0f4ec54f5a49ea9a954f5c9d32b12b959794c6a3",
+      "sha256": "8df131876b234e9f0ca7a7cd605b0ca547326c39db9d71fd86f6a13f2471a8af",
       "exports": [],
       "operations": [
         {
@@ -29832,7 +29961,7 @@
     },
     {
       "module": "src/run_publication_host/client_task_fragment.mbt",
-      "sha256": "bbef2ef9fe98dff7a3d2c7508d1e0501aee988b994ecfee0d5eb71129c93a8bd",
+      "sha256": "c625db375a1203d3fcca5ea81257b0c3a7554067790d7f544023728de834dbda",
       "exports": [],
       "operations": [
         {
@@ -29854,6 +29983,10 @@
         {
           "name": "client_task_carrier_sort",
           "declaration": "client_task_carrier_sort ( carrier : @ carrier . Carrier ) - > String"
+        },
+        {
+          "name": "client_task_fragment_input_count",
+          "declaration": "client_task_fragment_input_count ( owner : @ lower . BoundPrepared , selected : Int ? , ) - > Int"
         },
         {
           "name": "client_task_fragment_logical_cid",
@@ -30063,9 +30196,578 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_task_fragment_input_count"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Original canonical Task pipeline constructor and Fragment consumer; not complete compiler work/backing or ordinary runtime acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_result_graph_construction.mbt",
+      "sha256": "1d0c08faa876032f9b4127b4863a7a5cdb842085f781f155db71489bf84db8e6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "measure_prepared_client_result_graph_construction",
+          "declaration": "measure_prepared_client_result_graph_construction ( value : PreparedClientProgram , result : Int , producer_node : String , producer_port : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientResultGraphConstruction , ClientResultPlanPartsIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "measure_prepared_client_result_graph_construction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Actual same-Request measurement collection backing; not full nested constructor backing, compiler work, or ordinary acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_result_plan_parts.mbt",
+      "sha256": "0b1815c82f0df6a5405df1967492408b507d9b97513ce442f5a7abb329d70bd3",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[C]emit_client_result_projection_edge",
+          "declaration": "[ C ] emit_client_result_projection_edge ( writer : @ encode . Writer , producer_contract : C , producer_node : String , producer_port : String , node_id : String , emit_cid : ( C , @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "[P,C]emit_client_result_projection_node",
+          "declaration": "[ P , C ] emit_client_result_projection_node ( writer : @ encode . Writer , producer_contract : C , logical_cid : C , node_id : String , output : String , row_contract_cid : C , pipeline : P , emit_pipeline : ( P , @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , emit_cid : ( C , @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "emit_client_requested_result_root",
+          "declaration": "emit_client_requested_result_root ( writer : @ encode . Writer , result_name : String , node_id : String , output : String , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "emit_client_result_projection_pipeline",
+          "declaration": "emit_client_result_projection_pipeline ( writer : @ encode . Writer , port : @ results . ResultPort , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "emit_result_plan_ref",
+          "declaration": "emit_result_plan_ref ( writer : @ encode . Writer , node : String , port : String , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "issue_client_result_plan_parts",
+          "declaration": "issue_client_result_plan_parts ( owner : PreparedClientProgram , result : Int , producer_node : String , producer_port : String , producer_contract : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , infer_output ? : ( ClientInferOccurrence , Int ) ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[C]emit_client_result_projection_edge",
+            "[P,C]emit_client_result_projection_node",
+            "emit_client_requested_result_root",
+            "emit_client_result_projection_pipeline",
+            "emit_result_plan_ref",
+            "issue_client_result_plan_parts"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Actual same-Request measurement collection backing; not full nested constructor backing, compiler work, or ordinary acceptance"
+    },
+    {
+      "module": "src/run_publication_host/client_pure_measurement_storage.mbt",
+      "sha256": "6130b55ee0457e991e6cf248b55455428cd19554a0a144defb3fcaf0a4798a0c",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_pure_compilation_limits_valid",
+          "declaration": "client_pure_compilation_limits_valid ( max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Bool"
+        },
+        {
+          "name": "client_pure_measurement_storage_owned",
+          "declaration": "client_pure_measurement_storage_owned ( value : PreparedClientProgram , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "prepared_client_pure_measurement_storage",
+          "declaration": "prepared_client_pure_measurement_storage ( value : PreparedClientProgram , limits : ClientPureCompilationLimits , ) - > Result [ @ execution . PreparationRepresentationUnits , ClientValuesExecutablePlanIssue , ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and original Request/Plan preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_pure_compilation_limits_valid",
+            "client_pure_measurement_storage_owned",
+            "prepared_client_pure_measurement_storage"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Compiler measurement collection backing"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"measurement storage preserves each original invalid compiler"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"measurement collections come from original inventory"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
+                "anchor": "test \"compiler measurement label lengths use the original decimal"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"funded artifact current reentry"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Actual same-Request measurement collection backing; not full nested constructor backing, compiler work, or ordinary acceptance"
     }
   ]
 }

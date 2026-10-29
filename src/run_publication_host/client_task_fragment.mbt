@@ -245,7 +245,7 @@ pub fn issue_prepared_client_task_fragment(
     owner,
     target,
     @strategy.graph_task_selected_step(value.graph, task),
-    "task_" + task.to_string(),
+    client_compilation_task_node_id(task),
     construction,
     max_wire_bytes,
     max_nodes,
@@ -282,7 +282,7 @@ pub fn measure_prepared_client_task_fragment_construction(
     return Err(MissingTask)
   }
   let selected = @strategy.graph_task_selected_step(value.graph, task)
-  let node_id = "task_" + task.to_string()
+  let node_id = client_compilation_task_node_id(task)
   let prepared = @lower.bound_preparation(owner)
   guard @lower.preparation_carrier_at(prepared, target) is Some(output_carrier) &&
     measure_client_task_carrier_contract(
@@ -615,6 +615,20 @@ fn client_task_input_contract_measurement(
 }
 
 ///|
+fn client_task_fragment_input_count(
+  owner : @lower.BoundPrepared,
+  selected : Int?,
+) -> Int {
+  let prepared = @lower.bound_preparation(owner)
+  let checked = @lower.pipeline(prepared)
+  if selected is Some(step) {
+    @lower.node_at(prepared, step).map(@lower.node_input_count).unwrap_or(0)
+  } else {
+    @pipeline.input_count(checked)
+  }
+}
+
+///|
 fn[P, C] emit_client_task_fragment_body(
   owner : @lower.BoundPrepared,
   selected : Int?,
@@ -636,11 +650,7 @@ fn[P, C] emit_client_task_fragment_body(
   @encode.begin_object(writer)
   @encode.key(writer, "input_contracts")
   @encode.begin_object(writer)
-  let input_count = if selected is Some(step) {
-    @lower.node_at(prepared, step).map(@lower.node_input_count).unwrap_or(0)
-  } else {
-    @pipeline.input_count(checked)
-  }
+  let input_count = client_task_fragment_input_count(owner, selected)
   for index in 0..<input_count {
     let input = if selected is Some(step) {
       @lower.node_at(prepared, step)

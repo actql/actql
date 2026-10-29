@@ -294,7 +294,47 @@ pub fn[I] prepare_request_program_module_body(
       )
       let geometry = match owner.program_artifact_geometry {
         Some(original) => original
-        None =>
+        None => {
+          let capacity = owner.program_capacity.unwrap()
+          let (r, e) = match owner.program_measurement_quote {
+            Some(original) => original
+            None => {
+              // This is the actual measurement's variable returned storage,
+              // not codec headroom, fixed call wrappers or its nested helpers.
+              let units = match
+                @publication_host.prepared_client_pure_measurement_storage(
+                  prepared, limits,
+                ) {
+                Err(issue) => return Err(Construction(issue))
+                Ok(value) => value
+              }
+              guard @execution.preparation_representation_cost(units)
+                is Some(bytes) else {
+                return Err(Preparation(Policy))
+              }
+              let (r, e) = match
+                @resources.preparation_capacity_working_extents(capacity, input) {
+                Err(issue) => return Err(Preparation(Capacity(issue)))
+                Ok(value) => value
+              }
+              guard @execution.checked_preparation_add_product(r, bytes, 1L)
+                is Some(r) &&
+                @execution.checked_preparation_add_product(e, bytes, 1L)
+                is Some(e) else {
+                return Err(Preparation(Policy))
+              }
+              owner.program_measurement_quote = Some((r, e))
+              (r, e)
+            }
+          }
+          match
+            @resources.reserve_working_preparation_phase(capacity, input, r, e) {
+            Err(issue) => {
+              owner.phase = ProgramPlanReserved
+              return Err(Preparation(Capacity(issue)))
+            }
+            Ok(_) => ()
+          }
           match
             @publication_host.measure_prepared_client_pure_compilation_construction(
               prepared,
@@ -312,6 +352,7 @@ pub fn[I] prepare_request_program_module_body(
               value
             }
           }
+        }
       }
       let capacity = owner.program_capacity.unwrap()
       let (r, e) = match owner.program_artifact_quote {
@@ -406,6 +447,7 @@ pub fn[I] prepare_request_program_module_body(
         // has no subsequent consumer; do not retain another per-task graph
         // inventory through the SDK body borrower or the eventual Run.
         // Keep the peak reservation until this constructor has unwound.
+        owner.program_measurement_quote = None
         owner.program_artifact_geometry = None
         owner.program_artifact_quote = None
         owner.program_artifact_inputs = None
@@ -522,6 +564,7 @@ pub fn[I] begin_request_program_managed_run(
       owner.compiled_program = None
       owner.program_data = None
       owner.program_plan_quote = None
+      owner.program_measurement_quote = None
       owner.program_artifact_geometry = None
       owner.program_artifact_quote = None
       owner.program_artifact_inputs = None
