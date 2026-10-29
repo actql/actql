@@ -377,6 +377,7 @@ fn issue_client_effect_compilation_internal(
       max_wire_bytes,
       max_nodes,
       max_depth,
+      result_plans=task_graph.transformations,
       effect_plan_cids=plan_cids,
       effect_target_selections=owner.target_selections,
     ) {

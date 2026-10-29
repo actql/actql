@@ -10,9 +10,9 @@ pub struct ClientResultPlanIdentity {
 }
 
 ///|
-priv struct ClientResultProjectionField {
+priv struct ClientResultProjectionField[C] {
   name : String
-  value_contract_cid : String
+  value_contract_cid : C
 }
 
 ///|
@@ -55,16 +55,17 @@ pub fn client_result_plan_row_contract_cid(
 }
 
 ///|
-fn emit_client_result_plan(
+fn[C] emit_client_result_plan(
   writer : @encode.Writer,
   result_name : String,
-  unit_definition_cid : String,
+  unit_definition_cid : C,
   unit_result_name : String,
   unit_result_ordinal : Int,
-  projection : Array[ClientResultProjectionField],
+  projection : Array[ClientResultProjectionField[C]],
   order : @results.PublicationOrder,
-  row_contract_cid : String,
-  cid : String?,
+  row_contract_cid : C,
+  cid : C?,
+  emit_cid : (C, @encode.Writer) -> Unit raise @encode.EncodeFailure,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
   @encode.key(writer, "order")
@@ -118,7 +119,7 @@ fn emit_client_result_plan(
     @encode.key(writer, "output")
     @encode.string_value(writer, field.name)
     @encode.key(writer, "value_contract_cid")
-    @encode.string_value(writer, field.value_contract_cid)
+    emit_cid(field.value_contract_cid, writer)
     @encode.end_object(writer)
   }
   @encode.end_array(writer)
@@ -126,7 +127,7 @@ fn emit_client_result_plan(
   @encode.string_value(writer, result_name)
   if cid is Some(cid) {
     @encode.key(writer, "result_plan_logical_cid")
-    @encode.string_value(writer, cid)
+    emit_cid(cid, writer)
   }
   @encode.key(writer, "typed_output_port")
   @encode.begin_object(writer)
@@ -135,10 +136,10 @@ fn emit_client_result_plan(
   @encode.key(writer, "name")
   @encode.string_value(writer, unit_result_name)
   @encode.key(writer, "row_contract_cid")
-  @encode.string_value(writer, row_contract_cid)
+  emit_cid(row_contract_cid, writer)
   @encode.end_object(writer)
   @encode.key(writer, "unit_definition_cid")
-  @encode.string_value(writer, unit_definition_cid)
+  emit_cid(unit_definition_cid, writer)
   @encode.key(writer, "unit_result_name")
   @encode.string_value(writer, unit_result_name)
   @encode.key(writer, "unit_result_ordinal")
@@ -161,26 +162,18 @@ pub fn issue_prepared_client_result_plan(
   if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidLimits)
   }
-  let graph = value.graph
-  guard @strategy.graph_result_task(graph, result) is Some(task) &&
-    @strategy.graph_task_unit_index(graph, task) is Some(unit) &&
-    @strategy.graph_result_name(graph, result) is Some(result_name) &&
-    @strategy.graph_result_occurrence(graph, result) is Some(occurrence) else {
-    return Err(MissingResult)
+  let (
+    unit,
+    port,
+    result_name,
+    unit_definition_cid,
+    unit_result_ordinal,
+    unit_result_name,
+  ) = match client_result_plan_originals(value, result) {
+    Err(issue) => return Err(issue)
+    Ok(originals) => originals
   }
-  let port = @execution.managed_result_occurrence_port(occurrence)
   let order = @results.port_order(port)
-  let unit_result_ordinal = @results.publication_result_index(order)
-  let unit_result_name = @results.name(@results.port_result(port))
-  let program = @strategy.graph_program(graph)
-  guard @checked.unit_publication_at(program, unit, unit_result_ordinal)
-    is Some(publication) &&
-    @checked.unit_definition_cid(program, unit) is Some(unit_definition_cid) else {
-    return Err(MissingPublication)
-  }
-  if @checked.publication_result_name(publication) != unit_result_name {
-    return Err(MismatchedPublication)
-  }
   let row = match
     issue_prepared_client_result_row_contract(
       value, unit, unit_result_ordinal, max_wire_bytes, max_nodes, max_depth,
@@ -192,36 +185,21 @@ pub fn issue_prepared_client_result_plan(
     client_result_row_contract_name(row) != unit_result_name {
     return Err(MismatchedPublication)
   }
-  let projection_names = @results.fields(@results.port_result(port))
-  if projection_names.length() != @results.port_projection_count(port) {
-    return Err(MissingProjection)
-  }
-  let projection : Array[ClientResultProjectionField] = []
-  let schema = @results.port_schema(port)
-  for name in projection_names {
-    let mut found = None
-    for index in 0..<@results.port_projection_count(port) {
-      if @results.port_projection_input_at(port, index) is Some(input) &&
-        @schema.reference_name(input) == name {
-        if found is Some(_) {
-          return Err(MissingProjection)
-        }
-        found = Some(input)
+  let projection = match
+    client_result_plan_projection(port, contract => {
+      let hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth) catch {
+        _ => return Err(Encoding)
       }
-    }
-    guard found is Some(input) &&
-      @schema.lookup(schema, input) is Some(contract) else {
-      return Err(MissingProjection)
-    }
-    let hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth) catch {
-      _ => return Err(Encoding)
-    }
-    @contract.emit_checked(contract, hash) catch {
-      _ => return Err(Encoding)
-    }
-    let value_contract_cid = "sha256:" +
-      (@encode.finish_hash(hash) catch { _ => return Err(Encoding) })
-    projection.push({ name, value_contract_cid, })
+      @contract.emit_checked(contract, hash) catch {
+        _ => return Err(Encoding)
+      }
+      let identity = @encode.finish_hash(hash) catch {
+        _ => return Err(Encoding)
+      }
+      Ok("sha256:" + identity)
+    }) {
+    Err(issue) => return Err(issue)
+    Ok(projection) => projection
   }
   let row_contract_cid = client_result_row_contract_cid(row)
   let hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth) catch {
@@ -237,6 +215,7 @@ pub fn issue_prepared_client_result_plan(
     order,
     row_contract_cid,
     None,
+    (value, writer) => @encode.string_value(writer, value),
   ) catch {
     _ => return Err(Encoding)
   }
@@ -255,6 +234,7 @@ pub fn issue_prepared_client_result_plan(
     order,
     row_contract_cid,
     Some(cid),
+    (value, writer) => @encode.string_value(writer, value),
   ) catch {
     _ => return Err(Encoding)
   }
@@ -292,4 +272,114 @@ pub fn admit_prepared_client_result_plan(
     return Err(MismatchedPlan)
   }
   Ok(issued)
+}
+
+///|
+// Read only the original checked Result/publication correspondence. This
+// helper issues no Plan, schema, CID, Resource or execution authority.
+fn client_result_plan_originals(
+  value : PreparedClientProgram,
+  result : Int,
+) -> Result[
+  (Int, @results.ResultPort, String, String, Int, String),
+  ClientResultPlanIssue,
+] {
+  let graph = value.graph
+  guard @strategy.graph_result_task(graph, result) is Some(task) &&
+    @strategy.graph_task_unit_index(graph, task) is Some(unit) &&
+    @strategy.graph_result_name(graph, result) is Some(result_name) &&
+    @strategy.graph_result_occurrence(graph, result) is Some(occurrence) else {
+    return Err(MissingResult)
+  }
+  let port = @execution.managed_result_occurrence_port(occurrence)
+  let order = @results.port_order(port)
+  let unit_result_ordinal = @results.publication_result_index(order)
+  let unit_result_name = @results.name(@results.port_result(port))
+  let program = @strategy.graph_program(graph)
+  guard @checked.unit_publication_at(program, unit, unit_result_ordinal)
+    is Some(publication) &&
+    @checked.unit_definition_cid(program, unit) is Some(unit_definition_cid) else {
+    return Err(MissingPublication)
+  }
+  if @checked.publication_result_name(publication) != unit_result_name {
+    return Err(MismatchedPublication)
+  }
+  Ok(
+    (
+      unit, port, result_name, unit_definition_cid, unit_result_ordinal, unit_result_name,
+    ),
+  )
+}
+
+///|
+fn[C] client_result_plan_projection(
+  port : @results.ResultPort,
+  issue_contract : (@contract.Contract) -> Result[C, ClientResultPlanIssue],
+) -> Result[Array[ClientResultProjectionField[C]], ClientResultPlanIssue] {
+  let projection_names = @results.fields(@results.port_result(port))
+  if projection_names.length() != @results.port_projection_count(port) {
+    return Err(MissingProjection)
+  }
+  let projection : Array[ClientResultProjectionField[C]] = []
+  let schema = @results.port_schema(port)
+  for index in 0..<projection_names.length() {
+    let name = projection_names[index]
+    // The Result owner retains this checked, authored-order no-alias entry.
+    // Do not search every canonical-schema position and reconstruct it again.
+    guard @results.port_projection_field_at(port, index) is Some(field) &&
+      @schema.reference_name(field.output) == name &&
+      @schema.reference_name(field.input) == name &&
+      @schema.lookup(schema, field.input) is Some(contract) else {
+      return Err(MissingProjection)
+    }
+    let value_contract_cid = match issue_contract(contract) {
+      Err(issue) => return Err(issue)
+      Ok(value) => value
+    }
+    projection.push({ name, value_contract_cid, })
+  }
+  Ok(projection)
+}
+
+///|
+/// Measure the original Result Plan body without constructing projection
+/// contract hashes, a row contract, wire, tree or a claimed Result identity.
+/// The same checked port/order/field association feeds the actual issuer.
+pub fn measure_prepared_client_result_plan(
+  value : PreparedClientProgram,
+  result : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(Int, Int, Int), ClientResultPlanIssue] {
+  if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  let (_, port, result_name, _, ordinal, unit_name) = match
+    client_result_plan_originals(value, result) {
+    Err(issue) => return Err(issue)
+    Ok(originals) => originals
+  }
+  let projection = match client_result_plan_projection(port, _ => Ok(())) {
+    Err(issue) => return Err(issue)
+    Ok(projection) => projection
+  }
+  try {
+    let writer = @encode.measuring_writer(max_wire_bytes, max_nodes, max_depth)
+    emit_client_result_plan(
+      writer,
+      result_name,
+      (),
+      unit_name,
+      ordinal,
+      projection,
+      @results.port_order(port),
+      (),
+      Some(()),
+      measure_client_fragment_cid,
+    )
+    Ok(@encode.finish_measurement_usage(writer))
+  } catch {
+    _ => Err(Encoding)
+  }
 }

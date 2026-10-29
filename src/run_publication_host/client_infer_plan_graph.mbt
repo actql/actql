@@ -915,11 +915,11 @@ fn issue_client_infer_plan_graph_for_occurrence(
     let graph_writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
     @encode.begin_object(graph_writer)
     @encode.key(graph_writer, "data_edges")
-    client_plan_emit_array(graph_writer, edges)
+    client_plan_emit_array(graph_writer, edges, @canonical.emit_value)
     @encode.key(graph_writer, "nodes")
-    client_plan_emit_array(graph_writer, nodes)
+    client_plan_emit_array(graph_writer, nodes, @canonical.emit_value)
     @encode.key(graph_writer, "root_refs")
-    client_plan_emit_array(graph_writer, roots)
+    client_plan_emit_array(graph_writer, roots, @canonical.emit_value)
     @encode.end_object(graph_writer)
     Ok({
       owner: value,

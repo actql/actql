@@ -7,6 +7,7 @@ pub struct ClientResultTransformation {
   occurrence : @execution.ManagedResultOccurrence
   plan : ClientResultPlanIdentity
   definition : @publication.PublicationContract
+  priv plan_limits : (Int, Int, Int)
 }
 
 ///|
@@ -46,7 +47,14 @@ pub fn prepare_client_result_transformation(
     Ok(value) => @publication.result_definition_contract(value)
     Err(issue) => return Err(Definition(issue))
   }
-  Ok({ owner, result, occurrence, plan, definition, })
+  Ok({
+    owner,
+    result,
+    occurrence,
+    plan,
+    definition,
+    plan_limits: (max_wire_bytes, max_nodes, max_depth),
+  })
 }
 
 ///|

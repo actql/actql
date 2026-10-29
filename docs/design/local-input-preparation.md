@@ -2796,3 +2796,32 @@ original Plan/Run. A Fragment measurement is one input to that full quote; it
 cannot replace the rest of it or reuse a module-only grant as compiler backing.
 Neither measurement nor later Plan access rechecks permissions, selects another
 input, changes the codec limits or creates a second resource owner.
+
+### Same-original Result material and composed Plan geometry
+
+A graph's Result transformation retains its original Result Plan and the exact
+codec byte/node/depth bounds under which that Plan was issued. Material
+construction uses that completed Plan only for the same Prepared owner, Result
+ordinal and bounds. Equal CIDs, a different Prepared owner, another Result or
+changed bounds do not select it; the original complete Result issuer remains
+responsible for those independent constructions. This is immutable compilation
+DATA, with no permission, currentness, physical lifetime or Resource grant.
+
+Every graph-bearing compiler passes its actual transformation inventory to the
+private material constructor: Values, Task, Infer, composed Model, Content and
+Effect. A standalone Task material call retains the Result originals from the
+graph it already validates instead of discarding them in a template wrapper.
+A standalone Values material call has no prior Result Plan and issues its own.
+The same original typed Result port supplies authored projection order and
+input/output field correspondence; material does not reconstruct that mapping
+by searching every canonical-schema position again.
+
+Result Plan and execution material measurements share their actual body
+serializers. The material measurement reads the original semantic Program and
+Result names without issuing a template, bindings, Result Plans or their
+identities. The Executable Plan body likewise composes measured children through
+its one existing field definition, including profiles and the final identity
+field. These extents describe wire/tree geometry, not completed compilation,
+authority or a reservation. The same Request still has to back measurement
+workspace/work and all concurrently live schema, graph, fact, witness, template,
+bindings, protocol, wire and parsed representations before construction.

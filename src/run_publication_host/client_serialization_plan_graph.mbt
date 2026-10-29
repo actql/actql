@@ -726,11 +726,11 @@ fn issue_client_serialization_plan_graph_with_policy(
     let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
     @encode.begin_object(writer)
     @encode.key(writer, "data_edges")
-    client_plan_emit_array(writer, edges)
+    client_plan_emit_array(writer, edges, @canonical.emit_value)
     @encode.key(writer, "nodes")
-    client_plan_emit_array(writer, nodes)
+    client_plan_emit_array(writer, nodes, @canonical.emit_value)
     @encode.key(writer, "root_refs")
-    client_plan_emit_array(writer, roots)
+    client_plan_emit_array(writer, roots, @canonical.emit_value)
     @encode.end_object(writer)
     Ok({
       owner,
