@@ -14,9 +14,13 @@ function fixture(body = method) {
   const prepared = Object.freeze({}), original = Object.freeze({}), holder = Object.freeze({});
   let cuts = 0, returns = 0;
   const consumed = Object.assign(new Error('injected consumed-token settlement pending'), {code: 'CleanupPending'});
-  const state = {adopting: true, prepared, holder, phase: Object.freeze({}), context: {runtime: {
-    clientProgramSeverClosedValuesBody(phase, token) {
-      assert.equal(phase, state.phase); assert.equal(token, holder); cuts++; return true;
+  const state = {adopting: true, prepared, holder, parent: Object.freeze({}), context: {runtime: {
+    clientProgramPreparationBorrowRead(token) {
+      if(token!==holder)return undefined;
+      cuts++;return prepared;
+    },
+    clientProgramPreparationBorrowRetirementStarted(token) {
+      assert.equal(token,holder);return true;
     },
     clientProgramPreparationBorrowReturn(token) {
       assert.equal(token, holder); returns++; return {error: consumed};
@@ -57,7 +61,7 @@ test('a missing holder is not proof of completed alias severing or Run adoption'
 
 test('mutation guard reproduces old retry failure when completed-cut branch is absent', () => {
   const begin = method.indexOf('      if (state.holder === undefined) {');
-  const next = method.indexOf('      if (state.prepared !== prepared ||', begin);
+  const next = method.indexOf('      const moon = state.context.runtime;', begin);
   assert.ok(begin >= 0 && next > begin);
   const old = method.slice(0, begin) + method.slice(next);
   const f = fixture(old);

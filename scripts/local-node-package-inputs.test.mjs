@@ -179,7 +179,7 @@ test('published adapter closure retains concrete Local helpers and their same pr
   const inputs = localNodePackageInputs(repository);
   const graph = adapterModuleGraph(repository, inputs.adapterEntries);
   const copyInputs = await localNodeAdapterSourceInputs({root: repository, inputs});
-  for (const name of ['closed-values-preparation-adapter', 'installed-project-mock',
+  for (const name of ['request-preparation-adapter', 'installed-project-mock',
     'installed-project-mock-answers', 'installed-mock-row-effect', 'mock-churn-risk-catalogue']) {
     const path = `adapters/local-node/${name}.mjs`;
     assert.ok(graph.includes(path), name);

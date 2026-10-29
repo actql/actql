@@ -2,10 +2,6 @@ import resources from '../host-node/ordinary-node-resource-runtime.cjs';
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeIsError,runtimeField} from '../host-common/compiler-binding.generated.mjs';
-import {probeClosedValuesOwnDataHeader,closedValuesOwnDataHeaderFields,
-  closedValuesOwnDataHeaderRows,scanClosedValuesOwnData,scanClosedValuesOwnDataAscii}
-  from '../host-node/closed-values-own-data-scan.mjs';
-
 // Only fixed ClientClosedValuesPreparationIssue results reach this projection.
 // The Common owner supplies immutable failure facts from its attempted phase;
 // these amounts are diagnostic DATA, never caller options or a resource grant.
@@ -40,15 +36,7 @@ export function checkedPreparation(moon,result) {
 const noPhysicalChildren = () => false;
 const invalid = () => {throw Object.assign(new Error('NodeLocalPreparationAdmissionUnavailable'),
   {code:'NodeLocalPreparationAdmissionUnavailable'});};
-const commonInt = value => {
-  if (!Number.isSafeInteger(value) || value < 0 || value > 2147483647) invalid();
-  return value;
-};
-const phaseAdapter = (moon, token) => ({spendWork(amount) {
-  checked(moon.clientProgramSpendPreparationPhaseWork(token, amount));
-}});
-
-export function closedValuesPreparationAvailable(context) {
+export function requestPreparationAvailable(context) {
   if(context===null || typeof context!=='object' || nodeTypes.isProxy(context)) return false;
   const own = (object,name) => {
     const field=Object.getOwnPropertyDescriptor(object,name);
@@ -61,12 +49,12 @@ export function closedValuesPreparationAvailable(context) {
   return typeof own(moon,'clientProgramRequestPreparationControl')==='function' &&
     typeof own(moon,'clientProgramBeginRequestPreparation')==='function' &&
     typeof own(moon,'clientLocalPreparationResourceLimits')==='function' &&
-    typeof own(moon,'clientProgramSelectClosedValuesPreparation')==='function' &&
     typeof own(moon,'clientProgramAbortRequestPreparation')==='function' &&
-    typeof own(moon,'clientProgramPrepareClosedValuesModuleBody')==='function' &&
-    typeof own(moon,'clientProgramCompleteClosedValuesBody')==='function' &&
-    typeof own(moon,'clientProgramAdoptClosedValuesPreparation')==='function' &&
-    typeof own(moon,'clientProgramReserveClosedValuesSnapshot')==='function';
+    typeof own(moon,'clientProgramPrepareRequestNativeComputation')==='function' &&
+    typeof own(moon,'clientProgramPrepareRequestProgramModuleBody')==='function' &&
+    typeof own(moon,'clientProgramBorrowRequestProgramPreparation')==='function' &&
+    typeof own(moon,'clientProgramAdoptRequestProgramPreparation')==='function' &&
+    typeof own(moon,'clientProgramReserveRequestSnapshot')==='function';
 }
 
 // Fixed supplier precondition before receipt/state/native Root construction.
@@ -102,7 +90,7 @@ function openPreparationAdmission(state, moon, input, assertCurrent, childrenPen
 
 export function openRequestPreparation(state, input, assertCurrent, childrenPending) {
   if (state.opening || state.original!==undefined || state.admission!==undefined ||
-      state.parent!==undefined || state.phase!==undefined ||
+      state.parent!==undefined ||
       typeof assertCurrent!=='function' || typeof childrenPending!=='function') invalid();
   const moon=state.context.runtime;
   state.opening=true;
@@ -157,51 +145,7 @@ export function beginRequestInput(state, receipt, connection, assertCurrent) {
   return true;
 }
 
-export function beginClosedValuesInput(state, input, receipt, connection, assertCurrent) {
-  const moon=state.context.runtime;
-  // This is the already frozen SDK connection of THIS call, not the first
-  // connection that happened to open a shared installed Host.
-  if (!Object.isFrozen(connection) || connection.mode !== 'local' ||
-      connection.owner !== 'local' || !Array.isArray(connection.consentRefs) ||
-      !Array.isArray(connection.runners) || connection.runners.length !== 0) return false;
-  openRequestPreparation(state,receipt,assertCurrent,noPhysicalChildren);
-  // Store the same-reservation successor before cutting its consumed parent.
-  state.phase=checked(moon.clientProgramSelectClosedValuesPreparation(state.parent,receipt));
-  state.parent=undefined;
-  const headerWork=checkedPreparation(moon,moon.clientProgramBeginClosedValuesHeader(state.phase));
-  const header=probeClosedValuesOwnDataHeader(input,undefined,phaseAdapter(moon,headerWork));
-  if(header===undefined){cleanupClosedValuesInput(state);return false;}
-  const work=checkedPreparation(moon,moon.clientProgramBeginClosedValuesScan(state.phase,
-    commonInt(closedValuesOwnDataHeaderFields(header,input)),commonInt(closedValuesOwnDataHeaderRows(header,input))));
-  const facts=scanClosedValuesOwnData(input,undefined,phaseAdapter(moon,work),header);
-  if(facts===undefined){cleanupClosedValuesInput(state);return false;}
-  checkedPreparation(moon,moon.clientProgramFinishClosedValuesScan(state.phase));
-  const textWork=checkedPreparation(moon,moon.clientProgramBeginClosedValuesTextCheck(state.phase,commonInt(facts.quotedUtf16Units)));
-  const eligible=scanClosedValuesOwnDataAscii(input,undefined,phaseAdapter(moon,textWork));
-  if(eligible===undefined){cleanupClosedValuesInput(state);return false;}
-  checkedPreparation(moon,moon.clientProgramFinishClosedValuesTextCheck(state.phase));
-  // Avoid silent Int truncation at the JS/Common ABI. This is a real
-  // representation boundary, not a language cardinality/profile ceiling.
-  for(const key in eligible) if(!Number.isSafeInteger(eligible[key]) ||
-      eligible[key]<0 || eligible[key]>2147483647) invalid();
-  if(connection.consentRefs.length>2147483647) invalid();
-  checkedPreparation(moon,moon.clientProgramReserveClosedValuesSnapshot(state.phase,
-    eligible.inputBytesUpper,eligible.nodeUpper,eligible.objects,eligible.arrays,
-    eligible.fieldsUpper,eligible.quotedTokens,eligible.quotedUtf16Units,
-    eligible.longestQuotedUtf16,eligible.longestAtomUtf16,eligible.depthUpper,
-    eligible.fieldCount,eligible.rowCount,connection.consentRefs.length));
-  return true;
-}
-
-export function bindClosedValuesSnapshot(state, body) {
-  if(state.phase===undefined || body.kind!=='program' || body.parameters!==null) invalid();
-  // This single program-only document was included in the original snapshot
-  // phase. Common retains it before any subsequent lexical/parser rejection.
-  const document=JSON.stringify(body.input);
-  checkedPreparation(state.context.runtime,state.context.runtime.clientProgramBindClosedValuesDocument(state.phase,document));
-}
-
-export function cleanupClosedValuesInput(state, retireInitialPreparation) {
+export function cleanupRequestInput(state, retireInitialPreparation) {
   if(state.opening || state.adopting || state.snapshotting || state.preparing) invalid();
   const moon=state.context.runtime;
   if(state.holder!==undefined && state.parent!==undefined) {
@@ -220,24 +164,7 @@ export function cleanupClosedValuesInput(state, retireInitialPreparation) {
     const holder=state.holder;state.holder=undefined;
     checked(moon.clientProgramPreparationBorrowReturn(holder));
   }
-  if(state.holder!==undefined) {
-    try {checkedPreparation(moon,moon.clientProgramAbortClosedValuesPreparationAfterCleanup(state.phase));}
-    catch(cause) {
-      if(moon.clientProgramClosedValuesInitialRetirementStarted(state.phase,state.holder)!==true) throw cause;
-    }
-    if(moon.clientProgramClosedValuesInitialRetirementStarted(state.phase,state.holder)!==true) invalid();
-    if(state.prepared!==undefined) {
-      if(typeof retireInitialPreparation!=='function') invalid();
-      retireInitialPreparation(state.prepared);
-    }
-    state.prepared=undefined;
-    const holder=state.holder;state.holder=undefined;
-    checked(moon.clientProgramPreparationBorrowReturn(holder));
-  }
-  if(state.phase!==undefined) {
-    checkedPreparation(moon,moon.clientProgramAbortClosedValuesPreparationAfterCleanup(state.phase));
-    state.phase=undefined;state.admission=undefined;
-  } else if(state.parent!==undefined) {
+  if(state.parent!==undefined) {
     checked(moon.clientProgramAbortRequestPreparation(state.parent));
     state.parent=state.admission=undefined;
   } else if(state.admission!==undefined) {

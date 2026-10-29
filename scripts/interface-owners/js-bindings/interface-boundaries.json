@@ -39150,7 +39150,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "8761426ece3316a055d88198d1836afac2dbcc3a6a66301e2266b83a5a542cf7",
+      "sha256": "56a1ec10ee639c671a56b031d8b3bf61a6abc40e2bdb3e8e0b69e29b4d496783",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -39851,8 +39851,7 @@
           "parameters": [
             "originals",
             "originalComputeInstallation",
-            "body",
-            "preparationOwner"
+            "body"
           ],
           "async": false
         },
@@ -49397,10 +49396,10 @@
         "../host-common/run-state-observation.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
-        "../local-node/closed-values-preparation-adapter.mjs",
         "../local-node/installed-mock-row-effect.mjs",
         "../local-node/installed-project-mock-answers.mjs",
         "../local-node/installed-project-mock.mjs",
+        "../local-node/request-preparation-adapter.mjs",
         "../local-node/retained-store.mjs",
         "../store-local/files.mjs",
         "../store-local/publication-store.mjs",

@@ -74,7 +74,6 @@ const expectedGates = {
     "node scripts/local-checks.mjs test node -- scripts/preparation-context-carrier-layout.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/preparation-root-bridge.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/submission-snapshot-publication.test.mjs",
-    "node scripts/local-checks.mjs test node -- adapters/host-node/closed-values-own-data-scan.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/local-preparation-registry.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/preparation-host-custody.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/client-large-input-public.test.mjs adapters/host-node/local-values-policy-original.test.mjs adapters/host-node/host-result-extent.test.mjs adapters/host-node/client-join-scale-public.test.mjs",
@@ -92,7 +91,7 @@ const expectedGates = {
     "node scripts/local-checks.mjs test node -- scripts/scalar-snapshot-projector-layout.test.mjs scripts/capture-projector-layout.test.mjs adapters/host-node/publication-currentness-boundary.test.mjs adapters/host-node/client-publication-preparation-phase.test.mjs adapters/host-node/publication-validation-close-public.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/publication-snapshot-original-public.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/finalization-scratch-cut-public.test.mjs adapters/connectors/calendar/test/installed-calendar-source.test.mjs",
-    "node scripts/local-checks.mjs test node -- adapters/host-node/managed-output-mode.test.mjs adapters/host-node/closed-values-module-body-callers.test.mjs adapters/host-node/request-preparation-parent.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/managed-output-mode.test.mjs adapters/host-node/request-program-module-body-callers.test.mjs adapters/host-node/request-preparation-parent.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-common/source-response-custody.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/installed-source-service-capture.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/installed-content-family-custody.test.mjs"

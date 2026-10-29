@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
-import {closedValuesPreparationAvailable} from '../local-node/closed-values-preparation-adapter.mjs';
+import {requestPreparationAvailable} from '../local-node/request-preparation-adapter.mjs';
 import {prepareOrdinarySourceManagedInstallation} from './ordinary-source-managed.mjs';
 
 // These are the actual JS callers with explicit Core result/identity ports.
@@ -18,72 +18,80 @@ const ports = () => ({
   clientLocalResourcePolicyOriginal() {return {};},
   clientLocalPreparationResourceLimits() {return [1n,1n,1n,1n,1n,1n];},
   clientProgramBeginRequestPreparation() {},
-  clientProgramSelectClosedValuesPreparation() {},
   clientProgramAbortRequestPreparation() {},
-  clientProgramPrepareClosedValuesModuleBody() {},
-  clientProgramCompleteClosedValuesBody() {},
-  clientProgramAdoptClosedValuesPreparation() {},
-  clientProgramReserveClosedValuesSnapshot() {},
+  clientProgramPrepareRequestNativeComputation() {},
+  clientProgramPrepareRequestProgramModuleBody() {},
+  clientProgramBorrowRequestProgramPreparation() {},
+  clientProgramAdoptRequestProgramPreparation() {},
+  clientProgramReserveRequestSnapshot() {},
 });
 const context = (runtime, mode) => Object.freeze({runtime, preparedEnvironment: {},
   retainedRelationOutput: mode});
 
 test('ModuleBody capability requires the new port and an own Boolean mode without accessor callbacks', () => {
-  for (const mode of [false, true]) assert.equal(closedValuesPreparationAvailable(context(ports(), mode)), true);
+  for (const mode of [false, true]) assert.equal(requestPreparationAvailable(context(ports(), mode)), true);
   const old = ports();
-  old.clientProgramPrepareClosedValuesBody = old.clientProgramPrepareClosedValuesModuleBody;
-  delete old.clientProgramPrepareClosedValuesModuleBody;
-  assert.equal(closedValuesPreparationAvailable(context(old, false)), false);
+  old.clientProgramPrepareClosedValuesModuleBody = old.clientProgramPrepareRequestProgramModuleBody;
+  delete old.clientProgramPrepareRequestProgramModuleBody;
+  assert.equal(requestPreparationAvailable(context(old, false)), false);
   for (const mode of [undefined, null, 0, 'false', {}]) {
-    assert.equal(closedValuesPreparationAvailable(context(ports(), mode)), false);
+    assert.equal(requestPreparationAvailable(context(ports(), mode)), false);
   }
   let callbacks = 0;
   const accessor = Object.freeze({runtime: ports(), preparedEnvironment: {},
     get retainedRelationOutput() {callbacks++; return false;}});
-  assert.equal(closedValuesPreparationAvailable(accessor), false);
+  assert.equal(requestPreparationAvailable(accessor), false);
   const proxy = new Proxy(context(ports(), false), {getOwnPropertyDescriptor() {callbacks++; return undefined;}});
-  assert.equal(closedValuesPreparationAvailable(proxy), false);
+  assert.equal(requestPreparationAvailable(proxy), false);
   assert.equal(callbacks, 0);
 });
 
-test('funded caller passes the same installed mode to one ModuleBody then completes after return', async () => {
+test('funded caller passes the same installed mode to one original Request compiler and ModuleBody', async () => {
   for (const mode of [false, true]) {
-    const phase = {}, environment = {}, preparedEnvironment = {}, admission = {}, holder = {}, prepared = {};
-    const calls = [];
+    const parent = {}, receipt = {}, environment = {}, preparedEnvironment = {}, admission = {}, holder = {}, prepared = {};
+    const captured = {input: {}, parameters: {text: '日本語😀'}}, parametersCursor = {}, calls = [];
     let constructing = false;
     const moon = {...ports(),
-      clientProgramPrepareClosedValuesModuleBody(...args) {
+      clientProgramPrepareRequestNativeComputation(...args) {
         assert.strictEqual(this, moon);
-        assert.deepEqual(args, [phase, environment, preparedEnvironment, admission, mode]);
+        assert.deepEqual(args, [parent, receipt, captured.input, captured.parameters, environment, preparedEnvironment]);
+        calls.push('compiler'); return 'effect_free';
+      },
+      clientProgramPrepareRequestProgramModuleBody(...args) {
+        assert.strictEqual(this, moon);
+        assert.deepEqual(args, [parent, receipt, admission, mode]);
         constructing = true; calls.push('body'); constructing = false;
       },
-      clientProgramCompleteClosedValuesBody(value) {
-        assert.strictEqual(this, moon); assert.strictEqual(value, phase);
-        assert.equal(constructing, false); calls.push('complete'); return holder;
+      clientProgramBorrowRequestProgramPreparation(value) {
+        assert.strictEqual(this, moon); assert.strictEqual(value, parent);
+        assert.equal(constructing, false); calls.push('borrow'); return holder;
       },
       clientProgramPreparationBorrowRead(value) {assert.strictEqual(value, holder); return prepared;},
+      clientProgramRequestParametersOriginal(...args) {
+        assert.deepEqual(args, [parent, receipt]); calls.push('parameters'); return parametersCursor;
+      },
     };
-    const state = {phase, context: Object.freeze({runtime: moon, environment,
+    const state = {parent, snapshot: captured, context: Object.freeze({runtime: moon, environment,
       preparedEnvironment, retainedRelationOutput: mode})};
-    const producer = {preparation: state};
+    const producer = {receipt, kind: 'program', body: captured, preparation: state};
     const originals = {installation: {sequenceContractOriginal: {moon, admission}}};
-    const read = Function('current', 'producerForRequest', 'fail', 'originals',
-      'checkedPreparation', 'closedValuesPreparationAvailable',
+    const read = Function('current', 'producerForRequest', 'fail', 'originals', 'checked',
+      'checkedRequestProgramPreparation', 'requestPreparationAvailable',
       `return ({${body}}).fundedPreparation;`)(() => {}, () => producer, fail,
-      originals, (_moon, value) => value, closedValuesPreparationAvailable);
+      originals, value => value, (_moon, value) => value, requestPreparationAvailable);
     for(let i=0;i<2;i++){
       const original=await read({}, environment);
       assert.strictEqual(original.prepared, prepared);
       assert.equal(original.kind,'effect_free');
-      assert.deepEqual(original.originalInputs,{environment,parameters:undefined});
+      assert.deepEqual(original.originalInputs,{environment,parameters:undefined,parametersCursor});
       assert.equal(Object.isFrozen(original),true);
       assert.equal(Object.isFrozen(original.originalInputs),true);
     }
-    assert.deepEqual(calls, ['body', 'complete']);
+    assert.deepEqual(calls, ['compiler', 'body', 'borrow', 'parameters']);
     assert.strictEqual(state.prepared, prepared);
     state.context = context(moon, undefined);
     await assert.rejects(read({}, state.context.environment), {code: 'NodeLocalPreparationAdmissionUnavailable'});
-    assert.deepEqual(calls, ['body', 'complete']);
+    assert.deepEqual(calls, ['compiler', 'body', 'borrow', 'parameters']);
   }
 });
 

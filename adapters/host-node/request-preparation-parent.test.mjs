@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prepareOrdinarySourceManagedInstallation} from './ordinary-source-managed.mjs';
 import resources from './ordinary-node-resource-runtime.cjs';
-import {openRequestPreparation, cleanupClosedValuesInput} from '../local-node/closed-values-preparation-adapter.mjs';
+import {openRequestPreparation, cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs';
 import {snapshotClientRequest} from '../../packages/client-wire/index.mjs';
 
 // Actual normal manager/adapter/Resource originals; Core phase/shape results
@@ -12,8 +12,8 @@ const input = () => ({version:'actql/0.1',id:'parent',stages:[{id:'main',inputs:
   schema:{n:{type:'number',nullable:false}},rows:[{n:1}],
 }}],results:{rows:{from:'v',fields:['n']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}});
 const connection = Object.freeze({mode:'local',owner:'local',consentRefs:Object.freeze([]),runners:Object.freeze([])});
-async function fixture({selectFailure, control=[1024n,0n], policyLimits=[10000n,10000n,10000n,100000n,100000n,100000n]}={}) {
-  const calls=[],shapes=[],policy={},parent={},phase={},work={};let admission;
+async function fixture({beginFailure, control=[1024n,0n], policyLimits=[10000n,10000n,10000n,100000n,100000n,100000n]}={}) {
+  const calls=[],shapes=[],policy={},parent={};let admission;
   const stop = () => {
     assert.equal(admission.ports.report(0,0,0,0n,0n,0n,0n,0n,0n,0n,0,0,0),0);
     assert.equal(admission.ports.status(2),0);
@@ -29,6 +29,7 @@ async function fixture({selectFailure, control=[1024n,0n], policyLimits=[10000n,
     },
     clientProgramBeginRequestPreparation(actual,receipt,selectedPolicy){
       assert.equal(this,moon);assert.equal(actual,admission);assert.equal(receipt,admission.receipt);assert.equal(selectedPolicy,policy);
+      if(beginFailure!==undefined) throw beginFailure;
       assert.equal(admission.ports.status(0),0);calls.push('parent');return ok(parent);
     },
     clientProgramReserveRequestSnapshot(actual,receipt,units,values){
@@ -36,22 +37,12 @@ async function fixture({selectFailure, control=[1024n,0n], policyLimits=[10000n,
       assert.equal(typeof units,'bigint');assert.equal(typeof values,'bigint');
       assert.ok(units>=values && values>0n);shapes.push({units,values});calls.push('snapshot-grow');return ok(undefined);
     },
-    clientProgramSelectClosedValuesPreparation(actual,receipt){
-      assert.equal(this,moon);assert.equal(actual,parent);assert.equal(receipt,admission.receipt);calls.push('select');
-      if(selectFailure!==undefined) throw selectFailure;return ok(phase);
-    },
-    clientProgramBeginClosedValuesHeader(actual){assert.equal(actual,phase);calls.push('header');return ok(work);},
-    clientProgramSpendPreparationPhaseWork(actual){assert.equal(actual,work);return ok(undefined);},
-    clientProgramBeginClosedValuesScan(actual){assert.equal(actual,phase);return ok(work);},
-    clientProgramFinishClosedValuesScan(){return ok(undefined);},
-    clientProgramBeginClosedValuesTextCheck(){return ok(work);},
-    clientProgramFinishClosedValuesTextCheck(){return ok(undefined);},
-    clientProgramReserveClosedValuesSnapshot(actual){assert.equal(actual,phase);calls.push('snapshot-reserve');return ok(undefined);},
-    clientProgramBindClosedValuesDocument(actual,document){assert.equal(actual,phase);calls.push('snapshot-bind');assert.equal(JSON.parse(document).id,'parent');return ok(undefined);},
     clientProgramAbortRequestPreparation(actual){assert.equal(this,moon);assert.equal(actual,parent);calls.push('abort-parent');return stop();},
-    clientProgramAbortClosedValuesPreparationAfterCleanup(actual){assert.equal(this,moon);assert.equal(actual,phase);calls.push('abort-body');return stop();},
-    clientProgramPrepareClosedValuesModuleBody(){assert.fail('No body compilation selected');},
-    clientProgramCompleteClosedValuesBody(){},clientProgramAdoptClosedValuesPreparation(){},
+    clientProgramCleanupLocalPreparationAdmission(actual){assert.equal(this,moon);assert.equal(actual,admission);calls.push('cancel-admission');assert.equal(admission.ports.cancelUnpublished(),0);return ok(undefined);},
+    clientProgramPrepareRequestNativeComputation(){assert.fail('No semantic compilation selected');},
+    clientProgramPrepareRequestProgramModuleBody(){assert.fail('No module compilation selected');},
+    clientProgramBorrowRequestProgramPreparation(){assert.fail('No Prepared borrow selected');},
+    clientProgramAdoptRequestProgramPreparation(){assert.fail('No Run adoption selected');},
   };
   const context=Object.freeze({runtime:moon,preparedEnvironment:{},retainedRelationOutput:false});
   const originals={};const view=await prepareOrdinarySourceManagedInstallation(originals,{
@@ -112,22 +103,22 @@ test('generic intent keeps its original Common refusal and does not finish or en
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
 });
 
-test('normal request manager retains one parent before header and original snapshot reservation',async()=>{
+test('normal default Request retains one parent before the original SDK snapshot growth',async()=>{
   const f=await fixture();const program=input();
   const receipt=f.view.beforeSourceSnapshot('program',program,undefined,connection);
-  assert.deepEqual(f.calls.slice(0,6),['control','policy-limits','admission','parent','select','header']);
-  assert.equal(f.calls.filter(x=>x==='parent').length,1);assert.equal(f.calls.filter(x=>x==='snapshot-reserve').length,1);
-  const body={kind:'program',input:JSON.parse(JSON.stringify(program)),parameters:null};
+  assert.deepEqual(f.calls,['control','policy-limits','admission','parent']);
+  const body=f.view.captureSourceSnapshot(receipt,{kind:'program',input:program,parameters:null},snapshotClientRequest);
   f.view.bindSourceSnapshot(receipt,body);f.view.finishSourceProducer(receipt,'failed');
-  assert.equal(f.calls.filter(x=>x==='abort-body').length,1);assert.equal(f.calls.includes('abort-parent'),false);
+  assert.equal(f.calls.filter(x=>x==='parent').length,1);assert.ok(f.shapes.length>0);
+  assert.equal(f.calls.filter(x=>x==='abort-parent').length,1);
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
   assert.deepEqual(await f.view.close(),{pending:false});
 });
 
-test('normal selection throw preserves primary and cleans the exact unselected parent once',async()=>{
-  const failure=new Error('OriginalSelectionFailure');const f=await fixture({selectFailure:failure});
+test('normal Request opening throw preserves primary and cancels the exact initial admission once',async()=>{
+  const failure=new Error('OriginalOpeningFailure');const f=await fixture({beginFailure:failure});
   assert.throws(()=>f.view.beforeSourceSnapshot('program',input(),undefined,connection),cause=>cause===failure);
-  assert.deepEqual(f.calls,['control','policy-limits','admission','parent','select','abort-parent']);
+  assert.deepEqual(f.calls,['control','policy-limits','admission','cancel-admission']);
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
   assert.deepEqual(await f.view.close(),{pending:false});
 });
@@ -203,7 +194,7 @@ test('actual Request opening needs the original lifetime rather than Source or c
     currents++;
     assert.throws(() => openRequestPreparation(state, original, current, () => false),
       {code: 'NodeLocalPreparationAdmissionUnavailable'});
-    assert.throws(() => cleanupClosedValuesInput(state),
+    assert.throws(() => cleanupRequestInput(state),
       {code: 'NodeLocalPreparationAdmissionUnavailable'});
   };
   assert.equal(openRequestPreparation(state, original, current, () => false), f.parent);
@@ -211,7 +202,7 @@ test('actual Request opening needs the original lifetime rather than Source or c
   assert.equal(f.calls.filter(value => value === 'parent').length, 1);
   assert.throws(() => openRequestPreparation(state, original, current, () => false),
     {code: 'NodeLocalPreparationAdmissionUnavailable'});
-  cleanupClosedValuesInput(state);
+  cleanupRequestInput(state);
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
   assert.deepEqual(await f.view.close(), {pending: false});
 });
@@ -226,7 +217,7 @@ test('actual initial opening selects its original Common policy without a Source
   assert.equal(f.calls.includes('requirements'), false);
   const ports = resources.prepareOriginalLocalPreparationPorts(state.original, original);
   assert.equal(ports, null, 'the original sole ports were already retained by Common');
-  cleanupClosedValuesInput(state);
+  cleanupRequestInput(state);
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
   assert.deepEqual(await f.view.close(), {pending: false});
 });
@@ -242,7 +233,7 @@ test('actual initial policy refusal precedes Resource opening and original curre
       () => {currents++;}, () => false), {code: 'NodeLocalPreparationAdmissionUnavailable'});
     assert.equal(currents, 0);assert.equal(f.original, undefined);
     assert.deepEqual(f.calls, ['policy-limits']);assert.equal(state.opening, false);
-    cleanupClosedValuesInput(state);
+    cleanupRequestInput(state);
     assert.deepEqual(await f.view.close(), {pending: false});
   }
 });
@@ -254,7 +245,7 @@ async function initialHostFixture({beginFailure = false} = {}) {
   const {parse} = await import('acorn');
   const {readFileSync} = await import('node:fs');
   const {openHostInitializationPreparation, closeHostInitializationPreparation} =
-    await import('../local-node/closed-values-preparation-adapter.mjs');
+    await import('../local-node/request-preparation-adapter.mjs');
   const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
   let method;
@@ -421,7 +412,7 @@ test('normal generic Native Request preserves failed Plan construction and rejec
     modules++;
     reentry=f.view.fundedPreparation(request,undefined);
     // Handler cleanup cannot retire the same constructor while it is live.
-    assert.throws(()=>cleanupClosedValuesInput({context:f.context,preparing:true}),
+    assert.throws(()=>cleanupRequestInput({context:f.context,preparing:true}),
       {code:'NodeLocalPreparationAdmissionUnavailable'});
     throw failure;
   };
@@ -482,7 +473,7 @@ test('normal generic Native cleanup keeps its original holder without the requir
     clientProgramPreparationBorrowReturn(){returns++;return ok(false);},
   };
   const state={context:{runtime},parent,holder,prepared};
-  assert.throws(()=>cleanupClosedValuesInput(state),{code:'NodeLocalPreparationAdmissionUnavailable'});
+  assert.throws(()=>cleanupRequestInput(state),{code:'NodeLocalPreparationAdmissionUnavailable'});
   assert.equal(returns,0);assert.equal(state.holder,holder);assert.equal(state.prepared,prepared);
 });
 
@@ -539,6 +530,38 @@ test('normal generic Native Request projects its retained typed refusal once wit
       await assert.rejects(f.view.fundedPreparation(request,undefined),error=>error===originalFailure);
       assert.equal(constructors,1);assert.equal(projections,1);
     } finally {f.view.finishSourceProducer(receipt,'failed');await f.view.close();}
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
+  }
+});
+
+
+test('normal default and empty options use the same Request without legacy ClosedValues exports', async () => {
+  for (const options of [undefined, {}]) {
+    const f=await fixture();
+    for (const name of Object.keys(f.context.runtime)) if (name.includes('ClosedValues')) delete f.context.runtime[name];
+    const never=()=>assert.fail('No semantic/module or legacy scanner work during SDK capture');
+    for (const name of ['clientProgramPrepareRequestNativeComputation','clientProgramPrepareRequestProgramModuleBody',
+      'clientProgramBorrowRequestProgramPreparation','clientProgramRequestParametersOriginal',
+      'clientProgramAdoptRequestProgramPreparation','clientProgramInstalledManagedRunCompilationOriginal',
+      'clientProgramPreparationBorrowRead','clientProgramPreparationBorrowSibling',
+      'clientProgramPreparationBorrowRetirementStarted','clientProgramPreparationBorrowReturn']) f.context.runtime[name]=never;
+    const program=input(),stages=program.stages;let reads=0,receipt;
+    stages[0].steps[0].values.schema.note={type:'string',nullable:false};
+    stages[0].steps[0].values.rows[0].note='日本語😀';stages[0].results.rows.fields.push('note');
+    Object.defineProperty(program,'stages',{enumerable:true,get(){reads++;return stages;}});
+    try {
+      receipt=f.view.beforeSourceSnapshot('program',program,options,connection);
+      assert.equal(reads,0);
+      assert.deepEqual(f.calls,['control','policy-limits','admission','parent']);
+      const body=f.view.captureSourceSnapshot(receipt,{kind:'program',input:program,parameters:null},snapshotClientRequest);
+      assert.equal(reads,1);assert.equal(body.input.stages[0].steps[0].values.rows[0].note,'日本語😀');
+      assert.ok(f.shapes.length>0);f.view.bindSourceSnapshot(receipt,body);
+    } finally {
+      if (receipt!==undefined) f.view.finishSourceProducer(receipt,'failed');
+      assert.deepEqual(await f.view.close(),{pending:false});
+    }
+    assert.equal(f.calls.filter(x=>x==='parent').length,1);
+    assert.equal(f.calls.filter(x=>x==='abort-parent').length,1);
     assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
   }
 });

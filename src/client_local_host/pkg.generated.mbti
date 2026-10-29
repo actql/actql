@@ -762,6 +762,8 @@ pub fn[I, P] reconcile_program_check_views(ClientProgramCheckPreparation[I, P]) 
 
 pub fn[I, P] reconcile_program_json_preparation_structure(ClientProgramJsonPreparation[I, P]) -> Result[Unit, ClientProgramJsonPreparationIssue]
 
+pub fn[I] request_preparation_accounting(ClientRequestPreparation[I]) -> (Int64, Int64, Int64, Int64, Int64, Int64)
+
 pub fn[I] request_preparation_parameters_original(ClientRequestPreparation[I], I) -> Result[@decode_core.Cursor?, ClientRequestPreparationIssue]
 
 pub fn[I] request_prepared_computation_kind(ClientRequestPreparation[I], I) -> Result[ClientRequestComputationKind, ClientRequestPreparationIssue]

@@ -33,21 +33,6 @@ pub fn client_program_cleanup_local_preparation_admission(
 }
 
 ///|
-#export_name("clientProgramClosedValuesInitialControl")
-pub fn client_program_closed_values_initial_control(
-  policy : @client_local_host.ClientLocalResourcePolicy,
-) -> Array[Int64] {
-  match
-    @client_local_host.client_closed_values_initial_control_capacity(
-      policy,
-      module_containers=installed_client_module_container_units,
-    ) {
-    Some((retained, execution)) => [retained, execution]
-    None => []
-  }
-}
-
-///|
 #export_name("clientProgramRequestPreparationControl")
 pub fn client_program_request_preparation_control(
   policy : @client_local_host.ClientLocalResourcePolicy,
@@ -518,26 +503,6 @@ pub fn client_program_reconcile_program_check_requests(
 }
 
 ///|
-#export_name("clientProgramSelectClosedValuesPreparation")
-pub fn client_program_select_closed_values_preparation(
-  parent : @client_local_host.ClientRequestPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-  input : ClientLocalPreparationInputOriginal,
-) -> Result[
-  @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-  @client_local_host.ClientRequestPreparationIssue,
-] {
-  @client_local_host.select_closed_values_preparation(
-    parent,
-    input,
-    module_containers=installed_client_module_container_units,
-  )
-}
-
-///|
 #export_name("clientProgramAbortRequestPreparation")
 pub fn client_program_abort_request_preparation(
   parent : @client_local_host.ClientRequestPreparation[
@@ -548,269 +513,12 @@ pub fn client_program_abort_request_preparation(
 }
 
 ///|
-#export_name("clientProgramBeginClosedValuesHeader")
-pub fn client_program_begin_closed_values_header(
-  owner : @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-) -> Result[
-  @resources.PreparationPhaseWork,
-  @client_local_host.ClientClosedValuesPreparationIssue,
-] {
-  @client_local_host.begin_closed_values_header(owner)
-}
-
-///|
-#export_name("clientProgramBeginClosedValuesScan")
-pub fn client_program_begin_closed_values_scan(
-  owner : @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-  fields : Int,
-  rows : Int,
-) -> Result[
-  @resources.PreparationPhaseWork,
-  @client_local_host.ClientClosedValuesPreparationIssue,
-] {
-  @client_local_host.begin_closed_values_scan(owner, fields, rows)
-}
-
-///|
-#export_name("clientProgramSpendPreparationPhaseWork")
-pub fn client_program_spend_preparation_phase_work(
-  work : @resources.PreparationPhaseWork,
-  amount : Int,
-) -> Result[Unit, @resources.PreparationWorkIssue] {
-  @resources.spend_preparation_phase_work(work, amount)
-}
-
-///|
-#export_name("clientProgramFinishClosedValuesScan")
-pub fn client_program_finish_closed_values_scan(
-  owner : @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue] {
-  @client_local_host.finish_closed_values_scan(owner)
-}
-
-///|
-#export_name("clientProgramAbortClosedValuesPreparationAfterCleanup")
-pub fn client_program_abort_closed_values_preparation_after_cleanup(
-  owner : @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue] {
-  @client_local_host.abort_closed_values_preparation_after_cleanup(owner)
-}
-
-///|
-#export_name("clientProgramBeginClosedValuesTextCheck")
-pub fn client_program_begin_closed_values_text_check(
-  owner : @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-  quoted_utf16_units : Int,
-) -> Result[
-  @resources.PreparationPhaseWork,
-  @client_local_host.ClientClosedValuesPreparationIssue,
-] {
-  @client_local_host.begin_closed_values_text_check(owner, quoted_utf16_units)
-}
-
-///|
-#export_name("clientProgramFinishClosedValuesTextCheck")
-pub fn client_program_finish_closed_values_text_check(
-  owner : @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue] {
-  @client_local_host.finish_closed_values_text_check(owner)
-}
-
-///|
-/// Private fixed Node scanner projection. The original phase owner, not these
-/// numeric facts, owns capacity; JavaScript proves same-input synchronous
-/// custody before this call. No caller resource budget is accepted here.
-#export_name("clientProgramReserveClosedValuesSnapshot")
-pub fn client_program_reserve_closed_values_snapshot(
-  owner : @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-  input_bytes_upper : Int,
-  node_upper : Int,
-  objects : Int,
-  arrays : Int,
-  fields_upper : Int,
-  quoted_tokens : Int,
-  quoted_utf16_units : Int,
-  longest_quoted_utf16 : Int,
-  longest_atom_utf16 : Int,
-  depth_upper : Int,
-  fields : Int,
-  rows : Int,
-  consent_refs : Int,
-) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue] {
-  @client_local_host.reserve_closed_values_snapshot(
-    owner,
-    {
-      input_bytes_upper,
-      node_upper,
-      objects,
-      arrays,
-      fields_upper,
-      quoted_tokens,
-      quoted_utf16_units,
-      longest_quoted_utf16,
-      longest_atom_utf16,
-      depth_upper,
-      fields,
-      rows,
-    },
-    consent_refs,
-  )
-}
-
-///|
-#export_name("clientProgramBindClosedValuesDocument")
-pub fn client_program_bind_closed_values_document(
-  owner : @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-  document : String,
-) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue] {
-  @client_local_host.bind_closed_values_document(owner, document)
-}
-
-///|
-#export_name("clientProgramPrepareClosedValuesModuleBody")
-pub fn client_program_prepare_closed_values_module_body(
-  owner : @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-  environment : @program_check.CheckEnvironment,
-  publication_environment : @source_publication.PreparedPublishedQueryEnvironment,
-  contracts : @client_local_host.ClientInstalledSequenceContracts,
-  retained_output : Bool,
-) -> Result[Unit, @client_local_host.ClientClosedValuesPreparationIssue] {
-  // Cold compiler admission belongs to installed initialization, never to a
-  // query borrowing an original under a per-request compilation quotation.
-  guard client_generated_manifest_admission.val is Some(Ok(manifests)) else {
-    return Err(Policy)
-  }
-  @client_local_host.prepare_closed_values_module_body(
-    owner,
-    environment,
-    publication_environment,
-    contracts,
-    manifests,
-    retained_output~,
-    provider_factory=installed_client_family_providers,
-    family_retained=installed_client_family_construction_retained,
-    family_array=installed_client_family_construction_array,
-    family_temporary=installed_client_family_construction_temporary,
-  )
-}
-
-///|
-#export_name("clientProgramCompleteClosedValuesBody")
-pub fn client_program_complete_closed_values_body(
-  owner : @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-) -> Result[
-  @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
-  @client_local_host.ClientClosedValuesPreparationIssue,
-] {
-  @client_local_host.complete_closed_values_body(owner)
-}
-
-///|
-#export_name("clientProgramAdoptClosedValuesPreparation")
-pub fn client_program_adopt_closed_values_preparation(
-  owner : @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-  prepared : @publication_host.PreparedClientProgram,
-  request : @publication_host.ClientRequestIdentity,
-) -> Result[
-  @client_local_host.ClientInstalledManagedRun,
-  @client_local_host.ClientInstalledManagedRunIssue,
-] {
-  @client_local_host.begin_closed_values_owned_run(owner, prepared, request)
-}
-
-///|
-#export_name("clientProgramSeverClosedValuesBody")
-pub fn client_program_sever_closed_values_body(
-  owner : @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-  holder : @resources.PreparationBodyBorrow[
-    @publication_host.PreparedClientProgram,
-  ],
-) -> Bool {
-  @client_local_host.sever_closed_values_body(owner, holder)
-}
-
-///|
-/// Exact initial-owner/issued-manager-token cut witness. Not physical stop.
-#export_name("clientProgramClosedValuesInitialRetirementStarted")
-pub fn client_program_closed_values_initial_retirement_started(
-  owner : @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-  holder : @resources.PreparationBodyBorrow[
-    @publication_host.PreparedClientProgram,
-  ],
-) -> Bool {
-  @client_local_host.closed_values_initial_retirement_started(owner, holder)
-}
-
-///|
-/// Read-only logical accounting for the exact original owner. No grant.
-#export_name("clientProgramClosedValuesPreparationAccounting")
-pub fn client_program_closed_values_preparation_accounting(
-  owner : @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-) -> Result[
-  (Int64, Int64, Int64, Int64, Int64, Int64),
-  @client_local_host.ClientClosedValuesPreparationIssue,
-] {
-  @client_local_host.closed_values_preparation_accounting(owner)
-}
-
-///|
 /// Immutable failure DATA only; no owner, Ledger, reservation or grant escapes.
 #export_name("clientProgramPreparationCapacityRefusal")
 pub fn client_program_preparation_capacity_refusal(
   issue : @client_local_host.ClientClosedValuesPreparationIssue,
 ) -> (String, String, Int64, Int64, Int64, Int64)? {
   @client_local_host.closed_values_preparation_capacity_refusal(issue)
-}
-
-///|
-/// Fixed original-owner intent admission; no caller numeric limit or grant.
-#export_name("clientProgramPrepareClosedValuesSubmittedIntent")
-pub fn client_program_prepare_closed_values_submitted_intent(
-  owner : @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-  wire : String,
-) -> Result[String, @client_local_host.ClientClosedValuesPreparationIssue] {
-  @client_local_host.prepare_closed_values_submitted_intent(owner, wire)
-}
-
-///|
-/// Borrowed exact semantic intent; fixed active handler lifetime only.
-#export_name("clientProgramClosedValuesSubmittedIntentOriginal")
-pub fn client_program_closed_values_submitted_intent_original(
-  owner : @client_local_host.ClientClosedValuesPreparation[
-    ClientLocalPreparationInputOriginal,
-  ],
-) -> @publication_host.ClientSubmittedIntent? {
-  @client_local_host.closed_values_submitted_intent_original(owner)
 }
 
 ///|
@@ -1154,4 +862,15 @@ pub fn client_program_request_parameters_original(
   input : ClientLocalPreparationInputOriginal,
 ) -> Result[@decode.Cursor?, @client_local_host.ClientRequestPreparationIssue] {
   @client_local_host.request_preparation_parameters_original(parent, input)
+}
+
+///|
+/// SAME original Request accounting, including its adopted body continuation.
+#export_name("clientProgramRequestPreparationAccounting")
+pub fn client_program_request_preparation_accounting(
+  owner : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+) -> (Int64, Int64, Int64, Int64, Int64, Int64) {
+  @client_local_host.request_preparation_accounting(owner)
 }
