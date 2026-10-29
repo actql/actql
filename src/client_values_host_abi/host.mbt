@@ -30,6 +30,7 @@ pub(all) enum ClientValuesHostPreparationIssue {
   InvalidFormat
   SuppliedSyntax(@source.ParseError)
   SuppliedAdmission(@decode.Issue)
+  Publication(@source_publication.PreparedPublicationIssue)
   Program(@host.ClientProgramPreparationIssue)
 }
 
@@ -79,7 +80,13 @@ pub fn client_values_host_prepare(
   format : String,
   environment : @checked.CheckEnvironment,
   parameters : String?,
+  publication_environment : @source_publication.PreparedPublishedQueryEnvironment?,
 ) -> Result[@host.PreparedClientProgram, ClientValuesHostPreparationIssue] {
+  let catalog = match
+    client_values_host_published_catalog(publication_environment, environment) {
+    Ok(value) => value
+    Err(issue) => return Err(Publication(issue))
+  }
   let (selected, supplied) = match
     client_values_host_program_input(format, parameters) {
     Ok(value) => value
@@ -92,6 +99,7 @@ pub fn client_values_host_prepare(
       environment,
       supplied,
       @host.client_standard_program_preparation_limits(),
+      source_catalog=catalog,
     ) {
     Ok(value) => Ok(value)
     Err(issue) => Err(Program(issue))

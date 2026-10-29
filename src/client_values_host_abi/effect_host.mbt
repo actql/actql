@@ -19,10 +19,18 @@ pub fn client_values_host_prepare_effect(
   format : String,
   environment : @checked.CheckEnvironment,
   parameters : String?,
+  publication_environment : @source_publication.PreparedPublishedQueryEnvironment?,
 ) -> Result[
   @host.PreparedClientEffectComputation,
   ClientValuesHostEffectPreparationIssue,
 ] {
+  let (update_targets, store_targets, command_targets, catalog) = match
+    client_values_host_published_effect_parts(
+      publication_environment, environment,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Input(Publication(issue)))
+  }
   let (selected, supplied) = match
     client_values_host_program_input(format, parameters) {
     Ok(value) => value
@@ -35,6 +43,10 @@ pub fn client_values_host_prepare_effect(
     supplied,
     [],
     client_values_host_effect_limits(),
+    update_targets~,
+    store_targets~,
+    command_targets~,
+    source_catalog=catalog,
   ).map_err(issue => Program(issue))
 }
 
