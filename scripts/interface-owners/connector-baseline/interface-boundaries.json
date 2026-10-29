@@ -5731,7 +5731,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6b07de00a6ab16e26ea38bcdd7fc95e12470b7c704e07975b3c8f5a08aa8e4af",
+      "sha256": "0df88e913c7f745deea7fc03c50bd976d6141346544fa332a29a9f80225dea62",
       "role": "connector-semantics",
       "owner": "GitHub comment installation and Mapping/subject wiring under Common row Effect, Preview and Ledger",
       "exports": [
@@ -5834,7 +5834,8 @@
             "runtimeBundleCid",
             "resolveSecret",
             "ledgerRoot",
-            "installation"
+            "installation",
+            "installationServices"
           ],
           "async": true
         },
@@ -5846,9 +5847,9 @@
           "async": false
         },
         {
-          "name": "loadInstalledGitHubEffect/init:prepareRequest/init:prepareRequest",
+          "name": "loadInstalledGitHubEffect/init:request/init:request",
           "parameters": [
-            "member",
+            "resource",
             "value"
           ],
           "async": false
@@ -5862,50 +5863,22 @@
         },
         {
           "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#2",
-          "parameters": [],
+          "parameters": [
+            "request",
+            "authorization",
+            "credential",
+            "callResource",
+            "signal"
+          ],
           "async": false
         },
         {
           "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#3",
           "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#4",
-          "parameters": [
-            "request",
-            "authorization",
-            "credential",
-            "callResource",
-            "signal"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#5",
-          "parameters": [
-            "request",
-            "authorization",
-            "credential",
-            "callResource",
-            "signal"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#6",
-          "parameters": [
             "request",
             "observation",
             "headers"
           ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#7",
-          "parameters": [],
           "async": false
         },
         {
@@ -5972,20 +5945,16 @@
             "installedGitHubEffectIdentityParts",
             "loadInstalledGitHubEffect",
             "loadInstalledGitHubEffect/environment/environment",
-            "loadInstalledGitHubEffect/init:prepareRequest/init:prepareRequest",
             "loadInstalledGitHubEffect/loadInstalledGitHubEffect",
             "loadInstalledGitHubEffect/loadInstalledGitHubEffect#2",
             "loadInstalledGitHubEffect/loadInstalledGitHubEffect#3",
-            "loadInstalledGitHubEffect/loadInstalledGitHubEffect#4",
-            "loadInstalledGitHubEffect/loadInstalledGitHubEffect#5",
-            "loadInstalledGitHubEffect/loadInstalledGitHubEffect#6",
-            "loadInstalledGitHubEffect/loadInstalledGitHubEffect#7",
             "mappingsOf",
             "mappingsOf/mappingsOf",
             "publishInstalledGitHubEffect",
             "publishInstalledGitHubEffect/publishInstalledGitHubEffect",
             "sameKeys/sameKeys",
-            "text/text"
+            "text/text",
+            "loadInstalledGitHubEffect/init:request/init:request"
           ],
           "exports": [
             "INSTALLED_GITHUB_EFFECT_VERSION",
@@ -6069,16 +6038,34 @@
               {
                 "path": "adapters/connectors/github/test/github-installed-comment-outcome.test.mjs",
                 "anchor": "installed comment Created remains provider evidence pending actual confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "Effect Site uses the same Host factory and provider binding"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-row-effect.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/local-account-config.mjs",
+        "../site/github-comment-create.mjs",
+        "../site/github-issue-graphql-read.mjs",
+        "./installed-github-source.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/github/host/installed-github-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c86e97c44bbf4cbe47992e3e1645402923fdce180c80eb53161573aedbbbda71",
+      "sha256": "87be2b26e67e1f4f6128b2f2e5d7b76b9e03e1a2d23b9bc2dd404eab66c1eb81",
       "role": "connector-semantics",
       "owner": "Published stable repository identity and installed Issue Source; Host RowSource owns capture and disclosure",
       "exports": [
@@ -6193,12 +6180,13 @@
             "runtimeBundleCid",
             "resolveSecret",
             "publication",
-            "installation"
+            "installation",
+            "installationServices"
           ],
           "async": true
         },
         {
-          "name": "openSite/credentialSite/credentialSite",
+          "name": "openSite/configuration/configuration",
           "parameters": [
             "binding",
             "resource"
@@ -6291,7 +6279,7 @@
             "loadInstalledGitHubSource/loadInstalledGitHubSource/loadInstalledGitHubSource",
             "loadInstalledGitHubSource/physicalTarget/physicalTarget",
             "openSite",
-            "openSite/credentialSite/credentialSite",
+            "openSite/configuration/configuration",
             "publishGitHubRepository",
             "publishInstalledGitHubSource",
             "readGitHubPublication",
@@ -6401,6 +6389,10 @@
               {
                 "path": "adapters/connectors/github/test/github-comment-read.test.mjs",
                 "anchor": "original Issue and PullRequest comments enter one accounted Source without replacing numeric identity"
+              },
+              {
+                "path": "adapters/host-node/installed-row-write.test.mjs",
+                "anchor": "Effect Site uses the same Host factory and provider binding"
               }
             ]
           }

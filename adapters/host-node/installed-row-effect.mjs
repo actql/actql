@@ -11,7 +11,11 @@
 // A `command` binds its exact ResourceRef and input payload; its row states
 // are not applicable, not an approximation of an update.
 //
-// A connector supplies a write driver. Every kind:
+// Standard CREATE installations supply `write`: a fixed HTTP declaration,
+// provider request mapping and response classifier, plus any provider-specific
+// subject check. The Host derives the routine hooks inside this same owner.
+// Conditional writes and other advanced installations supply an internal driver.
+// A driver retains the following existing contract. Every kind:
 // - `kinds`: the effect kinds it writes.
 // - `prepareRequest({member, value, selector, current})`: the exact request
 //   of one row from its mapped target value (and, for an update, its
@@ -89,6 +93,8 @@
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
+import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
+import {invokeScopedCredentialOperation} from '../host-common/owned-invocation-context.mjs';
 import {checkedTableWriteBinding} from './table-write-binding.mjs';
 import {mkdir} from 'node:fs/promises';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -383,6 +389,202 @@ function requireSynchronousEffectResource(value) {
   return value;
 }
 
+// Standard CREATE plumbing for the SAME Row Effect, not another lifecycle.
+function deriveInstalledRowWrite(write, connectorRegistration) {
+  const fail = () => { throw Object.assign(new TypeError('InvalidInstalledRowWrite'),
+    {code: 'InvalidInstalledRowWrite'}); };
+  const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
+  const text = value => typeof value === 'string' && value.length > 0;
+  function data(value, key, optional = false) {
+    if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value)) fail();
+    const field = Object.getOwnPropertyDescriptor(value, key);
+    if (field === undefined && optional) return undefined;
+    if (!field || !Object.hasOwn(field, 'value')) fail();
+    return field.value;
+  }
+
+  // Decoded proposal values already belong to the enclosing Row Effect. Freeze
+  // them in place before mapping so the association retains the exact input,
+  // including nested cells, without another JSON roundtrip or value checker.
+  function freezeInput(value) {
+    if (value !== null && typeof value === 'object') {
+      for (const child of Object.values(value)) freezeInput(child);
+      Object.freeze(value);
+    }
+    return value;
+  }
+
+  if (data(write, 'kind') !== 'create' || !text(connectorRegistration)) fail();
+  const operation = data(write, 'operation'), resourceKind = data(write, 'resourceKind');
+  const boundaryCid = data(write, 'boundaryCid'), http = data(write, 'http');
+  const origin = data(http, 'origin'), method = data(http, 'method'), path = data(http, 'path');
+  const maxRequestBytes = data(http, 'maxRequestBytes'), maxResponseBytes = data(http, 'maxResponseBytes');
+  const map = data(write, 'request'), classify = data(write, 'classify');
+  if (!text(operation) || !text(resourceKind) || !cid(boundaryCid) ||
+      typeof origin !== 'string' || !URL.canParse(origin) || new URL(origin).origin !== origin ||
+      !origin.startsWith('https://') || !text(path) || !['POST', 'PUT', 'PATCH'].includes(method) ||
+      ![maxRequestBytes, maxResponseBytes].every(value => Number.isSafeInteger(value) && value > 0) ||
+      typeof map !== 'function' || typeof classify !== 'function' ||
+      nodeTypes.isAsyncFunction(map) || nodeTypes.isAsyncFunction(classify)) fail();
+  const headers = ownRequestHeaders(data(http, 'headers', true));
+  const responseHeaders = ownResponseHeaderNames(data(http, 'responseHeaders', true));
+  const check = data(write, 'check', true);
+  let checkOptions;
+  if (check !== undefined) {
+    const resource = data(check, 'resource'), operation = data(check, 'operation');
+    const request = data(check, 'request');
+    if (!text(resource) || !text(operation) || typeof request !== 'function') fail();
+    checkOptions = {check: Object.freeze({resource, operation}),
+      checkRequest: context => Reflect.apply(request, check, [context])};
+  }
+  const originals = new WeakMap();
+  const original = request => {
+    const selected = originals.get(request);
+    if (selected === undefined) fail();
+    return selected;
+  };
+  // This standard path accepts plain JSON request DATA, not native opaque
+  // provider originals. Existing contract bounds cap the saved capture bytes;
+  // they do not issue capacity, permission or a physical retention receipt.
+  function freezeRequestData(value, depth = 0, state = {nodes: 0, active: new Set()}) {
+    if (++state.nodes > localContractLimits.maxNodes || depth > localContractLimits.maxDepth) fail();
+    if (value === null || typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+      if (value.length > localContractLimits.maxWireBytes || Buffer.byteLength(value) > localContractLimits.maxWireBytes) fail();
+      return value;
+    }
+    if (typeof value === 'number') {
+      if (!Number.isFinite(value) || Object.is(value, -0)) fail();
+      return value;
+    }
+    if (typeof value !== 'object' || nodeTypes.isProxy(value) || state.active.has(value) ||
+        Object.getPrototypeOf(value) !== (Array.isArray(value) ? Array.prototype : Object.prototype)) fail();
+    state.active.add(value);
+    const keys = Reflect.ownKeys(value);
+    if (Array.isArray(value) && (keys.length !== value.length + 1 ||
+        keys.some((key, index) => key !== (index === value.length ? 'length' : String(index))))) fail();
+    for (const key of keys) {
+      if (Array.isArray(value) && key === 'length') continue;
+      if (typeof key !== 'string' || key.length > localContractLimits.maxWireBytes) fail();
+      const field = Object.getOwnPropertyDescriptor(value, key);
+      if (!field || !Object.hasOwn(field, 'value') || !field.enumerable) fail();
+      freezeRequestData(field.value, depth + 1, state);
+    }
+    state.active.delete(value);
+    return Object.freeze(value);
+  }
+  function bindRequest(request, resource, value, expectedCid) {
+    if (request === null || typeof request !== 'object' || nodeTypes.isProxy(request) ||
+        data(request, 'then', true) !== undefined || originals.has(request)) fail();
+    const requestOrigin = data(request, 'origin', true), requestMethod = data(request, 'method', true);
+    if ((requestOrigin !== undefined && requestOrigin !== origin) ||
+        (requestMethod !== undefined && requestMethod !== method) ||
+        data(request, 'headers', true) !== undefined || data(request, 'path') !== path) fail();
+    const body = data(request, 'body');
+    if (typeof body !== 'string') fail();
+    const exact = ownHttpRequest({method, path,
+      query: data(request, 'query', true), body, headers});
+    if (Buffer.byteLength(exact.body) > maxRequestBytes) fail();
+    const providerCid = data(request, 'requestCid', true);
+    if (providerCid !== undefined && !cid(providerCid)) fail();
+    // Existing typed providers keep their original request identity. Plain
+    // standard HTTP mappings need no separate identity callback.
+    const requestCid = providerCid ?? `sha256:${createHash('sha256').update(JSON.stringify([
+      'actql-installed-row-write-request/0.1', connectorRegistration,
+      resourceKind, boundaryCid, operation, origin, method, exact.target,
+      exact.headers, exact.body])).digest('hex')}`;
+    if (expectedCid !== undefined && expectedCid !== requestCid) fail();
+    freezeRequestData(request);
+    originals.set(request, Object.freeze({resource, value, exact, requestCid}));
+    return Object.freeze({request, requestCid});
+  }
+  const recoveryKind = 'standard_row_write';
+  const recoveryBinding = resource => [connectorRegistration, resourceKind,
+    boundaryCid, operation, origin, method, path, headers, responseHeaders,
+    maxRequestBytes, maxResponseBytes, resource];
+  const wireCid = wire => `sha256:${createHash('sha256').update(wire).digest('hex')}`;
+  function restoreMembers({durable, members}, indexes) {
+    if (!Array.isArray(durable?.connectorRecovery)) fail();
+    return {requests: indexes.map(index => {
+      const member = members[index];
+      if (member?.kind !== 'create' || !text(member.resource)) fail();
+      const saved = durable.connectorRecovery.filter(item => item.memberIndex === index);
+      if (saved.length !== 1 || saved[0].kind !== recoveryKind ||
+          typeof saved[0].wire !== 'string' || Buffer.byteLength(saved[0].wire) > localContractLimits.maxWireBytes ||
+          wireCid(saved[0].wire) !== saved[0].observationCid) fail();
+      const envelope = JSON.parse(saved[0].wire);
+      freezeRequestData(envelope);
+      if (!Array.isArray(envelope) || envelope.length !== 2 ||
+          JSON.stringify(envelope) !== saved[0].wire ||
+          JSON.stringify(envelope[0]) !== JSON.stringify(recoveryBinding(member.resource)) ||
+          !Array.isArray(envelope[1])) fail();
+      return envelope[1].map(row => {
+        if (!Array.isArray(row) || row.length !== 3 || !cid(row[0]) ||
+            row[1] === null || typeof row[1] !== 'object') fail();
+        return bindRequest(row[2], member.resource, row[1], row[0]).request;
+      });
+    })};
+  }
+  return Object.freeze({
+    kinds: Object.freeze(['create']),
+    writeOperation: () => operation,
+    footprint: () => ({providerNamespace: connectorRegistration, resourceKind, boundaryCid}),
+    ...checkOptions,
+    prepareRequest(context) {
+      if (context?.member?.kind !== 'create' || !text(context.member.resource)) fail();
+      const resource = context.member.resource;
+      const value = freezeInput(context.value);
+      const request = Reflect.apply(map, write, [Object.freeze({resource, value})]);
+      return bindRequest(request, resource, value);
+    },
+    requestCid: request => original(request).requestCid,
+    recoveryEntry({member, entries}) {
+      if (member?.kind !== 'create' || !text(member.resource) || !Array.isArray(entries)) fail();
+      const bindingValue = recoveryBinding(member.resource);
+      const selectedRows = entries.map(entry => {
+        const selected = original(entry.request);
+        if (selected.resource !== member.resource || entry.requestCid !== selected.requestCid ||
+            entry.value !== selected.value) fail();
+        return [selected.requestCid, selected.value, entry.request];
+      });
+      freezeRequestData([bindingValue, selectedRows]);
+      const binding = JSON.stringify(bindingValue);
+      let bytes = Buffer.byteLength(binding) + 5;
+      const rows = selectedRows.map(row => {
+        const wire = JSON.stringify(row);
+        bytes += Buffer.byteLength(wire) + 1;
+        if (bytes > localContractLimits.maxWireBytes) fail();
+        return wire;
+      });
+      const wire = `[${binding},[${rows.join(',')}]]`;
+      return Object.freeze({kind: recoveryKind, observationCid: wireCid(wire), wire});
+    },
+    recoverRequests(context) {
+      return restoreMembers(context, context.members.map((_, index) => index));
+    },
+    recoverMemberRequests(context) {
+      return restoreMembers(context, context.memberIndexes);
+    },
+    requestFacts(request) { return {value: original(request).value}; },
+    async send({request, authorization, credential, callResource, signal}) {
+      const {exact} = original(request);
+      if (authorization?.scope?.resourceOrigin !== origin) fail();
+      signal?.throwIfAborted();
+      const response = await invokeScopedCredentialOperation({authorization, credential,
+        callResource, operation, method, path: exact.target, headers: exact.headers,
+        body: exact.body, responseHeaders, maxRequestBytes, maxResponseBytes, signal});
+      return Object.freeze({observation: Object.freeze({useCid: response.useCid,
+        statusCode: response.statusCode, body: response.body}), headers: response.headers});
+    },
+    project(context) {
+      const {resource, value} = original(context.request);
+      return Reflect.apply(classify, write, [Object.freeze({resource, value,
+        request: context.request, observation: context.observation,
+        ...(Object.hasOwn(context, 'headers') ? {headers: context.headers} : {})})]);
+    },
+  });
+}
+
 function checkDriver(driver) {
   if (driver === null || typeof driver !== 'object' ||
       !Array.isArray(driver.kinds) || driver.kinds.length === 0 ||
@@ -483,12 +685,14 @@ export function installedRowEffectDescriptors(moon, prepared, compilation) {
 // is the value the continuation binds the installation by.
 export async function createInstalledRowEffect({moon, mappings = [], commands = [],
   environmentWire, connectorId, connectorRegistration, connectorRevision,
-  connection, site, authorization, runtimeBundleCid, bindingCid, driver,
+  connection, site, authorization, runtimeBundleCid, bindingCid, driver, write,
   ledgerRoot, installation, continuationBinding = bindingCid,
   limits: suppliedLimits, effectResources, issueOriginalCollectionReference, managedPlanDefinition}) {
   const resources = captureEffectResources(effectResources);
   const limits = Object.freeze({...defaultLimits, ...suppliedLimits});
-  const owned = checkDriver(driver);
+  if (write !== undefined && driver !== undefined) fail('InvalidInstalledRowEffectDriver');
+  const owned = checkDriver(write === undefined ? driver
+    : deriveInstalledRowWrite(write, connectorRegistration));
   const planDefinition = captureManagedPlanDefinition(managedPlanDefinition, owned);
   const profile = profileOf(installation);
   if (!moon || !Array.isArray(mappings) || !Array.isArray(commands) ||

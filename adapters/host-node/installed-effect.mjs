@@ -20,6 +20,7 @@ import {readSourceProfileJson, installedRuntimeBundleCid} from './source-profile
 import {composeInstalledEffects, installedUpdateTargets, validPluralEffectPaths}
   from './installed-effect-inventory.mjs';
 import {retainInstalledRowEffectAdapter} from './installed-row-effect.mjs';
+import {retainInstalledHostServiceInstallation} from './installed-host-services.mjs';
 export {installedEffectFor} from './installed-effect-inventory.mjs';
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
@@ -167,14 +168,17 @@ export async function publishInstalledEffectProfile(path, {root, principalId,
 // published generation is restored without provider I/O. Its Effect Ledger
 // lives under the Host's state root.
 async function loadEffect(path, {root, principalId, moon,
-  runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable}, own) {
+  runtimeUrl, baseEnvironmentWire, resolveSecret, connectorTable, installationServices}, own) {
   const profile = await readProfile(path);
   const {providerProfile, queryUpdateTargets} = splitUpdateTargetProfile(profile);
   const {entry, module} = await selectInstallation(profile, connectorTable);
-  const installed = await module.load(module.check(providerProfile), {root,
+  const checked = module.check(providerProfile);
+  const runtime = await providerRuntime(entry, runtimeUrl);
+  retainInstalledHostServiceInstallation(installationServices, entry, runtime.runtimeBundleCid);
+  const installed = await module.load(checked, {root,
     principalId, moon, baseEnvironmentWire, resolveSecret, installation: entry,
     ledgerRoot: join(root, 'state', 'effects', 'ledger'),
-    ...await providerRuntime(entry, runtimeUrl)});
+    ...(installationServices === undefined ? {} : {installationServices}), ...runtime});
   own(installed);
   verifyInstalledConnectorRegistration(entry, installed);
   if (typeof installed?.prepareCaptured !== 'function' ||

@@ -25,9 +25,8 @@ import {createInstalledRowEffect} from
 import {rowSourceCheckEnvironment, rowSourceMapping} from
   '../../../host-node/installed-row-source.mjs';
 import {GITHUB_COMMENT_CREATE_OPERATION, checkGitHubCommentSubject,
-  prepareGitHubCommentRequest, projectGitHubCommentObservation,
-  sendGitHubIssueComment} from '../site/github-comment-create.mjs';
-import {GITHUB_GRAPHQL_READ_OPERATION} from
+  prepareGitHubCommentRequest, projectGitHubCommentObservation} from '../site/github-comment-create.mjs';
+import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION} from
   '../site/github-issue-graphql-read.mjs';
 import {openGitHubSite, publishGitHubRepository, readGitHubPublication,
   readGitHubSite, restoreGitHubDeclaration} from
@@ -159,7 +158,7 @@ function commentOutcome(projected) {
 // repository binding without provider I/O.
 export async function loadInstalledGitHubEffect(profile, {root, principalId,
   moon, providerMoon, baseEnvironmentWire, runtimeBundleCid, resolveSecret,
-  ledgerRoot, installation}) {
+  ledgerRoot, installation, installationServices}) {
   const checked = checkInstalledGitHubEffectProfile(profile);
   if (!text(baseEnvironmentWire) || !absolute(ledgerRoot)) {
     fail('InvalidInstalledEffectOptions');
@@ -172,7 +171,7 @@ export async function loadInstalledGitHubEffect(profile, {root, principalId,
   const environment = rowSourceCheckEnvironment(baseEnvironmentWire,
     declared, mappings.map(mapping => mapping.body));
   const opened = await openGitHubSite(checked, site, {root, principalId,
-    moon, runtimeBundleCid, resolveSecret, publication, installation});
+    moon, runtimeBundleCid, resolveSecret, publication, installation}, installationServices);
   try {
     const repository = Object.freeze({nodeId: publication.repository.node_id,
       databaseId: publication.repository.id,
@@ -199,32 +198,28 @@ export async function loadInstalledGitHubEffect(profile, {root, principalId,
         credentialKeyId: site.credentialKeyId}),
       ledgerRoot,
       installation,
-      driver: {
-        kinds: ['create'],
-        writeOperation: () => GITHUB_COMMENT_CREATE_OPERATION,
-        check: {resource: 'issues', operation: GITHUB_GRAPHQL_READ_OPERATION},
-        requestFacts: request => ({value: {body: request.commentBody,
-          subject_id: request.subjectId}}),
-        prepareRequest({member, value}) {
-          const comment = commentValue(member.resource, value);
-          const request = prepareGitHubCommentRequest({moon: providerMoon,
+      write: {
+        kind: 'create', operation: GITHUB_COMMENT_CREATE_OPERATION,
+        resourceKind: 'issue_comment', boundaryCid,
+        http: {origin: site.apiOrigin, method: 'POST', path: GITHUB_GRAPHQL_PATH,
+          headers: JSON.parse(providerMoon.githubRequestHeadersJson()),
+          responseHeaders: JSON.parse(providerMoon.githubResponseHeadersJson()),
+          maxRequestBytes: commentLimits.maxRequestBytes, maxResponseBytes: commentLimits.maxResponseBytes},
+        request({resource, value}) {
+          if (typeof providerMoon.githubCommentOutcomeJson !== 'function') fail('InvalidGitHubCommentSend');
+          const comment = commentValue(resource, value);
+          return prepareGitHubCommentRequest({moon: providerMoon,
             origin: site.apiOrigin, subjectId: comment.subject_id,
             body: comment.body});
-          return {request: Object.freeze({...request,
-            commentBody: comment.body}), requestCid: request.requestCid};
         },
-        checkRequest: ({request, authorization, credential, callResource,
+        check: {resource: 'issues', operation: GITHUB_GRAPHQL_READ_OPERATION,
+          request: ({request, authorization, credential, callResource,
           signal}) => checkGitHubCommentSubject({moon: providerMoon,
           subjectId: request.subjectId, repository, authorization,
-          credential, callResource, limits: commentLimits, signal}),
-        send: ({request, authorization, credential, callResource, signal}) =>
-          sendGitHubIssueComment({moon: providerMoon, request, authorization,
-            credential, callResource, limits: commentLimits, signal}),
-        project: ({request, observation, headers}) => commentOutcome(
+            credential, callResource, limits: commentLimits, signal})},
+        classify: ({request, observation, headers}) => commentOutcome(
           projectGitHubCommentObservation({moon: providerMoon, observation,
             headers, limits: commentLimits, subjectId: request.subjectId})),
-        footprint: () => ({providerNamespace: registration,
-          resourceKind: 'issue_comment', boundaryCid}),
       }});
   } catch (cause) {
     throw await retainInstalledHostInitializationFailure(cause,
