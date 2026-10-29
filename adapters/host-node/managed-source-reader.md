@@ -68,7 +68,9 @@ no read, retry or new authority.
 
 `retry` retries only that cleanup, never a send or grant. Existing RowRun
 cleanup invokes this same retry on a subsequent close. The original failure
-remains primary if physical close also fails.
+remains primary if physical close also fails. A live abort is observed before the
+stopped-state guard, preserving the SAME original cancellation reason through
+the provider error wrapper. This does not permit another read on a closed handle.
 
 The factory's own `retire` requests stop on its SAME active handles and refuses
 completion until all readers have joined and retired. Source close calls this
