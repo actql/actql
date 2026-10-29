@@ -79,9 +79,10 @@ test('real Notion projections preserve original strings and cursor through the s
     assert.equal(f.charged.length,2);
     for(const [i,request] of f.requests.entries()) {
       assert.equal(request.method,'GET');
-      assert.equal(request.path,'/v1/users');
+      const target = new URL(request.path,'https://provider.invalid');
+      assert.equal(target.pathname,'/v1/users');
       assert(request.headers.some(([name,value]) => name === 'notion-version' && value === NOTION_USER_LIST_API_VERSION));
-      const query = new URLSearchParams(request.query);
+      const query = target.searchParams;
       assert.equal(query.get('page_size'),'2');
       assert.equal(query.get('start_cursor'),i === 0 ? null : cursor);
     }
@@ -104,8 +105,9 @@ test('real Calendar projections keep remaining rows and validate unselected capt
       {id:'C-é',summary:'',time_zone:'Asia/Tokyo',access_role:'reader'}]);
     assert.equal(f.charged.length,2);
     for(const [i,request] of f.requests.entries()) {
-      assert.equal(request.path,'/calendar/v3/users/me/calendarList');
-      const query = new URLSearchParams(request.query);
+      const target = new URL(request.path,'https://provider.invalid');
+      assert.equal(target.pathname,'/calendar/v3/users/me/calendarList');
+      const query = target.searchParams;
       assert.equal(query.get('maxResults'),i === 0 ? '2' : '1');
       assert.equal(query.get('pageToken'),i === 0 ? null : cursor);
       assert.equal(query.get('showHidden'),'true');
