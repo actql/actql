@@ -161,6 +161,29 @@ real service are separate, and fixture results do not stand in for them.
 Declare the query and write profile the Connector actually supports rather
 than every language shape.
 
+## Standard CREATE writes
+
+Standard CREATE installations can select the existing Row Effect's `write`
+declaration instead of an advanced `driver`. It fixes the operation, resource
+kind and boundary identity, and the HTTP origin, method, path, nonsecret headers
+and byte limits. The provider supplies `request(context)` and
+`classify(context)`, plus a provider-specific subject or target `check` when
+required. The Host derives request facts from the same immutable mapped input
+and original request, the operation and footprint, and the scoped HTTP send.
+An existing typed provider request keeps its exact `requestCid`; a plain HTTP
+mapping receives an identity over the fixed declaration and exact transport.
+There is no separate author `requestFacts`, `writeOperation`, `footprint`, send
+or CID callback for that path.
+
+GitHub comment CREATE and Sheets append select this declaration. Their original
+repository/target checks, provider request codecs and outcome classifiers remain
+provider-owned. The declaration does not turn a response classification into an
+applied Receipt: approval, the durable claim, saved response, confirmation,
+Unknown and cleanup remain with the existing Row Effect. Conditional writes and
+reconciliation continue using the advanced path when their semantics require it.
+This source migration has focused component coverage; it does not establish a
+matching-package ordinary run or physical provider acceptance.
+
 ## Authoring completion criteria
 
 Completing the resource-management refactoring also requires a small external

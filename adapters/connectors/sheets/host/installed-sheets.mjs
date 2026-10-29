@@ -12,7 +12,7 @@ import {createInstalledRowSource, installRowSourceAuthorization,
   from '../../../host-node/installed-row-source.mjs';
 import {createInstalledRowEffect} from '../../../host-node/installed-row-effect.mjs';
 import {checkSheetsGridConfiguration, checkSheetsTarget, prepareSheetsAppend,
-  projectSheetsAppend, readSheetsGrid, sendSheetsAppend, SHEETS_APPEND_OPERATION,
+  projectSheetsAppend, readSheetsGrid, SHEETS_APPEND_OPERATION,
   SHEETS_READ_OPERATION, SHEETS_LIMITS, readSheetsRangeTarget} from '../site/sheets-exchange.mjs';
 import {createSheetsRangeDriver, sheetsRangeCommand, sheetsRangeReference,
   withSheetsRangeCommand} from './sheets-range-command.mjs';
@@ -301,21 +301,26 @@ async function load(profile, options, effect) {
       connection: opened.connection, site: opened.site, authorization: opened.authorization,
       runtimeBundleCid: options.runtimeBundleCid, bindingCid: opened.bindingCid,
       ledgerRoot: options.ledgerRoot, installation: options.installation,
-      driver: {kinds: ['create'], writeOperation: () => SHEETS_APPEND_OPERATION,
-        check: {resource: 'rows', operation: SHEETS_READ_OPERATION},
-        requestFacts: request => ({value: request.value}),
-        prepareRequest: ({member, value}) => {
+      write: {kind: 'create', operation: SHEETS_APPEND_OPERATION,
+        resourceKind: 'sheet_collection', boundaryCid,
+        http: {origin: site.apiOrigin, method: 'POST',
+          path: `/v4/spreadsheets/${site.spreadsheetId}:batchUpdate`,
+          headers: [['accept', 'application/json']],
+          maxRequestBytes: SHEETS_LIMITS.maxRequestBytes, maxResponseBytes: SHEETS_LIMITS.maxResponseBytes},
+        request: ({member, value}) => {
           if (member.resource !== 'append_rows') fail('UndeclaredSheetsResource');
           const request = prepareSheetsAppend({moon: providerMoon, origin: site.apiOrigin,
             spreadsheetId: site.spreadsheetId, sheetId: site.appendSheetId, columns: site.columns, value});
-          return {request, requestCid: request.requestCid};
+          if (request.path !== `/v4/spreadsheets/${request.spreadsheetId}:batchUpdate`) {
+            fail('InvalidSheetsAppendBinding');
+          }
+          return request;
         },
-        checkRequest: options => checkSheetsTarget({...options, moon: providerMoon,
+        check: {resource: 'rows', operation: SHEETS_READ_OPERATION,
+          request: options => checkSheetsTarget({...options, moon: providerMoon,
           spreadsheetId: site.spreadsheetId, columns: site.columns, range: site.gridRange,
-          appendSheetId: site.appendSheetId}),
-        send: sendSheetsAppend,
-        project: options => projectSheetsAppend({...options, moon: providerMoon}),
-        footprint: () => ({providerNamespace: registration, resourceKind: 'sheet_collection', boundaryCid})}});
+          appendSheetId: site.appendSheetId})},
+        classify: options => projectSheetsAppend({...options, moon: providerMoon})}});
   } catch (cause) {
     closed = true;
     throw await retainInstalledHostInitializationFailure(cause,

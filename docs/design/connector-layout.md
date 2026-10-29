@@ -464,3 +464,24 @@ rejects proxy/accessor/incomplete readers through the connector's original
 refusal callback; a returning callback still refuses. Connector adapters retain
 their error identity, profile validation, CA bounds and byte/hash semantics.
 This shared selection does not replace currentness or resource admission.
+
+## Standard CREATE declaration
+
+The existing installed Row Effect accepts either a standard `write` declaration
+or an advanced driver. The internal `deriveInstalledRowWrite` adapter derives
+routine hooks without another execution owner. Provider mapping runs once on
+the same deeply frozen proposal value; a private original-request association
+retains that value and the exact admitted HTTP projection. Copies cannot supply
+facts, send or classify through that association. Provider-issued CIDs remain
+unchanged. Plain HTTP request identity includes the installation namespace,
+boundary, operation, fixed origin and exact method, target, ordered headers and
+body bytes, without parsing or normalizing the body.
+
+The adapter captures fixed transport and callback inputs before provider awaits.
+It checks the original grant's origin and uses the existing scoped credential
+invocation for one send inside the Row Effect's durable claim. It preserves the
+original observation/header envelope and original transport errors. It neither
+authorizes nor retries nor settles a response. Provider subject/target checks
+keep their existing separate resource and read operation; response classification
+cannot manufacture a confirmation, Receipt or OperationRef. Advanced conditional
+write, recovery and reconciliation semantics remain under the same Row Effect.

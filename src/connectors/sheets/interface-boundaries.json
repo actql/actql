@@ -2,7 +2,7 @@
   {
     "module": "adapters/connectors/sheets/host/installed-sheets.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "d57460a169093443c983f4f5a77820629795c89f5f3cb1b98655bf37c88646f4",
+    "sha256": "ca1a4af9d48f25175822a538c8530ebfead6878e3a6687dbaa5a168e5de4c47f",
     "exports": [
       "SHEETS_EFFECT_VERSION",
       "SHEETS_SITE_VERSION",
@@ -162,18 +162,6 @@
       },
       {
         "name": "load/load#2",
-        "parameters": [],
-        "async": false
-      },
-      {
-        "name": "load/load#3",
-        "parameters": [
-          "request"
-        ],
-        "async": false
-      },
-      {
-        "name": "load/load#4",
         "parameters": [
           "member",
           "value"
@@ -181,22 +169,17 @@
         "async": false
       },
       {
-        "name": "load/load#5",
+        "name": "load/load#3",
         "parameters": [
           "options"
         ],
         "async": false
       },
       {
-        "name": "load/load#6",
+        "name": "load/load#4",
         "parameters": [
           "options"
         ],
-        "async": false
-      },
-      {
-        "name": "load/load#7",
-        "parameters": [],
         "async": false
       },
       {
@@ -555,9 +538,6 @@
           "load/load#2",
           "load/load#3",
           "load/load#4",
-          "load/load#5",
-          "load/load#6",
-          "load/load#7",
           "loadInstalledSheetsEffect/loadInstalledSheetsEffect",
           "loadInstalledSheetsSource/loadInstalledSheetsSource",
           "openSite",

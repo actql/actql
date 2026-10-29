@@ -11,7 +11,11 @@
 // A `command` binds its exact ResourceRef and input payload; its row states
 // are not applicable, not an approximation of an update.
 //
-// A connector supplies a write driver. Every kind:
+// Standard CREATE installations supply `write`: a fixed HTTP declaration,
+// provider request mapping and response classifier, plus any provider-specific
+// subject check. The Host derives the routine hooks inside this same owner.
+// Conditional writes and other advanced installations supply an internal driver.
+// A driver retains the following existing contract. Every kind:
 // - `kinds`: the effect kinds it writes.
 // - `prepareRequest({member, value, selector, current})`: the exact request
 //   of one row from its mapped target value (and, for an update, its
@@ -89,6 +93,8 @@
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
+import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
+import {invokeScopedCredentialOperation} from '../host-common/owned-invocation-context.mjs';
 import {checkedTableWriteBinding} from './table-write-binding.mjs';
 import {mkdir} from 'node:fs/promises';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -383,6 +389,110 @@ function requireSynchronousEffectResource(value) {
   return value;
 }
 
+// Standard CREATE plumbing for the SAME Row Effect, not another lifecycle.
+function deriveInstalledRowWrite(write, connectorRegistration) {
+  const fail = () => { throw Object.assign(new TypeError('InvalidInstalledRowWrite'),
+    {code: 'InvalidInstalledRowWrite'}); };
+  const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
+  const text = value => typeof value === 'string' && value.length > 0;
+  function data(value, key, optional = false) {
+    if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value)) fail();
+    const field = Object.getOwnPropertyDescriptor(value, key);
+    if (field === undefined && optional) return undefined;
+    if (!field || !Object.hasOwn(field, 'value')) fail();
+    return field.value;
+  }
+
+  // Decoded proposal values already belong to the enclosing Row Effect. Freeze
+  // them in place before mapping so the association retains the exact input,
+  // including nested cells, without another JSON roundtrip or value checker.
+  function freezeInput(value) {
+    if (value !== null && typeof value === 'object') {
+      for (const child of Object.values(value)) freezeInput(child);
+      Object.freeze(value);
+    }
+    return value;
+  }
+
+  if (data(write, 'kind') !== 'create' || !text(connectorRegistration)) fail();
+  const operation = data(write, 'operation'), resourceKind = data(write, 'resourceKind');
+  const boundaryCid = data(write, 'boundaryCid'), http = data(write, 'http');
+  const origin = data(http, 'origin'), method = data(http, 'method'), path = data(http, 'path');
+  const maxRequestBytes = data(http, 'maxRequestBytes'), maxResponseBytes = data(http, 'maxResponseBytes');
+  const map = data(write, 'request'), classify = data(write, 'classify');
+  if (!text(operation) || !text(resourceKind) || !cid(boundaryCid) ||
+      typeof origin !== 'string' || !URL.canParse(origin) || new URL(origin).origin !== origin ||
+      !origin.startsWith('https://') || !text(path) || !['POST', 'PUT', 'PATCH'].includes(method) ||
+      ![maxRequestBytes, maxResponseBytes].every(value => Number.isSafeInteger(value) && value > 0) ||
+      typeof map !== 'function' || typeof classify !== 'function' ||
+      nodeTypes.isAsyncFunction(map) || nodeTypes.isAsyncFunction(classify)) fail();
+  const headers = ownRequestHeaders(data(http, 'headers', true));
+  const responseHeaders = ownResponseHeaderNames(data(http, 'responseHeaders', true));
+  const check = data(write, 'check', true);
+  let checkOptions;
+  if (check !== undefined) {
+    const resource = data(check, 'resource'), operation = data(check, 'operation');
+    const request = data(check, 'request');
+    if (!text(resource) || !text(operation) || typeof request !== 'function') fail();
+    checkOptions = {check: Object.freeze({resource, operation}),
+      checkRequest: context => Reflect.apply(request, check, [context])};
+  }
+  const originals = new WeakMap();
+  const original = request => {
+    const selected = originals.get(request);
+    if (selected === undefined) fail();
+    return selected;
+  };
+  return Object.freeze({
+    kinds: Object.freeze(['create']),
+    writeOperation: () => operation,
+    footprint: () => ({providerNamespace: connectorRegistration, resourceKind, boundaryCid}),
+    ...checkOptions,
+    prepareRequest(context) {
+      if (context?.member?.kind !== 'create') fail();
+      const value = freezeInput(context.value);
+      const request = Reflect.apply(map, write, [context]);
+      if (request === null || typeof request !== 'object' || nodeTypes.isProxy(request) ||
+          data(request, 'then', true) !== undefined || originals.has(request)) fail();
+      const requestOrigin = data(request, 'origin', true), requestMethod = data(request, 'method', true);
+      if ((requestOrigin !== undefined && requestOrigin !== origin) ||
+          (requestMethod !== undefined && requestMethod !== method) ||
+          data(request, 'headers', true) !== undefined || data(request, 'path') !== path) fail();
+      const body = data(request, 'body');
+      if (typeof body !== 'string') fail();
+      const exact = ownHttpRequest({method, path,
+        query: data(request, 'query', true), body, headers});
+      if (Buffer.byteLength(exact.body) > maxRequestBytes) fail();
+      const providerCid = data(request, 'requestCid', true);
+      if (providerCid !== undefined && !cid(providerCid)) fail();
+      // Existing typed providers keep their original request identity. Plain
+      // standard HTTP mappings need no separate identity callback.
+      const requestCid = providerCid ?? `sha256:${createHash('sha256').update(JSON.stringify([
+        'actql-installed-row-write-request/0.1', connectorRegistration,
+        resourceKind, boundaryCid, operation, origin, method, exact.target,
+        exact.headers, exact.body])).digest('hex')}`;
+      Object.freeze(request);
+      originals.set(request, Object.freeze({value, exact, requestCid}));
+      return Object.freeze({request, requestCid});
+    },
+    requestFacts(request) { return {value: original(request).value}; },
+    async send({request, authorization, credential, callResource, signal}) {
+      const {exact} = original(request);
+      if (authorization?.scope?.resourceOrigin !== origin) fail();
+      signal?.throwIfAborted();
+      const response = await invokeScopedCredentialOperation({authorization, credential,
+        callResource, operation, method, path: exact.target, headers: exact.headers,
+        body: exact.body, responseHeaders, maxRequestBytes, maxResponseBytes, signal});
+      return Object.freeze({observation: Object.freeze({useCid: response.useCid,
+        statusCode: response.statusCode, body: response.body}), headers: response.headers});
+    },
+    project(context) {
+      original(context.request);
+      return Reflect.apply(classify, write, [context]);
+    },
+  });
+}
+
 function checkDriver(driver) {
   if (driver === null || typeof driver !== 'object' ||
       !Array.isArray(driver.kinds) || driver.kinds.length === 0 ||
@@ -483,12 +593,14 @@ export function installedRowEffectDescriptors(moon, prepared, compilation) {
 // is the value the continuation binds the installation by.
 export async function createInstalledRowEffect({moon, mappings = [], commands = [],
   environmentWire, connectorId, connectorRegistration, connectorRevision,
-  connection, site, authorization, runtimeBundleCid, bindingCid, driver,
+  connection, site, authorization, runtimeBundleCid, bindingCid, driver, write,
   ledgerRoot, installation, continuationBinding = bindingCid,
   limits: suppliedLimits, effectResources, issueOriginalCollectionReference, managedPlanDefinition}) {
   const resources = captureEffectResources(effectResources);
   const limits = Object.freeze({...defaultLimits, ...suppliedLimits});
-  const owned = checkDriver(driver);
+  if (write !== undefined && driver !== undefined) fail('InvalidInstalledRowEffectDriver');
+  const owned = checkDriver(write === undefined ? driver
+    : deriveInstalledRowWrite(write, connectorRegistration));
   const planDefinition = captureManagedPlanDefinition(managedPlanDefinition, owned);
   const profile = profileOf(installation);
   if (!moon || !Array.isArray(mappings) || !Array.isArray(commands) ||

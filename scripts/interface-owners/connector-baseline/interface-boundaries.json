@@ -5731,7 +5731,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6b07de00a6ab16e26ea38bcdd7fc95e12470b7c704e07975b3c8f5a08aa8e4af",
+      "sha256": "c974a2443b36ddc8b16c8142a21ee2cadb124b635b85fcf661ac171509b93368",
       "role": "connector-semantics",
       "owner": "GitHub comment installation and Mapping/subject wiring under Common row Effect, Preview and Ledger",
       "exports": [
@@ -5846,7 +5846,7 @@
           "async": false
         },
         {
-          "name": "loadInstalledGitHubEffect/init:prepareRequest/init:prepareRequest",
+          "name": "loadInstalledGitHubEffect/init:request/init:request",
           "parameters": [
             "member",
             "value"
@@ -5862,50 +5862,22 @@
         },
         {
           "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#2",
-          "parameters": [],
+          "parameters": [
+            "request",
+            "authorization",
+            "credential",
+            "callResource",
+            "signal"
+          ],
           "async": false
         },
         {
           "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#3",
           "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#4",
-          "parameters": [
-            "request",
-            "authorization",
-            "credential",
-            "callResource",
-            "signal"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#5",
-          "parameters": [
-            "request",
-            "authorization",
-            "credential",
-            "callResource",
-            "signal"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#6",
-          "parameters": [
             "request",
             "observation",
             "headers"
           ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#7",
-          "parameters": [],
           "async": false
         },
         {
@@ -5972,20 +5944,16 @@
             "installedGitHubEffectIdentityParts",
             "loadInstalledGitHubEffect",
             "loadInstalledGitHubEffect/environment/environment",
-            "loadInstalledGitHubEffect/init:prepareRequest/init:prepareRequest",
             "loadInstalledGitHubEffect/loadInstalledGitHubEffect",
             "loadInstalledGitHubEffect/loadInstalledGitHubEffect#2",
             "loadInstalledGitHubEffect/loadInstalledGitHubEffect#3",
-            "loadInstalledGitHubEffect/loadInstalledGitHubEffect#4",
-            "loadInstalledGitHubEffect/loadInstalledGitHubEffect#5",
-            "loadInstalledGitHubEffect/loadInstalledGitHubEffect#6",
-            "loadInstalledGitHubEffect/loadInstalledGitHubEffect#7",
             "mappingsOf",
             "mappingsOf/mappingsOf",
             "publishInstalledGitHubEffect",
             "publishInstalledGitHubEffect/publishInstalledGitHubEffect",
             "sameKeys/sameKeys",
-            "text/text"
+            "text/text",
+            "loadInstalledGitHubEffect/init:request/init:request"
           ],
           "exports": [
             "INSTALLED_GITHUB_EFFECT_VERSION",
@@ -6073,7 +6041,21 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-row-effect.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/local-account-config.mjs",
+        "../site/github-comment-create.mjs",
+        "../site/github-issue-graphql-read.mjs",
+        "./installed-github-source.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/github/host/installed-github-source.mjs",
