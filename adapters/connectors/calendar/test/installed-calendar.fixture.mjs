@@ -1,5 +1,5 @@
-// Actual Common/Account/Credential/SQLite/TLS component fixture. Explicit
-// diagnostic capacity is not the normal Host's startup/preparation supplier.
+// Actual Common/initial Resource/Account/Credential/SQLite/TLS component.
+// Public Host installation/current and Request borrowing remain separate.
 import assert from 'node:assert/strict';
 import {readFile,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -11,10 +11,12 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {installedConnectors} from '../../../connectors-builtin/installations.generated.mjs';
 import {createInstalledConnectorTable,installedConnectorForTable} from '../../../host-node/installed-connectors.mjs';
 import {calendarFixture,calendarReadLimits} from './calendar-list.fixture.mjs';
+import {installedSourceFixtureLifetime} from '../../../host-node/fixtures/installed-source-initialization.mjs';
 
 const repo=new URL('../../../../',import.meta.url);
 export async function installedCalendarFixture(t,{account='allow',accountResource='calendars'}={}){
-  const f=await calendarFixture(t,{accounted:false}),sources=[];
+  const lifetime=installedSourceFixtureLifetime(t);
+  const f=await calendarFixture(lifetime.transportContext,{accounted:false});
   const site={version:'actql-installed-calendar-site/0.1',apiOrigin:f.scope.resourceOrigin,
     credentialAuthorityId:'installed-calendar',credentialKeyId:'key',
     credentialPrivateKeyPath:join(f.root,'credential-authority.key'),environment:'test',
@@ -26,15 +28,15 @@ export async function installedCalendarFixture(t,{account='allow',accountResourc
       entry_id:'calendar-read',outcome:account,principal:{all:true},connection:{any_of:['calendar:fixture']},
       resource:{any_of:[accountResource]},operation:{any_of:['read']},exclusions:[]}]}),
     limits:{...calendarReadLimits,maxDeclarationBytes:4096,maxDeclarationNodes:1000,maxSecretBytes:128,maxCaBytes:16384}};
-  const capacity=common.clientProgramRowSourceProviderCapacity(262144n,262144n);assert.ok(capacity);
   const options={root:f.root,principalId:'operator',moon:common,providerMoon:provider,
     runtimeBundleCid:`sha256:${createHash('sha256').update(await readFile(new URL(
       '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',repo))).digest('hex')}`,
     baseEnvironmentWire:await readFile(new URL('spec/local-check-environment.json',repo),'utf8'),
-    resolveSecret:async()=>{f.state.resolutions++;await f.state.resolved?.();return f.state.secret;},readerCapacity:capacity};
+    resolveSecret:async()=>{f.state.resolutions++;await f.state.resolved?.();return f.state.secret;}};
   const table=createInstalledConnectorTable(installedConnectors),selected=installedConnectorForTable(table,'source',profile);
   const module=await selected.source.load();
-  const load=async(overrides={})=>{const source=await module.load(profile,{...options,...overrides});sources.push(source);return source;};
+  const initial=lifetime.open({...options,installation:selected});
+  const load=(overrides={})=>initial.load(module.load,profile,{...options,...overrides});
   const prepare=async(source,{format='sql',selection='id, summary, time_zone, access_role'}={})=>{
     const env=JSON.parse(source.environmentWire),check=common.clientProgramCheckEnvironment(source.environmentWire,
       env.evidence_bundle_cid,false,false,true,false,false,false,false);assert.ok(check);
@@ -56,6 +58,5 @@ export async function installedCalendarFixture(t,{account='allow',accountResourc
       planned.transferBytes,planned.executionBytes,preparation.registry,preparation.values,preparation.fragment,preparation.ordered);assert.ok(ledger);
     return{...preparation,preparedSource,ledger};
   };
-  t.after(async()=>{for(const source of sources)await source.close();});
-  return{...f,profile,site,options,capacity,load,prepare,common,module};
+  return{...f,profile,site,options,initial,load,prepare,common,module};
 }
