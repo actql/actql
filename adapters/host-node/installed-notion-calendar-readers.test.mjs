@@ -8,7 +8,6 @@ import {parse} from 'acorn';
 import {createInstalledCredentialSourceReader} from './installed-credential-source-reader.mjs';
 import {captureConfigurationReaders} from './source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
-import {captureInstalledSourceServices} from './installed-host-services.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {credentialInvocationBindingKeys} from '../host-common/credential-scope-fields.generated.mjs';
 import {prepareNotionUserListPages,NOTION_USER_LIST_OPERATION,NOTION_USER_LIST_API_VERSION}
@@ -26,6 +25,15 @@ const row = (family,id) => family === 'notion' ? {email:null,id,name:id,type:'bo
   : {access_role:'reader',id,summary:id,time_zone:'UTC'};
 const page = (family,id,next=null) => ({rows:id === null ? [] : [row(family,id)],
   ids:id === null ? [] : [id],next});
+
+// This contract fixture consumes the exact pure method-capture function, not
+// the shared service's SDK/runtime import graph or its initialization issuer.
+const serviceSource=await readFile(new URL('./installed-host-services.mjs',import.meta.url),'utf8');
+const serviceCapture=parse(serviceSource,{ecmaVersion:'latest',sourceType:'module'}).body
+  .map(node=>node.declaration??node).find(node=>node.id?.name==='captureInstalledSourceServices');
+assert(serviceCapture);
+const captureInstalledSourceServices=Function('nodeTypes',
+  serviceSource.slice(serviceCapture.start,serviceCapture.end)+'\nreturn captureInstalledSourceServices;')(nodeTypes);
 
 // Actual provider adapters and Host owner, with explicit compiled-projection,
 // Account/grant and physical response ports. No Common/SQLite/TLS or normal
