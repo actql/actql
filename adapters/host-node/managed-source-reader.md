@@ -101,7 +101,20 @@ target workspace uses the already selected policy bound. Every repeated
 selection must keep all original Calendar limits, including the separate CA
 configuration ceiling. No field/default is added to the public profile, and
 `maxCaBytes` is not reused as secret/JSON capacity. This projects demand only;
-actual constructor/read/failure overlap still requires the SAME Request parent.
+actual constructor/read/failure overlap still requires its original parent.
+
+Installation material uses the existing Resource body tuple of the actual
+initialized Source aggregate and its prepared Environment. The initial owner
+must reserve construction before completing that body, retain it across
+Requests, and wait for Source and physical-child retirement before release.
+Requests borrow and return the same material; they do not reload Sources or
+reuse a completed Request parent as installation capacity.
+`borrowed_installed_source_environment` reads that same Environment only when
+the existing body borrow is live and its Source aggregate is the exact original.
+Equal manifests, copied aggregates and serialized identities cannot substitute
+for that association. Existing borrows can identify their metadata during
+retirement; the Resource owner separately refuses new sibling borrows. This
+pure accessor adds no reservation, current decision, authority or cleanup ACK.
 
 The existing connector-installation author declarations select exactly one
 managed factory or advanced `readPages` callback. They expose the actual
