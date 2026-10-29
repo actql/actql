@@ -8,51 +8,6 @@ export type ConnectorJsonValue = null | boolean | number | string |
 export type ConnectorJsonObject = {readonly [key: string]: ConnectorJsonValue};
 export type Awaitable<T> = T | PromiseLike<T>;
 
-/** Generated from one connector definition. Common admits the original
- * fields; these JSON types do not implement a second schema checker. */
-export interface RestSourceInstallationDefinition {
-  readonly registration: string;
-  readonly revision: string;
-  readonly profileVersion: string;
-  readonly origin: string;
-  readonly auth: Readonly<{kind: 'bearer'}>;
-  readonly sources: readonly Readonly<{
-    resource: string;
-    resource_kind: string;
-    fields: readonly ConnectorJsonObject[];
-    read: Readonly<{method: 'GET'; path: string}>;
-    pagination: Readonly<{kind: 'none'; items: readonly string[]}> |
-      Readonly<{kind: 'cursor'; items: readonly string[]; next: readonly string[]; parameter: string}>;
-    limits: Readonly<{maxPageRows: number; maxPageBytes: number; maxPages: number;
-      maxRows: number; maxNodes: number; maxDepth: number; maxCursorBytes: number}>;
-  }>[];
-}
-export interface RestSourceProfile {
-  readonly version: string;
-  readonly connectorId: string;
-  readonly siteProfilePath: string;
-  readonly accountConfigurationWire: string;
-}
-export interface RestSourcePageData {
-  readonly rowsWire: string;
-  readonly rowCount: number;
-  readonly nextCursor?: string;
-}
-export type RestSourceTransform = (page: Readonly<RestSourcePageData>,
-  context: Readonly<{resource: string; columns: readonly string[]}>) =>
-  Readonly<{rowsWire: string; nextCursor?: string}>;
-/** Host service/capacity/Site originals are supplied only by the installed
- * Host loader. The author callback receives no such service or authority. */
-export declare function createInstalledRestSource(definition: RestSourceInstallationDefinition,
-  options?: Readonly<{decodePage?: RestSourceTransform}>): Readonly<{
-    checkProfile(profile: unknown): Readonly<RestSourceProfile>;
-    identityParts(profile: object, providerProfile: RestSourceProfile,
-      readJson?: (path: string) => Promise<unknown>, installation?: object,
-      context?: object): Promise<readonly unknown[]>;
-    publish(profile: RestSourceProfile, options: object): Promise<object>;
-    load(profile: RestSourceProfile, options: object): Promise<InstalledRowSource>;
-  }>;
-
 export type RuntimeResult<T> =
   | Readonly<{$tag: 1; _0: T}>
   | Readonly<{$tag: 0; _0: unknown}>;
@@ -574,3 +529,48 @@ export declare function retainInstalledHostInitializationFailure(cause: unknown,
     sourceProfile?: InstallationCloseOwner;
     installedEffect?: InstallationCloseOwner;
   }>): Promise<InstallationFailure>;
+
+/** Generated from one connector definition. Common admits the original
+ * fields; these JSON types do not implement a second schema checker. */
+export interface RestSourceInstallationDefinition {
+  readonly registration: string;
+  readonly revision: string;
+  readonly profileVersion: string;
+  readonly origin: string;
+  readonly auth: Readonly<{kind: 'bearer'}>;
+  readonly sources: readonly Readonly<{
+    resource: string;
+    resource_kind: string;
+    fields: readonly ConnectorJsonObject[];
+    read: Readonly<{method: 'GET'; path: string}>;
+    pagination: Readonly<{kind: 'none'; items: readonly string[]}> |
+      Readonly<{kind: 'cursor'; items: readonly string[]; next: readonly string[]; parameter: string}>;
+    limits: Readonly<{maxPageRows: number; maxPageBytes: number; maxPages: number;
+      maxRows: number; maxNodes: number; maxDepth: number; maxCursorBytes: number}>;
+  }>[];
+}
+export interface RestSourceProfile {
+  readonly version: string;
+  readonly connectorId: string;
+  readonly siteProfilePath: string;
+  readonly accountConfigurationWire: string;
+}
+export interface RestSourcePageData {
+  readonly rowsWire: string;
+  readonly rowCount: number;
+  readonly nextCursor?: string;
+}
+export type RestSourceTransform = (page: Readonly<RestSourcePageData>,
+  context: Readonly<{resource: string; columns: readonly string[]}>) =>
+  Readonly<{rowsWire: string; nextCursor?: string}>;
+/** Host service/capacity/Site originals are supplied only by the installed
+ * Host loader. The author callback receives no such service or authority. */
+export declare function createInstalledRestSource(definition: RestSourceInstallationDefinition,
+  options?: Readonly<{decodePage?: RestSourceTransform}>): Readonly<{
+    checkProfile(profile: unknown): Readonly<RestSourceProfile>;
+    identityParts(profile: object, providerProfile: RestSourceProfile,
+      readJson?: (path: string) => Promise<unknown>, installation?: object,
+      context?: object): Promise<readonly unknown[]>;
+    publish(profile: RestSourceProfile, options: object): Promise<object>;
+    load(profile: RestSourceProfile, options: object): Promise<InstalledRowSource>;
+  }>;
