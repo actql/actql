@@ -11,6 +11,7 @@
 // another repository or an unreadable node before the send; it does not
 // exclude a move between the check and the send.
 import {createHash} from 'node:crypto';
+import {types} from 'node:util';
 import {callHttpsCredentialResource} from
   '../../../site-node/https-credential-resource.mjs';
 import {invokeScopedCredentialOperation} from
@@ -22,6 +23,12 @@ import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION} from
 
 export const GITHUB_COMMENT_CREATE_OPERATION = 'github:issues:comment:create';
 const REQUEST_VERSION = 'actql-github-comment-create-request/0.1';
+
+// Preview binds this recipe and the logical body. The Host supplies the SAME
+// Core-issued DispatchKey CID text only after that exact Preview is approved.
+export const GITHUB_COMMENT_STAMP_RECIPE = Object.freeze({
+  separator: '\n\n', prefix: '<!-- actql:effect:', suffix: ' -->',
+});
 
 const fail = (code, details = {}) => {
   throw Object.assign(new Error(code), {code, ...details});
@@ -68,6 +75,46 @@ export function prepareGitHubCommentRequest({moon, origin, subjectId, body}) {
     path, subjectId, body: prepared.body,
     requestCid: exactRequestCid([REQUEST_VERSION, origin, 'POST', path,
       prepared.body])});
+}
+
+// Logical DATA only: no physical request or request CID exists at this phase.
+// In particular an empty logical body remains distinct from an absent body;
+// the provider's physical body limits apply after the marker is inserted.
+export function prepareGitHubCommentLogicalRequest({origin, subjectId, body}) {
+  if (typeof origin !== 'string' || !origin.startsWith('https://') ||
+      !origin.isWellFormed() || typeof subjectId !== 'string' ||
+      subjectId.length === 0 || !subjectId.isWellFormed() ||
+      typeof body !== 'string' || !body.isWellFormed()) {
+    fail('InvalidGitHubCommentRequest');
+  }
+  return Object.freeze({version: REQUEST_VERSION, origin, method: 'POST',
+    path: GITHUB_GRAPHQL_PATH, subjectId, logicalBody: body});
+}
+
+// The Host retains and validates the original logical carrier/key association.
+// CID syntax here is DATA validation, not DispatchKey issuance or permission.
+// This performs no send, claim, readback, retry or cold request preparation.
+export function finalizeGitHubCommentRequest({moon, request, requestTag}) {
+  const names = ['version', 'origin', 'method', 'path', 'subjectId', 'logicalBody'];
+  if (request === null || typeof request !== 'object' || types.isProxy(request) ||
+      typeof requestTag !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(requestTag)) {
+    fail('InvalidGitHubCommentRequest');
+  }
+  const fields = Object.getOwnPropertyDescriptors(request);
+  if (Reflect.ownKeys(fields).length !== names.length || names.some(name =>
+    !Object.hasOwn(fields[name] ?? {}, 'value') || !fields[name].enumerable ||
+    typeof fields[name].value !== 'string' || !fields[name].value.isWellFormed())) {
+    fail('InvalidGitHubCommentRequest');
+  }
+  const original = Object.fromEntries(names.map(name => [name, fields[name].value]));
+  if (original.version !== REQUEST_VERSION || original.method !== 'POST' ||
+      original.path !== GITHUB_GRAPHQL_PATH || !original.origin.startsWith('https://') ||
+      original.subjectId.length === 0) fail('InvalidGitHubCommentRequest');
+  const body = original.logicalBody + GITHUB_COMMENT_STAMP_RECIPE.separator +
+    GITHUB_COMMENT_STAMP_RECIPE.prefix + requestTag + GITHUB_COMMENT_STAMP_RECIPE.suffix;
+  const physical = prepareGitHubCommentRequest({moon, origin: original.origin,
+    subjectId: original.subjectId, body});
+  return Object.freeze({...physical, logicalBody: original.logicalBody, requestTag});
 }
 
 // The identity of the exact request: each part's exact UTF-8 bytes, length
