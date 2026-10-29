@@ -1324,3 +1324,23 @@ projection callbacks alone do not supply those obligations or enable a normal
 installed Source. The shared Reader owns stop, callback custody and physical
 cleanup when it is used; no second provider lifecycle is introduced by these
 callbacks.
+
+### Shared property projection boundary
+
+`prepareNotionPropertyReadProjection` retains the existing compiled methods,
+limits and original column binding or original Page title. It describes only the
+original relative property path and opaque cursor, and projects the exact typed
+response. Percent escapes in the property ID remain unchanged. A provider's
+`next_url` cannot replace that target. Only the original completed property can
+supply its whole checked value, including a whole-value enum or title contract.
+
+A nonterminal projection retains a cursor continuation bound to that exact
+projected page. Its parent consumes the original prefix response charge and
+checks the same page/current bounds before asking for the next original Request.
+These projections do not own transport, authentication, current authorization,
+page/aggregate counters, charge consumption, stop or cleanup. The managed parent
+must supply all of them and keep failed original children and response aliases;
+copying projection DATA cannot supply a binding or retirement acknowledgement.
+The existing property-reader API uses the same provider methods and request/page
+projection while its parent migration remains incomplete. Title and declared
+column modes remain separate, with their original nominal checks.

@@ -235,15 +235,57 @@
     },
     {
       "module": "adapters/connectors/notion/site/property-item-read.mjs",
-      "sha256": "d6a94de793b36723e8e7f5c58ce0b694dfcd24db193bb98a69a3849871631120",
+      "sha256": "22d0ea9919d5e39bdcf61f20b9c4bd2b1a1685b26494212c722ee0113a76b749",
       "exports": [
         "NOTION_PROPERTY_READ_API_VERSION",
         "NOTION_PROPERTY_READ_OPERATION",
         "NotionPropertyReadFailure",
         "createNotionPageTitleReader",
-        "createNotionPropertyReader"
+        "createNotionPropertyReader",
+        "prepareNotionPropertyReadProjection"
       ],
       "operations": [
+        {
+          "name": "captureProjection",
+          "parameters": [
+            "moon",
+            "readContracts",
+            "column",
+            "pageTitle",
+            "title"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureProjection/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureProjection/complete/complete",
+          "parameters": [
+            "page",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureProjection/matches/matches",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureProjection/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
         {
           "name": "createNotionPageTitleReader",
           "parameters": [
@@ -287,6 +329,15 @@
           "name": "createPropertyReader/handle/init:requestStop/init:requestStop",
           "parameters": [
             "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "describePropertyRequest",
+          "parameters": [
+            "call",
+            "request",
+            "bounds"
           ],
           "async": false
         },
@@ -347,6 +398,52 @@
           "async": false
         },
         {
+          "name": "prepareNotionPropertyReadProjection",
+          "parameters": [
+            "moon",
+            "originalRequest",
+            "readContracts",
+            "column",
+            "pageTitle",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareNotionPropertyReadProjection/init:describeRequest/init:describeRequest",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareNotionPropertyReadProjection/init:projectResponse/init:projectResponse",
+          "parameters": [
+            "request",
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareNotionPropertyReadProjection/init:projectResponse/init:projectResponse/init:nextRequest/init:nextRequest",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareNotionPropertyReadProjection/prepareNotionPropertyReadProjection",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareNotionPropertyReadProjection/prepareNotionPropertyReadProjection#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareRead",
           "parameters": [
             "moon",
@@ -364,29 +461,6 @@
             "limits",
             "signal",
             "title"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareRead/call/call",
-          "parameters": [
-            "name",
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareRead/complete/complete",
-          "parameters": [
-            "page",
-            "b"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareRead/matches/matches",
-          "parameters": [
-            "request"
           ],
           "async": false
         },
@@ -412,9 +486,11 @@
           "async": false
         },
         {
-          "name": "prepareRead/provider/provider",
+          "name": "projectPropertyPage",
           "parameters": [
-            "name"
+            "call",
+            "request",
+            "response"
           ],
           "async": false
         }
@@ -434,6 +510,12 @@
         {
           "operations": [
             "<module>",
+            "NotionPropertyReadFailure/constructor:constructor/constructor:constructor",
+            "captureProjection",
+            "captureProjection/call/call",
+            "captureProjection/complete/complete",
+            "captureProjection/matches/matches",
+            "captureProjection/provider/provider",
             "createNotionPageTitleReader",
             "createNotionPropertyReader",
             "createPropertyReader",
@@ -441,29 +523,33 @@
             "createPropertyReader/handle/init:read/init:read",
             "createPropertyReader/handle/init:read/init:read/result/result",
             "createPropertyReader/handle/init:requestStop/init:requestStop",
+            "describePropertyRequest",
             "executeRead",
             "executeRead/response/response",
             "executeRead/verify/verify",
             "fail/fail",
-            "NotionPropertyReadFailure/constructor:constructor/constructor:constructor",
             "originalPathSegment",
             "originalReader",
             "positive/positive",
+            "prepareNotionPropertyReadProjection",
+            "prepareNotionPropertyReadProjection/init:describeRequest/init:describeRequest",
+            "prepareNotionPropertyReadProjection/init:projectResponse/init:projectResponse",
+            "prepareNotionPropertyReadProjection/init:projectResponse/init:projectResponse/init:nextRequest/init:nextRequest",
+            "prepareNotionPropertyReadProjection/prepareNotionPropertyReadProjection",
+            "prepareNotionPropertyReadProjection/prepareNotionPropertyReadProjection#2",
             "prepareRead",
-            "prepareRead/call/call",
-            "prepareRead/complete/complete",
-            "prepareRead/matches/matches",
             "prepareRead/prepareRead",
             "prepareRead/prepareRead#2",
             "prepareRead/prepareRead#3",
-            "prepareRead/provider/provider"
+            "projectPropertyPage"
           ],
           "exports": [
             "NOTION_PROPERTY_READ_API_VERSION",
             "NOTION_PROPERTY_READ_OPERATION",
             "NotionPropertyReadFailure",
             "createNotionPageTitleReader",
-            "createNotionPropertyReader"
+            "createNotionPropertyReader",
+            "prepareNotionPropertyReadProjection"
           ],
           "attributes": {
             "responsibility": [
@@ -474,6 +560,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "The physical title receiver selects this origin explicitly"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Shared property projection boundary"
               }
             ],
             "inputsOutputs": [
@@ -616,6 +706,10 @@
               {
                 "path": "adapters/connectors/notion/test/property-item-read.test.mjs",
                 "anchor": "after partial observation refuses the next Common request"
+              },
+              {
+                "path": "adapters/host-node/installed-managed-provider-projection.actual.test.mjs",
+                "anchor": "real Notion property projection preserves original cursor target and whole typed completion"
               }
             ]
           }
