@@ -11,6 +11,7 @@ const common = await import(process.env.ACTQL_TEST_COMMON_URL ?? new URL('../../
 const provider = await import(process.env.ACTQL_TEST_CALENDAR_URL ?? new URL('../../../../_build/js/release/build/connectors/calendar/host_node/host_node.js', import.meta.url).href);
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {canonicalJson,readAccountConfiguration} from '../../../host-node/local-account-config.mjs';
 import {createAuthorizationGate} from '../../../host-common/authorization-gate.mjs';
 import {readFileSync} from 'node:fs';
@@ -70,7 +71,10 @@ async function rowOwner(verifyOriginalTransport) {
   return {charge: bytes => checked(common.clientProgramRowSourceChargePage(run, bytes)),
     page: (rows, charge) => checked(common.clientProgramRowSourceAcceptChargedPage(run, charge, Buffer.from(JSON.stringify(rows)))),
     finish: () => checked(common.clientProgramRowSourceFinish(run)),
-    captureCount: () => {const capture=checked(common.clientProgramRowSourceCapture(run));
+    captureCount:()=>{
+      checked(common.clientProgramRowSourceCaptureBegin(run));
+      while(!runtimeField(checked(common.clientProgramRowSourceCaptureAdvance(run,64)),0)) {}
+      const capture=checked(common.clientProgramRowSourceCapture(run));
       const source=checked(common.clientProgramRowSourceCaptureSource(capture));
       return common.clientProgramCapturedSourceRowCount(checked(common.clientProgramIdentifyCapturedSourceRelation(source)));},
     assertNoCapture: () => assert.throws(() => checked(common.clientProgramRowSourceCapture(run)), {code:'MoonBitHostFailure'}),
@@ -132,7 +136,7 @@ export async function calendarFixture(t, {account = 'allow', accounted = true} =
   const current=async () => {const decision=await gate.authorize('acquisition',{connection:'calendar:fixture',resource:'calendars',operation:'read'},
     {subjectCid:scope.runInvocationCid});if(decision.action!=='dispatch')throw Object.assign(new Error('CalendarReadDenied'),{code:'CalendarReadDenied'});};
   const credential={control,journal,ca:cert,resolveSecret:async () => {state.resolutions++;await state.resolved?.();return state.secret;}};
-  if(accounted)row=await rowOwner(() => readers.every(reader=>reader.observe().cleanupConfirmed));
+  if(accounted)row=await rowOwner(() => readers.every(reader=>reader.observe().transportClosed));
   const initialAuthorization={grant,scope,useId:'initial'};
   const options={moon:provider,names:['summary','time_zone','access_role'],initialAuthorization,
     credential,limits:calendarReadLimits,current,

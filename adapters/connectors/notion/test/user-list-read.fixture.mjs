@@ -12,6 +12,7 @@ const common = await import(process.env.ACTQL_TEST_COMMON_URL ?? new URL('../../
 const provider = await import(process.env.ACTQL_TEST_NOTION_URL ?? new URL('../../../../_build/js/release/build/connectors/notion/host_node/host_node.js', import.meta.url).href);
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {canonicalJson,readAccountConfiguration} from '../../../host-node/local-account-config.mjs';
 import {createAuthorizationGate} from '../../../host-common/authorization-gate.mjs';
 import {readFileSync} from 'node:fs';
@@ -69,7 +70,10 @@ async function rowOwner(verifyTransport,format) {
     observe:charge=>checked(common.clientProgramRowSourceConsumeObservationCharge(run,charge)),
     page:(rows,charge)=>checked(common.clientProgramRowSourceAcceptChargedPage(run,charge,Buffer.from(JSON.stringify(rows)))),
     finish:()=>checked(common.clientProgramRowSourceFinish(run)),
-    captureCount:()=>{const capture=checked(common.clientProgramRowSourceCapture(run));
+    captureCount:()=>{
+      checked(common.clientProgramRowSourceCaptureBegin(run));
+      while(!runtimeField(checked(common.clientProgramRowSourceCaptureAdvance(run,64)),0)) {}
+      const capture=checked(common.clientProgramRowSourceCapture(run));
       const source=checked(common.clientProgramRowSourceCaptureSource(capture));
       return common.clientProgramCapturedSourceRowCount(checked(common.clientProgramIdentifyCapturedSourceRelation(source)));},
     assertNoCapture:()=>assert.throws(()=>checked(common.clientProgramRowSourceCapture(run)),{code:'MoonBitHostFailure'}),
@@ -137,7 +141,7 @@ export async function userListFixture(t,{account='allow',format='sql',accounted=
   const current=async()=>{const decision=await gate.authorize('acquisition',{connection:'notion:fixture',resource:'users',operation:'read'},
     {subjectCid:scope.runInvocationCid});if(decision.action!=='dispatch')throw Object.assign(new Error('NotionReadDenied'),{code:'NotionReadDenied'});};
   const credential={control,journal,ca:cert,resolveSecret:async()=>{state.resolutions++;await state.resolved?.();return state.secret;}};
-  row=accounted?await rowOwner(()=>readers.every(reader=>reader.observe().cleanupConfirmed),format):undefined;
+  row=accounted?await rowOwner(()=>readers.every(reader=>reader.observe().transportClosed),format):undefined;
   const authorizationFor=({operation,index})=>{assert.equal(operation,NOTION_USER_LIST_OPERATION);
     return{grant,scope,useId:`users-${index}`};};
   const options={moon:provider,names:provider.notionUserListColumnNames(),
