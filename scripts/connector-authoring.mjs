@@ -48,9 +48,11 @@ export function projectRestConnector(definition, {hostPackageVersion = selectedH
     if (target.origin !== origin.origin || target.pathname !== source.read.path ||
         /%(?:2f|5c|2e)/iu.test(source.read.path)) fail('path');
     const p = source.pagination;
-    if (!shape(p, ['kind', 'items', 'next', 'parameter']) || p.kind !== 'cursor' ||
-        !propertyPath(p.items) || !propertyPath(p.next) ||
-        typeof p.parameter !== 'string' || !/^[a-zA-Z][a-zA-Z0-9_]*$/u.test(p.parameter)) fail('pagination');
+    const cursor = shape(p, ['kind', 'items', 'next', 'parameter']) && p.kind === 'cursor' &&
+      propertyPath(p.next) && typeof p.parameter === 'string' &&
+      /^[a-zA-Z][a-zA-Z0-9_]*$/u.test(p.parameter);
+    const single = shape(p, ['kind', 'items']) && p.kind === 'none';
+    if ((!cursor && !single) || !propertyPath(p.items)) fail('pagination');
     const limits = source.limits;
     const keys = ['maxPageRows', 'maxPageBytes', 'maxPages', 'maxRows',
       'maxNodes', 'maxDepth', 'maxCursorBytes'];

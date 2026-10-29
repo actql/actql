@@ -69,3 +69,15 @@ test('empty scoped descriptors never turn a failed first close into ACK or succe
   assert.equal(close.fd.scopedStateFd0, true); assert.equal(close.acknowledged, false);
   assert.equal(report.passed, false); assert.equal(report.publicCloseAcknowledged, false);
 });
+
+
+test('a missing canonical SDK getter still closes the opened client without submitting', async t => {
+  const f = await fixture(t); let starts = 0, closes = 0;
+  const client = {startSource() {starts++; throw new Error('Must not submit');},
+    close: async () => {closes++;}};
+  await assert.rejects(captureStandardRestRead(client, {publicSdk: {}, program: {},
+    assertRows() {}, outputRoot: f.outputRoot, stateRoots: [f.state]}), {code: 'ERR_ASSERTION'});
+  assert.equal(starts, 0); assert.equal(closes, 1);
+  const report = await f.read('outcome.json');
+  assert.equal(report.passed, false); assert.equal(report.publicCloseAcknowledged, true);
+});

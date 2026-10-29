@@ -175,3 +175,14 @@ test('optional transform copying refuses an original-path alias', t => {
   assert.throws(f.build, /aliased transform/);
   assert.equal(existsSync(f.output), false);
 });
+
+
+test('a single-page root-array API needs no fictional cursor declaration', t => {
+  const f = fixture(t); f.definition.sources.records.pagination = {kind: 'none', items: []};
+  const projection = projectRestConnector(f.definition);
+  const body = JSON.parse(projection.files['src/connectors/acme/rest-source.json']);
+  assert.deepEqual(body.sources[0].pagination, {kind: 'none', items: []});
+  assert.equal(Object.hasOwn(body.sources[0].pagination, 'next'), false);
+  f.definition.sources.records.pagination.next = ['not-admitted'];
+  assert.throws(() => projectRestConnector(f.definition), /InvalidRestConnectorDefinition:pagination/);
+});

@@ -55,9 +55,9 @@ export async function captureStandardRestRead(client, {publicSdk, program,
   // Capture the getter from the SAME installed public namespace selected by
   // the consumer, once before any await. Never import a source SDK WeakMap.
   const getSubmissionInput = publicSdk?.getSubmissionInput;
-  assert.equal(typeof getSubmissionInput, 'function');
-  assert.equal(typeof assertRows, 'function');
   return withFirstClose(client, {outputRoot, stateRoots}, async () => {
+    assert.equal(typeof getSubmissionInput, 'function');
+    assert.equal(typeof assertRows, 'function');
     const pending = client.startSource(JSON.stringify(program), {format: 'json'});
     const input = Reflect.apply(getSubmissionInput, publicSdk, [pending]);
     // Observe this SAME original pending before file I/O can yield. Retain a
@@ -86,8 +86,8 @@ export async function captureStandardRestRead(client, {publicSdk, program,
 
 export async function recoverStandardRestRead(client, {reference, originalRows,
   assertRows, outputRoot, stateRoots}) {
-  assert.equal(typeof assertRows, 'function');
   return withFirstClose(client, {outputRoot, stateRoots}, async () => {
+    assert.equal(typeof assertRows, 'function');
     // This is the same original public Run, not a second submission. The
     // caller's async child keeps the parent HTTPS event loop available.
     const execution = await client.attach(reference);
