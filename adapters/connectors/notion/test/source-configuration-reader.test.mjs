@@ -17,6 +17,13 @@ const sharedCode = await readFile(new URL('../../../host-node/source-profile-jso
 const sharedReader = parse(sharedCode, {ecmaVersion: 'latest', sourceType: 'module'}).body
   .map(node => node.declaration ?? node).find(node => node.id?.name === 'captureConfigurationReaders');
 assert(sharedReader);
+const serviceCode = await readFile(new URL('../../../host-node/installed-host-services.mjs', import.meta.url), 'utf8');
+const serviceCapture = parse(serviceCode, {ecmaVersion: 'latest', sourceType: 'module'}).body
+  .map(node => node.declaration ?? node).find(node => node.id?.name === 'captureInstalledSourceServices');
+assert(serviceCapture);
+// Exact pure capture helper; initialization and service issuance remain explicit ports.
+const captureInstalledSourceServices = new Function('nodeTypes',
+  serviceCode.slice(serviceCapture.start, serviceCapture.end) + '\nreturn captureInstalledSourceServices;')(types);
 const readerLimits = ['maxResponseBytes', 'maxTotalResponseBytes', 'maxNodes', 'maxDepth', 'maxRows',
   'maxTotalRows', 'maxPages', 'pageSize', 'maxCursorBytes', 'maxIdentityBytes', 'maxTargetBytes',
   'maxValueNodes', 'maxValueTextBytes', 'maxRowsWireBytes', 'maxRowsWireNodes', 'maxRowsWireDepth'];
@@ -60,7 +67,8 @@ function fixture(role, {textFailure, mutateMethods = false, badMethod, noCa = fa
     return ['VariableDeclaration', 'FunctionDeclaration'].includes(declaration.type) ?
       [code.slice(declaration.start, declaration.end)] : [];
   }).join('\n');
-  const ports = {createHash, isAbsolute, types, canonicalJson, checked, installedJsonSourceReaderLimitNames: readerLimits,
+  const ports = {createHash, isAbsolute, types, nodeTypes: types, canonicalJson, checked,
+    captureInstalledSourceServices, installedJsonSourceReaderLimitNames: readerLimits,
     readSourceProfileJson(path) {
       directJson++; assert(allowDirect, 'original supplied JSON reader was ignored');
       assert.equal(path, profile.siteProfilePath); return site;
@@ -74,18 +82,37 @@ function fixture(role, {textFailure, mutateMethods = false, badMethod, noCa = fa
   const functions = new Function(...Object.keys(ports), bodies +
     `\nreturn {identity: installed${cap}SourceIdentityParts, load: loadInstalled${cap}Source};`)(...Object.values(ports));
   const provider = Object.fromEntries(['notionUserListSchemaWire', 'notionUserListRelationFactsWire',
+    'notionUserListColumnNames', 'notionProjectUserList', 'notionUserListMetadataJson',
+    'notionUserListRowsWire', 'notionUserListIds',
     'slackUserListSchemaWire', 'slackUserListRelationFactsWire', 'slackChannelListSchemaWire',
     'slackChannelListRelationFactsWire', 'slackMessageSchemaWire', 'slackMessageRelationFactsWire'].map(name =>
-    [name, () => {throw stop;}]));
-  const installationServices = Object.fromEntries(['sourceReaderImplementation', 'openRowSite', 'createSourceReader'].map(name =>
-    [name, () => assert.fail('no Source service before provider boundary')]));
+    [name, () => name === 'notionUserListColumnNames' ? ['id'] : (() => {throw stop;})()]));
+  const installation = Object.freeze({original: role});
+  const sourceInitialization = Object.freeze({prepareDeclaration() {assert.fail('no declaration before schema');}});
+  const installationServices = {
+    sourceReaderImplementationProfile(input) {
+      assert.equal(this, installationServices); assert.equal(input.installation, installation);
+      assert.equal(input.sourceInitialization, sourceInitialization); assert.equal(input.metadataResponses, 0);
+      assert.equal(input.originUnits, site.apiOrigin.length);
+      return Object.freeze({maxDeclarationBytes: 100, maxDeclarationNodes: 100});
+    },
+    sourceReaderImplementation(input) {
+      assert.equal(this, installationServices); assert.equal(input.installation, installation);
+      assert.equal(input.sourceInitialization, sourceInitialization); assert.equal(input.columnCount, 1);
+      return Object.freeze({original: 'unexecuted implementation'});
+    },
+    openRowSite() {assert.fail('no Site before provider schema');},
+    createSourceReader() {assert.fail('no reader before provider schema');},
+  };
   return {profile, site, reader, calls, stop,
     direct: () => ({json: directJson, text: directText}),
     identity({withThird = true} = {}) {
       return functions.identity(profile, profile, withThird ? read : undefined, Object.freeze({original: role}),
         legacy ? undefined : Object.freeze({configurationReader: reader}));
     },
-    load() {return functions.load(profile, {readerCapacity: Object.freeze({explicit: 'unexecuted Source capacity port'}),
+    load() {return functions.load(profile, {...(role === 'slack'
+      ? {readerCapacity: Object.freeze({explicit: 'unexecuted legacy Slack capacity port'})}
+      : {sourceInitialization, installation}),
       resolveSecret() {assert.fail('no secret lookup');}, installationServices,
       ...(legacy ? {} : {configurationReader: reader}), providerMoon: provider});},
   };
