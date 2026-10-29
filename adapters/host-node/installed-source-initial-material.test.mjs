@@ -199,3 +199,11 @@ test('Source declaration retains original view strings across current and freeze
   assert.equal(retireInstalledSourceInitialization(f.services), true);
   assert.throws(() => context.prepareDeclaration(authored), {code: 'ForeignInstalledSourceInitialization'});
 });
+
+test('normal configuration reader refuses an explicit null bound before reservation or open', async () => {
+  const f = fixture(), reader = installedSourceConfigurationReader(f.services);
+  await assert.rejects(reader.readJson('/UNOPENED/null-is-not-the-default.json', {maxBytes: null}),
+    {code: 'InvalidInstalledSourceProfileByteLimit'});
+  assert.equal(f.events.filter(value => Array.isArray(value) && value[0] === 'reserve').length, 0);
+  assert.equal(retireInstalledSourceInitialization(f.services), true);
+});
