@@ -13,6 +13,7 @@
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {exchangeLimits, ownRequestHeaders, ownResponseHeaderNames} from '../../../host-common/http-exchange.mjs';
 import {callHttpsCredentialResource} from
   '../../../site-node/https-credential-resource.mjs';
 import {invokeScopedCredentialOperation} from
@@ -307,9 +308,25 @@ export function prepareGitHubCommentConfirmation({moon, request, repository,
   const call = (name, ...args) => Reflect.apply(methods[name], moon, args);
   // Header absence is retained as DATA; an absent recovered403 cannot acquire
   // a confirming read merely by substituting an empty header list.
-  if (headers !== undefined && (!Array.isArray(headers) || headers.some(pair =>
-    !Array.isArray(pair) || pair.length !== 2 || !pair.every(value => typeof value === 'string')))) failConfirmation();
-  const pairs = headers ?? [], [headerNames, headerValues] = [pairs.map(p => p[0]), pairs.map(p => p[1])];
+  const arrayData = (value, maximum) => {
+    if (!Array.isArray(value) || types.isProxy(value) || value.length > maximum) failConfirmation();
+    return Array.from({length: value.length}, (_, index) => {
+      const field = Object.getOwnPropertyDescriptor(value, String(index));
+      if (!field || !Object.hasOwn(field, 'value')) failConfirmation();
+      return field.value;
+    });
+  };
+  let headerBytes = 0;
+  const pairs = headers === undefined ? [] : arrayData(headers, exchangeLimits.maxObservedHeaders).map(pair => {
+    const selected = arrayData(pair, 2);
+    if (selected.length !== 2 || typeof selected[1] !== 'string' || !selected[1].isWellFormed() ||
+        Buffer.byteLength(selected[1]) > exchangeLimits.maxHeaderValueBytes) failConfirmation();
+    headerBytes += Buffer.byteLength(selected[1]);
+    if (headerBytes > exchangeLimits.maxObservedHeaderBytes) failConfirmation();
+    return selected;
+  });
+  const headerNames = ownResponseHeaderNames(pairs.map(pair => pair[0]));
+  const headerValues = pairs.map(pair => pair[1]);
   const held = checked(call('githubPrepareCommentConfirmation', original.subjectId, original.logicalBody,
     original.requestTag, original.body, repo.nodeId, repo.databaseId, repo.nameWithOwner,
     write.status, headers !== undefined, headerNames, headerValues, write.body,
@@ -320,7 +337,7 @@ export function prepareGitHubCommentConfirmation({moon, request, repository,
   if (selected.kind === 'NoConfirmation') return undefined;
   if (selected.kind !== 'ConfirmationRequest' || typeof selected.body !== 'string' ||
       Buffer.byteLength(selected.body) > bounded.maxRequestBytes) failConfirmation();
-  const requestHeaders = JSON.parse(call('githubRequestHeadersJson'));
+  const requestHeaders = ownRequestHeaders(JSON.parse(call('githubRequestHeadersJson')));
   const readRequest = Object.freeze({method: 'POST', path: GITHUB_GRAPHQL_PATH,
     body: selected.body, headers: Object.freeze(requestHeaders.map(pair => Object.freeze([...pair])))});
   return Object.freeze({request: readRequest, project(readObservation) {
@@ -331,6 +348,7 @@ export function prepareGitHubCommentConfirmation({moon, request, repository,
     if (result.kind !== 'Confirmed') return Object.freeze({kind: 'provider-response',
       writeObservation: observation, observation: readObservation});
     if (typeof result.id !== 'string' || !/^[1-9][0-9]*$/u.test(result.id) ||
+        result.id.length > 19 || BigInt(result.id) > 9223372036854775807n ||
         typeof result.nodeId !== 'string' || result.nodeId.length === 0) failConfirmation();
     return Object.freeze({kind: 'confirmed-provider-response', writeObservation: observation,
       observation: readObservation, result: Object.freeze({comment_id: result.id, node_id: result.nodeId})});
