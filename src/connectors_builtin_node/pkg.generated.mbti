@@ -511,6 +511,10 @@ pub fn client_program_bind_table_input(@run_publication_host.PreparedClientEffec
 
 pub fn client_program_bind_table_preview(@run_publication_host.ClientTableInput, @physical_strategy_host.CapturedEffectPreviewInputs, Int) -> Result[@run_publication_host.ClientTablePreview, @run_publication_host.ClientTableInputIssue]
 
+pub fn client_program_borrow_request_effect_plan_input(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientEffectComputation], @client_local_host.ClientRequestPreparationIssue]
+
+pub fn client_program_borrow_request_program_plan_input(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], @client_local_host.ClientRequestPreparationIssue]
+
 pub fn client_program_borrow_request_program_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal]) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_cancel_capture(@client_local_host.ClientProgramCapture) -> Unit
@@ -1014,6 +1018,14 @@ pub fn client_program_effect_plan_next(ClientEffectPlanCursor, Int, Int, Int, In
 pub fn client_program_effect_plan_proof_matches(@physical_strategy_host.CapturedEffectPlanProof, @physical_strategy_host.CapturedEffectPreviewInputs, Int) -> Bool
 
 pub fn client_program_effect_plan_ready(ClientEffectPlanPreparation) -> Result[ClientEffectPlanCursor, ClientEffectPlanStreamIssue]
+
+pub fn client_program_effect_preparation_input_read(@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientEffectComputation]) -> @run_publication_host.PreparedClientEffectComputation?
+
+pub fn client_program_effect_preparation_input_retirement_started(@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientEffectComputation]) -> Bool
+
+pub fn client_program_effect_preparation_input_return(@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientEffectComputation]) -> Result[Bool, @physical_resources.PreparationCapacityIssue]
+
+pub fn client_program_effect_preparation_input_sibling(@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientEffectComputation]) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientEffectComputation], @physical_resources.PreparationCapacityIssue]
 
 pub fn client_program_effect_preparation_issue(ClientEffectProgramBridgeOutcome) -> ClientEffectProgramBridgeIssue?
 

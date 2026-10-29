@@ -26134,7 +26134,7 @@
     {
       "module": "src/physical_resources/preparation_capacity.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "16fd485598b7aa92c122fcb462b76978fa79e953ccf58981c58d5d5ab307a800",
+      "sha256": "732c4bd5ab7a58c6f8fef945119ada05ab5f1a6f61281554e2fdc1f3ee25bbee",
       "role": "common-semantics",
       "owner": "Existing Resource preparation and original body-borrow owner",
       "exports": [],
@@ -26267,6 +26267,7 @@
             "[I,P]make_preparation_body_borrow",
             "[I,P]preparation_capacity_borrow_value",
             "[I,P]preparation_capacity_has_executing_work",
+            "[I,P]preparation_capacity_reservation_retired",
             "[I,P]preparation_capacity_usage_isolated",
             "[I,P]reconcile_working_preparation_phase",
             "[I,P]reserve_preparation_capacity",
@@ -26276,14 +26277,13 @@
             "[I,P]transfer_preparation_capacity_to_run",
             "[I,P]transfer_preparation_retirement_to_run",
             "[P]borrow_preparation_body_sibling",
+            "[P]preparation_body_borrow_reserved_extents",
             "[P]preparation_body_borrow_value",
             "[P]preparation_body_retirement_started",
             "[P]preparation_body_usage_isolated",
             "[P]return_preparation_body_borrow",
             "preparation_capacity_phase_is_working",
-            "retire_transferred_preparation",
-            "[I,P]preparation_capacity_reservation_retired",
-            "[P]preparation_body_borrow_reserved_extents"
+            "retire_transferred_preparation"
           ],
           "exports": [],
           "attributes": {
@@ -26295,6 +26295,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Publication uses the adopted body borrow"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ],
             "inputsOutputs": [
@@ -26305,6 +26309,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Publication uses the adopted body borrow"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ],
             "identity": [
@@ -26315,6 +26323,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Publication uses the adopted body borrow"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ],
             "ownership": [
@@ -26325,6 +26337,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Publication uses the adopted body borrow"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ],
             "synchronization": [
@@ -26335,6 +26351,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Publication uses the adopted body borrow"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ],
             "failure": [
@@ -26345,6 +26365,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Publication uses the adopted body borrow"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ],
             "cancellation": [
@@ -26355,6 +26379,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Publication uses the adopted body borrow"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ],
             "resources": [
@@ -26365,6 +26393,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Publication uses the adopted body borrow"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ],
             "extension": [
@@ -26375,6 +26407,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Publication uses the adopted body borrow"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ],
             "verification": [
@@ -26393,12 +26429,126 @@
               {
                 "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
                 "anchor": "test \"publication continues on the adopted body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ]
           }
         }
       ],
       "referenceQualification": "Same-original Resource and Local publication components plus actual API types only; normal generic body/initial Source lifetime/distribution/backend completion remain separate."
+    },
+    {
+      "module": "src/physical_resources/preparation_construction_input.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "42b6ec702ffba1e457e47a2cc9fd7bf120ab288c631dc1c4c7fb34426d52fdf3",
+      "role": "common-semantics",
+      "owner": "Existing Resource preparation and original body-borrow owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P,D]make_preparation_construction_input_borrow",
+          "declaration": "[ I , P , D ] make_preparation_construction_input_borrow ( owner : PreparationCapacity [ I , P ] , data : D , ) - > Result [ PreparationBodyBorrow [ D ] , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P,D]reserve_preparation_construction_input",
+          "declaration": "[ I , P , D ] reserve_preparation_construction_input ( owner : PreparationCapacity [ I , P ] , input : I , data : D , retained : Int64 , execution : Int64 , ) - > Result [ PreparationBodyBorrow [ D ] , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]claim_preparation_borrow_slot",
+          "declaration": "[ I , P ] claim_preparation_borrow_slot ( owner : PreparationCapacity [ I , P ] , construction : Bool , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]reserve_preparation_borrow_slot",
+          "declaration": "[ I , P ] reserve_preparation_borrow_slot ( owner : PreparationCapacity [ I , P ] , construction : Bool , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "preparation_borrow_phase_matches",
+          "declaration": "preparation_borrow_phase_matches ( phase : PreparationCapacityPhase , construction : Bool , ) - > Bool"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P,D]make_preparation_construction_input_borrow",
+            "[I,P,D]reserve_preparation_construction_input",
+            "[I,P]claim_preparation_borrow_slot",
+            "[I,P]reserve_preparation_borrow_slot",
+            "preparation_borrow_phase_matches"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "src/physical_resources/preparation_construction_input_wbtest.mbt",
+                "anchor": "test \"construction input uses the same slots"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same Resource slots, current-once reservation and actual return/retirement engine for immutable constructor DATA; not completed Plan, publication authority or ordinary runtime acceptance."
     },
     {
       "module": "src/client_local_host/preparation_publication_owner.mbt",
@@ -27020,7 +27170,7 @@
     {
       "module": "src/client_local_host/preparation_request_terminal.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "9c4f765aa612010e4cf83d5d69a417b41c969a43e76a813063d0bc31901152da",
+      "sha256": "a81c3417daf6188f6227feceacd2f4b045dc6308dd0fcbb1f3c267b1580846cd",
       "role": "common-semantics",
       "owner": "Existing Request checking compiler and preparation capacity owners",
       "exports": [],
@@ -27235,7 +27385,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d5b690124c58919fd98b3218928941fe7e552055eeacc4b15ad53f7a165e1500",
+      "sha256": "c37e2c85e5654cf0daddbf5e45a0cc4aa0a85695f218b044396f45fc7b5ccb4c",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Plan owners",
       "exports": [],
@@ -27247,6 +27397,10 @@
         {
           "name": "[I]begin_request_program_managed_run",
           "declaration": "[ I ] begin_request_program_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]borrow_request_program_plan_input",
+          "declaration": "[ I ] borrow_request_program_plan_input ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] , ClientRequestPreparationIssue , ]"
         },
         {
           "name": "[I]borrow_request_program_preparation",
@@ -27265,6 +27419,10 @@
           "declaration": "[ I ] prepare_request_program_module_body ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
         },
         {
+          "name": "[I]request_program_plan_quote",
+          "declaration": "[ I ] request_program_plan_quote ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ ( Int64 , Int64 ) , ClientRequestPreparationIssue ]"
+        },
+        {
           "name": "[I]reserve_request_program_plan",
           "declaration": "[ I ] reserve_request_program_plan ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
         }
@@ -27275,10 +27433,12 @@
             "<module>",
             "[I,P]original_request_plan_construction_quote",
             "[I]begin_request_program_managed_run",
+            "[I]borrow_request_program_plan_input",
             "[I]borrow_request_program_preparation",
             "[I]complete_request_program_preparation",
             "[I]continue_request_program_preparation",
             "[I]prepare_request_program_module_body",
+            "[I]request_program_plan_quote",
             "[I]reserve_request_program_plan"
           ],
           "exports": [],
@@ -27287,54 +27447,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Retained dimensions and the final Request body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Retained dimensions and the final Request body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Retained dimensions and the final Request body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Retained dimensions and the final Request body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Retained dimensions and the final Request body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Retained dimensions and the final Request body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Retained dimensions and the final Request body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Retained dimensions and the final Request body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Retained dimensions and the final Request body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ],
             "verification": [
@@ -27345,12 +27541,136 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"Request module constructor retains same checked output"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
               }
             ]
           }
         }
       ],
       "referenceQualification": "Same original Request compiler output, capacity and installed Plan constructor; normal all-input activation and physical Source acceptance remain separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_effect_body.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "99b80cac17e911e05aa759f2528b6d928bb9841c4775c75267ab58f0abbf2267",
+      "role": "common-semantics",
+      "owner": "Existing Request preparation and installed Effect Plan owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]begin_request_effect_managed_run",
+          "declaration": "[ I ] begin_request_effect_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]borrow_request_effect_plan_input",
+          "declaration": "[ I ] borrow_request_effect_plan_input ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]borrow_request_effect_preparation",
+          "declaration": "[ I ] borrow_request_effect_preparation ( owner : ClientRequestPreparation [ I ] , ) - > Result [ @ resources . PreparationBodyBorrow [ ClientInstalledEffectManagedPlan ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]complete_request_effect_preparation",
+          "declaration": "[ I ] complete_request_effect_preparation ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledEffectManagedPlan , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]continue_request_effect_preparation",
+          "declaration": "[ I ] continue_request_effect_preparation ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . PreparedClientEffectComputation , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]request_effect_plan_quote",
+          "declaration": "[ I ] request_effect_plan_quote ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ ( Int64 , Int64 ) , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]reserve_request_effect_plan",
+          "declaration": "[ I ] reserve_request_effect_plan ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]begin_request_effect_managed_run",
+            "[I]borrow_request_effect_plan_input",
+            "[I]borrow_request_effect_preparation",
+            "[I]complete_request_effect_preparation",
+            "[I]continue_request_effect_preparation",
+            "[I]request_effect_plan_quote",
+            "[I]reserve_request_effect_plan"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_plan_input_js_wbtest.mbt",
+                "anchor": "test \"Request Effect Plan input remains distinct"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same original checked Effect compiler DATA and distinct actual installed Plan, with Resource borrower-delayed retirement; no Host or ordinary runtime acceptance."
     },
     {
       "module": "src/client_local_host/preparation_request_parameters.mbt",

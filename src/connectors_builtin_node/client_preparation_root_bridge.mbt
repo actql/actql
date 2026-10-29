@@ -1033,3 +1033,78 @@ pub fn client_program_request_submitted_intent_original(
 ) -> @publication_host.ClientSubmittedIntent? {
   @client_local_host.request_submitted_intent_original(parent, input)
 }
+
+///|
+#export_name("clientProgramBorrowRequestProgramPlanInput")
+pub fn client_program_borrow_request_program_plan_input(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[
+  @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+  @client_local_host.ClientRequestPreparationIssue,
+] {
+  @client_local_host.borrow_request_program_plan_input(parent, input)
+}
+
+///|
+#export_name("clientProgramBorrowRequestEffectPlanInput")
+pub fn client_program_borrow_request_effect_plan_input(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[
+  @resources.PreparationBodyBorrow[
+    @publication_host.PreparedClientEffectComputation,
+  ],
+  @client_local_host.ClientRequestPreparationIssue,
+] {
+  @client_local_host.borrow_request_effect_plan_input(parent, input)
+}
+
+///|
+#export_name("clientProgramEffectPreparationInputRead")
+pub fn client_program_effect_preparation_input_read(
+  original : @resources.PreparationBodyBorrow[
+    @publication_host.PreparedClientEffectComputation,
+  ],
+) -> @publication_host.PreparedClientEffectComputation? {
+  @resources.preparation_body_borrow_value(original)
+}
+
+///|
+#export_name("clientProgramEffectPreparationInputReturn")
+pub fn client_program_effect_preparation_input_return(
+  original : @resources.PreparationBodyBorrow[
+    @publication_host.PreparedClientEffectComputation,
+  ],
+) -> Result[Bool, @resources.PreparationCapacityIssue] {
+  @resources.return_preparation_body_borrow(original)
+}
+
+///|
+#export_name("clientProgramEffectPreparationInputSibling")
+pub fn client_program_effect_preparation_input_sibling(
+  original : @resources.PreparationBodyBorrow[
+    @publication_host.PreparedClientEffectComputation,
+  ],
+) -> Result[
+  @resources.PreparationBodyBorrow[
+    @publication_host.PreparedClientEffectComputation,
+  ],
+  @resources.PreparationCapacityIssue,
+] {
+  @resources.borrow_preparation_body_sibling(original)
+}
+
+///|
+#export_name("clientProgramEffectPreparationInputRetirementStarted")
+pub fn client_program_effect_preparation_input_retirement_started(
+  original : @resources.PreparationBodyBorrow[
+    @publication_host.PreparedClientEffectComputation,
+  ],
+) -> Bool {
+  @resources.preparation_body_retirement_started(original)
+}

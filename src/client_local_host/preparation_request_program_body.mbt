@@ -64,11 +64,15 @@ pub fn[I] continue_request_program_preparation(
 /// Fund the selected Plan/module constructor before the existing caller enters
 /// it. These new arrays/sequence/Plan data coexist with the retained compiler;
 /// reuse its original dimensions once, not another parse/check or Plan quote.
-pub fn[I] reserve_request_program_plan(
+fn[I] request_program_plan_quote(
   owner : ClientRequestPreparation[I],
   input : I,
-) -> Result[Unit, ClientRequestPreparationIssue] {
-  guard (owner.phase == ProgramCompiled || owner.phase == ProgramPlanQuoted) &&
+) -> Result[(Int64, Int64), ClientRequestPreparationIssue] {
+  guard (
+      owner.phase == ProgramCompiled ||
+      owner.phase == ProgramPlanQuoted ||
+      owner.phase == ProgramPlanReserved
+    ) &&
     owner.program_capacity is Some(capacity) &&
     owner.program_data is Some(data) else {
     return Err(WrongPhase)
@@ -85,12 +89,67 @@ pub fn[I] reserve_request_program_plan(
     owner.program_plan_quote = Some((r, e))
     owner.phase = ProgramPlanQuoted
   }
-  let (r, e) = owner.program_plan_quote.unwrap()
+  Ok(owner.program_plan_quote.unwrap())
+}
+
+///|
+pub fn[I] reserve_request_program_plan(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> Result[Unit, ClientRequestPreparationIssue] {
+  if owner.phase != ProgramCompiled && owner.phase != ProgramPlanQuoted {
+    return Err(WrongPhase)
+  }
+  let (r, e) = match request_program_plan_quote(owner, input) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let capacity = owner.program_capacity.unwrap()
   owner.phase = Selecting
   let result = @resources.reserve_working_preparation_phase(
     capacity, input, r, e,
   )
   owner.phase = if result is Ok(_) {
+    ProgramPlanReserved
+  } else {
+    ProgramPlanQuoted
+  }
+  result.map_err(issue => Capacity(issue))
+}
+
+///|
+/// Original immutable constructor input on the SAME reservation, not a ready
+/// Plan/body or Run permission. Existing borrowers keep it live during awaits,
+/// failed construction and actual retirement, using the common return engine.
+pub fn[I] borrow_request_program_plan_input(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> Result[
+  @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+  ClientRequestPreparationIssue,
+] {
+  let (r, e) = match request_program_plan_quote(owner, input) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let capacity = owner.program_capacity.unwrap()
+  let prepared = owner.compiled_program.unwrap()
+  let reserved = owner.phase == ProgramPlanReserved
+  // An already reserved phase may contain later domain growth. Preserve its
+  // current extent; never reapply an earlier, smaller quote or recalculate it.
+  let (r, e) = if reserved {
+    match @resources.preparation_capacity_working_extents(capacity, input) {
+      Err(issue) => return Err(Capacity(issue))
+      Ok(value) => value
+    }
+  } else {
+    (r, e)
+  }
+  owner.phase = Selecting
+  let result = @resources.reserve_preparation_construction_input(
+    capacity, input, prepared, r, e,
+  )
+  owner.phase = if result is Ok(_) || reserved {
     ProgramPlanReserved
   } else {
     ProgramPlanQuoted
@@ -162,9 +221,11 @@ pub fn[I] prepare_request_program_module_body(
   if owner.program_body_attempted {
     return Err(Preparation(WrongPhase))
   }
-  match reserve_request_program_plan(owner, input) {
-    Err(issue) => return Err(Preparation(issue))
-    Ok(_) => ()
+  if owner.phase != ProgramPlanReserved {
+    match reserve_request_program_plan(owner, input) {
+      Err(issue) => return Err(Preparation(issue))
+      Ok(_) => ()
+    }
   }
   guard owner.phase == ProgramPlanReserved &&
     owner.input is Some(original) &&
