@@ -659,7 +659,7 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
     RelationCountRules =>
       "sha256:163a0d75d56310803ac755d5f4f02069f442651711209037d6e3f512954c97ab"
     JoinCountRules =>
-      "sha256:75f9c5ce5188d28a2e3b42213e0fb3a479475c06e280eb02ef7b001a355d1600"
+      "sha256:3812b044720bb6b0234a35547eb05a0fa3b720fe5b70fff0e75ef9760276a560"
     IntervalSearchRules =>
       "sha256:4a41fc2f6967ceecd95fcd2ae1f5accc722af3090a6db6a1405d8091a8bae3c3"
     AsOfSearchRules =>
