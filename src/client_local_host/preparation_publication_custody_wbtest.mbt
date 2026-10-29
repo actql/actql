@@ -21,9 +21,13 @@ extern "js" fn publication_test_original(
   #|(loader,input,current) => loader('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs').retainOrdinaryManagedRun(input(),{planningWork:0,attempts:0,holdings:0,transferBytes:0n,retainedBytes:536870912n,executionBytes:536870912n},current,()=>false,'local-preparation')
 
 ///|
-fn publication_custody_fixture(
+fn publication_custody_fixture_originals(
   current : () -> Unit,
-) -> (ClientProgramPublication[Array[Int]], @resources.Ledger) {
+) -> (
+  ClientProgramPublication,
+  @resources.Ledger,
+  ClientClosedValuesPreparation[Array[Int]],
+) {
   let input = [1]
   let original = publication_test_original(
     publication_test_loader(publication_test_url()),
@@ -83,18 +87,18 @@ fn publication_custody_fixture(
     body_ready: true,
     manager_issued: true,
     adopted: true,
-    adopted_run: None,
     submitted_intent: None,
     manager_original: Some(holder),
-    publication: None,
-    publication_started: true,
-    publication_invocation_started: false,
-    publication_definition: None,
-    publication_invocation: None,
   }
   owner.original = Some(owner)
-  let value : ClientProgramPublication[Array[Int]] = {
-    owner,
+  let value : ClientProgramPublication = {
+    original: None,
+    retiring: false,
+    publication_definition: None,
+    publication_invocation: None,
+    row_bound: None,
+    retained_quote: 1000000L,
+    execution_quote: publication_projection_execution,
     holder,
     capture_started: false,
     capture: None,
@@ -104,8 +108,8 @@ fn publication_custody_fixture(
     next_snapshot_index: 0,
     completed_snapshots: [],
   }
-  owner.publication = Some(value)
-  (value, ledger)
+  value.original = Some(value)
+  (value, ledger, owner)
 }
 
 ///|
@@ -114,7 +118,7 @@ test "publication handle rejects manager returned by currentness while sibling s
   let selected : Ref[
     @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram]?,
   ] = Ref(None)
-  let (value, ledger) = publication_custody_fixture(() => {
+  let (value, ledger, owner) = publication_custody_fixture_originals(() => {
     if armed.val {
       armed.val = false
       if selected.val is Some(holder) {
@@ -123,14 +127,12 @@ test "publication handle rejects manager returned by currentness while sibling s
     }
   })
   selected.val = Some(value.holder)
-  let sibling = @resources.borrow_preparation_body(value.owner.capacity).unwrap()
+  let sibling = @resources.borrow_preparation_body(owner.capacity).unwrap()
   armed.val = true
   assert_true(refresh_publication_original(value) is Err(ForeignOriginal))
   assert_true(@resources.preparation_body_borrow_value(sibling) is Some(_))
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 1000000L)
-  assert_false(
-    @resources.retire_preparation_capacity(value.owner.capacity).unwrap(),
-  )
+  assert_false(@resources.retire_preparation_capacity(owner.capacity).unwrap())
   assert_true(@resources.return_preparation_body_borrow(sibling).unwrap())
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
   assert_true(publication_original_body(value) is None)
@@ -138,16 +140,14 @@ test "publication handle rejects manager returned by currentness while sibling s
 
 ///|
 test "publication escaped handle and one-shot continuation reject retired owner" {
-  let (value, ledger) = publication_custody_fixture(() => ())
+  let (value, ledger, owner) = publication_custody_fixture_originals(() => ())
   let prepared = publication_original_body(value).unwrap()
-  assert_true(
-    reserve_program_publication(value.owner, prepared, value.holder)
-    is Err(WrongPhase),
-  )
-  assert_false(
-    @resources.retire_preparation_capacity(value.owner.capacity).unwrap(),
-  )
-  assert_true(sever_closed_values_body(value.owner, value.holder))
+  let used = managed_publication_duplicate_fixture(prepared)
+  assert_true(reserve_program_publication(used, prepared) is Err(WrongPhase))
+  retire_installed_managed_run(used).unwrap()
+  assert_false(@resources.retire_preparation_capacity(owner.capacity).unwrap())
+  clear_program_publication(value)
+  assert_true(sever_closed_values_body(owner, value.holder))
   assert_true(@resources.return_preparation_body_borrow(value.holder).unwrap())
   assert_true(refresh_publication_original(value) is Err(ForeignOriginal))
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
@@ -196,9 +196,9 @@ fn publication_custody_issuer(
 
 ///|
 test "publication capture handle retirement cancels private issuer before zero" {
-  let (value, ledger) = publication_custody_fixture(() => ())
+  let (value, ledger, owner) = publication_custody_fixture_originals(() => ())
   let issuer = publication_custody_issuer(publication_custody_contract())
-  let capture : ClientProgramCapture[Array[Int]] = {
+  let capture : ClientProgramCapture = {
     publication: value,
     plan: None,
     issuer: Some(issuer),
@@ -207,10 +207,9 @@ test "publication capture handle retirement cancels private issuer before zero" 
   }
   value.capture_started = true
   value.capture = Some(capture)
-  assert_false(
-    @resources.retire_preparation_capacity(value.owner.capacity).unwrap(),
-  )
-  assert_true(sever_closed_values_body(value.owner, value.holder))
+  assert_false(@resources.retire_preparation_capacity(owner.capacity).unwrap())
+  clear_program_publication(value)
+  assert_true(sever_closed_values_body(owner, value.holder))
   assert_true(capture.issuer is None)
   assert_eq(
     @publication.captured_run_preparation_fixture_phase(issuer),
@@ -226,8 +225,8 @@ test "publication capture handle retirement cancels private issuer before zero" 
 ///|
 test "publication capture handle callback cancellation cannot resume escaped issuer" {
   let armed = Ref(false)
-  let selected : Ref[ClientProgramCapture[Array[Int]]?] = Ref(None)
-  let (value, ledger) = publication_custody_fixture(() => {
+  let selected : Ref[ClientProgramCapture?] = Ref(None)
+  let (value, ledger, owner) = publication_custody_fixture_originals(() => {
     if armed.val {
       armed.val = false
       if selected.val is Some(capture) {
@@ -236,7 +235,7 @@ test "publication capture handle callback cancellation cannot resume escaped iss
     }
   })
   let issuer = publication_custody_issuer(publication_custody_contract())
-  let capture : ClientProgramCapture[Array[Int]] = {
+  let capture : ClientProgramCapture = {
     publication: value,
     plan: None,
     issuer: Some(issuer),
@@ -252,18 +251,23 @@ test "publication capture handle callback cancellation cannot resume escaped iss
     @publication.captured_run_preparation_fixture_phase(issuer),
     "closed",
   )
-  assert_false(
-    @resources.retire_preparation_capacity(value.owner.capacity).unwrap(),
-  )
-  assert_true(sever_closed_values_body(value.owner, value.holder))
+  assert_false(@resources.retire_preparation_capacity(owner.capacity).unwrap())
+  clear_program_publication(value)
+  assert_true(sever_closed_values_body(owner, value.holder))
   assert_true(@resources.return_preparation_body_borrow(value.holder).unwrap())
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
 }
 
 ///|
 test "publication two original handles refuse same CID foreign invocation before capture" {
-  let (first, first_ledger) = publication_custody_fixture(() => ())
-  let (second, second_ledger) = publication_custody_fixture(() => ())
+  let (first, first_ledger, first_owner) = publication_custody_fixture_originals(() => {
+      ()
+    },
+  )
+  let (second, second_ledger, second_owner) = publication_custody_fixture_originals(() => {
+      ()
+    },
+  )
   let original = publication_custody_contract()
   let foreign = @publication.admit_publication_contract(
     "result_definition",
@@ -277,10 +281,10 @@ test "publication two original handles refuse same CID foreign invocation before
     @publication.publication_contract_identity(foreign),
   )
   assert_false(physical_equal(original, foreign))
-  first.owner.publication_definition = Some(original)
-  first.owner.publication_invocation = Some(original)
-  second.owner.publication_definition = Some(original)
-  second.owner.publication_invocation = Some(foreign)
+  first.publication_definition = Some(original)
+  first.publication_invocation = Some(original)
+  second.publication_definition = Some(original)
+  second.publication_invocation = Some(foreign)
   let authoring = @publication.seal_run_evidence_value(
     "authoring_context",
     "{\"version\":\"actql-authoring-context/0.1\",\"program_definition_cid\":\"sha256:" +
@@ -320,11 +324,12 @@ test "publication two original handles refuse same CID foreign invocation before
     )
     is Err(ForeignOriginal),
   )
-  for value in [first, second] {
+  for (value, owner) in [(first, first_owner), (second, second_owner)] {
     assert_false(
-      @resources.retire_preparation_capacity(value.owner.capacity).unwrap(),
+      @resources.retire_preparation_capacity(owner.capacity).unwrap(),
     )
-    assert_true(sever_closed_values_body(value.owner, value.holder))
+    clear_program_publication(value)
+    assert_true(sever_closed_values_body(owner, value.holder))
     assert_true(
       @resources.return_preparation_body_borrow(value.holder).unwrap(),
     )
@@ -335,10 +340,10 @@ test "publication two original handles refuse same CID foreign invocation before
 
 ///|
 test "publication capture handle failed payload growth retains owned plan until cleanup" {
-  let (value, ledger) = publication_custody_fixture(() => ())
+  let (value, ledger, owner) = publication_custody_fixture_originals(() => ())
   let contract = publication_custody_contract()
-  value.owner.publication_definition = Some(contract)
-  value.owner.publication_invocation = Some(contract)
+  value.publication_definition = Some(contract)
+  value.publication_invocation = Some(contract)
   let authoring = @publication.seal_run_evidence_value(
     "authoring_context",
     "{\"version\":\"actql-authoring-context/0.1\",\"program_definition_cid\":\"sha256:" +
@@ -367,7 +372,7 @@ test "publication capture handle failed payload growth retains owned plan until 
     authoring,
     [],
   ).unwrap()
-  let capture : ClientProgramCapture[Array[Int]] = {
+  let capture : ClientProgramCapture = {
     publication: value,
     plan: Some(plan),
     issuer: None,
@@ -401,15 +406,14 @@ test "publication capture handle failed payload growth retains owned plan until 
   )
   assert_true(capture.plan is Some(_))
   assert_true(capture.issuer is None)
-  assert_eq(value.owner.retained_quote, 1000480L)
+  assert_eq(value.retained_quote, 1000480L)
   assert_eq(
     @resources.ledger_usage(ledger).reserved_execution_bytes,
     publication_projection_execution,
   )
-  assert_false(
-    @resources.retire_preparation_capacity(value.owner.capacity).unwrap(),
-  )
-  assert_true(sever_closed_values_body(value.owner, value.holder))
+  assert_false(@resources.retire_preparation_capacity(owner.capacity).unwrap())
+  clear_program_publication(value)
+  assert_true(sever_closed_values_body(owner, value.holder))
   assert_true(capture.plan is None)
   assert_true(@resources.return_preparation_body_borrow(value.holder).unwrap())
   @resources.settle_capacity(ledger, other).unwrap()
@@ -420,21 +424,104 @@ test "publication capture handle failed payload growth retains owned plan until 
 ///|
 test "publication continues on the adopted body after the raw input alias is cut" {
   let calls = Ref(0)
-  let (value, ledger) = publication_custody_fixture(() => calls.val += 1)
-  let original = value.owner.capacity
-  value.owner.input = None
+  let (value, ledger, owner) = publication_custody_fixture_originals(() => {
+    calls.val += 1
+  })
+  let original = owner.capacity
+  owner.input = None
   let before = @resources.ledger_usage(ledger)
   let current = calls.val
   assert_true(refresh_publication_original(value) is Ok(_))
   assert_eq(calls.val - current, 1)
-  assert_true(physical_equal(value.owner.capacity, original))
+  assert_true(physical_equal(owner.capacity, original))
   assert_eq(@resources.ledger_usage(ledger), before)
   assert_false(@resources.retire_preparation_capacity(original).unwrap())
-  assert_true(sever_closed_values_body(value.owner, value.holder))
+  clear_program_publication(value)
+  assert_true(sever_closed_values_body(owner, value.holder))
   assert_true(@resources.return_preparation_body_borrow(value.holder).unwrap())
   assert_true(publication_original_body(value) is None)
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
-  @resources.cleanup_node_preparation_admission(value.owner.initial).unwrap()
+  @resources.cleanup_node_preparation_admission(owner.initial).unwrap()
+}
+
+///|
+test "publication continuation retains its original borrow after legacy preparation aliases are cut" {
+  let (value, _, legacy) = publication_custody_fixture_originals(() => ())
+  let capacity = legacy.capacity
+  let initial = legacy.initial
+  let holder = value.holder
+  let prepared = @resources.preparation_body_borrow_value(holder).unwrap()
+  // These are retired preparation aliases, not the Run, its body borrow or
+  // physical cleanup. Their removal must not recreate a preparation dependency.
+  legacy.original = None
+  legacy.input = None
+  legacy.prepared = None
+  legacy.manager_original = None
+  legacy.source_free = None
+  assert_true(
+    physical_equal(
+      @resources.preparation_body_borrow_value(holder).unwrap(),
+      prepared,
+    ),
+  )
+  assert_true(
+    refresh_publication_original(value) is Ok(original) &&
+    physical_equal(original, prepared),
+  )
+  assert_false(@resources.retire_preparation_capacity(capacity).unwrap())
+  assert_true(@resources.return_preparation_body_borrow(holder).unwrap())
+  @resources.cleanup_node_preparation_admission(initial).unwrap()
+}
+
+///|
+test "publication controller copy cannot replace its original before current" {
+  let calls = Ref(0)
+  let (value, ledger, owner) = publication_custody_fixture_originals(() => {
+    calls.val += 1
+  })
+  let copied = { ..value, }
+  let before = calls.val
+  assert_true(refresh_publication_original(copied) is Err(ForeignOriginal))
+  assert_eq(calls.val, before)
+  assert_true(publication_original_body(value) is Some(_))
+  assert_false(@resources.retire_preparation_capacity(owner.capacity).unwrap())
+  clear_program_publication(value)
+  assert_true(sever_closed_values_body(owner, value.holder))
+  assert_true(@resources.return_preparation_body_borrow(value.holder).unwrap())
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  @resources.cleanup_node_preparation_admission(owner.initial).unwrap()
+}
+
+///|
+test "publication controller retirement during current retains its borrow until actual return" {
+  let selected : Ref[ClientProgramPublication?] = Ref(None)
+  let armed = Ref(false)
+  let calls = Ref(0)
+  let (value, ledger, owner) = publication_custody_fixture_originals(() => {
+    calls.val += 1
+    if armed.val {
+      armed.val = false
+      clear_program_publication(selected.val.unwrap())
+    }
+  })
+  selected.val = Some(value)
+  let holder = value.holder
+  let before = @resources.ledger_usage(ledger)
+  let current = calls.val
+  armed.val = true
+  assert_true(refresh_publication_original(value) is Err(ForeignOriginal))
+  assert_eq(calls.val - current, 1)
+  assert_true(value.retiring && value.original is None)
+  assert_true(
+    value.publication_definition is None && value.publication_invocation is None,
+  )
+  assert_true(@resources.preparation_body_borrow_value(holder) is Some(_))
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_false(@resources.retire_preparation_capacity(owner.capacity).unwrap())
+  assert_true(sever_closed_values_body(owner, holder))
+  assert_true(@resources.return_preparation_body_borrow(holder).unwrap())
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  @resources.cleanup_node_preparation_admission(owner.initial).unwrap()
 }

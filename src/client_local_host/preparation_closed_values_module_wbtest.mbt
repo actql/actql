@@ -86,14 +86,8 @@ fn closed_module_fixture() -> (
     source_free: None,
     body_ready: false,
     manager_issued: false,
-    adopted_run: None,
     adopted: false,
     submitted_intent: None,
-    publication_invocation_started: false,
-    publication_definition: None,
-    publication_invocation: None,
-    publication_started: false,
-    publication: None,
     manager_original: None,
   }
   owner.original = Some(owner)

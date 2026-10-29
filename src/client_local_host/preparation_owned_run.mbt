@@ -169,6 +169,7 @@ fn[P] retire_preparation_owned_installed_run(
     Err(_) => return Err(CleanupPending)
     Ok(_) => ()
   }
+  clear_managed_run_publication(value)
   // Fence new Run borrows and remove actual raw owners before returning either
   // durable holder. An existing operation must use its own registered borrow.
   value.preparation = None

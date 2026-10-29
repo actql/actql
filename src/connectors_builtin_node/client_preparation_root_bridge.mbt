@@ -902,3 +902,98 @@ pub fn client_program_close_host_initialization_preparation(
 ) -> Result[Unit, @client_local_host.ClientHostInitializationIssue] {
   @client_local_host.close_host_initialization_preparation(original)
 }
+
+///|
+#export_name("clientProgramPrepareRequestComputationCheck")
+pub fn client_program_prepare_request_computation_check(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  environment : @program_check.CheckEnvironment,
+  supplied : @decode.Cursor?,
+  evidence : Array[@context.StageCapacityInput],
+  program_limits : @publication_host.ClientProgramPreparationLimits,
+  effect_limits : @publication_host.ClientEffectComputationLimits,
+  source_catalog : @program_check.PreparedSourceCatalog?,
+  source_preparation : @stage_parameters.Source?,
+) -> Result[
+  @client_local_host.ClientProgramCheckPreparation[
+    ClientLocalPreparationInputOriginal,
+    Unit,
+  ],
+  @client_local_host.ClientRequestPreparationIssue,
+] {
+  @client_local_host.prepare_request_computation_check_preparation(
+    parent,
+    input,
+    environment,
+    supplied,
+    evidence,
+    program_limits,
+    effect_limits,
+    source_catalog~,
+    source_preparation~,
+  )
+}
+
+///|
+/// No raw Prepared leaves this terminal bridge. The same parent retains the
+/// compiled body until its actual installed Plan and body borrow are complete.
+#export_name("clientProgramFinishRequestComputation")
+pub fn client_program_finish_request_computation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
+  @client_local_host.finish_request_computation_preparation(parent, input)
+}
+
+///|
+/// The checked Request original, not a new raw or no-plan preparation. The
+/// existing installed contracts/factory construct the selected module once.
+#export_name("clientProgramPrepareRequestProgramModuleBody")
+pub fn client_program_prepare_request_program_module_body(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  retained_output : Bool,
+) -> Result[Unit, @client_local_host.ClientRequestProgramPlanIssue] {
+  @client_local_host.prepare_request_program_module_body(
+    parent,
+    input,
+    contracts,
+    retained_output~,
+    provider_factory=installed_client_family_providers,
+  )
+}
+
+///|
+#export_name("clientProgramBorrowRequestProgramPreparation")
+pub fn client_program_borrow_request_program_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+) -> Result[
+  @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+  @client_local_host.ClientRequestPreparationIssue,
+] {
+  @client_local_host.borrow_request_program_preparation(parent)
+}
+
+///|
+#export_name("clientProgramAdoptRequestProgramPreparation")
+pub fn client_program_adopt_request_program_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[
+  @client_local_host.ClientInstalledManagedRun,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_request_program_managed_run(parent, request)
+}

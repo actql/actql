@@ -39,6 +39,19 @@ groups, selected prepared handles, commit pins and durable references retain
 their separate established duties; this resource handoff does not transfer them
 by CID alone.
 
+The publication constructor selects the existing managed Run and its private
+preparation body role. The caller forwards that original Run and Prepared,
+without supplying a second holder or retaining the input-construction owner.
+Definition and invocation are issued once on the same Run; its retirement clears
+the publication continuations before returning its body role. An independent
+manager borrower can still keep the original reservation pending afterwards.
+
+Reading that body's reserved extents observes only its own reservation token.
+It neither exports total Ledger usage nor invokes an external current callback.
+Publication growth remains the existing Resource boundary, followed by original
+correspondence checks after any reentrant callback. These checks do not repeat
+the external observation or grant capacity from another live borrower.
+
 ## Synchronization and currentness
 
 Growth precedes the covered construction and uses the same reservation. Imported

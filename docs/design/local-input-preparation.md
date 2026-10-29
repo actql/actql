@@ -2214,6 +2214,15 @@ The selected sequences, Plan and module constructor receives its additional
 coexisting-data envelope before construction. A declined grow keeps the same
 quote and original prepared Program, rather than checking or compiling again.
 
+The generic module entry invokes the selected installed constructor once on
+that retained compiler output. It returns no raw Prepared; only the subsequent
+body borrow can expose the original after Plan/configuration completion.
+Synchronous construction fences reentry until the provider callback unwinds.
+A callback exception leaves the original working reservation for the existing
+failed-construction cleanup. The completed-body retirement path applies only
+after actual capacity completion has been attempted. The same fixed unwind
+scope serves the earlier construction route without another cleanup owner.
+
 After the actual installed Plan returns, completion binds its exact prepared
 Program and configuration to that same capacity. A manager borrows the original
 body through the existing nominal borrower. Source-free Run adoption consumes
@@ -2236,6 +2245,27 @@ Connector definitions supply ordinary contracts and provider data; the Host
 selects the original Request, policy and backing. No per-wrapper census or
 connector-supplied H/R/W inventory is an adoption requirement.
 
+
+### Request-owned Parameter Source
+
+The normal Request check entry selects the existing Parameter declaration and
+Source continuation when its caller has not already supplied that original.
+The Request retains this same continuation before fallible construction and
+uses its own capacity for declaration preflight, types, defaults and the final
+Source. An external test or frontend does not have to construct it first.
+
+A completed Source on that same Request and Program is immutable retained DATA.
+Reusing it checks its original declaration controller and references without
+another reader, work receipt or current callback. Typed declaration/default and
+Source errors remain their original variants; they do not become a generic
+phase failure or successful absence. Reentry is fenced while the Request selects
+this continuation, and a refused grow keeps its original partial duty attached.
+
+The actual checker receives this same Source and supplied-value cursor.
+Compilation retains the semantic output before the Request clears the domain's
+local aliases and continues its capacity to Pure or Effect. Failed preparation
+clears the same domain before the existing Request retirement; clearing these
+aliases neither settles capacity nor acknowledges physical cleanup.
 
 ### Effect inventory on the same parsed input
 
@@ -2449,3 +2479,57 @@ empty entrance, same-reservation continuation, concurrent borrowers, cancellatio
 foreign/repeated selection and cleanup; the actual Node caller tests separately
 cover retention before construction and the pre-loader connection. Those tests
 do not establish normal installed Source or physical acceptance.
+
+## Same-original Request checker and compiler terminal
+
+The Request terminal selects Pure or Effect checking from the original
+Program's retained `ProgramPreparationData.effect_members`. Selection does not
+rescan operation names or reconstruct a Program. It issues no permission: the
+existing Source intent, read-only, current authorization and physical boundaries
+remain separate. The original Environment, Catalog, Parameter cursor and supplied
+Source declaration preparation enter the same existing checking controller.
+
+`prepare_request_computation_check_preparation` retains the selected installed
+compiler configuration before a fallible phase. The remaining registry check,
+compiler and typed capacity continuation are driven by
+`finish_request_computation_preparation`. A completed compiler is reused if only
+its following original-current continuation declined; neither checking nor
+compilation is repeated. A rejected or missing-input check keeps its actual
+`CheckOutcome` rather than becoming a compiler phase error or generic Host
+classification. Known work and failure cleanup remain on the same parent.
+
+The Node terminal returns Unit. Its compiled Pure or Effect body stays inside
+the working Request until the actual installed Plan has been quoted, constructed,
+completed and borrowed. Returning an internal Prepared value from a convenience
+callback is not a replacement for that Plan/body handoff. These terminal methods
+therefore supply no raw Prepared escape, second Resource owner or no-plan success.
+
+## Publication continuation retains the original body
+
+After construction, `ClientProgramPublication` retains the same original body
+borrow and its own issued controller identity. It does not retain the legacy
+ClosedValues preparation, parsed input, or generic input type. Already selected
+Definition/Invocation contracts, row bound and monotone phase quotes are carried
+as immutable binding facts and current debit DATA. Resuming publication does not
+recover or revalidate a preparation through another path.
+
+The fixed constructor still binds the exact prepared body, adopted Run, original
+manager borrow and issued contract pair before creating this continuation. The
+existing scalar row-bound recipe is preserved; removing this backreference does
+not expand its constructor or assert general Content/shape support. A generic
+normal constructor must supply its actual same-Run facts, not a copied wire,
+policy override or guessed bound.
+
+Capture, snapshot and validation use that same controller and original borrow.
+A copied controller cannot replace its issued original. A returned borrow,
+Resource retirement, or controller cancellation fences resumed work. The
+original current callback remains at the existing resource-phase boundary;
+post-callback checks use the controller identity and borrow, without a second
+external current observation.
+
+The existing retiring preparation calls the controller's private clear before
+cutting its local reference. Clear fences reentry, cancels active semantic
+issuers/plans, and drops snapshots and contract aliases. It returns no Resource
+borrow, restores no consumed work and acknowledges no physical cleanup. Only
+actual Run/Host retirement and return of the original borrower can release that
+same reservation. Failure retains existing cleanup custody.

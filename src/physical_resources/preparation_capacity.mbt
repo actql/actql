@@ -423,6 +423,10 @@ pub fn retire_transferred_preparation(
 /// Returning it clears that token's body and decrements the same owner once.
 struct PreparationBodyBorrow[P] {
   read_original : () -> P?
+  reserved_extents_original : () -> Result[
+    (Int64, Int64),
+    PreparationCapacityIssue,
+  ]
   return_original : () -> Result[Bool, PreparationCapacityIssue]
   retirement_started_original : () -> Bool
   borrow_original : () -> Result[
@@ -451,6 +455,20 @@ fn[I, P] make_preparation_body_borrow(
 ) -> PreparationBodyBorrow[P] {
   {
     read_original: () => preparation_capacity_borrow_value(value),
+    reserved_extents_original: () => {
+      if value.returned {
+        Err(BorrowReturned)
+      } else if value.owner.phase != Ready && value.owner.phase != Run {
+        Err(Retired)
+      } else {
+        let token = value.owner.reservation.reservation
+        if !token.open {
+          Err(Retired)
+        } else {
+          Ok((token.retention, token.execution))
+        }
+      }
+    },
     return_original: () => return_preparation_capacity_borrow(value),
     retirement_started_original: () => {
       value.owner.phase == Retiring ||
@@ -678,4 +696,13 @@ pub fn[I, P] preparation_capacity_reservation_retired(
   owner : PreparationCapacity[I, P],
 ) -> Bool {
   !capacity_reservation_open(owner.reservation)
+}
+
+///|
+/// Exact reserved debit of this original body borrower, not headroom or a
+/// caller quote. Pure DATA: no current callback, Ledger export or allowance.
+pub fn[P] preparation_body_borrow_reserved_extents(
+  value : PreparationBodyBorrow[P],
+) -> Result[(Int64, Int64), PreparationCapacityIssue] {
+  (value.reserved_extents_original)()
 }

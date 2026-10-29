@@ -30,7 +30,7 @@ pub fn[I] prepare_closed_values_module_body(
   // constructor unwinds. Its JS implementation also handles raw callback
   // exceptions; a typed defer alone cannot observe those foreign throws.
   owner.module_constructing = true
-  closed_values_module_call(
+  preparation_module_call(
     () => {
       construct_closed_values_module_body(
         owner,

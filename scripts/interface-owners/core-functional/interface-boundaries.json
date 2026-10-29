@@ -24751,7 +24751,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "fe8fce30fe84d9f54da612cde1ef497b7bfa5643eb115fc0b69db2aa4fa08941",
+      "sha256": "6cb115358aa5b5932d42aa1074b27ea1ec7feaaae0d2f94bba5409cfc2e50736",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -26324,7 +26324,7 @@
     {
       "module": "src/physical_resources/preparation_capacity.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "26c6f8273016f79e5eaaa4bcbecae557c71379daa8c1f931dd09a432734b9e9e",
+      "sha256": "16fd485598b7aa92c122fcb462b76978fa79e953ccf58981c58d5d5ab307a800",
       "role": "common-semantics",
       "owner": "Existing Resource preparation and original body-borrow owner",
       "exports": [],
@@ -26414,6 +26414,10 @@
           "declaration": "[ P ] borrow_preparation_body_sibling ( value : PreparationBodyBorrow [ P ] , ) - > Result [ PreparationBodyBorrow [ P ] , PreparationCapacityIssue ]"
         },
         {
+          "name": "[P]preparation_body_borrow_reserved_extents",
+          "declaration": "[ P ] preparation_body_borrow_reserved_extents ( value : PreparationBodyBorrow [ P ] , ) - > Result [ ( Int64 , Int64 ) , PreparationCapacityIssue ]"
+        },
+        {
           "name": "[P]preparation_body_borrow_value",
           "declaration": "[ P ] preparation_body_borrow_value ( value : PreparationBodyBorrow [ P ] ) - > P ?"
         },
@@ -26468,7 +26472,8 @@
             "[P]return_preparation_body_borrow",
             "preparation_capacity_phase_is_working",
             "retire_transferred_preparation",
-            "[I,P]preparation_capacity_reservation_retired"
+            "[I,P]preparation_capacity_reservation_retired",
+            "[P]preparation_body_borrow_reserved_extents"
           ],
           "exports": [],
           "attributes": {
@@ -26588,41 +26593,51 @@
     {
       "module": "src/client_local_host/preparation_publication_owner.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "fee52984ad0845d4021ea541873dbde97f40ee1d7e5dad9e9de6dbe8a64c8529",
+      "sha256": "082c8b1a14e09af5c962c236c100d8f396706589fbc2aa7ea5dcc95b4e28759a",
       "role": "common-semantics",
       "owner": "Existing original Local publication owner",
       "exports": [],
       "operations": [
         {
-          "name": "[I]publication_original_body",
-          "declaration": "[ I ] publication_original_body ( value : ClientProgramPublication [ I ] , ) - > @ publication_host . PreparedClientProgram ?"
+          "name": "clear_managed_run_publication",
+          "declaration": "clear_managed_run_publication ( value : ClientInstalledManagedRun ) - > Unit"
         },
         {
-          "name": "[I]refresh_publication_original",
-          "declaration": "[ I ] refresh_publication_original ( value : ClientProgramPublication [ I ] , ) - > Result [ @ publication_host . PreparedClientProgram , ClientClosedValuesPreparationIssue , ]"
+          "name": "managed_run_publication_body",
+          "declaration": "managed_run_publication_body ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] , ClientClosedValuesPreparationIssue , ]"
         },
         {
-          "name": "[I]reserve_program_publication",
-          "declaration": "[ I ] reserve_program_publication ( owner : ClientClosedValuesPreparation [ I ] , prepared : @ publication_host . PreparedClientProgram , holder : @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram , ] , ) - > Result [ ClientProgramPublication [ I ] , ClientClosedValuesPreparationIssue ]"
+          "name": "publication_original_body",
+          "declaration": "publication_original_body ( value : ClientProgramPublication , ) - > @ publication_host . PreparedClientProgram ?"
         },
         {
-          "name": "[I]reserve_publication_constructor",
-          "declaration": "[ I ] reserve_publication_constructor ( value : ClientProgramPublication [ I ] , retained_add : Int64 , temporary : Int64 , ) - > Result [ Unit , ClientClosedValuesPreparationIssue ]"
+          "name": "refresh_publication_original",
+          "declaration": "refresh_publication_original ( value : ClientProgramPublication , ) - > Result [ @ publication_host . PreparedClientProgram , ClientClosedValuesPreparationIssue , ]"
+        },
+        {
+          "name": "reserve_program_publication",
+          "declaration": "reserve_program_publication ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ) - > Result [ ClientProgramPublication , ClientClosedValuesPreparationIssue ]"
         },
         {
           "name": "reserve_program_publication_phase",
           "declaration": "reserve_program_publication_phase ( holder : @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram , ] , prepared : @ publication_host . PreparedClientProgram , retained : Int64 , execution : Int64 , ) - > Result [ Unit , ClientClosedValuesPreparationIssue ]"
+        },
+        {
+          "name": "reserve_publication_constructor",
+          "declaration": "reserve_publication_constructor ( value : ClientProgramPublication , retained_add : Int64 , temporary : Int64 , ) - > Result [ Unit , ClientClosedValuesPreparationIssue ]"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "[I]publication_original_body",
-            "[I]refresh_publication_original",
-            "[I]reserve_program_publication",
-            "[I]reserve_publication_constructor",
-            "reserve_program_publication_phase"
+            "reserve_program_publication_phase",
+            "publication_original_body",
+            "refresh_publication_original",
+            "reserve_publication_constructor",
+            "clear_managed_run_publication",
+            "managed_run_publication_body",
+            "reserve_program_publication"
           ],
           "exports": [],
           "attributes": {
@@ -26742,51 +26757,51 @@
     {
       "module": "src/client_local_host/preparation_publication_capture.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c1be3f1f85601e3e75ad9ccb3f2981fd9a2d94df9686ab059bb42656c70f6c1e",
+      "sha256": "c57259374b4cdb6525e35dabc5df0ffdae34c814ee125b8aa99abd1af9cdc8e5",
       "role": "common-semantics",
       "owner": "Existing original Local publication owner",
       "exports": [],
       "operations": [
         {
-          "name": "[I]advance_program_capture",
-          "declaration": "[ I ] advance_program_capture ( capture : ClientProgramCapture [ I ] , quantum : Int , ) - > Result [ ( Bool , Int ) , ClientClosedValuesPreparationIssue ]"
+          "name": "advance_program_capture",
+          "declaration": "advance_program_capture ( capture : ClientProgramCapture , quantum : Int , ) - > Result [ ( Bool , Int ) , ClientClosedValuesPreparationIssue ]"
         },
         {
-          "name": "[I]cancel_program_capture",
-          "declaration": "[ I ] cancel_program_capture ( capture : ClientProgramCapture [ I ] ) - > Unit"
+          "name": "cancel_program_capture",
+          "declaration": "cancel_program_capture ( capture : ClientProgramCapture ) - > Unit"
         },
         {
-          "name": "[I]clear_program_publication",
-          "declaration": "[ I ] clear_program_publication ( owner : ClientClosedValuesPreparation [ I ] , ) - > Unit"
+          "name": "clear_program_publication",
+          "declaration": "clear_program_publication ( value : ClientProgramPublication ) - > Unit"
         },
         {
-          "name": "[I]finish_program_capture",
-          "declaration": "[ I ] finish_program_capture ( capture : ClientProgramCapture [ I ] , ) - > Result [ @ publication . PublicationContract , ClientClosedValuesPreparationIssue , ]"
+          "name": "finish_program_capture",
+          "declaration": "finish_program_capture ( capture : ClientProgramCapture , ) - > Result [ @ publication . PublicationContract , ClientClosedValuesPreparationIssue , ]"
         },
         {
-          "name": "[I]prepare_program_capture",
-          "declaration": "[ I ] prepare_program_capture ( value : ClientProgramPublication [ I ] , definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , definitions : Array [ @ publication . PublicationContract ] , artifacts : Array [ @ publication . PublicationContract ] , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , snapshots : Array [ @ publication . CapturedResultSnapshot ] , authoring : @ publication . RunEvidenceValue , models : Array [ @ publication . RunEvidenceValue ] , ) - > Result [ ClientProgramCapture [ I ] , ClientClosedValuesPreparationIssue ]"
+          "name": "prepare_program_capture",
+          "declaration": "prepare_program_capture ( value : ClientProgramPublication , definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , definitions : Array [ @ publication . PublicationContract ] , artifacts : Array [ @ publication . PublicationContract ] , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , snapshots : Array [ @ publication . CapturedResultSnapshot ] , authoring : @ publication . RunEvidenceValue , models : Array [ @ publication . RunEvidenceValue ] , ) - > Result [ ClientProgramCapture , ClientClosedValuesPreparationIssue ]"
         },
         {
-          "name": "[I]program_capture_limits",
-          "declaration": "[ I ] program_capture_limits ( capture : ClientProgramCapture [ I ] , ) - > Result [ ( Int , Int , Int ) , ClientClosedValuesPreparationIssue ]"
+          "name": "program_capture_limits",
+          "declaration": "program_capture_limits ( capture : ClientProgramCapture , ) - > Result [ ( Int , Int , Int ) , ClientClosedValuesPreparationIssue ]"
         },
         {
-          "name": "[I]start_program_capture",
-          "declaration": "[ I ] start_program_capture ( capture : ClientProgramCapture [ I ] , ) - > Result [ ClientProgramCapture [ I ] , ClientClosedValuesPreparationIssue ]"
+          "name": "start_program_capture",
+          "declaration": "start_program_capture ( capture : ClientProgramCapture , ) - > Result [ ClientProgramCapture , ClientClosedValuesPreparationIssue ]"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "[I]advance_program_capture",
-            "[I]cancel_program_capture",
-            "[I]clear_program_publication",
-            "[I]finish_program_capture",
-            "[I]prepare_program_capture",
-            "[I]program_capture_limits",
-            "[I]start_program_capture"
+            "advance_program_capture",
+            "cancel_program_capture",
+            "clear_program_publication",
+            "finish_program_capture",
+            "prepare_program_capture",
+            "program_capture_limits",
+            "start_program_capture"
           ],
           "exports": [],
           "attributes": {
@@ -26906,76 +26921,76 @@
     {
       "module": "src/client_local_host/preparation_publication_validation.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "1db2ab858af95801e8c6d1cb100a8597fe3844c08fc21d2b3e321e9bc1ae5722",
+      "sha256": "cf39d4eb5d742eff848a9acb9d3c979dfa197f75cd5988d7d3bb6379537e753f",
       "role": "common-semantics",
       "owner": "Existing original Local publication owner",
       "exports": [],
       "operations": [
         {
-          "name": "[I,T]validation_failure",
-          "declaration": "[ I , T ] validation_failure ( value : ClientProgramValidation [ I ] , issue : ClientProgramValidationIssue , ) - > Result [ T , ClientProgramValidationIssue ]"
+          "name": "[T]validation_failure",
+          "declaration": "[ T ] validation_failure ( value : ClientProgramValidation , issue : ClientProgramValidationIssue , ) - > Result [ T , ClientProgramValidationIssue ]"
         },
         {
-          "name": "[I]advance_program_validation",
-          "declaration": "[ I ] advance_program_validation ( value : ClientProgramValidation [ I ] , quantum : Int , ) - > Result [ ( Bool , Int ) , ClientProgramValidationIssue ]"
+          "name": "advance_program_validation",
+          "declaration": "advance_program_validation ( value : ClientProgramValidation , quantum : Int , ) - > Result [ ( Bool , Int ) , ClientProgramValidationIssue ]"
         },
         {
-          "name": "[I]cancel_program_validation",
-          "declaration": "[ I ] cancel_program_validation ( value : ClientProgramValidation [ I ] ) - > Unit"
+          "name": "cancel_program_validation",
+          "declaration": "cancel_program_validation ( value : ClientProgramValidation ) - > Unit"
         },
         {
-          "name": "[I]finish_program_validation",
-          "declaration": "[ I ] finish_program_validation ( value : ClientProgramValidation [ I ] , ) - > Result [ Unit , ClientProgramValidationIssue ]"
+          "name": "finish_program_validation",
+          "declaration": "finish_program_validation ( value : ClientProgramValidation , ) - > Result [ Unit , ClientProgramValidationIssue ]"
         },
         {
-          "name": "[I]finish_program_validation_plan",
-          "declaration": "[ I ] finish_program_validation_plan ( value : ClientProgramValidation [ I ] , plan : @ publication . PublicationValidationPlan , ) - > Result [ ClientProgramValidation [ I ] , ClientProgramValidationIssue ]"
+          "name": "finish_program_validation_plan",
+          "declaration": "finish_program_validation_plan ( value : ClientProgramValidation , plan : @ publication . PublicationValidationPlan , ) - > Result [ ClientProgramValidation , ClientProgramValidationIssue ]"
         },
         {
-          "name": "[I]fund_validation_inventory",
-          "declaration": "[ I ] fund_validation_inventory ( value : ClientProgramValidation [ I ] , slots : Int64 , arrays : Int , ) - > Result [ Unit , ClientProgramValidationIssue ]"
+          "name": "fund_validation_inventory",
+          "declaration": "fund_validation_inventory ( value : ClientProgramValidation , slots : Int64 , arrays : Int , ) - > Result [ Unit , ClientProgramValidationIssue ]"
         },
         {
-          "name": "[I]grow_program_validation",
-          "declaration": "[ I ] grow_program_validation ( value : ClientProgramValidation [ I ] , retained : Int64 , execution : Int64 , ) - > Result [ Unit , ClientProgramValidationIssue ]"
+          "name": "grow_program_validation",
+          "declaration": "grow_program_validation ( value : ClientProgramValidation , retained : Int64 , execution : Int64 , ) - > Result [ Unit , ClientProgramValidationIssue ]"
         },
         {
-          "name": "[I]new_program_validation",
-          "declaration": "[ I ] new_program_validation ( capture : ClientProgramCapture [ I ] , commit_kind : Bool , ) - > Result [ ClientProgramValidation [ I ] , ClientProgramValidationIssue ]"
+          "name": "new_program_validation",
+          "declaration": "new_program_validation ( capture : ClientProgramCapture , commit_kind : Bool , ) - > Result [ ClientProgramValidation , ClientProgramValidationIssue ]"
         },
         {
-          "name": "[I]prepare_program_chain_validation",
-          "declaration": "[ I ] prepare_program_chain_validation ( capture : ClientProgramCapture [ I ] , run_definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , definitions : Array [ @ publication . PublicationContract ] , artifacts : Array [ @ publication . PublicationContract ] , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , captured_run : @ publication . PublicationContract , ) - > Result [ ClientProgramValidation [ I ] , ClientProgramValidationIssue ]"
+          "name": "prepare_program_chain_validation",
+          "declaration": "prepare_program_chain_validation ( capture : ClientProgramCapture , run_definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , definitions : Array [ @ publication . PublicationContract ] , artifacts : Array [ @ publication . PublicationContract ] , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , captured_run : @ publication . PublicationContract , ) - > Result [ ClientProgramValidation , ClientProgramValidationIssue ]"
         },
         {
-          "name": "[I]prepare_program_commit_validation",
-          "declaration": "[ I ] prepare_program_commit_validation ( capture : ClientProgramCapture [ I ] , run_definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , definitions : Array [ @ publication . PublicationContract ] , artifacts : Array [ @ publication . PublicationContract ] , derivations : Array [ @ publication . PublicationContract ] , orderings : Array [ @ publication . PublicationContract ] , retentions : Array [ @ publication . PublicationContract ] , bindings : Array [ @ publication . PublicationContract ] , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , captured_run : @ publication . PublicationContract , request : @ publication . PublicationContract , attempt : @ publication . PublicationContract , index_entry : @ publication . PublicationContract , ) - > Result [ ClientProgramValidation [ I ] , ClientProgramValidationIssue ]"
+          "name": "prepare_program_commit_validation",
+          "declaration": "prepare_program_commit_validation ( capture : ClientProgramCapture , run_definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , definitions : Array [ @ publication . PublicationContract ] , artifacts : Array [ @ publication . PublicationContract ] , derivations : Array [ @ publication . PublicationContract ] , orderings : Array [ @ publication . PublicationContract ] , retentions : Array [ @ publication . PublicationContract ] , bindings : Array [ @ publication . PublicationContract ] , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , captured_run : @ publication . PublicationContract , request : @ publication . PublicationContract , attempt : @ publication . PublicationContract , index_entry : @ publication . PublicationContract , ) - > Result [ ClientProgramValidation , ClientProgramValidationIssue ]"
         },
         {
-          "name": "[I]start_program_validation",
-          "declaration": "[ I ] start_program_validation ( value : ClientProgramValidation [ I ] , ) - > Result [ ClientProgramValidation [ I ] , ClientProgramValidationIssue ]"
+          "name": "start_program_validation",
+          "declaration": "start_program_validation ( value : ClientProgramValidation , ) - > Result [ ClientProgramValidation , ClientProgramValidationIssue ]"
         },
         {
-          "name": "[I]validation_original",
-          "declaration": "[ I ] validation_original ( value : ClientProgramValidation [ I ] ) - > Bool"
+          "name": "validation_original",
+          "declaration": "validation_original ( value : ClientProgramValidation ) - > Bool"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "[I,T]validation_failure",
-            "[I]advance_program_validation",
-            "[I]cancel_program_validation",
-            "[I]finish_program_validation",
-            "[I]finish_program_validation_plan",
-            "[I]fund_validation_inventory",
-            "[I]grow_program_validation",
-            "[I]new_program_validation",
-            "[I]prepare_program_chain_validation",
-            "[I]prepare_program_commit_validation",
-            "[I]start_program_validation",
-            "[I]validation_original"
+            "[T]validation_failure",
+            "advance_program_validation",
+            "cancel_program_validation",
+            "finish_program_validation",
+            "finish_program_validation_plan",
+            "fund_validation_inventory",
+            "grow_program_validation",
+            "new_program_validation",
+            "prepare_program_chain_validation",
+            "prepare_program_commit_validation",
+            "start_program_validation",
+            "validation_original"
           ],
           "exports": [],
           "attributes": {
@@ -27191,6 +27206,436 @@
         }
       ],
       "referenceQualification": "Actual original Node admission and focused caller/typed capacity components only; Source domain/lifetime consumer and ordinary installed acceptance remain separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_terminal.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "9c4f765aa612010e4cf83d5d69a417b41c969a43e76a813063d0bc31901152da",
+      "role": "common-semantics",
+      "owner": "Existing Request checking compiler and preparation capacity owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]finish_request_computation_preparation",
+          "declaration": "[ I ] finish_request_computation_preparation ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_computation_check_preparation",
+          "declaration": "[ I ] prepare_request_computation_check_preparation ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , source_catalog ? : @ checked . PreparedSourceCatalog ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]finish_request_computation_preparation",
+            "[I]prepare_request_computation_check_preparation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Same-original Request checker and compiler terminal"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_terminal_js_wbtest.mbt",
+                "anchor": "test \"normal Request terminal"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-original checking/compilation/Plan controls; normal all-entry activation and ordinary acceptance remain separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_publication_snapshot.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "7c81d30eb31b620028e0b223d29d94d0f2fdb6626271d6aeeb6063e864b30760",
+      "role": "common-semantics",
+      "owner": "Existing original publication and preparation-borrow owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "advance_program_snapshot",
+          "declaration": "advance_program_snapshot ( value : ClientProgramSnapshot , quantum : Int , ) - > Result [ ( Bool , Int ) , ClientClosedValuesPreparationIssue ]"
+        },
+        {
+          "name": "begin_program_snapshot",
+          "declaration": "begin_program_snapshot ( value : ClientProgramPublication , output : @ publication_host . PublicationOutputExport , ) - > Result [ ClientProgramSnapshot , ClientClosedValuesPreparationIssue ]"
+        },
+        {
+          "name": "cancel_active_program_snapshot",
+          "declaration": "cancel_active_program_snapshot ( value : ClientProgramPublication ) - > Unit"
+        },
+        {
+          "name": "cancel_program_snapshot",
+          "declaration": "cancel_program_snapshot ( value : ClientProgramSnapshot ) - > Unit"
+        },
+        {
+          "name": "finish_program_snapshot",
+          "declaration": "finish_program_snapshot ( value : ClientProgramSnapshot , ) - > Result [ @ publication . CapturedResultSnapshot , ClientClosedValuesPreparationIssue , ]"
+        },
+        {
+          "name": "program_snapshot_current",
+          "declaration": "program_snapshot_current ( value : ClientProgramSnapshot ) - > Bool"
+        },
+        {
+          "name": "program_snapshot_slot_matches",
+          "declaration": "program_snapshot_slot_matches ( value : ClientProgramSnapshot ) - > Bool"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "advance_program_snapshot",
+            "begin_program_snapshot",
+            "cancel_active_program_snapshot",
+            "cancel_program_snapshot",
+            "finish_program_snapshot",
+            "program_snapshot_current",
+            "program_snapshot_slot_matches"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication continuation retains the original body"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication continuation retains the original body"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication continuation retains the original body"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication continuation retains the original body"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication continuation retains the original body"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication continuation retains the original body"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication continuation retains the original body"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication continuation retains the original body"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication continuation retains the original body"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Publication continuation retains the original body"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continuation retains its original borrow"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original publication controller and Resource borrow; legacy constructor and normal generic activation/ordinary acceptance remain separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_program_body.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "d26691d9fd5daa6cb208a4cb4d5165c571cecd4ea9a576dd6f34ac0b36973ff4",
+      "role": "common-semantics",
+      "owner": "Existing Request preparation and installed Plan owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P]original_request_plan_construction_quote",
+          "declaration": "[ I , P ] original_request_plan_construction_quote ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , data : @ checked . ParsedCheckDataEstimate , ) - > Result [ ( Int64 , Int64 ) , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]begin_request_program_managed_run",
+          "declaration": "[ I ] begin_request_program_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]borrow_request_program_preparation",
+          "declaration": "[ I ] borrow_request_program_preparation ( owner : ClientRequestPreparation [ I ] , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]complete_request_program_preparation",
+          "declaration": "[ I ] complete_request_program_preparation ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedSourceFreePreparation , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]continue_request_program_preparation",
+          "declaration": "[ I ] continue_request_program_preparation ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . PreparedClientProgram , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]prepare_request_program_module_body",
+          "declaration": "[ I ] prepare_request_program_module_body ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
+        },
+        {
+          "name": "[I]reserve_request_program_plan",
+          "declaration": "[ I ] reserve_request_program_plan ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P]original_request_plan_construction_quote",
+            "[I]begin_request_program_managed_run",
+            "[I]borrow_request_program_preparation",
+            "[I]complete_request_program_preparation",
+            "[I]continue_request_program_preparation",
+            "[I]prepare_request_program_module_body",
+            "[I]reserve_request_program_plan"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Retained dimensions and the final Request body"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request module constructor retains same checked output"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same original Request compiler output, capacity and installed Plan constructor; normal all-input activation and physical Source acceptance remain separate."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_parameters.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "0ad9c0d43b0d635fe65b8763176313605aa2db9e32754cf91cfa7513c2e1b711",
+      "role": "common-semantics",
+      "owner": "Existing Request and Parameter declaration/Source owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]clear_request_parameter_source",
+          "declaration": "[ I ] clear_request_parameter_source ( owner : ClientRequestPreparation [ I ] , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_parameter_source_owned",
+          "declaration": "[ I ] prepare_request_parameter_source_owned ( owner : ClientRequestPreparation [ I ] , input : I , program : @ syntax . Program , checking : @ checked . CheckLimits , ) - > Result [ @ stages . Source , ClientRequestPreparationIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]clear_request_parameter_source",
+            "[I]prepare_request_parameter_source_owned"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Parameter Source"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_parameters_js_wbtest.mbt",
+                "anchor": "test \"Request-owned Parameters retain default"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Actual existing Request check caller retains the same Parameter domain on its capacity. Semantic declarations/defaults remain owned by parameter_binding/stage_parameters; normal all-entry Runtime acceptance remains separate."
     }
   ]
 }

@@ -21,6 +21,10 @@ pub fn[I] continue_request_effect_preparation(
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(ForeignOriginal)
   }
+  match clear_request_parameter_source(owner) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if owner.program_json is Some(source) {
     match clear_program_json_preparation(source) {
       Err(issue) => return Err(ProgramJson(issue))
@@ -44,6 +48,7 @@ pub fn[I] continue_request_effect_preparation(
   transfer_program_check_input(child)
   child.busy = false
   owner.program_check = None
+  owner.computation_limits = None
   owner.program_json = None
   owner.phase = EffectCompiled
   Ok(prepared)

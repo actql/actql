@@ -47,7 +47,10 @@ struct ClientRequestPreparation[I] {
   mut native_parameters : @decode.Cursor?
   mut native_parameters_ready : Bool
   mut held_program : @syntax.Program?
+  mut parameter_declarations : ClientParameterDeclarationPreflight[I, Unit]?
+  mut parameter_source : @stages.Source?
   mut program_check : ClientProgramCheckPreparation[I, Unit]?
+  mut computation_limits : @publication_host.ClientProgramPreparationLimits?
   // SAME reservation continued to its actual final body type; no second owner.
   mut program_capacity : @resources.PreparationCapacity[
     I,
@@ -78,6 +81,9 @@ pub(all) enum ClientRequestPreparationIssue {
   ProgramJson(ClientProgramJsonPreparationIssue)
   ProgramCheck(ClientProgramCheckPreparationIssue)
   Parameters(@local_preparation.LocalProgramInputIssue)
+  ParameterPreparation(ClientParameterDeclarationPreflightIssue)
+  ParameterDeclarations(@parameters.Issue)
+  ParameterSource(@stages.Issue)
 } derive(Debug)
 
 ///|
@@ -255,7 +261,10 @@ pub fn[I] begin_request_preparation(
     native_parameters: None,
     native_parameters_ready: false,
     held_program: None,
+    parameter_declarations: None,
+    parameter_source: None,
     program_check: None,
+    computation_limits: None,
     program_capacity: None,
     compiled_program: None,
     effect_capacity: None,
@@ -382,6 +391,10 @@ fn[I] prepare_request_check_preparation_owned(
   source_catalog? : @checked.PreparedSourceCatalog? = None,
   source_preparation? : @stages.Source? = None,
   effect_limits? : @publication_host.ClientEffectComputationLimits? = None,
+  computation_limits? : (
+    @publication_host.ClientProgramPreparationLimits,
+    @publication_host.ClientEffectComputationLimits,
+  )? = None,
 ) -> Result[
   ClientProgramCheckPreparation[I, Unit],
   ClientRequestPreparationIssue,
@@ -432,7 +445,37 @@ fn[I] prepare_request_check_preparation_owned(
     owner.held_program = Some(program)
     (program, source_catalog)
   }
+  // This is the original Program's retained parser inventory, not another
+  // operation-name scan, check, resource quote or caller classification.
+  let effect_limits = match computation_limits {
+    None => effect_limits
+    Some((program_limits, effect_limits)) =>
+      if @syntax.program_preparation_data(program).effect_members == 0 {
+        owner.computation_limits = Some(program_limits)
+        None
+      } else {
+        owner.computation_limits = Some(effect_limits.program)
+        Some(effect_limits)
+      }
+  }
   owner.phase = Selecting
+  let source_preparation = match source_preparation {
+    Some(original) => Some(original)
+    None => {
+      let checking = match effect_limits {
+        Some(selected) => selected.program.checking
+        None => limits
+      }
+      match
+        prepare_request_parameter_source_owned(owner, input, program, checking) {
+        Err(issue) => {
+          owner.phase = ProgramCheckFailed
+          return Err(issue)
+        }
+        Ok(source) => Some(source)
+      }
+    }
+  }
   let outcome = match effect_limits {
     None =>
       begin_program_check_preparation(
@@ -592,13 +635,18 @@ pub fn[I] abort_request_preparation_after_cleanup(
     }
     owner.phase = previous
   }
-  // Both registered controllers have relinquished only their own aliases.
+  match clear_request_parameter_source(owner) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // Registered controllers have relinquished only their own aliases.
   // This caller is explicitly after its borrowed arguments/returned frames.
   owner.held_program = None
   owner.native_parameters = None
   owner.native_parameters_ready = false
   owner.query_syntax = None
   owner.compiled_program = None
+  owner.computation_limits = None
   owner.compiled_effect = None
   owner.effect_plan = None
   owner.program_data = None
@@ -694,14 +742,8 @@ fn[I] make_closed_values_preparation(
     body_ready: false,
     manager_issued: false,
     adopted: false,
-    adopted_run: None,
     submitted_intent: None,
     manager_original: None,
-    publication: None,
-    publication_started: false,
-    publication_invocation_started: false,
-    publication_definition: None,
-    publication_invocation: None,
   }
   value.original = Some(value)
   value
