@@ -2560,3 +2560,51 @@ does not by itself connect the generic Source/Effect/Content/INFER module and
 backend-material constructors, nor does it remove an installed values override.
 Those actual owners must consume their same Request and checked Plan without a
 raw/no-plan success or an unqualified fallback.
+
+## Native submitted intent on the same Request
+
+The SDK captures its native input once. The fixed manager projects only the
+existing intent fields from that exact detached body: kind, input, Parameters,
+and present stopBefore/readOnly restrictions. The shallow projection neither
+copies payloads nor grants authority. Before Program checking, the same Request
+reserves one input-derived construction peak and admits that native intent
+through the existing publication identity Owner. Missing ownership or a typed
+failure cannot choose a serializer/hash fallback.
+
+Textual, stored and captured intent entrances share one envelope validation and
+versioned identity definition, including the representation-headroom rule.
+The native entrance uses the existing bounded source reader and canonical DATA
+admission without whole-input JSON serialization or parsing. Data keys and
+Unicode text retain their original spelling; this is not Program key/type
+checking, Source permission, or a Run/dispatch permit. The same original intent
+is borrowed by the existing active handler and Journal boundary.
+
+The construction quote uses the original snapshot's observed envelope. It
+includes wide key enumeration before a node refusal, native Source/canonical
+overlap, exact-key maps and synchronous sorting. Source admission returns
+before text emission, whose writer returns before hashing; those sequential
+peaks share the same reservation. Actual encoded wire/CID storage remains.
+A separate fixed finish call, after constructor unwind, reconciles that peak to
+its retained data. A failed grow allocates no reader, and an exception retains
+its original work/cleanup until the same frame has unwound. No new Ledger,
+policy capacity, per-node current callback, or physical acknowledgement exists.
+
+The original IntentIdentity phase receipt remains finite and one-use. Its
+finished amount is retained as known-work DATA even after stop; it is not the
+Ledger's planner-visit count, CPU time, physical starts, or replacement credit.
+Current-free input projections cannot replace a new constructor or original
+receipt. A pending intent peak fences later Program/query construction. The
+selected Run inherits the same reservation; its consuming parent cuts local
+intent aliases on that handoff. Active Journal borrowers and normal failed or
+uncertain handler retirement retain their independent original duties.
+
+This boundary does not make an envelope a checked Program, complete general
+Source/Effect/Content/INFER Plan construction, or establish ordinary Host
+acceptance. Those actual callers must retain the same request and input/Plan
+bindings through execution, publication, cleanup and current-format restoration.
+
+The first intent quote seals the snapshot envelope even if its grow declines.
+That same quoted/failed phase cannot be bypassed by expanding the snapshot or
+selecting a Native, JSON, query or legacy input driver. Only the original intent
+may complete; successful finish then admits the original next input phase.
+This is an internal phase fence, not caller-supplied acceptance evidence.

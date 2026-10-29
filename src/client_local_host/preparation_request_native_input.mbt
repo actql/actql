@@ -8,25 +8,15 @@ fn request_native_tree_units(
   values : Int64,
   limits : @syntax.Limits,
 ) -> @execution.PreparationRepresentationUnits? {
-  if units < 1L || values < 1L || values > units || values > 2147483646L {
+  guard request_native_input_geometry(
+      units,
+      values,
+      limits.source.max_input_bytes,
+      limits.source.max_depth,
+    )
+    is Some((bytes, nodes, depth)) else {
     return None
   }
-  // Each visited native value/key/Text unit was observed by the SAME SDK
-  // traversal. A native binary64 spelling is at most 25 ASCII bytes; escaped
-  // Text/key units are at most six. 32 covers either per-visited-value case.
-  // Key enumeration retains all original keys before a node-limit refusal,
-  // so nodes remain bounded by the observed snapshot, not a tighter policy.
-  let maximum = Int::max(1, limits.source.max_input_bytes).to_int64()
-  let text_units = units - values
-  let text_bytes = if text_units > maximum / 6L {
-    maximum
-  } else {
-    6L * text_units
-  }
-  let value_bytes = if values > maximum / 32L { maximum } else { 32L * values }
-  let bytes = Int64::min(maximum, text_bytes + value_bytes).to_int()
-  let nodes = values.to_int()
-  let depth = Int::max(1, Int::min(limits.source.max_depth, nodes))
   guard @source.json_construction_extent(
       bytes,
       nodes,
@@ -82,7 +72,9 @@ pub fn[I, T] prepare_request_native_program_input(
   ClientProgramJsonPreparation[I, Unit],
   ClientRequestPreparationIssue,
 ] {
-  guard owner.phase == Open && owner.program_json is None else {
+  guard owner.phase == Open &&
+    request_intent_input_ready(owner) &&
+    owner.program_json is None else {
     return Err(WrongPhase)
   }
   guard owner.input is Some(original) && physical_equal(original, input) else {
@@ -176,4 +168,35 @@ pub fn[I, T] prepare_request_native_program_input(
   owner.program_json = Some(child)
   owner.phase = ProgramJson
   Ok(child)
+}
+
+///|
+// Same observed native envelope for Program and submitted-intent expansion.
+// These are constructor bounds, not a policy/semantic grant or a second scan.
+fn request_native_input_geometry(
+  units : Int64,
+  values : Int64,
+  max_bytes : Int,
+  max_depth : Int,
+) -> (Int, Int, Int)? {
+  if units < 1L || values < 1L || values > units || values > 2147483646L {
+    return None
+  }
+  // Each visited native value/key/Text unit was observed by the SAME SDK
+  // traversal. A native binary64 spelling is at most 25 ASCII bytes; escaped
+  // Text/key units are at most six. 32 covers either per-visited-value case.
+  // Key enumeration retains all original keys before a node-limit refusal,
+  // so nodes remain bounded by the observed snapshot, not a tighter policy.
+  let maximum = Int::max(1, max_bytes).to_int64()
+  let text_units = units - values
+  let text_bytes = if text_units > maximum / 6L {
+    maximum
+  } else {
+    6L * text_units
+  }
+  let value_bytes = if values > maximum / 32L { maximum } else { 32L * values }
+  let bytes = Int64::min(maximum, text_bytes + value_bytes).to_int()
+  let nodes = values.to_int()
+  let depth = Int::max(1, Int::min(max_depth, nodes))
+  Some((bytes, nodes, depth))
 }

@@ -178,12 +178,7 @@ fn prepare_client_submitted_intent_originals(
 ] {
   // The selected owner supplies finite policy bounds. Only representation
   // headroom for the hash envelope (+128 bytes,+4 nodes,+1 depth) is intrinsic.
-  if max_bytes < 1 ||
-    max_bytes > 2147483519 ||
-    max_nodes < 1 ||
-    max_nodes > 2147483643 ||
-    max_depth < 1 ||
-    max_depth > 2147483646 {
+  if !valid_client_submitted_intent_limits(max_bytes, max_nodes, max_depth) {
     return Err(InvalidLimits)
   }
   let source = match
@@ -209,6 +204,35 @@ fn prepare_client_submitted_intent_originals(
     @canonical.InputLimit => return Err(Limit)
     _ => return Err(InvalidEnvelope)
   }
+  let intent = match
+    prepare_client_submitted_intent_value(
+      value, max_bytes, max_nodes, max_depth,
+    ) {
+    Ok(intent) => intent
+    Err(issue) => return Err(issue)
+  }
+  Ok(
+    (
+      intent,
+      if retain_source && body == intent.wire {
+        Some(source)
+      } else {
+        None
+      },
+      value,
+    ),
+  )
+}
+
+///|
+// One envelope/identity definition for textual, restored and captured inputs.
+// The caller has admitted the canonical value under the same limits.
+fn prepare_client_submitted_intent_value(
+  value : @canonical.CanonicalValue,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientSubmittedIntent, ClientSubmittedIntentIssue] {
   let stop_before_commit = match @canonical.object_field(value, "stopBefore") {
     None => false
     Some(@canonical.String("commit")) => true
@@ -253,23 +277,90 @@ fn prepare_client_submitted_intent_originals(
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-submitted-intent/0.1")
     @encode.end_object(writer)
-    Ok(
-      (
-        {
-          wire,
-          cid: "sha256:" + @encode.finish_hash(writer),
-          stop_before_commit,
-          read_only,
-        },
-        if retain_source && body == wire {
-          Some(source)
-        } else {
-          None
-        },
-        value,
-      ),
-    )
+    Ok({
+      wire,
+      cid: "sha256:" + @encode.finish_hash(writer),
+      stop_before_commit,
+      read_only,
+    })
   } catch {
     _ => Err(Encoding)
   }
+}
+
+///|
+/// The SAME detached native input enters the existing envelope/identity law.
+/// No whole-input serialization/parser, new authority or caller verdict is
+/// used. The fixed owner must reserve the construction overlap before entry.
+pub fn[T] prepare_captured_client_submitted_intent(
+  input : T,
+  reader : @source.JsonDataReader[T],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientSubmittedIntent, ClientSubmittedIntentIssue] {
+  if !valid_client_submitted_intent_limits(max_bytes, max_nodes, max_depth) {
+    return Err(InvalidLimits)
+  }
+  let value = match
+    captured_client_submitted_intent_value(
+      input, reader, max_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  // Source/native admission frames have returned before either writer begins.
+  prepare_client_submitted_intent_value(value, max_bytes, max_nodes, max_depth)
+}
+
+///|
+fn[T] captured_client_submitted_intent_value(
+  input : T,
+  reader : @source.JsonDataReader[T],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@canonical.CanonicalValue, ClientSubmittedIntentIssue] {
+  let parsed = match
+    @source.admit_captured_json(input, reader, {
+      max_input_bytes: max_bytes,
+      max_nodes,
+      max_depth,
+    }) {
+    Ok(value) => value
+    Err(error) =>
+      return Err(
+        match error.issue {
+          InputLimit | NodeLimit | DepthLimit => Limit
+          _ => InvalidEnvelope
+        },
+      )
+  }
+  Ok(
+    @canonical.from_source(
+      parsed.node,
+      max_nodes,
+      max_depth,
+      max_bytes,
+      data_keys=true,
+    ),
+  ) catch {
+    @canonical.InputLimit => Err(Limit)
+    _ => Err(InvalidEnvelope)
+  }
+}
+
+///|
+// One representation-headroom rule for every entrance to this identity law.
+fn valid_client_submitted_intent_limits(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  max_bytes >= 1 &&
+  max_bytes <= 2147483519 &&
+  max_nodes >= 1 &&
+  max_nodes <= 2147483643 &&
+  max_depth >= 1 &&
+  max_depth <= 2147483646
 }
