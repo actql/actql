@@ -33,6 +33,8 @@ pub fn graph_read_retained_extent(GraphReadConstructionInventory) -> @decode_sha
 
 pub fn law_cid() -> String
 
+pub fn measure(@carrier_contract.Carrier, Limits) -> Result[(Int, Int, Int), Issue]
+
 pub fn nodes(CheckedContract) -> Int
 
 pub fn observe_graph_read_construction(@decode_core.Cursor) -> GraphReadConstructionInventory

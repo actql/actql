@@ -1650,7 +1650,7 @@ pub fn measure_prepared_client_result_graph_construction(PreparedClientProgram, 
 
 pub fn measure_prepared_client_result_plan(PreparedClientProgram, Int, Int, Int, Int) -> Result[(Int, Int, Int), ClientResultPlanIssue]
 
-pub fn measure_prepared_client_task_fragment_construction(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[((Int, Int, Int), (Int, Int, Int), (Int, Int, Int)), ClientTaskFragmentIssue]
+pub fn measure_prepared_client_task_fragment_construction(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskFragmentConstruction, ClientTaskFragmentIssue]
 
 pub fn measure_prepared_client_task_pipeline_construction(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[((Int, Int, Int), (Int, Int, Int)), ClientTaskPipelineIssue]
 
@@ -4390,6 +4390,17 @@ pub(all) enum ClientTaskFragmentAdmissionIssue {
   Issue(ClientTaskFragmentIssue)
   MismatchedNode
 }
+
+pub(all) struct ClientTaskFragmentConstruction {
+  initial_pipeline : (Int, Int, Int)
+  pipeline : (Int, Int, Int)
+  fragment : (Int, Int, Int)
+  input_contracts : Array[(Int, Int, Int)]
+  output_contract : (Int, Int, Int)
+  output_carrier : String
+  node_id : String
+  output_port : String
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ClientTaskFragmentIssue {
   InvalidLimits

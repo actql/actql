@@ -2877,6 +2877,24 @@ original checked Program, claims, contracts or manifests.
 
 ### Original Task pipeline construction input
 
+Task construction DATA includes the original initial/projected pipeline and
+Fragment geometry together with each actual input and output Carrier contract.
+A Fragment's fixed CID representation does not bound the schema body that must
+be serialized to issue that identity. The original Carrier selection is shared
+between identity construction and measurement: required Relation object types,
+conditional Relation field maps, keyed Graph definitions and Events/Vectors
+roles retain their distinct existing codecs. Role order and conditional
+presence are not reconstructed by a measuring table.
+
+Conditional Relation measurement drives the same key/field/contract
+continuation in a private measuring mode. It creates no hash or text sinks,
+does not expose an identity preparation, and returns its original schema and
+pending continuations through the existing cancellation path after completion
+or failure. Ordinary identity generation retains its original hash-before-wire
+passes and saved identity meaning. Graph measurement similarly uses its
+original definition codec and finite bounds without issuing a checked contract.
+Neither measurement is a reservation, semantic admission or a physical ACK.
+
 The initial Task pipeline writer has one field definition shared by text output
 and UTF-8 byte/node/depth measurement. Its scope is the original sequence range
 before canonical admission and selected-task projection. A long Pipe can create
