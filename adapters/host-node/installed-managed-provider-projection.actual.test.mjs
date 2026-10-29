@@ -9,6 +9,8 @@ import {prepareCalendarListPages, CALENDAR_LIST_OPERATION}
   from '../connectors/calendar/site/calendar-list-read.mjs';
 import {prepareNotionPageReadPages,NOTION_PAGE_READ_OPERATION}
   from '../connectors/notion/site/page-read.mjs';
+import {prepareNotionPropertyReadProjection}
+  from '../connectors/notion/site/property-item-read.mjs';
 
 // Real provider namespaces and the shared Host reader, with explicit Credential,
 // current, accounting and transport ports. This is not a normal installation,
@@ -209,4 +211,65 @@ test('real Notion page projection keeps refusal and post-charge stop under the s
       assert.equal(f.charges[0].body,f.body);
     }finally{f.close();}
   }
+});
+
+const propertyLimits=Object.freeze({maxResponseBytes:16384,maxTotalResponseBytes:65536,maxTargetBytes:1024,
+  maxPages:8,pageSize:10,maxValueNodes:128,maxValueDepth:16,maxValueTextBytes:4096,
+  maxWireBytes:8192,maxWireNodes:256,maxWireDepth:16});
+const metadataLimits=[16384,1024,20,8,8,128,128],declarationLimits=[...metadataLimits,256,16,4096,16,100000];
+function propertyOriginal(enumeration){
+  const database=checked(notion.notionProjectDatabase(Buffer.from('{"object":"database","id":"db","data_sources":[{"id":"s","name":"tasks"}]}'),...metadataLimits));
+  const source=checked(notion.notionProjectDataSource(database,0,Buffer.from('{"object":"data_source","id":"s","parent":{"type":"database_id","database_id":"db"},"properties":{"text":{"id":"t%3Ax","name":"text","type":"rich_text","rich_text":{}}}}'),...metadataLimits));
+  const contract={type:'string',nullable:false,...(enumeration===undefined?{}:{enum:enumeration})};
+  const declaration=checked(notion.notionReadDatabaseDeclaration(Buffer.from(JSON.stringify({id:'db',read_contracts:{'t%3Ax':[{column:'text',projection:'value',contract}]}})),...declarationLimits));
+  const readContracts=checked(notion.notionBindDataSourceReadContracts(declaration,source,...declarationLimits));
+  const page=checked(notion.notionProjectQueryPage(source,Buffer.from('{"object":"list","type":"page_or_data_source","page_or_data_source":{},"results":[{"object":"page","id":"page","parent":{"type":"data_source_id","data_source_id":"s"},"properties":{"text":{"id":"t%3Ax","type":"rich_text","rich_text":[],"has_more":true}}}],"has_more":false,"next_cursor":null}'),...metadataLimits,100,128));
+  const originalRequest=checked(notion.notionStartColumnPropertyRequest(readContracts,page,0,0,...metadataLimits,8,128,65536,4096,32768,128,1000000));
+  return{moon:notion,readContracts,column:0,originalRequest,limits:propertyLimits};
+}
+function propertyResponse(text,next=null,type='rich_text'){
+  return{accepted:true,statusCode:200,body:Buffer.from(JSON.stringify({object:'list',type:'property_item',
+    results:text.map(plain=>({object:'property_item',id:'t%3Ax',type,[type]:{type:'text',text:{content:plain},plain_text:plain}})),
+    has_more:next!==null,next_cursor:next,property_item:{id:'t%3Ax',type,[type]:{},next_url:next===null?null:'https://foreign.invalid/never-follow'}}))};
+}
+
+test('real Notion property projection preserves original cursor target and whole typed completion',()=>{
+  const original=propertyOriginal(['é\r\n😀']),projection=prepareNotionPropertyReadProjection(original);
+  const first=projection.describeRequest();assert.equal(first.method,'GET');assert.equal(first.path,'/v1/pages/page/properties/t%3Ax');
+  assert.deepEqual(first.query,[['page_size','10']]);assert(first.headers.some(([k,v])=>k==='notion-version'&&v==='2026-03-11'));
+  const prefix=projection.projectResponse(original.originalRequest,propertyResponse(['é\r\n'],'opaque+/= cursor'));
+  assert.equal(prefix.done,false);assert.equal(Object.hasOwn(prefix,'valueWire'),false);
+  const next=prefix.nextRequest();assert(notion.notionPropertyRequestMatchesBinding(next,original.readContracts,0));
+  const second=projection.describeRequest(next);assert.equal(second.path,first.path);
+  assert.deepEqual(second.query,[['page_size','10'],['start_cursor','opaque+/= cursor']]);
+  const terminal=projection.projectResponse(next,propertyResponse(['😀']));
+  assert.equal(terminal.done,true);assert.equal(terminal.valueWire,'"é\\r\\n😀"');assert.equal(Object.hasOwn(terminal,'nextRequest'),false);
+});
+
+test('real Notion property projection refuses copies foreign bindings incomplete values and unsafe bounds',()=>{
+  const a=propertyOriginal(),b=propertyOriginal(),p=prepareNotionPropertyReadProjection(a);
+  for(const originalRequest of [{...a.originalRequest},b.originalRequest]){
+    assert.throws(()=>prepareNotionPropertyReadProjection({...a,originalRequest}),{code:'ForeignNotionPropertyOriginal'});
+    assert.throws(()=>p.describeRequest(originalRequest),{code:'ForeignNotionPropertyOriginal'});
+    assert.throws(()=>p.projectResponse(originalRequest,propertyResponse(['ignored'])),{code:'ForeignNotionPropertyOriginal'});
+  }
+  assert.throws(()=>prepareNotionPropertyReadProjection({...a,limits:{...propertyLimits,pageSize:101}}),{code:'InvalidNotionPropertyRead'});
+  assert.throws(()=>prepareNotionPropertyReadProjection({...a,limits:{...propertyLimits,maxTargetBytes:1}}).describeRequest(),{code:'NotionPropertyTargetLimit'});
+  assert.throws(()=>p.projectResponse(a.originalRequest,{accepted:false,statusCode:403,body:Buffer.from('{}')}),{code:'NotionPropertyReadRejected'});
+  const e=propertyOriginal(['ab']),ep=prepareNotionPropertyReadProjection(e),prefix=ep.projectResponse(e.originalRequest,propertyResponse(['a'],'next'));
+  assert.equal(prefix.done,false);assert.throws(()=>ep.projectResponse(prefix.nextRequest(),propertyResponse(['c'])),{code:'MoonBitHostFailure'});
+});
+
+test('real Notion property projection keeps title originals and captures provider methods and limits',()=>{
+  const body={...originalPage(),properties:{'display name':{id:'t%3Ax',type:'title',title:[]}}};
+  const pageTitle=checked(notion.notionProjectPage(Buffer.from(JSON.stringify(body)),'page',16384,1024,20,8,16,128,128,2048));
+  const originalRequest=checked(notion.notionStartPageTitlePropertyRequest(pageTitle,16384,1024,20,8,16,128,128,8,128,65536,4096,32768,128,1000000));
+  const moon={...notion},bounds={...propertyLimits},originalJson=moon.notionPropertyRequestJson;
+  moon.notionPropertyRequestJson=function(...args){assert.equal(this,moon);return Reflect.apply(originalJson,notion,args);};
+  const p=prepareNotionPropertyReadProjection({moon,originalRequest,pageTitle,limits:bounds});
+  moon.notionPropertyRequestJson=moon.notionProjectPropertyItemPage=()=>assert.fail('late provider lookup');bounds.pageSize=99;
+  assert.deepEqual(p.describeRequest().query,[['page_size','10']]);
+  const terminal=p.projectResponse(originalRequest,propertyResponse(['original title'],null,'title'));
+  assert.equal(terminal.done,true);assert.equal(terminal.valueWire,'"original title"');
+  assert.throws(()=>prepareNotionPropertyReadProjection({moon:notion,originalRequest,pageTitle:{...pageTitle},limits:propertyLimits}),{code:'ForeignNotionPropertyOriginal'});
 });

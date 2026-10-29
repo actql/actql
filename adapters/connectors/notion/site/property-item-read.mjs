@@ -39,11 +39,7 @@ function originalPathSegment(text){
   return result;
 }
 
-function prepareRead({moon,originalRequest,readContracts,column,pageTitle,initialAuthorization,
-  credential,authorizationFor,current,chargeResponse,consumeObservation,consumeValue,limits,signal},title){
-  if(!originalRequest||(title?(!pageTitle||readContracts!==undefined||column!==undefined):
-    (!readContracts||pageTitle!==undefined||!Number.isSafeInteger(column)||column<0||column>2147483647))||
-    [authorizationFor,current,chargeResponse,consumeObservation,consumeValue].some(x=>typeof x!=='function'))fail('InvalidNotionPropertyRead');
+function captureProjection(moon,readContracts,column,pageTitle,title){
   const matchesPort=title?'notionPropertyRequestMatchesPageTitle':'notionPropertyRequestMatchesBinding';
   const completePort=title?'notionCompletedPageTitleJson':'notionCompletedPropertyJson';
   const names=[...sharedPorts,matchesPort,completePort];
@@ -53,6 +49,65 @@ function prepareRead({moon,originalRequest,readContracts,column,pageTitle,initia
     call(matchesPort,request,readContracts,column)===true;
   const complete=(page,b)=>checked(call(completePort,...(title?[pageTitle,page]:[readContracts,page,column]),
     b.maxValueNodes,b.maxValueDepth,b.maxValueTextBytes,b.maxWireBytes,b.maxWireNodes,b.maxWireDepth));
+  return Object.freeze({names,provider,call,matches,complete});
+}
+
+function describePropertyRequest(call,request,bounds){
+  const target=JSON.parse(checked(call('notionPropertyRequestJson',request,bounds.maxWireBytes,bounds.maxWireNodes,bounds.maxWireDepth)));
+  if(Object.keys(target).length!==3||typeof target.pageId!=='string'||typeof target.propertyId!=='string'||
+    target.cursor!==null&&typeof target.cursor!=='string')fail('InvalidNotionPropertyRequest');
+  const path='/v1/pages/'+originalPathSegment(target.pageId)+'/properties/'+originalPathSegment(target.propertyId);
+  const query=[['page_size',String(bounds.pageSize)]];
+  if(target.cursor!==null)query.push(['start_cursor',target.cursor]);
+  if(Buffer.byteLength(requestTarget(path,query))>bounds.maxTargetBytes)fail('NotionPropertyTargetLimit');
+  return {path,query};
+}
+
+function projectPropertyPage(call,request,response){
+  if(!response.accepted||response.statusCode!==200)fail('NotionPropertyReadRejected');
+  return checked(call('notionProjectPropertyItemPage',request,response.body));
+}
+
+// Provider meaning for the actual shared read child. The caller retains the
+// original response/charge and enforces its total bytes/page bounds. These
+// DATA projections issue no use, replace no current check and own no cleanup.
+export function prepareNotionPropertyReadProjection({moon,originalRequest,readContracts,column,pageTitle,limits}){
+  const title=pageTitle!==undefined;
+  if(!originalRequest||(title?(!pageTitle||readContracts!==undefined||column!==undefined):
+    (!readContracts||!Number.isSafeInteger(column)||column<0||column>2147483647))||
+    !limits||typeof limits!=='object')fail('InvalidNotionPropertyRead');
+  const {names,provider,call,matches,complete}=captureProjection(moon,readContracts,column,pageTitle,title);
+  const bounds=Object.freeze({...limits});
+  if(names.some(name=>typeof provider[name]!=='function')||!fields.every(name=>positive(bounds[name]))||
+    bounds.pageSize>100)fail('InvalidNotionPropertyRead');
+  if(!matches(originalRequest))fail('ForeignNotionPropertyOriginal');
+  return Object.freeze({
+    describeRequest(request=originalRequest){
+      if(!matches(request))fail('ForeignNotionPropertyOriginal');
+      return Object.freeze({method:'GET',...describePropertyRequest(call,request,bounds),
+        headers:[['accept','application/json'],['notion-version',NOTION_PROPERTY_READ_API_VERSION]],responseHeaders:[]});
+    },
+    projectResponse(request,response){
+      if(!matches(request))fail('ForeignNotionPropertyOriginal');
+      const page=projectPropertyPage(call,request,response);
+      if(call('notionPropertyItemPageComplete',page))return Object.freeze({page,done:true,valueWire:complete(page,bounds)});
+      // Defer the existing cursor derivation until the parent has consumed
+      // this exact prefix charge and checked its original page/current bound.
+      return Object.freeze({page,done:false,nextRequest(){
+        const next=checked(call('notionNextPropertyRequest',page));
+        if(!matches(next))fail('ForeignNotionPropertyOriginal');
+        return next;
+      }});
+    },
+  });
+}
+
+function prepareRead({moon,originalRequest,readContracts,column,pageTitle,initialAuthorization,
+  credential,authorizationFor,current,chargeResponse,consumeObservation,consumeValue,limits,signal},title){
+  if(!originalRequest||(title?(!pageTitle||readContracts!==undefined||column!==undefined):
+    (!readContracts||pageTitle!==undefined||!Number.isSafeInteger(column)||column<0||column>2147483647))||
+    [authorizationFor,current,chargeResponse,consumeObservation,consumeValue].some(x=>typeof x!=='function'))fail('InvalidNotionPropertyRead');
+  const {names,provider,call,matches,complete}=captureProjection(moon,readContracts,column,pageTitle,title);
   const context=ownInvocationContext({authorization:initialAuthorization,credential,limits,
     callbacks:{authorizationFor,current,chargeResponse,consumeObservation,consumeValue}});
   if(names.some(name=>typeof provider[name]!=='function')||!fields.every(name=>positive(context.limits[name]))||
@@ -70,13 +125,7 @@ async function executeRead(prepared,received){
   try{
     for(let index=0;index<bounds.maxPages;index++){
       await verify();
-      const target=JSON.parse(checked(call('notionPropertyRequestJson',request,bounds.maxWireBytes,bounds.maxWireNodes,bounds.maxWireDepth)));
-      if(Object.keys(target).length!==3||typeof target.pageId!=='string'||typeof target.propertyId!=='string'||
-        target.cursor!==null&&typeof target.cursor!=='string')fail('InvalidNotionPropertyRequest');
-      const path='/v1/pages/'+originalPathSegment(target.pageId)+'/properties/'+originalPathSegment(target.propertyId);
-      const query=[['page_size',String(bounds.pageSize)]];
-      if(target.cursor!==null)query.push(['start_cursor',target.cursor]);
-      if(Buffer.byteLength(requestTarget(path,query))>bounds.maxTargetBytes)fail('NotionPropertyTargetLimit');
+      const {path,query}=describePropertyRequest(call,request,bounds);
       const authorization=ownInvocationAuthorization(await context.callbacks.authorizationFor(
         Object.freeze({operation:NOTION_PROPERTY_READ_OPERATION,index,originalRequest:request})));
       if(authorization.scope.operation!==NOTION_PROPERTY_READ_OPERATION||
@@ -95,8 +144,7 @@ async function executeRead(prepared,received){
       await verify();
       if(response.body.byteLength>bounds.maxTotalResponseBytes-totalBytes)fail('NotionPropertyResponseLimit');
       totalBytes+=response.body.byteLength;
-      if(!response.accepted||response.statusCode!==200)fail('NotionPropertyReadRejected');
-      const page=checked(call('notionProjectPropertyItemPage',request,response.body));
+      const page=projectPropertyPage(call,request,response);
       if(call('notionPropertyItemPageComplete',page)){
         const valueWire=complete(page,bounds);
         await verify();
