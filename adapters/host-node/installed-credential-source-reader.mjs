@@ -20,13 +20,6 @@ function method(value, name) {
   }
   return field.value;
 }
-function sync(value) {
-  if (typeof value?.then === 'function') {
-    void Promise.resolve(value).catch(() => {});
-    fail('InstalledSourcePageCallbackNotSynchronous');
-  }
-  return value;
-}
 
 export function createInstalledCredentialSourceReader({capacity, site, operation,
   maxResponses, maxResponseBytes, maxSecretBytes, preparePageReader}) {
@@ -44,6 +37,25 @@ export function createInstalledCredentialSourceReader({capacity, site, operation
     const consumePage = method(options, 'consumePage');
     const consumePageWire = options.consumePageWire === undefined ? undefined : method(options, 'consumePageWire');
     const columns = Object.freeze([...options.columns]);
+    const pendingCallbacks = new Set();
+    function sync(value) {
+      const then = value?.then;
+      if (typeof then === 'function') {
+        // Capture the SAME returned computation and selected then receiver.
+        // Refusal does not cancel its existing borrow of response/input DATA.
+        const pending = new Promise((resolve, reject) => Reflect.apply(then, value, [resolve, reject]));
+        pendingCallbacks.add(pending);
+        const settled = () => {
+          pendingCallbacks.delete(pending);
+          if (stopped) {
+            try {cleanup();} catch (cause) {cleanupFailure = cause;}
+          }
+        };
+        void pending.then(settled, settled);
+        fail('InstalledSourcePageCallbackNotSynchronous');
+      }
+      return value;
+    }
     // Provider construction is synchronous and I/O-free, after the original
     // RowRun reservation and response-cleanup association have been installed.
     let provider, fetchPage, decodePage, onError, setupFailure, setupFailed = false;
@@ -81,7 +93,7 @@ export function createInstalledCredentialSourceReader({capacity, site, operation
     function cleanup() {
       if (retired) return;
       const closed = closeTransport();
-      if (!stopped || readPending || !closed) return;
+      if (!stopped || readPending || pendingCallbacks.size !== 0 || !closed) return;
       // Native close and the joined read, rather than Promise settlement alone,
       // authorize retirement of this reader's original response aliases.
       responses.length = 0;
@@ -175,6 +187,7 @@ export function createInstalledCredentialSourceReader({capacity, site, operation
       observe() {
         if (this !== handle) fail('ForeignInstalledCredentialSourceReader');
         return Object.freeze({phase, stopRequested: stopped, readPending,
+          pendingCallbacks: pendingCallbacks.size,
           responseCount, receivedBodyBytes: responseBytes,
           transportClosed: binding === undefined || bindingClosed,
           transportFailure: cleanupFailure !== undefined, cleanupConfirmed: retired});

@@ -42,6 +42,13 @@ The returned read handle owns cancellation and physical binding close. Read
 settlement alone does not acknowledge cleanup. `requestStop` aborts and closes
 the original binding; `observe().cleanupConfirmed` becomes true only after
 the joined read and actual binding close, when its response aliases retire.
+A callback which returns a Promise is still refused. Its SAME returned
+computation remains retained and joined under this reader, including rejected
+setup, request, decode and error callbacks. Cleanup cannot acknowledge release
+while any such computation still borrows input or response DATA. Settlement
+only permits the existing physical-close and read-completion checks; it grants
+no read, retry or new authority.
+
 `retry` retries only that cleanup, never a send or grant. Existing RowRun
 cleanup invokes this same retry on a subsequent close. The original failure
 remains primary if physical close also fails.
