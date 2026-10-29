@@ -70,6 +70,8 @@ pub fn advance_program_validation(ClientProgramValidation, Int) -> Result[(Bool,
 
 pub fn attach_installed_source_read_acquisition(ClientInstalledSourceRead, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, Int, Int) -> Result[Unit, ClientInstalledSourceReadIssue]
 
+pub fn[I] begin_backed_host_initialization_preparation(@physical_resources.BackedInitializationAdmission[I], I, ClientLocalResourcePolicy) -> Result[ClientHostInitializationPreparation[I], ClientHostInitializationIssue]
+
 pub fn begin_client_original_keyed_lookup_response(@run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedLookupInput, @run_publication_host.ClientKeyedRequest, @client_row_source_host.RowKeyedSourceCapture) -> Result[Unit, ClientOriginalKeyedChildIssue]
 
 pub fn[I] begin_closed_values_header(ClientClosedValuesPreparation[I]) -> Result[@physical_resources.PreparationPhaseWork, ClientClosedValuesPreparationIssue]
