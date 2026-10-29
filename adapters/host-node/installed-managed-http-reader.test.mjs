@@ -471,3 +471,23 @@ test('installed Source forwards its exact issued grant and retires the same read
   assert.deepEqual(events,['retire']);ready=true;
   assert.equal(close(),'original-close');assert.deepEqual(events,['retire','retire','site-close']);
 });
+
+// Exact Root counter; the existing whole-source invoker above supplies the same reader.
+const unused=()=>assert.fail('pure setup failure cannot grant, send or close physical I/O');
+
+test('shared Reader cannot acknowledge retirement while an original native setup Promise survives its throwing then getter',async()=>{
+ const release=Promise.withResolvers(),cause=new Error('same native setup then getter failure');
+ Object.defineProperty(release.promise,'then',{get(){throw cause;}});
+ const site={bindRunAcquisition:unused,authorizationPurpose:unused,callResource:unused,referenceCurrent(){return true;}};
+ const factory=createReader({capacity:{},originalSite:site,assertCurrent(){},operation:'fixture:read',
+  maxResponses:1,maxResponseBytes:32,maxSecretBytes:32,preparePageReader(){return release.promise;}});
+ const reader=factory.prepare({resource:'records',columns:[],verifyRead(){},authorizationFor:unused,chargePage:unused,consumePage:unused});
+ await assert.rejects(reader.read(),error=>error===cause);
+ const retiredWhileOriginalPending=factory.retire();
+ // Settle the exact native computation even on the expected red, so this
+ // counter leaves no pending callback or physical resource behind.
+ release.resolve();await Reflect.apply(Promise.prototype.then,release.promise,[()=>undefined]);
+ for(let i=0;i<4;i++)await Promise.resolve();
+ assert.equal(factory.retire(),true,'the same owner retires after original settlement');
+ assert.equal(retiredWhileOriginalPending,false,'native setup is still owned until its actual settlement');
+});
