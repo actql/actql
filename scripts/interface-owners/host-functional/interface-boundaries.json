@@ -76505,7 +76505,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "e519c189b7e2a7b17e8372ed40478aaa6267f10185e4b696f11dfbb1a49539d3",
+      "sha256": "07425380df4f9d3cbaebc63631910b7154151d53ab480188c26f7ef137681a69",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -76766,7 +76766,8 @@
           "name": "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot/captured/captured",
           "parameters": [
             "units",
-            "document"
+            "document",
+            "values"
           ],
           "async": false
         },
@@ -81709,7 +81710,7 @@
     },
     {
       "module": "adapters/local-node/closed-values-preparation-adapter.mjs",
-      "sha256": "7e99791388908028d649d943db1ea2db514a4757b48828dccc38ce05e445d22e",
+      "sha256": "910ccd2cf75045baf537bf673347abad0bf4b8bb2791e3ecb944cde0b105ceaf",
       "exports": [
         "assertRequestPreparationControl",
         "beginClosedValuesInput",
@@ -81717,7 +81718,8 @@
         "bindClosedValuesSnapshot",
         "checkedPreparation",
         "cleanupClosedValuesInput",
-        "closedValuesPreparationAvailable"
+        "closedValuesPreparationAvailable",
+        "openRequestPreparation"
       ],
       "operations": [
         {
@@ -81807,6 +81809,17 @@
           "async": false
         },
         {
+          "name": "openRequestPreparation",
+          "parameters": [
+            "state",
+            "input",
+            "requirements",
+            "assertCurrent",
+            "childrenPending"
+          ],
+          "async": false
+        },
+        {
           "name": "phaseAdapter/phaseAdapter",
           "parameters": [
             "moon",
@@ -81849,7 +81862,8 @@
             "invalid/invalid",
             "noPhysicalChildren/noPhysicalChildren",
             "phaseAdapter/phaseAdapter",
-            "phaseAdapter/phaseAdapter/init:spendWork/init:spendWork"
+            "phaseAdapter/phaseAdapter/init:spendWork/init:spendWork",
+            "openRequestPreparation"
           ],
           "exports": [
             "beginClosedValuesInput",
@@ -81857,7 +81871,8 @@
             "bindClosedValuesSnapshot",
             "checkedPreparation",
             "cleanupClosedValuesInput",
-            "closedValuesPreparationAvailable"
+            "closedValuesPreparationAvailable",
+            "openRequestPreparation"
           ],
           "attributes": {
             "responsibility": [

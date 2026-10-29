@@ -262,10 +262,16 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           const assertOriginalCurrent = () => {
             // Cleanup may continue while the manager is closing. Exact
             // membership/current installation, not raw Prepared, is retained.
-            if (closed || receipts.get(receipt) !== producer || producer.preparation !== state) {
+            if (closed || producer.finished || receipts.get(receipt) !== producer || producer.preparation !== state) {
               fail('ForeignInstalledSourceProducer');
             }
             callbacks.validator(originals);
+            // The original external current callback may retire this same
+            // input before opening returns. Cheap state fences, not another
+            // external current call, preserve the exact original after reentry.
+            if (closed || producer.finished || receipts.get(receipt) !== producer || producer.preparation !== state) {
+              fail('ForeignInstalledSourceProducer');
+            }
           };
           const accepted = kind === 'program' && options === undefined
             ? beginClosedValuesInput(state, input, receipt, originalConnection, required, assertOriginalCurrent)
@@ -302,14 +308,14 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       }
       state.snapshotting = true;
       try {
-        const captured = snapshot(value, (units, document) => {
+        const captured = snapshot(value, (units, document, values) => {
           if (producer.finished || producer.preparation !== state || state.parent === undefined) {
             fail('ForeignInstalledSourceProducer');
           }
-          if (state.snapshotUnits !== units) {
+          if (state.snapshotUnits !== units || state.snapshotValues !== values) {
             checked(state.context.runtime.clientProgramReserveRequestSnapshot(
-              state.parent, receipt, BigInt(units)));
-            state.snapshotUnits = units;
+              state.parent, receipt, BigInt(units), BigInt(values)));
+            state.snapshotUnits = units;state.snapshotValues = values;
           }
           // Retain the existing serializer's original wire before JSON.parse.
           // No second serialization observes this caller's input or getters.

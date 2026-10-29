@@ -83,8 +83,9 @@ pub fn client_program_reserve_request_snapshot(
   ],
   input : ClientLocalPreparationInputOriginal,
   units : Int64,
+  values : Int64,
 ) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
-  @client_local_host.reserve_request_snapshot(parent, input, units)
+  @client_local_host.reserve_request_snapshot(parent, input, units, values)
 }
 
 ///|
@@ -95,6 +96,7 @@ pub fn client_program_prepare_request_native_program_input(
   ],
   input : ClientLocalPreparationInputOriginal,
   captured : NativeJsonValue,
+  parameters : NativeJsonValue,
   limits : @stage_syntax.Limits,
 ) -> Result[
   @client_local_host.ClientProgramJsonPreparation[
@@ -104,7 +106,16 @@ pub fn client_program_prepare_request_native_program_input(
   @client_local_host.ClientRequestPreparationIssue,
 ] {
   @client_local_host.prepare_request_native_program_input(
-    parent, input, captured, native_json_reader, limits,
+    parent,
+    input,
+    captured,
+    native_json_reader,
+    limits,
+    supplied=if native_json_parameter_is_absent(parameters) {
+      None
+    } else {
+      Some(parameters)
+    },
   )
 }
 

@@ -15,14 +15,14 @@ test "Request snapshot grows the same original only on expansion and keeps its d
     input,
   ).unwrap()
   let before = calls.val
-  reserve_request_snapshot(parent, input, 100L).unwrap()
+  reserve_request_snapshot(parent, input, 100L, 100L).unwrap()
   assert_eq(calls.val - before, 1)
-  reserve_request_snapshot(parent, input, 100L).unwrap()
+  reserve_request_snapshot(parent, input, 100L, 100L).unwrap()
   assert_eq(calls.val - before, 1)
   assert_true(
-    reserve_request_snapshot(parent, [1], 200L) is Err(ForeignOriginal),
+    reserve_request_snapshot(parent, [1], 200L, 200L) is Err(ForeignOriginal),
   )
-  let held = request_snapshot_data_bytes(100L).unwrap()
+  let held = request_snapshot_data_bytes(100L, 100L).unwrap()
   assert_eq(
     @resources.preparation_capacity_working_extents(parent.capacity, input).unwrap(),
     (base.0 + held, base.1 + held),
@@ -36,7 +36,9 @@ test "Request snapshot grows the same original only on expansion and keeps its d
   assert_true(
     physical_equal(prepared_request_query_syntax(parent, input).unwrap(), query),
   )
-  assert_true(reserve_request_snapshot(parent, input, 200L) is Err(WrongPhase))
+  assert_true(
+    reserve_request_snapshot(parent, input, 200L, 200L) is Err(WrongPhase),
+  )
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
@@ -50,9 +52,9 @@ test "Request snapshot short expansion retains its same high water until origina
       input,
       client_local_resource_policy(),
     ).unwrap()
-    reserve_request_snapshot(parent, input, 10L).unwrap()
+    reserve_request_snapshot(parent, input, 10L, 10L).unwrap()
     let base = parent.snapshot_base.unwrap()
-    let bytes = request_snapshot_data_bytes(20L).unwrap()
+    let bytes = request_snapshot_data_bytes(20L, 20L).unwrap()
     let limits = @resources.ledger_limits(parent.ledger)
     let blocker = @resources.reserve_capacity(
       parent.ledger,
@@ -68,14 +70,16 @@ test "Request snapshot short expansion retains its same high water until origina
       },
     ).unwrap()
     assert_true(
-      reserve_request_snapshot(parent, input, 20L) is Err(Capacity(_)),
+      reserve_request_snapshot(parent, input, 20L, 20L) is Err(Capacity(_)),
     )
     assert_eq(parent.snapshot_units, 10L)
     assert_true(parent.phase == Open)
     @resources.settle_capacity(parent.ledger, blocker).unwrap()
-    reserve_request_snapshot(parent, input, 20L).unwrap()
+    reserve_request_snapshot(parent, input, 20L, 20L).unwrap()
     assert_eq(parent.snapshot_units, 20L)
-    assert_true(reserve_request_snapshot(parent, input, 10L) is Err(Policy))
+    assert_true(
+      reserve_request_snapshot(parent, input, 10L, 10L) is Err(Policy),
+    )
     abort_request_preparation_after_cleanup(parent).unwrap()
     assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   }

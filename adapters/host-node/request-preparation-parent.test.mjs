@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prepareOrdinarySourceManagedInstallation} from './ordinary-source-managed.mjs';
 import resources from './ordinary-node-resource-runtime.cjs';
+import {openRequestPreparation, cleanupClosedValuesInput} from '../local-node/closed-values-preparation-adapter.mjs';
 import {snapshotClientRequest} from '../../packages/client-wire/index.mjs';
 
 // Actual normal manager/adapter/Resource originals; Core phase/shape results
@@ -12,7 +13,7 @@ const input = () => ({version:'actql/0.1',id:'parent',stages:[{id:'main',inputs:
 }}],results:{rows:{from:'v',fields:['n']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}});
 const connection = Object.freeze({mode:'local',owner:'local',consentRefs:Object.freeze([]),runners:Object.freeze([])});
 async function fixture({selectFailure, control=[1024n,0n]}={}) {
-  const calls=[],policy={},parent={},phase={},work={};let admission;
+  const calls=[],shapes=[],policy={},parent={},phase={},work={};let admission;
   const stop = () => {
     assert.equal(admission.ports.report(0,0,0,0n,0n,0n,0n,0n,0n,0n,0,0,0),0);
     assert.equal(admission.ports.status(2),0);
@@ -29,9 +30,10 @@ async function fixture({selectFailure, control=[1024n,0n]}={}) {
       assert.equal(this,moon);assert.equal(actual,admission);assert.equal(receipt,admission.receipt);assert.equal(selectedPolicy,policy);
       assert.equal(admission.ports.status(0),0);calls.push('parent');return ok(parent);
     },
-    clientProgramReserveRequestSnapshot(actual,receipt,units){
+    clientProgramReserveRequestSnapshot(actual,receipt,units,values){
       assert.equal(this,moon);assert.equal(actual,parent);assert.equal(receipt,admission.receipt);
-      assert.equal(typeof units,'bigint');assert.ok(units>0n);calls.push('snapshot-grow');return ok(undefined);
+      assert.equal(typeof units,'bigint');assert.equal(typeof values,'bigint');
+      assert.ok(units>=values && values>0n);shapes.push({units,values});calls.push('snapshot-grow');return ok(undefined);
     },
     clientProgramSelectClosedValuesPreparation(actual,receipt){
       assert.equal(this,moon);assert.equal(actual,parent);assert.equal(receipt,admission.receipt);calls.push('select');
@@ -56,7 +58,7 @@ async function fixture({selectFailure, control=[1024n,0n]}={}) {
     preparationContext(actual){assert.equal(actual,originals);return context;},
     preparationRequirements(){calls.push('requirements');return {planningWork:10000,attempts:10000,holdings:10000,transferBytes:100000n,retainedBytes:100000n,executionBytes:100000n};},
   },false);
-  return {view,calls,get original(){return admission?.original;}};
+  return {view,calls,shapes,context,get parent(){return parent;},get original(){return admission?.original;}};
 }
 
 test('normal request manager retains one parent before header and original snapshot reservation',async()=>{
@@ -132,9 +134,35 @@ test('normal SQL snapshot grows the same parent and observes Parameters exactly 
   assert.equal(f.calls.filter(value => value === 'parent').length, 1);
   assert.ok(f.calls.filter(value => value === 'snapshot-grow').length > 0);
   assert.equal(f.calls.includes('select'), false);
+  assert.ok(f.shapes.at(-1).values>0n && f.shapes.at(-1).values<=f.shapes.at(-1).units);
   f.view.bindSourceSnapshot(receipt, body);
   f.view.finishSourceProducer(receipt, 'failed');
   assert.equal(f.calls.filter(value => value === 'abort-parent').length, 1);
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+  assert.deepEqual(await f.view.close(), {pending: false});
+});
+
+
+test('actual Request opening needs the original lifetime rather than Source or connection metadata', async () => {
+  const f = await fixture();
+  const state = {context: {runtime: f.context.runtime}};
+  const original = Object.freeze({});
+  const requirements = {planningWork: 100, attempts: 100, holdings: 100,
+    transferBytes: 1000n, retainedBytes: 1000n, executionBytes: 1000n};
+  let currents = 0;
+  const current = () => {
+    currents++;
+    assert.throws(() => openRequestPreparation(state, original, requirements, current, () => false),
+      {code: 'NodeLocalPreparationAdmissionUnavailable'});
+    assert.throws(() => cleanupClosedValuesInput(state),
+      {code: 'NodeLocalPreparationAdmissionUnavailable'});
+  };
+  assert.equal(openRequestPreparation(state, original, requirements, current, () => false), f.parent);
+  assert.ok(currents > 0);assert.equal(state.opening, false);
+  assert.equal(f.calls.filter(value => value === 'parent').length, 1);
+  assert.throws(() => openRequestPreparation(state, original, requirements, current, () => false),
+    {code: 'NodeLocalPreparationAdmissionUnavailable'});
+  cleanupClosedValuesInput(state);
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
   assert.deepEqual(await f.view.close(), {pending: false});
 });

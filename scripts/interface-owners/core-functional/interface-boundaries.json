@@ -24751,7 +24751,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "4610e6bd17a7092c7d1dcc638aa0ea32e80296dffd337d5a8e163f353c6fec5d",
+      "sha256": "fe8fce30fe84d9f54da612cde1ef497b7bfa5643eb115fc0b69db2aa4fa08941",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -25165,18 +25165,18 @@
     {
       "module": "src/client_local_host/preparation_request_snapshot.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "0ade6e3b478b1b520c9445586cfc384a80c40f09eda68fed981ad32915dc129a",
+      "sha256": "2dcf49f2c9eb776294069f4095e226961eb10471f32c4df0d20c60ec3f3be1e2",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
       "operations": [
         {
           "name": "[I]reserve_request_snapshot",
-          "declaration": "[ I ] reserve_request_snapshot ( owner : ClientRequestPreparation [ I ] , input : I , units : Int64 , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+          "declaration": "[ I ] reserve_request_snapshot ( owner : ClientRequestPreparation [ I ] , input : I , units : Int64 , values : Int64 , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
         },
         {
           "name": "request_snapshot_data_bytes",
-          "declaration": "request_snapshot_data_bytes ( units : Int64 ) - > Int64 ?"
+          "declaration": "request_snapshot_data_bytes ( units : Int64 , values : Int64 ) - > Int64 ?"
         }
       ],
       "contracts": [
@@ -25260,7 +25260,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_lowering.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "9aafad1ef16ef030728791cf2efb637aa0498336007edb621cf032d7dab747db",
+      "sha256": "05e98bf8ca1076b43a35f8d6e009056a2be3fb52546ac26bf1f8062457a05fc4",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -25360,7 +25360,7 @@
     {
       "module": "src/source_value/native_json.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "45225a6379e30e25ab54cda376a82a3e06cbc70adc3a5da6ca535c31b9d5bb9e",
+      "sha256": "4d404c2a27278b802aa4f2aa41c7f170ac913849906e51fa9616c1c367b17b2a",
       "role": "common-semantics",
       "owner": "Existing Source value admission",
       "exports": [],
@@ -25545,18 +25545,22 @@
     {
       "module": "src/client_local_host/preparation_request_native_input.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "75340908ab7c10664a28a363034e256c0b514fba3a31b6e02d7e1ed0e29219f4",
+      "sha256": "543df5c483ccfc9717d206b6e93288e01fdce04beb519e9b35277ef688f0b78d",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
       "operations": [
         {
           "name": "[I,T]prepare_request_native_program_input",
-          "declaration": "[ I , T ] prepare_request_native_program_input ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , limits : @ syntax . Limits , ) - > Result [ ClientProgramJsonPreparation [ I , Unit ] , ClientRequestPreparationIssue , ]"
+          "declaration": "[ I , T ] prepare_request_native_program_input ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , limits : @ syntax . Limits , supplied ? : T ?"
         },
         {
           "name": "request_native_input_units",
-          "declaration": "request_native_input_units ( units : Int64 , limits : @ syntax . Limits , ) - > @ execution . PreparationRepresentationUnits ?"
+          "declaration": "request_native_input_units ( units : Int64 , values : Int64 , limits : @ syntax . Limits , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "request_native_tree_units",
+          "declaration": "request_native_tree_units ( units : Int64 , values : Int64 , limits : @ syntax . Limits , ) - > @ execution . PreparationRepresentationUnits ?"
         }
       ],
       "contracts": [
@@ -25564,7 +25568,8 @@
           "operations": [
             "<module>",
             "[I,T]prepare_request_native_program_input",
-            "request_native_input_units"
+            "request_native_input_units",
+            "request_native_tree_units"
           ],
           "exports": [],
           "attributes": {
@@ -25640,7 +25645,7 @@
     {
       "module": "src/connectors_builtin_node/client_native_snapshot_reader.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "1186e45e0c6c8340a9c74508b6b2ae389688d098009c0ab12493c79d9dd6b044",
+      "sha256": "c1c2241c59fbde2b776df4aa980b817259e13c1bb1bbe7b59d860a5780232373",
       "role": "common-semantics",
       "owner": "Existing Node representation adapter",
       "exports": [],
@@ -25670,6 +25675,10 @@
           "declaration": "native_json_number_text ( value : NativeJsonValue ) - > String"
         },
         {
+          "name": "native_json_parameter_is_absent",
+          "declaration": "native_json_parameter_is_absent ( value : NativeJsonValue ) - > Bool"
+        },
+        {
           "name": "native_json_text",
           "declaration": "native_json_text ( value : NativeJsonValue ) - > String"
         }
@@ -25684,7 +25693,8 @@
             "native_json_kind",
             "native_json_length",
             "native_json_number_text",
-            "native_json_text"
+            "native_json_text",
+            "native_json_parameter_is_absent"
           ],
           "exports": [],
           "attributes": {
@@ -25756,6 +25766,116 @@
         }
       ],
       "referenceQualification": "Same-Request captured input Source/Program/checker components and actual target API only. Normal Node driver, complete work metering and physical backing remain separate."
+    },
+    {
+      "module": "src/client_local_preparation/check_input.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local program input admission",
+      "sha256": "d540539a52874e588f07943f59ecd565af7310f0febd796da1beff50d65dd6b6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]admit_captured_local_parameters",
+          "declaration": "[ T ] admit_captured_local_parameters ( input : T , reader : @ source . JsonDataReader [ T ] , ) - > Result [ @ decode . Cursor , LocalProgramInputIssue ]"
+        },
+        {
+          "name": "admit_local_program_input",
+          "declaration": "admit_local_program_input ( format : String , parameters : String ? , ) - > Result [ ( @ syntax . Format , @ decode . Cursor ? ) , LocalProgramInputIssue ]"
+        },
+        {
+          "name": "check_published_context",
+          "declaration": "check_published_context ( environment : @ checked . CheckEnvironment , publication : String , declarations : String ? , ) - > @ query . Context raise CheckPublicationStop"
+        },
+        {
+          "name": "local_parameter_input_limits",
+          "declaration": "local_parameter_input_limits ( ) - > ( @ source . ParseLimits , @ decode . Limits )"
+        },
+        {
+          "name": "source_publication_cursor",
+          "declaration": "source_publication_cursor ( wire : String , ) - > @ decode . Cursor raise CheckPublicationStop"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]admit_captured_local_parameters",
+            "admit_local_program_input",
+            "check_published_context",
+            "local_parameter_input_limits",
+            "source_publication_cursor"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured Parameter Values on the Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_input_js_wbtest.mbt",
+                "anchor": "test \"Request captured Parameters preserve original key limits"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same existing Local Parameter limits/key policy and captured input through the original Request binder/compiler/Plan. Not ordinary Host initialization, public acceptance or physical backing."
     }
   ]
 }

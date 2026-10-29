@@ -1084,16 +1084,20 @@ test('funded snapshot observes the existing native traversal without repeating c
   });
   const original = {input: {toJSON() {json++; return {text: 'SELECT @n AS n', format: 'sql'};}}, parameters};
   const growth = [];let document;
-  const captured = snapshotClientRequest(original, (units, wire) => {
-    growth.push(units);if (wire !== undefined) document = wire;
+  const captured = snapshotClientRequest(original, (units, wire, values) => {
+    growth.push({units, values});if (wire !== undefined) document = wire;
   });
   assert.equal(gets, 1);assert.equal(keys, 1);assert.equal(json, 1);assert.equal(coerced, 1);
   assert.deepEqual(captured, {input: {text: 'SELECT @n AS n', format: 'sql'},
     parameters: {n: 3.5, text: '😀\ud800'}});
   assert.deepEqual(JSON.parse(document), captured);
   assert.ok(growth.length > 1);
-  for (let index = 1; index < growth.length - 1; index++) assert.ok(growth[index] >= growth[index - 1] * 2);
-  assert.equal(growth.at(-1), growth.at(-2));
+  for (let index = 1; index < growth.length - 1; index++) {
+    const next = growth[index], previous = growth[index - 1];
+    assert.ok(next.units >= previous.units && next.values >= previous.values);
+    assert.ok(next.units >= previous.units * 2 || next.values >= previous.values * 2);
+  }
+  assert.deepEqual(growth.at(-1), growth.at(-2));
   const originalFailure = {};
   assert.throws(() => snapshotClientRequest(original, () => {throw originalFailure;}), cause => cause === originalFailure);
 });
@@ -1134,4 +1138,29 @@ test('funded snapshot native brands preserve ordinary object getters and boxed f
   assert.throws(() => snapshotClientRequest({input: invalid()}), {name: 'TypeError'});
   assert.throws(() => snapshotClientRequest({input: invalid()}, () => {}), {name: 'TypeError'});
   assert.deepEqual(snapshotClientRequest({input: JSON.rawJSON('1.50')}, () => {}), {input: 1.5});
+});
+
+
+test('funded snapshot retains a separate observed value envelope without another caller traversal', () => {
+  let gets = 0, jsonCalls = 0, numberCalls = 0;
+  const boxed = new Number(3);
+  boxed.valueOf = () => {numberCalls++;return 3;};
+  const input = {text: 'x'.repeat(8192), rows: [{n: 1}, {n: 2}],
+    get tagged() {gets++;return {toJSON() {jsonCalls++;return 'é';}};}, boxed};
+  const observed = [];
+  const actual = snapshotClientRequest(input, (units, wire, values) => {
+    observed.push({units, wire, values});
+  });
+  assert.deepEqual(actual, {text: 'x'.repeat(8192), rows: [{n: 1}, {n: 2}], tagged: 'é', boxed: 3});
+  assert.equal(gets, 1);assert.equal(jsonCalls, 1);assert.equal(numberCalls, 1);
+  const final = observed.at(-1);
+  // Nine native visits; a geometric bound is below twice that value. Text
+  // belongs to its separate byte envelope, not thousands of invented nodes.
+  assert.ok(final.values >= 9 && final.values < 18, 'separate native value envelope');
+  assert.ok(final.units > 8192 && final.values < final.units / 100);
+  assert.equal(typeof final.wire, 'string');
+  for (let i = 1; i < observed.length; i++) {
+    assert.ok(observed[i].units >= observed[i - 1].units);
+    assert.ok(observed[i].values >= observed[i - 1].values);
+  }
 });

@@ -46,7 +46,7 @@ test "Request original Query lowers once and hands the same Program and Catalog 
       input,
       client_local_resource_policy(),
     ).unwrap()
-    reserve_request_snapshot(parent, input, 100L).unwrap()
+    reserve_request_snapshot(parent, input, 100L, 100L).unwrap()
     let query = parse_request_query_syntax(parent, input, document, format).unwrap()
     action.val = Some(() => {
       if lower_request_published_query(
@@ -232,7 +232,7 @@ test "Request lowered SQL keeps its original checker compiler Plan and Run throu
     input,
     client_local_resource_policy(),
   ).unwrap()
-  reserve_request_snapshot(parent, input, 100L).unwrap()
+  reserve_request_snapshot(parent, input, 100L, 100L).unwrap()
   parse_request_query_syntax(parent, input, "SELECT @n AS n", @frontend.Sql).unwrap()
   |> ignore
   let (lowered, catalog, _) = lower_request_published_query(

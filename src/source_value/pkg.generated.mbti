@@ -8,7 +8,7 @@ import {
 }
 
 // Values
-pub fn[T] admit_captured_json(T, JsonDataReader[T], ParseLimits, program_keys? : Bool, source_path? : String) -> Result[ParsedSource, ParseError]
+pub fn[T] admit_captured_json(T, JsonDataReader[T], ParseLimits, program_keys? : Bool, normalize_keys? : Bool, source_path? : String) -> Result[ParsedSource, ParseError]
 
 pub fn advance_json_parse(JsonParse, Int) -> Result[JsonParsePoll, JsonParseControlIssue]
 

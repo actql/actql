@@ -40,7 +40,7 @@ fn request_query_lowering_data_bytes(
     usage.bytes.to_int64() +
     usage.nodes.to_int64() +
     1L
-  request_snapshot_data_bytes(units)
+  request_snapshot_data_bytes(units, units)
 }
 
 ///|

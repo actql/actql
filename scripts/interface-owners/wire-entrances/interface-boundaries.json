@@ -5515,7 +5515,7 @@
     {
       "module": "packages/client-wire/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e985d12b9b2ec7abb17c88cc640a7299d163ce4768a5f401ba71dbd341ce0f87",
+      "sha256": "2ed82e6cef8bd7a889ff30d8de8b26417590ff7a8a5516bf07793edd46062ef3",
       "exports": [
         "*:./interactive-control.generated.js",
         "checkOutcomeProtocol",

@@ -74,6 +74,7 @@ pub fn[T] admit_captured_json(
   reader : JsonDataReader[T],
   limits : ParseLimits,
   program_keys? : Bool = false,
+  normalize_keys? : Bool = false,
   source_path? : String = "<snapshot>",
 ) -> Result[ParsedSource, ParseError] {
   if !valid_limits(limits) {
@@ -234,7 +235,11 @@ pub fn[T] admit_captured_json(
           if bytes > limits.max_input_bytes.to_int64() {
             return failure(InputLimit)
           }
-          let key = if program_keys && program_json_normalizes_key(path) {
+          let key = if source_normalizes_key(
+              program_keys || normalize_keys,
+              program_keys,
+              path,
+            ) {
             match @canonical.normalize_nfc_lf(raw) {
               Ok(value) => value
               Err(_) => return failure(InvalidUnicodeEscape)

@@ -39,10 +39,13 @@ struct ClientRequestPreparation[I] {
   mut input : I?
   mut snapshot_base : (Int64, Int64)?
   mut snapshot_units : Int64
+  mut snapshot_values : Int64
   mut query_syntax : ClientRequestQuerySyntax?
   // The same generic domain holder owns its source/index/Program aliases.
   // Unit remains uncompleted until the actual output-type continuation.
   mut program_json : ClientProgramJsonPreparation[I, Unit]?
+  mut native_parameters : @decode.Cursor?
+  mut native_parameters_ready : Bool
   mut held_program : @syntax.Program?
   mut program_check : ClientProgramCheckPreparation[I, Unit]?
   // SAME reservation continued to its actual final body type; no second owner.
@@ -74,6 +77,7 @@ pub(all) enum ClientRequestPreparationIssue {
   Capacity(@resources.PreparationCapacityIssue)
   ProgramJson(ClientProgramJsonPreparationIssue)
   ProgramCheck(ClientProgramCheckPreparationIssue)
+  Parameters(@local_preparation.LocalProgramInputIssue)
 } derive(Debug)
 
 ///|
@@ -245,8 +249,11 @@ pub fn[I] begin_request_preparation(
     input: Some(input),
     snapshot_base: None,
     snapshot_units: 0L,
+    snapshot_values: 0L,
     query_syntax: None,
     program_json: None,
+    native_parameters: None,
+    native_parameters_ready: false,
     held_program: None,
     program_check: None,
     program_capacity: None,
@@ -385,6 +392,16 @@ fn[I] prepare_request_check_preparation_owned(
   }
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(ForeignOriginal)
+  }
+  let supplied = if owner.native_parameters_ready {
+    match (owner.native_parameters, supplied) {
+      (Some(original), Some(selected)) if !physical_equal(original, selected) =>
+        return Err(ForeignOriginal)
+      (None, Some(_)) => return Err(ForeignOriginal)
+      (original, _) => original
+    }
+  } else {
+    supplied
   }
   let (program, source_catalog) = if owner.phase == QueryLowered {
     guard owner.held_program is Some(program) &&
@@ -578,6 +595,8 @@ pub fn[I] abort_request_preparation_after_cleanup(
   // Both registered controllers have relinquished only their own aliases.
   // This caller is explicitly after its borrowed arguments/returned frames.
   owner.held_program = None
+  owner.native_parameters = None
+  owner.native_parameters_ready = false
   owner.query_syntax = None
   owner.compiled_program = None
   owner.compiled_effect = None

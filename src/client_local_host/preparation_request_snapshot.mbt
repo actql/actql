@@ -1,17 +1,21 @@
 ///|
 // Native JSON capture and its detached value coexist. A single unit covers
-// one visited value plus its key and String code units. The shared tariff
+// one visited value plus its key and String code units. Values have their
+// own geometric high-water mark: long Text never fabricates tree nodes. The shared tariff
 // bounds the resulting records/slots and worst-case escaped wire, including
 // the copy. Borrowed caller data and small VM control frames are not copied
 // into this estimate. This is logical demand, not a physical heap guarantee.
-fn request_snapshot_data_bytes(units : Int64) -> Int64? {
-  if units < 0L || units > 9223372036854775807L / 8L {
+fn request_snapshot_data_bytes(units : Int64, values : Int64) -> Int64? {
+  if units < 0L ||
+    values < 0L ||
+    values > units ||
+    units > 9223372036854775807L / 8L {
     return None
   }
   @execution.preparation_representation_cost({
-    record_headers: 2L * units,
-    reference_slots: 4L * units,
-    scalar_words: 2L * units,
+    record_headers: 2L * values,
+    reference_slots: 4L * values,
+    scalar_words: 2L * values,
     owned_utf16_units: 8L * units,
     owned_wire_bytes: 0L,
   })
@@ -26,16 +30,18 @@ pub fn[I] reserve_request_snapshot(
   owner : ClientRequestPreparation[I],
   input : I,
   units : Int64,
+  values : Int64,
 ) -> Result[Unit, ClientRequestPreparationIssue] {
   guard owner.phase == Open else { return Err(WrongPhase) }
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(ForeignOriginal)
   }
   guard units >= owner.snapshot_units &&
-    request_snapshot_data_bytes(units) is Some(bytes) else {
+    values >= owner.snapshot_values &&
+    request_snapshot_data_bytes(units, values) is Some(bytes) else {
     return Err(Policy)
   }
-  if units == owner.snapshot_units {
+  if units == owner.snapshot_units && values == owner.snapshot_values {
     return Ok(())
   }
   let base = match owner.snapshot_base {
@@ -66,6 +72,7 @@ pub fn[I] reserve_request_snapshot(
     Err(issue) => Err(Capacity(issue))
     Ok(_) => {
       owner.snapshot_units = units
+      owner.snapshot_values = values
       Ok(())
     }
   }

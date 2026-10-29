@@ -306,7 +306,7 @@ const snapshotRawJSONBrand = JSON.isRawJSON;
 // Client requests observe the JSON value actually submitted at this boundary.
 // Preserve ordinary JSON serialization, but never replace source numbers.
 function snapshotRequest(value, numberError, observe) {
-  let units = 0, reserved = 0;
+  let units = 0, reserved = 0, values = 0, reservedValues = 0;
   const document = JSON.stringify(value, (key, item) => {
     let number = item, boxed = false;
     if (item !== null && typeof item === 'object') {
@@ -342,17 +342,23 @@ function snapshotRequest(value, numberError, observe) {
       // enumerate a Proxy or coerce a boxed Number again. Geometric growth
       // avoids a Resource/current callback for every field or array item.
       units += 1 + key.length + rawUnits + (typeof selected === 'string' ? selected.length : 0);
-      if (!Number.isSafeInteger(units)) throw new RangeError('ClientSnapshotSizeOverflow');
-      if (units > reserved) {
-        const next = Math.max(units, reserved * 2);
-        if (!Number.isSafeInteger(next)) throw new RangeError('ClientSnapshotSizeOverflow');
-        observe(next);
-        reserved = next;
+      values++;
+      if (!Number.isSafeInteger(units) || !Number.isSafeInteger(values)) {
+        throw new RangeError('ClientSnapshotSizeOverflow');
+      }
+      if (units > reserved || values > reservedValues) {
+        const nextValues = values > reservedValues ? Math.max(values, reservedValues * 2) : reservedValues;
+        const next = Math.max(nextValues, units > reserved ? Math.max(units, reserved * 2) : reserved);
+        if (!Number.isSafeInteger(next) || !Number.isSafeInteger(nextValues)) {
+          throw new RangeError('ClientSnapshotSizeOverflow');
+        }
+        observe(next, undefined, nextValues);
+        reserved = next;reservedValues = nextValues;
       }
     }
     return selected;
   });
-  if (observe !== undefined) observe(reserved, document);
+  if (observe !== undefined) observe(reserved, document, reservedValues);
   return JSON.parse(document);
 }
 

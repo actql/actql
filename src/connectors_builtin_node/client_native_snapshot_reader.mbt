@@ -53,3 +53,10 @@ let native_json_reader : @source.JsonDataReader[NativeJsonValue] = {
   length: native_json_length,
   field: native_json_field,
 }
+
+///|
+// Only the literal null in the captured SDK envelope means absent values.
+// Nonfinite numbers reached through native rawJSON still serialize to a
+// supplied null and must enter the original Parameter reader, not a default.
+extern "js" fn native_json_parameter_is_absent(value : NativeJsonValue) -> Bool =
+  #|(value) => value === null

@@ -35,8 +35,8 @@ not another connector authoring interface, Resource owner or admission proof.
 
 The existing Source Owner constructs one source tree while measuring its byte,
 node and depth bounds. It shares the original parser's Program-key decision,
-including the root-anchored Effect literal-key exceptions. Parameter/value DATA
-keys remain literal. Each Number uses the existing scalar-domain conversion;
+including the root-anchored Effect literal-key exceptions. The raw DATA reader preserves literal keys by default; supplied Parameters
+select the same existing Local admission key policy as textual Parameters. Each Number uses the existing scalar-domain conversion;
 there is no second whole-input serializer or parser. In particular, the native
 snapshot's rounded numeric value is used rather than an obsolete rawJSON token.
 Native input has no authored textual coordinates; its spans are synthetic.
@@ -56,6 +56,42 @@ typed admission is terminal for that preparation; cleanup does not recreate the
 input or acknowledge unrelated physical children. This representation adapter
 does not by itself enable every ordinary Node body/Parameters/options consumer
 or establish complete work accounting or physical backing.
+
+## Installation Source lifetime before Requests
+
+Source configuration, runtime and schema material must enter their actual
+initial owner before their constructors. A later Request or Row Run cannot
+retroactively supply that initial overlap. The ordinary Host configuration and
+cleanup registry, including `retainPreparation`, does not issue funded backing.
+An installation-lifetime original borrowed by Requests must retain its actual
+admitted lifetime, currentness and physical retirement, rather than a profile
+flag or detached scalar credit. The Source Owner keeps its material recipe and
+failed-construction/retirement duties; the initial admission and forwarding
+must use the same existing accounting owner without a parallel Source Ledger.
+
+## Captured Parameter Values on the Request
+
+The Local Parameter input Owner supplies its existing source/tree limits to
+both textual and captured intake. The captured entry uses its existing key
+normalization policy, including duplicate-key refusal. It does not infer a new
+literal-data exception from the Program Effect-key policy. Bounds and refusal
+priority remain with that same Owner; Parameter input is admitted before the
+Program document as in the existing Local entrance.
+
+One Request expansion covers the actual simultaneously retained Program and
+Parameter source/index material. The Request keeps the original Parameter
+cursor and supplies that exact cursor to the existing binder/checker. An equal
+independent cursor cannot replace it. Missing values remain absent; a supplied
+null produced from a nonfinite native value remains supplied and cannot turn
+into a default. The existing compiler/Plan/Run handoff retains the same parent;
+its actual retirement cuts the remaining captured-input aliases.
+
+The native SDK traversal retains separate geometric high-water marks for its
+value visits and combined key/Text units. Observing long Text does not invent
+thousands of source nodes. Either actual envelope expansion grows the original
+reservation before native construction continues; identical observations do
+not invoke current again. These are conservative representation bounds, not
+full work counts, allocated-byte measurements, physical backing or permissions.
 
 ## Native SDK snapshot handoff
 
