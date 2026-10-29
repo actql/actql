@@ -24,6 +24,8 @@ test "Request Plan input retains the actual compiler across the real module and 
     parent,
     input,
     request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
     retained_output=true,
     provider_factory=_ => [],
   ).unwrap()
@@ -86,6 +88,8 @@ test "Request Plan input holds failed constructor DATA and charged debit until t
           parent,
           input,
           request_program_module_contracts(),
+          manifests=request_program_module_manifests(),
+          compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
           retained_output=true,
           provider_factory=_ => closed_module_test_throw(),
         ),

@@ -48,6 +48,20 @@ fn request_program_installed_plan(
 }
 
 ///|
+let request_program_module_manifest_original : @publication_host.ClientCompilationManifests = @publication_host.admit_client_compilation_manifests(
+  @environment.compiler_grammar_manifest_wire(),
+  @environment.compiler_barrier_contract_manifest_wire(),
+  100000,
+  10000,
+  100,
+).unwrap()
+
+///|
+fn request_program_module_manifests() -> @publication_host.ClientCompilationManifests {
+  request_program_module_manifest_original
+}
+
+///|
 fn request_program_module_contracts() -> ClientInstalledSequenceContracts {
   let assets = @publication_host.client_local_product_assets()
   prepare_installed_sequence_contracts(
@@ -56,6 +70,303 @@ fn request_program_module_contracts() -> ClientInstalledSequenceContracts {
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
+}
+
+///|
+test "generic Request module retains its funded compilation before body and same original Run adoption" {
+  let calls = Ref(0)
+  let (parent, input, prepared) = request_program_body_fixture(current=() => {
+    calls.val += 1
+    true
+  })
+  let original_capacity = parent.program_capacity.unwrap()
+  let factory_calls = Ref(0)
+  prepare_request_program_module_body(
+    parent,
+    input,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    retained_output=true,
+    provider_factory=_ => {
+      factory_calls.val += 1
+      []
+    },
+  ).unwrap()
+  let plan = parent.program_source_free.unwrap()
+  assert_true(plan.compilation is Some(_))
+  let compilation = plan.compilation.unwrap()
+  assert_true(
+    physical_equal(parent.program_capacity.unwrap(), original_capacity),
+  )
+  assert_eq(factory_calls.val, 1)
+  let borrow = borrow_request_program_preparation(parent).unwrap()
+  assert_true(
+    physical_equal(
+      @resources.preparation_body_borrow_value(borrow).unwrap(),
+      prepared,
+    ),
+  )
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "funded-original-artifact",
+  ).unwrap()
+  let run = begin_request_program_managed_run(parent, request).unwrap()
+  assert_true(physical_equal(run.source_free_preparation.unwrap(), plan))
+  let before = calls.val
+  let observed = installed_managed_run_compilation_original(run, prepared).unwrap()
+  assert_true(physical_equal(observed, compilation))
+  assert_eq(calls.val, before)
+  assert_true(
+    installed_managed_run_compilation_original(
+      run,
+      @publication_host.prepare_effect_free_client_program(
+        request_check_wire,
+        Json,
+        catalog_domain_environment(),
+        None,
+        @publication_host.client_standard_program_preparation_limits(),
+      ).unwrap(),
+    )
+    is None,
+  )
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  assert_true(@resources.preparation_body_borrow_value(borrow) is Some(_))
+  assert_true(@resources.return_preparation_body_borrow(borrow).unwrap())
+  retire_installed_managed_run(run).unwrap()
+  assert_true(installed_managed_run_compilation_original(run, prepared) is None)
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "funded artifact grow retains original module and measurement across both one-byte-short boundaries" {
+  for retention in [true, false] {
+    let (parent, input, _) = request_program_body_fixture()
+    reserve_request_program_plan(parent, input).unwrap()
+    let capacity = parent.program_capacity.unwrap()
+    let base = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+    let limits = @resources.ledger_limits(parent.ledger)
+    let factory_calls = Ref(0)
+    let factory = _ => {
+      factory_calls.val += 1
+      []
+    }
+    let contracts = request_program_module_contracts()
+    let manifests = request_program_module_manifests()
+    let compilation_limits = @publication_host.client_standard_pure_compilation_limits()
+    let block = @resources.reserve_capacity(
+      parent.ledger,
+      if retention {
+        limits.retained_bytes - base.0
+      } else {
+        0L
+      },
+      if retention {
+        0L
+      } else {
+        limits.execution_bytes - base.1
+      },
+    ).unwrap()
+    assert_true(
+      prepare_request_program_module_body(
+        parent,
+        input,
+        contracts,
+        manifests~,
+        compilation_limits~,
+        retained_output=true,
+        provider_factory=factory,
+      )
+      is Err(Preparation(Capacity(_))),
+    )
+    assert_eq(factory_calls.val, 1)
+    let installed = parent.program_source_free.unwrap()
+    let geometry = parent.program_artifact_geometry.unwrap()
+    let quote = parent.program_artifact_quote.unwrap()
+    assert_true(quote.0 > base.0 && quote.1 > base.1)
+    assert_true(installed.compilation is None)
+    assert_true(borrow_request_program_preparation(parent) is Err(WrongPhase))
+    assert_true(
+      parent.phase == ProgramPlanReserved && !parent.program_body_attempted,
+    )
+    @resources.settle_capacity(parent.ledger, block).unwrap()
+    let short = @resources.reserve_capacity(
+      parent.ledger,
+      if retention {
+        limits.retained_bytes - quote.0 + 1L
+      } else {
+        0L
+      },
+      if retention {
+        0L
+      } else {
+        limits.execution_bytes - quote.1 + 1L
+      },
+    ).unwrap()
+    let result = prepare_request_program_module_body(
+      parent,
+      input,
+      contracts,
+      manifests~,
+      compilation_limits~,
+      retained_output=true,
+      provider_factory=factory,
+    )
+    assert_true(
+      if retention {
+        result is Err(Preparation(Capacity(Resource(RetentionLimit))))
+      } else {
+        result is Err(Preparation(Capacity(Resource(ExecutionLimit))))
+      },
+    )
+    assert_eq(factory_calls.val, 1)
+    assert_true(physical_equal(parent.program_source_free.unwrap(), installed))
+    assert_true(
+      physical_equal(parent.program_artifact_geometry.unwrap(), geometry),
+    )
+    assert_true(physical_equal(parent.program_capacity.unwrap(), capacity))
+    assert_eq(parent.program_artifact_quote, Some(quote))
+    assert_eq(
+      @resources.preparation_capacity_working_extents(capacity, input),
+      Ok(base),
+    )
+    assert_true(
+      prepare_request_program_module_body(
+        parent,
+        input,
+        request_program_module_contracts(),
+        manifests~,
+        compilation_limits~,
+        retained_output=true,
+        provider_factory=factory,
+      )
+      is Err(Preparation(ForeignOriginal)),
+    )
+    assert_eq(factory_calls.val, 1)
+    @resources.settle_capacity(parent.ledger, short).unwrap()
+    let exact = @resources.reserve_capacity(
+      parent.ledger,
+      if retention {
+        limits.retained_bytes - quote.0
+      } else {
+        0L
+      },
+      if retention {
+        0L
+      } else {
+        limits.execution_bytes - quote.1
+      },
+    ).unwrap()
+    prepare_request_program_module_body(
+      parent,
+      input,
+      contracts,
+      manifests~,
+      compilation_limits~,
+      retained_output=true,
+      provider_factory=factory,
+    ).unwrap()
+    assert_eq(factory_calls.val, 1)
+    assert_true(physical_equal(parent.program_source_free.unwrap(), installed))
+    assert_true(installed.compilation is Some(_))
+    assert_true(
+      parent.program_artifact_geometry is None &&
+      parent.program_artifact_quote is None &&
+      parent.program_artifact_inputs is None,
+    )
+    let body = borrow_request_program_preparation(parent).unwrap()
+    assert_eq(
+      @resources.preparation_body_borrow_reserved_extents(body),
+      Ok(quote),
+    )
+    // False reports that the ORIGINAL owner remains live; the borrow has
+    // still returned. Retirement below proves its separate release boundary.
+    assert_eq(@resources.return_preparation_body_borrow(body), Ok(false))
+    @resources.settle_capacity(parent.ledger, exact).unwrap()
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    assert_eq(
+      @resources.ledger_usage(parent.ledger).reserved_retention_bytes,
+      0L,
+    )
+  }
+}
+
+///|
+test "funded artifact current reentry cannot replace original module input or begin a second constructor" {
+  let holder : Ref[ClientRequestPreparation[Array[Int]]?] = Ref(None)
+  let observed = Ref(0)
+  let (parent, input, _) = request_program_body_fixture(current=() => {
+    if holder.val is Some(parent) &&
+      parent.program_artifact_quote is Some(_) &&
+      parent.phase == Selecting {
+      guard abort_request_preparation_after_cleanup(parent) is Err(WrongPhase) else {
+        return false
+      }
+      guard parent.input is Some(input) &&
+        parent.program_artifact_inputs
+        is Some(
+          (manifests, compilation_limits, contracts, retained_output, factory)
+        ) else {
+        return false
+      }
+      guard prepare_request_program_module_body(
+          parent,
+          input,
+          contracts,
+          manifests~,
+          compilation_limits~,
+          retained_output~,
+          provider_factory=factory,
+        )
+        is Err(Preparation(WrongPhase)) else {
+        return false
+      }
+      observed.val += 1
+    }
+    true
+  })
+  holder.val = Some(parent)
+  let calls = Ref(0)
+  prepare_request_program_module_body(
+    parent,
+    input,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    retained_output=true,
+    provider_factory=_ => {
+      calls.val += 1
+      []
+    },
+  ).unwrap()
+  assert_true(observed.val > 0)
+  assert_eq(calls.val, 1)
+  assert_true(parent.program_source_free.unwrap().compilation is Some(_))
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "artifact reservation derives from original constructor bodies rather than configured codec headroom" {
+  let (parent, _, prepared) = request_program_body_fixture()
+  let manifests = request_program_module_manifests()
+  let sequence = @publication_host.prepared_client_values_sequence_limits(
+    prepared,
+  )
+  let tight = @publication_host.measure_prepared_client_pure_compilation_construction(
+    prepared, manifests, sequence, 1000, 10000, 1000000, 100000, 100,
+  ).unwrap()
+  let roomy = @publication_host.measure_prepared_client_pure_compilation_construction(
+    prepared, manifests, sequence, 2000, 20000, 2000000, 200000, 200,
+  ).unwrap()
+  assert_true(tight == { ..roomy, limits: tight.limits, })
+  let actual = program_artifact_construction_cost(tight).unwrap()
+  assert_true(actual > 0L)
+  assert_eq(program_artifact_construction_cost(roomy), Some(actual))
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
 
 ///|
@@ -68,6 +379,8 @@ test "Request module constructor retains same checked output and actual Plan bef
     parent,
     input,
     request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
     retained_output=true,
     provider_factory=_ => {
       calls.val += 1
@@ -104,6 +417,8 @@ test "Request module constructor retains same checked output and actual Plan bef
       parent,
       input,
       request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
       retained_output=true,
       provider_factory=_ => {
         calls.val += 1
@@ -138,6 +453,8 @@ test "Request module callback exception unwinds its original constructor before 
         parent,
         input,
         request_program_module_contracts(),
+        manifests=request_program_module_manifests(),
+        compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
         retained_output=true,
         provider_factory=_ => closed_module_test_throw(),
       ),
@@ -447,6 +764,8 @@ test "Request installed module keeps Unicode Text outside the old numeric constr
     parent,
     input,
     request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
     retained_output=true,
     provider_factory=_ => [],
   ).unwrap()
@@ -495,6 +814,8 @@ test "Request installed module preserves exact one-byte-short refusal before its
         parent,
         [1],
         contracts,
+        manifests=request_program_module_manifests(),
+        compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
         retained_output=true,
         provider_factory=factory,
       )
@@ -521,6 +842,8 @@ test "Request installed module preserves exact one-byte-short refusal before its
         parent,
         input,
         contracts,
+        manifests=request_program_module_manifests(),
+        compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
         retained_output=true,
         provider_factory=factory,
       )
@@ -545,6 +868,8 @@ test "Request installed module preserves exact one-byte-short refusal before its
       parent,
       input,
       contracts,
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
       retained_output=true,
       provider_factory=factory,
     )
@@ -565,6 +890,8 @@ test "Request installed module preserves exact one-byte-short refusal before its
       parent,
       input,
       contracts,
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
       retained_output=true,
       provider_factory=factory,
     ).unwrap()

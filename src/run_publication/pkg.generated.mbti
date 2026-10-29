@@ -432,6 +432,8 @@ pub fn effect_row_outcome_receipt_terminal_state(PublicationContract) -> String?
 
 pub fn effect_set_apply_receipt_all_unattempted(EffectSetApplyReceiptEvidence) -> Bool
 
+pub fn effect_set_apply_receipt_check_limits(EffectSetApplyReceiptEvidence, Int, Int, Int) -> Result[Unit, PublicationContractIssue]
+
 pub fn effect_set_apply_receipt_disposition(EffectSetApplyReceiptEvidence) -> Int
 
 pub fn effect_set_receipt_run_disposition(EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[Int, EffectSetApplyReceiptBindingIssue]

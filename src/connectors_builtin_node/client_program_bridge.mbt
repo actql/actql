@@ -1690,6 +1690,7 @@ pub fn client_program_compile_local_values(
   @publication_host.ClientValuesCompilation,
   ClientProgramValuesCompilationBridgeIssue,
 ] {
+  let limits = @publication_host.client_standard_pure_compilation_limits()
   let manifests = match client_generated_compilation_manifests() {
     Ok(manifests) => manifests
     Err(issue) => return Err(Manifests(issue))
@@ -1699,11 +1700,11 @@ pub fn client_program_compile_local_values(
       prepared,
       manifests,
       @publication_host.prepared_client_values_sequence_limits(prepared),
-      1000,
-      10000,
-      1000000,
-      100000,
-      100,
+      limits.max_facts,
+      limits.max_witnesses,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
     ) {
     Ok(compiled) => Ok(compiled)
     Err(issue) => Err(Compilation(issue))
@@ -1762,6 +1763,7 @@ pub fn client_program_compile_local_tasks(
   @publication_host.ClientTaskCompilation,
   ClientProgramTaskCompilationBridgeIssue,
 ] {
+  let limits = @publication_host.client_standard_pure_compilation_limits()
   let manifests = match client_generated_compilation_manifests() {
     Ok(manifests) => manifests
     Err(issue) => return Err(Manifests(issue))
@@ -1770,11 +1772,11 @@ pub fn client_program_compile_local_tasks(
     prepared,
     manifests,
     @publication_host.prepared_client_values_sequence_limits(prepared),
-    1000,
-    10000,
-    1000000,
-    100000,
-    100,
+    limits.max_facts,
+    limits.max_witnesses,
+    limits.max_wire_bytes,
+    limits.max_nodes,
+    limits.max_depth,
   ).map_err(issue => Compilation(issue))
 }
 

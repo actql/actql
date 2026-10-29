@@ -217,43 +217,7 @@ fn issue_prepared_client_direct_result_root_for_output(
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
-  @encode.begin_object(writer) catch {
-    _ => return Err(Encoding)
-  }
-  @encode.key(writer, "name") catch {
-    _ => return Err(Encoding)
-  }
-  @encode.string_value(writer, result_name) catch {
-    _ => return Err(Encoding)
-  }
-  @encode.key(writer, "ref") catch {
-    _ => return Err(Encoding)
-  }
-  @encode.begin_object(writer) catch {
-    _ => return Err(Encoding)
-  }
-  @encode.key(writer, "node_id") catch {
-    _ => return Err(Encoding)
-  }
-  @encode.string_value(writer, node_id) catch {
-    _ => return Err(Encoding)
-  }
-  @encode.key(writer, "port") catch {
-    _ => return Err(Encoding)
-  }
-  @encode.string_value(writer, output_port) catch {
-    _ => return Err(Encoding)
-  }
-  @encode.end_object(writer) catch {
-    _ => return Err(Encoding)
-  }
-  @encode.key(writer, "role") catch {
-    _ => return Err(Encoding)
-  }
-  @encode.string_value(writer, "requested_result") catch {
-    _ => return Err(Encoding)
-  }
-  @encode.end_object(writer) catch {
+  emit_client_requested_result_root(writer, result_name, node_id, output_port) catch {
     _ => return Err(Encoding)
   }
   let wire = @encode.finish(writer) catch { _ => return Err(Encoding) }
