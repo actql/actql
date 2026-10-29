@@ -12,6 +12,7 @@
 // exclude a move between the check and the send.
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
+import {checked} from '../../../host-common/runtime-result.mjs';
 import {callHttpsCredentialResource} from
   '../../../site-node/https-credential-resource.mjs';
 import {invokeScopedCredentialOperation} from
@@ -254,4 +255,84 @@ export function projectGitHubCommentObservation({moon, observation, headers,
   return Object.freeze({kind: observation.statusCode >= 200 &&
     observation.statusCode < 300 ? 'unclassified-response'
     : 'provider-response', observation});
+}
+
+
+// The caller retains the SAME saved final request and actual write observation.
+// This creates only bounded read-request/projection DATA. It neither reads a
+// provider nor admits media/current/permission or a terminal Effect receipt.
+export function prepareGitHubCommentConfirmation({moon, request, repository,
+  observation, headers, limits}) {
+  const failConfirmation = () => fail('InvalidGitHubCommentConfirmation');
+  const own = (value, names) => {
+    if (value === null || typeof value !== 'object' || types.isProxy(value)) failConfirmation();
+    const fields = Object.getOwnPropertyDescriptors(value);
+    if (Reflect.ownKeys(fields).length !== names.length || names.some(name =>
+      !fields[name]?.enumerable || !Object.hasOwn(fields[name], 'value'))) failConfirmation();
+    return Object.fromEntries(names.map(name => [name, fields[name].value]));
+  };
+  const bounded = own(limits, ['maxRequestBytes', 'maxResponseBytes', 'maxNodes', 'maxDepth']);
+  if (!Object.values(bounded).every(value => Number.isSafeInteger(value) && value > 0 &&
+      value <= 2147483647)) failConfirmation();
+  const original = own(request, ['version', 'origin', 'method', 'path', 'subjectId',
+    'body', 'requestCid', 'logicalBody', 'requestTag']);
+  if (!Object.values(original).every(value => typeof value === 'string' && value.isWellFormed()) ||
+      original.version !== REQUEST_VERSION || original.method !== 'POST' ||
+      original.path !== GITHUB_GRAPHQL_PATH || !original.origin.startsWith('https://') ||
+      !/^sha256:[0-9a-f]{64}$/u.test(original.requestTag) ||
+      Buffer.byteLength(original.body) > bounded.maxRequestBytes ||
+      original.requestCid !== exactRequestCid([original.version, original.origin,
+        original.method, original.path, original.body])) failConfirmation();
+  const repo = own(repository, ['nodeId', 'databaseId', 'nameWithOwner']);
+  if (![repo.nodeId, repo.nameWithOwner].every(value => typeof value === 'string' &&
+      value.length > 0 && value.isWellFormed()) || !Number.isSafeInteger(repo.databaseId) ||
+      repo.databaseId <= 0) failConfirmation();
+  const observed = value => {
+    if (value === null || typeof value !== 'object' || types.isProxy(value)) failConfirmation();
+    const fields = Object.getOwnPropertyDescriptors(value);
+    if (['statusCode', 'body'].some(name => !Object.hasOwn(fields[name] ?? {}, 'value')) ||
+        !Number.isSafeInteger(fields.statusCode.value) || fields.statusCode.value < 100 ||
+        fields.statusCode.value > 599 || !(fields.body.value instanceof Uint8Array)) failConfirmation();
+    return {status: fields.statusCode.value, body: fields.body.value};
+  };
+  const write = observed(observation);
+  const names = ['githubPrepareCommentConfirmation', 'githubCommentConfirmationRequestJson',
+    'githubProjectCommentConfirmationJson', 'githubRequestHeadersJson'];
+  if (moon === null || typeof moon !== 'object' || types.isProxy(moon)) failConfirmation();
+  const methods = Object.fromEntries(names.map(name => {
+    const field = Object.getOwnPropertyDescriptor(moon, name);
+    if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function') failConfirmation();
+    return [name, field.value];
+  }));
+  const call = (name, ...args) => Reflect.apply(methods[name], moon, args);
+  // Header absence is retained as DATA; an absent recovered403 cannot acquire
+  // a confirming read merely by substituting an empty header list.
+  if (headers !== undefined && (!Array.isArray(headers) || headers.some(pair =>
+    !Array.isArray(pair) || pair.length !== 2 || !pair.every(value => typeof value === 'string')))) failConfirmation();
+  const pairs = headers ?? [], [headerNames, headerValues] = [pairs.map(p => p[0]), pairs.map(p => p[1])];
+  const held = checked(call('githubPrepareCommentConfirmation', original.subjectId, original.logicalBody,
+    original.requestTag, original.body, repo.nodeId, repo.databaseId, repo.nameWithOwner,
+    write.status, headers !== undefined, headerNames, headerValues, write.body,
+    bounded.maxRequestBytes, bounded.maxResponseBytes, bounded.maxNodes, bounded.maxDepth));
+  const encoded = call('githubCommentConfirmationRequestJson', held);
+  if (typeof encoded !== 'string') failConfirmation();
+  const selected = JSON.parse(encoded);
+  if (selected.kind === 'NoConfirmation') return undefined;
+  if (selected.kind !== 'ConfirmationRequest' || typeof selected.body !== 'string' ||
+      Buffer.byteLength(selected.body) > bounded.maxRequestBytes) failConfirmation();
+  const requestHeaders = JSON.parse(call('githubRequestHeadersJson'));
+  const readRequest = Object.freeze({method: 'POST', path: GITHUB_GRAPHQL_PATH,
+    body: selected.body, headers: Object.freeze(requestHeaders.map(pair => Object.freeze([...pair])))});
+  return Object.freeze({request: readRequest, project(readObservation) {
+    const read = observed(readObservation);
+    const encoded = call('githubProjectCommentConfirmationJson', held, read.status, read.body);
+    if (typeof encoded !== 'string') failConfirmation();
+    const result = JSON.parse(encoded);
+    if (result.kind !== 'Confirmed') return Object.freeze({kind: 'provider-response',
+      writeObservation: observation, observation: readObservation});
+    if (typeof result.id !== 'string' || !/^[1-9][0-9]*$/u.test(result.id) ||
+        typeof result.nodeId !== 'string' || result.nodeId.length === 0) failConfirmation();
+    return Object.freeze({kind: 'confirmed-provider-response', writeObservation: observation,
+      observation: readObservation, result: Object.freeze({comment_id: result.id, node_id: result.nodeId})});
+  }});
 }
